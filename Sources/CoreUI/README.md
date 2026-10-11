@@ -263,7 +263,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   `overlayContentView` receives a separate native depth projection, so pinning
   a corner flag to its bounds does not keep it attached to the poster.
   Async logos, focus-reactive progress and animated content remain live in that
-  overlay; edge marks do not. Mark changes invalidate only their composition,
+  overlay; edge marks and full-card legibility washes do not. Continue Watching
+  keeps its established size, reflection, logo position and resume chrome without
+  top-corner watch marks. Its adaptive logo dimming and the shared bottom scrim
+  are drawn into the artwork; projecting those backgrounds with the live overlay
+  creates a dark rim outside the focused image. Mark changes invalidate only their composition,
   while focus alone reuses the attached pixels. Captions stay outside it. Transparent
   artwork retains its alpha, and protected/extended artwork is prepared before
   normalization. Focus changes do not regenerate the bitmap.
@@ -276,6 +280,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   retaining an additional unmarked full-size copy per card. Identical status
   presentations share concrete pixels in a separate 24 MiB/64-entry cache;
   cached images do not retain a SwiftUI renderer or its environment.
+  Status-cache pixels remain unrounded until the final composite. Rounded alpha
+  is applied once after artwork, washes and marks are combined; clipping the
+  individual draws exposes pale artwork through an antialiased count-tile edge.
+  Ordinary watch flags/check badges use opaque white; episode-count tiles keep
+  their dark fill and white text.
   This keeps lazy-row estimation out of the expensive rendering path without
   delaying first paint through another observable loading state.
   Portrait television rows fit six full cards and a quarter of the seventh at

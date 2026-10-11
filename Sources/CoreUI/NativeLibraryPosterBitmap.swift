@@ -21,6 +21,11 @@ extension EnvironmentValues {
     }
 }
 
+struct NativePosterArtworkBackground: Equatable {
+    var dimming: CGFloat = 0
+    var scrim: MediaArtworkChromeScrim?
+}
+
 @MainActor
 enum NativePosterArtworkBitmap {
     struct IndicatorKey: Equatable {
@@ -103,7 +108,10 @@ enum NativePosterArtworkBitmap {
         // graph retaining the caller's full environment.
         var rendered: UIImage?
         renderer.render(rasterizationScale: scale) { _, draw in
-            rendered = image(source: nil, size: size, scale: scale, backgroundColor: .clear, drawOverlay: draw)
+            rendered = image(
+                source: nil, size: size, scale: scale, backgroundColor: .clear,
+                clipsToArtwork: false, drawOverlay: draw
+            )
         }
         guard let rendered, let pixels = rendered.cgImage else {
             PlozzLog.app.error("Unable to render native poster indicators")
@@ -122,7 +130,9 @@ enum NativePosterArtworkBitmap {
 
     static func image(
         source: UIImage?, overlay: UIImage? = nil, size: CGSize, scale: CGFloat,
-        backgroundColor: UIColor? = nil, drawOverlay: (CGContext) -> Void = { _ in }
+        backgroundColor: UIColor? = nil, clipsToArtwork: Bool = true,
+        artworkBackground: NativePosterArtworkBackground = .init(),
+        drawOverlay: (CGContext) -> Void = { _ in }
     ) -> UIImage? {
         guard size.width.isFinite, size.height.isFinite, scale.isFinite,
               size.width > 0, size.height > 0, scale > 0,
@@ -134,11 +144,22 @@ enum NativePosterArtworkBitmap {
         format.scale = scale
         format.preferredRange = .standard
         let bounds = CGRect(origin: .zero, size: size)
+        let gradient: CGGradient?
+        if let scrim = artworkBackground.scrim {
+            let stops = scrim.stops
+            guard let resolved = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: stops.map { UIColor($0.color).cgColor } as CFArray,
+                locations: stops.map(\.location)
+            ) else {
+                PlozzLog.app.error("Unable to prepare native artwork legibility gradient")
+                return nil
+            }
+            gradient = resolved
+        } else {
+            gradient = nil
+        }
         return UIGraphicsImageRenderer(size: size, format: format).image { context in
-            UIBezierPath(
-                roundedRect: bounds,
-                cornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
-            ).addClip()
             if let background = backgroundColor ?? (source == nil ? .darkGray : nil) {
                 background.setFill()
                 context.fill(bounds)
@@ -151,12 +172,35 @@ enum NativePosterArtworkBitmap {
                     width: target.width, height: target.height
                 ))
             }
+            if artworkBackground.dimming > 0 {
+                context.cgContext.setFillColor(UIColor.black.withAlphaComponent(artworkBackground.dimming).cgColor)
+                context.cgContext.fill(bounds)
+            }
+            if let gradient {
+                context.cgContext.drawLinearGradient(
+                    gradient, start: CGPoint(x: bounds.midX, y: bounds.minY),
+                    end: CGPoint(x: bounds.midX, y: bounds.maxY), options: []
+                )
+            }
             overlay?.draw(in: bounds)
             context.cgContext.saveGState()
             context.cgContext.translateBy(x: 0, y: size.height)
             context.cgContext.scaleBy(x: 1, y: -1)
             drawOverlay(context.cgContext)
             context.cgContext.restoreGState()
+            if clipsToArtwork {
+                // Round the composed pixels once. Clipping each draw separately
+                // exposes the artwork through the badge's antialiased edge.
+                let outside = UIBezierPath(rect: bounds)
+                outside.append(UIBezierPath(
+                    roundedRect: bounds,
+                    cornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
+                ))
+                outside.usesEvenOddFillRule = true
+                context.cgContext.setBlendMode(.destinationOut)
+                UIColor.black.setFill()
+                outside.fill()
+            }
         }
     }
 }

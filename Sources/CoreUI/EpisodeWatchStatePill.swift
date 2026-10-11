@@ -209,6 +209,7 @@ public struct ResumeChipOverlay: View {
     private let showsPlayGlyphWhenIdle: Bool
     private let bottomScrimStart: CGFloat?
     private let bottomScrimDepth: CGFloat?
+    private var rendersScrim = true
 
     @Environment(\.plozzMetrics) private var metrics
 
@@ -250,12 +251,7 @@ public struct ResumeChipOverlay: View {
         if hasBottomChrome || showsMenu {
             Color.clear
                 .overlay {
-                    MediaArtworkChromeScrim(
-                        top: showsMenu,
-                        bottom: hasBottomChrome,
-                        bottomStart: bottomScrimStart ?? 0.52,
-                        bottomDepth: bottomScrimDepth ?? 0.78
-                    )
+                    if rendersScrim, let artworkScrim { artworkScrim }
                 }
                 .overlay(alignment: .topLeading) {
                     if showsMenu {
@@ -325,6 +321,21 @@ public struct ResumeChipOverlay: View {
                 .allowsHitTesting(false)
             }
         }
+    }
+
+    var withoutScrim: Self {
+        var result = self
+        result.rendersScrim = false
+        return result
+    }
+
+    var artworkScrim: MediaArtworkChromeScrim? {
+        guard hasBottomChrome || showsMenu else { return nil }
+        return MediaArtworkChromeScrim(
+            top: showsMenu, bottom: hasBottomChrome,
+            bottomStart: bottomScrimStart ?? 0.52,
+            bottomDepth: bottomScrimDepth ?? 0.78
+        )
     }
 
     /// Anything to draw along the bottom edge. Resume progress counts even with no

@@ -109,6 +109,199 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         }
     }
 
+    func testAttachedCountDoesNotExposePaleArtworkAlongItsOuterCurve() throws {
+        let size = CGSize(width: 252, height: 378)
+        var environment = EnvironmentValues()
+        environment.displayScale = 2
+        environment.plozzWatchStatusIndicator = .unwatched
+        environment.plozzShowsUnwatchedEpisodeCount = true
+        let indicators = NativePosterIndicators.media(MediaCardPlaybackIndicators(
+            item: MediaItem(id: "pale", title: "Pale artwork", kind: .series, unwatchedEpisodeCount: 21),
+            badgeInset: 8, artworkCornerRadius: 21
+        ).statusOnly)
+        let key = NativePosterArtworkBitmap.IndicatorKey(indicators, environment: environment)
+        let overlay = try XCTUnwrap(NativePosterArtworkBitmap.indicatorImage(
+            key: key, size: size, scale: 2, environment: environment
+        ))
+        let source = try XCTUnwrap(UIImage(data: artworkData(.white)))
+        let image = try XCTUnwrap(NativePosterArtworkBitmap.image(source: source, overlay: overlay, size: size, scale: 2))
+        let bitmap = try XCTUnwrap(image.cgImage)
+        var lightest = 0
+        var samples = 0
+        for x in (bitmap.width - 42)..<bitmap.width {
+            for y in 0..<20 {
+                let value = try pixel(image, at: CGPoint(x: x, y: y))
+                guard value[3] > 32 else { continue }
+                lightest = max(lightest, Int(value[0]) * 255 / Int(value[3]))
+                samples += 1
+            }
+        }
+        XCTAssertGreaterThan(samples, 100)
+        XCTAssertLessThan(lightest, 70, "The count must cover pale artwork right up to the one outer clip.")
+    }
+
+    func testAttachedUnwatchedFlagIsWhiteOverDarkArtwork() throws {
+        let size = CGSize(width: 252, height: 378)
+        var environment = EnvironmentValues()
+        environment.plozzWatchStatusIndicator = .unwatched
+        let key = NativePosterArtworkBitmap.IndicatorKey(.media(MediaCardPlaybackIndicators(
+            item: MediaItem(id: "dark", title: "Dark artwork", kind: .movie), badgeInset: 8
+        ).statusOnly), environment: environment)
+        let overlay = try XCTUnwrap(NativePosterArtworkBitmap.indicatorImage(
+            key: key, size: size, scale: 1, environment: environment
+        ))
+        let source = try XCTUnwrap(UIImage(data: artworkData(.black)))
+        let image = try XCTUnwrap(NativePosterArtworkBitmap.image(source: source, overlay: overlay, size: size, scale: 1))
+        let value = try pixel(image, at: CGPoint(x: size.width - 20, y: 10))
+        XCTAssertGreaterThanOrEqual(value[0], 254)
+        XCTAssertGreaterThanOrEqual(value[1], 254)
+        XCTAssertGreaterThanOrEqual(value[2], 254)
+    }
+
+    func testFinalArtworkMaskPreservesSourceAlphaAndOrientation() throws {
+        let size = CGSize(width: 120, height: 180)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.preferredRange = .standard
+        let source = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor.red.withAlphaComponent(0.5).setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 120, height: 90))
+            UIColor.blue.withAlphaComponent(0.5).setFill()
+            context.fill(CGRect(x: 0, y: 90, width: 120, height: 90))
+        }
+        let rotated = UIImage(cgImage: try XCTUnwrap(source.cgImage), scale: 1, orientation: .down)
+        let image = try XCTUnwrap(NativePosterArtworkBitmap.image(source: rotated, size: size, scale: 1))
+        let top = try pixel(image, at: CGPoint(x: 60, y: 40))
+        let bottom = try pixel(image, at: CGPoint(x: 60, y: 140))
+        XCTAssertEqual(Int(top[2]), 128, accuracy: 2)
+        XCTAssertEqual(top[0], 0)
+        XCTAssertEqual(Int(bottom[0]), 128, accuracy: 2)
+        XCTAssertEqual(bottom[2], 0)
+        XCTAssertEqual(Int(top[3]), 128, accuracy: 2)
+        XCTAssertEqual(Int(bottom[3]), 128, accuracy: 2)
+        XCTAssertEqual(try pixel(image, at: .zero)[3], 0)
+    }
+
+    func testContinueWatchingKeepsResumeChromeWithoutWatchMarksOrDarkRim() async throws {
+        let color = UIColor(red: 0.2, green: 0.85, blue: 0.2, alpha: 1)
+        let server = try LibraryArtworkServer(images: ["artwork": artworkData(color, size: CGSize(width: 640, height: 360))])
+        defer { server.stop() }
+        let port = try await server.start()
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:\(port)/artwork/\(UUID())"))
+        let model = AttachedStatusModel(item: MediaItem(
+            id: "continue", title: "Continue episode", kind: .episode, seasonNumber: 4, episodeNumber: 4,
+            runtime: 1380, fallbackArtworkURL: url, allowsTitleBasedMetadataMatching: false
+        ))
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let controller = LibraryFocusController()
+        controller.view.backgroundColor = .magenta
+        let host = UIHostingController(rootView: ContinueWatchingStatusFixture(model: model))
+        controller.addChild(host)
+        controller.view.addSubview(host.view)
+        host.didMove(toParent: controller)
+        host.view.frame = CGRect(x: 400, y: 200, width: 408, height: 400)
+        host.view.backgroundColor = .clear
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        window.layoutIfNeeded()
+        let poster = try XCTUnwrap(descendant(NativePosterButton.self, in: host.view))
+        for (watched, progress) in [(false, nil), (true, nil), (false, 0.4)] as [(Bool, Double?)] {
+            model.item.isPlayed = watched
+            model.item.playedPercentage = progress
+            model.indicator = watched ? .watched : .unwatched
+            let deadline = ContinuousClock.now + .seconds(5)
+            while ContinuousClock.now < deadline {
+                if let image = poster.image, let bitmap = image.cgImage {
+                    let sample = try pixel(image, at: CGPoint(x: bitmap.width / 2, y: bitmap.height / 4))
+                    if sample[1] > 90, sample[0] < 60 { break }
+                }
+                try await Task.sleep(for: .milliseconds(30))
+            }
+            try await Task.sleep(for: .milliseconds(500))
+            let image = try XCTUnwrap(poster.image)
+            let bitmap = try XCTUnwrap(image.cgImage)
+            XCTAssertEqual(image.size, poster.artworkView.bounds.size,
+                           "Native alpha-masked focus requires the bitmap and image view to have the same aspect.")
+            let scale = image.scale
+            let center = try pixel(image, at: CGPoint(x: bitmap.width / 2, y: bitmap.height / 4))
+            XCTAssertGreaterThan(center[1], 90, "Fixture must load its actual artwork with the legibility wash.")
+            XCTAssertLessThan(center[0], 60, "A gray placeholder is not loaded artwork.")
+            for point in [
+                CGPoint(x: CGFloat(bitmap.width) / 2, y: 2 * scale),
+                CGPoint(x: 2 * scale, y: CGFloat(bitmap.height) / 4),
+                CGPoint(x: CGFloat(bitmap.width) - 20 * scale, y: 10 * scale),
+                CGPoint(x: CGFloat(bitmap.width) - 37 * scale, y: 34 * scale)
+            ] {
+                let edge = try pixel(image, at: point)
+                XCTAssertEqual(Int(edge[0]), Int(center[0]), accuracy: 3, "No watch mark or dark rim at \(point).")
+                XCTAssertEqual(Int(edge[1]), Int(center[1]), accuracy: 3, "No watch mark or dark rim at \(point).")
+            }
+            let rendered = snapshot(window)
+            let frame = try XCTUnwrap(NativeFocusProjection.artworkFrame(of: poster.artworkView, in: window))
+            XCTAssertTrue(poster.isFocused)
+            poster.hostedOverlay?.isHidden = true
+            let artworkOnly = snapshot(window)
+            poster.hostedOverlay?.isHidden = false
+            for point in [
+                CGPoint(x: frame.midX, y: frame.minY - 2),
+                CGPoint(x: frame.minX - 2, y: frame.midY),
+                CGPoint(x: frame.maxX + 2, y: frame.midY),
+                CGPoint(x: frame.midX, y: frame.maxY + 2)
+            ] {
+                let actual = try pixel(rendered, at: point)
+                let expected = try pixel(artworkOnly, at: point)
+                for channel in 0..<3 {
+                    XCTAssertEqual(Int(actual[channel]), Int(expected[channel]), accuracy: 4,
+                                   "Live chrome must not paint a dark rim outside the artwork at \(point).")
+                }
+            }
+            let bottom = try XCTUnwrap(rendered.cgImage?.cropping(to: CGRect(
+                x: frame.minX + 10, y: frame.maxY - 65, width: frame.width - 20, height: 50
+            )))
+            let pixels = try rgba(bottom)
+            let whitePixels = stride(from: 0, to: pixels.count, by: 4).filter {
+                pixels[$0] > 220 && pixels[$0 + 1] > 220 && pixels[$0 + 2] > 220
+            }.count
+            XCTAssertGreaterThan(whitePixels, 200, "Keep the live play/episode/time or resume-progress chrome.")
+            let logo = try XCTUnwrap(rendered.cgImage?.cropping(to: CGRect(
+                x: frame.minX + 30,
+                y: frame.minY + frame.height * ContinueWatchingCardShape.logoCenter - 30,
+                width: frame.width - 60, height: 60
+            )))
+            let logoPixels = try rgba(logo)
+            XCTAssertGreaterThan(stride(from: 0, to: logoPixels.count, by: 4).filter {
+                logoPixels[$0] > 220 && logoPixels[$0 + 1] > 220 && logoPixels[$0 + 2] > 220
+            }.count, 400, "Moving the background must not move the logo down toward the resume chip.")
+            let attachment = XCTAttachment(image: rendered)
+            attachment.name = "continue-watching-edge-and-chrome-\(watched)-\(progress ?? 0)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
+    private struct ContinueWatchingStatusFixture: View {
+        let model: AttachedStatusModel
+        var body: some View {
+            PosterCardView(
+                item: model.item, style: .landscape, showsSeriesArtwork: true,
+                enablesAsyncArtworkFallback: false, showsResumeChip: true, action: {}
+            )
+            .environment(\.plozzCardStyle, .borderless)
+            .environment(\.plozzCardFocusStyle, .system)
+            .environment(\.plozzCardCaptionSettings, CardCaptionSettings(showsLabels: false))
+            .environment(\.plozzWatchStatusIndicator, model.indicator)
+        }
+    }
+
     func testSharedPosterKeepsArtworkCompositionWithNativeFocusAtEveryAspect() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
@@ -246,15 +439,18 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             return p[p.startIndex] > 150 && p.dropFirst().allSatisfy { $0 < 120 }
         })
         var flagPixels = 0
+        var whitePixels = 0
         var outsidePixels = 0
         for y in Int(frame.minY) - 16..<Int(frame.minY) + 80 {
             for x in Int(frame.maxX) - 80...Int(frame.maxX) + 16 {
                 guard components(x, y).allSatisfy({ $0 > 180 }) else { continue }
                 flagPixels += 1
+                if components(x, y).allSatisfy({ $0 >= 250 }) { whitePixels += 1 }
                 if y < top - 1 || x > right + 1 { outsidePixels += 1 }
             }
         }
         XCTAssertGreaterThan(flagPixels, 100, "The actual unwatched flag must be visible.")
+        XCTAssertGreaterThan(whitePixels, 100, "The focused flag must be white, not a translucent gray.")
         XCTAssertEqual(outsidePixels, 0, "The indicator must not lift beyond the painted artwork's top/right edges.")
     }
 

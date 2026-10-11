@@ -358,6 +358,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     let subtitle: String? // l10n:content — provider metadata and preformatted runtime
     let overlay: Overlay
     var indicators: NativePosterIndicators? = nil
+    var artworkBackground: NativePosterArtworkBackground = .init()
     let focus: PlozzCardFocus.Binding
     var source: DetailTransitionSourceReference? = nil
     let action: () -> Void
@@ -375,6 +376,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             let size: CGSize
             let scale: CGFloat
             let indicators: NativePosterArtworkBitmap.IndicatorKey?
+            let artworkBackground: NativePosterArtworkBackground
         }
         private var presentationKey: PresentationKey?
         private var presentationSource: UIImage?
@@ -386,12 +388,14 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
         func presentationImage(
             _ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize,
-            indicators: NativePosterIndicators?, environment: EnvironmentValues
+            indicators: NativePosterIndicators?, artworkBackground: NativePosterArtworkBackground,
+            environment: EnvironmentValues
         ) -> UIImage {
             let scale = environment.displayScale
             let key = PresentationKey(
                 treatment: treatment, size: size, scale: scale,
-                indicators: indicators.map { NativePosterArtworkBitmap.IndicatorKey($0, environment: environment) }
+                indicators: indicators.map { NativePosterArtworkBitmap.IndicatorKey($0, environment: environment) },
+                artworkBackground: artworkBackground
             )
             if presentationSource === image, presentationKey == key, let presentedImage { return presentedImage }
             // Ordinary artwork needs only the final surface, not a second
@@ -407,12 +411,15 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                 ) else {
                     return NativePosterArtworkBitmap.placeholder(size: size, scale: scale)
                 }
-                result = NativePosterArtworkBitmap.image(source: source, overlay: overlay, size: size, scale: scale)
+                result = NativePosterArtworkBitmap.image(
+                    source: source, overlay: overlay, size: size, scale: scale, artworkBackground: artworkBackground
+                )
             } else if let source {
                 // Explicit absence clears old marks without rendering an empty
                 // SwiftUI display list, which can retain its previous pixels.
-                result = treatment == .original
-                    ? NativePosterArtworkBitmap.image(source: source, size: size, scale: scale) : source
+                result = NativePosterArtworkBitmap.image(
+                    source: source, size: size, scale: scale, artworkBackground: artworkBackground
+                )
             } else {
                 result = NativePosterArtworkBitmap.placeholder(size: size, scale: scale)
             }
@@ -441,9 +448,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                 return prepared
             }
             if treatment == .extended {
-                prepared = ExtendedArtworkBitmap.render(image: image, size: size, scale: scale).flatMap {
-                    NativePosterArtworkBitmap.image(source: $0, size: size, scale: scale)
-                }
+                prepared = ExtendedArtworkBitmap.render(image: image, size: size, scale: scale)
                 if prepared == nil { original = nil }
                 return prepared
             }
@@ -461,7 +466,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             renderer.scale = scale
             renderer.isOpaque = true
             prepared = renderer.uiImage.flatMap {
-                NativePosterArtworkBitmap.image(source: $0, size: size, scale: scale)
+                NativePosterArtworkBitmap.image(source: $0, size: size, scale: scale, clipsToArtwork: false)
             }
             if prepared == nil {
                 PlozzLog.app.error("Unable to prepare native poster artwork; keeping the protected placeholder")
@@ -544,9 +549,10 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     private func configureArtwork(_ view: NativePosterButton, context: Context) {
         let environment = context.environment
-        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators] size in
+        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators, artworkBackground] size in
             coordinator?.presentationImage(
-                image, treatment: treatment, size: size, indicators: indicators, environment: environment
+                image, treatment: treatment, size: size, indicators: indicators,
+                artworkBackground: artworkBackground, environment: environment
             )
         }
         view.setNeedsLayout()

@@ -631,6 +631,13 @@ source-image identity, target size, and scale. The evictable cache has targets
 of 32 entries and 24 MB; weak source references avoid pinning decoded artwork,
 and an identity check rejects recycled object identifiers. Recreated lazy cards
 can reuse completed pixels instead of rendering the reflection again.
+On tvOS these are concrete, unrounded pixels. Adaptive logo dimming and the
+resume/progress scrim are composited with the picture before its one final
+rounded mask, not hosted on UIKit's nearer overlay plane. That avoids the
+focused dark outline without rerendering the reflection when legibility changes.
+The logo and resume controls stay live, and Continue Watching has no top watch
+mark. Hosted coverage compares pixels just outside all four artwork edges with
+and without the live overlay, and checks the unchanged logo and resume positions.
 
 Focus-only caption movement changes transforms and colors, not intrinsic row
 geometry. Native focus presentation and artwork clipping are separate:

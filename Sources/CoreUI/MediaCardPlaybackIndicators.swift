@@ -26,6 +26,7 @@ public struct MediaCardPlaybackIndicators: View {
     private let downloadState: MediaDownloadBadgeState?
     private var rendersStatus = true
     private var rendersBottom = true
+    private var rendersScrim = true
 
     @Environment(\.plozzMetrics) private var metrics
     @Environment(\.plozzWatchStatusIndicator) private var watchStatusIndicator
@@ -90,8 +91,8 @@ public struct MediaCardPlaybackIndicators: View {
             // was hard to see at all. The shared scrim holds clear until ~62% and
             // then ramps, so the darkening is concentrated where the chrome is.
             .overlay {
-                if hasTopChrome || hasBottomChrome {
-                    MediaArtworkChromeScrim(top: hasTopChrome, bottom: hasBottomChrome)
+                if rendersScrim, let artworkScrim {
+                    artworkScrim
                 }
             }
             .overlay(alignment: .topTrailing) {
@@ -120,6 +121,7 @@ public struct MediaCardPlaybackIndicators: View {
         let downloadState: MediaDownloadBadgeState?
         let rendersStatus: Bool
         let rendersBottom: Bool
+        let rendersScrim: Bool
     }
 
     var bitmapInputs: BitmapInputs {
@@ -128,7 +130,7 @@ public struct MediaCardPlaybackIndicators: View {
             badgeInset: badgeInset, progressHeight: progressHeight,
             progressHorizontalInset: progressHorizontalInset, progressBottomInset: progressBottomInset,
             artworkCornerRadius: artworkCornerRadius, downloadState: downloadState,
-            rendersStatus: rendersStatus, rendersBottom: rendersBottom
+            rendersStatus: rendersStatus, rendersBottom: rendersBottom, rendersScrim: rendersScrim
         )
     }
 
@@ -143,6 +145,7 @@ public struct MediaCardPlaybackIndicators: View {
         )
         rendersStatus = bitmapInputs.rendersStatus
         rendersBottom = bitmapInputs.rendersBottom
+        rendersScrim = bitmapInputs.rendersScrim
     }
 
     var statusOnly: Self {
@@ -155,6 +158,17 @@ public struct MediaCardPlaybackIndicators: View {
         var result = self
         result.rendersStatus = false
         return result
+    }
+
+    var withoutScrim: Self {
+        var result = self
+        result.rendersScrim = false
+        return result
+    }
+
+    var artworkScrim: MediaArtworkChromeScrim? {
+        hasTopChrome || hasBottomChrome
+            ? MediaArtworkChromeScrim(top: hasTopChrome, bottom: hasBottomChrome) : nil
     }
 
     private var showsProgressBar: Bool {
@@ -340,7 +354,7 @@ enum NativePosterIndicators: View, Equatable {
 }
 
 enum MediaWatchIndicatorStyle {
-    static let fill = Color.white.opacity(0.88)
+    static let fill = Color.white
     static let foreground = Color(white: 0.13)
     static let edge = Color.white.opacity(0.32)
     static let countFill = Color(white: 0.08).opacity(0.88)
