@@ -639,12 +639,35 @@ shared native posters bake rounded alpha into their normalized artwork and
 clip live overlays to the same shape. The hosted framed/landscape return
 regression checks the actual painted artwork bounds.
 
-Native poster controls receive their initial cached `UIImage` directly from
+Native poster controls receive the latest cached `UIImage` directly from
 the existing ordered artwork resolver. The former zero-sized background loader
 published through a second observable state after construction, so even warmed
 cards first created placeholder artwork and then updated the native view.
 The direct bitmap path keeps one native view identity across loading and loaded
 states, using the same source ordering, provider policy, and progressive loading.
+Creation now shares rounded loading masks; artwork and attached status are
+prepared in mounted UIKit layout at the committed size, inside a per-poster
+autorelease pool. `sizeThatFits` only answers measurements. Rendering during
+SwiftUI lazy-row estimation previously generated fallback-width and proposed-width
+surfaces before their cards were mounted, with temporary images surviving across
+the larger layout transaction. A populated physical Home exposed startup hangs
+that isolated poster fixtures missed. Regressions must verify that size probes
+leave committed pixels unchanged, detached controls do not prepare artwork, and
+loading/status updates retain native focus and painted-edge geometry.
+Mounted layout alone is not sufficient: the populated page also exposed long
+Core Graphics/RenderBox reads while compositing per-card status images. Ordinary
+artwork now goes directly into its final normalized/composited surface, without
+retaining a second unmarked bitmap. Identical status presentations reuse
+concrete Core Graphics pixels from a bounded shared cache (24 MiB, 64 entries),
+instead of constructing and reading a new deferred SwiftUI image per card.
+The cache stores value keys and pixels, not the inherited environment or its
+view graph. Protected/extended artwork keeps its existing treatment.
+
+For startup recovery, verify the same process remains alive and responds to
+remote input on the populated page before collecting its app-data-container
+journal. A successful launch command alone is insufficient. Container transfer
+can terminate the tvOS app, so disappearance after that transfer does not prove
+a crash.
 
 Continue Watching logo prefetch also deduplicates overlapping lookahead windows
 within a traversal. Five neighboring cards appearing together previously

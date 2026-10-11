@@ -58,9 +58,71 @@ enum NativePosterArtworkBitmap {
         $0.fill(CGRect(x: 0, y: 0, width: 2, height: 3))
     }
 
+    private static let placeholders: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 8
+        cache.totalCostLimit = 4 * 1024 * 1024
+        return cache
+    }()
+
+    static func placeholder(size: CGSize, scale: CGFloat) -> UIImage {
+        let key = "\(size.width)x\(size.height)@\(scale)" as NSString
+        if let cached = placeholders.object(forKey: key) { return cached }
+        guard let image = image(source: nil, size: size, scale: scale) else { return placeholder }
+        if let pixels = image.cgImage {
+            placeholders.setObject(image, forKey: key, cost: pixels.bytesPerRow * pixels.height)
+        }
+        return image
+    }
+
+    private struct IndicatorEntry {
+        let key: IndicatorKey
+        let size: CGSize
+        let scale: CGFloat
+        let image: UIImage
+        let cost: Int
+    }
+
+    private static var indicatorCache: [IndicatorEntry] = []
+    private(set) static var indicatorBytes = 0
+    static let indicatorByteLimit = 24 * 1024 * 1024
+    static var indicatorCount: Int { indicatorCache.count }
+
+    static func indicatorImage(key: IndicatorKey, size: CGSize, scale: CGFloat, environment: EnvironmentValues) -> UIImage? {
+        if let index = indicatorCache.firstIndex(where: { $0.key == key && $0.size == size && $0.scale == scale }) {
+            let entry = indicatorCache.remove(at: index)
+            indicatorCache.append(entry)
+            return entry.image
+        }
+        let renderer = ImageRenderer(content: key.inputs
+            .frame(width: size.width, height: size.height)
+            .environment(\.self, environment)
+            .plozzChromeFocused(false))
+        renderer.scale = scale
+        // Cache concrete pixels, never a deferred RenderBox image or a view
+        // graph retaining the caller's full environment.
+        var rendered: UIImage?
+        renderer.render(rasterizationScale: scale) { _, draw in
+            rendered = image(source: nil, size: size, scale: scale, backgroundColor: .clear, drawOverlay: draw)
+        }
+        guard let rendered, let pixels = rendered.cgImage else {
+            PlozzLog.app.error("Unable to render native poster indicators")
+            return nil
+        }
+        let (cost, overflow) = pixels.bytesPerRow.multipliedReportingOverflow(by: pixels.height)
+        if !overflow, cost <= indicatorByteLimit {
+            while !indicatorCache.isEmpty && (indicatorBytes + cost > indicatorByteLimit || indicatorCache.count >= 64) {
+                indicatorBytes -= indicatorCache.removeFirst().cost
+            }
+            indicatorCache.append(IndicatorEntry(key: key, size: size, scale: scale, image: rendered, cost: cost))
+            indicatorBytes += cost
+        }
+        return rendered
+    }
+
     static func image(
         source: UIImage?, overlay: UIImage? = nil, size: CGSize, scale: CGFloat,
-        backgroundColor: UIColor? = nil
+        backgroundColor: UIColor? = nil, drawOverlay: (CGContext) -> Void = { _ in }
     ) -> UIImage? {
         guard size.width.isFinite, size.height.isFinite, scale.isFinite,
               size.width > 0, size.height > 0, scale > 0,
@@ -90,6 +152,11 @@ enum NativePosterArtworkBitmap {
                 ))
             }
             overlay?.draw(in: bounds)
+            context.cgContext.saveGState()
+            context.cgContext.translateBy(x: 0, y: size.height)
+            context.cgContext.scaleBy(x: 1, y: -1)
+            drawOverlay(context.cgContext)
+            context.cgContext.restoreGState()
         }
     }
 }

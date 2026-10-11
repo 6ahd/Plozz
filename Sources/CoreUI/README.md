@@ -267,6 +267,25 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   while focus alone reuses the attached pixels. Captions stay outside it. Transparent
   artwork retains its alpha, and protected/extended artwork is prepared before
   normalization. Focus changes do not regenerate the bitmap.
+  SwiftUI measurement is side-effect-free: candidate widths never resize the
+  native image or trigger artwork/status rendering. A mounted poster prepares
+  its latest inputs at the committed UIKit size, with a per-poster autorelease
+  pool for temporary raster surfaces. Creation uses shared rounded loading
+  masks (evictable cache targets: 8 entries, 4 MiB), not per-item composition.
+  Ordinary artwork uses one final normalized/composited surface rather than
+  retaining an additional unmarked full-size copy per card. Identical status
+  presentations share concrete pixels in a separate 24 MiB/64-entry cache;
+  cached images do not retain a SwiftUI renderer or its environment.
+  This keeps lazy-row estimation out of the expensive rendering path without
+  delaying first paint through another observable loading state.
+  Portrait television rows fit six full cards and a quarter of the seventh at
+  standard display size. `PlozzMetrics.portraitRowSlotWidth` uses the actual
+  navigation-safe viewport and visible card margins, shared by loaded cards,
+  placeholders and pinned-sidebar scroll parking. Only viewport-width changes
+  update sizing; scrolling does not invalidate the row. Showcase's row viewport
+  reaches the trailing screen edge with native navigation as well as pinned
+  navigation. Display-size preferences still adjust density; library Browse
+  grids, landscape/episode card widths and mobile sizing are unchanged.
   Native Browse uses the correction for both borderless and framed system-focus
   cells. Debug's `--original-library-posters` opts out of Browse only.
   The collection cell remains the focus and selection owner,

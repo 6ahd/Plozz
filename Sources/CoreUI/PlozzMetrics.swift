@@ -240,6 +240,22 @@ public struct PlozzMetrics: Equatable, Sendable {
         }
     }
 
+    /// Fits the visible surface, including the partial final poster, rather than
+    /// counting invisible side margins as artwork. The viewport already excludes
+    /// navigation safe-area insets. Browse grids keep their own sizing.
+    public func portraitRowSlotWidth(
+        viewportWidth: CGFloat, leadingInset: CGFloat, cardStyle: CardStyle
+    ) -> CGFloat {
+        guard viewportWidth > 0 else { return posterWidth }
+        let visibleCards = PlozzTheme.Metrics.portraitRowVisibleCards / CGFloat(density.scale)
+        let wholeCards = floor(visibleCards)
+        let partialCard = visibleCards - wholeCards
+        let sideMargin = cardStyle == .borderless ? borderlessCardSideMargin : 0
+        return max(1, (
+            viewportWidth - leadingInset - wholeCards * cardSpacing + partialCard * 2 * sideMargin
+        ) / visibleCards)
+    }
+
     /// These metrics with portrait posters scaled by `factor`, for a surface
     /// that wants more of them on screen.
     public func scalingPosters(by factor: CGFloat) -> PlozzMetrics {

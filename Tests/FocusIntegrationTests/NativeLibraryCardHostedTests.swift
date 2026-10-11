@@ -30,6 +30,85 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         try await checkNativeBrowseArtwork(onlineDelay: 0)
     }
 
+    func testSharedPosterMeasurementDoesNotChangeCommittedArtwork() throws {
+        let image = try XCTUnwrap(UIImage(data: artworkData(.red)))
+        let host = UIHostingController(rootView: SharedZoomFixture(image: image, aspect: 2 / 3))
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let controller = UIViewController()
+        controller.addChild(host)
+        controller.view.addSubview(host.view)
+        host.didMove(toParent: controller)
+        host.view.frame = CGRect(x: 400, y: 200, width: 260, height: 390)
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        window.layoutIfNeeded()
+        host.view.layoutIfNeeded()
+        let poster = try XCTUnwrap(descendant(NativePosterButton.self, in: host.view))
+        poster.layoutIfNeeded()
+        let rendered = try XCTUnwrap(poster.image)
+        XCTAssertEqual(rendered.size, CGSize(width: 260, height: 390))
+        XCTAssertTrue(try isRed(rendered, at: CGPoint(
+            x: rendered.size.width * rendered.scale / 2, y: rendered.size.height * rendered.scale / 2
+        )))
+        for width: CGFloat in [280, 260, 600, 260] {
+            _ = host.sizeThatFits(in: CGSize(width: width, height: 1000))
+            XCTAssertTrue(poster.image === rendered, "Measurements must leave committed pixels alone.")
+            XCTAssertEqual(poster.contentSize, CGSize(width: 260, height: 390))
+        }
+    }
+
+    func testDetachedPosterDefersArtworkPreparation() {
+        let size = CGSize(width: 260, height: 390)
+        let placeholder = NativePosterArtworkBitmap.placeholder(size: size, scale: 2)
+        XCTAssertTrue(placeholder === NativePosterArtworkBitmap.placeholder(size: size, scale: 2))
+        let poster = NativePosterButton(image: placeholder)
+        poster.contentSize = size
+        var preparations = 0
+        poster.prepareArtwork = { _ in
+            preparations += 1
+            return placeholder
+        }
+        for width: CGFloat in [280, 260, 600, 260] {
+            poster.frame.size = CGSize(width: width, height: width * 1.5)
+            poster.layoutIfNeeded()
+        }
+        XCTAssertEqual(preparations, 0, "Unattached lazy-row estimates must not render artwork or indicators.")
+        XCTAssertTrue(poster.image === placeholder)
+    }
+
+    func testSharedStatusBitmapsReusePixelsAndBoundTheirCache() throws {
+        var environment = EnvironmentValues()
+        environment.displayScale = 2
+        environment.plozzWatchStatusIndicator = .unwatched
+        environment.plozzShowsUnwatchedEpisodeCount = true
+        let size = CGSize(width: 280, height: 420)
+        func render(_ count: Int) throws -> UIImage {
+            let inputs = NativePosterIndicators.media(MediaCardPlaybackIndicators(
+                item: MediaItem(id: "count-\(count)", title: "Series", kind: .series, unwatchedEpisodeCount: count),
+                badgeInset: 8
+            ).statusOnly)
+            return try XCTUnwrap(NativePosterArtworkBitmap.indicatorImage(
+                key: .init(inputs, environment: environment), size: size, scale: 2, environment: environment
+            ))
+        }
+        let first = try render(21)
+        XCTAssertTrue(try render(21) === first)
+        XCTAssertFalse(try render(22) === first)
+        for count in 100..<120 {
+            try autoreleasepool { _ = try render(count) }
+            XCTAssertLessThanOrEqual(NativePosterArtworkBitmap.indicatorBytes, NativePosterArtworkBitmap.indicatorByteLimit)
+            XCTAssertLessThanOrEqual(NativePosterArtworkBitmap.indicatorCount, 64)
+        }
+    }
+
     func testSharedPosterKeepsArtworkCompositionWithNativeFocusAtEveryAspect() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })

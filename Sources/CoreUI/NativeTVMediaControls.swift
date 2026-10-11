@@ -303,6 +303,7 @@ final class NativePosterButton: UIButton {
     var hostedOverlay: (UIView & UIContentView)?
     var onFocus: ((Bool) -> Void)?
     var onAvailable: (() -> Void)?
+    var prepareArtwork: ((CGSize) -> UIImage?)?
 
     init(image: UIImage) {
         super.init(frame: .zero)
@@ -324,6 +325,7 @@ final class NativePosterButton: UIButton {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
+        if window != nil { setNeedsLayout() }
         onAvailable?()
     }
 
@@ -331,6 +333,11 @@ final class NativePosterButton: UIButton {
         IOTimingDiagnostics.measure(.nativePosterLayout, minimumDurationNanoseconds: 1_000_000) {
             super.layoutSubviews()
             if artworkView.frame != bounds { artworkView.frame = bounds }
+            if window != nil, bounds.width > 0, bounds.height > 0 {
+                autoreleasepool {
+                    if let image = prepareArtwork?(contentSize) { updateImage(image) }
+                }
+            }
             onAvailable?()
         }
     }
@@ -363,67 +370,57 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         var imageSize = CGSize.zero
         var imageScale: CGFloat = 1
         var prepared: UIImage?
-        private var placeholder: UIImage?
-        private var placeholderSize = CGSize.zero
-        private var placeholderScale: CGFloat = 1
-        private var indicatorKey: NativePosterArtworkBitmap.IndicatorKey?
-        private var indicatorSource: UIImage?
-        private var indicatorImage: UIImage?
+        private struct PresentationKey: Equatable {
+            let treatment: NativePosterImageTreatment
+            let size: CGSize
+            let scale: CGFloat
+            let indicators: NativePosterArtworkBitmap.IndicatorKey?
+        }
+        private var presentationKey: PresentationKey?
+        private var presentationSource: UIImage?
+        private var presentedImage: UIImage?
 
         init(focus: PlozzCardFocus.Binding, action: @escaping () -> Void) {
             self.focus = NativeTVMediaCoordinator(focus: focus, action: action)
-        }
-
-        func presentationImage(_ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize, scale: CGFloat) -> UIImage {
-            if let prepared = prepare(image, treatment: treatment, size: size, scale: scale) { return prepared }
-            if let placeholder, placeholderSize == size, placeholderScale == scale { return placeholder }
-            let loadingImage = NativePosterArtworkBitmap.image(source: nil, size: size, scale: scale)
-                ?? NativePosterArtworkBitmap.placeholder
-            placeholder = loadingImage
-            placeholderSize = size
-            placeholderScale = scale
-            return loadingImage
         }
 
         func presentationImage(
             _ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize,
             indicators: NativePosterIndicators?, environment: EnvironmentValues
         ) -> UIImage {
-            let source = presentationImage(image, treatment: treatment, size: size, scale: environment.displayScale)
-            guard let indicators else {
-                indicatorKey = nil
-                indicatorSource = nil
-                indicatorImage = nil
-                return source
+            let scale = environment.displayScale
+            let key = PresentationKey(
+                treatment: treatment, size: size, scale: scale,
+                indicators: indicators.map { NativePosterArtworkBitmap.IndicatorKey($0, environment: environment) }
+            )
+            if presentationSource === image, presentationKey == key, let presentedImage { return presentedImage }
+            // Ordinary artwork needs only the final surface, not a second
+            // normalized full-size image retained for every Home card.
+            let source = treatment == .original ? image : prepare(image, treatment: treatment, size: size, scale: scale)
+            let result: UIImage?
+            if let indicatorKey = key.indicators, indicatorKey.inputs.hasContent(
+                indicator: indicatorKey.watchIndicator, showsEpisodeCount: indicatorKey.showsEpisodeCount,
+                seerConnected: indicatorKey.seerConnected
+            ) {
+                guard let overlay = NativePosterArtworkBitmap.indicatorImage(
+                    key: indicatorKey, size: size, scale: scale, environment: environment
+                ) else {
+                    return NativePosterArtworkBitmap.placeholder(size: size, scale: scale)
+                }
+                result = NativePosterArtworkBitmap.image(source: source, overlay: overlay, size: size, scale: scale)
+            } else if let source {
+                // Explicit absence clears old marks without rendering an empty
+                // SwiftUI display list, which can retain its previous pixels.
+                result = treatment == .original
+                    ? NativePosterArtworkBitmap.image(source: source, size: size, scale: scale) : source
+            } else {
+                result = NativePosterArtworkBitmap.placeholder(size: size, scale: scale)
             }
-            let key = NativePosterArtworkBitmap.IndicatorKey(indicators, environment: environment)
-            if indicatorSource === source, indicatorKey == key, let indicatorImage { return indicatorImage }
-            guard indicators.hasContent(
-                indicator: key.watchIndicator, showsEpisodeCount: key.showsEpisodeCount, seerConnected: key.seerConnected
-            ) else {
-                // Rendering a removal's empty display list inside a SwiftUI
-                // update can return the previous mark. Absence is clean artwork.
-                indicatorKey = key
-                indicatorSource = source
-                indicatorImage = source
-                return source
-            }
-            let renderer = ImageRenderer(content: indicators
-                .frame(width: size.width, height: size.height)
-                .environment(\.self, environment)
-                .plozzChromeFocused(false))
-            renderer.scale = environment.displayScale
-            guard let overlay = renderer.uiImage,
-                  let combined = NativePosterArtworkBitmap.image(
-                    source: source, overlay: overlay, size: size, scale: environment.displayScale
-                  ) else {
-                PlozzLog.app.error("Unable to attach native poster indicators to artwork")
-                return source
-            }
-            indicatorKey = key
-            indicatorSource = source
-            indicatorImage = combined
-            return combined
+            guard let result else { return NativePosterArtworkBitmap.placeholder(size: size, scale: scale) }
+            presentationKey = key
+            presentationSource = image
+            presentedImage = result
+            return result
         }
 
         func prepare(_ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize, scale: CGFloat) -> UIImage? {
@@ -477,13 +474,12 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     func makeUIView(context: Context) -> Container {
         let size = CGSize(width: fallbackWidth, height: fallbackWidth / aspectRatio)
-        let initialImage = context.coordinator.presentationImage(
-            image, treatment: treatment, size: size, indicators: indicators, environment: context.environment
-        )
-        let view = NativePosterButton(image: initialImage)
-        view.updateImage(initialImage)
+        let view = NativePosterButton(image: NativePosterArtworkBitmap.placeholder(
+            size: size, scale: context.environment.displayScale
+        ))
         view.defaultAccessibilityElement = view.isAccessibilityElement
         view.contentSize = size
+        configureArtwork(view, context: context)
         view.hostedOverlay = overlayConfiguration(in: context).makeContentView()
         if let overlay = view.hostedOverlay {
             // Async logos and animated content remain live; edge indicators are
@@ -509,6 +505,12 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         return Container(poster: view)
     }
 
+    static func dismantleUIView(_ container: Container, coordinator: Coordinator) {
+        container.poster.prepareArtwork = nil
+        container.poster.onAvailable = nil
+        container.poster.onFocus = nil
+    }
+
     func updateUIView(_ container: Container, context: Context) {
         IOTimingDiagnostics.measure(.nativePosterUpdate, minimumDurationNanoseconds: 1_000_000) {
             updatePoster(container, context: context)
@@ -527,10 +529,8 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         view.accessibilityTraits.insert(.button)
         view.hostedOverlay?.configuration = overlayConfiguration(in: context)
         view.hostedOverlay?.layer.rasterizationScale = context.environment.displayScale
-        let prepared = context.coordinator.presentationImage(
-            image, treatment: treatment, size: view.contentSize, indicators: indicators, environment: context.environment
-        )
-        view.updateImage(prepared)
+        container.aspectRatio = aspectRatio
+        configureArtwork(view, context: context)
         view.isEnabled = context.environment.isEnabled
         source?.nativeArtworkView = view.artworkView
         context.coordinator.focus.update(focus: focus, action: action, view: view)
@@ -539,18 +539,17 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: Container, context: Context) -> CGSize? {
         let width = proposal.width ?? fallbackWidth
         guard width.isFinite, width > 0 else { return nil }
-        let size = CGSize(width: width, height: width / aspectRatio)
-        let poster = uiView.poster
-        if poster.contentSize != size {
-            poster.contentSize = size
-            uiView.invalidateIntrinsicContentSize()
-            uiView.setNeedsLayout()
+        return CGSize(width: width, height: ceil(width / aspectRatio))
+    }
+
+    private func configureArtwork(_ view: NativePosterButton, context: Context) {
+        let environment = context.environment
+        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators] size in
+            coordinator?.presentationImage(
+                image, treatment: treatment, size: size, indicators: indicators, environment: environment
+            )
         }
-        let prepared = context.coordinator.presentationImage(
-            image, treatment: treatment, size: size, indicators: indicators, environment: context.environment
-        )
-        poster.updateImage(prepared)
-        return uiView.intrinsicContentSize
+        view.setNeedsLayout()
     }
 
     private func overlayConfiguration(in context: Context) -> any UIContentConfiguration {
@@ -567,9 +566,15 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     final class Container: UIView {
         let poster: NativePosterButton
+        var aspectRatio: CGFloat {
+            didSet {
+                if aspectRatio != oldValue { setNeedsLayout() }
+            }
+        }
 
         init(poster: NativePosterButton) {
             self.poster = poster
+            self.aspectRatio = poster.contentSize.width / poster.contentSize.height
             super.init(frame: .zero)
             addSubview(poster)
         }
@@ -585,7 +590,11 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
         override func layoutSubviews() {
             super.layoutSubviews()
-            let intrinsic = poster.intrinsicContentSize
+            guard bounds.width > 0 else { return }
+            // SwiftUI probes lazy-row sizes before mounting them. Only the
+            // committed UIKit width may allocate artwork or change its size.
+            let intrinsic = CGSize(width: bounds.width, height: bounds.width / aspectRatio)
+            poster.contentSize = intrinsic
             let size = CGSize(width: ceil(intrinsic.width), height: ceil(intrinsic.height))
             let frame = CGRect(x: (bounds.width - size.width) / 2,
                                y: (bounds.height - size.height) / 2,

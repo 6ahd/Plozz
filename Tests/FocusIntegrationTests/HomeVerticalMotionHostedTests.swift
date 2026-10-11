@@ -11,6 +11,153 @@ import XCTest
 
 @MainActor
 final class HomeVerticalMotionHostedTests: XCTestCase {
+    func testPortraitRowsShowQuarterOfSeventhPosterWithEitherNavigation() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        defer { previous?.makeKeyAndVisible() }
+        let layouts = [false, true].flatMap { showcase in [false, true].map { (showcase, $0) } }
+        for cardStyle in CardStyle.allCases {
+            for (showcase, pinned) in layouts {
+                let window = UIWindow(windowScene: scene)
+                window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+                let host = UIHostingController(rootView:
+                    PortraitRowPeekFixture(showcase: showcase, pinned: pinned)
+                        .environment(\.plozzCardStyle, cardStyle)
+                        .environment(\.plozzCardFocusStyle, .system)
+                )
+                window.rootViewController = host
+                window.makeKeyAndVisible()
+                defer {
+                    window.isHidden = true
+                    window.rootViewController = nil
+                }
+                try await Task.sleep(for: .milliseconds(500))
+                window.layoutIfNeeded()
+                func frame(_ title: String) throws -> CGRect {
+                    let item = try XCTUnwrap(focusItems(in: window).first {
+                        ($0 as? NSObject)?.accessibilityLabel == title
+                    })
+                    if let card = item as? TVCardView {
+                        return card.convert(CGRect(
+                            x: (card.bounds.width - card.contentSize.width) / 2,
+                            y: (card.bounds.height - card.contentSize.height) / 2,
+                            width: card.contentSize.width, height: card.contentSize.height
+                        ), to: window)
+                    }
+                    if let view = item as? UIView {
+                        return view.convert(view.bounds, to: window)
+                    }
+                    return window.convert(item.frame, from: try XCTUnwrap(item.focusItemContainer).coordinateSpace)
+                }
+                let firstFrame = try frame("Peek 0")
+                let seventhFrame = try frame("Peek 6")
+                let fraction = (window.bounds.maxX - seventhFrame.minX) / seventhFrame.width
+                XCTAssertEqual(fraction, 0.25, accuracy: 0.03, "\(cardStyle), showcase=\(showcase), pinned=\(pinned)")
+                XCTAssertEqual(firstFrame.minX, pinned ? 144 : 80, accuracy: 0.5)
+            }
+        }
+    }
+
+    func testPortraitSkeletonsMatchLoadedRowWidthsWithEitherNavigation() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        defer { previous?.makeKeyAndVisible() }
+        for pinned in [false, true] {
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+            func content(loading: Bool) -> some View {
+                PortraitRowPeekFixture(showcase: true, pinned: pinned, isLoading: loading)
+                    .environment(\.plozzCardStyle, .borderless)
+                    .environment(\.plozzCardFocusStyle, .system)
+            }
+            let host = UIHostingController(rootView: content(loading: true))
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+            }
+            func frames(in view: UIView, loaded: Bool) -> [CGRect] {
+                if let poster = view as? NativePosterButton {
+                    if loaded, poster.accessibilityLabel?.hasPrefix("Peek ") != true { return [] }
+                    return [poster.convert(poster.bounds, to: window)]
+                }
+                return view.subviews.flatMap { frames(in: $0, loaded: loaded) }.sorted { $0.minX < $1.minX }
+            }
+            try await Task.sleep(for: .milliseconds(500))
+            let loadingFrames = frames(in: window, loaded: false)
+            XCTAssertGreaterThanOrEqual(loadingFrames.count, 7)
+            host.rootView = content(loading: false)
+            try await Task.sleep(for: .milliseconds(500))
+            let loadedFrames = frames(in: window, loaded: true)
+            XCTAssertGreaterThanOrEqual(loadedFrames.count, 7)
+            for (loading, loaded) in zip(loadingFrames.prefix(7), loadedFrames.prefix(7)) {
+                XCTAssertEqual(loading.minX, loaded.minX, accuracy: 0.5)
+                XCTAssertEqual(loading.width, loaded.width, accuracy: 0.5)
+            }
+        }
+    }
+
+    func testPinnedPortraitResizeKeepsFocusAndUsesTheNewSlotPitch() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        func content(inset: CGFloat) -> AnyView {
+            AnyView(PortraitRowPeekFixture(showcase: true, pinned: true, navigationInset: inset)
+                .environment(\.plozzCardStyle, .borderless)
+                .environment(\.plozzCardFocusStyle, .system))
+        }
+        let host = MotionFocusHost(rootView: content(inset: 64))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        try await Task.sleep(for: .milliseconds(500))
+        func poster(_ title: String) throws -> NativePosterButton {
+            try XCTUnwrap(focusItems(in: window).compactMap { $0 as? NativePosterButton }
+                .first { $0.accessibilityLabel == title })
+        }
+        let focused = try poster("Peek 2")
+        let focus = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        host.target = focused
+        focus.requestFocusUpdate(to: host)
+        focus.updateFocusIfNeeded()
+        XCTAssertTrue(focus.focusedItem === focused)
+        let originalWidth = focused.bounds.width
+        host.rootView = content(inset: 0)
+        try await Task.sleep(for: .milliseconds(500))
+        XCTAssertTrue(focus.focusedItem === focused)
+        XCTAssertGreaterThan(focused.bounds.width, originalWidth)
+        let first = try poster("Peek 0")
+        let second = try poster("Peek 1")
+        let pitch = second.convert(second.bounds, to: window).minX - first.convert(first.bounds, to: window).minX
+        XCTAssertEqual(
+            pitch,
+            PlozzMetrics.standard.portraitRowSlotWidth(viewportWidth: 1840, leadingInset: 0, cardStyle: .borderless)
+                + PlozzMetrics.standard.cardSpacing,
+            accuracy: 0.5
+        )
+        let seventh = try poster("Peek 6")
+        host.target = seventh
+        focus.requestFocusUpdate(to: host)
+        focus.updateFocusIfNeeded()
+        try await Task.sleep(for: .milliseconds(800))
+        XCTAssertTrue(focus.focusedItem === seventh)
+        var ancestor = seventh.superview
+        while let view = ancestor, !(view is UIScrollView) { ancestor = view.superview }
+        let scroll = try XCTUnwrap(ancestor as? UIScrollView)
+        let position = (scroll.contentOffset.x + scroll.adjustedContentInset.left) / pitch
+        XCTAssertGreaterThan(position, 0, "Focusing the partially visible poster must actually scroll the row.")
+        XCTAssertEqual(position, position.rounded(), accuracy: 0.01)
+    }
+
     func testColdShowcaseWaitsForFirstRowInsteadOfEnteringDiscover() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
@@ -312,10 +459,10 @@ final class HomeVerticalMotionHostedTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(400))
         let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
         func focus(_ index: Int) throws {
-            func lockups(_ view: UIView) -> [TVLockupView] {
-                (view as? TVLockupView).map { [$0] } ?? view.subviews.flatMap(lockups)
+            func posters(_ view: UIView) -> [NativePosterButton] {
+                (view as? NativePosterButton).map { [$0] } ?? view.subviews.flatMap(posters)
             }
-            let target = try XCTUnwrap(lockups(host.view).first { $0.accessibilityLabel == "Item \(index)-0" })
+            let target = try XCTUnwrap(posters(host.view).first { $0.accessibilityLabel == "Item \(index)-0" })
             host.target = target
             system.requestFocusUpdate(to: host)
             system.updateFocusIfNeeded()
@@ -924,6 +1071,42 @@ private final class LoadingHomeRows {
     var items: [MediaItem] = []
     var activeRowID: String?
     var firstRowReady = true
+}
+
+private struct PortraitRowPeekFixture: View {
+    let showcase: Bool
+    let pinned: Bool
+    var navigationInset: CGFloat? = nil
+    var isLoading = false
+    private let items = (0..<10).map {
+        MediaItem(id: "peek-\($0)", title: "Peek \($0)", kind: .movie, allowsTitleBasedMetadataMatching: false)
+    }
+
+    var body: some View {
+        Group {
+            if showcase {
+                FocusHeroHomeView(
+                    rows: [.init(id: "peek", itemIDs: isLoading ? [] : items.map(\.stablePresentationID),
+                                 leadItem: isLoading ? nil : items.first, items: isLoading ? [] : items,
+                                 isPlaceholder: isLoading)],
+                    settings: .default, spoilerSettings: .default,
+                    navigationStyle: pinned ? .rail : .tabBar, isFrontmost: true
+                ) { _, _ in row }
+            } else {
+                ScrollView(.vertical) { row }
+                    .ignoresSafeArea(.container, edges: pinned ? [.vertical, .trailing] : .vertical)
+            }
+        }
+        .environment(\.plozzNavigationContentInset, navigationInset ?? (pinned ? 64 : 0))
+        .environment(\.plozzPinnedSidebarActive, pinned)
+    }
+
+    private var row: some View {
+        MediaRowView(
+            title: Text("Peek"), items: isLoading ? [] : items,
+            loadingPlaceholderCount: isLoading ? 10 : 0, onSelect: { _ in }
+        )
+    }
 }
 
 private struct LoadingHomeRowsView: View {
