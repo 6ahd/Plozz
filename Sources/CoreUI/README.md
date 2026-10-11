@@ -253,34 +253,35 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   geometry even when the final size was unchanged. The artwork remains directly
   under the focused cell for TVUIKit projection, with captions outside it and
   detail transitions referencing the artwork rather than the full cell.
-- **Native poster zoom correction** — normal launches correct internal artwork
-  zoom across Home (including Showcase), Recommended, Continue Watching,
-  library tiles, episode rows, and native Movies/TV Browse cells. The shared
-  `NativeTVPoster` uses a `NativePosterButton`, not `TVPosterView`. Portrait
-  posters place that button inside a non-focusable `TVCardView`; the button
-  remains the sole focus and selection owner. Artwork is aspect-filled and
-  rounded once at its resting size.
-  A plain `UIImageView` and live overlay share the card's moving `contentView`;
-  neither requests a separate image-focus effect. Native enlargement and remote
-  motion remain, with the native card's lighting rather than the image's
-  alpha-masked specular sheen. This is a portrait-only visual trial. Continue
-  Watching, landscape/square artwork, transparent library covers, and the
-  native Browse grid retain their existing image treatment.
+- **Native poster focus** — the shared `NativeTVPoster` uses a
+  `NativePosterButton`, not `TVPosterView` or a `TVCardView` ancestor. Its
+  `UIImageView` retains native enlargement, remote motion and the moving
+  specular highlight. Portrait row posters use UIKit's rectangular focus mask:
+  the small native internal crop (about 1-2% in hosted measurements) is an
+  intentional tradeoff for clean corners during directional touchpad movement.
+  The alpha-derived highlight mask produced an offset crescent at extreme tilt.
+  Continue Watching, landscape/square artwork, transparent landscape library
+  covers, and native Browse cells keep their no-internal-zoom alpha-masked path.
+  Artwork is aspect-filled and rounded once at its resting size.
   Watch/count/library-status marks are composited into the artwork itself.
   `overlayContentView` receives a separate native depth projection, so pinning
   a corner flag to its bounds does not keep it attached to the poster.
-  Async logos, focus-reactive progress and animated content remain live on the
-  same card surface; edge marks and full-card legibility washes do not. Continue Watching
+  Async logos, focus-reactive progress and animated content remain live in
+  `overlayContentView`; edge marks and full-card legibility washes do not. Continue Watching
   keeps its established size, reflection, logo position and resume chrome without
   top-corner watch marks. Its adaptive logo dimming and the shared bottom scrim
   are drawn into the artwork; projecting those backgrounds with the live overlay
   creates a dark rim outside the focused image. Mark changes invalidate only their composition,
   while focus alone reuses the attached pixels. Captions stay outside it. Transparent
-  artwork retains its alpha, and protected/extended artwork is prepared before
-  normalization. Focus changes do not regenerate the bitmap. The card's native
-  focus clearance sits outside its existing artwork slot, preserving row pitch
-  and captions. The button is pinned to `contentView`, which TVUIKit sizes after
-  the outer lockup layout; bitmap preparation uses the button's committed bounds.
+  landscape artwork retains its alpha, and protected/extended artwork is prepared before
+  normalization. Focus changes do not regenerate the bitmap. Portrait count
+  tiles stay flush with the artwork, with 2pt extra trailing content padding
+  and aspect-scaled top padding (3pt for a 2:3 poster) to balance the visible
+  digits after the native crop. Floating marks receive matching outer clearance.
+  This compensation is part of the indicator bitmap cache key and applies only
+  to the cropped portrait row path, not mobile, Browse or landscape cards.
+  The button keeps the existing artwork slot and committed-bounds bitmap
+  preparation, preserving row pitch and captions.
   SwiftUI measurement is side-effect-free: candidate widths never resize the
   native image or trigger artwork/status rendering. A mounted poster prepares
   its latest inputs at the committed UIKit size, with a per-poster autorelease
@@ -332,7 +333,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   focus retention, unchanged-configuration reuse, and cache accounting. Shared
   poster regressions compare painted landmarks with native enlargement for
   portrait, landscape, square and Continue Watching artwork, alongside live
-  overlays, focus requests, captions and transparent library covers. Corner-flag
+  overlays, focus requests, captions and transparent library covers. Portrait
+  coverage bounds the approved crop, checks all four near-threshold tilt
+  directions, and requires spatially moving highlights on gray artwork.
+  Focused counts check actual visible digit padding, not just layout bounds. Corner-flag
   regressions count painted pixels outside the artwork's actual top/right edges,
   and real Home cards cover count/watch/preference updates without focus replacement.
   Earlier real TV Shows comparisons recorded more native hitch counts with this

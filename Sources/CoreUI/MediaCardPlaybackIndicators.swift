@@ -2,6 +2,17 @@
 import CoreModels
 import SwiftUI
 
+private struct NativePosterFocusCropKey: EnvironmentKey {
+    static let defaultValue = CGSize.zero
+}
+
+extension EnvironmentValues {
+    var nativePosterFocusCrop: CGSize {
+        get { self[NativePosterFocusCropKey.self] }
+        set { self[NativePosterFocusCropKey.self] = newValue }
+    }
+}
+
 public struct MediaCardPlaybackIndicators: View {
     /// Only the playback and request facts this view actually renders.
     ///
@@ -36,6 +47,7 @@ public struct MediaCardPlaybackIndicators: View {
     /// Published by the hosting card so this chrome can settle back at rest and
     /// come to full strength on focus (tvOS only — see ``PlozzMediaChrome``).
     @Environment(\.plozzChromeIsFocused) private var isFocused
+    @Environment(\.nativePosterFocusCrop) private var nativeFocusCrop
 
     public init(
         item: MediaItem,
@@ -208,11 +220,15 @@ public struct MediaCardPlaybackIndicators: View {
         case .library(let mark):
             MediaLibraryMarkView(mark: mark, size: metrics.watchedBadgeSize)
                 .padding(floatingBadgeInset)
+                .padding(.top, nativeFocusCrop.height)
+                .padding(.trailing, nativeFocusCrop.width)
         case .episodeCount(let count):
             episodeCountBadge(count)
         case .watched:
             MediaWatchedBadge(size: metrics.watchedBadgeSize)
                 .padding(floatingBadgeInset)
+                .padding(.top, nativeFocusCrop.height)
+                .padding(.trailing, nativeFocusCrop.width)
         case .unwatched:
             MediaUnwatchedCorner(size: metrics.unwatchedFlagSize)
         case nil:
@@ -226,6 +242,8 @@ public struct MediaCardPlaybackIndicators: View {
             cornerRadius: artworkCornerRadius ?? metrics.posterArtworkCornerRadius
         )
         .padding(watchStatusIndicator == .watched ? floatingBadgeInset : 0)
+        .padding(.top, watchStatusIndicator == .watched ? nativeFocusCrop.height : 0)
+        .padding(.trailing, watchStatusIndicator == .watched ? nativeFocusCrop.width : 0)
         .accessibilityLabel(Text("Unwatched episodes: \(count)"))
     }
 
@@ -401,6 +419,7 @@ struct MediaEpisodeCountBadge: View {
     let indicator: WatchStatusIndicator
     let size: CGFloat
     let cornerRadius: CGFloat
+    @Environment(\.nativePosterFocusCrop) private var nativeFocusCrop
     private var scale: CGFloat { size / PlozzTheme.Metrics.watchedBadgeSize }
 
     private var digits: some View {
@@ -431,6 +450,8 @@ struct MediaEpisodeCountBadge: View {
             digits
                 .padding(.horizontal, 12 * scale)
                 .frame(maxWidth: width, minHeight: height, maxHeight: height)
+                .padding(.top, nativeFocusCrop.height)
+                .padding(.trailing, nativeFocusCrop.width)
                 // Only the inner corner is rounded; the artwork clips the outer corner and shadow.
                 .background {
                     UnevenRoundedRectangle(

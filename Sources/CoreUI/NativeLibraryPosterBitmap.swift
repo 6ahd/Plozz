@@ -41,8 +41,9 @@ enum NativePosterArtworkBitmap {
         let contrast: ColorSchemeContrast
         let dynamicTypeSize: DynamicTypeSize
         let legibilityWeight: LegibilityWeight?
+        let focusCrop: CGSize
 
-        init(_ indicators: NativePosterIndicators, environment: EnvironmentValues) {
+        init(_ indicators: NativePosterIndicators, environment: EnvironmentValues, focusCrop: CGSize = .zero) {
             inputs = indicators
             metrics = environment.plozzMetrics
             palette = environment.themePalette
@@ -55,12 +56,20 @@ enum NativePosterArtworkBitmap {
             contrast = environment.colorSchemeContrast
             dynamicTypeSize = environment.dynamicTypeSize
             legibilityWeight = environment.legibilityWeight
+            self.focusCrop = focusCrop
         }
     }
 
     static let placeholder = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 3)).image {
         UIColor.darkGray.setFill()
         $0.fill(CGRect(x: 0, y: 0, width: 2, height: 3))
+    }
+
+    static func portraitFocusCrop(for size: CGSize) -> CGSize {
+        guard size.width > 0, size.height > size.width else { return .zero }
+        // Native rectangular focus trims about 2 source points horizontally.
+        // Match the portrait aspect so top and trailing content keep equal clearance.
+        return CGSize(width: 2, height: 2 * size.height / size.width)
     }
 
     private static let placeholders: NSCache<NSString, UIImage> = {
@@ -101,6 +110,7 @@ enum NativePosterArtworkBitmap {
         }
         let renderer = ImageRenderer(content: key.inputs
             .frame(width: size.width, height: size.height)
+            .environment(\.nativePosterFocusCrop, key.focusCrop)
             .environment(\.self, environment)
             .plozzChromeFocused(false))
         renderer.scale = scale

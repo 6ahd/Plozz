@@ -208,13 +208,7 @@ final class HomeVerticalMotionHostedTests: XCTestCase {
     }
 
     private func restingPosterFrame(_ poster: NativePosterButton, in window: UIWindow) throws -> CGRect {
-        guard poster.usesCardSurface else { return poster.convert(poster.bounds, to: window) }
-        // The first loaded card may already be focused. Density compares its
-        // resting slot, not the enlargement inherited from its native card.
-        var parent = poster.superview
-        while let view = parent, !(view is TVCardView) { parent = view.superview }
-        let slot = try XCTUnwrap(parent?.superview, "Native artwork needs its card surface and layout slot.")
-        return slot.convert(slot.bounds, to: window)
+        poster.convert(poster.bounds, to: window)
     }
 
     func testPinnedPortraitResizeKeepsFocusAndUsesTheNewSlotPitch() async throws {

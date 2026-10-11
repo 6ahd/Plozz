@@ -661,22 +661,35 @@ on a correctly normalized, alpha-masked image. Diagnostic layer isolation
 identified the native specular highlight rather than the artwork. Disabling
 content masking removed that crescent but restored internal zoom (222 painted
 pixels versus 219.29 expected); a 3-point landmark tolerance missed it.
+Changing the image content mode, cap insets, antialiasing or public view corner
+configuration did not preserve both the no-crop composition and clean highlight.
+The `TVCardView` trial removed the desired moving sheen and was rejected.
 Do not modify private UIKit layers or compensate with per-frame transforms.
-The portrait poster trial places its existing focus button inside a
-non-focusable `TVCardView`, with a non-adjusting image and live chrome on one
-moving surface. Its lighting differs from the masked-image sheen. The button's
-focus bounds still match the artwork, not the card's expansion clearance.
-Continue Watching, landscape/square artwork and Browse's cell-owned renderer
-are unchanged. In particular, native cards can flatten transparent library
-reflections even with a clear background; those covers retain the image path.
 
-`testSharedNativeCardHasNoSecondEdgeAtDirectionalRemoteExtremes` drives the
-fixture's original public `UIMotionEffect` interpolation at center and all four
-diagonal offsets (+/-0.9), restores the original effects, and retains rendered
-images. It rejects a second bright edge outside the artwork and requires
-directional motion. Shared aspect-ratio checks use a 1-point landmark tolerance
-to catch the extra internal zoom. These reproduce the specific defect; actual
-Siri Remote feel and the different card lighting still need physical acceptance.
+Portrait row posters now retain the native image effect with its rectangular
+focus mask and the explicitly accepted small internal crop. Hosted measurements
+at 200-320pt widths show about 1-2% extra enlargement inside the visible frame.
+Continue Watching, landscape/square artwork and Browse's cell-owned renderer
+keep their alpha-masked no-internal-zoom path. The existing UIButton remains
+the sole focus owner; there is no card ancestor or custom animation.
+Count-tile backgrounds stay flush. Their contents add 2pt at the trailing edge
+and aspect-scaled padding at the top (3pt for 2:3 portraits), compensating for
+the cropped edges without moving the whole tile away from the poster.
+At 220/280pt widths, rendered counts of 8, 88 and 12345 have opposite-edge
+padding within 1px. The crop allowance participates in the indicator cache key;
+place its environment override inside the full environment injection.
+No focus-only bitmap work or additional retained artwork variant is needed.
+
+`testNativePortraitHighlightHasCleanCornersAtDirectionalExtremes` drives the
+fixture's original public `UIMotionEffect` interpolation at center, horizontal
+offsets and all four diagonal offsets (+/-0.9), restores the original effects,
+and retains rendered images. It rejects a second bright edge outside the artwork.
+`testNativePortraitHighlightMovesAcrossTheArtwork` separately requires the
+highlight's spatial brightness to move left/right on gray artwork: differing
+screenshots alone would also pass when only the card moves, as the trial did.
+Shared aspect-ratio checks retain a 1-point landmark tolerance and explicitly
+allow only the small portrait crop. Actual Siri Remote feel still needs physical
+acceptance; a simulator render is not that acceptance.
 
 For horizontal cards disappearing early, inspect actual rendered pixels as
 well as mounting and clipping. Showcase kept the poster mounted but SwiftUI
