@@ -75,6 +75,9 @@ targets:
       - path: App/Resources/InfoPlist.xcstrings
       - path: App/Resources/ReleaseNotes.json
       - path: App/Resources/LibassNotices.txt
+      - path: App/Resources/LibTrueHDNotices.txt
+      - path: App/Resources/LibTrueHDLicense.txt
+      - path: App/Resources/LibTrueHDApacheLicense.txt
     info:
       path: App/Resources/Info.plist
       properties:
@@ -322,6 +325,9 @@ targets:
       - path: App/Resources/Localizable.xcstrings
       - path: App/Resources/ReleaseNotes.json
       - path: App/Resources/LibassNotices.txt
+      - path: App/Resources/LibTrueHDNotices.txt
+      - path: App/Resources/LibTrueHDLicense.txt
+      - path: App/Resources/LibTrueHDApacheLicense.txt
     info:
       path: App/PlozziOS/Info.plist
       properties:
