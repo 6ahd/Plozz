@@ -86,19 +86,190 @@ final class NativeLibraryCardHostedTests: XCTestCase {
     private struct SharedZoomFixture: View {
         let image: UIImage
         let aspect: CGFloat
+        var item = MediaItem(id: "shared", title: "Shared poster", kind: .series,
+                             playedPercentage: 0.3, unwatchedEpisodeCount: 12)
         @PlozzCardFocus private var focus: Bool
 
         var body: some View {
             NativeTVPoster(
                 image: image, treatment: .original, aspectRatio: aspect, fallbackWidth: 280,
                 title: .content("Shared poster"), subtitle: nil,
-                overlay: MediaCardPlaybackIndicators(
-                    item: MediaItem(id: "shared", title: "Shared poster", kind: .series,
-                                    playedPercentage: 0.3, unwatchedEpisodeCount: 12),
-                    badgeInset: 8, progressHeight: 6, progressHorizontalInset: 16, progressBottomInset: 16),
+                overlay: Color.clear,
+                indicators: .media(MediaCardPlaybackIndicators(
+                    item: item,
+                    badgeInset: 8, progressHeight: 6, progressHorizontalInset: 16, progressBottomInset: 16)),
                 focus: $focus, action: {}
             )
             .focused($focus.focusState)
+        }
+    }
+
+    func testSharedPosterCornerFlagStaysInsidePaintedArtworkOnFocus() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        let image = try XCTUnwrap(UIImage(data: artworkData(.red)))
+        for aspect: CGFloat in [2 / 3, 16 / 9] {
+            let controller = LibraryFocusController()
+            controller.view.backgroundColor = .black
+            let host = UIHostingController(rootView:
+                SharedZoomFixture(
+                    image: image, aspect: aspect,
+                    item: MediaItem(id: "unwatched", title: "Unwatched movie", kind: .movie)
+                )
+                .environment(\.plozzWatchStatusIndicator, .unwatched)
+            )
+            controller.addChild(host)
+            controller.view.addSubview(host.view)
+            host.didMove(toParent: controller)
+            host.view.backgroundColor = .clear
+            host.view.frame = CGRect(x: 400, y: 200, width: 280, height: 280 / aspect)
+            window.rootViewController = controller
+            window.makeKeyAndVisible()
+            window.layoutIfNeeded()
+            let poster = try XCTUnwrap(descendant(NativePosterButton.self, in: host.view))
+            controller.target = poster
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            system.requestFocusUpdate(to: controller)
+            system.updateFocusIfNeeded()
+            try await Task.sleep(for: .milliseconds(500))
+            XCTAssertTrue(system.focusedItem === poster)
+            try assertAttachedCornerFlag(poster, in: window, name: "shared-focused-corner-flag-\(aspect)")
+        }
+    }
+
+    private func assertAttachedCornerFlag(_ poster: NativePosterButton, in window: UIWindow, name: String) throws {
+        let frame = try XCTUnwrap(NativeFocusProjection.artworkFrame(of: poster.artworkView, in: window))
+        let rendered = snapshot(window)
+        let attachment = XCTAttachment(image: rendered)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let bitmap = try XCTUnwrap(rendered.cgImage)
+        let bytes = try rgba(bitmap)
+        func components(_ x: Int, _ y: Int) -> ArraySlice<UInt8> {
+            let offset = (y * bitmap.width + x) * 4
+            return bytes[offset..<(offset + 3)]
+        }
+        let top = try XCTUnwrap((Int(frame.minY) - 16..<Int(frame.midY)).first {
+            let p = components(Int(frame.midX), $0)
+            return p[p.startIndex] > 150 && p.dropFirst().allSatisfy { $0 < 120 }
+        })
+        let right = try XCTUnwrap((Int(frame.midX)...Int(frame.maxX) + 16).last {
+            let p = components($0, Int(frame.midY))
+            return p[p.startIndex] > 150 && p.dropFirst().allSatisfy { $0 < 120 }
+        })
+        var flagPixels = 0
+        var outsidePixels = 0
+        for y in Int(frame.minY) - 16..<Int(frame.minY) + 80 {
+            for x in Int(frame.maxX) - 80...Int(frame.maxX) + 16 {
+                guard components(x, y).allSatisfy({ $0 > 180 }) else { continue }
+                flagPixels += 1
+                if y < top - 1 || x > right + 1 { outsidePixels += 1 }
+            }
+        }
+        XCTAssertGreaterThan(flagPixels, 100, "The actual unwatched flag must be visible.")
+        XCTAssertEqual(outsidePixels, 0, "The indicator must not lift beyond the painted artwork's top/right edges.")
+    }
+
+    func testHomePosterUpdatesAttachedStatusWithoutReplacingFocus() async throws {
+        let server = try LibraryArtworkServer(images: ["artwork": artworkData(.red)])
+        defer { server.stop() }
+        let port = try await server.start()
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:\(port)/artwork/\(UUID())"))
+        let model = AttachedStatusModel(item: MediaItem(
+            id: "status", title: "Status", kind: .series, unwatchedEpisodeCount: 21,
+            posterURL: url, allowsTitleBasedMetadataMatching: false
+        ))
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let controller = LibraryFocusController()
+        controller.view.backgroundColor = .black
+        let host = UIHostingController(rootView: AttachedStatusFixture(model: model))
+        controller.addChild(host)
+        controller.view.addSubview(host.view)
+        host.didMove(toParent: controller)
+        host.view.frame = CGRect(x: 400, y: 200, width: 300, height: 550)
+        host.view.backgroundColor = .clear
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        window.layoutIfNeeded()
+        let poster = try XCTUnwrap(descendant(NativePosterButton.self, in: host.view))
+        controller.target = poster
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        system.requestFocusUpdate(to: controller)
+        system.updateFocusIfNeeded()
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < deadline {
+            if let image = poster.image, let bitmap = image.cgImage,
+               try isRed(image, at: CGPoint(x: bitmap.width / 2, y: bitmap.height / 2)) { break }
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        let loaded = try XCTUnwrap(poster.image)
+        let bitmap = try XCTUnwrap(loaded.cgImage)
+        XCTAssertTrue(try isRed(loaded, at: CGPoint(x: bitmap.width / 2, y: bitmap.height / 2)))
+        try await Task.sleep(for: .milliseconds(500))
+        XCTAssertTrue(system.focusedItem === poster)
+        let first = try XCTUnwrap(loaded.pngData())
+        for change in 0..<4 {
+            let before = try XCTUnwrap(poster.image)
+            let beforePixels = try XCTUnwrap(before.pngData())
+            switch change {
+            case 0: model.item.unwatchedEpisodeCount = 12345
+            case 1: model.showsCount = false
+            case 2:
+                model.indicator = .watched
+                model.item.isPlayed = true
+            default: model.item.isPlayed = false
+            }
+            let changeDeadline = ContinuousClock.now + .seconds(3)
+            while poster.image?.pngData() == beforePixels && ContinuousClock.now < changeDeadline {
+                try await Task.sleep(for: .milliseconds(30))
+            }
+            XCTAssertFalse(poster.image === before, "Watch/count/preference changes must replace the attached pixels.")
+            XCTAssertNotEqual(poster.image?.pngData(), beforePixels, "Status transition \(change) must repaint.")
+            XCTAssertTrue(descendant(NativePosterButton.self, in: host.view) === poster)
+            XCTAssertTrue(system.focusedItem === poster)
+            if change == 1 {
+                try assertAttachedCornerFlag(poster, in: window, name: "home-focused-corner-flag")
+            }
+        }
+        XCTAssertNotEqual(poster.image?.pngData(), first)
+        let attachment = XCTAttachment(image: snapshot(window))
+        attachment.name = "home-poster-live-attached-status"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @Observable final class AttachedStatusModel {
+        var item: MediaItem
+        var showsCount = true
+        var indicator = WatchStatusIndicator.unwatched
+        init(item: MediaItem) { self.item = item }
+    }
+
+    private struct AttachedStatusFixture: View {
+        let model: AttachedStatusModel
+        var body: some View {
+            PosterCardView(item: model.item, enablesAsyncArtworkFallback: false, action: {})
+                .environment(\.plozzCardStyle, .borderless)
+                .environment(\.plozzCardFocusStyle, .system)
+                .environment(\.plozzWatchStatusIndicator, model.indicator)
+                .environment(\.plozzShowsUnwatchedEpisodeCount, model.showsCount)
         }
     }
 

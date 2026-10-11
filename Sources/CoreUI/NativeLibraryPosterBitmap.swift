@@ -23,6 +23,36 @@ extension EnvironmentValues {
 
 @MainActor
 enum NativePosterArtworkBitmap {
+    struct IndicatorKey: Equatable {
+        let inputs: NativePosterIndicators
+        let metrics: PlozzMetrics
+        let palette: ThemePalette
+        let watchIndicator: WatchStatusIndicator
+        let showsEpisodeCount: Bool
+        let seerConnected: Bool
+        let locale: Locale
+        let layoutDirection: LayoutDirection
+        let colorScheme: ColorScheme
+        let contrast: ColorSchemeContrast
+        let dynamicTypeSize: DynamicTypeSize
+        let legibilityWeight: LegibilityWeight?
+
+        init(_ indicators: NativePosterIndicators, environment: EnvironmentValues) {
+            inputs = indicators
+            metrics = environment.plozzMetrics
+            palette = environment.themePalette
+            watchIndicator = environment.plozzWatchStatusIndicator
+            showsEpisodeCount = environment.plozzShowsUnwatchedEpisodeCount
+            seerConnected = environment.plozzSeerConnected
+            locale = environment.locale
+            layoutDirection = environment.layoutDirection
+            colorScheme = environment.colorScheme
+            contrast = environment.colorSchemeContrast
+            dynamicTypeSize = environment.dynamicTypeSize
+            legibilityWeight = environment.legibilityWeight
+        }
+    }
+
     static let placeholder = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 3)).image {
         UIColor.darkGray.setFill()
         $0.fill(CGRect(x: 0, y: 0, width: 2, height: 3))

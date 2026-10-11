@@ -259,8 +259,12 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   `NativeTVPoster` uses a `NativePosterButton` with a direct-child `UIImageView`,
   not `TVPosterView`. Artwork is aspect-filled and rounded once at its resting
   size; native ancestor-focus adjustment supplies enlargement, sheen and motion.
-  Live logos and watch/count/progress views remain in `overlayContentView`, so
-  they follow that same image surface. Captions stay outside it. Transparent
+  Watch/count/library-status marks are composited into the artwork itself.
+  `overlayContentView` receives a separate native depth projection, so pinning
+  a corner flag to its bounds does not keep it attached to the poster.
+  Async logos, focus-reactive progress and animated content remain live in that
+  overlay; edge marks do not. Mark changes invalidate only their composition,
+  while focus alone reuses the attached pixels. Captions stay outside it. Transparent
   artwork retains its alpha, and protected/extended artwork is prepared before
   normalization. Focus changes do not regenerate the bitmap.
   Native Browse uses the correction for both borderless and framed system-focus
@@ -281,7 +285,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   focus retention, unchanged-configuration reuse, and cache accounting. Shared
   poster regressions compare painted landmarks with native enlargement for
   portrait, landscape, square and Continue Watching artwork, alongside live
-  overlays, focus requests, captions and transparent library covers.
+  overlays, focus requests, captions and transparent library covers. Corner-flag
+  regressions count painted pixels outside the artwork's actual top/right edges,
+  and real Home cards cover count/watch/preference updates without focus replacement.
   Earlier real TV Shows comparisons recorded more native hitch counts with this
   renderer; a performance improvement has not been established. It is enabled
   for the requested zoom correction, not to claim better scrolling. See the

@@ -311,6 +311,7 @@ public struct PosterCardView: View {
                     title: nativePosterTitle,
                     subtitle: cardAccessibilityValue,
                     overlay: nativePosterOverlay(hasArtwork: image != nil),
+                    indicators: .media(nativePlaybackIndicators.statusOnly),
                     focus: $isFocused,
                     source: detailTransitionSource,
                     action: selectCard
@@ -351,21 +352,25 @@ public struct PosterCardView: View {
                 }
             }
             if showsSeriesArtwork && !suppressesSeriesLogo { seriesLogo }
-            MediaCardPlaybackIndicators(
-                item: item,
-                hidesStatus: hideThumbnail,
-                showsProgressBar: !showsResumeChip,
-                badgeInset: borderlessBadgeInset,
-                progressHeight: metrics.progressBarHeight,
-                progressHorizontalInset: borderlessProgressInset,
-                progressBottomInset: borderlessProgressInset,
-                downloadState: showsResumeChip ? nil : downloadState,
-                artworkCornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
-            )
+            nativePlaybackIndicators.withoutStatus
             resumeChip
             pendingRemovalOverlay
         }
         .overlay(alignment: .topLeading) { statusCue(inset: borderlessBadgeInset) }
+    }
+
+    private var nativePlaybackIndicators: MediaCardPlaybackIndicators {
+        MediaCardPlaybackIndicators(
+            item: item,
+            hidesStatus: hideThumbnail,
+            showsProgressBar: !showsResumeChip,
+            badgeInset: borderlessBadgeInset,
+            progressHeight: metrics.progressBarHeight,
+            progressHorizontalInset: borderlessProgressInset,
+            progressBottomInset: borderlessProgressInset,
+            downloadState: showsResumeChip ? nil : downloadState,
+            artworkCornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
+        )
     }
     #endif
 

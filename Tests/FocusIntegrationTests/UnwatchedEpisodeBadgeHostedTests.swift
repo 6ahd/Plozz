@@ -9,6 +9,27 @@ import XCTest
 
 @MainActor
 final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
+    func testAttachedStatusRendererClearsWatchedMark() throws {
+        var rendered: [Data] = []
+        for isPlayed in [true, false] {
+            let indicators = NativePosterIndicators.media(MediaCardPlaybackIndicators(
+                item: MediaItem(id: "status", title: "Status", kind: .series,
+                                unwatchedEpisodeCount: 12345, isPlayed: isPlayed),
+                badgeInset: 8
+            ).statusOnly)
+            let renderer = ImageRenderer(content: indicators
+                .frame(width: 280, height: 420)
+                .environment(\.plozzWatchStatusIndicator, .watched)
+                .environment(\.plozzShowsUnwatchedEpisodeCount, false))
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.uiImage)
+            rendered.append(try XCTUnwrap(image.pngData()))
+            let sample = try pixel(image, at: CGPoint(x: 255, y: 28))
+            XCTAssertEqual(sample[3] > 100, isPlayed)
+        }
+        XCTAssertNotEqual(rendered[0], rendered[1])
+    }
+
     func testSharedBadgeRendersExactDigitsAndPreservesFallbacks() throws {
         for indicator in WatchStatusIndicator.allCases {
             try verifyDigitsAndFallbacks(indicator: indicator)
@@ -393,10 +414,11 @@ final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
                 NativeTVPoster(
                     image: artwork, treatment: .original, aspectRatio: 2.0 / 3, fallbackWidth: 240,
                     title: nil, subtitle: nil,
-                    overlay: MediaCardPlaybackIndicators(
+                    overlay: Color.clear,
+                    indicators: .media(MediaCardPlaybackIndicators(
                         item: item, badgeInset: 8,
                         artworkCornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
-                    ),
+                    )),
                     focus: $focused, action: {}
                 )
                 .frame(width: 240, height: 360)

@@ -551,7 +551,12 @@ visual-behavior correction, not a measured scrolling-speed improvement. Normal
 launches include it; Debug comparisons of the old Browse renderer must explicitly
 use `--original-library-posters`. The shared Home/Showcase, Recommended,
 Continue Watching and episode poster renderer also uses a normalized
-ancestor-adjusted `UIImageView`, with live chrome in its `overlayContentView`.
+ancestor-adjusted `UIImageView`. Watch/count/library-status marks share the
+artwork bitmap; async logos and focus-reactive progress remain live in
+`overlayContentView`. The native overlay projects slightly above the image:
+matching layout bounds did not prevent corner flags from visibly lifting past
+the image edges. The regression now checks painted flag pixels against actual
+artwork edges, not just the overlay's constraint rectangle.
 That shared correction has no old-renderer launch switch and is not covered by
 the historical Browse performance comparisons above.
 A later offscreen-header clamp experiment was

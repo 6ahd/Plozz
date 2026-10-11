@@ -350,6 +350,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     let title: NativePosterText?
     let subtitle: String? // l10n:content — provider metadata and preformatted runtime
     let overlay: Overlay
+    var indicators: NativePosterIndicators? = nil
     let focus: PlozzCardFocus.Binding
     var source: DetailTransitionSourceReference? = nil
     let action: () -> Void
@@ -365,6 +366,9 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         private var placeholder: UIImage?
         private var placeholderSize = CGSize.zero
         private var placeholderScale: CGFloat = 1
+        private var indicatorKey: NativePosterArtworkBitmap.IndicatorKey?
+        private var indicatorSource: UIImage?
+        private var indicatorImage: UIImage?
 
         init(focus: PlozzCardFocus.Binding, action: @escaping () -> Void) {
             self.focus = NativeTVMediaCoordinator(focus: focus, action: action)
@@ -379,6 +383,47 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             placeholderSize = size
             placeholderScale = scale
             return loadingImage
+        }
+
+        func presentationImage(
+            _ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize,
+            indicators: NativePosterIndicators?, environment: EnvironmentValues
+        ) -> UIImage {
+            let source = presentationImage(image, treatment: treatment, size: size, scale: environment.displayScale)
+            guard let indicators else {
+                indicatorKey = nil
+                indicatorSource = nil
+                indicatorImage = nil
+                return source
+            }
+            let key = NativePosterArtworkBitmap.IndicatorKey(indicators, environment: environment)
+            if indicatorSource === source, indicatorKey == key, let indicatorImage { return indicatorImage }
+            guard indicators.hasContent(
+                indicator: key.watchIndicator, showsEpisodeCount: key.showsEpisodeCount, seerConnected: key.seerConnected
+            ) else {
+                // Rendering a removal's empty display list inside a SwiftUI
+                // update can return the previous mark. Absence is clean artwork.
+                indicatorKey = key
+                indicatorSource = source
+                indicatorImage = source
+                return source
+            }
+            let renderer = ImageRenderer(content: indicators
+                .frame(width: size.width, height: size.height)
+                .environment(\.self, environment)
+                .plozzChromeFocused(false))
+            renderer.scale = environment.displayScale
+            guard let overlay = renderer.uiImage,
+                  let combined = NativePosterArtworkBitmap.image(
+                    source: source, overlay: overlay, size: size, scale: environment.displayScale
+                  ) else {
+                PlozzLog.app.error("Unable to attach native poster indicators to artwork")
+                return source
+            }
+            indicatorKey = key
+            indicatorSource = source
+            indicatorImage = combined
+            return combined
         }
 
         func prepare(_ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize, scale: CGFloat) -> UIImage? {
@@ -433,7 +478,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     func makeUIView(context: Context) -> Container {
         let size = CGSize(width: fallbackWidth, height: fallbackWidth / aspectRatio)
         let initialImage = context.coordinator.presentationImage(
-            image, treatment: treatment, size: size, scale: context.environment.displayScale
+            image, treatment: treatment, size: size, indicators: indicators, environment: context.environment
         )
         let view = NativePosterButton(image: initialImage)
         view.updateImage(initialImage)
@@ -441,7 +486,8 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         view.contentSize = size
         view.hostedOverlay = overlayConfiguration(in: context).makeContentView()
         if let overlay = view.hostedOverlay {
-            // Native focus and row scrolling move the same logo/badge composite.
+            // Async logos and animated content remain live; edge indicators are
+            // baked into the image so UIKit cannot lift them onto another plane.
             overlay.layer.shouldRasterize = true
             overlay.layer.rasterizationScale = context.environment.displayScale
             let container = view.artworkView.overlayContentView
@@ -482,7 +528,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         view.hostedOverlay?.configuration = overlayConfiguration(in: context)
         view.hostedOverlay?.layer.rasterizationScale = context.environment.displayScale
         let prepared = context.coordinator.presentationImage(
-            image, treatment: treatment, size: view.contentSize, scale: context.environment.displayScale
+            image, treatment: treatment, size: view.contentSize, indicators: indicators, environment: context.environment
         )
         view.updateImage(prepared)
         view.isEnabled = context.environment.isEnabled
@@ -501,7 +547,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             uiView.setNeedsLayout()
         }
         let prepared = context.coordinator.presentationImage(
-            image, treatment: treatment, size: size, scale: context.environment.displayScale
+            image, treatment: treatment, size: size, indicators: indicators, environment: context.environment
         )
         poster.updateImage(prepared)
         return uiView.intrinsicContentSize
