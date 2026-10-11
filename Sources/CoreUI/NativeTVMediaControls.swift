@@ -304,7 +304,7 @@ final class NativePosterButton: UIButton {
     var hostedOverlay: (UIView & UIContentView)?
     var onFocus: ((Bool) -> Void)?
     var onAvailable: (() -> Void)?
-    var prepareArtwork: ((CGSize) -> UIImage?)?
+    var prepareArtwork: ((CGSize, Bool) -> UIImage?)?
 
     init(image: UIImage, masksFocusEffectToContents: Bool = true) {
         super.init(frame: .zero)
@@ -334,18 +334,24 @@ final class NativePosterButton: UIButton {
         IOTimingDiagnostics.measure(.nativePosterLayout, minimumDurationNanoseconds: 1_000_000) {
             super.layoutSubviews()
             if artworkView.frame != bounds { artworkView.frame = bounds }
-            if window != nil, bounds.width > 0, bounds.height > 0 {
-                autoreleasepool {
-                    if let image = prepareArtwork?(bounds.size) { updateImage(image) }
-                }
-            }
+            refreshArtwork()
             onAvailable?()
         }
     }
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
+        // UIKit crops portrait pixels only while focused. Supply the matching
+        // attached marks before it starts the native transition.
+        refreshArtwork()
         super.didUpdateFocus(in: context, with: coordinator)
         onFocus?(isFocused)
+    }
+
+    private func refreshArtwork() {
+        guard window != nil, bounds.width > 0, bounds.height > 0 else { return }
+        autoreleasepool {
+            if let image = prepareArtwork?(bounds.size, isFocused) { updateImage(image) }
+        }
     }
 }
 
@@ -390,14 +396,20 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         func presentationImage(
             _ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize,
             indicators: NativePosterIndicators?, artworkBackground: NativePosterArtworkBackground,
-            environment: EnvironmentValues
+            environment: EnvironmentValues, isFocused: Bool
         ) -> UIImage {
             let scale = environment.displayScale
             let key = PresentationKey(
                 treatment: treatment, size: size, scale: scale,
-                indicators: indicators.map {
-                    NativePosterArtworkBitmap.IndicatorKey(
-                        $0, environment: environment, focusCrop: NativePosterArtworkBitmap.portraitFocusCrop(for: size)
+                indicators: indicators.flatMap {
+                    guard $0.hasContent(
+                        indicator: environment.plozzWatchStatusIndicator,
+                        showsEpisodeCount: environment.plozzShowsUnwatchedEpisodeCount,
+                        seerConnected: environment.plozzSeerConnected
+                    ) else { return nil }
+                    return NativePosterArtworkBitmap.IndicatorKey(
+                        $0, environment: environment,
+                        focusCrop: isFocused ? NativePosterArtworkBitmap.portraitFocusCrop(for: size) : .zero
                     )
                 },
                 artworkBackground: artworkBackground
@@ -407,10 +419,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             // normalized full-size image retained for every Home card.
             let source = treatment == .original ? image : prepare(image, treatment: treatment, size: size, scale: scale)
             let result: UIImage?
-            if let indicatorKey = key.indicators, indicatorKey.inputs.hasContent(
-                indicator: indicatorKey.watchIndicator, showsEpisodeCount: indicatorKey.showsEpisodeCount,
-                seerConnected: indicatorKey.seerConnected
-            ) {
+            if let indicatorKey = key.indicators {
                 guard let overlay = NativePosterArtworkBitmap.indicatorImage(
                     key: indicatorKey, size: size, scale: scale, environment: environment
                 ) else {
@@ -557,10 +566,10 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     private func configureArtwork(_ view: NativePosterButton, context: Context) {
         let environment = context.environment
-        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators, artworkBackground] size in
+        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators, artworkBackground] size, isFocused in
             coordinator?.presentationImage(
                 image, treatment: treatment, size: size, indicators: indicators,
-                artworkBackground: artworkBackground, environment: environment
+                artworkBackground: artworkBackground, environment: environment, isFocused: isFocused
             )
         }
         view.setNeedsLayout()

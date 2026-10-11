@@ -672,13 +672,26 @@ at 200-320pt widths show about 1-2% extra enlargement inside the visible frame.
 Continue Watching, landscape/square artwork and Browse's cell-owned renderer
 keep their alpha-masked no-internal-zoom path. The existing UIButton remains
 the sole focus owner; there is no card ancestor or custom animation.
-Count-tile backgrounds stay flush. Their contents add 2pt at the trailing edge
+Count-tile backgrounds stay flush. While focused, their contents add 2pt at the trailing edge
 and aspect-scaled padding at the top (3pt for 2:3 portraits), compensating for
 the cropped edges without moving the whole tile away from the poster.
-At 220/280pt widths, rendered counts of 8, 88 and 12345 have opposite-edge
-padding within 1px. The crop allowance participates in the indicator cache key;
-place its environment override inside the full environment injection.
-No focus-only bitmap work or additional retained artwork variant is needed.
+Applying that allowance permanently fixed focused digits but left resting digits
+uneven: UIKit's crop is focus-only. The native button now passes its actual focus
+state to the existing presentation cache, including from `didUpdateFocus` before
+UIKit starts the transition. Resting/defocused cards use zero compensation.
+The crop allowance participates in the indicator cache key; place its environment
+override inside the full environment injection. Both states reuse the bounded
+indicator cache. Portrait counts and floating badges recompose once per focus
+boundary, retaining only the current final image; stable layout/motion reuses it.
+Corner flags and bottom-only indicators normalize the unused crop allowance to zero,
+preserving their image identity across focus. Absent indicators have no cache key,
+so unmarked cards do not recompose merely because focus changes.
+
+`testPortraitCountKeepsEvenPaddingBeforeDuringAndAfterFocus` measures opposite-edge
+digit clearance within 2 rendered pixels for 8, 88 and 12345 at 220/280pt widths,
+starting on another control, then focusing, defocusing and refocusing. It samples
+native transitions as well as settled states and checks stable-layout image reuse.
+The expanded test failed against the permanent-padding implementation.
 
 `testNativePortraitHighlightHasCleanCornersAtDirectionalExtremes` drives the
 fixture's original public `UIMotionEffect` interpolation at center, horizontal

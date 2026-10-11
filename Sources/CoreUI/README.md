@@ -271,15 +271,20 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   keeps its established size, reflection, logo position and resume chrome without
   top-corner watch marks. Its adaptive logo dimming and the shared bottom scrim
   are drawn into the artwork; projecting those backgrounds with the live overlay
-  creates a dark rim outside the focused image. Mark changes invalidate only their composition,
-  while focus alone reuses the attached pixels. Captions stay outside it. Transparent
+  creates a dark rim outside the focused image. Captions stay outside it. Transparent
   landscape artwork retains its alpha, and protected/extended artwork is prepared before
-  normalization. Focus changes do not regenerate the bitmap. Portrait count
+  normalization. Portrait count
   tiles stay flush with the artwork, with 2pt extra trailing content padding
   and aspect-scaled top padding (3pt for a 2:3 poster) to balance the visible
   digits after the native crop. Floating marks receive matching outer clearance.
-  This compensation is part of the indicator bitmap cache key and applies only
-  to the cropped portrait row path, not mobile, Browse or landscape cards.
+  This compensation applies only while the native button is focused; resting
+  cards use the original even padding. UIKit's focus callback updates the attached
+  image before starting its native transition, without moving marks onto a separate
+  overlay plane. Both indicator states use the existing bounded bitmap cache.
+  Only portrait counts and floating badges recompose on focus boundaries, retaining
+  one final image; stable focus/layout, corner flags, bottom-only indicators and
+  cards without marks reuse their pixels. Mobile, Browse and landscape cards do
+  not receive this compensation.
   The button keeps the existing artwork slot and committed-bounds bitmap
   preparation, preserving row pitch and captions.
   SwiftUI measurement is side-effect-free: candidate widths never resize the

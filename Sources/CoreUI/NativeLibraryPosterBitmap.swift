@@ -56,7 +56,19 @@ enum NativePosterArtworkBitmap {
             contrast = environment.colorSchemeContrast
             dynamicTypeSize = environment.dynamicTypeSize
             legibilityWeight = environment.legibilityWeight
-            self.focusCrop = focusCrop
+            if case .playback(let inputs) = indicators, inputs.rendersStatus {
+                switch MediaPlaybackIndicatorPresentation.status(
+                    for: inputs.playback, hidesStatus: inputs.hidesStatus, indicator: watchIndicator,
+                    showsEpisodeCount: showsEpisodeCount, seerConnected: seerConnected
+                ) {
+                case .library, .episodeCount, .watched:
+                    self.focusCrop = focusCrop
+                case .unwatched, nil:
+                    self.focusCrop = .zero
+                }
+            } else {
+                self.focusCrop = .zero
+            }
         }
     }
 
