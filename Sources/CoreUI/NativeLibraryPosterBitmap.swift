@@ -26,6 +26,16 @@ struct NativePosterArtworkBackground: Equatable {
     var scrim: MediaArtworkChromeScrim?
 }
 
+enum NativePosterOverlayPlacement {
+    case croppedCount, floating
+}
+
+struct NativePosterOverlay {
+    let image: UIImage
+    let placement: NativePosterOverlayPlacement
+    let layoutDirection: LayoutDirection
+}
+
 @MainActor
 enum NativePosterArtworkBitmap {
     struct IndicatorKey: Equatable {
@@ -41,9 +51,12 @@ enum NativePosterArtworkBitmap {
         let contrast: ColorSchemeContrast
         let dynamicTypeSize: DynamicTypeSize
         let legibilityWeight: LegibilityWeight?
-        let focusCrop: CGSize
+        let layer: NativePosterIndicatorLayer
 
-        init(_ indicators: NativePosterIndicators, environment: EnvironmentValues, focusCrop: CGSize = .zero) {
+        init(
+            _ indicators: NativePosterIndicators, environment: EnvironmentValues,
+            layer: NativePosterIndicatorLayer = .combined
+        ) {
             inputs = indicators
             metrics = environment.plozzMetrics
             palette = environment.themePalette
@@ -56,18 +69,21 @@ enum NativePosterArtworkBitmap {
             contrast = environment.colorSchemeContrast
             dynamicTypeSize = environment.dynamicTypeSize
             legibilityWeight = environment.legibilityWeight
-            if case .playback(let inputs) = indicators, inputs.rendersStatus {
-                switch MediaPlaybackIndicatorPresentation.status(
-                    for: inputs.playback, hidesStatus: inputs.hidesStatus, indicator: watchIndicator,
-                    showsEpisodeCount: showsEpisodeCount, seerConnected: seerConnected
-                ) {
-                case .library, .episodeCount, .watched:
-                    self.focusCrop = focusCrop
-                case .unwatched, nil:
-                    self.focusCrop = .zero
-                }
-            } else {
-                self.focusCrop = .zero
+            self.layer = layer
+        }
+
+        var overlayPlacement: NativePosterOverlayPlacement? {
+            guard case .playback(let inputs) = inputs, inputs.rendersStatus else { return nil }
+            switch MediaPlaybackIndicatorPresentation.status(
+                for: inputs.playback, hidesStatus: inputs.hidesStatus, indicator: watchIndicator,
+                showsEpisodeCount: showsEpisodeCount, seerConnected: seerConnected
+            ) {
+            case .episodeCount:
+                return watchIndicator == .unwatched ? .croppedCount : .floating
+            case .library, .watched:
+                return .floating
+            case .unwatched, nil:
+                return nil
             }
         }
     }
@@ -122,7 +138,7 @@ enum NativePosterArtworkBitmap {
         }
         let renderer = ImageRenderer(content: key.inputs
             .frame(width: size.width, height: size.height)
-            .environment(\.nativePosterFocusCrop, key.focusCrop)
+            .environment(\.nativePosterIndicatorLayer, key.layer)
             .environment(\.self, environment)
             .plozzChromeFocused(false))
         renderer.scale = scale

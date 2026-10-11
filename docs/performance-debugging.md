@@ -672,31 +672,34 @@ at 200-320pt widths show about 1-2% extra enlargement inside the visible frame.
 Continue Watching, landscape/square artwork and Browse's cell-owned renderer
 keep their alpha-masked no-internal-zoom path. The existing UIButton remains
 the sole focus owner; there is no card ancestor or custom animation.
-Count-tile backgrounds stay flush. While focused, their contents add 2pt at the trailing edge
-and aspect-scaled padding at the top (3pt for 2:3 portraits), compensating for
-the cropped edges without moving the whole tile away from the poster.
-Applying that allowance permanently fixed focused digits but left resting digits
-uneven: UIKit's crop is focus-only. The native button passes its actual focus
-state to the existing presentation cache. Resting cards use zero compensation.
-Updating `UIImageView.image` directly before `super.didUpdateFocus` fixed the
-settled padding but killed the native transition: the new image jumped straight
-to its final geometry. Use the supplied `UIFocusAnimationCoordinator` for the
-entering image update. The outgoing image must remain intact until that
-coordinator's completion; even replacing it inside the animation block tears
-down the native unfocusing image stack. Defer layout-triggered image refreshes
-during that shrink, then restore resting pixels. A focus revision rejects stale
-completions after rapid reversals. There is no custom scale, spring, duration,
-timer or private-layer mutation.
-The crop allowance participates in the indicator cache key; place its environment
-override inside the full environment injection. Both states reuse the bounded
-indicator cache. Portrait counts and floating badges recompose once per focus
-boundary, retaining only the current final image; stable layout/motion reuses it.
-Corner flags and bottom-only indicators normalize the unused crop allowance to zero,
-preserving their image identity across focus. Absent indicators have no cache key,
-so unmarked cards do not recompose merely because focus changes.
+Count-tile backgrounds stay flush. The original 2pt trailing/aspect-scaled top
+padding adjustment was baked into the whole image. Applying it permanently made
+resting digits uneven. Switching images at focus changes fixed the padding but
+snapped UIKit's native unfocus animation. Waiting for its completion preserved
+motion but caused the reported late number jump; that delay was deliberately
+introduced by the completion callback, not evidence of slow rendering.
+
+The current path never changes the artwork image for focus. Count backgrounds
+and corner flags stay baked, while portrait count digits and floating badges use
+a separate cached foreground on the public `UIImageView.overlayContentView`.
+Only that foreground's geometry is normalized against the public artwork viewport
+and overlay projection. Model/destination transforms are used, not presentation
+samples, so the target is correct at the focus event. A flush count's digits
+center inside the visible tile after the 2pt/aspect-scaled crop; floating badges
+align to the uncropped viewport. UIKit's existing focus coordinator animates the
+geometry change with the card. There is no completion callback, timer, per-frame
+work, custom poster scale/spring/duration, or private-layer mutation.
+
+Background and foreground pixels reuse the same 24 MiB/64-entry indicator cache.
+The layer role, rather than focus, participates in the key. Environment overrides
+stay inside the full environment injection. Stable layouts and focus changes
+reuse both images; data/size/environment changes invalidate the appropriate pixels.
+Continue Watching, landscape/square artwork, Browse and mobile stay on the
+combined rendering path.
 
 `testPortraitCountKeepsEvenPaddingAtRestFocusAndReturn` measures opposite-edge
-digit clearance within 2 rendered pixels for 8, 88 and 12345 at 220/280pt widths,
+digit clearance within 2 rendered pixels for 8, 88 and 12345 at 220/280pt widths
+in both left-to-right and right-to-left layouts,
 starting on another control, then focusing, defocusing and refocusing. It checks
 settled states and stable-layout image reuse. `drawHierarchy(afterScreenUpdates: true)`
 does not prove intermediate rendered geometry; the old nominal transition
@@ -704,14 +707,20 @@ snapshots missed the snap and could combine final geometry with outgoing pixels.
 The separate `testPortraitFocusAndDefocusRetainNativeIntermediateFrames` samples
 presentation-layer artwork geometry without snapshots, with and without counts,
 for focus, unfocus and refocus. Hidden source layers and the square sheen are
-excluded, so moving lighting alone cannot satisfy the test. It also reverses
-focus rapidly while forcing layout, checking outgoing-image reuse and balanced
-resting digits after the final completion.
+excluded, so moving lighting alone cannot satisfy the test. It captures the
+visible artwork's image reference at the first 20ms sample, then compares pixels
+outside the timed sampling loop. Badge model geometry must already match its
+settled destination at that sample, with no later repositioning. Rapid reversals
+force layout and verify both image identities remain stable and resting padding
+stays balanced.
 
 `testNativePortraitHighlightHasCleanCornersAtDirectionalExtremes` drives the
 fixture's original public `UIMotionEffect` interpolation at center, horizontal
 offsets and all four diagonal offsets (+/-0.9), restores the original effects,
 and retains rendered images. It rejects a second bright edge outside the artwork.
+`testNativePortraitCountStaysInsideTileAtDirectionalExtremes` uses that same
+native motion with split count rendering, checking the complete digit bounds and
+a surrounding band of tile background at every offset.
 `testNativePortraitHighlightMovesAcrossTheArtwork` separately requires the
 highlight's spatial brightness to move left/right on gray artwork: differing
 screenshots alone would also pass when only the card moves, as the trial did.

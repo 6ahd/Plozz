@@ -241,8 +241,10 @@ enum NativeFocusProjection {
         return frame(of: view.layer, in: window.layer, bounds: bounds)
     }
 
-    static func frame(of layer: CALayer, in ancestor: CALayer, bounds: CGRect? = nil) -> CGRect? {
-        let bounds = bounds ?? (layer.presentation() ?? layer).bounds
+    static func frame(
+        of layer: CALayer, in ancestor: CALayer, bounds: CGRect? = nil, usePresentation: Bool = true
+    ) -> CGRect? {
+        let bounds = bounds ?? (usePresentation ? layer.presentation() ?? layer : layer).bounds
         guard !bounds.isEmpty else { return nil }
         var points = [
             Point(x: bounds.minX, y: bounds.minY), Point(x: bounds.maxX, y: bounds.minY),
@@ -251,8 +253,8 @@ enum NativeFocusProjection {
         var current: CALayer? = layer
         while let node = current, node !== ancestor {
             guard let parent = node.superlayer else { return nil }
-            let state = node.presentation() ?? node
-            let parentState = parent.presentation() ?? parent
+            let state = usePresentation ? node.presentation() ?? node : node
+            let parentState = usePresentation ? parent.presentation() ?? parent : parent
             let anchor = CGPoint(
                 x: state.bounds.minX + state.bounds.width * state.anchorPoint.x,
                 y: state.bounds.minY + state.bounds.height * state.anchorPoint.y

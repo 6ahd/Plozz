@@ -2,14 +2,18 @@
 import CoreModels
 import SwiftUI
 
-private struct NativePosterFocusCropKey: EnvironmentKey {
-    static let defaultValue = CGSize.zero
+enum NativePosterIndicatorLayer: Equatable {
+    case combined, background, foreground
+}
+
+private struct NativePosterIndicatorLayerKey: EnvironmentKey {
+    static let defaultValue = NativePosterIndicatorLayer.combined
 }
 
 extension EnvironmentValues {
-    var nativePosterFocusCrop: CGSize {
-        get { self[NativePosterFocusCropKey.self] }
-        set { self[NativePosterFocusCropKey.self] = newValue }
+    var nativePosterIndicatorLayer: NativePosterIndicatorLayer {
+        get { self[NativePosterIndicatorLayerKey.self] }
+        set { self[NativePosterIndicatorLayerKey.self] = newValue }
     }
 }
 
@@ -47,7 +51,7 @@ public struct MediaCardPlaybackIndicators: View {
     /// Published by the hosting card so this chrome can settle back at rest and
     /// come to full strength on focus (tvOS only — see ``PlozzMediaChrome``).
     @Environment(\.plozzChromeIsFocused) private var isFocused
-    @Environment(\.nativePosterFocusCrop) private var nativeFocusCrop
+    @Environment(\.nativePosterIndicatorLayer) private var nativeIndicatorLayer
 
     public init(
         item: MediaItem,
@@ -103,7 +107,7 @@ public struct MediaCardPlaybackIndicators: View {
             // was hard to see at all. The shared scrim holds clear until ~62% and
             // then ramps, so the darkening is concentrated where the chrome is.
             .overlay {
-                if rendersScrim, let artworkScrim {
+                if nativeIndicatorLayer != .foreground, rendersScrim, let artworkScrim {
                     artworkScrim
                 }
             }
@@ -111,12 +115,12 @@ public struct MediaCardPlaybackIndicators: View {
                 if rendersStatus { statusIndicator }
             }
             .overlay(alignment: .bottom) {
-                if rendersBottom && progressBarEnabled {
+                if nativeIndicatorLayer != .foreground && rendersBottom && progressBarEnabled {
                     progressBar
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                if rendersBottom { downloadBadge }
+                if nativeIndicatorLayer != .foreground && rendersBottom { downloadBadge }
             }
             .allowsHitTesting(false)
     }
@@ -218,17 +222,17 @@ public struct MediaCardPlaybackIndicators: View {
         // the two never compete for the corner.
         switch status {
         case .library(let mark):
-            MediaLibraryMarkView(mark: mark, size: metrics.watchedBadgeSize)
-                .padding(floatingBadgeInset)
-                .padding(.top, nativeFocusCrop.height)
-                .padding(.trailing, nativeFocusCrop.width)
+            if nativeIndicatorLayer != .background {
+                MediaLibraryMarkView(mark: mark, size: metrics.watchedBadgeSize)
+                    .padding(floatingBadgeInset)
+            }
         case .episodeCount(let count):
             episodeCountBadge(count)
         case .watched:
-            MediaWatchedBadge(size: metrics.watchedBadgeSize)
-                .padding(floatingBadgeInset)
-                .padding(.top, nativeFocusCrop.height)
-                .padding(.trailing, nativeFocusCrop.width)
+            if nativeIndicatorLayer != .background {
+                MediaWatchedBadge(size: metrics.watchedBadgeSize)
+                    .padding(floatingBadgeInset)
+            }
         case .unwatched:
             MediaUnwatchedCorner(size: metrics.unwatchedFlagSize)
         case nil:
@@ -242,8 +246,6 @@ public struct MediaCardPlaybackIndicators: View {
             cornerRadius: artworkCornerRadius ?? metrics.posterArtworkCornerRadius
         )
         .padding(watchStatusIndicator == .watched ? floatingBadgeInset : 0)
-        .padding(.top, watchStatusIndicator == .watched ? nativeFocusCrop.height : 0)
-        .padding(.trailing, watchStatusIndicator == .watched ? nativeFocusCrop.width : 0)
         .accessibilityLabel(Text("Unwatched episodes: \(count)"))
     }
 
@@ -419,7 +421,7 @@ struct MediaEpisodeCountBadge: View {
     let indicator: WatchStatusIndicator
     let size: CGFloat
     let cornerRadius: CGFloat
-    @Environment(\.nativePosterFocusCrop) private var nativeFocusCrop
+    @Environment(\.nativePosterIndicatorLayer) private var nativeIndicatorLayer
     private var scale: CGFloat { size / PlozzTheme.Metrics.watchedBadgeSize }
 
     private var digits: some View {
@@ -434,35 +436,38 @@ struct MediaEpisodeCountBadge: View {
     @ViewBuilder var body: some View {
         switch indicator {
         case .watched:
-            digits
-                .padding(.horizontal, 12 * scale)
-                .frame(minWidth: size, minHeight: size)
-                .background(RoundedRectangle(cornerRadius: 11 * scale).fill(MediaWatchIndicatorStyle.countFill))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 11 * scale)
-                        .stroke(MediaWatchIndicatorStyle.countEdge, lineWidth: scale)
-                }
-                .shadow(color: .black.opacity(0.2), radius: 3 * scale, y: scale)
+            if nativeIndicatorLayer != .background {
+                digits
+                    .padding(.horizontal, 12 * scale)
+                    .frame(minWidth: size, minHeight: size)
+                    .background(RoundedRectangle(cornerRadius: 11 * scale).fill(MediaWatchIndicatorStyle.countFill))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 11 * scale)
+                            .stroke(MediaWatchIndicatorStyle.countEdge, lineWidth: scale)
+                    }
+                    .shadow(color: .black.opacity(0.2), radius: 3 * scale, y: scale)
+            }
         case .unwatched:
             let height = 52 * scale
             let width = max(48, 24 + CGFloat(String(count).count) * 16) * scale
             let radius = min(cornerRadius, height / 2)
             digits
+                .opacity(nativeIndicatorLayer == .background ? 0 : 1)
                 .padding(.horizontal, 12 * scale)
                 .frame(maxWidth: width, minHeight: height, maxHeight: height)
-                .padding(.top, nativeFocusCrop.height)
-                .padding(.trailing, nativeFocusCrop.width)
                 // Only the inner corner is rounded; the artwork clips the outer corner and shadow.
                 .background {
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 0, bottomLeadingRadius: radius,
-                        bottomTrailingRadius: 0, topTrailingRadius: 0, style: .circular
-                    )
-                    .fill(MediaWatchIndicatorStyle.countFill)
-                    .shadow(color: .black.opacity(0.28), radius: 8 * scale)
-                    .overlay {
-                        TopTrailingCurvedCornerEdge(radius: radius)
-                            .stroke(MediaWatchIndicatorStyle.countEdge, lineWidth: scale)
+                    if nativeIndicatorLayer != .foreground {
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 0, bottomLeadingRadius: radius,
+                            bottomTrailingRadius: 0, topTrailingRadius: 0, style: .circular
+                        )
+                        .fill(MediaWatchIndicatorStyle.countFill)
+                        .shadow(color: .black.opacity(0.28), radius: 8 * scale)
+                        .overlay {
+                            TopTrailingCurvedCornerEdge(radius: radius)
+                                .stroke(MediaWatchIndicatorStyle.countEdge, lineWidth: scale)
+                        }
                     }
                 }
         }

@@ -291,6 +291,9 @@ enum NativePosterImageTreatment: Equatable {
 
 final class NativePosterButton: UIButton {
     let artworkView = UIImageView()
+    let indicatorView = UIImageView()
+    private var indicatorPlacement: NativePosterOverlayPlacement?
+    private var indicatorLayoutDirection = LayoutDirection.leftToRight
     var overlayView: UIView { artworkView.overlayContentView }
     var contentSize = CGSize.zero {
         didSet {
@@ -304,18 +307,20 @@ final class NativePosterButton: UIButton {
     var hostedOverlay: (UIView & UIContentView)?
     var onFocus: ((Bool) -> Void)?
     var onAvailable: (() -> Void)?
-    var prepareArtwork: ((CGSize, Bool) -> UIImage?)?
-    private var focusRevision = 0
-    private var defersArtworkRefresh = false
+    var prepareArtwork: ((CGSize) -> UIImage?)?
+    var prepareOverlay: ((CGSize) -> NativePosterOverlay?)?
 
     init(image: UIImage, masksFocusEffectToContents: Bool = true) {
         super.init(frame: .zero)
         clipsToBounds = false
         artworkView.adjustsImageWhenAncestorFocused = true
         artworkView.masksFocusEffectToContents = masksFocusEffectToContents
+        artworkView.clipsToBounds = false
         artworkView.isUserInteractionEnabled = false
         addSubview(artworkView)
         updateImage(image)
+        indicatorView.isUserInteractionEnabled = false
+        overlayView.addSubview(indicatorView)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -343,30 +348,51 @@ final class NativePosterButton: UIButton {
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
         super.didUpdateFocus(in: context, with: coordinator)
-        focusRevision &+= 1
-        let revision = focusRevision
-        defersArtworkRefresh = !isFocused
-        if isFocused {
-            coordinator.addCoordinatedAnimations { [weak self] in
-                self?.refreshArtwork()
-            }
-        } else {
-            // UIImage replacement tears down the outgoing native image stack.
-            // Let UIKit finish shrinking it before restoring the resting pixels.
-            coordinator.addCoordinatedAnimations(nil) { [weak self] in
-                guard let self, self.focusRevision == revision else { return }
-                self.defersArtworkRefresh = false
-                self.refreshArtwork()
-            }
+        coordinator.addCoordinatedAnimations { [weak self] in
+            self?.layoutIndicator()
         }
         onFocus?(isFocused)
     }
 
     private func refreshArtwork() {
-        guard !defersArtworkRefresh, window != nil, bounds.width > 0, bounds.height > 0 else { return }
+        guard window != nil, bounds.width > 0, bounds.height > 0 else { return }
         autoreleasepool {
-            if let image = prepareArtwork?(bounds.size, isFocused) { updateImage(image) }
+            if let image = prepareArtwork?(bounds.size) { updateImage(image) }
+            let overlay = prepareOverlay?(bounds.size)
+            if indicatorView.image !== overlay?.image { indicatorView.image = overlay?.image }
+            indicatorPlacement = overlay?.placement
+            if let overlay { indicatorLayoutDirection = overlay.layoutDirection }
+            indicatorView.isHidden = overlay == nil
+            layoutIndicator()
         }
+    }
+
+    private func layoutIndicator() {
+        guard let indicatorPlacement, !overlayView.bounds.isEmpty, !artworkView.bounds.isEmpty else { return }
+        // UIKit lifts overlays onto a nearer plane. Align only our badge to the
+        // destination artwork geometry, never a sampled in-flight transform.
+        guard let projected = NativeFocusProjection.frame(
+            of: overlayView.layer, in: artworkView.layer, usePresentation: false
+        ), projected.width > 0 else {
+            PlozzLog.app.error("Unable to align native poster indicators with their artwork")
+            return
+        }
+        let size = artworkView.bounds.size
+        let viewport = isFocused ? artworkView.focusedFrameGuide.layoutFrame : artworkView.bounds
+        let crop = isFocused && indicatorPlacement == .croppedCount
+            ? NativePosterArtworkBitmap.portraitFocusCrop(for: size) : .zero
+        let artworkScale = viewport.width / (size.width - 2 * crop.width)
+        let scale = artworkScale / (projected.width / overlayView.bounds.width)
+        // The baked tile loses its top/trailing edges to the native crop.
+        let trailingDirection: CGFloat = indicatorLayoutDirection == .leftToRight ? -1 : 1
+        let center = CGPoint(
+            x: overlayView.bounds.midX + trailingDirection * crop.width * scale / 2,
+            y: overlayView.bounds.midY + crop.height * scale / 2
+        )
+        if indicatorView.bounds != artworkView.bounds { indicatorView.bounds = artworkView.bounds }
+        if indicatorView.center != center { indicatorView.center = center }
+        let transform = CGAffineTransform(scaleX: scale, y: scale)
+        if indicatorView.transform != transform { indicatorView.transform = transform }
     }
 }
 
@@ -411,7 +437,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         func presentationImage(
             _ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize,
             indicators: NativePosterIndicators?, artworkBackground: NativePosterArtworkBackground,
-            environment: EnvironmentValues, isFocused: Bool
+            environment: EnvironmentValues
         ) -> UIImage {
             let scale = environment.displayScale
             let key = PresentationKey(
@@ -422,9 +448,10 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                         showsEpisodeCount: environment.plozzShowsUnwatchedEpisodeCount,
                         seerConnected: environment.plozzSeerConnected
                     ) else { return nil }
+                    let key = NativePosterArtworkBitmap.IndicatorKey($0, environment: environment)
                     return NativePosterArtworkBitmap.IndicatorKey(
                         $0, environment: environment,
-                        focusCrop: isFocused ? NativePosterArtworkBitmap.portraitFocusCrop(for: size) : .zero
+                        layer: size.height > size.width && key.overlayPlacement != nil ? .background : .combined
                     )
                 },
                 artworkBackground: artworkBackground
@@ -457,6 +484,18 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             presentationSource = image
             presentedImage = result
             return result
+        }
+
+        func presentationOverlay(
+            size: CGSize, indicators: NativePosterIndicators?, environment: EnvironmentValues
+        ) -> NativePosterOverlay? {
+            guard size.height > size.width, let indicators else { return nil }
+            let key = NativePosterArtworkBitmap.IndicatorKey(indicators, environment: environment, layer: .foreground)
+            guard let placement = key.overlayPlacement else { return nil }
+            guard let image = NativePosterArtworkBitmap.indicatorImage(
+                key: key, size: size, scale: environment.displayScale, environment: environment
+            ) else { return nil }
+            return NativePosterOverlay(image: image, placement: placement, layoutDirection: key.layoutDirection)
         }
 
         func prepare(_ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize, scale: CGFloat) -> UIImage? {
@@ -516,8 +555,8 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         configureArtwork(view, context: context)
         view.hostedOverlay = overlayConfiguration(in: context).makeContentView()
         if let overlay = view.hostedOverlay {
-            // Async logos remain live; edge indicators are baked into the image
-            // so UIKit cannot lift them onto another plane.
+            // Edge backgrounds stay baked; the separately aligned indicator
+            // foreground and async logos use UIKit's live overlay surface.
             overlay.layer.shouldRasterize = true
             overlay.layer.rasterizationScale = context.environment.displayScale
             let container = view.overlayView
@@ -541,6 +580,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     static func dismantleUIView(_ container: Container, coordinator: Coordinator) {
         container.poster.prepareArtwork = nil
+        container.poster.prepareOverlay = nil
         container.poster.onAvailable = nil
         container.poster.onFocus = nil
     }
@@ -581,11 +621,14 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     private func configureArtwork(_ view: NativePosterButton, context: Context) {
         let environment = context.environment
-        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators, artworkBackground] size, isFocused in
+        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators, artworkBackground] size in
             coordinator?.presentationImage(
                 image, treatment: treatment, size: size, indicators: indicators,
-                artworkBackground: artworkBackground, environment: environment, isFocused: isFocused
+                artworkBackground: artworkBackground, environment: environment
             )
+        }
+        view.prepareOverlay = { [weak coordinator = context.coordinator, indicators] size in
+            coordinator?.presentationOverlay(size: size, indicators: indicators, environment: environment)
         }
         view.setNeedsLayout()
     }

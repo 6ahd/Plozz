@@ -263,31 +263,27 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Continue Watching, landscape/square artwork, transparent landscape library
   covers, and native Browse cells keep their no-internal-zoom alpha-masked path.
   Artwork is aspect-filled and rounded once at its resting size.
-  Watch/count/library-status marks are composited into the artwork itself.
-  `overlayContentView` receives a separate native depth projection, so pinning
-  a corner flag to its bounds does not keep it attached to the poster.
+  Corner flags, count-tile backgrounds and legibility washes are composited into
+  the artwork itself. Portrait count digits and floating status/library marks
+  use a cached foreground on `overlayContentView`. That surface receives a nearer
+  native depth projection; its badge alone is aligned to the public artwork
+  viewport so it does not drift outside the image.
   Async logos, focus-reactive progress and animated content remain live in
-  `overlayContentView`; edge marks and full-card legibility washes do not. Continue Watching
+  `overlayContentView`; edge backgrounds and full-card legibility washes do not. Continue Watching
   keeps its established size, reflection, logo position and resume chrome without
   top-corner watch marks. Its adaptive logo dimming and the shared bottom scrim
   are drawn into the artwork; projecting those backgrounds with the live overlay
   creates a dark rim outside the focused image. Captions stay outside it. Transparent
   landscape artwork retains its alpha, and protected/extended artwork is prepared before
-  normalization. Portrait count
-  tiles stay flush with the artwork, with 2pt extra trailing content padding
-  and aspect-scaled top padding (3pt for a 2:3 poster) to balance the visible
-  digits after the native crop. Floating marks receive matching outer clearance.
-  Resting cards use the original even padding. On focus, the attached image updates
-  inside UIKit's native focus animation coordinator. On unfocus, it retains those
-  pixels until the coordinator completes the native shrink; replacing the image
-  sooner tears down UIKit's outgoing image stack and makes it snap. Layout refreshes
-  respect that boundary, and stale completions cannot overwrite a newer focus
-  transition. No custom scale, timing or per-frame animation is applied.
-  Both indicator states use the existing bounded bitmap cache. Only portrait counts
-  and floating badges recompose at these boundaries, retaining one final image;
-  stable focus/layout, corner flags, bottom-only indicators and cards without marks
-  reuse their pixels. Mobile, Browse and landscape cards do not receive this
-  compensation.
+  normalization. Portrait count tiles stay flush. Their digits center inside the
+  visible tile using the native crop allowance (2pt horizontally, aspect-scaled
+  vertically). Badge destination geometry updates in UIKit's focus coordinator
+  at the focus event, not in a completion callback. The poster and foreground
+  images remain identical across focus changes: no late bitmap replacement,
+  delayed number repositioning, custom poster scale, spring, duration or timer.
+  Background/foreground indicator layers share the existing bounded bitmap cache;
+  only data, environment or size changes render new pixels. Mobile, Browse and
+  landscape cards keep their combined indicator rendering.
   The button keeps the existing artwork slot and committed-bounds bitmap
   preparation, preserving row pitch and captions.
   SwiftUI measurement is side-effect-free: candidate widths never resize the

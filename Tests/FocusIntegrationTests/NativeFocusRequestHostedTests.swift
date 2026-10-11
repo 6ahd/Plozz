@@ -383,7 +383,7 @@ final class NativeFocusRequestHostedTests: XCTestCase {
                             XCTAssertEqual(poster.artworkView.bounds.width / poster.artworkView.bounds.height,
                                            aspect, accuracy: 0.01, label)
                             let surface = poster.overlayView
-                            let hosted = try XCTUnwrap(surface.subviews.first, label)
+                            let hosted = try XCTUnwrap(poster.hostedOverlay, label)
                             let projected = hosted.convert(hosted.bounds, to: poster.artworkView)
                             XCTAssertEqual(projected, surface.convert(surface.bounds, to: poster.artworkView), label)
                             XCTAssertEqual(projected.midX, poster.artworkView.bounds.midX, accuracy: 0.5, label)
