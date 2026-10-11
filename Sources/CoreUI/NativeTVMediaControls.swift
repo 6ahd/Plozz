@@ -291,6 +291,9 @@ enum NativePosterImageTreatment: Equatable {
 
 final class NativePosterButton: UIButton {
     let artworkView = UIImageView()
+    let usesCardSurface: Bool
+    private let cardOverlay = UIView()
+    var overlayView: UIView { usesCardSurface ? cardOverlay : artworkView.overlayContentView }
     var contentSize = CGSize.zero {
         didSet {
             guard contentSize != oldValue else { return }
@@ -305,13 +308,18 @@ final class NativePosterButton: UIButton {
     var onAvailable: (() -> Void)?
     var prepareArtwork: ((CGSize) -> UIImage?)?
 
-    init(image: UIImage) {
+    init(image: UIImage, usesCardSurface: Bool = true) {
+        self.usesCardSurface = usesCardSurface
         super.init(frame: .zero)
         clipsToBounds = false
-        artworkView.adjustsImageWhenAncestorFocused = true
-        artworkView.masksFocusEffectToContents = true
+        artworkView.adjustsImageWhenAncestorFocused = !usesCardSurface
+        artworkView.masksFocusEffectToContents = !usesCardSurface
         artworkView.isUserInteractionEnabled = false
         addSubview(artworkView)
+        if usesCardSurface {
+            cardOverlay.isUserInteractionEnabled = false
+            addSubview(cardOverlay)
+        }
         updateImage(image)
     }
 
@@ -333,6 +341,7 @@ final class NativePosterButton: UIButton {
         IOTimingDiagnostics.measure(.nativePosterLayout, minimumDurationNanoseconds: 1_000_000) {
             super.layoutSubviews()
             if artworkView.frame != bounds { artworkView.frame = bounds }
+            if usesCardSurface, cardOverlay.frame != bounds { cardOverlay.frame = bounds }
             if window != nil, bounds.width > 0, bounds.height > 0 {
                 autoreleasepool {
                     if let image = prepareArtwork?(bounds.size) { updateImage(image) }
@@ -481,17 +490,17 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         let size = CGSize(width: fallbackWidth, height: fallbackWidth / aspectRatio)
         let view = NativePosterButton(image: NativePosterArtworkBitmap.placeholder(
             size: size, scale: context.environment.displayScale
-        ))
+        ), usesCardSurface: aspectRatio < 1)
         view.defaultAccessibilityElement = view.isAccessibilityElement
         view.contentSize = size
         configureArtwork(view, context: context)
         view.hostedOverlay = overlayConfiguration(in: context).makeContentView()
         if let overlay = view.hostedOverlay {
-            // Async logos and animated content remain live; edge indicators are
-            // baked into the image so UIKit cannot lift them onto another plane.
+            // Async logos and animated content remain live on the same moving
+            // card surface as the artwork and its composited edge indicators.
             overlay.layer.shouldRasterize = true
             overlay.layer.rasterizationScale = context.environment.displayScale
-            let container = view.artworkView.overlayContentView
+            let container = view.overlayView
             container.addSubview(overlay)
             overlay.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activate([
@@ -572,6 +581,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     final class Container: UIView {
         let poster: NativePosterButton
+        private let card: ArtworkCard?
         var aspectRatio: CGFloat {
             didSet {
                 if aspectRatio != oldValue { setNeedsLayout() }
@@ -581,8 +591,22 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         init(poster: NativePosterButton) {
             self.poster = poster
             self.aspectRatio = poster.contentSize.width / poster.contentSize.height
+            self.card = poster.usesCardSurface ? ArtworkCard() : nil
             super.init(frame: .zero)
-            addSubview(poster)
+            if let card {
+                card.cardBackgroundColor = .clear
+                addSubview(card)
+                card.contentView.addSubview(poster)
+                poster.translatesAutoresizingMaskIntoConstraints = false
+                NSLayoutConstraint.activate([
+                    poster.leadingAnchor.constraint(equalTo: card.contentView.leadingAnchor),
+                    poster.trailingAnchor.constraint(equalTo: card.contentView.trailingAnchor),
+                    poster.topAnchor.constraint(equalTo: card.contentView.topAnchor),
+                    poster.bottomAnchor.constraint(equalTo: card.contentView.bottomAnchor)
+                ])
+            } else {
+                addSubview(poster)
+            }
         }
 
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -602,10 +626,25 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             let intrinsic = CGSize(width: bounds.width, height: bounds.width / aspectRatio)
             poster.contentSize = intrinsic
             let size = CGSize(width: ceil(intrinsic.width), height: ceil(intrinsic.height))
-            let frame = CGRect(x: (bounds.width - size.width) / 2,
-                               y: (bounds.height - size.height) / 2,
-                               width: size.width, height: size.height)
-            if poster.frame != frame { poster.frame = frame }
+            if let card {
+                if card.contentSize != size { card.contentSize = size }
+                // Only the artwork button owns focus. Its native card ancestor
+                // moves the whole surface and keeps focus clearance outside the slot.
+                let nativeSize = card.intrinsicContentSize
+                let frame = CGRect(x: (bounds.width - nativeSize.width) / 2,
+                                   y: (bounds.height - nativeSize.height) / 2,
+                                   width: nativeSize.width, height: nativeSize.height)
+                if card.frame != frame { card.frame = frame }
+            } else {
+                let frame = CGRect(x: (bounds.width - size.width) / 2,
+                                   y: (bounds.height - size.height) / 2,
+                                   width: size.width, height: size.height)
+                if poster.frame != frame { poster.frame = frame }
+            }
+        }
+
+        private final class ArtworkCard: TVCardView {
+            override var canBecomeFocused: Bool { false }
         }
     }
 }
@@ -755,7 +794,7 @@ struct NativePosterPlaceholder: UIViewRepresentable {
 
     func makeUIView(context: Context) -> Container {
         let size = CGSize(width: fallbackWidth, height: fallbackWidth / aspectRatio)
-        let poster = NativePosterButton(image: Self.blank(size))
+        let poster = NativePosterButton(image: Self.blank(size), usesCardSurface: aspectRatio < 1)
         poster.contentSize = size
         poster.isEnabled = focus != nil && context.environment.isEnabled
         poster.isUserInteractionEnabled = focus != nil
@@ -766,7 +805,7 @@ struct NativePosterPlaceholder: UIViewRepresentable {
         }
         let sheen = configuration(in: context).makeContentView()
         poster.hostedOverlay = sheen
-        let container = poster.artworkView.overlayContentView
+        let container = poster.overlayView
         container.addSubview(sheen)
         sheen.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([

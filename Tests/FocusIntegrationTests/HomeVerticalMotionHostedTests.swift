@@ -142,6 +142,9 @@ final class HomeVerticalMotionHostedTests: XCTestCase {
                     let item = try XCTUnwrap(focusItems(in: window).first {
                         ($0 as? NSObject)?.accessibilityLabel == title
                     })
+                    if let poster = item as? NativePosterButton {
+                        return try restingPosterFrame(poster, in: window)
+                    }
                     if let card = item as? TVCardView {
                         return card.convert(CGRect(
                             x: (card.bounds.width - card.contentSize.width) / 2,
@@ -183,25 +186,35 @@ final class HomeVerticalMotionHostedTests: XCTestCase {
                 window.isHidden = true
                 window.rootViewController = nil
             }
-            func frames(in view: UIView, loaded: Bool) -> [CGRect] {
+            func frames(in view: UIView, loaded: Bool) throws -> [CGRect] {
                 if let poster = view as? NativePosterButton {
                     if loaded, poster.accessibilityLabel?.hasPrefix("Peek ") != true { return [] }
-                    return [poster.convert(poster.bounds, to: window)]
+                    return [try restingPosterFrame(poster, in: window)]
                 }
-                return view.subviews.flatMap { frames(in: $0, loaded: loaded) }.sorted { $0.minX < $1.minX }
+                return try view.subviews.flatMap { try frames(in: $0, loaded: loaded) }.sorted { $0.minX < $1.minX }
             }
             try await Task.sleep(for: .milliseconds(500))
-            let loadingFrames = frames(in: window, loaded: false)
+            let loadingFrames = try frames(in: window, loaded: false)
             XCTAssertGreaterThanOrEqual(loadingFrames.count, 7)
             host.rootView = content(loading: false)
             try await Task.sleep(for: .milliseconds(500))
-            let loadedFrames = frames(in: window, loaded: true)
+            let loadedFrames = try frames(in: window, loaded: true)
             XCTAssertGreaterThanOrEqual(loadedFrames.count, 7)
             for (loading, loaded) in zip(loadingFrames.prefix(7), loadedFrames.prefix(7)) {
                 XCTAssertEqual(loading.minX, loaded.minX, accuracy: 0.5)
                 XCTAssertEqual(loading.width, loaded.width, accuracy: 0.5)
             }
         }
+    }
+
+    private func restingPosterFrame(_ poster: NativePosterButton, in window: UIWindow) throws -> CGRect {
+        guard poster.usesCardSurface else { return poster.convert(poster.bounds, to: window) }
+        // The first loaded card may already be focused. Density compares its
+        // resting slot, not the enlargement inherited from its native card.
+        var parent = poster.superview
+        while let view = parent, !(view is TVCardView) { parent = view.superview }
+        let slot = try XCTUnwrap(parent?.superview, "Native artwork needs its card surface and layout slot.")
+        return slot.convert(slot.bounds, to: window)
     }
 
     func testPinnedPortraitResizeKeepsFocusAndUsesTheNewSlotPitch() async throws {

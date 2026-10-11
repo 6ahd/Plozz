@@ -646,15 +646,37 @@ shared native posters bake rounded alpha into their normalized artwork and
 clip live overlays to the same shape. The hosted framed/landscape return
 regression checks the actual painted artwork bounds.
 
-For tilt-dependent corner crescents or bottom slivers, also check fractional
-raster dimensions at 2x. An inverse eraser ending at fractional logical bounds
+For corner artifacts, check fractional raster dimensions at 2x first.
+An inverse eraser ending at fractional logical bounds
 left alpha values up to 243 in the extra physical row/column. Extend its outer
 rectangle beyond the raster, keeping the inner rounded path unchanged. Prepare
 shared artwork at committed UIKit bounds and pixel-align composited Browse
 artwork: a 280x190.5 image in a 280x191 view violates UIKit's identical-aspect
 requirement for `masksFocusEffectToContents`. Raw corner-alpha and native-focus
-regressions cover this contract; directional Siri Remote sheen still requires
-a physical-device check rather than a neutral simulator snapshot.
+regressions cover this contract, but fixing these does not fix every
+tilt-dependent native highlight defect.
+
+The bottom-left pre-navigation thumb position reproduced a second rounded edge
+on a correctly normalized, alpha-masked image. Diagnostic layer isolation
+identified the native specular highlight rather than the artwork. Disabling
+content masking removed that crescent but restored internal zoom (222 painted
+pixels versus 219.29 expected); a 3-point landmark tolerance missed it.
+Do not modify private UIKit layers or compensate with per-frame transforms.
+The portrait poster trial places its existing focus button inside a
+non-focusable `TVCardView`, with a non-adjusting image and live chrome on one
+moving surface. Its lighting differs from the masked-image sheen. The button's
+focus bounds still match the artwork, not the card's expansion clearance.
+Continue Watching, landscape/square artwork and Browse's cell-owned renderer
+are unchanged. In particular, native cards can flatten transparent library
+reflections even with a clear background; those covers retain the image path.
+
+`testSharedNativeCardHasNoSecondEdgeAtDirectionalRemoteExtremes` drives the
+fixture's original public `UIMotionEffect` interpolation at center and all four
+diagonal offsets (+/-0.9), restores the original effects, and retains rendered
+images. It rejects a second bright edge outside the artwork and requires
+directional motion. Shared aspect-ratio checks use a 1-point landmark tolerance
+to catch the extra internal zoom. These reproduce the specific defect; actual
+Siri Remote feel and the different card lighting still need physical acceptance.
 
 For horizontal cards disappearing early, inspect actual rendered pixels as
 well as mounting and clipping. Showcase kept the poster mounted but SwiftUI

@@ -373,15 +373,130 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             system.updateFocusIfNeeded()
             try await Task.sleep(for: .milliseconds(500))
             XCTAssertTrue(system.focusedItem === poster)
-            try assertCompositedArtworkGeometry(poster.artworkView, in: window, expectedScale: nil)
+            try assertCompositedArtworkGeometry(
+                poster.artworkView, in: window, expectedScale: nil, landmarkTolerance: 1
+            )
             XCTAssertTrue(poster.image === before, "Native focus must not regenerate the artwork.")
             XCTAssertTrue(poster.hostedOverlay === overlay, "Counts and progress must retain their live overlay.")
-            let surface = poster.artworkView.overlayContentView
+            let surface = poster.overlayView
             XCTAssertEqual(overlay.convert(overlay.bounds, to: surface), surface.bounds)
             let attachment = XCTAttachment(image: snapshot(window))
             attachment.name = "shared-poster-no-internal-zoom-\(aspect)"
             attachment.lifetime = .keepAlways
             add(attachment)
+        }
+    }
+
+    func testSharedNativeCardHasNoSecondEdgeAtDirectionalRemoteExtremes() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let controller = LibraryFocusController()
+        controller.view.backgroundColor = .black
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 280, height: 420)).image {
+            UIColor.white.setFill()
+            $0.fill(CGRect(x: 0, y: 0, width: 280, height: 420))
+            UIColor.red.setFill()
+            for x: CGFloat in [40, 234] {
+                $0.fill(CGRect(x: x, y: 120, width: 6, height: 120))
+            }
+        }
+        let poster = NativePosterButton(image: try XCTUnwrap(NativePosterArtworkBitmap.image(
+            source: source, size: source.size, scale: 2
+        )))
+        poster.contentSize = source.size
+        let container = NativeTVPoster<EmptyView>.Container(poster: poster)
+        container.frame = CGRect(x: 700, y: 300, width: 280, height: 420)
+        controller.view.addSubview(container)
+        controller.target = poster
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        window.layoutIfNeeded()
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        system.requestFocusUpdate(to: controller)
+        system.updateFocusIfNeeded()
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertTrue(poster.isFocused)
+        try assertCompositedArtworkGeometry(poster.artworkView, in: window, expectedScale: nil, landmarkTolerance: 1)
+        func motionViews(_ view: UIView) -> [(UIView, [UIMotionEffect])] {
+            (view.motionEffects.isEmpty ? [] : [(view, view.motionEffects)])
+                + view.subviews.flatMap(motionViews)
+        }
+        let effects = motionViews(container)
+        XCTAssertFalse(effects.isEmpty)
+        defer {
+            for (view, original) in effects {
+                for effect in view.motionEffects { view.removeMotionEffect(effect) }
+                for effect in original { view.addMotionEffect(effect) }
+            }
+        }
+        var centered: Data?
+        for (name, offset) in [
+            ("center", UIOffset.zero),
+            ("bottom-left", UIOffset(horizontal: -0.9, vertical: 0.9)),
+            ("bottom-right", UIOffset(horizontal: 0.9, vertical: 0.9)),
+            ("top-left", UIOffset(horizontal: -0.9, vertical: -0.9)),
+            ("top-right", UIOffset(horizontal: 0.9, vertical: -0.9))
+        ] {
+            for (view, original) in effects {
+                for effect in view.motionEffects { view.removeMotionEffect(effect) }
+                for effect in original { view.addMotionEffect(FixedNativeViewerOffset(effect: effect, offset: offset)) }
+            }
+            try await Task.sleep(for: .milliseconds(300))
+            let rendered = snapshot(window)
+            if name == "center" {
+                centered = try XCTUnwrap(rendered.pngData())
+            } else {
+                XCTAssertNotEqual(rendered.pngData(), centered, "Native directional motion must remain active.")
+            }
+            let bitmap = try XCTUnwrap(rendered.cgImage)
+            let pixels = try rgba(bitmap)
+            var outside = 0
+            for y in 2..<(bitmap.height - 2) {
+                for x in 2..<(bitmap.width - 2) {
+                    let value = pixels[(y * bitmap.width + x) * 4]
+                    guard value > 12, value <= 200 else { continue }
+                    let nearArtwork = (-2...2).contains { dy in
+                        (-2...2).contains { dx in
+                            pixels[((y + dy) * bitmap.width + x + dx) * 4] > 200
+                        }
+                    }
+                    if !nearArtwork { outside += 1 }
+                }
+            }
+            XCTAssertEqual(outside, 0, "The native highlight must not form a second edge at \(name).")
+            let attachment = XCTAttachment(image: rendered)
+            attachment.name = "native-white-poster-\(name)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
+    private final class FixedNativeViewerOffset: UIMotionEffect {
+        let effect: UIMotionEffect
+        let offset: UIOffset
+
+        init(effect: UIMotionEffect, offset: UIOffset) {
+            self.effect = effect
+            self.offset = offset
+            super.init()
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+        override func copy(with zone: NSZone? = nil) -> Any {
+            FixedNativeViewerOffset(effect: effect, offset: offset)
+        }
+
+        override func keyPathsAndRelativeValues(forViewerOffset viewerOffset: UIOffset) -> [String: Any]? {
+            effect.keyPathsAndRelativeValues(forViewerOffset: offset)
         }
     }
 
@@ -745,7 +860,7 @@ final class NativeLibraryCardHostedTests: XCTestCase {
 
     private func assertCompositedArtworkGeometry(
         _ imageView: UIImageView, in window: UIWindow, expectedScale: CGFloat? = 1.1,
-        cornerBackground: UIColor = .black
+        cornerBackground: UIColor = .black, landmarkTolerance: CGFloat = 3
     ) throws {
         let source = try XCTUnwrap(imageView.image)
         let frame = try XCTUnwrap(NativeFocusProjection.artworkFrame(of: imageView, in: window))
@@ -778,7 +893,7 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         }
         let sourceSpan = try markerSpan(source, frame: CGRect(origin: .zero, size: source.size))
         XCTAssertEqual(
-            try markerSpan(rendered, frame: frame), sourceSpan * frame.width / source.size.width, accuracy: 3,
+            try markerSpan(rendered, frame: frame), sourceSpan * frame.width / source.size.width, accuracy: landmarkTolerance,
             "Painted landmarks must enlarge with the card, without additional internal zoom."
         )
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0

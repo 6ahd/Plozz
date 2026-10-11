@@ -285,7 +285,7 @@ final class NativeFocusRequestHostedTests: XCTestCase {
         fixture.window.rootViewController = host
         fixture.window.layoutIfNeeded()
         let poster = try XCTUnwrap(lockups(in: host.view).compactMap { $0 as? NativePosterButton }.first)
-        let overlay = try XCTUnwrap(poster.artworkView.overlayContentView.subviews.first)
+        let overlay = try XCTUnwrap(poster.hostedOverlay)
         try await waitUntil { !overlay.bounds.isEmpty }
         XCTAssertTrue(overlay.layer.shouldRasterize)
         XCTAssertEqual(overlay.layer.rasterizationScale, 1)
@@ -300,7 +300,7 @@ final class NativeFocusRequestHostedTests: XCTestCase {
         model.scale = 2
         try await waitUntil { overlay.layer.rasterizationScale == 2 }
         fixture.window.layoutIfNeeded()
-        XCTAssertTrue(poster.artworkView.overlayContentView.subviews.first === overlay)
+        XCTAssertTrue(poster.hostedOverlay === overlay)
         XCTAssertNotEqual(try pixels(), before, "Cached overlays must repaint updated watch/progress content.")
     }
 
@@ -382,7 +382,7 @@ final class NativeFocusRequestHostedTests: XCTestCase {
                                 : seriesArtwork ? ContinueWatchingCardShape.aspectRatio : 16 / 9
                             XCTAssertEqual(poster.artworkView.bounds.width / poster.artworkView.bounds.height,
                                            aspect, accuracy: 0.01, label)
-                            let surface = poster.artworkView.overlayContentView
+                            let surface = poster.overlayView
                             let hosted = try XCTUnwrap(surface.subviews.first, label)
                             let projected = hosted.convert(hosted.bounds, to: poster.artworkView)
                             XCTAssertEqual(projected, surface.convert(surface.bounds, to: poster.artworkView), label)
@@ -415,7 +415,8 @@ final class NativeFocusRequestHostedTests: XCTestCase {
     }
 
     private func lockups(in view: UIView) -> [UIControl] {
-        if let control = view as? UIControl, control is TVLockupView || control is NativePosterButton {
+        if let control = view as? UIControl,
+           control is NativePosterButton || (control is TVLockupView && control.canBecomeFocused) {
             return [control]
         }
         return view.subviews.flatMap(lockups(in:))
@@ -440,7 +441,6 @@ final class NativeFocusRequestHostedTests: XCTestCase {
         }
         let poster = NativePosterButton(image: image)
         poster.contentSize = size
-        _ = poster.artworkView.overlayContentView
         let container = NativeTVPoster<EmptyView>.Container(poster: poster)
         let initial = container.intrinsicContentSize
         container.frame = CGRect(origin: CGPoint(x: 200, y: 200), size: initial)
@@ -865,7 +865,7 @@ final class NativeFocusRequestHostedTests: XCTestCase {
                 system.requestFocusUpdate(to: host)
                 system.updateFocusIfNeeded()
                 try await waitUntil { posters[0].isFocused }
-                try await Task.sleep(for: .milliseconds(250))
+                try await Task.sleep(for: .milliseconds(600))
                 let poster = posters[1]
                 let caption = captions[1]
                 let slot = caption.convert(caption.bounds, to: fixture.window)
@@ -877,7 +877,8 @@ final class NativeFocusRequestHostedTests: XCTestCase {
                     system.requestFocusUpdate(to: host)
                     system.updateFocusIfNeeded()
                     try await waitUntil { poster.isFocused == focused }
-                    try await Task.sleep(for: .milliseconds(250))
+                    // TVCardView's spring outlasts the focus-state callback.
+                    try await Task.sleep(for: .milliseconds(600))
                     let artwork = try XCTUnwrap(
                         NativeFocusProjection.artworkFrame(of: poster.artworkView, in: fixture.window)
                     )
@@ -918,8 +919,17 @@ final class NativeFocusRequestHostedTests: XCTestCase {
                             .frame(width: width)
                     }
                 }
-                MediaRowView(title: nil, items: items, style: style,
-                             showsSeriesArtwork: series, onSelect: { _ in })
+                // Compare the same proposed slots, independently of the row's
+                // responsive 6.25-card density covered by Home tests.
+                HStack(spacing: metrics.cardSpacing) {
+                    ForEach(items) { item in
+                        PosterCardView(
+                            item: item, style: style, showsSeriesArtwork: series,
+                            enablesAsyncArtworkFallback: false, action: {}
+                        )
+                        .frame(width: width)
+                    }
+                }
             }
             .environment(\.plozzMetrics, metrics)
             .environment(\.plozzCardStyle, .borderless)
