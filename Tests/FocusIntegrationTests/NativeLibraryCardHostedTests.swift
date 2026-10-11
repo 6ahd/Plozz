@@ -182,6 +182,33 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         XCTAssertEqual(try pixel(image, at: .zero)[3], 0)
     }
 
+    func testRoundedArtworkHasNoResidualPixelsInAnyCornerAtFractionalSizes() throws {
+        let source = try XCTUnwrap(UIImage(data: artworkData(.white)))
+        for size in [
+            CGSize(width: 252, height: 378),
+            CGSize(width: 252.25, height: 378.375),
+            CGSize(width: 388, height: 388 / ContinueWatchingCardShape.aspectRatio)
+        ] {
+            for scale: CGFloat in [1, 2] {
+                let image = try XCTUnwrap(NativePosterArtworkBitmap.image(
+                    source: source, size: size, scale: scale
+                ))
+                let bitmap = try XCTUnwrap(image.cgImage)
+                var maximumAlpha: UInt8 = 0
+                for x in [0, 1, bitmap.width - 2, bitmap.width - 1] {
+                    for y in [0, 1, bitmap.height - 2, bitmap.height - 1] {
+                        maximumAlpha = max(maximumAlpha, try pixel(image, at: CGPoint(x: x, y: y))[3])
+                    }
+                }
+                XCTAssertEqual(maximumAlpha, 0, "Every corner must be clear at \(size) @\(scale).")
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "rounded-edge-\(size.width)-\(size.height)-\(scale)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+        }
+    }
+
     func testContinueWatchingKeepsResumeChromeWithoutWatchMarksOrDarkRim() async throws {
         let color = UIColor(red: 0.2, green: 0.85, blue: 0.2, alpha: 1)
         let server = try LibraryArtworkServer(images: ["artwork": artworkData(color, size: CGSize(width: 640, height: 360))])
@@ -313,7 +340,7 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
-        for aspect: CGFloat in [2 / 3, 16 / 9, 1, 388 / 264] {
+        for aspect: CGFloat in [2 / 3, 16 / 9, 1, ContinueWatchingCardShape.aspectRatio] {
             let size = CGSize(width: 100, height: 100 / aspect)
             let image = UIGraphicsImageRenderer(size: size).image { context in
                 UIColor.gray.setFill()
@@ -325,7 +352,8 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             }
             let controller = LibraryFocusController()
             controller.view.backgroundColor = .black
-            let host = UIHostingController(rootView: SharedZoomFixture(image: image, aspect: aspect))
+            let host = UIHostingController(rootView: SharedZoomFixture(image: image, aspect: aspect)
+                .environment(\.displayScale, 2))
             controller.addChild(host)
             controller.view.addSubview(host.view)
             host.didMove(toParent: controller)
@@ -336,6 +364,8 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             window.layoutIfNeeded()
             let poster = try XCTUnwrap(descendant(NativePosterButton.self, in: host.view))
             let before = try XCTUnwrap(poster.image)
+            XCTAssertEqual(before.size, poster.artworkView.bounds.size,
+                           "The native alpha-mask contract must hold at 2x, including fractional layout heights.")
             let overlay = try XCTUnwrap(poster.hostedOverlay)
             controller.target = poster
             let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
@@ -596,7 +626,15 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         try await checkCompositedLibraryCell(cardStyle: .framed)
     }
 
-    private func checkCompositedLibraryCell(cardStyle: CardStyle) async throws {
+    func testFractionalLibraryCellsMatchTheirRetinaArtworkBounds() async throws {
+        for style: CardStyle in [.borderless, .framed] {
+            try await checkCompositedLibraryCell(cardStyle: style, width: 280.25, displayScale: 2)
+        }
+    }
+
+    private func checkCompositedLibraryCell(
+        cardStyle: CardStyle, width: CGFloat = 280, displayScale: CGFloat? = nil
+    ) async throws {
         let markedArtwork = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 150)).image { context in
             UIColor.darkGray.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 100, height: 150))
@@ -619,6 +657,7 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         environment.colorScheme = .dark
         environment.plozzCardStyle = cardStyle
         environment.plozzCardFocusStyle = .system
+        if let displayScale { environment.displayScale = displayScale }
         XCTAssertTrue(environment.compositedLibraryPosters, "Normal app launches must use the zoom correction.")
         environment.plozzShowsUnwatchedEpisodeCount = true
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
@@ -627,9 +666,10 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
         let controller = LibraryFocusController()
+        if let displayScale { controller.traitOverrides.displayScale = displayScale }
         controller.view.backgroundColor = .black
         let cell = NativeTVLibraryCell(frame: CGRect(
-            x: 400, y: 200, width: 280, height: NativeTVLibraryCell.height(for: 280, environment: environment)
+            x: 400, y: 200, width: width, height: NativeTVLibraryCell.height(for: width, environment: environment)
         ))
         controller.view.addSubview(cell)
         controller.target = cell
@@ -649,6 +689,8 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         update()
         let imageView = try XCTUnwrap(cell.subviews.compactMap { $0 as? UIImageView }.first)
         let before = try XCTUnwrap(imageView.image)
+        XCTAssertEqual(before.size, imageView.bounds.size, "Native alpha masking requires an identical image/view aspect ratio.")
+        if let displayScale { XCTAssertEqual(before.scale, displayScale) }
         let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
         system.requestFocusUpdate(to: controller)
         system.updateFocusIfNeeded()
@@ -1985,7 +2027,7 @@ private final class LibraryFocusController: UIViewController {
     }
 }
 
-private final class LibraryArtworkServer: @unchecked Sendable {
+final class LibraryArtworkServer: @unchecked Sendable {
     private let listener: NWListener
     private let images: [String: Data]
     private let delays: [String: TimeInterval]

@@ -208,11 +208,15 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
         let framed = environment.plozzCardStyle == .framed
         let inset = framed ? metrics.cardInset : metrics.borderlessCardSideMargin
         let width = max(1, bounds.width - inset * 2)
-        let size = CGSize(width: width, height: width * 1.5)
-        let artworkFrame = CGRect(x: inset, y: Self.focusClearance, width: width, height: size.height)
+        let scale = traitCollection.displayScale
+        // The image view and raster must have exactly the same aspect ratio
+        // for UIKit's transparent-content focus mask to remain active.
+        let size = usesCompositedArtwork
+            ? CGSize(width: ceil(width * scale) / scale, height: ceil(width * 1.5 * scale) / scale)
+            : CGSize(width: width, height: width * 1.5)
+        let artworkFrame = CGRect(x: inset, y: Self.focusClearance, width: size.width, height: size.height)
         if usesCompositedArtwork, let compositedArtwork {
             if compositedArtwork.frame != artworkFrame { compositedArtwork.frame = artworkFrame }
-            let scale = traitCollection.displayScale
             if needsCompositeUpdate || compositeKey?.size != size || compositeKey?.scale != scale {
                 needsCompositeUpdate = false
                 let key = NativeLibraryPosterBitmap.Key(

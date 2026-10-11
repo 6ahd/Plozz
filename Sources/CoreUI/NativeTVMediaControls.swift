@@ -335,7 +335,7 @@ final class NativePosterButton: UIButton {
             if artworkView.frame != bounds { artworkView.frame = bounds }
             if window != nil, bounds.width > 0, bounds.height > 0 {
                 autoreleasepool {
-                    if let image = prepareArtwork?(contentSize) { updateImage(image) }
+                    if let image = prepareArtwork?(bounds.size) { updateImage(image) }
                 }
             }
             onAvailable?()

@@ -646,6 +646,27 @@ shared native posters bake rounded alpha into their normalized artwork and
 clip live overlays to the same shape. The hosted framed/landscape return
 regression checks the actual painted artwork bounds.
 
+For tilt-dependent corner crescents or bottom slivers, also check fractional
+raster dimensions at 2x. An inverse eraser ending at fractional logical bounds
+left alpha values up to 243 in the extra physical row/column. Extend its outer
+rectangle beyond the raster, keeping the inner rounded path unchanged. Prepare
+shared artwork at committed UIKit bounds and pixel-align composited Browse
+artwork: a 280x190.5 image in a 280x191 view violates UIKit's identical-aspect
+requirement for `masksFocusEffectToContents`. Raw corner-alpha and native-focus
+regressions cover this contract; directional Siri Remote sheen still requires
+a physical-device check rather than a neutral simulator snapshot.
+
+For horizontal cards disappearing early, inspect actual rendered pixels as
+well as mounting and clipping. Showcase kept the poster mounted but SwiftUI
+hid its platform host when the artwork entered the 80-point leading gutter,
+with 30 or 60 points still on screen. Expand the row and mask motion surfaces'
+leading viewport and reserve matching safe area. Enlarging only their child
+hosts, or using ordinary counter-padding inside them, did not fix visibility
+culling. Do not expand trailing safe area: portrait rows intentionally ignore
+it, which changes their measured width and breaks 6.25-card density and parking.
+Loaded native-card coverage checks both screen edges, both movement directions,
+and native/pinned navigation; an opaque SwiftUI rectangle misses this failure.
+
 Native poster controls receive the latest cached `UIImage` directly from
 the existing ordered artwork resolver. The former zero-sized background loader
 published through a second observable state after construction, so even warmed

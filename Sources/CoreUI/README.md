@@ -283,6 +283,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Status-cache pixels remain unrounded until the final composite. Rounded alpha
   is applied once after artwork, washes and marks are combined; clipping the
   individual draws exposes pale artwork through an antialiased count-tile edge.
+  The inverse mask's outer eraser extends beyond the allocated raster, including
+  the extra row/column at fractional sizes. Artwork uses committed view bounds;
+  Browse aligns its view and bitmap to the same physical pixels. UIKit's
+  content-masked focus requires identical image/view aspect ratios at 1x and 2x.
   Ordinary watch flags/check badges use opaque white; episode-count tiles keep
   their dark fill and white text.
   This keeps lazy-row estimation out of the expensive rendering path without
@@ -293,7 +297,12 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   placeholders and pinned-sidebar scroll parking. Only viewport-width changes
   update sizing; scrolling does not invalidate the row. Showcase's row viewport
   reaches the trailing screen edge with native navigation as well as pinned
-  navigation. Display-size preferences still adjust density; library Browse
+  navigation. Showcase's nested motion surfaces expand their leading viewport
+  with matching safe-area padding so SwiftUI does not cull native cards while
+  they are still visible in the overscan gutter. The trailing viewport is not
+  expanded, preserving row density and pinned slot parking. Hosted loaded-artwork
+  checks cover both screen edges in both scroll directions and navigation styles.
+  Display-size preferences still adjust density; library Browse
   grids, landscape/episode card widths and mobile sizing are unchanged.
   Native Browse uses the correction for both borderless and framed system-focus
   cells. Debug's `--original-library-posters` opts out of Browse only.

@@ -191,7 +191,10 @@ enum NativePosterArtworkBitmap {
             if clipsToArtwork {
                 // Round the composed pixels once. Clipping each draw separately
                 // exposes the artwork through the badge's antialiased edge.
-                let outside = UIBezierPath(rect: bounds)
+                // Cover the full raster, including the extra pixel allocated for
+                // fractional point sizes. An antialiased outer eraser edge leaves
+                // a residual row/column that UIKit also treats as highlight alpha.
+                let outside = UIBezierPath(rect: bounds.insetBy(dx: -1, dy: -1))
                 outside.append(UIBezierPath(
                     roundedRect: bounds,
                     cornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
