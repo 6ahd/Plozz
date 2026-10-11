@@ -277,14 +277,17 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   tiles stay flush with the artwork, with 2pt extra trailing content padding
   and aspect-scaled top padding (3pt for a 2:3 poster) to balance the visible
   digits after the native crop. Floating marks receive matching outer clearance.
-  This compensation applies only while the native button is focused; resting
-  cards use the original even padding. UIKit's focus callback updates the attached
-  image before starting its native transition, without moving marks onto a separate
-  overlay plane. Both indicator states use the existing bounded bitmap cache.
-  Only portrait counts and floating badges recompose on focus boundaries, retaining
-  one final image; stable focus/layout, corner flags, bottom-only indicators and
-  cards without marks reuse their pixels. Mobile, Browse and landscape cards do
-  not receive this compensation.
+  Resting cards use the original even padding. On focus, the attached image updates
+  inside UIKit's native focus animation coordinator. On unfocus, it retains those
+  pixels until the coordinator completes the native shrink; replacing the image
+  sooner tears down UIKit's outgoing image stack and makes it snap. Layout refreshes
+  respect that boundary, and stale completions cannot overwrite a newer focus
+  transition. No custom scale, timing or per-frame animation is applied.
+  Both indicator states use the existing bounded bitmap cache. Only portrait counts
+  and floating badges recompose at these boundaries, retaining one final image;
+  stable focus/layout, corner flags, bottom-only indicators and cards without marks
+  reuse their pixels. Mobile, Browse and landscape cards do not receive this
+  compensation.
   The button keeps the existing artwork slot and committed-bounds bitmap
   preparation, preserving row pitch and captions.
   SwiftUI measurement is side-effect-free: candidate widths never resize the

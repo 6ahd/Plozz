@@ -676,9 +676,17 @@ Count-tile backgrounds stay flush. While focused, their contents add 2pt at the 
 and aspect-scaled padding at the top (3pt for 2:3 portraits), compensating for
 the cropped edges without moving the whole tile away from the poster.
 Applying that allowance permanently fixed focused digits but left resting digits
-uneven: UIKit's crop is focus-only. The native button now passes its actual focus
-state to the existing presentation cache, including from `didUpdateFocus` before
-UIKit starts the transition. Resting/defocused cards use zero compensation.
+uneven: UIKit's crop is focus-only. The native button passes its actual focus
+state to the existing presentation cache. Resting cards use zero compensation.
+Updating `UIImageView.image` directly before `super.didUpdateFocus` fixed the
+settled padding but killed the native transition: the new image jumped straight
+to its final geometry. Use the supplied `UIFocusAnimationCoordinator` for the
+entering image update. The outgoing image must remain intact until that
+coordinator's completion; even replacing it inside the animation block tears
+down the native unfocusing image stack. Defer layout-triggered image refreshes
+during that shrink, then restore resting pixels. A focus revision rejects stale
+completions after rapid reversals. There is no custom scale, spring, duration,
+timer or private-layer mutation.
 The crop allowance participates in the indicator cache key; place its environment
 override inside the full environment injection. Both states reuse the bounded
 indicator cache. Portrait counts and floating badges recompose once per focus
@@ -687,11 +695,18 @@ Corner flags and bottom-only indicators normalize the unused crop allowance to z
 preserving their image identity across focus. Absent indicators have no cache key,
 so unmarked cards do not recompose merely because focus changes.
 
-`testPortraitCountKeepsEvenPaddingBeforeDuringAndAfterFocus` measures opposite-edge
+`testPortraitCountKeepsEvenPaddingAtRestFocusAndReturn` measures opposite-edge
 digit clearance within 2 rendered pixels for 8, 88 and 12345 at 220/280pt widths,
-starting on another control, then focusing, defocusing and refocusing. It samples
-native transitions as well as settled states and checks stable-layout image reuse.
-The expanded test failed against the permanent-padding implementation.
+starting on another control, then focusing, defocusing and refocusing. It checks
+settled states and stable-layout image reuse. `drawHierarchy(afterScreenUpdates: true)`
+does not prove intermediate rendered geometry; the old nominal transition
+snapshots missed the snap and could combine final geometry with outgoing pixels.
+The separate `testPortraitFocusAndDefocusRetainNativeIntermediateFrames` samples
+presentation-layer artwork geometry without snapshots, with and without counts,
+for focus, unfocus and refocus. Hidden source layers and the square sheen are
+excluded, so moving lighting alone cannot satisfy the test. It also reverses
+focus rapidly while forcing layout, checking outgoing-image reuse and balanced
+resting digits after the final completion.
 
 `testNativePortraitHighlightHasCleanCornersAtDirectionalExtremes` drives the
 fixture's original public `UIMotionEffect` interpolation at center, horizontal

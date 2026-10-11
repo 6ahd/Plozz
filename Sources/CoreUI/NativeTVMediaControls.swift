@@ -305,6 +305,8 @@ final class NativePosterButton: UIButton {
     var onFocus: ((Bool) -> Void)?
     var onAvailable: (() -> Void)?
     var prepareArtwork: ((CGSize, Bool) -> UIImage?)?
+    private var focusRevision = 0
+    private var defersArtworkRefresh = false
 
     init(image: UIImage, masksFocusEffectToContents: Bool = true) {
         super.init(frame: .zero)
@@ -340,15 +342,28 @@ final class NativePosterButton: UIButton {
     }
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
-        // UIKit crops portrait pixels only while focused. Supply the matching
-        // attached marks before it starts the native transition.
-        refreshArtwork()
         super.didUpdateFocus(in: context, with: coordinator)
+        focusRevision &+= 1
+        let revision = focusRevision
+        defersArtworkRefresh = !isFocused
+        if isFocused {
+            coordinator.addCoordinatedAnimations { [weak self] in
+                self?.refreshArtwork()
+            }
+        } else {
+            // UIImage replacement tears down the outgoing native image stack.
+            // Let UIKit finish shrinking it before restoring the resting pixels.
+            coordinator.addCoordinatedAnimations(nil) { [weak self] in
+                guard let self, self.focusRevision == revision else { return }
+                self.defersArtworkRefresh = false
+                self.refreshArtwork()
+            }
+        }
         onFocus?(isFocused)
     }
 
     private func refreshArtwork() {
-        guard window != nil, bounds.width > 0, bounds.height > 0 else { return }
+        guard !defersArtworkRefresh, window != nil, bounds.width > 0, bounds.height > 0 else { return }
         autoreleasepool {
             if let image = prepareArtwork?(bounds.size, isFocused) { updateImage(image) }
         }

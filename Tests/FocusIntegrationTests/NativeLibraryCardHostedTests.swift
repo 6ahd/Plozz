@@ -638,7 +638,7 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         }
     }
 
-    func testPortraitCountKeepsEvenPaddingBeforeDuringAndAfterFocus() async throws {
+    func testPortraitCountKeepsEvenPaddingAtRestFocusAndReturn() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
         let previous = scene.windows.first(where: \.isKeyWindow)
@@ -677,12 +677,6 @@ final class NativeLibraryCardHostedTests: XCTestCase {
                     controller.target = target
                     system.requestFocusUpdate(to: controller)
                     system.updateFocusIfNeeded()
-                    if state != "rest" {
-                        for sample in 0..<3 {
-                            try await Task.sleep(for: .milliseconds(40))
-                            try assertCountPadding(poster, in: window, label: "\(state)-\(Int(width))-\(count)-transition-\(sample)")
-                        }
-                    }
                     try await Task.sleep(for: .milliseconds(600))
                     XCTAssertTrue(system.focusedItem === target)
                     try assertCountPadding(poster, in: window, label: "\(state)-\(Int(width))-\(count)")
@@ -693,6 +687,101 @@ final class NativeLibraryCardHostedTests: XCTestCase {
                     }
                     XCTAssertTrue(poster.image === settled, "Stable focus must reuse the image, not recompose every layout.")
                 }
+            }
+        }
+    }
+
+    func testPortraitFocusAndDefocusRetainNativeIntermediateFrames() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let image = try XCTUnwrap(UIImage(data: artworkData(.red)))
+        defer { previous?.makeKeyAndVisible() }
+        for hasCount in [false, true] {
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+            let controller = LibraryFocusController()
+            controller.view.backgroundColor = .black
+            let host = UIHostingController(rootView: SharedZoomFixture(
+                image: image, aspect: 2 / 3,
+                item: MediaItem(id: "motion", title: "Motion", kind: .series,
+                               unwatchedEpisodeCount: hasCount ? 88 : nil, isPlayed: !hasCount)
+            ).environment(\.plozzWatchStatusIndicator, .unwatched))
+            controller.addChild(host)
+            controller.view.addSubview(host.view)
+            host.didMove(toParent: controller)
+            host.view.frame = CGRect(x: 500, y: 200, width: 280, height: 420)
+            let other = UIButton(type: .system)
+            other.setTitle("Other", for: .normal)
+            other.frame = CGRect(x: 100, y: 200, width: 200, height: 80)
+            controller.view.addSubview(other)
+            controller.target = other
+            window.rootViewController = controller
+            window.makeKeyAndVisible()
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+            }
+            window.layoutIfNeeded()
+            let poster = try XCTUnwrap(descendant(NativePosterButton.self, in: host.view))
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            system.requestFocusUpdate(to: controller)
+            system.updateFocusIfNeeded()
+            try await Task.sleep(for: .milliseconds(600))
+            func paintedWidth() throws -> CGFloat {
+                func imageFrames(_ layer: CALayer) -> [CGRect] {
+                    let state = layer.presentation() ?? layer
+                    guard !state.isHidden, state.opacity > 0 else { return [] }
+                    let matches = layer.contents != nil && abs(layer.bounds.width - 280) < 2
+                        && abs(layer.bounds.height - 420) < 2
+                    let frame = NativeFocusProjection.frame(of: layer, in: window.layer)
+                    // The sheen has image contents too, but is projected square.
+                    let artwork = matches && frame.map { abs($0.height / $0.width - 1.5) < 0.05 } == true
+                    return (artwork ? frame.map { [$0] } ?? [] : [])
+                        + (layer.sublayers ?? []).flatMap(imageFrames)
+                }
+                return try XCTUnwrap(imageFrames(poster.artworkView.layer).map(\.width).max())
+            }
+            for (state, target) in [("focus", poster), ("defocus", other), ("refocus", poster)] {
+                let initial = try paintedWidth()
+                controller.target = target
+                system.requestFocusUpdate(to: controller)
+                system.updateFocusIfNeeded()
+                var samples: [CGFloat] = []
+                for _ in 0..<20 {
+                    try await Task.sleep(for: .milliseconds(20))
+                    samples.append(try paintedWidth())
+                }
+                try await Task.sleep(for: .milliseconds(300))
+                let final = try paintedWidth()
+                XCTAssertTrue(system.focusedItem === target)
+                XCTAssertGreaterThan(abs(final - initial), 10)
+                let lower = min(initial, final) + 1
+                let upper = max(initial, final) - 1
+                XCTAssertGreaterThanOrEqual(samples.filter { $0 > lower && $0 < upper }.count, 3,
+                                            "Native \(state) must animate, not snap; count=\(hasCount), \(initial) -> \(final): \(samples)")
+                let attachment = XCTAttachment(string: "\(initial) -> \(final): \(samples)")
+                attachment.name = "native-transition-\(hasCount)-\(state)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+            let focusedImage = poster.image
+            for target in [other, poster, other, poster, other] {
+                controller.target = target
+                system.requestFocusUpdate(to: controller)
+                system.updateFocusIfNeeded()
+                try await Task.sleep(for: .milliseconds(40))
+                poster.setNeedsLayout()
+                poster.layoutIfNeeded()
+                XCTAssertTrue(poster.image === focusedImage, "Rapid reversals must retain outgoing pixels until UIKit completes.")
+            }
+            try await Task.sleep(for: .milliseconds(600))
+            XCTAssertTrue(system.focusedItem === other)
+            if hasCount {
+                XCTAssertFalse(poster.image === focusedImage)
+                try assertCountPadding(poster, in: window, label: "rapid-reversal-rest")
+            } else {
+                XCTAssertTrue(poster.image === focusedImage)
             }
         }
     }
