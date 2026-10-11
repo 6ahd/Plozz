@@ -820,6 +820,16 @@ public final class LiveTVPrototypeModel {
         }
     }
 
+    /// What aired on the channel before the current programme, newest last,
+    /// reaching back `hours`: the player splits its rewind window at these.
+    public func earlierPrograms(for channelID: String, hours: Int = 4) -> [LiveTVPrototypeProgram] {
+        let current = currentProgram(for: channelID)
+        let boundary = current?.start ?? now
+        return programs(for: channelID, from: now.addingTimeInterval(-TimeInterval(hours) * 3_600), hours: hours)
+            .filter { $0.end <= boundary && $0.id != current?.id }
+            .sorted { $0.start < $1.start }
+    }
+
     public func programs(
         for channelID: String,
         from date: Date,

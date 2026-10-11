@@ -180,6 +180,7 @@ struct LiveTVShellDestination: View {
                 isAuthorized: playback.isAuthorized,
                 onOpenLibraryItem: playback.openLibraryItem,
                 program: playback.program,
+                earlierPrograms: playback.earlierPrograms,
                 loadOnNow: playback.onNow,
                 onTuneChannel: playback.tuneChannel,
                 guideOverlay: playback.guideOverlay

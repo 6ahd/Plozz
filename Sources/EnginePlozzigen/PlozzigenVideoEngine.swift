@@ -131,7 +131,9 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     /// honors the viewer's audio-language preference at load. `TrackInfo.id`,
     /// `selectAudioTrack(index:)`, and `activeAudioTrackIndex` all share the
     /// FFmpeg AVStream-index space, so this maps directly onto `MediaTrack.id`.
-    public var currentAudioTrackID: Int? { engine.activeAudioTrackIndex }
+    public var currentAudioTrackID: Int? {
+        bypassAudio.tracks.isEmpty ? engine.activeAudioTrackIndex : bypassAudio.selectedID
+    }
     public var bufferedPosition: TimeInterval { engine.clock.bufferedPosition }
 
     public var liveSnapshot: LiveChannelEngineSnapshot {
@@ -949,6 +951,9 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     private func stopEngine(resetDisplayCriteria: Bool) {
+        bypassAudioTask?.cancel()
+        bypassAudioTask = nil
+        bypassAudio = BypassAudio()
         invalidateScrubStills()
         activeTransportReader?.closeAllReaders()
         activeTransportReader = nil
@@ -1002,7 +1007,100 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     public func selectAudioTrack(_ track: MediaTrack?) {
         guard let track else { return }
+        if bypassAudio.tracks.contains(where: { $0.id == track.id }) {
+            selectBypassAudio(track.id)
+            return
+        }
         engine.selectAudioTrack(index: track.id)
+    }
+
+    // MARK: - Native HLS audio
+
+    /// Audio choices on the native HLS route, where AVPlayer plays the remote
+    /// playlist and Aether cannot switch its tracks (`selectableAudioTracks`).
+    /// AVPlayer can: alternate renditions through the item's audible media
+    /// selection group, and as a fallback, several audio tracks muxed into the
+    /// segments by enabling one.
+    private struct BypassAudio {
+        enum Source { case selectionGroup(AVMediaSelectionGroup, [AVMediaSelectionOption]), muxed([AVPlayerItemTrack]) }
+        var item: AVPlayerItem?
+        var source: Source?
+        var tracks: [MediaTrack] = []
+        var selectedID: Int?
+    }
+    private var bypassAudio = BypassAudio()
+    private var bypassAudioTask: Task<Void, Never>?
+    /// Clear of Aether's AVStream indices, so a choice is never misrouted.
+    nonisolated static let bypassAudioIDBase = 900_000
+
+    private func refreshBypassAudio() {
+        guard engine.videoRoute == .remoteBypass, let item = engine.currentAVPlayer?.currentItem,
+              item.status == .readyToPlay else {
+            if !bypassAudio.tracks.isEmpty || bypassAudio.item != nil { bypassAudio = BypassAudio() }
+            return
+        }
+        bypassAudioTask?.cancel()
+        bypassAudioTask = Task { @MainActor [weak self] in
+            let group = try? await item.asset.loadMediaSelectionGroup(for: .audible)
+            guard let self, !Task.isCancelled, self.engine.currentAVPlayer?.currentItem === item else { return }
+            var next = BypassAudio(item: item)
+            let options = group?.options.filter(\.isPlayable) ?? []
+            let muxed = item.tracks.filter { $0.assetTrack?.mediaType == .audio }
+            if let group, options.count > 1 {
+                next.source = .selectionGroup(group, options)
+                next.tracks = options.enumerated().map { index, option in
+                    Self.bypassAudioTrack(id: Self.bypassAudioIDBase + index, title: option.displayName,
+                                          language: option.extendedLanguageTag ?? option.locale?.identifier,
+                                          isDefault: group.defaultOption == option)
+                }
+                let selected = item.currentMediaSelection.selectedMediaOption(in: group)
+                next.selectedID = options.firstIndex { $0 == selected }.map { Self.bypassAudioIDBase + $0 }
+            } else if muxed.count > 1 {
+                next.source = .muxed(muxed)
+                var tracks: [MediaTrack] = []
+                for (index, track) in muxed.enumerated() {
+                    let language = try? await track.assetTrack?.load(.extendedLanguageTag)
+                    tracks.append(Self.bypassAudioTrack(
+                        id: Self.bypassAudioIDBase + index,
+                        title: language.flatMap { $0 } ?? "Track \(index + 1)", // l10n:content — fallback track label
+                        language: language ?? nil, isDefault: index == 0
+                    ))
+                }
+                guard self.engine.currentAVPlayer?.currentItem === item else { return }
+                next.tracks = tracks
+                next.selectedID = muxed.firstIndex(where: \.isEnabled).map { Self.bypassAudioIDBase + $0 }
+            }
+            HandoffDiagnostics.emit(
+                "audio BYPASS options=\(options.count) muxed=\(muxed.count) offered=\(next.tracks.count)"
+            )
+            let changed = next.tracks != self.bypassAudio.tracks || next.selectedID != self.bypassAudio.selectedID
+            self.bypassAudio = next
+            if changed {
+                self.audioTracks = next.tracks
+                self.onTracksChanged?()
+            }
+        }
+    }
+
+    private func selectBypassAudio(_ id: Int) {
+        guard let item = bypassAudio.item, engine.currentAVPlayer?.currentItem === item,
+              let source = bypassAudio.source else { return }
+        let index = id - Self.bypassAudioIDBase
+        switch source {
+        case .selectionGroup(let group, let options):
+            guard options.indices.contains(index) else { return }
+            item.select(options[index], in: group)
+        case .muxed(let tracks):
+            guard tracks.indices.contains(index) else { return }
+            for (offset, track) in tracks.enumerated() { track.isEnabled = offset == index }
+        }
+        bypassAudio.selectedID = id
+        HandoffDiagnostics.emit("audio BYPASS selected index=\(index)")
+        onTracksChanged?()
+    }
+
+    nonisolated static func bypassAudioTrack(id: Int, title: String, language: String?, isDefault: Bool) -> MediaTrack {
+        MediaTrack(id: id, kind: .audio, displayTitle: title, language: language, isDefault: isDefault)
     }
 
     public func selectSubtitleTrack(_ track: MediaTrack?) {
@@ -1660,6 +1758,17 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     private func syncTracks() {
         audioTracks = Self.selectableAudioTracks(from: engine.audioTracks, route: engine.videoRoute)
+        if engine.videoRoute == .remoteBypass {
+            // Aether publishes the item's tracks once it is ready: the moment
+            // AVPlayer's own audio choices can be read.
+            if bypassAudio.item === engine.currentAVPlayer?.currentItem, !bypassAudio.tracks.isEmpty {
+                audioTracks = bypassAudio.tracks
+            }
+            refreshBypassAudio()
+        } else if bypassAudio.item != nil {
+            bypassAudioTask?.cancel()
+            bypassAudio = BypassAudio()
+        }
         subtitleTracks = engine.subtitleTracks.map { track in
             MediaTrack(
                 id: track.id,

@@ -867,6 +867,10 @@ public final class LiveTVPrototypeImportModel {
         requestedGuideWindow = (channelIDs, window.range)
     }
 
+    /// How far before now the guide keeps programmes, matching the live
+    /// timeline's longest reach (`LiveChannelTimelineLayout.maximumLookback`).
+    public static let guideLookback: TimeInterval = 4 * 3_600
+
     public func loadGuideWindow(
         channelIDs: [String], range: DateInterval, into model: LiveTVPrototypeModel
     ) async {
@@ -875,6 +879,12 @@ public final class LiveTVPrototypeImportModel {
         requestedGuideWindow = (channelIDs, range)
         let windowRequest = windowRevision
         let catalogRequest = revision
+        // Reach back past `now` as well: the player's timeline splits a live
+        // rewind window at the programmes it reaches into, and those have ended.
+        let lookbackStart = model.now.addingTimeInterval(-Self.guideLookback)
+        let range = range.start > lookbackStart
+            ? DateInterval(start: lookbackStart, end: max(range.end, lookbackStart))
+            : range
         do {
             var windows: [String: [LiveTVPrototypeProgram]] = [:]
             for status in guideSources where enabledSourceIDs.contains(status.id) {

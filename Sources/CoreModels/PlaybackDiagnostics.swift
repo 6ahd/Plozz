@@ -229,6 +229,8 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
     public var seekableEndSeconds: Double?
     /// Live player state, e.g. `Ready · Playing`, `Loading`, or `Failed: …`.
     public var playbackState: String?
+    /// Live channels only: how the HLS session is tracking the live playlist.
+    public var liveStream: LiveStreamFacts?
 
     public init(
         resolution: VideoResolution? = nil,

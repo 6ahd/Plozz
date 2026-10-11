@@ -22,6 +22,19 @@ some initial buffering protection for earlier playback; it does not remove the
 source's keyframe wait or guarantee instant tuning. Native HLS and unknown-format
 streams keep their existing route and standard join policy; on-demand is unchanged.
 
+On the native HLS route the rewind window is the playlist's own: Plozz reads the
+item's `seekableTimeRanges` (Aether reports `0...edge` there) and, once it spans
+at least a minute, the live timeline seeks through it — remote left/right in
+10-second steps, a drag on touch. Presses stack on the last requested target and
+commit together; a target at the edge becomes Go Live. The timeline reaches back
+past the current programme's start to cover the window (at most four hours),
+split at the guide's earlier programme boundaries, with the seekable part filled.
+The ingest and software routes still load with `dvrWindowSeconds: nil`, so they
+keep pause and Go Live only. Playback Info's LIVE section shows the route, delay
+behind the newest segment, window length, playlist clock, start-up cost (AVPlayer's
+own `startupTime` beside tune-to-first-frame) and segment delivery from the
+access and error logs.
+
 ## Dependency version
 
 Authored primary ASS/SSA subtitles use libass **0.17.5**, built from the

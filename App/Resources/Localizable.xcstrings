@@ -9135,6 +9135,7 @@
       }
     },
     "%lld Declined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -9883,6 +9884,7 @@
       }
     },
     "%lld Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -10631,6 +10633,7 @@
       }
     },
     "%lld Failed, %lld Declined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -13523,6 +13526,7 @@
       }
     },
     "%lld Processing" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -14271,6 +14275,7 @@
       }
     },
     "%lld Processing, %lld Declined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -16207,6 +16212,7 @@
       }
     },
     "%lld Processing, %lld Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -18143,6 +18149,7 @@
       }
     },
     "%lld Processing, %lld Failed, %lld Declined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -21645,6 +21652,7 @@
       }
     },
     "%lld Requested, %lld Declined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -23581,6 +23589,7 @@
       }
     },
     "%lld Requested, %lld Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -25517,6 +25526,7 @@
       }
     },
     "%lld Requested, %lld Failed, %lld Declined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -28271,6 +28281,7 @@
       }
     },
     "%lld Requested, %lld Processing" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -30207,6 +30218,7 @@
       }
     },
     "%lld Requested, %lld Processing, %lld Declined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -32961,6 +32973,7 @@
       }
     },
     "%lld Requested, %lld Processing, %lld Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -35715,6 +35728,7 @@
       }
     },
     "%lld Requested, %lld Processing, %lld Failed, %lld Declined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -121770,6 +121784,7 @@
       }
     },
     "Artwork in the rows of each library's Recommended tab." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -122653,6 +122668,7 @@
       }
     },
     "Artwork saved with new downloads; existing downloads keep their images." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -124194,6 +124210,7 @@
       }
     },
     "Ask the server administrator to enable Live TV for this account." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -138980,6 +138997,9 @@
           }
         }
       }
+    },
+    "Behind live" : {
+      "comment" : "Playback diagnostics label for how far playback trails the newest live segment."
     },
     "Behind the Scenes" : {
       "localizations" : {
@@ -163078,6 +163098,7 @@
       }
     },
     "Check the server connection and try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -163298,6 +163319,7 @@
       }
     },
     "Check the server's Live TV subscription, then try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -163518,6 +163540,7 @@
       }
     },
     "Check the server's channels and this account's permissions." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -198654,6 +198677,7 @@
       }
     },
     "Continue Watching on Home and in libraries; metadata providers favor images without text." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -214513,6 +214537,7 @@
       }
     },
     "Covers, artist images, and the music player." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -270195,6 +270220,7 @@
       }
     },
     "Episode thumbnails in a show's detail page, rather than the video player." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -272177,6 +272203,9 @@
           }
         }
       }
+    },
+    "Errors" : {
+      "comment" : "Playback diagnostics label for the count of HLS errors the player logged."
     },
     "Espresso" : {
       "comment" : "Accessibility name for one profile-avatar color swatch in the profile editor.",
@@ -314880,6 +314909,7 @@
       }
     },
     "Home's rows below the hero, including Watchlist and Recently Added." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -340448,6 +340478,7 @@
       }
     },
     "LIVE" : {
+      "comment" : "Playback diagnostics section heading for live TV stream tracking.",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -388438,6 +388469,7 @@
       }
     },
     "Movie and show backgrounds, logos, and related-title posters." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -470480,6 +470512,7 @@
       }
     },
     "Playlist" : {
+      "comment" : "Playback diagnostics label for the HLS playlist type, such as LIVE or EVENT.",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -476206,6 +476239,7 @@
       }
     },
     "Plozz can't play these channels yet." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -480614,6 +480648,7 @@
       }
     },
     "Posters and thumbnails for titles found in Search." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -480834,6 +480869,7 @@
       }
     },
     "Posters on the Watchlist page, rather than Home's Watchlist row." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -549814,6 +549850,7 @@
       }
     },
     "Retried requesting H.264 at the same quality limit." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -554657,6 +554694,9 @@
         }
       }
     },
+    "Rewind window" : {
+      "comment" : "Playback diagnostics label for how far back a live stream can be rewound."
+    },
     "Right %lld%%" : {
       "comment" : "Option label in the player subtitle style editor for the Horizontal Offset control. %lld is the percentage offset to the right of center.",
       "localizations" : {
@@ -555761,6 +555801,9 @@
           }
         }
       }
+    },
+    "Route" : {
+      "comment" : "Playback diagnostics label for how the live engine plays the stream, such as native HLS."
     },
     "Rows" : {
       "comment" : "Section header for Home row-selection settings, where the user chooses which rows and libraries appear on Home.",
@@ -587645,6 +587688,9 @@
           }
         }
       }
+    },
+    "Segments" : {
+      "comment" : "Playback diagnostics label for HLS segment requests, data transferred and late segments."
     },
     "Select a content topic to read its explanation." : {
       "localizations" : {
@@ -623724,6 +623770,7 @@
       }
     },
     "Silo can’t convert this HDR file with its current tone-mapping configuration." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -624604,6 +624651,7 @@
       }
     },
     "Silo couldn’t prepare the selected stream. Check its transcoding permissions and server settings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -625044,6 +625092,7 @@
       }
     },
     "Silo has no available video encoder for these settings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -641797,6 +641846,9 @@
         }
       }
     },
+    "Start-up" : {
+      "comment" : "Playback diagnostics label for how long a live stream took to start."
+    },
     "Starting" : {
       "localizations" : {
         "ar" : {
@@ -645751,6 +645803,9 @@
           }
         }
       }
+    },
+    "Stream clock" : {
+      "comment" : "Playback diagnostics label for the wall-clock time a live stream reports at the playhead."
     },
     "Stream playlist is out of date. Rescan later." : {
       "localizations" : {
@@ -664927,6 +664982,7 @@
       }
     },
     "The Browse tab in every library, plus titles inside collections and playlists." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -669554,6 +669610,7 @@
       }
     },
     "The Showcase background and title logo in each library's Recommended tab." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -673738,6 +673795,7 @@
       }
     },
     "The collection covers, rather than the titles inside them." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -676386,6 +676444,7 @@
       }
     },
     "The large preview above Plozz on the Apple TV Home Screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -681671,6 +681730,7 @@
       }
     },
     "The playlist covers, rather than the titles inside them." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -736479,6 +736539,7 @@
       }
     },
     "Try an IPTV playlist instead." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -747497,45 +747558,9 @@
     },
     "Unwatched episodes: %lld" : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Unwatched episode: %lld"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Unwatched episodes: %lld"
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "variations" : {
             "plural" : {
-              "zero" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقات غير مشاهدة: %lld"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقة غير مشاهدة: %lld"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقتان غير مشاهدتين: %lld"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747548,7 +747573,25 @@
                   "value" : "حلقة غير مشاهدة: %lld"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقة غير مشاهدة: %lld"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقات غير مشاهدة: %lld"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقتان غير مشاهدتين: %lld"
+                }
+              },
+              "zero" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "حلقات غير مشاهدة: %lld"
@@ -747578,16 +747621,16 @@
         "ca" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episodi no vist"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodis no vistos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodi no vist"
                 }
               },
               "other" : {
@@ -747602,12 +747645,6 @@
         "cs" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nezhlédnutá epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747618,6 +747655,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nezhlédnuté epizody"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nezhlédnutá epizoda"
                 }
               },
               "other" : {
@@ -747683,19 +747726,37 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "variations" : {
             "plural" : {
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
-                  "value" : "%lld episodio no visto"
+                  "value" : "Unwatched episode: %lld"
                 }
               },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Unwatched episodes: %lld"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodios no vistos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodio no visto"
                 }
               },
               "other" : {
@@ -747746,16 +747807,16 @@
         "fr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld épisode non regardé"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld épisodes non regardés"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld épisode non regardé"
                 }
               },
               "other" : {
@@ -747776,13 +747837,13 @@
                   "value" : "פרק שטרם נצפה: %lld"
                 }
               },
-              "two" : {
+              "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "פרקים שטרם נצפו: %lld"
                 }
               },
-              "other" : {
+              "two" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "פרקים שטרם נצפו: %lld"
@@ -747812,16 +747873,16 @@
         "hr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld negledana epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld negledane epizode"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld negledana epizoda"
                 }
               },
               "other" : {
@@ -747866,16 +747927,16 @@
         "it" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episodio non visto"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodi non visti"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodio non visto"
                 }
               },
               "other" : {
@@ -747962,12 +748023,6 @@
         "pl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nieobejrzany odcinek"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747978,6 +748033,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nieobejrzanych odcinków"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nieobejrzany odcinek"
                 }
               },
               "other" : {
@@ -747992,16 +748053,16 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episódio não assistido"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episódios não assistidos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episódio não assistido"
                 }
               },
               "other" : {
@@ -748016,16 +748077,16 @@
         "ro" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episod nevizionat"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episoade nevizionate"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episod nevizionat"
                 }
               },
               "other" : {
@@ -748040,12 +748101,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld непросмотренный эпизод"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748056,6 +748111,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld непросмотренных эпизодов"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld непросмотренный эпизод"
                 }
               },
               "other" : {
@@ -748070,12 +748131,6 @@
         "sk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nepozretá epizóda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748086,6 +748141,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nepozretej epizódy"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nepozretá epizóda"
                 }
               },
               "other" : {
@@ -748100,28 +748161,28 @@
         "sl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld neogledana epizoda"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld neogledani epizodi"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld neogledane epizode"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld neogledana epizoda"
+                }
+              },
               "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld neogledanih epizod"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld neogledani epizodi"
                 }
               }
             }
@@ -748130,16 +748191,16 @@
         "sr-Latn" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld negledana epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld negledane epizode"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld negledana epizoda"
                 }
               },
               "other" : {
@@ -748202,12 +748263,6 @@
         "uk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld непереглянутий епізод"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748218,6 +748273,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld непереглянутих епізодів"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld непереглянутий епізод"
                 }
               },
               "other" : {
@@ -762465,6 +762526,9 @@
         }
       }
     },
+    "Variant" : {
+      "comment" : "Playback diagnostics label for the HLS quality level playing now: its resolution and bitrate."
+    },
     "Verify & Browse" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -766230,6 +766294,7 @@
       }
     },
     "Video player Info, episode and playlist menus, Up Next, and system Now Playing." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

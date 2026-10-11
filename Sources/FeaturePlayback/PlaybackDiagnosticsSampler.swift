@@ -33,6 +33,14 @@ public final class PlaybackDiagnosticsSampler {
     /// Live engine telemetry source (dropped frames / FPS / bitrate). Used to fill
     /// the per-tick metrics on engines with no `AVPlayer` access log (Plozzigen).
     private var engineTelemetry: (@MainActor () -> EngineLiveTelemetry?)?
+    /// Live channels: the engine's view of the live session, completed here
+    /// from the item's access and error logs.
+    private var liveStream: (@MainActor () -> PlaybackDiagnostics.LiveStreamFacts?)?
+    /// Codec facts from the live item's current tracks, re-read every few
+    /// seconds because a variant switch can change them.
+    private var liveTracks = MediaSourceMetadata()
+    private var liveTracksTask: Task<Void, Never>?
+    private var liveTracksReadAt: Date?
     /// Engine-probed input facts, not a measurement of the display/HDMI output.
     /// The probed range corrects provider hints for original-source playback.
     private var probedFacts: (@MainActor () -> EngineProbedSourceFacts?)?
@@ -95,6 +103,7 @@ public final class PlaybackDiagnosticsSampler {
         streamURL: URL? = nil,
         engineTelemetry: (@MainActor () -> EngineLiveTelemetry?)? = nil,
         probedFacts: (@MainActor () -> EngineProbedSourceFacts?)? = nil,
+        liveStream: (@MainActor () -> PlaybackDiagnostics.LiveStreamFacts?)? = nil,
         includesSystemMetrics: Bool = true,
         onStreamDetails: (@MainActor (PlaybackStreamDetails) -> Void)? = nil
     ) {
@@ -102,6 +111,7 @@ public final class PlaybackDiagnosticsSampler {
         self.player = player
         self.playerProvider = playerProvider
         self.engineTelemetry = engineTelemetry
+        self.liveStream = liveStream
         self.probedFacts = probedFacts
         self.onStreamDetails = onStreamDetails
         self.includesSystemMetrics = includesSystemMetrics
@@ -150,6 +160,10 @@ public final class PlaybackDiagnosticsSampler {
         streamInfoTask = nil
         sampledItem = nil
         streamMetadata = .init()
+        liveTracksTask?.cancel()
+        liveTracksTask = nil
+        liveTracksReadAt = nil
+        liveTracks = .init()
         onStreamDetails = nil
         player = nil
         playerProvider = nil
@@ -274,10 +288,32 @@ public final class PlaybackDiagnosticsSampler {
 
             diagnostics.playbackState = Self.playbackStateText(item: item, player: player)
 
+            if var live = liveStream?() {
+                Self.applyLiveLogs(from: item, to: &live)
+                // HLS moves between variants, so the picture size is read
+                // every tick rather than kept from the first sample.
+                let size = item.presentationSize
+                if size.width > 0, size.height > 0 {
+                    live.variantWidth = Int(size.width.rounded())
+                    live.variantHeight = Int(size.height.rounded())
+                    diagnostics.resolution = .init(width: live.variantWidth!, height: live.variantHeight!)
+                }
+                diagnostics.liveStream = live
+                // A live channel has no provider metadata, and the native HLS
+                // route runs no engine probe: the tracks AVPlayer is playing
+                // are the only account of its video and audio.
+                updateLiveTracks(item: item)
+                Self.fillMissing(from: PlaybackDiagnostics.base(from: liveTracks, mode: diagnostics.mode), into: &diagnostics)
+            }
+
             // Fall back to the live asset URL if the transport wasn't seeded at start.
             if diagnostics.streamTransport == nil, let urlAsset = item.asset as? AVURLAsset {
                 diagnostics.streamTransport = PlaybackDiagnostics.streamTransportFacts(url: urlAsset.url)
             }
+        }
+
+        if player?.currentItem == nil, let live = liveStream?() {
+            diagnostics.liveStream = live
         }
 
         // Software decoders supply their own render metrics. An engine's encoded
@@ -324,6 +360,69 @@ public final class PlaybackDiagnosticsSampler {
         if diagnostics.mode == .transcode {
             onStreamDetails?(.init(metadata: streamMetadata, declaredBitrate: diagnostics.indicatedBitrate))
         }
+    }
+
+    /// A live item gains a new track at every seek and discontinuity, so the
+    /// newest enabled video and audio tracks are the ones playing.
+    private func updateLiveTracks(item: AVPlayerItem) {
+        guard liveTracksTask == nil, item.status == .readyToPlay,
+              liveTracksReadAt.map({ Date().timeIntervalSince($0) >= 3 }) ?? true else { return }
+        let generation = generation
+        liveTracksTask = Task { [weak self] in
+            var metadata = MediaSourceMetadata()
+            let tracks = item.tracks.filter(\.isEnabled).compactMap(\.assetTrack)
+            if let video = tracks.last(where: { $0.mediaType == .video }),
+               let description = try? await video.load(.formatDescriptions).first {
+                metadata.video = NativeStreamDetailsReader.videoStream(description)
+                if let fps = try? await video.load(.nominalFrameRate), fps.isFinite, fps > 0 {
+                    metadata.video?.frameRate = Double(fps)
+                }
+            }
+            if let audio = tracks.last(where: { $0.mediaType == .audio }),
+               let description = try? await audio.load(.formatDescriptions).first {
+                metadata.audio = NativeStreamDetailsReader.audioStream(description)
+            }
+            guard let self, self.generation == generation else { return }
+            self.liveTracksTask = nil
+            self.liveTracksReadAt = Date()
+            if metadata.video != nil || metadata.audio != nil { self.liveTracks = metadata }
+        }
+    }
+
+    /// Copies stream facts the sampler read off the item into fields nothing
+    /// else has filled, so a probe or provider value always wins.
+    static func fillMissing(from stream: PlaybackDiagnostics, into diagnostics: inout PlaybackDiagnostics) {
+        if diagnostics.resolution == nil { diagnostics.resolution = stream.resolution }
+        if diagnostics.videoCodec == nil { diagnostics.videoCodec = stream.videoCodec }
+        if diagnostics.videoCodecTag == nil { diagnostics.videoCodecTag = stream.videoCodecTag }
+        if diagnostics.videoBitrate == nil { diagnostics.videoBitrate = stream.videoBitrate }
+        if diagnostics.frameRate == nil { diagnostics.frameRate = stream.frameRate }
+        if diagnostics.hdr == .unknown { diagnostics.hdr = stream.hdr }
+        if diagnostics.videoRangeType == nil { diagnostics.videoRangeType = stream.videoRangeType }
+        if diagnostics.colorTransfer == nil { diagnostics.colorTransfer = stream.colorTransfer }
+        if diagnostics.audioCodec == nil { diagnostics.audioCodec = stream.audioCodec }
+        if diagnostics.audioChannels == nil { diagnostics.audioChannels = stream.audioChannels }
+        if diagnostics.audioSampleRate == nil { diagnostics.audioSampleRate = stream.audioSampleRate }
+        if diagnostics.audioBitrate == nil { diagnostics.audioBitrate = stream.audioBitrate }
+    }
+
+    /// The HLS session's own account of itself: every access-log event (one per
+    /// variant), the error log, and the playlist's wall clock at the playhead.
+    static func applyLiveLogs(from item: AVPlayerItem, to live: inout PlaybackDiagnostics.LiveStreamFacts) {
+        if let events = item.accessLog()?.events {
+            live.apply(accessLog: events.map {
+                .init(
+                    playbackType: $0.playbackType, indicatedBitrate: $0.indicatedBitrate, startupTime: $0.startupTime,
+                    mediaRequests: $0.numberOfMediaRequests, bytesTransferred: $0.numberOfBytesTransferred,
+                    downloadOverdue: $0.downloadOverdue
+                )
+            })
+        }
+        if let errors = item.errorLog()?.events, !errors.isEmpty {
+            live.errorCount = errors.count
+            live.lastErrorStatus = errors.last?.errorStatusCode
+        }
+        live.programDate = item.currentDate()
     }
 
     private func refreshPlayer() {

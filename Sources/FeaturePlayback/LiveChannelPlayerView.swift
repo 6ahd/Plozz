@@ -55,6 +55,7 @@ public struct LiveChannelPlayerView: View {
     private let onStopPlayback: @MainActor () -> Void
     private let onOpenLibraryItem: ((LibraryChannelItem) -> Void)?
     private let program: LiveChannelProgramInfo?
+    private let earlierPrograms: [LiveChannelProgramInfo]
     private let loadOnNow: @MainActor () -> [LiveChannelOnNowItem]
     private let onTuneChannel: ((String) -> Void)?
     private let guideOverlay: ((LiveChannelGuideEmbedding) -> AnyView)?
@@ -138,6 +139,7 @@ public struct LiveChannelPlayerView: View {
         onStopPlayback: @escaping @MainActor () -> Void = {},
         onOpenLibraryItem: ((LibraryChannelItem) -> Void)? = nil,
         program: LiveChannelProgramInfo? = nil,
+        earlierPrograms: [LiveChannelProgramInfo] = [],
         loadOnNow: @escaping @MainActor () -> [LiveChannelOnNowItem] = { [] },
         onTuneChannel: ((String) -> Void)? = nil,
         guideOverlay: ((LiveChannelGuideEmbedding) -> AnyView)? = nil
@@ -178,6 +180,7 @@ public struct LiveChannelPlayerView: View {
         self.onStopPlayback = onStopPlayback
         self.onOpenLibraryItem = onOpenLibraryItem
         self.program = program
+        self.earlierPrograms = earlierPrograms
         self.loadOnNow = loadOnNow
         self.onTuneChannel = onTuneChannel
         self.guideOverlay = guideOverlay
@@ -304,6 +307,7 @@ public struct LiveChannelPlayerView: View {
                             channelID: channelID,
                             input: input,
                             program: program,
+                            earlierPrograms: earlierPrograms,
                             libraryItem: sourceMatches ? model.engine.currentLibraryItem : nil,
                             openLibraryItem: onOpenLibraryItem,
                             phase: sourceMatches ? model.phase : .loading,
@@ -311,6 +315,9 @@ public struct LiveChannelPlayerView: View {
                             behindLiveSeconds: sourceMatches ? model.behindLiveSeconds : 0,
                             canPause: sourceMatches && model.canPause,
                             canGoLive: sourceMatches && model.canGoLive,
+                            seekWindowSeconds: sourceMatches ? model.seekWindowSeconds : nil,
+                            onSeekBy: seek(by:),
+                            onSeekBehindLive: seek(behindLive:),
                             focus: $focusedControl,
                             onClose: dismissPlayer,
                             onPrevious: channelPrevious,
@@ -907,11 +914,23 @@ public struct LiveChannelPlayerView: View {
         let streamURL: URL? = if case .stream(let url, _) = input { url } else { nil }
         diagnosticsSampler.start(
             player: engine.nowPlayingPlayer,
+            // The engine creates its AVPlayer with the stream, which can be
+            // after Playback Info is opened.
+            playerProvider: { engine.nowPlayingPlayer },
             mode: mode,
             engineName: engine.displayName,
             streamURL: streamURL,
             engineTelemetry: { engine.liveTelemetry },
-            probedFacts: { engine.probedSourceFacts }
+            probedFacts: { engine.probedSourceFacts },
+            liveStream: { [weak model] in
+                let snapshot = engine.liveSnapshot
+                return PlaybackDiagnostics.LiveStreamFacts(
+                    route: snapshot.route.diagnosticName,
+                    behindLiveSeconds: snapshot.behindLiveSeconds,
+                    windowSeconds: snapshot.seekableRange.map { $0.upperBound - $0.lowerBound },
+                    tuneToFirstFrameSeconds: model?.tuneToFirstFrameSeconds
+                )
+            }
         )
     }
 
@@ -925,6 +944,18 @@ public struct LiveChannelPlayerView: View {
         guard let model else { return }
         noteInteraction()
         Task { await model.goLive() }
+    }
+
+    private func seek(by delta: TimeInterval) {
+        guard let model else { return }
+        noteInteraction()
+        model.seek(by: delta)
+    }
+
+    private func seek(behindLive seconds: TimeInterval) {
+        guard let model else { return }
+        noteInteraction()
+        model.seek(behindLive: seconds)
     }
 
     private func retry() {
@@ -1232,6 +1263,9 @@ private final class LiveChannelPlayerPlaybackState {
     /// The viewer paused, so being behind the live edge is their doing until
     /// they go back to live.
     var timeShifted = false
+    /// A window seek still being stepped through: drawn at once, sent to the
+    /// engine once the presses settle.
+    var pendingSeekTarget: TimeInterval?
     var manualRetryCount = 0
     var isLoading = false
     var userPaused = false
@@ -1414,6 +1448,19 @@ final class LiveChannelPlayerModel {
         get { playbackState.isRecoveringProgramme }
         set { playbackState.isRecoveringProgramme = newValue }
     }
+    private var pendingSeekTarget: TimeInterval? {
+        get { playbackState.pendingSeekTarget }
+        set { playbackState.pendingSeekTarget = newValue }
+    }
+    /// The engine's last playhead, on the same axis as `seekableWindow`.
+    @ObservationIgnored private var lastPosition: TimeInterval = 0
+    @ObservationIgnored private var seekCommitTask: Task<Void, Never>?
+    /// One engine seek at a time: a held button keeps moving the target, and
+    /// AVPlayer cancelling its segment loads for every superseded seek is
+    /// what took channels down.
+    @ObservationIgnored private var seekInFlight = false
+    /// From this attempt's tune to its first frame on screen, for Playback Info.
+    @ObservationIgnored private(set) var tuneToFirstFrameSeconds: TimeInterval?
     var audioTracks: [MediaTrack] { trackState.audioTracks }
     var subtitleTracks: [MediaTrack] { trackState.subtitleTracks }
     var selectedAudioID: Int? { trackState.selectedAudioID }
@@ -1521,6 +1568,7 @@ final class LiveChannelPlayerModel {
         monitorTask?.cancel()
         recoveryTask?.cancel()
         foregroundTask?.cancel()
+        seekCommitTask?.cancel()
         guard !stopped else { return }
         let engine = engine
         let group = outputGroup
@@ -1591,6 +1639,103 @@ final class LiveChannelPlayerModel {
         // Scheduled channels retain a broadcast cursor, not a native DVR range.
         if case .libraryChannel = source.input { return true }
         return seekableWindow?.supportsTimeShift == true
+    }
+
+    /// The stream's own rewind window can be seeked through: a live HLS
+    /// playlist that keeps more than its last few segments.
+    var canSeekWindow: Bool {
+        guard !isScheduledSource, networkBlock == nil, !phase.isInterrupted, !isLoading,
+              !isSuspended, hasPresentedFrame, let seekableWindow else { return false }
+        return seekableWindow.duration >= Self.minimumSeekWindow
+    }
+
+    /// How far back the window reaches, for the timeline; nil when it can't be seeked.
+    var seekWindowSeconds: TimeInterval? {
+        canSeekWindow ? seekableWindow?.duration : nil
+    }
+
+    /// Shorter than this is the playlist's live holdback, not a window worth a scrubber.
+    static let minimumSeekWindow: TimeInterval = 60
+
+    /// How long presses must settle before the stacked seek goes to the engine.
+    static let seekCommitDelay: Duration = .milliseconds(450)
+
+    /// Where a window seek lands: inside the window, clear of its oldest
+    /// segment (which the next playlist refresh may evict before the seek lands).
+    static func windowSeekTarget(_ requested: TimeInterval, window: LiveSeekableWindow) -> TimeInterval {
+        let floor = window.lowerBound + min(6, window.duration / 10)
+        return min(max(requested, floor), window.upperBound)
+    }
+
+    /// Step through the window from the last requested place, so repeated
+    /// presses stack rather than each measuring from a playhead still moving.
+    func seek(by delta: TimeInterval) {
+        guard canSeekWindow, let seekableWindow else { return }
+        stageSeek(to: (pendingSeekTarget ?? lastPosition) + delta, window: seekableWindow)
+    }
+
+    /// Land `seconds` behind the live edge.
+    func seek(behindLive seconds: TimeInterval) {
+        guard canSeekWindow, let seekableWindow else { return }
+        stageSeek(to: seekableWindow.upperBound - max(0, seconds), window: seekableWindow)
+    }
+
+    private func stageSeek(to requested: TimeInterval, window: LiveSeekableWindow) {
+        let target = Self.windowSeekTarget(requested, window: window)
+        pendingSeekTarget = target
+        let behind = max(0, window.upperBound - target)
+        timeShifted = behind > Self.liveEdgeTolerance
+        isAtLiveEdge = !timeShifted
+        behindLiveSeconds = timeShifted ? behind : 0
+        seekCommitTask?.cancel()
+        let generation = attemptGeneration
+        seekCommitTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.seekCommitDelay)
+            guard let self, !Task.isCancelled, generation == self.attemptGeneration else { return }
+            self.seekCommitTask = nil
+            await self.commitSeek(generation: generation)
+        }
+    }
+
+    private func commitSeek(generation: Int) async {
+        guard let target = pendingSeekTarget, !stopped, !isSuspended, !phase.isInterrupted else {
+            pendingSeekTarget = nil
+            return
+        }
+        // The landing seek picks up whatever target the presses reached meanwhile.
+        guard !seekInFlight else { return }
+        seekInFlight = true
+        defer { seekInFlight = false }
+        diagnostics.event(.seek, attempt: attemptCount)
+        phase = .seeking
+        bufferingStartedAt = uptime()
+        // Back at the edge is Go Live, which follows the edge as it moves.
+        if let seekableWindow, seekableWindow.upperBound - target <= Self.liveEdgeTolerance {
+            timeShifted = false
+            await engine.seekToLiveEdge()
+        } else {
+            await engine.seek(to: target)
+        }
+        guard generation == attemptGeneration else { return }
+        diagnostics.event(.seekCompleted, attempt: attemptCount)
+        guard !stopped, !isSuspended, !phase.isInterrupted else { return }
+        if pendingSeekTarget == target {
+            pendingSeekTarget = nil
+        } else if pendingSeekTarget != nil, seekCommitTask == nil {
+            // Presses moved the target while this seek landed, and their own
+            // commit already came and went: follow them now.
+            seekInFlight = false
+            await commitSeek(generation: generation)
+            return
+        }
+        if !userPaused { engine.play() }
+        refreshFromEngine()
+    }
+
+    private func cancelPendingSeek() {
+        seekCommitTask?.cancel()
+        seekCommitTask = nil
+        pendingSeekTarget = nil
     }
 
     var canRetry: Bool {
@@ -1750,6 +1895,7 @@ final class LiveChannelPlayerModel {
         seekableWindow = nil
         isAtLiveEdge = true
         timeShifted = false
+        cancelPendingSeek()
         attemptStartedAt = uptime()
         bufferingStartedAt = nil
         needsForegroundLoad = isSuspended
@@ -1819,6 +1965,7 @@ final class LiveChannelPlayerModel {
 
     func goLive() async {
         guard canGoLive, !isSuspended, !isLoading else { return }
+        cancelPendingSeek()
         let generation = attemptGeneration
         userPaused = false
         timeShifted = false
@@ -1902,6 +2049,7 @@ final class LiveChannelPlayerModel {
         engine.onProgrammeChanged = nil
         engine.onTracksChanged = nil
         engine.onSubtitleCues = nil
+        cancelPendingSeek()
         subtitles.clear()
         outputGroup?.unregister(outputID, engine: engine)
         engine.setWatching(false)
@@ -1926,8 +2074,10 @@ final class LiveChannelPlayerModel {
         seekableWindow = nil
         isAtLiveEdge = true
         timeShifted = false
+        cancelPendingSeek()
         attemptStartedAt = uptime()
         firstFrameTimingStartedAt = attemptStartedAt
+        tuneToFirstFrameSeconds = nil
         bufferingStartedAt = nil
         needsForegroundLoad = false
         do {
@@ -2046,7 +2196,11 @@ final class LiveChannelPlayerModel {
         seekableWindow = snapshot.seekableRange.flatMap {
             LiveSeekableWindow(ranges: [(start: $0.lowerBound, duration: $0.upperBound - $0.lowerBound)])
         }
-        let behind: TimeInterval? = if let behind = snapshot.behindLiveSeconds, behind.isFinite {
+        if snapshot.position.isFinite { lastPosition = snapshot.position }
+        let behind: TimeInterval? = if let target = pendingSeekTarget, let seekableWindow {
+            // The timeline follows the press, not the playhead still on its way there.
+            seekableWindow.upperBound - target
+        } else if let behind = snapshot.behindLiveSeconds, behind.isFinite {
             behind
         } else {
             seekableWindow.map { $0.upperBound - snapshot.position }
@@ -2063,6 +2217,7 @@ final class LiveChannelPlayerModel {
         let hadPresentedFrame = hasPresentedFrame
         hasPresentedFrame = hasPresentedFrame || snapshot.firstFrameReady
         if !hadPresentedFrame, hasPresentedFrame {
+            tuneToFirstFrameSeconds = max(0, uptime() - firstFrameTimingStartedAt)
             // The first moment a subtitle selection is sure to be honoured.
             refreshTracks()
             diagnostics.tuneToFirstFrame(
