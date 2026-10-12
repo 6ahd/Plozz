@@ -60,6 +60,9 @@ public struct PosterCardView: View {
     /// Whether the artwork this card ended up with already has the show's name
     /// printed on it, in which case the card must not print it again.
     @State private var artworkAlreadyCarriesTitle = false
+    #if os(tvOS)
+    @State private var nativeArtworkDimming = ContinueWatchingCardShape.artworkDim(logo: nil, background: nil)
+    #endif
     /// The source policy whose textless lookup settled or reached its deadline.
     @State private var settledTextlessIdentity: String?
     @Environment(\.plozzReduceTransparency) private var reduceTransparency
@@ -123,6 +126,10 @@ public struct PosterCardView: View {
         !showsSeriesArtwork && spoilerSettings.shouldHideThumbnail(for: item)
     }
 
+    private var hidesPlaybackStatus: Bool {
+        hideThumbnail || showsSeriesArtwork || playsOnSelect || showsResumeChipOverride
+    }
+
     /// A poster-shaped episode card is masked by *narrowing its sources*, not by
     /// blurring what it drew.
     ///
@@ -160,7 +167,7 @@ public struct PosterCardView: View {
     private var cardAccessibilityValue: String? {
         let subtitle = showsSeriesArtwork ? nil : subtitleText
         guard var count = MediaPlaybackIndicatorState(item).episodeCountAccessibilityLabel(
-            enabled: showsUnwatchedEpisodeCount, hidesStatus: hideThumbnail
+            enabled: showsUnwatchedEpisodeCount, hidesStatus: hidesPlaybackStatus
         ) else { return subtitle }
         count.locale = locale
         let label = String(localized: count) // l10n:content — native card accessibility boundary; uses the current environment locale
@@ -311,6 +318,12 @@ public struct PosterCardView: View {
                     title: nativePosterTitle,
                     subtitle: cardAccessibilityValue,
                     overlay: nativePosterOverlay(hasArtwork: image != nil),
+                    indicators: hidesPlaybackStatus ? nil : .media(nativePlaybackIndicators.statusOnly),
+                    artworkBackground: NativePosterArtworkBackground(
+                        dimming: showsSeriesArtwork && !suppressesSeriesLogo ? nativeArtworkDimming : 0,
+                        scrim: showsResumeChip ? resumeChipOverlay.artworkScrim
+                            : nativePlaybackIndicators.withoutStatus.artworkScrim
+                    ),
                     focus: $isFocused,
                     source: detailTransitionSource,
                     action: selectCard
@@ -350,22 +363,28 @@ public struct PosterCardView: View {
                     neutralPlaceholder
                 }
             }
-            if showsSeriesArtwork && !suppressesSeriesLogo { seriesLogo }
-            MediaCardPlaybackIndicators(
-                item: item,
-                hidesStatus: hideThumbnail,
-                showsProgressBar: !showsResumeChip,
-                badgeInset: borderlessBadgeInset,
-                progressHeight: metrics.progressBarHeight,
-                progressHorizontalInset: borderlessProgressInset,
-                progressBottomInset: borderlessProgressInset,
-                downloadState: showsResumeChip ? nil : downloadState,
-                artworkCornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
-            )
-            resumeChip
+            if showsSeriesArtwork && !suppressesSeriesLogo {
+                seriesLogo.attachingArtworkDimming { nativeArtworkDimming = $0 }
+            }
+            nativePlaybackIndicators.withoutStatus.withoutScrim
+            if showsResumeChip { resumeChipOverlay.withoutScrim }
             pendingRemovalOverlay
         }
         .overlay(alignment: .topLeading) { statusCue(inset: borderlessBadgeInset) }
+    }
+
+    private var nativePlaybackIndicators: MediaCardPlaybackIndicators {
+        MediaCardPlaybackIndicators(
+            item: item,
+            hidesStatus: hidesPlaybackStatus,
+            showsProgressBar: !showsResumeChip,
+            badgeInset: borderlessBadgeInset,
+            progressHeight: metrics.progressBarHeight,
+            progressHorizontalInset: borderlessProgressInset,
+            progressBottomInset: borderlessProgressInset,
+            downloadState: showsResumeChip ? nil : downloadState,
+            artworkCornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
+        )
     }
     #endif
 
@@ -381,7 +400,7 @@ public struct PosterCardView: View {
                 .overlay {
                     MediaCardPlaybackIndicators(
                         item: item,
-                        hidesStatus: hideThumbnail,
+                        hidesStatus: hidesPlaybackStatus,
                         showsProgressBar: !showsResumeChip,
                         badgeInset: 8,
                         progressHeight: metrics.progressBarHeight,
@@ -468,7 +487,7 @@ public struct PosterCardView: View {
                 .overlay {
                     MediaCardPlaybackIndicators(
                         item: item,
-                        hidesStatus: hideThumbnail,
+                        hidesStatus: hidesPlaybackStatus,
                         showsProgressBar: !showsResumeChip,
                         badgeInset: 8,
                         progressHeight: metrics.progressBarHeight,
@@ -572,7 +591,7 @@ public struct PosterCardView: View {
             .overlay {
                 MediaCardPlaybackIndicators(
                     item: item,
-                    hidesStatus: hideThumbnail,
+                    hidesStatus: hidesPlaybackStatus,
                     showsProgressBar: !showsResumeChip,
                     badgeInset: borderlessBadgeInset,
                     progressHeight: metrics.progressBarHeight,
@@ -821,21 +840,23 @@ public struct PosterCardView: View {
     @ViewBuilder
     private var resumeChip: some View {
         if showsResumeChip {
-            ResumeChipOverlay(
-                item: item,
-                downloadState: downloadState,
-                showsMenu: showsActionsMenu,
-                // Keep episode identity on the artwork when captions are hidden.
-                detailText: chipCarriesEpisode ? item.seasonEpisodeLabel : nil,
-                showsPlayGlyphWhenIdle: showsSeriesArtwork,
-                // A Continue Watching card darkens over a much longer run,
-                // starting up in the picture and finishing lighter: it is not
-                // working alone down there — the reflection lays down its own
-                // wash — and the two compound. See ``ContinueWatchingCardShape``.
-                bottomScrimStart: showsSeriesArtwork ? ContinueWatchingCardShape.scrimStart : nil,
-                bottomScrimDepth: showsSeriesArtwork ? ContinueWatchingCardShape.scrimDepth : nil
-            )
+            resumeChipOverlay
         }
+    }
+
+    private var resumeChipOverlay: ResumeChipOverlay {
+        ResumeChipOverlay(
+            item: item,
+            downloadState: downloadState,
+            showsMenu: showsActionsMenu,
+            // Keep episode identity on the artwork when captions are hidden.
+            detailText: chipCarriesEpisode ? item.seasonEpisodeLabel : nil,
+            showsPlayGlyphWhenIdle: showsSeriesArtwork,
+            // The reflection already darkens this region; avoid compounding it
+            // with the stronger scrim used by ordinary browsing cards.
+            bottomScrimStart: showsSeriesArtwork ? ContinueWatchingCardShape.scrimStart : nil,
+            bottomScrimDepth: showsSeriesArtwork ? ContinueWatchingCardShape.scrimDepth : nil
+        )
     }
 
     // MARK: Artwork
@@ -1215,7 +1236,7 @@ public struct PosterCardView: View {
         seriesSource.fallback()
     }
 
-    private var seriesLogo: some View {
+    private var seriesLogo: ContinueWatchingSeriesLogo {
         ContinueWatchingSeriesLogo(
             title: seriesDisplayTitle,
             logoReferences: seriesSource.logoReferences,
@@ -1279,6 +1300,7 @@ struct ContinueWatchingSeriesLogo: View {
     let artworkReferences: [ArtworkReference]
     let artworkVariant: ArtworkImageVariant
     let asyncFallbackURL: HeroLogoFallback?
+    var onArtworkDimming: ((CGFloat) -> Void)?
 
     @Environment(\.plozzMetrics) private var metrics
     @State private var logoTone: ResolvedLogoTone?
@@ -1293,11 +1315,11 @@ struct ContinueWatchingSeriesLogo: View {
                 cardWidth: width, stage: stage, edgeInset: metrics.resumeChipInset
             )
             ZStack(alignment: .top) {
-                Color.black.opacity(
-                    ContinueWatchingCardShape.artworkDim(logo: logoTone, background: artworkTone)
-                )
-                .animation(.easeOut(duration: 0.25), value: logoTone)
-                .animation(.easeOut(duration: 0.25), value: artworkTone)
+                if onArtworkDimming == nil {
+                    Color.black.opacity(artworkDimming)
+                        .animation(.easeOut(duration: 0.25), value: logoTone)
+                        .animation(.easeOut(duration: 0.25), value: artworkTone)
+                }
                 HeroLogoArtwork(
                     references: logoReferences,
                     asyncFallbackURL: asyncFallbackURL,
@@ -1323,9 +1345,10 @@ struct ContinueWatchingSeriesLogo: View {
                 .frame(width: width, height: box.height)
                 .offset(y: height * ContinueWatchingCardShape.logoCenter - box.height / 2)
             }
-            .frame(width: width, height: height)
+            .frame(width: width, height: height, alignment: .top)
         }
         .allowsHitTesting(false)
+        .onChange(of: artworkDimming, initial: true) { _, value in onArtworkDimming?(value) }
         .task(id: artworkReferences.map(\.privacySafeIdentity).joined(separator: "|")) {
             artworkTone = await HeroBackgroundSampler.sample(
                 references: artworkReferences,
@@ -1338,6 +1361,16 @@ struct ContinueWatchingSeriesLogo: View {
     private var logoNeedsHelp: Double? {
         guard let logoTone, let artworkTone else { return nil }
         return 1 - ContinueWatchingCardShape.separation(logo: logoTone, background: artworkTone)
+    }
+
+    private var artworkDimming: CGFloat {
+        ContinueWatchingCardShape.artworkDim(logo: logoTone, background: artworkTone)
+    }
+
+    func attachingArtworkDimming(_ update: @escaping (CGFloat) -> Void) -> Self {
+        var result = self
+        result.onArtworkDimming = update
+        return result
     }
 }
 
@@ -1447,11 +1480,11 @@ enum PosterCardPresentation {
     }
 
     static func showsWatchStatus(for kind: MediaItemKind) -> Bool {
-        kind != .folder
+        kind != .folder && kind != .collection && kind != .playlist
     }
 
     static func showsPlaybackIndicators(for kind: MediaItemKind) -> Bool {
-        kind != .folder
+        showsWatchStatus(for: kind)
     }
 
     static func folderIconSize(for style: PosterCardView.Style) -> CGFloat {

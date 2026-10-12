@@ -88,9 +88,13 @@ The pane has one geometry group, so button-local focus styling
 cannot cancel Search or Multiviews movement independently of the categories.
 The category list remains lazy; no per-row animation timers or rasterized
 snapshots are used.
+Native guide row hosts accept both growing and shrinking widths with leading
+alignment, so explicit-width programme timelines do not recenter independently
+of channels without listings during the sidebar transition.
 Native-menu round trips, selected-category restoration, and preview-session
 identity have remote regressions; hosted rendered-pixel tests cover synchronized
-Search/Multiviews/category movement, guide travel, and rapid reversal.
+Search/Multiviews/category movement, mixed-source guide rows, guide travel, and
+rapid reversal.
 
 ### IPTV accounts and large catalogues
 
@@ -401,6 +405,16 @@ is no prior in-memory history to migrate on the first updated launch.
   metrics. It can jump directly into a 100,000-row catalog without a synchronous
   full-catalog self-sizing layout pass. Guide lookup indices are refreshed
   with catalog/filter changes, not rebuilt for every scroll callback.
+  Guide-window preparation uses those indices for the current occurrence instead
+  of scanning from row zero. A removed Recent/Favorite occurrence still falls
+  back to the first remaining occurrence. Server authorization and guide mapping
+  lookups inspect only the requested 12/48-row neighborhood, not every channel's
+  reference or mapping, including while the category pane opens.
+  Category selection uses normalized category-to-channel offsets built with the
+  catalog/facets. Multi-group aliases do not duplicate channels; hiding, scan
+  exclusions, metadata overrides and catalog replacement refresh the index.
+  The large-catalog regressions cover repeated selection and deep neighborhood
+  lookup; simulator timing does not establish physical-TV frame pacing.
   The current category remains identified. Leaving Search restores the
   original guide occurrence and time position; the video stays in the same player.
   On Apple TV, Back works from both the native keyboard and the results.

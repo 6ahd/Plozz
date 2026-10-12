@@ -266,7 +266,18 @@ enum ExtendedArtworkBitmap {
         }
         active.scale = scale
         active.isOpaque = true
-        guard let result = active.uiImage else {
+        #if os(tvOS)
+        var rendered: UIImage?
+        active.render(rasterizationScale: scale) { _, draw in
+            rendered = NativePosterArtworkBitmap.image(
+                source: nil, size: size, scale: scale, backgroundColor: .clear,
+                clipsToArtwork: false, drawOverlay: draw
+            )
+        }
+        #else
+        let rendered = active.uiImage
+        #endif
+        guard let result = rendered else {
             PlozzLog.app.error("Unable to render extended artwork")
             return nil
         }

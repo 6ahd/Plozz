@@ -480,8 +480,8 @@ struct PrototypeBrowser: View {
         guard !guideSources.isEmpty else { return nil }
         return PrototypeServerGuideRequest(
             rows: model.guideRowIDs,
-            anchor: scrollID ?? confirmedFocus?.rowID ?? selectedRowID,
-            references: imports.serverChannelReferences.filter { guideSources.contains($0.value.sourceID) },
+            anchorIndex: guideAnchorIndex,
+            references: imports.serverChannelReferences, enabledSourceIDs: guideSources,
             from: dataRange.start, to: dataRange.end
         )
     }
@@ -490,11 +490,15 @@ struct PrototypeBrowser: View {
         timeAnchor.addingTimeInterval(guideOffset)
     }
 
+    private var guideAnchorIndex: Int? {
+        model.guideRowIndex(near: scrollID ?? confirmedFocus?.rowID ?? selectedRowID)
+    }
+
     private var cachedGuideRequest: PrototypeGuideWindowRequest? {
         guard isPresented, scenePhase == .active, imports.supportsDurableCatalog else { return nil }
         return PrototypeGuideWindowRequest(
             rows: model.guideRowIDs,
-            anchor: scrollID ?? confirmedFocus?.rowID ?? selectedRowID,
+            anchorIndex: guideAnchorIndex,
             from: dataRange.start, to: dataRange.end,
             sources: imports.guideSources, enabledSourceIDs: imports.enabledSourceIDs,
             mappings: imports.mappingOverrides
@@ -505,7 +509,7 @@ struct PrototypeBrowser: View {
         guard isPresented, scenePhase == .active, let libraryCatalog, !libraryCatalog.channels.isEmpty else { return nil }
         return PrototypeLibraryGuideRequest(
             catalog: libraryCatalog, rows: model.guideRowIDs,
-            anchor: scrollID ?? confirmedFocus?.rowID ?? selectedRowID,
+            anchorIndex: guideAnchorIndex,
             from: dataRange.start, to: dataRange.end
         )
     }

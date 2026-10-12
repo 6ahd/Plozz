@@ -5,6 +5,46 @@ import CoreModels
 @testable import CoreUI
 
 final class PlozzMetricsTests: XCTestCase {
+    func testPortraitRowsKeepTheSameVisibleFractionWithEitherNavigation() {
+        for density in UIDensity.allCases {
+            let metrics = PlozzMetrics(density: density)
+            let count = PlozzTheme.Metrics.portraitRowVisibleCards / CGFloat(density.scale)
+            for cardStyle in CardStyle.allCases {
+                for viewportWidth: CGFloat in [1536, 1776, 1840] {
+                    for leadingInset: CGFloat in [0, 32] {
+                        let slot = metrics.portraitRowSlotWidth(
+                            viewportWidth: viewportWidth, leadingInset: leadingInset, cardStyle: cardStyle
+                        )
+                        let margin = cardStyle == .borderless ? metrics.borderlessCardSideMargin : 0
+                        let lastCardStart = leadingInset + floor(count) * (slot + metrics.cardSpacing)
+                        XCTAssertEqual(
+                            (viewportWidth - lastCardStart) / (slot - 2 * margin),
+                            count - floor(count), accuracy: 0.0001
+                        )
+                    }
+                }
+            }
+        }
+        XCTAssertEqual(PlozzTheme.Metrics.portraitRowVisibleCards, 6.25)
+        XCTAssertEqual(PlozzMetrics.standard.libraryPosterColumns.count, 6)
+        XCTAssertEqual(PlozzMetrics.standard.posterWidth, 280)
+    }
+
+    func testPortraitRowSizingPreservesDensityAndUnmeasuredFallback() {
+        let widths = UIDensity.allCases.map {
+            PlozzMetrics(density: $0).portraitRowSlotWidth(
+                viewportWidth: 1920, leadingInset: 80, cardStyle: .borderless
+            )
+        }
+        XCTAssertEqual(widths, widths.sorted())
+        XCTAssertEqual(Set(widths).count, UIDensity.allCases.count)
+        let metrics = PlozzMetrics.standard
+        XCTAssertEqual(
+            metrics.portraitRowSlotWidth(viewportWidth: 0, leadingInset: 80, cardStyle: .borderless),
+            metrics.posterWidth
+        )
+    }
+
     func testMobileArtworkProgressIsSlimmerWithoutChangingTelevision() {
         for density in UIDensity.allCases {
             XCTAssertEqual(PlozzMetrics.touch(density: density).progressBarHeight, 8)

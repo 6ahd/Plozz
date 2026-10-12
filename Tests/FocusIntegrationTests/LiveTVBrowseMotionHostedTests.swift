@@ -9,6 +9,123 @@ import FeatureLiveTVCore
 
 @MainActor
 final class LiveTVBrowseMotionHostedTests: XCTestCase {
+    func testScheduledAndUnscheduledChannelsTravelTogetherWithTheSidebar() async throws {
+        try await assertMixedGuideMotion()
+    }
+
+    func testMixedGuideRowsStayTogetherInRightToLeftLayout() async throws {
+        try await assertMixedGuideMotion(direction: .rightToLeft)
+    }
+
+    func testMixedGuideRowsStayTogetherDuringRapidReversal() async throws {
+        try await assertMixedGuideMotion(rapidReversal: true)
+    }
+
+    func testMixedGuideRowsSkipTravelWithDisabledAnimations() async throws {
+        try await assertMixedGuideMotion(disablesAnimations: true)
+    }
+
+    private func assertMixedGuideMotion(
+        direction: LayoutDirection = .leftToRight, disablesAnimations: Bool = false,
+        rapidReversal: Bool = false
+    ) async throws {
+        let scene = try await foregroundScene()
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let model = try MixedGuideModel()
+        window.rootViewController = UIHostingController(rootView: MixedGuidePage(model: model)
+            .environment(\.themePalette, .dark)
+            .environment(\.colorScheme, .dark)
+            .environment(\.layoutDirection, direction)
+            .transaction { $0.disablesAnimations = disablesAnimations })
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        try await Task.sleep(for: .milliseconds(400))
+        window.layoutIfNeeded()
+        let reference = try mixedGuideTextEdges(in: window)
+        XCTAssertEqual(reference.count, 3)
+        for collapsed in [false, true] {
+            let start = try mixedGuideTextEdges(in: window)
+            model.collapsed = collapsed
+            var history: [[CGFloat]] = []
+            let sampleCount = rapidReversal && !collapsed ? 3 : 20
+            for _ in 0..<sampleCount {
+                try await Task.sleep(for: .milliseconds(16))
+                history.append(try mixedGuideTextEdges(in: window))
+            }
+            let end = try XCTUnwrap(history.last)
+            let travel = end[1] - start[1]
+            if !rapidReversal {
+                XCTAssertEqual(abs(travel), 408, accuracy: 2)
+            }
+            var movingSamples = 0
+            for edges in history {
+                let distance = edges[1] - start[1]
+                if abs(distance) > 5, abs(distance) < 408 - 5 {
+                    movingSamples += 1
+                }
+                for row in [0, 2] {
+                    XCTAssertEqual(edges[row] - start[row], distance, accuracy: 2,
+                                   "Plozz, no-guide IPTV and server programme rows must share one displacement")
+                }
+            }
+            let attachment = XCTAttachment(string: "collapsed=\(collapsed) start=\(start) frames=\(history)")
+            attachment.name = "Mixed guide sidebar motion"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            print("Mixed guide motion: collapsed=\(collapsed) start=\(start) frames=\(history)")
+            if disablesAnimations {
+                XCTAssertEqual(movingSamples, 0)
+            } else if !rapidReversal {
+                XCTAssertGreaterThanOrEqual(movingSamples, 2)
+            } else if !collapsed {
+                XCTAssertGreaterThan(abs(travel), 0)
+                XCTAssertLessThan(abs(travel), 408)
+            }
+        }
+        for (edge, original) in zip(try mixedGuideTextEdges(in: window), reference) {
+            XCTAssertEqual(edge, original, accuracy: 2, "Closing must restore every row's original position")
+        }
+    }
+
+    private func mixedGuideTextEdges(in window: UIWindow) throws -> [CGFloat] {
+        func collection(in view: UIView) -> UICollectionView? {
+            if let value = view as? UICollectionView { return value }
+            return view.subviews.lazy.compactMap { collection(in: $0) }.first
+        }
+        let collection = try XCTUnwrap(collection(in: window))
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: false))
+        }
+        let cgImage = try XCTUnwrap(image.cgImage)
+        let width = cgImage.width
+        var rgba = [UInt8](repeating: 0, count: width * cgImage.height * 4)
+        let context = try XCTUnwrap(CGContext(
+            data: &rgba, width: width, height: cgImage.height, bitsPerComponent: 8,
+            bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.draw(cgImage, in: window.bounds)
+        return try (0..<3).map { row in
+            let frame = try XCTUnwrap(collection.layoutAttributesForItem(at: IndexPath(item: row, section: 0))).frame
+            let middle = Int(collection.convert(frame, to: window).midY - PrototypeLayout.rowGap / 2)
+            let edge = (0..<width).last { x in
+                ((middle - 15)..<(middle + 15)).filter { y in
+                    let offset = (y * width + x) * 4
+                    return min(rgba[offset], rgba[offset + 1], rgba[offset + 2]) > 160
+                }.count > 4
+            }
+            return CGFloat(try XCTUnwrap(edge, "Expected the channel/programme title in row \(row)"))
+        }
+    }
+
     func testActualSidebarLabelsTravelTogetherDespiteButtonFocusTransactions() async throws {
         let fixture = try await makeFixture(realSidebar: true)
         defer { fixture.close() }
@@ -129,13 +246,7 @@ final class LiveTVBrowseMotionHostedTests: XCTestCase {
     }
 
     private func makeFixture(disablesAnimations: Bool = false, realSidebar: Bool = false) async throws -> Fixture {
-        let deadline = ContinuousClock.now + .seconds(5)
-        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
-              ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(20))
-        }
-        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-            .first { $0.activationState == .foregroundActive })
+        let scene = try await foregroundScene()
         let fixture = Fixture(scene: scene, disablesAnimations: disablesAnimations, realSidebar: realSidebar)
         var prepared = false
         defer { if !prepared { fixture.close() } }
@@ -147,6 +258,16 @@ final class LiveTVBrowseMotionHostedTests: XCTestCase {
         _ = try fixture.guideX()
         prepared = true
         return fixture
+    }
+
+    private func foregroundScene() async throws -> UIWindowScene {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        return try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
     }
 
     private final class Fixture {
@@ -270,5 +391,65 @@ final class LiveTVBrowseMotionHostedTests: XCTestCase {
         }
 
         func updateUIView(_ view: UIView, context: Context) {}
+    }
+
+    @MainActor @Observable final class MixedGuideModel {
+        var collapsed = true
+        let guide: LiveTVPrototypeModel
+        let imports = LiveTVPrototypeImportModel(configuration: .init())
+
+        init() throws {
+            let now = Date(timeIntervalSince1970: 1_800_000_000)
+            let channels = [LiveTVPrototypeSource.plozz, .iptv, .jellyfin].enumerated().map { index, source in
+                LiveTVPrototypeChannel(
+                    id: "mixed-\(index)", number: index, name: "MMMMMMMM", category: "Test",
+                    symbol: "tv", accent: index, source: source, tagline: ""
+                )
+            }
+            guide = LiveTVPrototypeModel(now: now, channels: channels)
+            try guide.replacePrograms([0, 2].map { index in
+                LiveTVPrototypeProgram(
+                    id: "programme-\(index)", channelID: channels[index].id, title: "MMMMMMMM", subtitle: "",
+                    start: now, end: now.addingTimeInterval(21_600)
+                )
+            })
+        }
+    }
+
+    private struct MixedGuidePage: View {
+        let model: MixedGuideModel
+        @State private var selectedID: String?
+        @State private var selectedRowID: LiveTVGuideRowID?
+        @State private var railActive = false
+        @State private var focusedProgram: LiveTVPrototypeProgram?
+        @State private var hasFocus = false
+        @State private var guideOffset: TimeInterval = 0
+        @State private var timelineOffset: CGFloat = 0
+
+        var body: some View {
+            let layout = PrototypePreviewLayout(
+                size: CGSize(width: 1920, height: 1080), hidesSidebar: model.collapsed
+            )
+            PrototypeBrowseLayout(layout: layout) {
+                Color.blue.frame(height: layout.heroHeight)
+            } sidebar: {
+                Color.red
+            } guide: {
+                PrototypeBrowser(
+                    model: model.guide, imports: model.imports, selectedID: $selectedID,
+                    selectedRowID: $selectedRowID, railActive: $railActive, focusedProgram: $focusedProgram,
+                    hasFocus: $hasFocus, topRequest: 0, nowRequest: 0, guideOffset: $guideOffset,
+                    timeAnchor: .constant(model.guide.now), timelineOffset: $timelineOffset,
+                    restoreFocusRequest: 0, isPresented: true, isRestoringFocus: false,
+                    restoresPlaybackFocus: false, watchOrigin: nil, focusRestored: { _ in },
+                    tune: { _ in }, details: { _ in }, openControls: {}, openSources: {},
+                    openGuideTime: {}, openToolbar: nil, isLoading: false, loadFailed: false, reload: {}
+                )
+                .disabled(true)
+            }
+            .frame(width: layout.contentFrame.width, height: layout.contentFrame.height)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .ignoresSafeArea()
+        }
     }
 }

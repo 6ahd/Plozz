@@ -32,7 +32,7 @@ final class NativeTVMediaCoordinator {
         self.action = action
     }
 
-    func update(focus: PlozzCardFocus.Binding, action: @escaping () -> Void, view: TVLockupView) {
+    func update(focus: PlozzCardFocus.Binding, action: @escaping () -> Void, view: UIControl) {
         self.focus = focus
         self.action = action
         requestFocusIfReady(in: view)
@@ -43,7 +43,7 @@ final class NativeTVMediaCoordinator {
         return request.wantsFocus && request.generation != handledGeneration
     }
 
-    func requestFocusIfReady(in view: TVLockupView) {
+    func requestFocusIfReady(in view: UIControl) {
         guard hasPendingRequest, !isRequestScheduled,
               view.window != nil, view.isEnabled, view.canBecomeFocused, !view.bounds.isEmpty else { return }
         isRequestScheduled = true
@@ -65,7 +65,7 @@ final class NativeTVMediaCoordinator {
         }
     }
 
-    private func applyFocus(to view: TVLockupView, in window: UIWindow, using system: UIFocusSystem) {
+    private func applyFocus(to view: UIControl, in window: UIWindow, using system: UIFocusSystem) {
         focus.focusState.wrappedValue = true
         window.layoutIfNeeded()
         guard hasPendingRequest, view.window === window, view.isEnabled, view.canBecomeFocused else { return }
@@ -289,6 +289,140 @@ enum NativePosterImageTreatment: Equatable {
     case upcoming(Color)
 }
 
+final class NativePosterImageView: UIImageView {
+    let indicatorView = UIImageView()
+    private var indicatorPlacement: NativePosterOverlayPlacement?
+    private var indicatorLayoutDirection = LayoutDirection.leftToRight
+    private var artworkFocused = false
+
+    init(masksFocusEffectToContents: Bool) {
+        super.init(frame: .zero)
+        adjustsImageWhenAncestorFocused = true
+        self.masksFocusEffectToContents = masksFocusEffectToContents
+        clipsToBounds = false
+        isUserInteractionEnabled = false
+        indicatorView.isUserInteractionEnabled = false
+        overlayContentView.addSubview(indicatorView)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layoutIndicator()
+    }
+
+    func updateFocus(_ focused: Bool, coordinator: UIFocusAnimationCoordinator) {
+        artworkFocused = focused
+        coordinator.addCoordinatedAnimations { [weak self] in
+            self?.layoutIndicator()
+        }
+    }
+
+    func updateIndicator(_ overlay: NativePosterOverlay?, focused: Bool) {
+        artworkFocused = focused
+        if indicatorView.image !== overlay?.image { indicatorView.image = overlay?.image }
+        indicatorPlacement = overlay?.placement
+        if let overlay { indicatorLayoutDirection = overlay.layoutDirection }
+        indicatorView.isHidden = overlay == nil
+        layoutIndicator()
+    }
+
+    private func layoutIndicator() {
+        let overlayView = overlayContentView
+        guard let indicatorPlacement, !overlayView.bounds.isEmpty, !bounds.isEmpty else { return }
+        // UIKit lifts overlays onto a nearer plane. Align only our badge to the
+        // destination artwork geometry, never a sampled in-flight transform.
+        guard let projected = NativeFocusProjection.frame(
+            of: overlayView.layer, in: layer, usePresentation: false
+        ), projected.width > 0 else {
+            PlozzLog.app.error("Unable to align native poster indicators with their artwork")
+            return
+        }
+        let size = bounds.size
+        let viewport = artworkFocused ? focusedFrameGuide.layoutFrame : bounds
+        let crop = artworkFocused && indicatorPlacement == .croppedCount
+            ? NativePosterArtworkBitmap.portraitFocusCrop(for: size) : .zero
+        let artworkScale = viewport.width / (size.width - 2 * crop.width)
+        let scale = artworkScale / (projected.width / overlayView.bounds.width)
+        // The baked tile loses its top/trailing edges to the native crop.
+        let trailingDirection: CGFloat = indicatorLayoutDirection == .leftToRight ? -1 : 1
+        let center = CGPoint(
+            x: overlayView.bounds.midX + trailingDirection * crop.width * scale / 2,
+            y: overlayView.bounds.midY + crop.height * scale / 2
+        )
+        if indicatorView.bounds != bounds { indicatorView.bounds = bounds }
+        if indicatorView.center != center { indicatorView.center = center }
+        let transform = CGAffineTransform(scaleX: scale, y: scale)
+        if indicatorView.transform != transform { indicatorView.transform = transform }
+    }
+}
+
+final class NativePosterButton: UIButton {
+    let artworkView: NativePosterImageView
+    var indicatorView: UIImageView { artworkView.indicatorView }
+    var overlayView: UIView { artworkView.overlayContentView }
+    var contentSize = CGSize.zero {
+        didSet {
+            guard contentSize != oldValue else { return }
+            invalidateIntrinsicContentSize()
+            setNeedsLayout()
+        }
+    }
+    var image: UIImage? { artworkView.image }
+    var defaultAccessibilityElement = false
+    var hostedOverlay: (UIView & UIContentView)?
+    var onFocus: ((Bool) -> Void)?
+    var onAvailable: (() -> Void)?
+    var prepareArtwork: ((CGSize) -> UIImage?)?
+    var prepareOverlay: ((CGSize) -> NativePosterOverlay?)?
+
+    init(image: UIImage, masksFocusEffectToContents: Bool = true) {
+        artworkView = NativePosterImageView(masksFocusEffectToContents: masksFocusEffectToContents)
+        super.init(frame: .zero)
+        clipsToBounds = false
+        addSubview(artworkView)
+        updateImage(image)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override var intrinsicContentSize: CGSize { contentSize }
+
+    func updateImage(_ image: UIImage) {
+        if artworkView.image !== image { artworkView.image = image }
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil { setNeedsLayout() }
+        onAvailable?()
+    }
+
+    override func layoutSubviews() {
+        IOTimingDiagnostics.measure(.nativePosterLayout, minimumDurationNanoseconds: 1_000_000) {
+            super.layoutSubviews()
+            if artworkView.frame != bounds { artworkView.frame = bounds }
+            refreshArtwork()
+            onAvailable?()
+        }
+    }
+
+    override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
+        super.didUpdateFocus(in: context, with: coordinator)
+        artworkView.updateFocus(isFocused, coordinator: coordinator)
+        onFocus?(isFocused)
+    }
+
+    private func refreshArtwork() {
+        guard window != nil, bounds.width > 0, bounds.height > 0 else { return }
+        autoreleasepool {
+            if let image = prepareArtwork?(bounds.size) { updateImage(image) }
+            artworkView.updateIndicator(prepareOverlay?(bounds.size), focused: isFocused)
+        }
+    }
+}
+
 struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     let image: UIImage?
     let treatment: NativePosterImageTreatment
@@ -298,6 +432,8 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     let title: NativePosterText?
     let subtitle: String? // l10n:content — provider metadata and preformatted runtime
     let overlay: Overlay
+    var indicators: NativePosterIndicators? = nil
+    var artworkBackground: NativePosterArtworkBackground = .init()
     let focus: PlozzCardFocus.Binding
     var source: DetailTransitionSourceReference? = nil
     let action: () -> Void
@@ -310,28 +446,99 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         var imageSize = CGSize.zero
         var imageScale: CGFloat = 1
         var prepared: UIImage?
-        private var placeholder: UIImage?
-        private var placeholderSize = CGSize.zero
-        private var placeholderScale: CGFloat = 1
+        private struct PresentationKey: Equatable {
+            let treatment: NativePosterImageTreatment
+            let size: CGSize
+            let scale: CGFloat
+            let indicators: NativePosterArtworkBitmap.IndicatorKey?
+            let artworkBackground: NativePosterArtworkBackground
+        }
+        private var presentationKey: PresentationKey?
+        private var presentationSource: UIImage?
+        private var presentedImage: UIImage?
 
         init(focus: PlozzCardFocus.Binding, action: @escaping () -> Void) {
             self.focus = NativeTVMediaCoordinator(focus: focus, action: action)
         }
 
-        func presentationImage(_ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize, scale: CGFloat) -> UIImage {
-            if let prepared = prepare(image, treatment: treatment, size: size, scale: scale) { return prepared }
-            if let placeholder, placeholderSize == size, placeholderScale == scale { return placeholder }
-            let format = UIGraphicsImageRendererFormat()
-            format.scale = scale
-            format.opaque = true
-            let loadingImage = UIGraphicsImageRenderer(size: size, format: format).image {
-                UIColor.darkGray.setFill()
-                $0.fill(CGRect(origin: .zero, size: size))
+        func presentationImage(
+            _ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize,
+            indicators: NativePosterIndicators?, artworkBackground: NativePosterArtworkBackground,
+            environment: EnvironmentValues
+        ) -> UIImage {
+            let scale = environment.displayScale
+            // UIKit's rectangular focus surface requires opaque artwork. A
+            // second, baked alpha corner separates from its highlight under tilt.
+            let clipsToArtwork = size.height <= size.width
+            let backgroundColor: UIColor? = clipsToArtwork ? nil : .darkGray
+            let key = PresentationKey(
+                treatment: treatment, size: size, scale: scale,
+                indicators: indicators.flatMap {
+                    guard $0.hasContent(
+                        indicator: environment.plozzWatchStatusIndicator,
+                        showsEpisodeCount: environment.plozzShowsUnwatchedEpisodeCount,
+                        seerConnected: environment.plozzSeerConnected
+                    ) else { return nil }
+                    let key = NativePosterArtworkBitmap.IndicatorKey($0, environment: environment)
+                    return NativePosterArtworkBitmap.IndicatorKey(
+                        $0, environment: environment,
+                        layer: size.height > size.width && key.overlayPlacement != nil ? .background : .combined
+                    )
+                },
+                artworkBackground: artworkBackground
+            )
+            if presentationSource === image, presentationKey == key, let presentedImage { return presentedImage }
+            // Ordinary artwork needs only the final surface, not a second
+            // normalized full-size image retained for every Home card.
+            let source = treatment == .original ? image : prepare(image, treatment: treatment, size: size, scale: scale)
+            let result: UIImage?
+            if let indicatorKey = key.indicators {
+                guard let overlay = NativePosterArtworkBitmap.indicatorImage(
+                    key: indicatorKey, size: size, scale: scale, environment: environment
+                ) else {
+                    return NativePosterArtworkBitmap.placeholder(
+                        size: size, scale: scale, clipsToArtwork: clipsToArtwork
+                    )
+                }
+                result = NativePosterArtworkBitmap.image(
+                    source: source, overlay: overlay, size: size, scale: scale,
+                    backgroundColor: backgroundColor, clipsToArtwork: clipsToArtwork,
+                    artworkBackground: artworkBackground
+                )
+            } else if let source {
+                // Explicit absence clears old marks without rendering an empty
+                // SwiftUI display list, which can retain its previous pixels.
+                result = NativePosterArtworkBitmap.image(
+                    source: source, size: size, scale: scale,
+                    backgroundColor: backgroundColor, clipsToArtwork: clipsToArtwork,
+                    artworkBackground: artworkBackground
+                )
+            } else {
+                result = NativePosterArtworkBitmap.placeholder(
+                    size: size, scale: scale, clipsToArtwork: clipsToArtwork
+                )
             }
-            placeholder = loadingImage
-            placeholderSize = size
-            placeholderScale = scale
-            return loadingImage
+            guard let result else {
+                return NativePosterArtworkBitmap.placeholder(
+                    size: size, scale: scale, clipsToArtwork: clipsToArtwork
+                )
+            }
+            presentationKey = key
+            presentationSource = image
+            presentedImage = result
+            return result
+        }
+
+        func presentationOverlay(
+            size: CGSize, indicators: NativePosterIndicators?, environment: EnvironmentValues
+        ) -> NativePosterOverlay? {
+            guard size.height > size.width, let indicators else { return nil }
+            let key = NativePosterArtworkBitmap.IndicatorKey(indicators, environment: environment, layer: .foreground)
+            guard let placement = key.overlayPlacement else { return nil }
+            guard let image = NativePosterArtworkBitmap.indicatorImage(
+                key: key, size: size, scale: environment.displayScale, environment: environment
+            ) else { return nil }
+            return NativePosterOverlay(image: image, placement: placement, layoutDirection: key.layoutDirection)
         }
 
         func prepare(_ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize, scale: CGFloat) -> UIImage? {
@@ -347,12 +554,8 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             self.treatment = treatment
             imageSize = size
             imageScale = scale
-            if treatment == .original, let pixels = image.cgImage {
-                prepared = UIImage(
-                    cgImage: pixels,
-                    scale: image.size.width * image.scale / size.width,
-                    orientation: image.imageOrientation
-                )
+            if treatment == .original {
+                prepared = NativePosterArtworkBitmap.image(source: image, size: size, scale: scale)
                 return prepared
             }
             if treatment == .extended {
@@ -360,8 +563,6 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                 if prepared == nil { original = nil }
                 return prepared
             }
-            // TVPosterView derives native focus growth from image.size in points,
-            // not the cached bitmap's pixel dimensions.
             let renderer = ImageRenderer(content: Group {
                 if case .upcoming(let background) = treatment {
                     Image(uiImage: image).resizable().scaledToFill()
@@ -375,7 +576,9 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             }.frame(width: size.width, height: size.height).clipped())
             renderer.scale = scale
             renderer.isOpaque = true
-            prepared = renderer.uiImage
+            prepared = renderer.uiImage.flatMap {
+                NativePosterArtworkBitmap.image(source: $0, size: size, scale: scale, clipsToArtwork: false)
+            }
             if prepared == nil {
                 PlozzLog.app.error("Unable to prepare native poster artwork; keeping the protected placeholder")
             }
@@ -387,21 +590,19 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     func makeUIView(context: Context) -> Container {
         let size = CGSize(width: fallbackWidth, height: fallbackWidth / aspectRatio)
-        let initialImage = context.coordinator.presentationImage(
-            image, treatment: treatment, size: size, scale: context.environment.displayScale
-        )
-        // Materializing imageView with a nil image freezes TVUIKit's native
-        // focus expansion at zero, even after an image arrives.
-        let view = Poster(image: initialImage)
-        view.updateImage(initialImage)
+        let view = NativePosterButton(image: NativePosterArtworkBitmap.placeholder(
+            size: size, scale: context.environment.displayScale
+        ), masksFocusEffectToContents: aspectRatio >= 1)
         view.defaultAccessibilityElement = view.isAccessibilityElement
         view.contentSize = size
+        configureArtwork(view, context: context)
         view.hostedOverlay = overlayConfiguration(in: context).makeContentView()
         if let overlay = view.hostedOverlay {
-            // Native focus and row scrolling move the same logo/badge composite.
+            // Edge backgrounds stay baked; the separately aligned indicator
+            // foreground and async logos use UIKit's live overlay surface.
             overlay.layer.shouldRasterize = true
             overlay.layer.rasterizationScale = context.environment.displayScale
-            let container = view.imageView.overlayContentView
+            let container = view.overlayView
             container.addSubview(overlay)
             overlay.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activate([
@@ -418,6 +619,13 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         view.addAction(UIAction { [weak coordinator = context.coordinator] _ in coordinator?.focus.activate() },
                        for: .primaryActionTriggered)
         return Container(poster: view)
+    }
+
+    static func dismantleUIView(_ container: Container, coordinator: Coordinator) {
+        container.poster.prepareArtwork = nil
+        container.poster.prepareOverlay = nil
+        container.poster.onAvailable = nil
+        container.poster.onFocus = nil
     }
 
     func updateUIView(_ container: Container, context: Context) {
@@ -438,38 +646,41 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         view.accessibilityTraits.insert(.button)
         view.hostedOverlay?.configuration = overlayConfiguration(in: context)
         view.hostedOverlay?.layer.rasterizationScale = context.environment.displayScale
-        let prepared = context.coordinator.presentationImage(
-            image, treatment: treatment, size: view.contentSize, scale: context.environment.displayScale
-        )
-        view.updateImage(prepared)
+        container.aspectRatio = aspectRatio
+        if view.artworkView.masksFocusEffectToContents != (aspectRatio >= 1) {
+            view.artworkView.masksFocusEffectToContents = aspectRatio >= 1
+        }
+        configureArtwork(view, context: context)
         view.isEnabled = context.environment.isEnabled
-        source?.nativeArtworkView = view.imageView
+        source?.nativeArtworkView = view.artworkView
         context.coordinator.focus.update(focus: focus, action: action, view: view)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: Container, context: Context) -> CGSize? {
         let width = proposal.width ?? fallbackWidth
         guard width.isFinite, width > 0 else { return nil }
-        let size = CGSize(width: width, height: width / aspectRatio)
-        let poster = uiView.poster
-        if poster.contentSize != size {
-            poster.contentSize = size
-            uiView.invalidateIntrinsicContentSize()
-            uiView.setNeedsLayout()
+        return CGSize(width: width, height: ceil(width / aspectRatio))
+    }
+
+    private func configureArtwork(_ view: NativePosterButton, context: Context) {
+        let environment = context.environment
+        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators, artworkBackground] size in
+            coordinator?.presentationImage(
+                image, treatment: treatment, size: size, indicators: indicators,
+                artworkBackground: artworkBackground, environment: environment
+            )
         }
-        let prepared = context.coordinator.presentationImage(
-            image, treatment: treatment, size: size, scale: context.environment.displayScale
-        )
-        poster.updateImage(prepared)
-        return uiView.intrinsicContentSize
+        view.prepareOverlay = { [weak coordinator = context.coordinator, indicators] size in
+            coordinator?.presentationOverlay(size: size, indicators: indicators, environment: environment)
+        }
+        view.setNeedsLayout()
     }
 
     private func overlayConfiguration(in context: Context) -> any UIContentConfiguration {
         UIHostingConfiguration {
             overlay
-                // TVUIKit rounds its image, but leaves the overlay container square.
                 .clipShape(RoundedRectangle(
-                    cornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius, style: .continuous))
+                    cornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius, style: .circular))
                 .environment(\.plozzNativeArtworkSurface, true)
                 .environment(\.plozzNativeFocusSurface, true)
                 .environment(\.self, context.environment)
@@ -478,10 +689,16 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     }
 
     final class Container: UIView {
-        let poster: Poster
+        let poster: NativePosterButton
+        var aspectRatio: CGFloat {
+            didSet {
+                if aspectRatio != oldValue { setNeedsLayout() }
+            }
+        }
 
-        init(poster: Poster) {
+        init(poster: NativePosterButton) {
             self.poster = poster
+            self.aspectRatio = poster.contentSize.width / poster.contentSize.height
             super.init(frame: .zero)
             addSubview(poster)
         }
@@ -495,60 +712,18 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
         override var preferredFocusEnvironments: [any UIFocusEnvironment] { [poster] }
 
-        func posterDidLayout() {
-            let intrinsic = poster.intrinsicContentSize
-            let size = CGSize(width: ceil(intrinsic.width), height: ceil(intrinsic.height))
-            guard poster.bounds.size != size else { return }
-            // Focus clearance settles after realization, but is drawing overflow,
-            // not a change to the artwork slot in the containing lazy row.
-            setNeedsLayout()
-        }
-
         override func layoutSubviews() {
             super.layoutSubviews()
-            // Keep both native focus margins outside the artwork's layout slot.
-            let intrinsic = poster.intrinsicContentSize
+            guard bounds.width > 0 else { return }
+            // SwiftUI probes lazy-row sizes before mounting them. Only the
+            // committed UIKit width may allocate artwork or change its size.
+            let intrinsic = CGSize(width: bounds.width, height: bounds.width / aspectRatio)
+            poster.contentSize = intrinsic
             let size = CGSize(width: ceil(intrinsic.width), height: ceil(intrinsic.height))
-            poster.frame = CGRect(x: (bounds.width - size.width) / 2,
-                                  y: (bounds.height - size.height) / 2,
-                                  width: size.width, height: size.height)
-        }
-    }
-
-    final class Poster: TVPosterView {
-        var defaultAccessibilityElement = false
-        var hostedOverlay: (UIView & UIContentView)?
-        var onFocus: ((Bool) -> Void)?
-        var onAvailable: (() -> Void)?
-
-        func updateImage(_ image: UIImage) {
-            if self.image !== image { self.image = image }
-            // Transparent covers remain rounded posters, not alpha-shaped cutouts.
-            if imageView.masksFocusEffectToContents {
-                imageView.masksFocusEffectToContents = false
-            }
-        }
-
-        override func didMoveToWindow() {
-            super.didMoveToWindow()
-            onAvailable?()
-        }
-
-        override func layoutSubviews() {
-            IOTimingDiagnostics.measure(.nativePosterLayout, minimumDurationNanoseconds: 1_000_000) {
-                layoutPosterSubviews()
-            }
-        }
-
-        private func layoutPosterSubviews() {
-            super.layoutSubviews()
-            (superview as? Container)?.posterDidLayout()
-            onAvailable?()
-        }
-
-        override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
-            super.didUpdateFocus(in: context, with: coordinator)
-            onFocus?(isFocused)
+            let frame = CGRect(x: (bounds.width - size.width) / 2,
+                               y: (bounds.height - size.height) / 2,
+                               width: size.width, height: size.height)
+            if poster.frame != frame { poster.frame = frame }
         }
     }
 }
@@ -677,8 +852,7 @@ struct NativeTVCardButtonStyle: PrimitiveButtonStyle {
 }
 
 /// A loading placeholder drawn by a real native poster of the card's shape, so
-/// it takes the same room (TVUIKit keeps clearance around the artwork for focus
-/// growth) and has the same corners as the poster that replaces it. The poster is
+/// it takes the same room and has the same corners as the poster that replaces it. The poster is
 /// disabled unless the caller supplies the explicit loading-entry focus binding.
 struct NativePosterPlaceholder: UIViewRepresentable {
     let aspectRatio: CGFloat
@@ -699,9 +873,7 @@ struct NativePosterPlaceholder: UIViewRepresentable {
 
     func makeUIView(context: Context) -> Container {
         let size = CGSize(width: fallbackWidth, height: fallbackWidth / aspectRatio)
-        // TVUIKit sizes the clearance from the image, so it needs one of the
-        // artwork's size from the start.
-        let poster = NativeTVPoster<EmptyView>.Poster(image: Self.blank(size))
+        let poster = NativePosterButton(image: Self.blank(size), masksFocusEffectToContents: aspectRatio >= 1)
         poster.contentSize = size
         poster.isEnabled = focus != nil && context.environment.isEnabled
         poster.isUserInteractionEnabled = focus != nil
@@ -710,11 +882,9 @@ struct NativePosterPlaceholder: UIViewRepresentable {
         poster.onAvailable = { [weak coordinator = context.coordinator, weak poster] in
             if let poster { coordinator?.requestFocusIfReady(in: poster) }
         }
-        // TVUIKit rounds a poster's image itself and leaves its overlay square,
-        // so the fill carries TVUIKit's corner.
         let sheen = configuration(in: context).makeContentView()
         poster.hostedOverlay = sheen
-        let container = poster.imageView.overlayContentView
+        let container = poster.overlayView
         container.addSubview(sheen)
         sheen.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -728,6 +898,9 @@ struct NativePosterPlaceholder: UIViewRepresentable {
 
     func updateUIView(_ container: Container, context: Context) {
         let poster = container.poster
+        if poster.artworkView.masksFocusEffectToContents != (aspectRatio >= 1) {
+            poster.artworkView.masksFocusEffectToContents = aspectRatio >= 1
+        }
         poster.hostedOverlay?.configuration = configuration(in: context)
         poster.isEnabled = focus != nil && context.environment.isEnabled
         poster.isAccessibilityElement = focus != nil
@@ -738,7 +911,7 @@ struct NativePosterPlaceholder: UIViewRepresentable {
 
     private func configuration(in context: Context) -> any UIContentConfiguration {
         UIHostingConfiguration {
-            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .circular)
                 .fill(fill)
                 .shimmering()
                 .overlay {
@@ -756,23 +929,22 @@ struct NativePosterPlaceholder: UIViewRepresentable {
         let poster = uiView.poster
         if poster.contentSize != size {
             poster.contentSize = size
-            poster.image = Self.blank(size)
+            poster.updateImage(Self.blank(size))
             uiView.invalidateIntrinsicContentSize()
             uiView.setNeedsLayout()
         }
         return uiView.intrinsicContentSize
     }
 
-    /// A clear image of the artwork's size: TVUIKit sizes the clearance and the
-    /// corners from it, and the hosted fill draws inside those corners.
+    /// Keep the native focus mask rectangular even before real artwork arrives.
     @MainActor private static var blanks: [String: UIImage] = [:]
 
     @MainActor private static func blank(_ size: CGSize) -> UIImage {
         let key = "\(size.width)x\(size.height)"
         if let image = blanks[key] { return image }
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in }
+        let image = NativePosterArtworkBitmap.placeholder(
+            size: size, scale: 1, clipsToArtwork: size.height <= size.width
+        )
         blanks[key] = image
         return image
     }

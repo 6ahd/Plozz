@@ -367,6 +367,7 @@ struct FocusHeroHomeView<RowContent: View>: View {
             )
             .environment(\.plozzArtworkArea, artworkPolicy.heroPolicy.area)
             FocusHeroScrollingRows(rows: rows, model: model, rowContent: rowContent)
+                .ignoresSafeArea(.container, edges: .trailing)
                 .environment(\.plozzRowTitleTightening, FocusHeroLayout.rowTitleTightening)
                 .environment(\.plozzCardCaptionIsShowcase, true)
             FocusHeroArtworkPrefetch(rows: rows, model: model, metadata: metadata, isFrontmost: isFrontmost)
@@ -599,9 +600,11 @@ private struct FocusHeroRowStack<RowContent: View>: View {
             })
             .padding(.bottom, -FocusHeroLayout.rowBottomTightening)
         FocusHeroMotionSurface(
-            content: content.fixedSize(horizontal: false, vertical: true),
+            content: content.fixedSize(horizontal: false, vertical: true)
+                .safeAreaPadding(.leading, FocusHeroLayout.maskHorizontalOverhang),
             motion: model.motion, kind: .row(row.id)
         )
+        .padding(.leading, -FocusHeroLayout.maskHorizontalOverhang)
         .accessibilityElement(children: .contain)
     }
 
@@ -642,7 +645,11 @@ struct FocusHeroScrollingRows<RowContent: View>: View {
     let model: FocusHeroModel
     let rowContent: (FocusHeroRow, FocusHeroRowReporter) -> RowContent
     var body: some View {
-        FocusHeroMotionSurface(content: scroll, motion: model.motion, kind: .mask)
+        FocusHeroMotionSurface(
+            content: scroll.safeAreaPadding(.leading, FocusHeroLayout.maskHorizontalOverhang),
+            motion: model.motion, kind: .mask
+        )
+            .padding(.leading, -FocusHeroLayout.maskHorizontalOverhang)
             .accessibilityElement(children: .contain)
     }
 
@@ -1263,6 +1270,9 @@ struct FocusHeroColumnMotion<Content: View>: View {
     }
 }
 
+/// Scroll callers expand the leading viewport and reserve matching safe area.
+/// SwiftUI otherwise hides native cards in the visible overscan gutter even
+/// with clipping disabled; expanding only the child hosting view is insufficient.
 private struct FocusHeroMotionSurface<Content: View>: UIViewControllerRepresentable {
     enum Kind: Equatable { case column, mask, row(String) }
     let content: Content

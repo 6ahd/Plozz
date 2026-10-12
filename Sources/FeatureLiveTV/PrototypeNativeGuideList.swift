@@ -161,6 +161,8 @@ struct PrototypeNativeGuideList<Revision: Equatable, Content: View>: UIViewContr
             // Preserve presentation values without copying another hosting
             // controller's private focus/scroll environment into this row.
             state.content.id(state.id)
+                // Explicit timeline widths must not recenter while UIKit animates the host's bounds.
+                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                 .environment(\.themePalette, state.environment.palette)
                 .environment(\.plozzReduceTransparency, state.environment.reduceTransparency)
                 .environment(\.colorScheme, state.environment.colorScheme)

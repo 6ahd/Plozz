@@ -9,6 +9,53 @@ import XCTest
 
 @MainActor
 final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
+    func testNavigationContainersRenderWithoutWatchIndicators() throws {
+        for kind: MediaItemKind in [.collection, .playlist, .folder] {
+            for indicator in WatchStatusIndicator.allCases {
+                for played in [false, true] {
+                    let item = MediaItem(id: "container", title: "Container", kind: kind, isPlayed: played)
+                    XCTAssertEqual(
+                        try render(item, enabled: true, scheme: .dark, indicator: indicator).pngData(),
+                        try render(item, enabled: true, scheme: .dark, hidesStatus: true, indicator: indicator).pngData()
+                    )
+                }
+            }
+        }
+    }
+
+    func testZeroRemainingEpisodesDoesNotRenderAnUnwatchedCorner() throws {
+        for kind: MediaItemKind in [.series, .season] {
+            let item = MediaItem(id: "complete", title: "Complete", kind: kind, unwatchedEpisodeCount: 0)
+            for enabled in [false, true] {
+                XCTAssertEqual(
+                    try render(item, enabled: enabled, scheme: .dark, indicator: .unwatched).pngData(),
+                    try render(item, enabled: enabled, scheme: .dark, hidesStatus: true, indicator: .unwatched).pngData()
+                )
+            }
+        }
+    }
+
+    func testAttachedStatusRendererClearsWatchedMark() throws {
+        var rendered: [Data] = []
+        for isPlayed in [true, false] {
+            let indicators = NativePosterIndicators.media(MediaCardPlaybackIndicators(
+                item: MediaItem(id: "status", title: "Status", kind: .series,
+                                unwatchedEpisodeCount: 12345, isPlayed: isPlayed),
+                badgeInset: 8
+            ).statusOnly)
+            let renderer = ImageRenderer(content: indicators
+                .frame(width: 280, height: 420)
+                .environment(\.plozzWatchStatusIndicator, .watched)
+                .environment(\.plozzShowsUnwatchedEpisodeCount, false))
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.uiImage)
+            rendered.append(try XCTUnwrap(image.pngData()))
+            let sample = try pixel(image, at: CGPoint(x: 255, y: 28))
+            XCTAssertEqual(sample[3] > 100, isPlayed)
+        }
+        XCTAssertNotEqual(rendered[0], rendered[1])
+    }
+
     func testSharedBadgeRendersExactDigitsAndPreservesFallbacks() throws {
         for indicator in WatchStatusIndicator.allCases {
             try verifyDigitsAndFallbacks(indicator: indicator)
@@ -232,7 +279,7 @@ final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
                 let image = snapshot(window)
                 attach(image, name: "native-mixed-indicators-\(indicator)-\(poster === posters[0])")
                 let artworkFrame = try XCTUnwrap(
-                    NativeFocusProjection.artworkFrame(of: posters[0].imageView, in: window))
+                    NativeFocusProjection.artworkFrame(of: posters[0].artworkView, in: window))
                 let region = CGRect(x: artworkFrame.minX - 8, y: artworkFrame.minY - 8,
                                     width: artworkFrame.width + 16, height: 100)
                     .applying(CGAffineTransform(scaleX: image.scale, y: image.scale))
@@ -372,8 +419,8 @@ final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
         return pixel
     }
 
-    private func nativePosters(in view: UIView) -> [TVPosterView] {
-        if let poster = view as? TVPosterView { return [poster] }
+    private func nativePosters(in view: UIView) -> [NativePosterButton] {
+        if let poster = view as? NativePosterButton { return [poster] }
         return view.subviews.flatMap { nativePosters(in: $0) }
     }
 
@@ -393,10 +440,11 @@ final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
                 NativeTVPoster(
                     image: artwork, treatment: .original, aspectRatio: 2.0 / 3, fallbackWidth: 240,
                     title: nil, subtitle: nil,
-                    overlay: MediaCardPlaybackIndicators(
+                    overlay: Color.clear,
+                    indicators: .media(MediaCardPlaybackIndicators(
                         item: item, badgeInset: 8,
                         artworkCornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
-                    ),
+                    )),
                     focus: $focused, action: {}
                 )
                 .frame(width: 240, height: 360)
