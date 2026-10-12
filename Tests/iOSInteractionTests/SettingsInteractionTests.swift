@@ -531,6 +531,101 @@ final class SettingsInteractionTests: XCTestCase {
         }
     }
 
+    func testPlaybackSettingsKeepTechnicalDetailsInAdvanced() {
+        launchPlayback()
+        let advanced = app.buttons["streaming-advanced"]
+        XCTAssertTrue(advanced.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(app.buttons["streaming-codec"].exists)
+        XCTAssertFalse(app.switches["streaming-force-transcoding"].exists)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "For movies and episodes from Plex"
+        )).firstMatch.exists)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "Applies only to the full-screen video player."
+        )).firstMatch.exists)
+        capture("playback-simplified")
+
+        let local = button("Local network")
+        local.tap()
+        XCTAssertTrue(app.buttons["1080p · 8 Mbps"].waitForExistence(timeout: 3))
+        app.buttons["1080p · 8 Mbps"].tap()
+        XCTAssertTrue(app.navigationBars["Playback"].exists, "Quality menus must not open Advanced.")
+        let remoteBefore = button("Remote Wi-Fi / Ethernet").label
+        let cellularBefore = button("Cellular").label
+        advanced.tap()
+        XCTAssertTrue(app.navigationBars["Streaming quality"].waitForExistence(timeout: 5))
+        for prefix in ["Lets the server", "Uses your server", "Silo currently", "Limits apply"] {
+            XCTAssertFalse(app.staticTexts.matching(NSPredicate(
+                format: "label BEGINSWITH %@", prefix
+            )).firstMatch.exists)
+        }
+        XCTAssertFalse(app.staticTexts["May change HDR and audio formats."].exists)
+        capture("playback-advanced-minimal")
+        let codec = app.buttons["streaming-codec"]
+        codec.tap()
+        app.buttons["Prefer H.264"].tap()
+        XCTAssertEqual(codec.value as? String, "Prefer H.264")
+        let force = app.switches["streaming-force-transcoding"]
+        force.tap()
+        XCTAssertEqual(force.value as? String, "1")
+        XCTAssertTrue(app.staticTexts["May change HDR and audio formats."].waitForExistence(timeout: 3))
+        capture("playback-advanced-warning")
+        force.tap()
+        XCTAssertTrue(app.staticTexts["May change HDR and audio formats."].waitForNonExistence(timeout: 3))
+        force.tap()
+        app.navigationBars.buttons["BackButton"].tap()
+        XCTAssertTrue(advanced.waitForExistence(timeout: 5))
+        XCTAssertEqual(local.value as? String, "1080p · 8 Mbps")
+        XCTAssertEqual(button("Remote Wi-Fi / Ethernet").label, remoteBefore)
+        XCTAssertEqual(button("Cellular").label, cellularBefore)
+        advanced.tap()
+        XCTAssertTrue(codec.waitForExistence(timeout: 5))
+        XCTAssertEqual(codec.value as? String, "Prefer H.264")
+        XCTAssertEqual(force.value as? String, "1")
+    }
+
+    func testPlaybackAdvancedKeepsUnsupportedCodecsDisabled() {
+        launchPlayback("--silo-streaming")
+        app.buttons["streaming-advanced"].tap()
+        let codec = app.buttons["streaming-codec"]
+        XCTAssertTrue(codec.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "Silo currently converts"
+        )).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Choose a supported codec."].exists)
+        codec.tap()
+        XCTAssertTrue(app.buttons["Prefer HEVC (H.265)"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Prefer HEVC (H.265)"].isEnabled)
+        app.buttons["Prefer H.264"].tap()
+        XCTAssertEqual(codec.value as? String, "Prefer H.264")
+        XCTAssertTrue(app.staticTexts["Choose a supported codec."].waitForNonExistence(timeout: 3))
+    }
+
+    func testPlaybackPrivacyDisclosureRemainsVisibleAtAccessibilitySize() throws {
+        launchPlayback("--large-text")
+        let copy = "Looks up missing markers on IntroDB and TheIntroDB using IMDb/TMDB IDs."
+        let disclosure = app.staticTexts[copy]
+        reveal(disclosure, fullyVisible: true)
+        XCTAssertTrue(disclosure.isHittable)
+        let image = try XCTUnwrap(disclosure.screenshot().image.cgImage)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        try VNImageRequestHandler(cgImage: image).perform([request])
+        let rendered = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        // OCR confuses I/l in this font; the accessibility lookup checks the exact copy.
+        let normalize = { (text: String) in text.lowercased().replacingOccurrences(of: "l", with: "i") }
+        XCTAssertEqual(normalize(rendered), normalize(copy), "The complete disclosure must be visible, not truncated.")
+        capture("playback-large-text")
+    }
+
+    private func launchPlayback(_ argument: String? = nil) {
+        app.launchArguments = [
+            "--playback-settings-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
+        ] + (argument.map { [$0] } ?? [])
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Playback"].waitForExistence(timeout: 5))
+    }
+
     func testSpoilerSwitchesAndMenuRemainIndependent() {
         openSettingsPage("Spoilers")
         let protection = app.switches["Protect unwatched episodes"]

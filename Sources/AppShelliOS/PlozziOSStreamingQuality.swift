@@ -44,6 +44,7 @@ struct PlozziOSStreamingSettings: View {
     @Binding var settings: StreamingQualitySettings
     let hasCompatibleServer: Bool
     var support: StreamingQualitySupport = .standard
+    let onShowAdvanced: () -> Void
 
     var body: some View {
         SettingsSectionGroup("Streaming quality") {
@@ -51,29 +52,74 @@ struct PlozziOSStreamingSettings: View {
                 StreamingQualityPicker(title: "Local network", selection: $settings.local, support: support)
                 StreamingQualityPicker(title: "Remote Wi-Fi / Ethernet", selection: $settings.remote, support: support)
                 StreamingQualityPicker(title: "Cellular", selection: $settings.cellular, support: support)
-                Picker("Transcoding codec", selection: $settings.codec) {
-                    ForEach(support.codecs) { Text($0.title).tag($0) }
-                    if !support.codecs.contains(settings.codec) {
-                        Text(settings.codec.title).tag(settings.codec).disabled(true)
+                Button(action: onShowAdvanced) {
+                    HStack {
+                        Text("Advanced")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
                 }
-                if let notice = support.notice { Text(notice).font(.footnote).foregroundStyle(.secondary) }
-                Text(settings.codec.explanation).font(.footnote).foregroundStyle(.secondary)
-                DisclosureGroup("Advanced") {
-                    Toggle("Force transcoding", isOn: $settings.forceTranscoding)
-                    Text("Uses your server to convert video even when the original can play. HDR and audio formats may change.")
-                        .foregroundStyle(.secondary)
-                }
+                .accessibilityIdentifier("streaming-advanced")
             } else {
                 Text("Original quality")
             }
-        } footer: {
-            if hasCompatibleServer {
-                Text("For movies and episodes from Plex, Jellyfin, Emby, and Silo. The original plays when it fits the limit; otherwise your server converts it. Available resolutions and codecs depend on the server. Codec preferences may fall back without increasing the quality limit. Downloads, Live TV, and file shares are unchanged.")
-            } else {
-                Text("File shares play original files and can’t convert video. Quality controls become available when you connect a compatible media server.")
+        }
+    }
+}
+
+struct PlozziOSAdvancedStreamingSettings: View {
+    @Binding var settings: StreamingQualitySettings
+    let support: StreamingQualitySupport
+
+    var body: some View {
+        List {
+            SettingsSectionGroup {
+                Menu {
+                    ForEach(codecChoices) { codec in
+                        Button { settings.codec = codec } label: {
+                            if settings.codec == codec {
+                                Label {
+                                    Text(codec.title)
+                                } icon: {
+                                    Image(systemName: "checkmark")
+                                }
+                            } else {
+                                Text(codec.title)
+                            }
+                        }
+                        .disabled(!support.codecs.contains(codec))
+                    }
+                } label: {
+                    LabeledContent {
+                        Text(settings.codec.title)
+                    } label: {
+                        Text("Transcoding codec")
+                    }
+                }
+                .accessibilityLabel("Transcoding codec")
+                .accessibilityValue(Text(settings.codec.title))
+                .accessibilityIdentifier("streaming-codec")
+                Toggle("Force transcoding", isOn: $settings.forceTranscoding)
+                    .accessibilityIdentifier("streaming-force-transcoding")
+            } footer: {
+                if !support.codecs.contains(settings.codec) {
+                    Text("Choose a supported codec.")
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if settings.forceTranscoding {
+                    Text("May change HDR and audio formats.")
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
+        .settingsPageSurface()
+        .navigationTitle("Streaming quality")
+    }
+
+    private var codecChoices: [StreamingCodecPreference] {
+        support.codecs.contains(settings.codec) ? support.codecs : support.codecs + [settings.codec]
     }
 }
 
@@ -96,6 +142,7 @@ struct StreamingQualityPicker: View {
             } label: {
                 Text(title)
             }
+            .pickerStyle(.inline)
             Button("Custom…") { editingQuality = selection }
         } label: {
             LabeledContent {

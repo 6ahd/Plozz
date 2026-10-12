@@ -72,6 +72,14 @@ mode, even when a window fills the display.
 Rejected geometry requests log the failure, show a status message, and fall
 back to Auto for the current presentation without changing the saved preference.
 
+## Mobile playback settings
+
+Mobile Playback settings keep network quality limits on the main page and move
+codec selection and forced transcoding into Advanced. Only unsupported codec
+selections and enabled forced transcoding show brief contextual notices.
+The community-marker row retains a short disclosure of the services and title
+IDs used for lookups; changing this layout does not change playback preferences.
+
 ## Invariants
 
 - **Engine-agnostic.** All transport chrome drives engines through the
