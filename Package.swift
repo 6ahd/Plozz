@@ -89,8 +89,8 @@ let package = Package(
         // See AGENTS.local.md › "Playback engine (AetherEngine / Plozzigen)".
         //
         // Pinned to the subtitle-corrected fork at
-        // 53a85c708dcfb4fa539cc97909b0d1d67edbc920, based on upstream
-        // release 7.23.0 (cb439e8593cb9bfc052b0c80e16c0637d143eb3d).
+        // 4b7552a06c4cf646bb94eb7eb273946f8b916a70, based on upstream
+        // release 7.34.1 (cc070bf8d7bd7004547283cf1dc0c70ccd00d616).
         //
         // Everything the old `plozz-pin-*` stack existed for is upstream
         // as of 5.23.2:
@@ -228,17 +228,23 @@ let package = Package(
         // instead of copying every retained packet on each addition (PERF-107).
         // The fork changes only ASS/SSA subtitle decoding: packets with neither
         // a decoded end nor a source duration are not given a synthetic five-second
-        // life. FFmpegBuild and LibDovi remain on their existing minor versions.
+        // life.
+        //
+        // 7.34.1 retains that correction and exports the engine dynamically:
+        // LibDovi and LibTrueHD's Rust unwind personalities must stay separate
+        // from the host's Objective-C/C++ stack. FFmpegBuild moves to 3.7.x,
+        // LibDovi stays at 2.1.x and LibTrueHD 2.2.x supplies TrueHD object decoding.
+        // Object-audio rendering and progressive segment delivery remain off.
+        // Both apps embed the engine framework and the new dependency notices.
         //
         // SMB enters AetherEngine only through Plozz's protocol-neutral custom-source
         // bridge; the engine's legacy SMB URL product is not linked.
-        .package(url: "https://github.com/brandomoore/AetherEngine", revision: "53a85c708dcfb4fa539cc97909b0d1d67edbc920"),
-        // NOTE: FFmpegBuild (FFmpeg n8.1.x decode-only) and LibDovi (Dolby Vision
-        // RPU parser) are pulled in TRANSITIVELY by AetherEngine — its own manifest
-        // declares and consumes them. Plozz used to declare them directly only for
-        // the retired hybrid-engine target; no Plozz target references
-        // their products, so the direct declarations were removed (SwiftPM flagged
-        // them as unused). AetherEngine owns their version alignment.
+        .package(url: "https://github.com/brandomoore/AetherEngine", revision: "4b7552a06c4cf646bb94eb7eb273946f8b916a70"),
+        // NOTE: FFmpegBuild (FFmpeg n8.1.x decode-only), LibDovi (Dolby Vision
+        // RPU parser) and LibTrueHD are transitive dependencies — AetherEngine
+        // declares and consumes them. The retired hybrid-engine target needed
+        // direct FFmpegBuild/LibDovi declarations; current Plozz targets do not
+        // consume those products. AetherEngine owns their version alignment.
 
         // Sentry's official binary-only package powers the OPT-IN, off-by-default
         // crash reporter (Settings ▸ Help & Diagnostics ▸ Share Crash Reports).

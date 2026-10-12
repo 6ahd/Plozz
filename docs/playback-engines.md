@@ -47,17 +47,43 @@ headers when updating the vendored sources, and update sources, public headers,
 binary checksums, and bundled notices together.
 
 Plozz pins the subtitle-corrected
-[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/53a85c708dcfb4fa539cc97909b0d1d67edbc920)
-at commit `53a85c708dcfb4fa539cc97909b0d1d67edbc920`, based directly on upstream
-release **7.23.0** (`cb439e8593cb9bfc052b0c80e16c0637d143eb3d`).
+[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/4b7552a06c4cf646bb94eb7eb273946f8b916a70)
+at commit `4b7552a06c4cf646bb94eb7eb273946f8b916a70`, based on upstream
+release **7.34.1** (`cc070bf8d7bd7004547283cf1dc0c70ccd00d616`).
 ASS/SSA packets with neither a decoded end nor a packet duration are now discarded
 instead of lingering for a fabricated five seconds. This also applies to sidecars;
-other subtitle codecs retain their established fallback. The 7.23.0 audio-output
+other subtitle codecs retain their established fallback. Upstream 7.34.1 does not
+include this correction; the fork retains it and its regression tests.
+
+The fork exports **AetherEngine as a dynamic framework**. LibDovi and LibTrueHD
+each bring a Rust exception personality; statically combining both with Plozz's
+Objective-C and C++ text-rendering code exceeds Mach-O compact unwind's three
+personality slots. The framework keeps the engine's decoder runtimes in a
+separate Mach-O image, preserving unwind metadata and panic handling. Both app
+targets must embed and sign it alongside the existing FFmpeg frameworks.
+
+The 7.23.0-to-7.34.1 range adds live-start/holdback and source-open recovery
+fixes, corrected software resume/seek timelines, transport-intent preservation
+during rebuilds, and blocking engine work moved off Swift's cooperative pool.
+Changing speed while paused now leaves the session paused until `play()`.
+E-AC-3 JOC stream copies advertise object audio in the HLS master, including
+untagged tracks. FFmpegBuild **3.7.x** fixes dependent-substream Atmos signaling;
+LibDovi remains **2.1.x** and LibTrueHD **2.2.x** is newly linked into the engine.
+
+TrueHD object-audio rendering (`LoadOptions.objectAudioRendering`) stays `.off`,
+and progressive segment delivery stays disabled. The new APAC performance gains
+only apply when object-audio rendering is enabled; this update does not enable
+it or change Plozz's routing/track preferences. Both apps bundle the unmodified
+MIT license, Apache-2.0 license and NOTICE from
+[LibTrueHD 2.2.0](https://github.com/superuser404notfound/LibTrueHD/tree/2.2.0)
+as `LibTrueHDLicense.txt`, `LibTrueHDApacheLicense.txt` and `LibTrueHDNotices.txt`,
+with a shared in-app credit.
+
+The retained 7.23.0 audio-output
 flush epoch prevents a buffer decoded before a software seek from entering
 the newly flushed queue, where its old timestamp could leave playback silent.
 Its subtitle packet store appends in place rather than copying all retained
 packets on every addition, reducing contention during dense ASS openings.
-FFmpegBuild and LibDovi stay on their prior minor versions.
 
 The preceding 7.22.2 release waits for an observed,
 still-running display switch before offering an unproven HDR master. A rejection
@@ -106,8 +132,9 @@ wait for an origin slot until their deadline. Plozz's existing public-API
 integration and stricter HTTP transport remain unchanged.
 
 Its iOS/tvOS 18 minimum matches Plozz's existing deployment targets. The engine
-owns the FFmpegBuild 3.6.x and LibDovi 2.1.x dependencies; Plozz does not link a
-second FFmpeg build. This release also retains both earlier integration fixes:
+owns the FFmpegBuild 3.7.x, LibDovi 2.1.x and LibTrueHD 2.2.x dependencies;
+Plozz does not link a second FFmpeg build. This release also retains both earlier
+integration fixes:
 
 - [superuser404notfound/AetherEngine#566](https://github.com/superuser404notfound/AetherEngine/pull/566):
   item-bound background access/error-log reads, stale-result fencing, and bounded

@@ -5,11 +5,34 @@ import XCTest
 
 final class AetherReleaseIntegrationTests: XCTestCase {
     func testResolvedEngineAndSourceCreditIdentifyPinnedSubtitleFix() throws {
-        XCTAssertEqual(AetherEngine.version, "7.23.0")
+        XCTAssertEqual(AetherEngine.version, "7.34.1")
         let credit = try XCTUnwrap(PlozzAttributions.entries.first { $0.title == "AetherEngine" })
         XCTAssertTrue(credit.detail.contains(
-            "https://github.com/brandomoore/AetherEngine/tree/53a85c708dcfb4fa539cc97909b0d1d67edbc920"
+            "https://github.com/brandomoore/AetherEngine/tree/4b7552a06c4cf646bb94eb7eb273946f8b916a70"
         ))
+    }
+
+    func testEngineLivesInItsOwnDynamicFramework() {
+        let engineBundle = Bundle(for: AetherEngine.self)
+        XCTAssertEqual(engineBundle.bundleURL.lastPathComponent, "AetherEngine.framework")
+        XCTAssertNotEqual(engineBundle.bundleURL, Bundle.main.bundleURL)
+    }
+
+    func testNewReleaseFeaturesRemainOptIn() {
+        let options = LoadOptions()
+        XCTAssertEqual(options.objectAudioRendering, .off)
+        XCTAssertFalse(options.progressiveSegmentDelivery)
+    }
+
+    func testTrueHDLegalCreditIncludesSourceAndBothLicenses() throws {
+        let credit = try XCTUnwrap(PlozzAttributions.entries.first { $0.title == "LibTrueHD" })
+        XCTAssertTrue(credit.detail.contains(
+            "https://github.com/superuser404notfound/LibTrueHD/tree/2.2.0"
+        ))
+        XCTAssertTrue(credit.detail.contains("Quick104"))
+        XCTAssertTrue(credit.detail.contains("Rainbaby"))
+        XCTAssertTrue(credit.detail.contains("LibTrueHDNotices.txt"))
+        XCTAssertEqual(Set(credit.licenses.map(\.label)), ["MIT", "Apache-2.0"])
     }
 
     func testReleasedProbeCancellationAPIIsAvailable() {

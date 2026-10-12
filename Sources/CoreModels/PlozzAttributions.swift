@@ -73,7 +73,7 @@ public enum PlozzAttributions {
             title: "AetherEngine",
             detail:
                 "Plozzigen playback is powered by AetherEngine by Vincent Herbst. "
-                + "Source: https://github.com/brandomoore/AetherEngine/tree/53a85c708dcfb4fa539cc97909b0d1d67edbc920",
+                + "Source: https://github.com/brandomoore/AetherEngine/tree/4b7552a06c4cf646bb94eb7eb273946f8b916a70",
             licenses: [.init("LGPL-3.0", family: .lgpl)]
         ),
         PlozzAttribution(
@@ -88,6 +88,19 @@ public enum PlozzAttributions {
             title: "libdovi",
             detail: "Dolby Vision metadata parsing uses libdovi.",
             licenses: [.init("MIT", family: .mit)]
+        ),
+        PlozzAttribution(
+            title: "LibTrueHD",
+            detail:
+                "AetherEngine includes the TrueHD/Atmos decoder by Quick104 and "
+                + "Vincent Herbst, using truehdd and oamd by Rainbaby and contributors. "
+                + "Source: https://github.com/superuser404notfound/LibTrueHD/tree/2.2.0. "
+                + "Complete notices and license texts are bundled in LibTrueHDNotices.txt, "
+                + "LibTrueHDLicense.txt and LibTrueHDApacheLicense.txt.",
+            licenses: [
+                .init("MIT", family: .mit),
+                .init("Apache-2.0", family: .apache),
+            ]
         ),
         PlozzAttribution(
             title: "libass & Text Rendering",
