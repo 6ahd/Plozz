@@ -258,11 +258,15 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   `UIImageView` retains native enlargement, remote motion and the moving
   specular highlight. Portrait row posters use UIKit's rectangular focus mask:
   the small native internal crop (about 1-2% in hosted measurements) is an
-  intentional tradeoff for clean corners during directional touchpad movement.
+  intentional tradeoff for retaining that native surface.
   The alpha-derived highlight mask produced an offset crescent at extreme tilt.
   Continue Watching, landscape/square artwork, transparent landscape library
   covers, and native Browse cells keep their no-internal-zoom alpha-masked path.
-  Artwork is aspect-filled and rounded once at its resting size.
+  Portrait artwork and placeholders are opaque rectangles; UIKit alone rounds
+  the visible surface. Pre-rounded alpha pixels beneath that native mask create
+  a second corner silhouette that can separate from the highlight. Transparent
+  portrait sources receive the same dark backing as missing artwork.
+  Alpha-masked landscape/square and Browse artwork remain rounded in the bitmap.
   Corner flags, count-tile backgrounds and legibility washes are composited into
   the artwork itself. Portrait count digits and floating status/library marks
   use a cached foreground on `overlayContentView`. That surface receives a nearer
@@ -338,8 +342,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   poster regressions compare painted landmarks with native enlargement for
   portrait, landscape, square and Continue Watching artwork, alongside live
   overlays, focus requests, captions and transparent library covers. Portrait
-  coverage bounds the approved crop, checks all four near-threshold tilt
-  directions, and requires spatially moving highlights on gray artwork.
+  coverage bounds the approved crop, verifies UIKit rounds opaque portrait pixels
+  at rest/focus/defocus, and samples fixed motion-effect offsets with moving
+  highlights on gray artwork. Those offsets do not simulate continuous remote
+  touch or its focus-movement-hint transform; actual corner tilt needs a user check.
   Focused counts check actual visible digit padding, not just layout bounds. Corner-flag
   regressions count painted pixels outside the artwork's actual top/right edges,
   and real Home cards cover count/watch/preference updates without focus replacement.

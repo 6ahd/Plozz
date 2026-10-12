@@ -107,10 +107,13 @@ enum NativePosterArtworkBitmap {
         return cache
     }()
 
-    static func placeholder(size: CGSize, scale: CGFloat) -> UIImage {
-        let key = "\(size.width)x\(size.height)@\(scale)" as NSString
+    static func placeholder(size: CGSize, scale: CGFloat, clipsToArtwork: Bool = true) -> UIImage {
+        let key = "\(size.width)x\(size.height)@\(scale):\(clipsToArtwork)" as NSString
         if let cached = placeholders.object(forKey: key) { return cached }
-        guard let image = image(source: nil, size: size, scale: scale) else { return placeholder }
+        guard let image = image(
+            source: nil, size: size, scale: scale,
+            backgroundColor: .darkGray, clipsToArtwork: clipsToArtwork
+        ) else { return placeholder }
         if let pixels = image.cgImage {
             placeholders.setObject(image, forKey: key, cost: pixels.bytesPerRow * pixels.height)
         }
@@ -181,6 +184,7 @@ enum NativePosterArtworkBitmap {
         let format = UIGraphicsImageRendererFormat()
         format.scale = scale
         format.preferredRange = .standard
+        format.opaque = !clipsToArtwork && backgroundColor?.cgColor.alpha == 1
         let bounds = CGRect(origin: .zero, size: size)
         let gradient: CGGradient?
         if let scrim = artworkBackground.scrim {

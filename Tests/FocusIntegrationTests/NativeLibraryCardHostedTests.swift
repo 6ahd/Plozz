@@ -403,6 +403,11 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             let before = try XCTUnwrap(poster.image)
             XCTAssertEqual(before.size, poster.artworkView.bounds.size,
                            "The native alpha-mask contract must hold at 2x, including fractional layout heights.")
+            if aspect < 1 {
+                let alpha = try XCTUnwrap(before.cgImage).alphaInfo
+                XCTAssertTrue([.none, .noneSkipFirst, .noneSkipLast].contains(alpha),
+                              "Rectangular native focus requires opaque artwork without baked alpha corners.")
+            }
             let overlay = try XCTUnwrap(poster.hostedOverlay)
             controller.target = poster
             let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
@@ -425,7 +430,7 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         }
     }
 
-    func testNativePortraitHighlightHasCleanCornersAtDirectionalExtremes() async throws {
+    func testNativePortraitMotionEffectOffsetsHaveCleanCorners() async throws {
         for width: CGFloat in [200, 240, 280, 320] {
             try await checkDirectionalPortrait(width: width, checksSheen: false)
         }
@@ -461,15 +466,31 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         }
     }
 
-    func testNativePortraitHighlightMovesAcrossTheArtwork() async throws {
+    func testNativePortraitMotionEffectOffsetsMoveTheHighlight() async throws {
         try await checkDirectionalPortrait(width: 280, checksSheen: true)
     }
 
-    func testNativePortraitCountStaysInsideTileAtDirectionalExtremes() async throws {
+    func testNativePortraitCountStaysInsideTileWithMotionEffectOffsets() async throws {
         try await checkDirectionalPortrait(width: 280, checksSheen: false, count: 88)
     }
 
-    private func checkDirectionalPortrait(width: CGFloat, checksSheen: Bool, count: Int? = nil) async throws {
+    func testNativePortraitMotionEffectOffsetsAtRetinaRowSizes() async throws {
+        for width: CGFloat in [220.25, 280] {
+            try await checkDirectionalPortrait(width: width, checksSheen: false, displayScale: 2)
+        }
+    }
+
+    func testNativePortraitMotionEffectOffsetsAfterFocusedArtworkReplacement() async throws {
+        try await checkDirectionalPortrait(width: 280, checksSheen: false, displayScale: 2,
+                                           replacesFocusedArtwork: true)
+    }
+
+    private func checkDirectionalPortrait(
+        width: CGFloat, checksSheen: Bool, count: Int? = nil, displayScale: CGFloat = 1,
+        replacesFocusedArtwork: Bool = false
+    ) async throws {
+        // Fixed interpolation offsets cover motion effects, not the remote's
+        // continuous touch input or UIFocusMovementHint interaction transform.
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
         let previous = scene.windows.first(where: \.isKeyWindow)
@@ -490,7 +511,7 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             image: source, aspect: 2 / 3,
             item: MediaItem(id: "tilt", title: "Tilt", kind: .series,
                             unwatchedEpisodeCount: count, isPlayed: count == nil)
-        ).environment(\.plozzWatchStatusIndicator, .unwatched))
+        ).environment(\.plozzWatchStatusIndicator, .unwatched).environment(\.displayScale, displayScale))
         controller.addChild(host)
         controller.view.addSubview(host.view)
         host.didMove(toParent: controller)
@@ -512,6 +533,21 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         system.updateFocusIfNeeded()
         try await Task.sleep(for: .milliseconds(600))
         XCTAssertTrue(poster.isFocused)
+        if replacesFocusedArtwork {
+            let before = poster.image
+            let replacement = try XCTUnwrap(UIImage(data: XCTUnwrap(source.pngData())))
+            host.rootView = SharedZoomFixture(
+                image: replacement, aspect: 2 / 3,
+                item: MediaItem(id: "tilt", title: "Tilt", kind: .series,
+                                unwatchedEpisodeCount: count, isPlayed: count == nil)
+            ).environment(\.plozzWatchStatusIndicator, .unwatched).environment(\.displayScale, displayScale)
+            try await Task.sleep(for: .milliseconds(600))
+            XCTAssertTrue(descendant(NativePosterButton.self, in: container) === poster)
+            XCTAssertFalse(poster.image === before)
+            XCTAssertTrue(poster.isFocused)
+        }
+        XCTAssertFalse(poster.artworkView.masksFocusEffectToContents)
+        XCTAssertFalse(poster.indicatorView.adjustsImageWhenAncestorFocused)
         if count == nil {
             try assertCompositedArtworkGeometry(
                 poster.artworkView, in: window, expectedScale: nil, landmarkTolerance: 1, maximumInternalScale: 1.02
@@ -644,6 +680,74 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             effect.keyPathsAndRelativeValues(forViewerOffset: offset)
         }
     }
+
+        func testPortraitArtworkLeavesCornerClippingToUIKit() async throws {
+            let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+                .first { $0.activationState == .foregroundActive })
+            let previous = scene.windows.first(where: \.isKeyWindow)
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+            let controller = LibraryFocusController()
+            controller.view.backgroundColor = .black
+            let image = UIGraphicsImageRenderer(size: CGSize(width: 280, height: 420)).image {
+                UIColor.systemIndigo.setFill()
+                $0.fill(CGRect(x: 0, y: 0, width: 280, height: 420))
+            }
+            let host = UIHostingController(rootView: SharedZoomFixture(
+                image: image, aspect: 2 / 3,
+                item: MediaItem(id: "native-corners", title: "Native corners", kind: .movie, isPlayed: true)
+            ).environment(\.displayScale, 2).environment(\.plozzWatchStatusIndicator, .unwatched))
+            controller.addChild(host)
+            controller.view.addSubview(host.view)
+            host.didMove(toParent: controller)
+            host.view.backgroundColor = .clear
+            host.view.frame = CGRect(x: 500, y: 200, width: 280, height: 420)
+            let other = UIButton(type: .system)
+            other.setTitle("Other", for: .normal)
+            other.frame = CGRect(x: 100, y: 200, width: 200, height: 80)
+            controller.view.addSubview(other)
+            controller.target = other
+            window.rootViewController = controller
+            window.makeKeyAndVisible()
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+                previous?.makeKeyAndVisible()
+            }
+            window.layoutIfNeeded()
+            let poster = try XCTUnwrap(descendant(NativePosterButton.self, in: host.view))
+            let bitmap = try XCTUnwrap(poster.image)
+            XCTAssertEqual(try pixel(bitmap, at: .zero)[3], 255)
+            XCTAssertFalse(poster.artworkView.masksFocusEffectToContents)
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            for (state, target) in [("rest", other), ("focus", poster), ("defocus", other)] {
+                controller.target = target
+                system.requestFocusUpdate(to: controller)
+                system.updateFocusIfNeeded()
+                try await Task.sleep(for: .milliseconds(600))
+                XCTAssertTrue(system.focusedItem === target)
+                XCTAssertTrue(poster.image === bitmap)
+                let frame = try XCTUnwrap(NativeFocusProjection.artworkFrame(of: poster.artworkView, in: window))
+                let rendered = snapshot(window)
+                for x in [frame.minX + 1, frame.maxX - 2] {
+                    for y in [frame.minY + 1, frame.maxY - 2] {
+                        XCTAssertLessThan(try pixel(rendered, at: CGPoint(x: x, y: y))[2], 80,
+                                          "UIKit must round opaque artwork at \(state), without a baked alpha cutout.")
+                    }
+                }
+                XCTAssertGreaterThan(try pixel(rendered, at: CGPoint(x: frame.midX, y: frame.midY))[2], 180)
+                let attachment = XCTAttachment(image: rendered)
+                attachment.name = "native-opaque-indigo-\(state)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+            let placeholder = NativePosterArtworkBitmap.placeholder(
+                size: CGSize(width: 280, height: 420), scale: 2, clipsToArtwork: false
+            )
+            XCTAssertTrue([.none, .noneSkipFirst, .noneSkipLast].contains(try XCTUnwrap(placeholder.cgImage).alphaInfo))
+            let masked = NativePosterArtworkBitmap.placeholder(size: CGSize(width: 280, height: 420), scale: 2)
+            XCTAssertEqual(try pixel(masked, at: .zero)[3], 0)
+        }
 
     private struct SharedZoomFixture: View {
         let image: UIImage

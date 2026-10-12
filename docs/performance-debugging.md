@@ -656,8 +656,10 @@ requirement for `masksFocusEffectToContents`. Raw corner-alpha and native-focus
 regressions cover this contract, but fixing these does not fix every
 tilt-dependent native highlight defect.
 
-The bottom-left pre-navigation thumb position reproduced a second rounded edge
-on a correctly normalized, alpha-masked image. Diagnostic layer isolation
+The reported bottom-left pre-navigation thumb position showed a second rounded
+edge. Fixed motion-effect offsets produced a similar edge on a correctly
+normalized, alpha-masked image, but did not reproduce actual touch-driven tilt.
+Diagnostic layer isolation of that synthetic state
 identified the native specular highlight rather than the artwork. Disabling
 content masking removed that crescent but restored internal zoom (222 painted
 pixels versus 219.29 expected); a 3-point landmark tolerance missed it.
@@ -669,6 +671,11 @@ Do not modify private UIKit layers or compensate with per-frame transforms.
 Portrait row posters now retain the native image effect with its rectangular
 focus mask and the explicitly accepted small internal crop. Hosted measurements
 at 200-320pt widths show about 1-2% extra enlargement inside the visible frame.
+Their source bitmaps and placeholders are fully opaque rectangles, as required
+by UIKit's non-content-masked mode. UIKit owns the only outer corner shape.
+Retaining baked rounded-alpha corners underneath that surface left competing
+artwork/highlight silhouettes; transparent portrait sources now receive a dark
+backing before composition. No clipping view or per-frame mask is added.
 Continue Watching, landscape/square artwork and Browse's cell-owned renderer
 keep their alpha-masked no-internal-zoom path. The existing UIButton remains
 the sole focus owner; there is no card ancestor or custom animation.
@@ -696,6 +703,12 @@ stay inside the full environment injection. Stable layouts and focus changes
 reuse both images; data/size/environment changes invalidate the appropriate pixels.
 Continue Watching, landscape/square artwork, Browse and mobile stay on the
 combined rendering path.
+
+`testPortraitArtworkLeavesCornerClippingToUIKit` checks opaque source corners and
+native rendered rounding at rest, focus and defocus on indigo artwork. The
+motion-effect-offset tests cover interpolation only: they do not inject remote
+touch or validate `UIFocusMovementHint` deformation. Keep their evidence separate
+from the user's continuous-touch acceptance check.
 
 `testPortraitCountKeepsEvenPaddingAtRestFocusAndReturn` measures opposite-edge
 digit clearance within 2 rendered pixels for 8, 88 and 12345 at 220/280pt widths

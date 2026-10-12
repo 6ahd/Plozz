@@ -440,6 +440,10 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
             environment: EnvironmentValues
         ) -> UIImage {
             let scale = environment.displayScale
+            // UIKit's rectangular focus surface requires opaque artwork. A
+            // second, baked alpha corner separates from its highlight under tilt.
+            let clipsToArtwork = size.height <= size.width
+            let backgroundColor: UIColor? = clipsToArtwork ? nil : .darkGray
             let key = PresentationKey(
                 treatment: treatment, size: size, scale: scale,
                 indicators: indicators.flatMap {
@@ -465,21 +469,33 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                 guard let overlay = NativePosterArtworkBitmap.indicatorImage(
                     key: indicatorKey, size: size, scale: scale, environment: environment
                 ) else {
-                    return NativePosterArtworkBitmap.placeholder(size: size, scale: scale)
+                    return NativePosterArtworkBitmap.placeholder(
+                        size: size, scale: scale, clipsToArtwork: clipsToArtwork
+                    )
                 }
                 result = NativePosterArtworkBitmap.image(
-                    source: source, overlay: overlay, size: size, scale: scale, artworkBackground: artworkBackground
+                    source: source, overlay: overlay, size: size, scale: scale,
+                    backgroundColor: backgroundColor, clipsToArtwork: clipsToArtwork,
+                    artworkBackground: artworkBackground
                 )
             } else if let source {
                 // Explicit absence clears old marks without rendering an empty
                 // SwiftUI display list, which can retain its previous pixels.
                 result = NativePosterArtworkBitmap.image(
-                    source: source, size: size, scale: scale, artworkBackground: artworkBackground
+                    source: source, size: size, scale: scale,
+                    backgroundColor: backgroundColor, clipsToArtwork: clipsToArtwork,
+                    artworkBackground: artworkBackground
                 )
             } else {
-                result = NativePosterArtworkBitmap.placeholder(size: size, scale: scale)
+                result = NativePosterArtworkBitmap.placeholder(
+                    size: size, scale: scale, clipsToArtwork: clipsToArtwork
+                )
             }
-            guard let result else { return NativePosterArtworkBitmap.placeholder(size: size, scale: scale) }
+            guard let result else {
+                return NativePosterArtworkBitmap.placeholder(
+                    size: size, scale: scale, clipsToArtwork: clipsToArtwork
+                )
+            }
             presentationKey = key
             presentationSource = image
             presentedImage = result
@@ -899,8 +915,9 @@ struct NativePosterPlaceholder: UIViewRepresentable {
     @MainActor private static func blank(_ size: CGSize) -> UIImage {
         let key = "\(size.width)x\(size.height)"
         if let image = blanks[key] { return image }
-        let image = NativePosterArtworkBitmap.image(source: nil, size: size, scale: 1)
-            ?? NativePosterArtworkBitmap.placeholder
+        let image = NativePosterArtworkBitmap.placeholder(
+            size: size, scale: 1, clipsToArtwork: size.height <= size.width
+        )
         blanks[key] = image
         return image
     }
