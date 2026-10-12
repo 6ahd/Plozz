@@ -513,6 +513,26 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(forward.staticTexts[sixty].exists)
     }
 
+    func testPlayerOrientationChoicesStayInPlaybackSettingsOnIPhone() {
+        openSettingsPage("Playback")
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            let help = app.staticTexts["playback-orientation-ipad-help"]
+            reveal(help)
+            XCTAssertTrue(help.exists)
+            XCTAssertFalse(app.buttons["playback-orientation"].exists)
+            return
+        }
+        let orientation = app.buttons["playback-orientation"]
+        reveal(orientation)
+        XCTAssertTrue(orientation.staticTexts["Auto"].exists)
+        for choice in ["Landscape", "Portrait", "Auto"] {
+            orientation.tap()
+            XCTAssertTrue(app.buttons[choice].waitForExistence(timeout: 3))
+            app.buttons[choice].tap()
+            XCTAssertTrue(orientation.staticTexts[choice].exists)
+        }
+    }
+
     func testSpoilerSwitchesAndMenuRemainIndependent() {
         openSettingsPage("Spoilers")
         let protection = app.switches["Protect unwatched episodes"]

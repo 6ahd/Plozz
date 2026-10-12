@@ -64,7 +64,9 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--profile-picker-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--rotation-player-fixture") {
+                PlayerRotationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--profile-picker-fixture") {
                 ProfilePickerInteractionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--downloads-interaction-fixture") {
                 DownloadsInteractionFixture()

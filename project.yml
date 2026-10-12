@@ -472,6 +472,8 @@ targets:
     platform: iOS
     sources:
       - path: Tests/iOSPresentationHost
+      - path: Tests/SubtitlePresentationSupport/Fixtures/four-three.mp4
+        buildPhase: resources
       - path: Tests/AuthPresentationSupport/IPTVSetupFixture.swift
       - path: App/Resources/Localizable.xcstrings
       - path: App/PlozziOS/Assets.xcassets
@@ -486,6 +488,17 @@ targets:
           - processing
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIRequiresFullScreen: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thatcube.Plozz.PresentationHost

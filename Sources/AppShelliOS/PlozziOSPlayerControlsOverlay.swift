@@ -21,6 +21,7 @@ struct PlozziOSPlayerControlsOverlay: View {
     let hasVersions: Bool
     let versionsPresented: Bool
     let onShowVersions: () -> Void
+    let orientation: PlozziOSPlayerOrientation
     let onClose: () -> Void
 
     @State private var controlsVisible = true
@@ -200,6 +201,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                         optionsMenuPresented = presented
                         if presented { cancelAutoHide() } else { scheduleAutoHide() }
                     },
+                    orientation: orientation,
                     isCardOpen: $isCardOpen,
                     onInteraction: noteInteraction
                 )
@@ -533,6 +535,7 @@ private struct PlozziOSPlaybackOptionsMenu: View {
     let dialogEnhanceEnabled: Bool
     let supportsQuality: Bool
     let supportsVersions: Bool
+    let orientation: PlozziOSPlayerOrientation
     let onSelectAudio: (PlayerTrackOption.ID) -> Void
     let onSetDialogEnhance: (Bool) -> Void
     let onShowSpeed: () -> Void
@@ -582,6 +585,13 @@ private struct PlozziOSPlaybackOptionsMenu: View {
         if supportsSync {
             items.append(action("Playback Sync", icon: "slider.horizontal.3", perform: onShowSync))
         }
+        if orientation.isAvailable {
+            items.append(action(
+                orientation.isLocked ? "Unlock rotation" : "Lock rotation",
+                icon: orientation.isLocked ? "lock.rotation.open" : "lock.rotation",
+                perform: orientation.toggleLock
+            ))
+        }
         return UIMenu(children: items)
     }
 
@@ -620,6 +630,7 @@ private struct PlozziOSPlayerTransport: View {
     let hasVersions: Bool
     let onShowVersions: () -> Void
     let onOptionsMenuPresentationChange: (Bool) -> Void
+    let orientation: PlozziOSPlayerOrientation
     @Binding var isCardOpen: Bool
     let onInteraction: () -> Void
     /// The player's own bounds, which decide the card's layout — see the
@@ -772,6 +783,7 @@ private struct PlozziOSPlayerTransport: View {
             dialogEnhanceEnabled: viewModel.controls.dialogEnhanceEnabled,
             supportsQuality: viewModel.streamingQualityAvailable,
             supportsVersions: hasVersions,
+            orientation: orientation,
             onSelectAudio: { id in
                 viewModel.selectAudioOption(id: id)
                 onInteraction()

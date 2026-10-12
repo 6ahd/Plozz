@@ -429,9 +429,11 @@ private struct PlozziOSCanonicalItemDetailView: View {
             seriesHeroShowsSeries = false
         }
         .modifier(requestPresentation(inDownloadSheet: false))
-        .fullScreenCover(item: $playbackRequest) { request in
+        .plozziOSPlayerCover(
+            item: $playbackRequest, orientation: appModel.settings.playback.settings.orientation
+        ) { request, orientation in
             if let playbackProvider = appModel.provider(for: request.item) {
-                PlozziOSPlayerView(request: request, provider: playbackProvider)
+                PlozziOSPlayerView(request: request, provider: playbackProvider, orientation: orientation)
             } else {
                 ContentUnavailableView(
                     "Server unavailable",

@@ -118904,6 +118904,226 @@
         }
       }
     },
+    "Applies only to the full-screen video player. Auto follows device rotation and the system rotation lock." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ينطبق هذا الإعداد على مشغّل الفيديو بملء الشاشة فقط. يتبع الخيار «تلقائي» تدوير الجهاز ويراعي قفل التدوير في النظام."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Важи само за видеоплейъра на цял екран. „Автоматично“ следва завъртането на устройството и се съобразява със системното заключване на завъртането."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Només s'aplica al reproductor de vídeo a pantalla completa. «Automàtic» segueix la rotació del dispositiu i respecta el bloqueig de rotació del sistema."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Platí pouze pro přehrávač videa na celé obrazovce. Volba „Automaticky“ se řídí otáčením zařízení a systémovým zámkem otáčení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gælder kun for videoafspilleren på fuld skærm. Auto følger enhedens rotation og respekterer systemets rotationslås."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gilt nur für den Videoplayer im Vollbildmodus. „Automatisch“ folgt der Gerätedrehung und berücksichtigt die Drehsperre des Systems."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ισχύει μόνο για το πρόγραμμα αναπαραγωγής βίντεο σε πλήρη οθόνη. Η επιλογή «Αυτόματα» ακολουθεί την περιστροφή της συσκευής και τηρεί το κλείδωμα περιστροφής του συστήματος."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Solo se aplica al reproductor de vídeo a pantalla completa. «Automático» sigue la rotación del dispositivo y respeta el bloqueo de rotación del sistema."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فقط برای پخش‌کنندهٔ ویدیو در حالت تمام‌صفحه اعمال می‌شود. گزینهٔ «خودکار» از چرخش دستگاه پیروی می‌کند و قفل چرخش سیستم را در نظر می‌گیرد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koskee vain koko näytön videosoitinta. Automaattinen tila seuraa laitteen kiertoa ja noudattaa järjestelmän kiertolukitusta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "S’applique uniquement au lecteur vidéo en plein écran. Le mode Auto suit la rotation de l’appareil et respecte le verrouillage de la rotation du système."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "חל רק על נגן הווידאו במסך מלא. במצב אוטומטי, התצוגה מסתובבת בהתאם לסיבוב המכשיר ולהגדרת נעילת הסיבוב במערכת."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "यह सेटिंग केवल फ़ुल-स्क्रीन वीडियो प्लेयर पर लागू होती है। ऑटो मोड डिवाइस घुमाने पर स्क्रीन की दिशा बदलता है और सिस्टम के रोटेशन लॉक का पालन करता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Primjenjuje se samo na videoreproduktor na cijelom zaslonu. Opcija „Automatski” prati rotaciju uređaja i poštuje zaključavanje rotacije u sustavu."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Csak a teljes képernyős videólejátszóra vonatkozik. Az „Automatikus” beállítás követi a készülék elforgatását, és figyelembe veszi a rendszer elforgatási zárolását."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hanya berlaku untuk pemutar video layar penuh. Mode Otomatis mengikuti rotasi perangkat dan pengaturan kunci rotasi sistem."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Si applica solo al lettore video a schermo intero. Auto segue la rotazione del dispositivo e rispetta il blocco della rotazione del sistema."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "全画面表示のビデオプレーヤーにのみ適用されます。「自動」はデバイスの回転に追従し、システムの画面回転ロック設定に従います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "전체 화면 동영상 플레이어에만 적용됩니다. ‘자동’은 기기 회전 및 시스템의 회전 잠금 설정을 따릅니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hanya terpakai pada pemain video skrin penuh. Pilihan Automatik mengikut putaran peranti dan tetapan kunci putaran sistem."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gjelder bare videospilleren i fullskjermmodus. Alternativet «Automatisk» følger enhetens rotasjon og systemets rotasjonslås."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Geldt alleen voor de videospeler op volledig scherm. ‘Automatisch’ volgt de rotatie van het apparaat en de rotatievergrendeling van het systeem."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dotyczy tylko pełnoekranowego odtwarzacza wideo. Opcja „Automatycznie” uwzględnia obrót urządzenia i systemową blokadę obrotu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aplica-se apenas ao reprodutor de vídeo em tela cheia. A opção Automático segue a rotação do dispositivo e o bloqueio de rotação do sistema."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se aplică doar playerului video pe tot ecranul. Opțiunea Automat ține cont de rotirea dispozitivului și de blocarea rotirii din sistem."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Применяется только к полноэкранному видеоплееру. В режиме «Авто» учитываются поворот устройства и системная блокировка поворота."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Platí len pre prehrávač videa na celej obrazovke. Možnosť Automaticky rešpektuje otáčanie zariadenia a systémový zámok otáčania."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Velja le za celozaslonski predvajalnik videa. Možnost Samodejno upošteva vrtenje naprave in sistemski zaklep vrtenja."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Važi samo za video plejer preko celog ekrana. Opcija Automatski prati rotaciju uređaja i sistemsko zaključavanje rotacije."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gäller endast videospelaren i helskärm. Alternativet ”Automatiskt” följer enhetens rotation och systemets rotationslås."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้กับเครื่องเล่นวิดีโอแบบเต็มหน้าจอเท่านั้น โหมดอัตโนมัติจะปรับตามการหมุนอุปกรณ์และการล็อกการหมุนของระบบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yalnızca tam ekran video oynatıcı için geçerlidir. Otomatik seçeneği, cihazın dönüşünü ve sistemin döndürme kilidini dikkate alır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Застосовується лише до повноекранного відеопрогравача. Режим «Авто» враховує обертання пристрою та системне блокування обертання."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chỉ áp dụng cho trình phát video toàn màn hình. Chế độ Tự động xoay theo thiết bị và tuân theo cài đặt khóa xoay của hệ thống."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "仅适用于全屏视频播放器。“自动”会遵循设备旋转和系统旋转锁定设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "僅適用於全螢幕影片播放器。「自動」會依照裝置旋轉和系統旋轉鎖定設定調整方向。"
+          }
+        }
+      }
+    },
     "Applies to Plozz's own labels. Media titles keep the language your server provides, and system prompts follow the device." : {
       "localizations" : {
         "ar" : {
@@ -368502,6 +368722,226 @@
         }
       }
     },
+    "Lock rotation" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "قفل التدوير"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Заключване на завъртането"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bloqueja la rotació"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uzamknout otáčení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lås rotation"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Drehung sperren"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Κλείδωμα περιστροφής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bloquear rotación"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "قفل چرخش"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lukitse kierto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verrouiller la rotation"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "נעילת סיבוב"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "रोटेशन लॉक करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zaključaj rotaciju"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elforgatás zárolása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunci rotasi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Blocca rotazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "画面の回転をロック"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "회전 잠금"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunci putaran"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lås rotasjon"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rotatie vergrendelen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zablokuj obrót"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bloquear rotação"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Blochează rotirea"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Заблокировать поворот"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zamknúť otáčanie"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zakleni vrtenje"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zaključaj rotaciju"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lås rotation"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ล็อกการหมุน"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Döndürmeyi kilitle"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Заблокувати обертання"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khóa xoay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "锁定旋转"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "鎖定旋轉"
+          }
+        }
+      }
+    },
     "Look ahead" : {
       "localizations" : {
         "ar" : {
@@ -445548,6 +445988,226 @@
         }
       }
     },
+    "Orientation" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اتجاه العرض"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ориентация"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientació"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientace"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skærmretning"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ausrichtung"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Προσανατολισμός"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientación"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جهت نمایش"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suunta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientation"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כיוון תצוגה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ओरिएंटेशन"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orijentacija"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tájolás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientasi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientamento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "画面の向き"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "화면 방향"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientasi"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skjermretning"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schermstand"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientacja"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientação"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ориентация"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientácia"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usmerjenost"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orijentacija"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientering"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แนวหน้าจอ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ekran yönü"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Орієнтація"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hướng màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "屏幕方向"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "螢幕方向"
+          }
+        }
+      }
+    },
     "Original" : {
       "comment" : "Audio-language option meaning keep the title’s original spoken language.",
       "localizations" : {
@@ -469373,6 +470033,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "播放器選單與「正在播放」。"
+          }
+        }
+      }
+    },
+    "Player orientation" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اتجاه عرض المشغّل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ориентация на плейъра"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientació del reproductor"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientace přehrávače"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afspillerens skærmretning"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Player-Ausrichtung"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Προσανατολισμός προγράμματος αναπαραγωγής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientación del reproductor"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جهت نمایش پخش‌کننده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Soittimen suunta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientation du lecteur"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כיוון תצוגת הנגן"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्लेयर का ओरिएंटेशन"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orijentacija reproduktora"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lejátszó tájolása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientasi pemutar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientamento del lettore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プレーヤーの画面の向き"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "플레이어 화면 방향"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientasi pemain"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Spillerens skjermretning"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schermstand van de speler"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientacja odtwarzacza"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientação do reprodutor"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientarea playerului"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ориентация плеера"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientácia prehrávača"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usmerjenost predvajalnika"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orijentacija plejera"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Spelarens orientering"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แนวหน้าจอของเครื่องเล่น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oynatıcının ekran yönü"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Орієнтація програвача"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hướng màn hình của trình phát"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "播放器方向"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "播放器方向"
           }
         }
       }
@@ -727876,6 +728756,226 @@
         }
       }
     },
+    "To lock rotation on iPad, open Playback options in the player. Requires iPadOS 26 or later and a full-screen window." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لقفل التدوير على iPad، افتح «خيارات التشغيل» في المشغّل. يتطلب ذلك iPadOS 26 أو أحدث ونافذة بملء الشاشة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "За да заключите завъртането на iPad, отворете „Опции за възпроизвеждане“ в плейъра. Изискват се iPadOS 26 или по-нова версия и прозорец на цял екран."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Per bloquejar la rotació a l'iPad, obre «Opcions de reproducció» al reproductor. Cal tenir iPadOS 26 o posterior i una finestra a pantalla completa."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chcete-li na zařízení iPad uzamknout otáčení, otevřete v přehrávači „Možnosti přehrávání“. Funkce vyžaduje iPadOS 26 nebo novější a okno na celé obrazovce."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "For at låse rotation på iPad skal du åbne »Afspilningsmuligheder« i afspilleren. Kræver iPadOS 26 eller nyere og et vindue på fuld skærm."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Um die Drehung auf dem iPad zu sperren, öffne im Player die Wiedergabeoptionen. Erfordert iPadOS 26 oder neuer und ein Fenster im Vollbildmodus."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Για να κλειδώσετε την περιστροφή στο iPad, ανοίξτε τις «Επιλογές αναπαραγωγής» στο πρόγραμμα αναπαραγωγής. Απαιτούνται iPadOS 26 ή νεότερη έκδοση και παράθυρο πλήρους οθόνης."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Para bloquear la rotación en el iPad, abre «Opciones de reproducción» en el reproductor. Requiere iPadOS 26 o posterior y una ventana a pantalla completa."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "برای قفل کردن چرخش در iPad، «گزینه‌های پخش» را در پخش‌کننده باز کنید. به iPadOS 26 یا جدیدتر و یک پنجرهٔ تمام‌صفحه نیاز دارد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voit lukita kierron iPadissa avaamalla soittimen Toistovalinnat-valikon. Vaatii iPadOS 26:n tai uudemman ja koko näytön ikkunan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pour verrouiller la rotation sur iPad, ouvrez les Options de lecture dans le lecteur. Nécessite iPadOS 26 ou une version ultérieure et une fenêtre en plein écran."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כדי לנעול את הסיבוב ב-iPad, יש לפתוח את ״אפשרויות ניגון״ בנגן. נדרשים iPadOS 26 ואילך וחלון במסך מלא."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iPad पर रोटेशन लॉक करने के लिए, प्लेयर में “प्लेबैक विकल्प” खोलें। इसके लिए iPadOS 26 या बाद का संस्करण और फ़ुल-स्क्रीन विंडो ज़रूरी है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Za zaključavanje rotacije na uređaju iPad otvorite „Mogućnosti reprodukcije” u reproduktoru. Potrebni su iPadOS 26 ili novija verzija i prozor na cijelom zaslonu."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Az elforgatás zárolásához iPaden nyissa meg a lejátszóban a „Lejátszási lehetőségek” menüt. Ehhez iPadOS 26 vagy újabb rendszer és teljes képernyős ablak szükséges."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Untuk mengunci rotasi di iPad, buka Opsi pemutaran di pemutar. Memerlukan iPadOS 26 atau lebih baru dan jendela layar penuh."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Per bloccare la rotazione su iPad, apri Opzioni di riproduzione nel lettore. Richiede iPadOS 26 o versioni successive e una finestra a schermo intero."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iPadで画面の回転をロックするには、プレーヤーの「再生オプション」を開いてください。iPadOS 26以降と全画面表示のウインドウが必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iPad에서 회전을 잠그려면 플레이어의 ‘재생 옵션’을 여세요. iPadOS 26 이상과 전체 화면 창이 필요합니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Untuk mengunci putaran pada iPad, buka Pilihan main balik dalam pemain. Memerlukan iPadOS 26 atau lebih baharu dan tetingkap skrin penuh."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "For å låse rotasjonen på iPad, åpne Avspillingsvalg i spilleren. Krever iPadOS 26 eller nyere og et vindu i fullskjermmodus."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Open Afspeelopties in de speler om de rotatie op iPad te vergrendelen. Vereist iPadOS 26 of nieuwer en een schermvullend venster."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aby zablokować obrót na urządzeniu iPad, otwórz „Opcje odtwarzania” w odtwarzaczu. Wymaga to systemu iPadOS 26 lub nowszego oraz okna pełnoekranowego."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Para bloquear a rotação no iPad, abra Opções de reprodução no reprodutor. Requer iPadOS 26 ou posterior e uma janela em tela cheia."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pentru a bloca rotirea pe iPad, deschide Opțiuni de redare în player. Necesită iPadOS 26 sau o versiune ulterioară și o fereastră pe tot ecranul."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чтобы заблокировать поворот на iPad, откройте «Параметры воспроизведения» в плеере. Требуются iPadOS 26 или новее и полноэкранный режим окна."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ak chcete zamknúť otáčanie na zariadení iPad, otvorte v prehrávači Možnosti prehrávania. Vyžaduje sa iPadOS 26 alebo novší a okno na celej obrazovke."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Če želite zakleniti vrtenje v napravi iPad, v predvajalniku odprite Možnosti predvajanja. Potrebujete iPadOS 26 ali novejši in celozaslonsko okno."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Da biste zaključali rotaciju na uređaju iPad, otvorite Opcije reprodukcije u plejeru. Potrebni su iPadOS 26 ili noviji i prozor preko celog ekrana."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "För att låsa rotationen på iPad öppnar du Uppspelningsalternativ i spelaren. Kräver iPadOS 26 eller senare och ett fönster i helskärm."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "หากต้องการล็อกการหมุนบน iPad ให้เปิดตัวเลือกการเล่นในเครื่องเล่น ต้องใช้ iPadOS 26 ขึ้นไปและหน้าต่างแบบเต็มหน้าจอ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iPad’de döndürmeyi kilitlemek için oynatıcıdaki “Oynatma seçenekleri”ni açın. iPadOS 26 veya daha yeni bir sürüm ve tam ekran bir pencere gerekir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Щоб заблокувати обертання на iPad, відкрийте «Параметри відтворення» у програвачі. Потрібні iPadOS 26 або новіша версія та повноекранне вікно."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Để khóa xoay trên iPad, hãy mở Tùy chọn phát trong trình phát. Yêu cầu iPadOS 26 trở lên và cửa sổ toàn màn hình."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "要在 iPad 上锁定旋转，请在播放器中打开“播放选项”。需要 iPadOS 26 或更高版本，且窗口须处于全屏模式。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "若要在 iPad 上鎖定旋轉，請在播放器中開啟「播放選項」。需要 iPadOS 26 或以上版本，且視窗須處於全螢幕模式。"
+          }
+        }
+      }
+    },
     "Toasty" : {
       "comment" : "Display name for a warmer Circadian Mode color-tint level in settings.",
       "localizations" : {
@@ -741325,6 +742425,226 @@
         }
       }
     },
+    "Unable to change orientation. Use a full-screen window and try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر تغيير اتجاه العرض. استخدم نافذة بملء الشاشة وحاول مجددًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ориентацията не може да бъде променена. Използвайте прозорец на цял екран и опитайте отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No s'ha pogut canviar l'orientació. Fes servir una finestra a pantalla completa i torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientaci se nepodařilo změnit. Použijte okno na celé obrazovce a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skærmretningen kunne ikke ændres. Brug et vindue på fuld skærm, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die Ausrichtung konnte nicht geändert werden. Verwende ein Fenster im Vollbildmodus und versuche es erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν ήταν δυνατή η αλλαγή προσανατολισμού. Χρησιμοποιήστε παράθυρο πλήρους οθόνης και δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se ha podido cambiar la orientación. Usa una ventana a pantalla completa e inténtalo de nuevo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تغییر جهت نمایش ممکن نیست. از یک پنجرهٔ تمام‌صفحه استفاده کنید و دوباره تلاش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suunnan muuttaminen ei onnistunut. Käytä koko näytön ikkunaa ja yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible de changer l’orientation. Utilisez une fenêtre en plein écran et réessayez."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן לשנות את כיוון התצוגה. יש להשתמש בחלון במסך מלא ולנסות שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ओरिएंटेशन बदला नहीं जा सका। फ़ुल-स्क्रीन विंडो का उपयोग करें और फिर से कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije moguće promijeniti orijentaciju. Upotrijebite prozor na cijelom zaslonu i pokušajte ponovno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nem sikerült módosítani a tájolást. Használjon teljes képernyős ablakot, és próbálja újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak dapat mengubah orientasi. Gunakan jendela layar penuh dan coba lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossibile cambiare orientamento. Usa una finestra a schermo intero e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "画面の向きを変更できません。ウインドウを全画面表示にして、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "화면 방향을 변경할 수 없습니다. 창을 전체 화면으로 전환한 후 다시 시도하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak dapat menukar orientasi. Gunakan tetingkap skrin penuh dan cuba lagi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan ikke endre skjermretning. Bruk et vindu i fullskjermmodus og prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan de schermstand niet wijzigen. Gebruik een schermvullend venster en probeer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie można zmienić orientacji. Użyj okna pełnoekranowego i spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível alterar a orientação. Use uma janela em tela cheia e tente novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientarea nu poate fi schimbată. Folosește o fereastră pe tot ecranul și încearcă din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось изменить ориентацию. Разверните окно на весь экран и повторите попытку."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orientáciu sa nepodarilo zmeniť. Použite okno na celej obrazovke a skúste to znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usmerjenosti ni mogoče spremeniti. Uporabite celozaslonsko okno in poskusite znova."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije moguće promeniti orijentaciju. Koristite prozor preko celog ekrana i pokušajte ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det går inte att ändra orienteringen. Använd ett fönster i helskärm och försök igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่สามารถเปลี่ยนแนวหน้าจอได้ โปรดใช้หน้าต่างแบบเต็มหน้าจอแล้วลองอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ekran yönü değiştirilemiyor. Tam ekran bir pencere kullanıp yeniden deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не вдалося змінити орієнтацію. Розгорніть вікно на весь екран і спробуйте ще раз."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không thể thay đổi hướng màn hình. Hãy dùng cửa sổ toàn màn hình rồi thử lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法更改屏幕方向。请将窗口切换为全屏后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法變更螢幕方向。請將視窗切換為全螢幕後再試一次。"
+          }
+        }
+      }
+    },
     "Unable to link Plex" : {
       "localizations" : {
         "ar" : {
@@ -745734,6 +747054,226 @@
         }
       }
     },
+    "Unlock rotation" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إلغاء قفل التدوير"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отключване на завъртането"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desbloqueja la rotació"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odemknout otáčení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lås rotation op"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Drehsperre aufheben"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ξεκλείδωμα περιστροφής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desbloquear rotación"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "باز کردن قفل چرخش"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poista kierron lukitus"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Déverrouiller la rotation"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ביטול נעילת סיבוב"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "रोटेशन अनलॉक करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otključaj rotaciju"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elforgatás zárolásának feloldása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka kunci rotasi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sblocca rotazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "画面の回転ロックを解除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "회전 잠금 해제"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nyahkunci putaran"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lås opp rotasjon"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rotatie ontgrendelen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odblokuj obrót"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desbloquear rotação"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deblochează rotirea"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Разблокировать поворот"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odomknúť otáčanie"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odkleni vrtenje"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otključaj rotaciju"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lås upp rotation"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ปลดล็อกการหมุน"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Döndürme kilidini kaldır"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Розблокувати обертання"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mở khóa xoay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "解锁旋转"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "解除旋轉鎖定"
+          }
+        }
+      }
+    },
     "Unlock your profile" : {
       "localizations" : {
         "ar" : {
@@ -747497,45 +749037,9 @@
     },
     "Unwatched episodes: %lld" : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Unwatched episode: %lld"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Unwatched episodes: %lld"
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "variations" : {
             "plural" : {
-              "zero" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقات غير مشاهدة: %lld"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقة غير مشاهدة: %lld"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقتان غير مشاهدتين: %lld"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747548,7 +749052,25 @@
                   "value" : "حلقة غير مشاهدة: %lld"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقة غير مشاهدة: %lld"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقات غير مشاهدة: %lld"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقتان غير مشاهدتين: %lld"
+                }
+              },
+              "zero" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "حلقات غير مشاهدة: %lld"
@@ -747578,16 +749100,16 @@
         "ca" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episodi no vist"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodis no vistos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodi no vist"
                 }
               },
               "other" : {
@@ -747602,12 +749124,6 @@
         "cs" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nezhlédnutá epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747618,6 +749134,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nezhlédnuté epizody"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nezhlédnutá epizoda"
                 }
               },
               "other" : {
@@ -747683,19 +749205,37 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "variations" : {
             "plural" : {
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
-                  "value" : "%lld episodio no visto"
+                  "value" : "Unwatched episode: %lld"
                 }
               },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Unwatched episodes: %lld"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodios no vistos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodio no visto"
                 }
               },
               "other" : {
@@ -747746,16 +749286,16 @@
         "fr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld épisode non regardé"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld épisodes non regardés"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld épisode non regardé"
                 }
               },
               "other" : {
@@ -747776,13 +749316,13 @@
                   "value" : "פרק שטרם נצפה: %lld"
                 }
               },
-              "two" : {
+              "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "פרקים שטרם נצפו: %lld"
                 }
               },
-              "other" : {
+              "two" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "פרקים שטרם נצפו: %lld"
@@ -747812,16 +749352,16 @@
         "hr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld negledana epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld negledane epizode"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld negledana epizoda"
                 }
               },
               "other" : {
@@ -747866,16 +749406,16 @@
         "it" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episodio non visto"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodi non visti"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodio non visto"
                 }
               },
               "other" : {
@@ -747962,12 +749502,6 @@
         "pl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nieobejrzany odcinek"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747978,6 +749512,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nieobejrzanych odcinków"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nieobejrzany odcinek"
                 }
               },
               "other" : {
@@ -747992,16 +749532,16 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episódio não assistido"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episódios não assistidos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episódio não assistido"
                 }
               },
               "other" : {
@@ -748016,16 +749556,16 @@
         "ro" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episod nevizionat"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episoade nevizionate"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episod nevizionat"
                 }
               },
               "other" : {
@@ -748040,12 +749580,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld непросмотренный эпизод"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748056,6 +749590,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld непросмотренных эпизодов"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld непросмотренный эпизод"
                 }
               },
               "other" : {
@@ -748070,12 +749610,6 @@
         "sk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nepozretá epizóda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748086,6 +749620,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nepozretej epizódy"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nepozretá epizóda"
                 }
               },
               "other" : {
@@ -748100,28 +749640,28 @@
         "sl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld neogledana epizoda"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld neogledani epizodi"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld neogledane epizode"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld neogledana epizoda"
+                }
+              },
               "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld neogledanih epizod"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld neogledani epizodi"
                 }
               }
             }
@@ -748130,16 +749670,16 @@
         "sr-Latn" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld negledana epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld negledane epizode"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld negledana epizoda"
                 }
               },
               "other" : {
@@ -748202,12 +749742,6 @@
         "uk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld непереглянутий епізод"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748218,6 +749752,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld непереглянутих епізодів"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld непереглянутий епізод"
                 }
               },
               "other" : {
@@ -841720,6 +843260,690 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "裝置"
+          }
+        }
+      }
+    },
+    "playback.orientation.auto" : {
+      "comment" : "Playback orientation preference. Follow device rotation and the system rotation lock.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Auto"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تلقائي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Автоматично"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automàtic"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automaticky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Auto"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatisch"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αυτόματα"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automático"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "خودکار"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automaattinen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Auto"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אוטומטי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ऑटो"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatski"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatikus"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otomatis"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Auto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "자동"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatik"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatisk"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatisch"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatycznie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automático"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Авто"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automaticky"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Samodejno"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatski"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatiskt"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "อัตโนมัติ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otomatik"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Авто"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tự động"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自動"
+          }
+        }
+      }
+    },
+    "playback.orientation.landscape" : {
+      "comment" : "Playback orientation preference. Keep the full-screen video player sideways, in either landscape direction.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Landscape"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أفقي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Хоризонтална"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Horitzontal"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na šířku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Liggende"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Querformat"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Οριζόντιος"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Horizontal"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "افقی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vaakasuunta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Paysage"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לרוחב"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "लैंडस्केप"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vodoravno"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fekvő"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lanskap"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orizzontale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "横向き"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "가로"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Landskap"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Liggende"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Liggend"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pozioma"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Paisagem"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Peisaj"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Альбомная"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na šírku"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ležeče"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Horizontalno"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Liggande"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แนวนอน"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yatay"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Альбомна"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ngang"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "横屏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "橫向"
+          }
+        }
+      }
+    },
+    "playback.orientation.portrait" : {
+      "comment" : "Playback orientation preference. Keep the full-screen video player upright.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Portrait"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "رأسي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Вертикална"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vertical"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na výšku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stående"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hochformat"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Κατακόρυφος"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vertical"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "عمودی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pystysuunta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Portrait"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לאורך"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "पोर्ट्रेट"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Okomito"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Álló"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Potret"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verticale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "縦向き"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "세로"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Potret"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stående"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Staand"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pionowa"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Retrato"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Portret"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Портретная"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na výšku"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pokončno"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vertikalno"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stående"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แนวตั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dikey"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Портретна"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dọc"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "竖屏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "直向"
           }
         }
       }
