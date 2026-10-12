@@ -28,7 +28,7 @@ struct PlayerRotationFixture: View {
         model.settings.playback.settings.useCommunityMarkers = false
         model.settings.playback.settings.syncWatchAcrossServers = false
         let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("--landscape") { model.settings.playback.settings.orientation = .landscape }
+        if arguments.contains("--auto") { model.settings.playback.settings.orientation = .auto }
         if arguments.contains("--portrait") { model.settings.playback.settings.orientation = .portrait }
         _model = State(initialValue: model)
     }
@@ -52,8 +52,6 @@ struct PlayerRotationFixture: View {
             .overlay(alignment: .topTrailing) {
                 VStack {
                     Text("Loads \(probe.count)").accessibilityIdentifier("rotation-load-count")
-                    Text(orientation.isLocked ? "locked" : "auto")
-                        .accessibilityIdentifier("rotation-lock-state")
                     Text("\(probe.interfaceOrientation)").accessibilityIdentifier("rotation-interface-orientation")
                 }
                 .foregroundStyle(.white)

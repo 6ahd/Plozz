@@ -23,55 +23,47 @@ final class PlayerRotationInteractionTests: XCTestCase {
         super.tearDown()
     }
 
-    func testAutoRotatesExistingPlayerAndSessionLockResetsOnReopen() {
-        launch()
+    func testAutoRotatesExistingPlayerWithoutPlayerOrientationControls() {
+        launch("--auto")
         openPlayer()
+        assertNoPlayerOrientationControls()
         rotate(.landscapeLeft)
-        chooseRotationAction("Lock rotation")
-        assertLockState("locked")
-        XCUIDevice.shared.orientation = .portrait
-        assertStaysLandscape(true)
-        chooseRotationAction("Unlock rotation")
         rotate(.landscapeRight)
         rotate(.portrait)
         XCTAssertEqual(app.staticTexts["rotation-load-count"].label, "Loads 1")
-        chooseRotationAction("Lock rotation")
         closePlayer()
         XCTAssertEqual(app.staticTexts["saved-orientation"].label, "auto")
         openPlayer()
-        assertLockState("auto")
         rotate(.landscapeLeft)
         XCTAssertEqual(app.staticTexts["rotation-load-count"].label, "Loads 2")
     }
 
-    func testLandscapePreferenceAllowsBothSidesAndUnlockDoesNotPersist() {
-        launch("--landscape")
+    func testLandscapeDefaultAllowsBothSidesAndPersistsOnReopen() {
+        launch()
         openPlayer()
         if UIDevice.current.userInterfaceIdiom == .pad {
             assertOrientation(landscape: false)
             rotate(.landscapeLeft)
             rotate(.landscapeRight)
             rotate(.portrait)
-            assertLockState("auto")
+            assertNoPlayerOrientationControls()
             closePlayer()
             XCTAssertEqual(app.staticTexts["saved-orientation"].label, "landscape")
             return
         }
         assertOrientation(landscape: true)
+        assertNoPlayerOrientationControls()
         rotate(.landscapeLeft)
         rotate(.landscapeRight)
         XCUIDevice.shared.orientation = .portrait
         assertStaysLandscape(true)
-        chooseRotationAction("Unlock rotation")
-        rotate(.landscapeLeft)
-        rotate(.portrait)
         XCTAssertEqual(app.staticTexts["rotation-load-count"].label, "Loads 1")
         closePlayer()
         XCTAssertEqual(app.staticTexts["saved-orientation"].label, "landscape")
         assertOrientation(landscape: false, player: false)
         openPlayer()
         assertOrientation(landscape: true)
-        assertLockState("locked")
+        XCTAssertEqual(app.staticTexts["rotation-load-count"].label, "Loads 2")
     }
 
     func testPortraitPreferenceDoesNotLockBrowsingAfterDismissal() {
@@ -83,12 +75,13 @@ final class PlayerRotationInteractionTests: XCTestCase {
             assertOrientation(landscape: true)
             rotate(.portrait)
             rotate(.landscapeRight)
-            assertLockState("auto")
+            assertNoPlayerOrientationControls()
             closePlayer()
             XCTAssertEqual(app.staticTexts["saved-orientation"].label, "portrait")
             return
         }
         assertOrientation(landscape: false)
+        assertNoPlayerOrientationControls()
         XCUIDevice.shared.orientation = .landscapeRight
         assertStaysLandscape(false)
         closePlayer()
@@ -115,12 +108,15 @@ final class PlayerRotationInteractionTests: XCTestCase {
         }
     }
 
-    private func chooseRotationAction(_ title: String) {
+    private func assertNoPlayerOrientationControls() {
         revealControls()
         app.buttons["Playback options"].tap()
-        let action = app.buttons[title]
-        XCTAssertTrue(action.waitForExistence(timeout: 5), app.debugDescription)
-        action.tap()
+        XCTAssertTrue(app.buttons["Playback Speed"].waitForExistence(timeout: 5), app.debugDescription)
+        for title in ["Lock rotation", "Unlock rotation", "Orientation", "Player orientation"] {
+            XCTAssertFalse(app.buttons[title].exists, app.debugDescription)
+        }
+        app.otherElements["rotation-video-surface"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["Playback Speed"].waitForNonExistence(timeout: 5))
     }
 
     private func closePlayer() {
@@ -143,10 +139,6 @@ final class PlayerRotationInteractionTests: XCTestCase {
                 for: \.label, toEqual: expected, timeout: 10
             ))
         }
-    }
-
-    private func assertLockState(_ value: String) {
-        XCTAssertTrue(app.staticTexts["rotation-lock-state"].wait(for: \.label, toEqual: value, timeout: 5))
     }
 
     private func assertOrientation(landscape: Bool, player: Bool = true) {

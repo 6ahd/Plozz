@@ -10,7 +10,7 @@ import UIKit
 @Observable
 final class PlozziOSPlayerOrientation {
     private(set) var preference: PlaybackOrientation
-    private(set) var sessionOverride: UIInterfaceOrientationMask?
+    private(set) var hasGeometryRequestFailed = false
     private(set) var isAvailable = false
     let status = TransientStatusPresenter()
     @ObservationIgnored weak var host: PlozziOSOrientationHostingController?
@@ -21,10 +21,9 @@ final class PlozziOSPlayerOrientation {
     }
 
     var requestedMask: UIInterfaceOrientationMask {
-        sessionOverride ?? Self.mask(for: preference)
+        hasGeometryRequestFailed ? .all : Self.mask(for: preference)
     }
 
-    var isLocked: Bool { isAvailable && requestedMask != .all }
     var supportedMask: UIInterfaceOrientationMask { isAvailable ? requestedMask : .all }
 
     static func mask(for preference: PlaybackOrientation) -> UIInterfaceOrientationMask {
@@ -45,11 +44,11 @@ final class PlozziOSPlayerOrientation {
         }
     }
 
-    static func supportsLock(
-        idiom: UIUserInterfaceIdiom, supportsWindowLock: Bool,
+    static func supportsPreference(
+        idiom: UIUserInterfaceIdiom,
         windowSize: CGSize, screenSize: CGSize
     ) -> Bool {
-        guard idiom == .phone || (idiom == .pad && supportsWindowLock) else { return false }
+        guard idiom == .phone else { return false }
         guard windowSize.width > 0, windowSize.height > 0 else { return false }
         // Compare independently of rotation while UIKit transitions between coordinate spaces.
         return abs(min(windowSize.width, windowSize.height) - min(screenSize.width, screenSize.height)) < 1
@@ -68,24 +67,10 @@ final class PlozziOSPlayerOrientation {
         host?.applyOrientation()
     }
 
-    func toggleLock() {
-        guard isAvailable, let scene = host?.view.window?.windowScene,
-              let current = Self.mask(for: scene.effectiveGeometry.interfaceOrientation) else {
-            reportUnavailable()
-            return
-        }
-        sessionOverride = isLocked ? .all : current
-        host?.applyOrientation()
-    }
-
     func geometryRequestFailed(_ error: Error) {
         PlozzLog.playback.error("Player orientation request failed: \(error.localizedDescription)")
-        sessionOverride = .all
+        hasGeometryRequestFailed = true
         host?.invalidateOrientationPreferences()
-        reportUnavailable()
-    }
-
-    private func reportUnavailable() {
         status.present(
             icon: "rotate.right",
             text: "Unable to change orientation. Use a full-screen window and try again."
@@ -94,7 +79,6 @@ final class PlozziOSPlayerOrientation {
 }
 
 /// Owns UIKit's actual full-screen presentation, so orientation policy ends with the player.
-/// A child controller inside SwiftUI's fullScreenCover cannot own iPadOS's orientation-lock preference.
 final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
     let orientation: PlozziOSPlayerOrientation
     private var requestGeneration = 0
@@ -122,14 +106,6 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
         return orientation.requestedMask == .landscape ? .landscapeRight : .portrait
     }
 
-    @available(iOS 26.0, *)
-    override var prefersInterfaceOrientationLocked: Bool {
-        orientation.isLocked && traitCollection.userInterfaceIdiom == .pad
-    }
-
-    @available(iOS 26.0, *)
-    override var childForInterfaceOrientationLock: UIViewController? { nil }
-
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         hasAppeared = true
@@ -156,10 +132,8 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
 
     private func refreshAvailability() {
         guard let window = view.window, window.windowScene != nil else { return }
-        let supportsWindowLock: Bool
-        if #available(iOS 26.0, *) { supportsWindowLock = true } else { supportsWindowLock = false }
-        orientation.updateAvailability(PlozziOSPlayerOrientation.supportsLock(
-            idiom: traitCollection.userInterfaceIdiom, supportsWindowLock: supportsWindowLock,
+        orientation.updateAvailability(PlozziOSPlayerOrientation.supportsPreference(
+            idiom: traitCollection.userInterfaceIdiom,
             windowSize: window.bounds.size, screenSize: window.screen.bounds.size
         ))
     }
@@ -167,7 +141,6 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
     func invalidateOrientationPreferences() {
         setNeedsUpdateOfSupportedInterfaceOrientations()
         presentingViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-        if #available(iOS 26.0, *) { setNeedsUpdateOfPrefersInterfaceOrientationLocked() }
     }
 
     func applyOrientation() {

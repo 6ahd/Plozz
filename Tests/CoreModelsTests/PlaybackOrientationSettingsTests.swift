@@ -2,17 +2,25 @@ import XCTest
 @testable import CoreModels
 
 final class PlaybackOrientationSettingsTests: XCTestCase {
-    func testDefaultAndOlderPayloadsKeepAutomaticRotation() throws {
-        XCTAssertEqual(PlaybackSettings.default.orientation, .auto)
+    func testDefaultAndOlderPayloadsPreferLandscape() throws {
+        XCTAssertEqual(PlaybackSettings.default.orientation, .landscape)
+        XCTAssertEqual(PlaybackSettings().orientation, .landscape)
         for payload in [
             #"{}"#,
             #"{"orientation":null,"backgroundAudio":true}"#,
             #"{"orientation":"future-mode","backgroundAudio":true}"#
         ] {
             let settings = try JSONDecoder().decode(PlaybackSettings.self, from: Data(payload.utf8))
-            XCTAssertEqual(settings.orientation, .auto)
+            XCTAssertEqual(settings.orientation, .landscape)
             XCTAssertEqual(settings.backgroundAudio, payload != "{}")
         }
+    }
+
+    func testExplicitSavedAutomaticRotationIsPreserved() throws {
+        let settings = try JSONDecoder().decode(
+            PlaybackSettings.self, from: Data(#"{"orientation":"auto"}"#.utf8)
+        )
+        XCTAssertEqual(settings.orientation, .auto)
     }
 
     func testEveryOrientationRoundTrips() throws {

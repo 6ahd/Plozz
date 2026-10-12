@@ -96,7 +96,6 @@ struct PlozziOSPlayerView: View {
                         hasVersions: PlayerVersionSelection.versions(for: versionItem).count > 1,
                         versionsPresented: presentsVersions,
                         onShowVersions: { showVersions(onlySDR: false) },
-                        orientation: orientation,
                         onClose: { dismiss() }
                     )
                     .id(playerIdentity)

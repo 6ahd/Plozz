@@ -36,7 +36,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// iOS only. Keep video audio playing on lock/app background without PiP.
     /// Opt-in so existing profiles retain pause-on-lock behavior.
     public var backgroundAudio: Bool
-    /// iPhone full-screen player preference. iPad follows system rotation with a session-only lock.
+    /// iPhone full-screen player preference. iPad follows system rotation.
     public var orientation: PlaybackOrientation
     public var streaming: StreamingQualitySettings
 
@@ -155,7 +155,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         fadeOnDynamicRangeChange: Bool = true,
         fadeOnFrameRateChange: Bool = true,
         backgroundAudio: Bool = false,
-        orientation: PlaybackOrientation = .auto,
+        orientation: PlaybackOrientation = .landscape,
         streaming: StreamingQualitySettings = .default
     ) {
         self.skipIntros = skipIntros

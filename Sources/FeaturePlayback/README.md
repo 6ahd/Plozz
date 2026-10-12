@@ -53,26 +53,22 @@ and the diagnostics overlay.
 ## Mobile player orientation
 
 The iPhone full-screen on-demand player reads the active profile's
-`PlaybackSettings.orientation` (Auto by default, Landscape, or Portrait).
+`PlaybackSettings.orientation` (Landscape by default, Auto, or Portrait).
 The existing playback-settings store and profile snapshot transfer carry the
 preference; it has no effect on iPad, tvOS, browsing, inline trailers, or the
 Live TV guide. Landscape permits either sideways direction.
 
-`PlozziOSPlayerOrientation` owns a temporary override for one full-screen
-presentation. The options menu's Lock rotation holds the current orientation;
-Unlock rotation restores Auto for that presentation, including when the saved
-preference is Portrait or Landscape. Neither action writes profile settings.
-Episode/version handoffs retain the override; closing and reopening discards it.
+Orientation is configured only in Settings > Playback, never in the player's
+options menu. Explicitly saved Auto or Portrait choices remain unchanged when
+loading existing profiles; older settings without an orientation use Landscape.
+Episode/version handoffs retain the preference for the active presentation.
 
-The actual presented UIKit hosting controller owns supported orientations and
-iPadOS's native orientation-lock preference. Dismissal releases that policy
+The actual presented UIKit hosting controller owns supported orientations.
+Dismissal releases that policy
 without a global application lock or forcing the browsing screen to rotate.
-iPad follows system rotation and offers the session-only lock on iPadOS 26+ in
-a full-screen window. Its Playback settings explain this rather than offering
-Portrait/Landscape preferences that iPadOS refuses to force in multitasking mode,
-even when a window fills the display. Windowed/Split View playback remains
-automatic and omits the quick-lock action. UIKit also controls whether a
-full-screen iPad scene is eligible while other windows occlude it.
+iPad follows system rotation and offers no app orientation control, preserving
+multitasking. iPadOS refuses forced Portrait/Landscape changes in multitasking
+mode, even when a window fills the display.
 Rejected geometry requests log the failure, show a status message, and fall
 back to Auto for the current presentation without changing the saved preference.
 

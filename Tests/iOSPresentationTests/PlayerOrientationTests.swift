@@ -17,23 +17,23 @@ final class PlayerOrientationTests: XCTestCase {
         XCTAssertNil(PlozziOSPlayerOrientation.mask(for: UIInterfaceOrientation.unknown))
     }
 
-    func testWindowedAndOlderIPadsStayAutomatic() {
+    func testIPadsAndWindowedPresentationsStayAutomatic() {
         let screen = CGSize(width: 1024, height: 1366)
-        for supportsWindowLock in [false, true] {
-            XCTAssertFalse(PlozziOSPlayerOrientation.supportsLock(
-                idiom: .pad, supportsWindowLock: supportsWindowLock,
-                windowSize: CGSize(width: 500, height: 1366), screenSize: screen
-            ))
-        }
-        XCTAssertFalse(PlozziOSPlayerOrientation.supportsLock(
-            idiom: .pad, supportsWindowLock: false, windowSize: screen, screenSize: screen
+        XCTAssertFalse(PlozziOSPlayerOrientation.supportsPreference(
+            idiom: .pad, windowSize: screen, screenSize: screen
         ))
-        XCTAssertTrue(PlozziOSPlayerOrientation.supportsLock(
-            idiom: .pad, supportsWindowLock: true,
+        XCTAssertFalse(PlozziOSPlayerOrientation.supportsPreference(
+            idiom: .pad, windowSize: CGSize(width: 500, height: 1366), screenSize: screen
+        ))
+        XCTAssertFalse(PlozziOSPlayerOrientation.supportsPreference(
+            idiom: .phone, windowSize: CGSize(width: 500, height: 1366), screenSize: screen
+        ))
+        XCTAssertTrue(PlozziOSPlayerOrientation.supportsPreference(
+            idiom: .phone,
             windowSize: CGSize(width: 1366, height: 1024), screenSize: screen
         ))
-        XCTAssertTrue(PlozziOSPlayerOrientation.supportsLock(
-            idiom: .phone, supportsWindowLock: false, windowSize: screen, screenSize: screen
+        XCTAssertTrue(PlozziOSPlayerOrientation.supportsPreference(
+            idiom: .phone, windowSize: screen, screenSize: screen
         ))
     }
 
@@ -50,7 +50,7 @@ final class PlayerOrientationTests: XCTestCase {
         XCTAssertEqual(orientation.supportedMask, .all)
         XCTAssertEqual(orientation.preference, .landscape)
         XCTAssertNotNil(orientation.status.message)
-        XCTAssertNil(PlozziOSPlayerOrientation(preference: .landscape).sessionOverride)
+        XCTAssertFalse(PlozziOSPlayerOrientation(preference: .landscape).hasGeometryRequestFailed)
     }
 
     func testHostingControllerReleasesOrientationOwnershipOnTeardown() {

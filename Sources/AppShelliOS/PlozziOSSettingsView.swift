@@ -2430,20 +2430,15 @@ private struct PlozziOSPlaybackSettingsView: View {
                 settings: $model.settings.streaming, hasCompatibleServer: hasStreamingServer,
                 support: streamingSupport
             )
-            SettingsSectionGroup("Orientation") {
-                if UIDevice.current.userInterfaceIdiom == .phone {
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                SettingsSectionGroup("Orientation") {
                     Picker("Player orientation", selection: $model.settings.orientation) {
                         ForEach(PlaybackOrientation.allCases, id: \.self) {
                             Text($0.title).tag($0)
                         }
                     }
                     .accessibilityIdentifier("playback-orientation")
-                } else {
-                    Text("To lock rotation on iPad, open Playback options in the player. Requires iPadOS 26 or later and a full-screen window.")
-                        .accessibilityIdentifier("playback-orientation-ipad-help")
-                }
-            } footer: {
-                if UIDevice.current.userInterfaceIdiom == .phone {
+                } footer: {
                     Text("Applies only to the full-screen video player. Auto follows device rotation and the system rotation lock.")
                 }
             }

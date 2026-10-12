@@ -368723,6 +368723,7 @@
       }
     },
     "Lock rotation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -728757,6 +728758,7 @@
       }
     },
     "To lock rotation on iPad, open Playback options in the player. Requires iPadOS 26 or later and a full-screen window." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -747055,6 +747057,7 @@
       }
     },
     "Unlock rotation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -843268,12 +843271,6 @@
       "comment" : "Playback orientation preference. Follow device rotation and the system rotation lock.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Auto"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -843314,6 +843311,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Αυτόματα"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Auto"
           }
         },
         "es" : {
@@ -843496,12 +843499,6 @@
       "comment" : "Playback orientation preference. Keep the full-screen video player sideways, in either landscape direction.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Landscape"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -843542,6 +843539,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Οριζόντιος"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Landscape"
           }
         },
         "es" : {
@@ -843724,12 +843727,6 @@
       "comment" : "Playback orientation preference. Keep the full-screen video player upright.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Portrait"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -843770,6 +843767,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Κατακόρυφος"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Portrait"
           }
         },
         "es" : {
