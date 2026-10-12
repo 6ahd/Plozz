@@ -241,12 +241,14 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         resolve: (@Sendable (MediaItem) async -> URL?)? = nil
     ) -> TextlessBackdropStore {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("textless-hosted-\(UUID())")
-        addTeardownBlock {
+        let index = TextlessBackdropIndex(directory: directory)
+        addTeardownBlock { @MainActor in
+            try await index.flushForTesting()
             if FileManager.default.fileExists(atPath: directory.path) {
                 try FileManager.default.removeItem(at: directory)
             }
         }
-        return TextlessBackdropStore(store: TextlessBackdropIndex(directory: directory), resolveArtwork: resolve)
+        return TextlessBackdropStore(store: index, resolveArtwork: resolve)
     }
 
     private func makeArtwork(

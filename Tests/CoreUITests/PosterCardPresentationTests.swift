@@ -666,11 +666,11 @@ final class TextlessBackdropIndexTests: XCTestCase {
 
     /// A conclusive miss survives a relaunch, so the second launch suppresses the
     /// logo on its first frame instead of a scroll later.
-    func testAConclusiveMissIsKnownOnTheNextLaunchsFirstFrame() {
+    func testAConclusiveMissIsKnownOnTheNextLaunchsFirstFrame() async throws {
         let index = TextlessBackdropIndex(directory: directory)
         let first = TextlessBackdropStore(store: index)
         first.recordForTesting(.none, for: anime("s1"))
-        index.flushForTesting()
+        try await index.flushForTesting()
 
         let relaunched = TextlessBackdropStore(store: TextlessBackdropIndex(directory: directory))
         XCTAssertTrue(
@@ -681,12 +681,12 @@ final class TextlessBackdropIndexTests: XCTestCase {
 
     /// The URL survives too, so the card leads with clean art from frame one
     /// rather than painting the server's titled art and pinning it.
-    func testAResolvedBackdropIsKnownOnTheNextLaunchsFirstFrame() {
+    func testAResolvedBackdropIsKnownOnTheNextLaunchsFirstFrame() async throws {
         let url = URL(string: "https://tmdb.test/clean.jpg")!
         let index = TextlessBackdropIndex(directory: directory)
         let first = TextlessBackdropStore(store: index)
         first.recordForTesting(.available(url), for: anime("s2"))
-        index.flushForTesting()
+        try await index.flushForTesting()
 
         let relaunched = TextlessBackdropStore(store: TextlessBackdropIndex(directory: directory))
         XCTAssertEqual(relaunched.backdrop(for: anime("s2")), url)
@@ -708,6 +708,90 @@ final class TextlessBackdropIndexTests: XCTestCase {
         try? Data("not json".utf8).write(to: directory.appendingPathComponent("index.json"))
         let store = TextlessBackdropStore(store: TextlessBackdropIndex(directory: directory))
         XCTAssertFalse(store.suppressesLogo(for: anime("s4")))
+    }
+
+    func testBlockedDiskWriteKeepsMainActorResponsiveAndCoalescesNewerAnswers() async throws {
+        let writer = BackdropIndexWriterProbe(blockFirst: true)
+        defer { writer.release.signal() }
+        let index = TextlessBackdropIndex(directory: directory, writeData: writer.write)
+        index.save(.none, for: "first")
+        await fulfillment(of: [writer.started], timeout: 3)
+        let newest = URL(string: "https://fixture.invalid/newest.jpg")!
+        for value in 0..<100 {
+            index.save(.none, for: "show-\(value)")
+        }
+        index.save(.available(newest), for: "first")
+        XCTAssertEqual(index.load()["first"], .available(newest))
+        writer.release.signal()
+        try await index.flushForTesting()
+
+        XCTAssertFalse(writer.snapshot.wroteOnMainThread)
+        XCTAssertFalse(writer.snapshot.timedOut, "The main actor must run while the writer is blocked.")
+        XCTAssertEqual(writer.snapshot.writes, 2, "Keep one in-flight write and coalesce the pending changes.")
+        let relaunched = TextlessBackdropIndex(directory: directory)
+        XCTAssertEqual(relaunched.load()["first"], .available(newest))
+        XCTAssertEqual(relaunched.load().count, 101)
+    }
+
+    func testWriteFailureKeepsAnswersAndRetriesOnlyWhenRequested() async throws {
+        let writer = BackdropIndexWriterProbe(failFirst: true)
+        let index = TextlessBackdropIndex(directory: directory, writeData: writer.write)
+        index.save(.none, for: "saved")
+        do {
+            try await index.flushForTesting()
+            XCTFail("A failed write must be reported.")
+        } catch {
+            XCTAssertEqual((error as NSError).code, CocoaError.fileWriteNoPermission.rawValue)
+        }
+        XCTAssertEqual(writer.snapshot.writes, 1)
+        XCTAssertEqual(index.load()["saved"], TextlessBackdropStore.Outcome.none)
+        try await index.flushForTesting()
+        XCTAssertEqual(writer.snapshot.writes, 2)
+        XCTAssertEqual(TextlessBackdropIndex(directory: directory).load()["saved"], TextlessBackdropStore.Outcome.none)
+    }
+
+    func testAsynchronousPersistenceRetainsTheEntryBudget() async throws {
+        let index = TextlessBackdropIndex(directory: directory)
+        for value in 0..<500 { index.save(.none, for: "show-\(value)") }
+        try await index.flushForTesting()
+        XCTAssertEqual(index.load().count, 400)
+        XCTAssertEqual(TextlessBackdropIndex(directory: directory).load().count, 400)
+    }
+}
+
+private final class BackdropIndexWriterProbe: @unchecked Sendable {
+    struct State {
+        var writes = 0
+        var wroteOnMainThread = false
+        var timedOut = false
+    }
+    let started = XCTestExpectation(description: "Background index writer started")
+    let release = DispatchSemaphore(value: 0)
+    private let lock = NSLock()
+    private var state = State()
+    private let blockFirst: Bool
+    private let failFirst: Bool
+
+    init(blockFirst: Bool = false, failFirst: Bool = false) {
+        self.blockFirst = blockFirst
+        self.failFirst = failFirst
+    }
+
+    var snapshot: State { lock.withLock { state } }
+
+    func write(_ data: Data, to url: URL) throws {
+        let first = lock.withLock {
+            state.writes += 1
+            state.wroteOnMainThread = state.wroteOnMainThread || Thread.isMainThread
+            return state.writes == 1
+        }
+        if first && failFirst { throw CocoaError(.fileWriteNoPermission) }
+        if first && blockFirst {
+            started.fulfill()
+            let timedOut = release.wait(timeout: .now() + 5) == .timedOut
+            lock.withLock { state.timedOut = timedOut }
+        }
+        try data.write(to: url, options: .atomic)
     }
 }
 
@@ -746,12 +830,12 @@ final class TextlessAnswerReadinessTests: XCTestCase {
     /// The path that has to cost nothing: on every launch after a show's first
     /// appearance the answer is read back from disk synchronously, so the card is
     /// ready on its first frame and never shows a placeholder at all.
-    func testAPreviouslyAnsweredShowIsReadyOnTheFirstFrame() {
+    func testAPreviouslyAnsweredShowIsReadyOnTheFirstFrame() async throws {
         let directory = directory()
         let index = TextlessBackdropIndex(directory: directory)
         let first = TextlessBackdropStore(store: index)
         first.recordForTesting(.available(URL(string: "https://tmdb.test/clean.jpg")!), for: show())
-        index.flushForTesting()
+        try await index.flushForTesting()
 
         let relaunched = TextlessBackdropStore(store: TextlessBackdropIndex(directory: directory))
         XCTAssertTrue(

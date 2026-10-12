@@ -615,8 +615,11 @@ private struct ProductionHomeProvider: MediaProvider {
     private func movie(_ index: Int) -> MediaItem {
         let poster = reference(self.poster, index: index)
         let backdrop = reference(self.backdrop, index: index)
+        let namespace = ProcessInfo.processInfo.arguments
+            .first { $0.hasPrefix("--home-artwork-cache-namespace=") }
+            .map { String($0.dropFirst("--home-artwork-cache-namespace=".count)) + "-" } ?? ""
         var item = MediaItem(
-            id: "home-movie-\(index)", title: "Fixture movie \(index)",
+            id: "\(namespace)home-movie-\(index)", title: "Fixture movie \(index)",
             kind: ProcessInfo.processInfo.arguments.contains("--showcase-schedule-fixture") ? .series : .movie,
             posterURL: poster, backdropURL: backdrop
         )

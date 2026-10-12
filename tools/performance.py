@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Device-free Plozz performance lab: list, run, report, compare. No hardware installs."""
+"""Device-free Plozz performance lab: list, run, profile, report, compare. No hardware installs."""
 from __future__ import annotations
 
 import argparse
@@ -10,6 +10,7 @@ import json
 import math
 import os
 from pathlib import Path
+import plistlib
 import re
 import signal
 import statistics
@@ -226,6 +227,40 @@ def stop_owned(process):
             pass
 
 
+def stack_sample_summary(path, pid):
+    text = path.read_text()
+    if not re.search(rf"^Process:\s+FocusHost \[{pid}\]$", text, re.MULTILINE):
+        raise Failure("Stack sample belongs to a different process.")
+    if "Call graph:\n" not in text or "\nBinary Images:" not in text:
+        raise Failure("Stack sample did not finalize.")
+    thread = None
+    frames = []
+    background = []
+    for line in text.split("Call graph:\n", 1)[1].splitlines():
+        if line.startswith(("Total number in stack", "Sort by top of stack", "Binary Images:")):
+            break
+        header = re.match(r"^\s*\d+\s+(Thread_\S+.*)$", line)
+        if header:
+            thread = header[1]
+            continue
+        match = re.match(r"^[\s+!:|]*(\d+)\s+(.+)$", line)
+        if thread and match:
+            row = {"stackSamples": int(match[1]), "frame": match[2]}
+            if "Main Thread" in thread or "com.apple.main-thread" in thread:
+                frames.append(row)
+            elif "(in FocusHost)" in row["frame"]:
+                background.append(dict(row, thread=thread))
+    if not frames:
+        raise Failure("Stack sample has no main-thread frames.")
+    return {
+        "mainThreadFrames": sorted(frames, key=lambda row: row["stackSamples"], reverse=True)[:40],
+        "appFrames": sorted((row for row in frames if "(in FocusHost)" in row["frame"]),
+                            key=lambda row: row["stackSamples"], reverse=True)[:40],
+        "backgroundAppFrames": sorted(background, key=lambda row: row["stackSamples"], reverse=True)[:40],
+        "note": "Top 40 frames per list. Inclusive thread-stack samples include waiting; they are not CPU time or frame-latency measurements.",
+    }
+
+
 class Lane:
     def __init__(self, root, args, fds):
         self.root, self.args, self.fds = root, args, fds
@@ -345,6 +380,9 @@ class Lane:
             simulator, state = simulator_info(json.loads(devices), json.loads(runtimes), self.args.sim_id, self.args.platform)
             if state not in ("Booted", "Shutdown"):
                 raise Failure("Simulator must be stably Booted or Shutdown.")
+            profiling = getattr(self.args, "operation", "run") == "profile"
+            if profiling and state != "Shutdown":
+                raise Failure("Navigation profiling requires a shutdown owned simulator, not an existing app session.")
             self.booted = state == "Shutdown"
             self.command("simulator-start", ["xcrun", "simctl", "bootstatus", self.args.sim_id, "-b"], 300)
             self.command("generate-project", ["tools/generate-project.sh"])
@@ -372,11 +410,16 @@ class Lane:
                 environment[key] = value.strip()
             self.record.update(environment=environment, source={"head": head.strip(), "files": sources},
                                fixtures=fixtures, startedAt=time.time(), hostLoadStart=list(os.getloadavg()))
+            if profiling:
+                self.record["evidenceKind"] = "simulator-navigation-profile"
             write_json(self.output / "result.json", self.record)
-            for hosted in (False, True):
-                names = [name for name in self.args.names if (SCENARIOS[name]["suite"] == "ui") == hosted]
-                if names:
-                    self.record["reports"].update(self.run_group(names, package_args, hosted))
+            if profiling:
+                self.record["navigation"] = self.profile_navigation(package_args)
+            else:
+                for hosted in (False, True):
+                    names = [name for name in self.args.names if (SCENARIOS[name]["suite"] == "ui") == hosted]
+                    if names:
+                        self.record["reports"].update(self.run_group(names, package_args, hosted))
             if sources != self.fingerprint("after"):
                 raise Failure("Source changed during measurement; mixed-source evidence is invalid.")
             self.record["status"] = "passed"
@@ -393,7 +436,145 @@ class Lane:
             finally:
                 self.record.update(finishedAt=time.time(), hostLoadEnd=list(os.getloadavg()))
                 write_json(self.output / "result.json", self.record)
-        print(f"Measured {len(self.record['reports'])} scenarios. Compare result.json with a separate baseline.", flush=True)
+        if getattr(self.args, "operation", "run") == "profile":
+            print("Navigation profile captured; inspect result.json and retained trace.", flush=True)
+        else:
+            print(f"Measured {len(self.record['reports'])} scenarios. Compare result.json with a separate baseline.", flush=True)
+
+    def profile_navigation(self, package_args):
+        folder = self.output / "navigation"
+        folder.mkdir()
+        project = self.root / "Plozz.xcodeproj"
+        source = project / "xcshareddata/xcschemes/PlozzHomeFixtureTests.xcscheme"
+        name = "_PlozzNavigation_" + self.output.name
+        scheme = source.with_name(name + ".xcscheme")
+        tree = configure_scheme(ET.parse(source))
+        ET.SubElement(tree.getroot().find("TestAction/EnvironmentVariables"), "EnvironmentVariable",
+                      key="PLOZZ_PERFORMANCE_ATTACH", value="1", isEnabled="YES")
+        derived = self.root / ".build/performance-derived-data/tvOS/ui"
+        bundle_id = "com.thatcube.Plozz.FocusHost"
+        command = [
+            "xcodebuild", "-project", str(project), "-scheme", name, "-configuration", "Debug",
+            "-destination", f"platform=tvOS Simulator,id={self.args.sim_id}",
+            "-derivedDataPath", str(derived), *package_args, *FLAGS,
+            "-parallel-testing-enabled", "NO", "-enableCodeCoverage", "NO",
+            "-enableAddressSanitizer", "NO", "-enableThreadSanitizer", "NO",
+            "-enableUndefinedBehaviorSanitizer", "NO",
+            "-only-testing:PlozzHomeRemoteTests/ProductionHomeNavigationTests/testNavigateProductionHomeWithNativeCards",
+        ]
+        owned = []
+        handles = []
+        launched = False
+        def start(label, argv):
+            if time.monotonic() >= self.deadline:
+                raise Failure("Whole-run deadline reached before starting profiler.")
+            write_json(folder / f"{label}.command.json", argv)
+            handle = (folder / f"{label}.log").open("xb")
+            handles.append(handle)
+            process = subprocess.Popen(argv, cwd=self.root, env=self.env, stdout=handle, stderr=subprocess.STDOUT,
+                                       pass_fds=self.fds, start_new_session=True)
+            owned.append(process)
+            return process
+        try:
+            with scheme.open("xb") as stream:
+                tree.write(stream, encoding="utf-8", xml_declaration=True)
+            self.command("navigation-build", [*command, "build-for-testing",
+                         "-resultBundlePath", str(folder / "Build.xcresult")], self.args.timeout)
+            app = derived / "Build/Products/Debug-appletvsimulator/PlozzFocusHost.app"
+            info = plistlib.loads((app / "Info.plist").read_bytes())
+            if info.get("CFBundleIdentifier") != bundle_id or info.get("CFBundleExecutable") != "FocusHost":
+                raise Failure("Unexpected navigation fixture identity; refusing to install.")
+            self.command("fixture-install", ["xcrun", "simctl", "install", self.args.sim_id, str(app)], 120)
+            arguments = ["--production-home-fixture", "--home-performance-fixture", "--distinct-home-artwork",
+                         "--home-artwork-cache-namespace=" + self.output.name]
+            _, launch = self.command("fixture-launch", ["xcrun", "simctl", "launch", self.args.sim_id, bundle_id, *arguments])
+            launched = True
+            match = re.fullmatch(re.escape(bundle_id) + r": (\d+)\s*", launch)
+            if not match:
+                raise Failure("Simulator did not return a unique fixture PID.")
+            pid = int(match[1])
+            _, container = self.command("fixture-container", ["xcrun", "simctl", "get_app_container",
+                                       self.args.sim_id, bundle_id, "app"])
+            _, executable = self.command("fixture-process", ["ps", "-p", str(pid), "-o", "comm="])
+            if Path(executable.strip()).resolve() != (Path(container.strip()) / "FocusHost").resolve():
+                raise Failure("Profiler PID does not belong to the installed fixture.")
+            trace = folder / "Navigation.trace"
+            sample_path = folder / "thread-stacks.txt"
+            if self.args.template == "Process Sample":
+                recorder = start("recorder", ["sample", str(pid), "180", "1", "-file", str(sample_path)])
+                readiness_deadline = min(self.deadline, time.monotonic() + 20)
+                while recorder.poll() is None and "Sampling process" not in (folder / "recorder.log").read_text():
+                    if time.monotonic() >= readiness_deadline:
+                        raise Failure("Process sampler did not start; navigation input was not sent.")
+                    time.sleep(0.1)
+                if recorder.poll() is not None:
+                    raise Failure("Process sampler exited before navigation.")
+            else:
+                ready = "com.thatcube.Plozz.Performance." + self.output.name
+                listener = start("trace-ready", ["notifyutil", "-1", ready])
+                time.sleep(0.2)
+                recorder = start("recorder", [
+                    "xcrun", "xctrace", "record", "--device", self.args.sim_id,
+                    "--template", self.args.template, "--attach", str(pid), "--time-limit", "180s",
+                    "--notify-tracing-started", ready, "--output", str(trace),
+                ])
+                readiness_deadline = min(self.deadline, time.monotonic() + 60)
+                while listener.poll() is None and recorder.poll() is None and time.monotonic() < readiness_deadline:
+                    time.sleep(0.1)
+                if listener.returncode or recorder.poll() is not None or ready not in (folder / "trace-ready.log").read_text():
+                    raise Failure("Instruments was not ready; navigation input was not sent.")
+            self.command("navigation-test", [*command, "test-without-building", "-collect-test-diagnostics", "never",
+                         "-resultBundlePath", str(folder / "Test.xcresult")], 150)
+            if recorder.poll() is not None:
+                raise Failure("Recording ended before navigation completed.")
+            recorder.send_signal(signal.SIGINT)
+            recorder.wait(timeout=min(180, max(1, self.deadline - time.monotonic())))
+            if recorder.returncode:
+                raise Failure("Navigation recording did not finalize successfully.")
+            _, summary = self.command("navigation-summary", ["xcrun", "xcresulttool", "get", "test-results", "summary",
+                                      "--path", str(folder / "Test.xcresult")])
+            verify_summary(json.loads(summary), 1)
+            _, current = self.command("fixture-final-process", ["ps", "-p", str(pid), "-o", "comm="])
+            if current != executable:
+                raise Failure("Navigation did not preserve the profiled app process.")
+            if self.args.template == "Process Sample":
+                return {
+                    "pid": pid, "bundleID": bundle_id, "arguments": arguments, "template": self.args.template,
+                    "stacks": stack_sample_summary(sample_path, pid), "sample": str(sample_path),
+                    "note": "Sampled simulator navigation, not device frame pacing or a full multi-provider app session.",
+                }
+            toc = folder / "toc.xml"
+            self.command("trace-toc", ["xcrun", "xctrace", "export", "--input", str(trace), "--toc", "--output", str(toc)], 120)
+            root = ET.parse(toc).getroot()
+            schema = next((s for s in ("time-profile", "time-sample") if root.find(f'.//table[@schema="{s}"]') is not None), None)
+            if schema is None:
+                raise Failure("The trace has no exportable CPU samples.")
+            samples = folder / "cpu-samples.xml"
+            self.command("trace-samples", ["xcrun", "xctrace", "export", "--input", str(trace), "--xpath",
+                         f'/trace-toc/run[@number="1"]/data/table[@schema="{schema}"]', "--output", str(samples)], 180)
+            trace_tools = load_module(self.root / "tools/trace-device.py")
+            if trace_tools.failed_recording((folder / "recorder.log").read_text()):
+                raise Failure("Instruments reported incomplete recording; raw evidence retained.")
+            return {
+                "pid": pid, "bundleID": bundle_id, "arguments": arguments, "template": self.args.template,
+                "cpu": trace_tools.sample_summary(samples, pid), "trace": str(trace),
+                "note": "Instrumented simulator navigation, not device frame pacing or a full multi-provider app session.",
+            }
+        finally:
+            try:
+                for process in reversed(owned):
+                    if process.poll() is None:
+                        stop_owned(process)
+            finally:
+                for handle in handles:
+                    handle.close()
+                try:
+                    if launched:
+                        self.command("fixture-terminate", ["xcrun", "simctl", "terminate", self.args.sim_id, bundle_id],
+                                     30, cleanup=True)
+                finally:
+                    if scheme.exists():
+                        scheme.rename(folder / scheme.name)
 
 
 def read_run(path):
@@ -488,6 +669,11 @@ def main(argv=None):
     run.add_argument("--suite", choices=("core", "ui", "matrix", "all"))
     run.add_argument("--scenario", nargs="+")
     run.add_argument("--timeout", type=int, default=2400)
+    profile = commands.add_parser("profile", help="Profile native Home navigation on an owned tvOS simulator.")
+    profile.add_argument("--platform", choices=("tvOS",), required=True)
+    profile.add_argument("--sim-id", required=True)
+    profile.add_argument("--timeout", type=int, default=2400)
+    profile.add_argument("--template", choices=("Time Profiler", "SwiftUI", "Process Sample"), default="Process Sample")
     comparison = commands.add_parser("compare", help="Compare saved runs; never updates a baseline.")
     comparison.add_argument("baseline", type=Path)
     comparison.add_argument("candidate", type=Path)
@@ -497,7 +683,16 @@ def main(argv=None):
         print(json.dumps(SCENARIOS, indent=2))
         return 0
     if args.operation == "report":
-        print(json.dumps(summarize(read_run(args.run)), indent=2, allow_nan=False))
+        path = args.run / "result.json" if args.run.is_dir() else args.run
+        data = json.loads(path.read_text())
+        if data.get("evidenceKind") == "simulator-navigation-profile":
+            navigation = data.get("navigation", {})
+            if data.get("status") != "passed" or not (navigation.get("cpu", {}).get("count")
+                    or navigation.get("stacks", {}).get("mainThreadFrames")):
+                raise Failure("Navigation profile is incomplete.")
+            print(json.dumps({key: data[key] for key in ("environment", "navigation")}, indent=2, allow_nan=False))
+        else:
+            print(json.dumps(summarize(read_run(args.run)), indent=2, allow_nan=False))
         return 0
     if args.operation == "compare":
         result = compare(read_run(args.baseline), read_run(args.candidate), args.tolerance_percent)
@@ -508,7 +703,7 @@ def main(argv=None):
         for row in result["rows"]:
             print(f"{row['scenario']} {row['metric']}: {row['baselineMedian']:.3f} -> {row['candidateMedian']:.3f} [{row['verdict']}]")
         return {"within-budget": 0, "regression": 1, "inconclusive": 2}[result["verdict"]]
-    args.names = select(args.suite, args.scenario)
+    args.names = [] if args.operation == "profile" else select(args.suite, args.scenario)
     if not re.fullmatch(r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", args.sim_id):
         raise Failure("--sim-id must be an explicit owned simulator UUID.")
     if not 60 <= args.timeout <= 7200:

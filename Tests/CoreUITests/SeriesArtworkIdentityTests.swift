@@ -144,7 +144,7 @@ final class SeriesArtworkIdentityTests: XCTestCase {
         }
     }
 
-    func testLegacyBackdropMissCannotKeepSuppressingTheCorrectedLogo() {
+    func testLegacyBackdropMissCannotKeepSuppressingTheCorrectedLogo() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let index = TextlessBackdropIndex(directory: directory)
@@ -156,12 +156,14 @@ final class SeriesArtworkIdentityTests: XCTestCase {
         XCTAssertFalse(store.suppressesLogo(for: item))
         XCTAssertEqual(index.load()["series-1"], TextlessBackdropStore.Outcome.none,
                        "Unrelated cache entries are retained rather than cleared.")
+        try await index.flushForTesting()
     }
 
-    func testBackdropAnswersAreScopedToTheAccountAndCorrectedSeriesIdentity() {
+    func testBackdropAnswersAreScopedToTheAccountAndCorrectedSeriesIdentity() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let store = TextlessBackdropStore(store: TextlessBackdropIndex(directory: directory))
+        let index = TextlessBackdropIndex(directory: directory)
+        let store = TextlessBackdropStore(store: index)
         let first = episode(ids: ["Tmdb": "child-123", "SeriesTmdb": "show-456"])
         store.recordForTesting(.none, for: first)
         let sibling = episode("episode-2", ids: ["Tmdb": "child-999", "SeriesTmdb": "show-456"])
@@ -172,5 +174,6 @@ final class SeriesArtworkIdentityTests: XCTestCase {
         var otherAccount = first
         otherAccount.sourceAccountID = "different-server"
         XCTAssertFalse(store.hasAnswer(for: otherAccount))
+        try await index.flushForTesting()
     }
 }

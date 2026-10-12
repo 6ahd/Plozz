@@ -93,6 +93,56 @@ informational: allocator caches and framework lifetime make them unsuitable
 for a blanket byte threshold. Lifecycle scenarios additionally assert weak
 references actually release.
 
+## Native Home navigation attribution
+
+For focus/scroll lag rather than isolated work counts, run the production Home
+fixture with real `XCUIRemote` directional input:
+
+```sh
+python3 tools/performance.py profile --platform tvOS --sim-id "$PLOZZ_SIM_ID"
+python3 tools/performance.py report .build/performance/runs/RUN_ID
+```
+
+This route requires an **owned, initially shut-down tvOS simulator**. It builds
+the optimized fixture and UI driver, verifies the installed `FocusHost` process,
+starts recording, and only then sends navigation input. The driver attaches to
+that same app without relaunching it. Three traversals must return focus to the
+hero. The runner stops its recorder, terminates its fixture, restores its
+temporary scheme and shuts down the simulator even on failure.
+
+`Process Sample` is the default backend and uses macOS's installed `sample`
+tool. The report separates main-thread frames, app-owned main-thread frames and
+app-owned background frames. Counts are **inclusive stack observations**, which
+include blocked/waiting threads; do not add parent and child counts together or
+convert them into CPU milliseconds, hitch duration, FPS or input latency.
+The capture includes setup/settling and the driver's eight-second idle window,
+not only the directional-input intervals. Raw stacks and the XCTest result are
+retained for attribution.
+
+`--template 'Time Profiler'` and `--template SwiftUI` explicitly select installed
+Instruments templates. They require a tracing-started notification and exportable
+samples for the verified PID. On hosts where Instruments cannot attach to the
+simulator, the run fails **before input**, retaining the logs; there is no silent
+backend fallback. Choose Process Sample for a separate experiment instead.
+
+The fixture uses local artwork and one synthetic provider, 75 items per row,
+and a run-specific item namespace so the textless-artwork answer index cannot
+skip all writes because of a previous run. It does not delete caches. This makes
+the answer identities cold, **not every metadata/image cache**; artwork itself
+is prewarmed. It does not reproduce the complete account/session, sidebar,
+Live TV guide or concurrent cloud-sync workload. Extend the relevant fixture
+dimension when investigating those paths; the separate matrix is not proof of
+their navigation behavior.
+
+These runs use `evidenceKind: simulator-navigation-profile`, not statistical
+benchmark evidence. `compare` intentionally rejects them. Use stacks to identify
+an owner, add a deterministic regression for that mechanism, and retain a fresh
+candidate capture. A vanished stack on a warm cache alone is not an optimization.
+For example, the textless-artwork index's atomic writes were observed on the
+main thread; its regression blocks the disk writer while requiring the main
+actor to accept and coalesce newer answers. That tests executor separation
+without pretending a sample count measures frame smoothness.
+
 ## Workloads and configuration interactions
 
 | Suite | Production path and limits |

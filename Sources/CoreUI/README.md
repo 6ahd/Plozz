@@ -181,6 +181,12 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   lane. Neither focus callbacks nor touch scrolling await any preparation.
   Textless lookups coalesce per title; cancelling speculative work cannot cancel
   a visible consumer or turn an unfinished lookup into a cached miss.
+  `TextlessBackdropIndex` keeps synchronous first-frame reads, but JSON encoding
+  and atomic persistence run on a utility serial queue, never the main actor.
+  One in-flight snapshot and coalesced pending changes preserve newest-answer
+  ordering without a write backlog. Failed writes retain dirty state for a later
+  save and log a numeric error code; they do not spin on automatic retries.
+  The existing 400-entry budget and 14-day read expiry still apply.
   SMB selections retain local and online candidates in the shared
   catalog, including typed network-file references and their access gate.
   SwiftUI, native Browse cells, detached hosts, and prewarmers use the same

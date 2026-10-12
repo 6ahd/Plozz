@@ -9,7 +9,8 @@ storm) that this process actually solved.
 
 For proactive, agent-driven optimization without borrowing a physical device,
 start with the [simulator performance lab](performance-lab.md). It owns automated
-workloads, configuration matrices, baselines and evidence comparison. This
+workloads, configuration matrices, baselines, native Home navigation sampling
+(`tools/performance.py profile`) and evidence comparison. This
 playbook owns attribution and physical confirmation, not a requirement to deploy
 every experimental edit.
 

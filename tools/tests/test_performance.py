@@ -3,6 +3,7 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import plistlib
 import subprocess
 import tempfile
 import unittest
@@ -42,7 +43,45 @@ def summary(count=1):
                 skippedTests=0, expectedFailures=0, testFailures=[])
 
 
+def stack_sample(pid=42, main="Main Thread"):
+    return f"""Process: FocusHost [{pid}]
+Call graph:
+    20 Thread_1: {main} DispatchQueue_main
+    + 20 main (in FocusHost)
+    + ! 10 mach_msg (in libsystem_kernel.dylib)
+    20 Thread_2   DispatchQueue_340: com.plozz.textless-backdrop-index (serial)
+    + 7 TextlessBackdropIndex.persist (in FocusHost)
+    + ! 7 rename (in libsystem_kernel.dylib)
+    9 Thread_<multiple>   DispatchQueue_341: com.plozz.textless-backdrop-index (serial)
+    + 8 merged writer (in FocusHost)
+Total number in stack (recursive counted multiple, when >=5):
+    100 ignored summary (in FocusHost)
+Binary Images:
+    fixture
+"""
+
+
 class EvidenceTests(unittest.TestCase):
+    def test_stack_sample_separates_main_and_background_and_excludes_footer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "sample.txt"
+            for name in ("Main Thread", "com.apple.main-thread"):
+                path.write_text(stack_sample(main=name))
+                result = performance.stack_sample_summary(path, 42)
+                self.assertEqual(len(result["mainThreadFrames"]), 2)
+                self.assertEqual(result["appFrames"], [{"stackSamples": 20, "frame": "main (in FocusHost)"}])
+                self.assertEqual([row["stackSamples"] for row in result["backgroundAppFrames"]], [8, 7])
+                self.assertIn("include waiting", result["note"])
+
+    def test_stack_sample_rejects_wrong_process_truncation_and_missing_main_thread(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "sample.txt"
+            for text in (stack_sample(pid=99), stack_sample().split("Binary Images:")[0],
+                         stack_sample(main="background-worker")):
+                path.write_text(text)
+                with self.assertRaises(performance.Failure):
+                    performance.stack_sample_summary(path, 42)
+
     def test_selection_is_explicit_and_narrow_by_default(self):
         self.assertEqual(len(performance.select(None, None)), 3)
         self.assertEqual(performance.select("matrix", None), ["runtime-matrix"])
@@ -179,6 +218,87 @@ class EvidenceTests(unittest.TestCase):
 
 
 class RunnerFailureTests(unittest.TestCase):
+    def test_profile_refuses_preexisting_booted_simulator_without_stopping_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args = argparse.Namespace(platform="tvOS", sim_id="owned", timeout=120, names=[], operation="profile")
+            lane = performance.Lane(Path(directory), args, ())
+            with patch.object(lane, "command", return_value=(0, "{}")) as command, \
+                    patch.object(performance, "simulator_info", return_value=({}, "Booted")):
+                with self.assertRaisesRegex(performance.Failure, "shutdown owned simulator"):
+                    lane.execute()
+            labels = [call.args[0] for call in command.call_args_list]
+            self.assertNotIn("simulator-start", labels)
+            self.assertNotIn("simulator-shutdown", labels)
+            self.assertEqual(json.loads((lane.output / "result.json").read_text())["status"], "failed")
+
+    def test_profile_lifecycle_preserves_evidence_and_never_drives_without_recorder(self):
+        for failure in (None, "build", "identity", "readiness", "test", "early-exit",
+                        "finalize", "summary", "process", "sample"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                schemes = root / "Plozz.xcodeproj/xcshareddata/xcschemes"
+                schemes.mkdir(parents=True)
+                performance.package_scheme({"Fixture"}).write(schemes / "PlozzHomeFixtureTests.xcscheme")
+                app = root / ".build/performance-derived-data/tvOS/ui/Build/Products/Debug-appletvsimulator/PlozzFocusHost.app"
+                app.mkdir(parents=True)
+                bundle = "com.thatcube.Plozz.FocusHost"
+                (app / "Info.plist").write_bytes(plistlib.dumps({
+                    "CFBundleIdentifier": bundle, "CFBundleExecutable": "Wrong" if failure == "identity" else "FocusHost",
+                }))
+                args = argparse.Namespace(platform="tvOS", sim_id="owned", timeout=120, names=[],
+                                          operation="profile", template="Process Sample")
+                lane = performance.Lane(root, args, ())
+                labels = []
+                class Recorder:
+                    returncode = None
+                    pid = 99999
+                    def poll(self):
+                        if failure == "readiness" or (failure == "early-exit" and "navigation-test" in labels):
+                            self.returncode = 1
+                        return self.returncode
+                    def send_signal(self, _signal):
+                        (lane.output / "navigation/thread-stacks.txt").write_text(
+                            stack_sample(pid=99 if failure == "sample" else 42))
+                    def wait(self, timeout):
+                        self.returncode = 1 if failure == "finalize" else 0
+                        return self.returncode
+                recorder = Recorder()
+                def spawn(_argv, **kwargs):
+                    kwargs["stdout"].write(b"Sampling process 42\n")
+                    kwargs["stdout"].flush()
+                    return recorder
+                def command(label, argv, *_args, **_kwargs):
+                    labels.append(label)
+                    if label == "navigation-build" and failure == "build":
+                        raise performance.Failure("build failure")
+                    if label == "navigation-test":
+                        self.assertIsNone(recorder.returncode)
+                        if failure == "test":
+                            raise performance.Failure("driver failure")
+                    values = {
+                        "fixture-launch": bundle + ": 42\n", "fixture-container": str(app),
+                        "fixture-process": str(app / "FocusHost"),
+                        "fixture-final-process": "different" if failure == "process" else str(app / "FocusHost"),
+                        "navigation-summary": json.dumps(summary(0 if failure == "summary" else 1)),
+                    }
+                    return 0, values.get(label, "")
+                with patch.object(lane, "command", side_effect=command), \
+                        patch.object(performance.subprocess, "Popen", side_effect=spawn), \
+                        patch.object(performance, "stop_owned") as stop:
+                    if failure:
+                        with self.assertRaises(performance.Failure):
+                            lane.profile_navigation([])
+                    else:
+                        result = lane.profile_navigation([])
+                        self.assertEqual(result["pid"], 42)
+                        self.assertTrue(result["stacks"]["mainThreadFrames"])
+                        self.assertIn("--home-artwork-cache-namespace=" + lane.output.name, result["arguments"])
+                    self.assertEqual(stop.call_count, int(failure == "test"))
+                self.assertEqual("fixture-terminate" in labels, failure not in ("build", "identity"))
+                self.assertEqual("navigation-test" in labels, failure not in ("build", "identity", "readiness"))
+                self.assertEqual(len(list((lane.output / "navigation").glob("*.xcscheme"))), 1)
+                self.assertEqual(len(list(schemes.glob("*.xcscheme"))), 1)
+
     def test_source_identity_includes_vendor_and_untracked_code_but_not_docs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
