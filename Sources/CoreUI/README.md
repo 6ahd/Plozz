@@ -122,7 +122,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Entry-gate state remains observable for episode rows; ordinary Home rows
   retain native column-aligned entry and cover/return behavior.
 - **Grouped settings interactions** — `SettingsSectionGroup` uses explicit
-  menu pickers on iOS. A visual group occupies one native List cell; automatic
+  menu pickers on iOS. Custom value menus use `SettingsMenuLabel` to show
+  the selected value with up/down chevrons, matching editable pickers rather
+  than read-only `LabeledContent`. Navigation keeps its right-facing chevron.
+  A visual group occupies one native List cell; automatic
   pickers can promote their menu to that whole cell and intercept neighboring
   navigation links or controls. Keep picker activation local without replacing
   the shared group surface, separators, or tvOS control styles.

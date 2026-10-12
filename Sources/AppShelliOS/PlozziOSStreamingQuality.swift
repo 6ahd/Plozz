@@ -92,11 +92,7 @@ struct PlozziOSAdvancedStreamingSettings: View {
                         .disabled(!support.codecs.contains(codec))
                     }
                 } label: {
-                    LabeledContent {
-                        Text(settings.codec.title)
-                    } label: {
-                        Text("Transcoding codec")
-                    }
+                    SettingsMenuLabel("Transcoding codec", value: settings.codec.title)
                 }
                 .accessibilityLabel("Transcoding codec")
                 .accessibilityValue(Text(settings.codec.title))
@@ -145,11 +141,7 @@ struct StreamingQualityPicker: View {
             .pickerStyle(.inline)
             Button("Custom…") { editingQuality = selection }
         } label: {
-            LabeledContent {
-                Text(selection.title)
-            } label: {
-                Text(title)
-            }
+            SettingsMenuLabel(title, value: selection.title)
         }
         .accessibilityLabel(Text(title))
         .accessibilityValue(Text(selection.title))

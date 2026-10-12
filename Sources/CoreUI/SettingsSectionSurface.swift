@@ -1,6 +1,32 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
+#if os(iOS)
+public struct SettingsMenuLabel: View {
+    private let title: LocalizedStringResource
+    private let value: LocalizedStringResource
+
+    public init(_ title: LocalizedStringResource, value: LocalizedStringResource) {
+        self.title = title
+        self.value = value
+    }
+
+    public var body: some View {
+        LabeledContent {
+            HStack(spacing: 8) {
+                Text(value)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(.primary)
+        } label: {
+            Text(title)
+        }
+    }
+}
+#endif
+
 public struct SettingsSectionGroup<Content: View, Footer: View>: View {
     @Environment(\.themePalette) private var palette
     private let title: Text?

@@ -601,6 +601,30 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Choose a supported codec."].waitForNonExistence(timeout: 3))
     }
 
+    func testPlaybackValueMenusRemainEditableAtAccessibilitySize() {
+        launchPlayback("--large-text")
+        for title in ["Local network", "Remote Wi-Fi / Ethernet", "Cellular"] {
+            let row = button(title)
+            reveal(row, fullyVisible: true)
+            XCTAssertGreaterThanOrEqual(row.frame.height, 44)
+            capture("playback-editable-\(title)")
+            row.tap()
+            XCTAssertTrue(app.buttons["1080p · 8 Mbps"].waitForExistence(timeout: 3))
+            app.buttons["1080p · 8 Mbps"].tap()
+            XCTAssertEqual(row.value as? String, "1080p · 8 Mbps")
+        }
+        let advanced = app.buttons["streaming-advanced"]
+        reveal(advanced, fullyVisible: true)
+        advanced.tap()
+        let codec = app.buttons["streaming-codec"]
+        XCTAssertTrue(codec.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(codec.frame.height, 44)
+        codec.tap()
+        app.buttons["Prefer HEVC (H.265)"].tap()
+        XCTAssertEqual(codec.value as? String, "Prefer HEVC (H.265)")
+        capture("playback-editable-codec-large-text")
+    }
+
     func testPlaybackPrivacyDisclosureRemainsVisibleAtAccessibilitySize() throws {
         launchPlayback("--large-text")
         let copy = "Looks up missing markers on IntroDB and TheIntroDB using IMDb/TMDB IDs."
