@@ -438,6 +438,7 @@ public struct HomeAggregator: Sendable {
                                 request, accounts: accounts, policy: policy,
                                 continueWatchingLimit: continueWatchingLimit,
                                 latestLimit: latestLimit, perLibraryLimit: perLibraryLimit ?? 20,
+                                visibility: visibility,
                                 seriesIdentities: seriesIdentities,
                                 onContinueWatching: onContinueWatching
                             )
@@ -471,9 +472,7 @@ public struct HomeAggregator: Sendable {
                             }
                             if perLibraryLimit != nil {
                                 for library in visible where perLibrary[library.key] == nil {
-                                    let kinds = LibraryHomeRowKind.allCases.filter {
-                                        visibility.isLibraryRowEnabled(library.key, kind: $0)
-                                    }
+                                    let kinds = visibility.requestedRowKinds(for: library)
                                     guard !kinds.isEmpty else { continue }
                                     perLibrary[library.key] = LibraryContent(
                                         library: library, loadingRows: Set(kinds)
@@ -595,6 +594,7 @@ public struct HomeAggregator: Sendable {
         continueWatchingLimit: Int,
         latestLimit: Int,
         perLibraryLimit: Int,
+        visibility: HomeLibraryVisibility,
         seriesIdentities: [SeriesIdentities],
         onContinueWatching: @escaping @Sendable (String, [MediaItem]) async -> Void
     ) async -> Response {
@@ -611,8 +611,9 @@ public struct HomeAggregator: Sendable {
                 let items: [MediaItem]
                 switch feed {
                 case .continueWatching:
-                    items = try await provider.continueWatching(
-                        limit: continueWatchingLimit, inLibraries: libraryIDs
+                    items = try await provider.homeContinueWatching(
+                        limit: continueWatchingLimit, inLibraries: libraryIDs,
+                        separateNextUp: visibility.separatesNextUp
                     )
                     try Task.checkCancellation()
                     let playable = items.filter {
@@ -640,6 +641,14 @@ public struct HomeAggregator: Sendable {
             return .library(library.key, kind, await fetch(kind.rawValue, from: resolved) {
                 let sections: [LibrarySection]
                 switch kind {
+                case .nextUp:
+                    let items = try await resolved.provider.homeNextUp(
+                        libraryID: library.library.id, limit: perLibraryLimit
+                    )
+                    sections = items.isEmpty ? [] : [
+                        LibrarySection(id: "nextUp", title: "Next Up", localizedTitle: "Next Up",
+                                       style: .landscape, items: items, isHomeDefault: true)
+                    ]
                 case .recentlyAdded:
                     let page = try await resolved.provider.items(
                         in: library.library.id, kind: library.library.kind,
@@ -650,14 +659,28 @@ public struct HomeAggregator: Sendable {
                     )
                     sections = page.items.isEmpty ? [] : [LibrarySection(
                         id: "recentlyAdded", title: "Recently Added in \(library.library.title)",
+                        localizedTitle: "Recently Added in \(library.library.title)",
                         style: .poster, items: page.items
                     )]
                 case .hubs:
-                    sections = try await resolved.provider.libraryHubs(
-                        libraryID: library.library.id, kind: library.library.kind, limit: perLibraryLimit
-                    )
+                    if let customization = visibility.rowCustomization {
+                        sections = try await resolved.provider.homeHubs(
+                            libraryID: library.library.id, kind: library.library.kind, limit: perLibraryLimit,
+                            includeUnpromoted: customization.defaults == .legacy || customization.shown.contains {
+                                $0.libraryKey == library.key && $0.libraryKind == .hubs
+                            }
+                        )
+                    } else {
+                        sections = try await resolved.provider.libraryHubs(
+                            libraryID: library.library.id, kind: library.library.kind, limit: perLibraryLimit
+                        )
+                    }
                 }
-                return sections.filter { !$0.items.isEmpty }.map { section in
+                return sections.filter {
+                    !$0.items.isEmpty && visibility.isHomeRowVisible(
+                        HomeRowChoice(section: $0, library: library)
+                    )
+                }.map { section in
                     var section = section
                     section.items = section.items.map {
                         $0.taggingSource(library.accountID).taggingLibrary(library.library.id)

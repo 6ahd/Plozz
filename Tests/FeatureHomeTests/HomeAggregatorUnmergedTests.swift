@@ -1,5 +1,6 @@
 import XCTest
 import CoreModels
+import Synchronization
 @testable import FeatureHome
 
 /// Verifies the unmerged Home aggregation: global Continue Watching / Watchlist
@@ -106,6 +107,39 @@ final class HomeAggregatorUnmergedTests: XCTestCase {
         let content = await HomeAggregator().unmergedContent(from: accounts, visibility: visibility)
 
         XCTAssertTrue(content.librarySections.isEmpty, "A disabled library contributes no block")
+    }
+
+    func testProviderDefaultsDoNotRequestMediaBrowserRecommendations() async {
+        let stub = UnmergedStub(
+            libraries: [lib("L1", "Movies", .movie)],
+            itemsByContainer: ["L1": [item("latest")]],
+            hubsByLibrary: ["L1": [LibrarySection(id: "optional", title: "Optional", items: [item("suggestion")])]]
+        )
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("acct", provider: stub)], visibility: .default
+        )
+        XCTAssertEqual(content.librarySections.first?.sections.map(\.id), ["recentlyAdded"])
+        XCTAssertFalse(stub.hubsRequested)
+    }
+
+    func testExplicitRecommendationRequestsOnlyTheSelectedRowsOnHome() async {
+        let stub = UnmergedStub(
+            libraries: [lib("L1", "Movies", .movie)],
+            hubsByLibrary: ["L1": [
+                LibrarySection(id: "one", title: "One", items: [item("first")]),
+                LibrarySection(id: "two", title: "Two", items: [item("second")])
+            ]]
+        )
+        let visibility = HomeLibraryVisibility(rowCustomization: .init(
+            hidden: [.library("acct:L1", kind: .recentlyAdded)],
+            shown: [.library(key: "acct:L1", section: "two")]
+        ))
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("acct", provider: stub)], visibility: visibility
+        )
+        XCTAssertEqual(content.librarySections.first?.sections.map(\.id), ["two"])
+        XCTAssertFalse(stub.itemsRequested)
+        XCTAssertTrue(stub.hubsRequested)
     }
 
     func testGlobalRecentlyAddedSurvivesInUnmergedMode() async {
@@ -224,6 +258,8 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
     /// Whether `items(in:)` (Recently Added) was requested — lets a test prove a
     /// non-opted-in row is never fetched.
     private(set) var itemsRequested = false
+    private let hubCalls = Mutex(0)
+    var hubsRequested: Bool { hubCalls.withLock { $0 > 0 } }
 
     init(
         libraries: [MediaLibrary] = [],
@@ -259,7 +295,8 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
         return MediaPage(items: items, startIndex: 0, totalCount: items.count)
     }
     func libraryHubs(libraryID: String, kind: MediaItemKind, limit: Int) async throws -> [LibrarySection] {
-        hubsByLibrary[libraryID] ?? []
+        hubCalls.withLock { $0 += 1 }
+        return hubsByLibrary[libraryID] ?? []
     }
     func search(query: String, limit: Int) async throws -> [MediaItem] { [] }
     func playbackInfo(for itemID: String) async throws -> PlaybackRequest { throw AppError.notFound }

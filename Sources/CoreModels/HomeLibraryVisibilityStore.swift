@@ -29,7 +29,9 @@ public final class HomeLibraryVisibilityStore: HomeLibraryVisibilityStoring, @un
     }
 
     public func save(_ visibility: HomeLibraryVisibility) {
-        if let data = try? JSONEncoder().encode(visibility) {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        if let data = try? encoder.encode(visibility) {
             defaults.set(data, forKey: key)
         }
     }
@@ -48,6 +50,18 @@ public final class HomeLibraryVisibilityModel {
     public init(store: HomeLibraryVisibilityStoring = HomeLibraryVisibilityStore()) {
         self.store = store
         self.visibility = store.load()
+    }
+
+    public func applyRows(
+        _ sections: OrderedVisibilityList.Sections<HomeRowID>, choices: [HomeRowChoice]
+    ) {
+        visibility.applyRows(sections, choices: choices)
+        store.save(visibility)
+    }
+
+    public func useRowDefaults(_ defaults: HomeRowCustomization.Defaults) {
+        visibility.rowCustomization = HomeRowCustomization(defaults: defaults)
+        store.save(visibility)
     }
 
     // MARK: - Merge

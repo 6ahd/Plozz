@@ -120886,6 +120886,226 @@
         }
       }
     },
+    "Arrange rows from any library together. Move a row below Hidden to turn it off." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "رتّب صفوف المكتبات المختلفة في قائمة واحدة. انقل الصف إلى أسفل «مخفية» لتعطيله."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подредете в един списък редове от различни библиотеки. Преместете ред под „Скрити“, за да го изключите."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Organitza en una mateixa llista les files de qualsevol biblioteca. Mou una fila sota «Ocultes» per desactivar-la."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uspořádejte společně řádky z libovolných knihoven. Přesunutím pod „Skryté“ řádek vypnete."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Arranger rækker fra forskellige biblioteker i én liste. Flyt en række ned under Skjulte for at slå den fra."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ordne Reihen aus beliebigen Mediatheken in einer Liste an. Verschiebe eine Reihe unter „Ausgeblendet“, um sie zu deaktivieren."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Τακτοποιήστε σειρές από διαφορετικές βιβλιοθήκες στην ίδια λίστα. Για να απενεργοποιήσετε μια σειρά, μετακινήστε την κάτω από την επικεφαλίδα «Κρυφές»."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Organiza en una misma lista las filas de cualquier biblioteca. Mueve una fila debajo de «Ocultas» para desactivarla."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سطرهای کتابخانه‌های مختلف را در یک فهرست مرتب کنید. برای غیرفعال کردن یک سطر، آن را به زیر «پنهان» ببرید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Järjestä eri kirjastojen rivit samassa luettelossa. Poista rivi käytöstä siirtämällä se Piilotetut-otsikon alle."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Organisez les rangées de différentes bibliothèques dans une même liste. Déplacez une rangée sous « Masquées » pour la désactiver."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אפשר לסדר שורות מספריות שונות ברשימה אחת. כדי להשבית שורה, יש להעביר אותה מתחת לכותרת ״מוסתרות״."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "अलग-अलग लाइब्रेरी की रो को एक ही सूची में व्यवस्थित करें। किसी रो को बंद करने के लिए उसे “छिपी हुई” के नीचे ले जाएँ।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rasporedite redove iz različitih biblioteka na jednom popisu. Premjestite red ispod odjeljka Skriveni da biste ga isključili."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rendezd közös listába bármelyik könyvtár sorait. Egy sor kikapcsolásához helyezd azt a Rejtett cím alá."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Atur baris dari berbagai pustaka dalam satu daftar. Pindahkan baris ke bawah Tersembunyi untuk menonaktifkannya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Organizza in un unico elenco le righe delle varie librerie. Sposta una riga sotto Nascoste per disattivarla."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ライブラリをまたいで行を自由に並べ替えられます。行を「非表示」の下に移動すると表示されなくなります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "여러 라이브러리의 행을 한 목록에 배치하세요. 행을 비활성화하려면 '숨김' 아래로 이동하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Susun baris daripada pelbagai pustaka dalam satu senarai. Alihkan baris ke bawah Tersembunyi untuk menyahaktifkannya."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ordne rader fra ulike biblioteker i én liste. Flytt en rad under Skjulte for å slå den av."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orden rijen uit verschillende bibliotheken in één lijst. Verplaats een rij onder Verborgen om deze uit te schakelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ułóż sekcje z dowolnych bibliotek na jednej liście. Przenieś sekcję pod nagłówek Ukryte, aby ją wyłączyć."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Organize as linhas de diferentes bibliotecas em uma única lista. Mova uma linha para baixo do título Ocultas para desativá-la."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aranjează într-o singură listă rânduri din orice bibliotecă. Mută un rând sub „Ascunse” pentru a-l dezactiva."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Расположите строки из любых библиотек в одном списке. Чтобы отключить строку, переместите её под заголовок «Скрытые»."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usporiadajte riadky z ľubovoľných knižníc v jednom zozname. Riadok vypnete presunutím pod nadpis „Skryté“."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Razporedite vrstice iz poljubnih knjižnic na enem seznamu. Vrstico izklopite tako, da jo premaknete pod naslov »Skrite«."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rasporedite redove iz bilo koje biblioteke na jednoj listi. Premestite red ispod naslova „Skriveni“ da biste ga isključili."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ordna rader från valfria bibliotek i en och samma lista. Flytta en rad under rubriken Dolda för att stänga av den."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "จัดเรียงแถวจากคลังต่าง ๆ ไว้ด้วยกัน ย้ายแถวไปไว้ใต้ “ซ่อนอยู่” เพื่อปิดการแสดงแถวนั้น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Farklı kütüphanelerden gelen satırları aynı listede düzenleyin. Bir satırı devre dışı bırakmak için Gizli başlığının altına taşıyın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Упорядковуйте рядки з різних бібліотек в одному списку. Щоб вимкнути рядок, перемістіть його під заголовок «Приховані»."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sắp xếp các hàng từ các thư viện khác nhau trong cùng một danh sách. Di chuyển một hàng xuống dưới mục Đã ẩn để ngừng hiển thị hàng đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可将不同媒体库的内容栏混合排列。将内容栏移到“已隐藏”下方即可关闭显示。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可將不同媒體庫的橫列混合排列。將橫列移到「已隱藏」下方即可關閉顯示。"
+          }
+        }
+      }
+    },
     "Artists" : {
       "comment" : "Section header, browse button, and page title for artist lists in the music library.",
       "localizations" : {
@@ -185864,6 +186084,7 @@
       }
     },
     "Combined across all your libraries" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -186079,6 +186300,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "所有媒體庫合計"
+          }
+        }
+      }
+    },
+    "Combined rows" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صفوف مجمّعة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Обединени редове"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Files combinades"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sloučené řádky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Samlede rækker"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zusammengefasste Reihen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Συνδυασμένες σειρές"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Filas combinadas"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سطرهای ترکیبی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yhdistetyt rivit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rangées combinées"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שורות משולבות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "संयुक्त रो"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Objedinjeni redovi"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Összevont sorok"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Baris gabungan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Righe combinate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "統合した行"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "통합된 행"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Baris gabungan"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Samlede rader"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gecombineerde rijen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Połączone sekcje"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Linhas combinadas"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rânduri combinate"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Объединённые строки"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zlúčené riadky"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Združene vrstice"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Objedinjeni redovi"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sammanslagna rader"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แถวแบบรวม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Birleştirilmiş satırlar"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Об’єднані рядки"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Các hàng kết hợp"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "合并内容栏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "合併橫列"
           }
         }
       }
@@ -203056,6 +203497,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "無法載入媒體庫。"
+          }
+        }
+      }
+    },
+    "Couldn't load recommended rows from %@. Your saved choices are unchanged." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر تحميل الصفوف الموصى بها من مكتبة %@. لم تتغير اختياراتك المحفوظة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Препоръчаните редове от библиотеката %@ не можаха да се заредят. Запазеният ви избор остава непроменен."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No s’han pogut carregar les files recomanades de la biblioteca %@. Les opcions desades no han canviat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Doporučené řádky z knihovny %@ se nepodařilo načíst. Uložené volby zůstávají beze změny."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunne ikke indlæse anbefalede rækker fra biblioteket %@. Dine gemte valg er uændrede."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Empfohlene Reihen aus der Mediathek %@ konnten nicht geladen werden. Deine gespeicherte Auswahl bleibt unverändert."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν ήταν δυνατή η φόρτωση των προτεινόμενων σειρών από τη βιβλιοθήκη %@. Οι αποθηκευμένες επιλογές σας παραμένουν αμετάβλητες."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se han podido cargar las filas recomendadas de la biblioteca %@. Tus opciones guardadas no han cambiado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بارگیری سطرهای پیشنهادی از کتابخانهٔ %@ ممکن نشد. انتخاب‌های ذخیره‌شدهٔ شما تغییر نکرده‌اند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suositeltuja rivejä ei voitu ladata kirjastosta %@. Tallennetut valintasi eivät muuttuneet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible de charger les rangées recommandées de la bibliothèque %@. Vos choix enregistrés restent inchangés."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן היה לטעון את השורות המומלצות מהספרייה %@. הבחירות השמורות שלך לא השתנו."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ से सुझाई गई रो लोड नहीं हो सकीं। आपके सहेजे गए विकल्पों में कोई बदलाव नहीं हुआ है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preporučeni redovi iz biblioteke %@ nisu se mogli učitati. Vaši spremljeni odabiri nisu promijenjeni."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nem sikerült betölteni az ajánlott sorokat ebből a könyvtárból: %@. A mentett választásaid változatlanok."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak dapat memuat baris rekomendasi dari %@. Pilihan tersimpan Anda tidak berubah."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossibile caricare le righe consigliate dalla libreria %@. Le tue scelte salvate restano invariate."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@からおすすめの行を読み込めませんでした。保存済みの設定は変更されていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@에서 추천 행을 불러오지 못했습니다. 저장된 선택 사항은 변경되지 않았습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak dapat memuatkan baris yang disyorkan daripada %@. Pilihan yang anda simpan tidak berubah."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunne ikke laste anbefalte rader fra %@. De lagrede valgene dine er uendret."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aanbevolen rijen uit %@ konden niet worden geladen. Je opgeslagen keuzes zijn ongewijzigd."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie udało się wczytać polecanych sekcji z biblioteki %@. Zapisane ustawienia nie uległy zmianie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível carregar as linhas recomendadas da biblioteca %@. Suas escolhas salvas não foram alteradas."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nu s-au putut încărca rândurile recomandate din biblioteca %@. Opțiunile salvate nu s-au schimbat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось загрузить рекомендованные строки из библиотеки %@. Сохранённые настройки не изменились."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odporúčané riadky z knižnice %@ sa nepodarilo načítať. Uložené voľby zostávajú nezmenené."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Priporočenih vrstic iz knjižnice %@ ni bilo mogoče naložiti. Shranjene izbire ostajajo nespremenjene."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preporučeni redovi iz biblioteke %@ nisu mogli da se učitaju. Vaši sačuvani izbori nisu promenjeni."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunde inte läsa in rekommenderade rader från %@. Dina sparade val är oförändrade."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่สามารถโหลดแถวแนะนำจาก %@ ได้ ตัวเลือกที่บันทึกไว้ยังเหมือนเดิม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kütüphanesinden önerilen satırlar yüklenemedi. Kaydedilmiş seçimleriniz değişmedi."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не вдалося завантажити рекомендовані рядки з бібліотеки %@. Збережені налаштування не змінилися."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không thể tải các hàng đề xuất từ %@. Các lựa chọn đã lưu của bạn không thay đổi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法加载媒体库“%@”的推荐内容栏。已保存的选择保持不变。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法載入媒體庫「%@」的推薦橫列。已儲存的選擇保持不變。"
           }
         }
       }
@@ -260943,6 +261604,7 @@
       }
     },
     "Enable a library on Your Libraries to give it its own rows." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -310912,6 +311574,226 @@
         }
       }
     },
+    "Hidden" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مخفية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Скрити"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ocultes"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skryté"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skjulte"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ausgeblendet"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Κρυφές"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ocultas"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پنهان"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Piilotetut"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Masquées"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מוסתרות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "छिपी हुई"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skriveni"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rejtett"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tersembunyi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nascoste"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "非表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "숨김"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tersembunyi"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skjulte"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verborgen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ukryte"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ocultas"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ascunse"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Скрытые"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skryté"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skrite"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skriveni"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolda"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ซ่อนอยู่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gizli"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Приховані"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Đã ẩn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "已隐藏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "已隱藏"
+          }
+        }
+      }
+    },
     "Hidden channels" : {
       "localizations" : {
         "ar" : {
@@ -360059,6 +360941,226 @@
         }
       }
     },
+    "Loading available rows…" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جارٍ تحميل الصفوف المتاحة…"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Зареждане на наличните редове…"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "S’estan carregant les files disponibles…"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Načítání dostupných řádků…"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Indlæser tilgængelige rækker…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verfügbare Reihen werden geladen…"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Φόρτωση διαθέσιμων σειρών…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cargando filas disponibles…"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "در حال بارگیری سطرهای موجود…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ladataan käytettävissä olevia rivejä…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chargement des rangées disponibles…"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "טוען שורות זמינות…"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "उपलब्ध रो लोड हो रही हैं…"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Učitavanje dostupnih redova…"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elérhető sorok betöltése…"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memuat baris yang tersedia…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Caricamento delle righe disponibili…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "利用可能な行を読み込み中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "사용 가능한 행을 불러오는 중…"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memuatkan baris yang tersedia…"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Laster tilgjengelige rader…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beschikbare rijen laden…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wczytywanie dostępnych sekcji…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Carregando linhas disponíveis…"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se încarcă rândurile disponibile…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Загрузка доступных строк…"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Načítavajú sa dostupné riadky…"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nalaganje razpoložljivih vrstic…"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Učitavanje dostupnih redova…"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Läser in tillgängliga rader…"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "กำลังโหลดแถวที่ใช้ได้…"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kullanılabilir satırlar yükleniyor…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Завантаження доступних рядків…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Đang tải các hàng có sẵn…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "正在加载可用内容栏…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "正在載入可用的橫列…"
+          }
+        }
+      }
+    },
     "Loading channels" : {
       "localizations" : {
         "ar" : {
@@ -380281,6 +381383,7 @@
     },
     "Merge libraries" : {
       "comment" : "Toggle in iOS/iPadOS Home settings that combines libraries into shared Home rows instead of keeping separate library rows.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -400132,6 +401235,226 @@
         }
       }
     },
+    "Next Up" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الحلقات التالية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Следващи епизоди"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Episodis següents"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Následující epizody"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Næste afsnit"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nächste Folgen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Επόμενα επεισόδια"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Próximos episodios"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "قسمت‌های بعدی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seuraavat jaksot"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Épisodes suivants"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הפרקים הבאים"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "अगले एपिसोड"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sljedeće epizode"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Következő epizódok"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Episode Berikutnya"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prossimi episodi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "次のエピソード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "다음 에피소드"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Episod Seterusnya"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neste episoder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Volgende afleveringen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Następne odcinki"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Próximos episódios"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Episoadele următoare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Следующие серии"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ďalšie epizódy"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Naslednje epizode"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sledeće epizode"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nästa avsnitt"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ตอนถัดไป"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sıradaki bölümler"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Наступні серії"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Các tập tiếp theo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "下一集"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "下一集"
+          }
+        }
+      }
+    },
     "Nickname" : {
       "comment" : "Label for the custom display-name field on the tvOS add-network-share flow.",
       "extractionState" : "stale",
@@ -401674,6 +402997,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "沒有集數"
+          }
+        }
+      }
+    },
+    "No Home rows to show. Choose rows in Settings > Customize Home > Rows on Home." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لا توجد صفوف لعرضها في الصفحة الرئيسية. اختر الصفوف من الإعدادات > تخصيص الشاشة الرئيسية > الصفوف في الصفحة الرئيسية."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Няма редове за показване в Начало. Изберете редове от Настройки > Персонализиране на Начало > Редове в Начало."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hi ha files per mostrar a Inici. Tria-les a Configuració > Personalitza Inici > Files a Inici."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na kartě Domů nejsou žádné řádky k zobrazení. Vyberte je v Nastavení > Přizpůsobit obrazovku Domů > Řádky na kartě Domů."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingen rækker at vise på Hjem. Vælg rækker under Indstillinger > Tilpas Hjem > Rækker på Hjem."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Auf „Start“ werden keine Reihen angezeigt. Wähle Reihen unter Einstellungen > Start anpassen > Reihen auf „Start“."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν υπάρχουν σειρές για εμφάνιση στην Αρχική. Επιλέξτε σειρές από το μενού Ρυθμίσεις > Προσαρμογή αρχικής > Σειρές στην Αρχική."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hay filas que mostrar en Inicio. Elige filas en Ajustes > Personalizar Inicio > Filas en Inicio."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سطری برای نمایش در خانه وجود ندارد. سطرها را از تنظیمات > شخصی‌سازی خانه > سطرها در خانه انتخاب کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koti-näkymässä ei ole näytettäviä rivejä. Valitse rivit kohdasta Asetukset > Mukauta Koti-näkymää > Kodin rivit."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aucune rangée à afficher sur l’écran d’accueil. Choisissez des rangées dans Réglages > Personnaliser l’accueil > Rangées sur l’accueil."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אין שורות להצגה במסך הבית. ניתן לבחור שורות דרך הגדרות > התאמה אישית של מסך הבית > שורות במסך הבית."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "होम पर दिखाने के लिए कोई रो नहीं है। सेटिंग्स > होम कस्टमाइज़ करें > होम पर रो में रो चुनें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nema redova za prikaz na Početnoj. Odaberite redove u Postavke > Prilagodi Početnu > Redovi na Početnoj."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nincsenek megjeleníthető sorok a Kezdőlapon. Válassz sorokat itt: Beállítások > Kezdőlap testreszabása > Sorok a Kezdőlapon."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak ada baris untuk ditampilkan di Beranda. Pilih baris di Pengaturan > Sesuaikan Beranda > Baris di Beranda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nessuna riga da mostrare in Home. Scegli le righe in Impostazioni > Personalizza Home > Righe in Home."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ホームに表示する行がありません。「設定」>「ホームのカスタマイズ」>「ホームの行」で行を選んでください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "홈에 표시할 행이 없습니다. 설정 > 홈화면 사용자 지정 > 홈의 행에서 행을 선택하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tiada baris untuk dipaparkan pada Laman Utama. Pilih baris dalam Tetapan > Sesuaikan Laman Utama > Baris pada Laman Utama."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingen rader å vise på Hjem. Velg rader under Innstillinger > Tilpass Hjem > Rader på Hjem."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Geen rijen om te tonen op Start. Kies rijen via Instellingen > Start aanpassen > Rijen op Start."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brak sekcji do wyświetlenia na stronie głównej. Wybierz sekcje w menu Ustawienia > Dostosuj stronę główną > Sekcje na stronie głównej."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não há linhas para mostrar na tela inicial. Escolha linhas em Ajustes > Personalizar Início > Linhas na tela inicial."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nu există rânduri de afișat pe ecranul Acasă. Alege rânduri din Setări > Personalizează Acasă > Rânduri pe Acasă."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "На главном экране нет строк для отображения. Выберите строки в разделе Настройки > Настроить главную > Строки на главной."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na obrazovke Domov nie sú žiadne riadky na zobrazenie. Vyberte ich v ponuke Nastavenia > Prispôsobiť obrazovku Domov > Riadky na obrazovke Domov."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na zaslonu Domov ni vrstic za prikaz. Izberite jih v razdelku Nastavitve > Prilagodi Domov > Vrstice na zaslonu Domov."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na početnom ekranu nema redova za prikaz. Izaberite redove u meniju Podešavanja > Prilagodi početnu > Redovi na Početnoj."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inga rader att visa på sidan Hem. Välj rader under Inställningar > Anpassa Hem > Rader på Hem."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่มีแถวที่จะแสดงบนหน้าแรก เลือกแถวได้ที่ การตั้งค่า > ปรับแต่งหน้าแรก > แถวบนหน้าแรก"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ana Sayfa’da gösterilecek satır yok. Ayarlar > Ana Sayfa’yı özelleştir > Ana Sayfa’daki satırlar bölümünden satır seçin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Немає рядків для відображення на Головній. Виберіть рядки в розділі Налаштування > Налаштувати Головну > Рядки на Головній."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không có hàng nào để hiển thị trên Trang chủ. Chọn hàng trong Cài đặt > Tùy chỉnh Trang chủ > Các hàng trên Trang chủ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "首页没有可显示的内容栏。请前往“设置”>“自定义首页”>“首页内容栏”选择。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "首頁沒有可顯示的橫列。請前往「設定」>「自訂首頁」>「首頁的橫列」選擇。"
           }
         }
       }
@@ -410706,6 +412249,226 @@
         }
       }
     },
+    "No hidden rows" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لا توجد صفوف مخفية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Няма скрити редове"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hi ha files ocultes"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Žádné skryté řádky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingen skjulte rækker"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keine ausgeblendeten Reihen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν υπάρχουν κρυφές σειρές"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hay filas ocultas"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سطر پنهانی وجود ندارد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ei piilotettuja rivejä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aucune rangée masquée"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אין שורות מוסתרות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कोई छिपी हुई रो नहीं"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nema skrivenih redova"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nincsenek rejtett sorok"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak ada baris tersembunyi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nessuna riga nascosta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "非表示の行はありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "숨겨진 행 없음"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tiada baris tersembunyi"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingen skjulte rader"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Geen verborgen rijen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brak ukrytych sekcji"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nenhuma linha oculta"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Niciun rând ascuns"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Нет скрытых строк"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Žiadne skryté riadky"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ni skritih vrstic"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nema skrivenih redova"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inga dolda rader"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่มีแถวที่ซ่อนอยู่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gizli satır yok"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Немає прихованих рядків"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không có hàng bị ẩn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "没有隐藏的内容栏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "沒有隱藏的橫列"
+          }
+        }
+      }
+    },
     "No labels" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -411148,6 +412911,7 @@
       }
     },
     "No libraries shown on Home" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -492530,6 +494294,226 @@
         }
       }
     },
+    "Previous layout" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "التخطيط السابق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Предишна подредба"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Disposició anterior"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Předchozí rozložení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidligere layout"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vorheriges Layout"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Προηγούμενη διάταξη"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diseño anterior"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "چیدمان قبلی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Edellinen asettelu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Disposition précédente"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הפריסה הקודמת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "पिछला लेआउट"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prethodni raspored"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Korábbi elrendezés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tata letak sebelumnya"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Disposizione precedente"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "以前のレイアウト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이전 레이아웃"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Susun atur sebelumnya"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Forrige oppsett"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vorige indeling"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poprzedni układ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Layout anterior"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aranjamentul anterior"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Прежнее расположение"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Predchádzajúce rozloženie"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prejšnja postavitev"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prethodni raspored"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidigare layout"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เค้าโครงก่อนหน้า"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Önceki düzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Попереднє розташування"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bố cục trước đó"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "之前的布局"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "先前的佈局"
+          }
+        }
+      }
+    },
     "Primary" : {
       "comment" : "Badge label on a server's account row indicating it is the primary (default) account for that server.",
       "localizations" : {
@@ -508403,6 +510387,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "最近新增"
+          }
+        }
+      }
+    },
+    "Recently Added in %@" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "المضاف حديثًا في %@"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Наскоро добавени в %@"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afegits recentment a %@"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nedávno přidané v knihovně %@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nyligt tilføjet i %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neu hinzugefügt in der Mediathek %@"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Πρόσφατες προσθήκες στη βιβλιοθήκη %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Añadidos recientemente a la biblioteca %@"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "موارد تازه‌افزوده در کتابخانهٔ %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirjastoon %@ äskettäin lisätyt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ajouts récents dans %@"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "נוספו לאחרונה לספרייה %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ में हाल ही में जोड़े गए"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nedavno dodano u biblioteci %@"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nemrég hozzáadott tartalmak – %@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Baru Ditambahkan di %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aggiunti di recente in %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@に最近追加された作品"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@에 최근 추가된 콘텐츠"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ditambah Baru-baru Ini dalam %@"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nylig lagt til i %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Onlangs toegevoegd aan %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ostatnio dodane w bibliotece %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adicionados recentemente à biblioteca %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adăugate recent în %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Недавно добавленные в библиотеку %@"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nedávno pridané v knižnici %@"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nedavno dodano v knjižnici %@"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nedavno dodato u biblioteku %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nyligen tillagda i %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เพิ่มล่าสุดใน %@"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kütüphanesine son eklenenler"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Нещодавно додане в бібліотеці %@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mới thêm vào %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“%@”中最近添加的内容"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%@」中最近新增的內容"
           }
         }
       }
@@ -530982,6 +533186,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "用這部 Apple TV 的副本取代 iCloud 資料。"
+          }
+        }
+      }
+    },
+    "Replace your row arrangement?" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هل تريد استبدال ترتيب الصفوف؟"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Да се замени ли подредбата на редовете?"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vols substituir la disposició de les files?"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nahradit uspořádání řádků?"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Erstat dit rækkelayout?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die Anordnung deiner Reihen ersetzen?"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Να αντικατασταθεί η διάταξη των σειρών σας;"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "¿Reemplazar la organización de tus filas?"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "چیدمان سطرها جایگزین شود؟"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Korvataanko rivien järjestys?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Remplacer la disposition de vos rangées ?"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "להחליף את סידור השורות?"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "अपनी रो की व्यवस्था बदलें?"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zamijeniti raspored redova?"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lecseréled a sorok elrendezését?"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ganti susunan baris Anda?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sostituire la disposizione delle righe?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "行の配置を置き換えますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "행 배치를 바꾸시겠습니까?"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gantikan susunan baris anda?"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Erstatte radoppsettet ditt?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je rijindeling vervangen?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zastąpić układ sekcji?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Substituir a organização das linhas?"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Înlocuiești aranjamentul rândurilor?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Заменить расположение строк?"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nahradiť usporiadanie riadkov?"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Želite zamenjati razporeditev vrstic?"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zameniti raspored redova?"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vill du ersätta din radordning?"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แทนที่การจัดเรียงแถวของคุณหรือไม่?"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Satır düzeniniz yenisiyle değiştirilsin mi?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Замінити розташування рядків?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Thay thế cách sắp xếp hàng của bạn?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "替换内容栏排列方式？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "取代橫列的排列方式？"
           }
         }
       }
@@ -592275,6 +594699,446 @@
         }
       }
     },
+    "Server defaults" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إعدادات الخادم الافتراضية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Настройки по подразбиране за сървъра"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Valors predeterminats del servidor"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výchozí nastavení serveru"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Serverstandarder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Serverstandard"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Προεπιλογές διακομιστή"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Valores predeterminados del servidor"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پیش‌فرض‌های سرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palvelimen oletukset"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Valeurs par défaut du serveur"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ברירות המחדל של השרת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सर्वर डिफ़ॉल्ट"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zadane postavke poslužitelja"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szerver alapbeállításai"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pengaturan bawaan server"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impostazioni predefinite del server"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サーバー別の標準設定"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "서버 기본값"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tetapan lalai pelayan"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Standardoppsett for serveren"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Standaardindeling voor de server"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ustawienia domyślne serwera"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Padrões do servidor"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Setările implicite ale serverului"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Настройки сервера по умолчанию"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Predvolené nastavenia servera"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Privzete nastavitve strežnika"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podrazumevana podešavanja servera"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Serverns standardinställningar"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ค่าเริ่มต้นของเซิร์ฟเวอร์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sunucu varsayılanları"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Типові налаштування сервера"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mặc định của máy chủ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "服务器默认布局"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "伺服器預設佈局"
+          }
+        }
+      }
+    },
+    "Server defaults keep Plex's promoted rows and a simpler Latest and Next Up layout for Emby and Jellyfin. These are Plozz settings, not changes to your server." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تحتفظ إعدادات الخادم الافتراضية بالصفوف التي يبرزها Plex، وتستخدم تخطيطًا أبسط مع أحدث الإضافات و«الحلقات التالية» في Emby وJellyfin. هذه إعدادات في Plozz ولا تُجري أي تغييرات على خادمك."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Настройките по подразбиране за сървъра запазват редовете, които Plex откроява, а за Emby и Jellyfin използват по-проста подредба с наскоро добавени заглавия и „Следващи епизоди“. Това са настройки на Plozz и не променят сървъра ви."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Els valors predeterminats del servidor mantenen les files destacades de Plex i, per a Emby i Jellyfin, utilitzen una disposició més senzilla amb els últims afegits i «Episodis següents». Són opcions de Plozz i no modifiquen el servidor."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výchozí nastavení serveru zachovává řádky zvýrazněné serverem Plex a pro Emby a Jellyfin používá jednodušší rozložení s nově přidanými tituly a řádkem „Následující epizody“. Jde o nastavení aplikace Plozz, nikoli o změny na vašem serveru."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Serverstandarderne bevarer de rækker, som Plex fremhæver, og bruger et enklere layout med nyligt tilføjede titler og »Næste afsnit« for Emby og Jellyfin. Det er indstillinger i Plozz, ikke ændringer på din server."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Serverstandard behält die vom Plex-Server hervorgehobenen Reihen bei und verwendet für Emby und Jellyfin ein einfacheres Layout mit neu hinzugefügten Titeln und der Reihe „Nächste Folgen“. Dies sind Plozz-Einstellungen; dein Server wird nicht verändert."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Οι προεπιλογές διακομιστή διατηρούν τις προβεβλημένες σειρές του Plex και χρησιμοποιούν μια απλούστερη διάταξη με πρόσφατες προσθήκες και επόμενα επεισόδια για το Emby και το Jellyfin. Πρόκειται για ρυθμίσεις του Plozz, όχι για αλλαγές στον διακομιστή σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los valores predeterminados del servidor mantienen las filas destacadas de Plex y un diseño más sencillo con los últimos títulos añadidos y los próximos episodios para Emby y Jellyfin. Son ajustes de Plozz y no modifican tu servidor."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پیش‌فرض‌های سرور، سطرهای برجستهٔ Plex را حفظ می‌کنند و برای Emby و Jellyfin از چیدمانی ساده‌تر با عناوین تازه‌افزوده و قسمت‌های بعدی استفاده می‌کنند. این‌ها تنظیمات Plozz هستند و سرور شما را تغییر نمی‌دهند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palvelimen oletukset säilyttävät Plexin korostamat rivit ja käyttävät Embylle ja Jellyfinille yksinkertaisempaa asettelua, jossa näkyvät uusimmat lisäykset ja seuraavat jaksot. Nämä ovat Plozzin asetuksia eivätkä muuta palvelintasi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les valeurs par défaut du serveur conservent les rangées mises en avant par Plex et utilisent une disposition plus simple avec les ajouts récents et les épisodes suivants pour Emby et Jellyfin. Ces réglages concernent Plozz et ne modifient pas votre serveur."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ברירות המחדל של השרת שומרות על השורות המובלטות של Plex ומשתמשות בפריסה פשוטה יותר של תכנים שנוספו לאחרונה ושל הפרקים הבאים עבור Emby ו־Jellyfin. אלו הגדרות של Plozz והן אינן משנות את השרת שלך."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सर्वर डिफ़ॉल्ट Plex की प्रमुख रो बनाए रखते हैं और Emby तथा Jellyfin के लिए हाल ही में जोड़े गए टाइटल और अगले एपिसोड वाला सरल लेआउट इस्तेमाल करते हैं। ये Plozz की सेटिंग्स हैं; इनसे आपके सर्वर में कोई बदलाव नहीं होता।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zadane postavke poslužitelja zadržavaju istaknute redove u sustavu Plex, a za Emby i Jellyfin koriste jednostavniji raspored s nedavno dodanim naslovima i sljedećim epizodama. To su postavke aplikacije Plozz i ne mijenjaju vaš poslužitelj."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szerver alapbeállításai megtartják a Plex kiemelt sorait, az Emby és a Jellyfin esetében pedig egyszerűbb elrendezést használnak a nemrég hozzáadott tartalmakkal és a következő epizódokkal. Ezek a Plozz beállításai, a szervereden nem változtatnak."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pengaturan bawaan server mempertahankan baris unggulan Plex dan menggunakan tata letak yang lebih sederhana dengan judul yang baru ditambahkan serta episode berikutnya untuk Emby dan Jellyfin. Ini adalah pengaturan Plozz, bukan perubahan pada server Anda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le impostazioni predefinite del server mantengono le righe in evidenza di Plex e, per Emby e Jellyfin, una disposizione più semplice con i titoli aggiunti di recente e i prossimi episodi. Sono impostazioni di Plozz e non modificano il server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サーバー別の標準設定では、Plexの注目の行を維持し、EmbyとJellyfinでは最近追加された作品と次のエピソードを中心としたシンプルなレイアウトを使います。これはPlozzの設定であり、サーバーの設定は変更されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "서버 기본값은 Plex의 추천 행을 유지하고, Emby와 Jellyfin에는 최근 추가된 콘텐츠와 다음 에피소드 중심의 더 간단한 레이아웃을 사용합니다. 이는 Plozz의 설정이며 서버 설정을 변경하지 않습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tetapan lalai pelayan mengekalkan baris yang ditonjolkan oleh Plex dan menggunakan susun atur yang lebih ringkas dengan tajuk yang baru ditambah serta episod seterusnya untuk Emby dan Jellyfin. Ini ialah tetapan Plozz, bukan perubahan pada pelayan anda."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Standardoppsettet for serveren beholder de fremhevede radene fra Plex og bruker et enklere oppsett med nylig tillagte titler og neste episoder for Emby og Jellyfin. Dette er Plozz-innstillinger som ikke endrer serveren din."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De standaardindeling voor de server behoudt de uitgelichte rijen van Plex en gebruikt voor Emby en Jellyfin een eenvoudigere indeling met recent toegevoegde titels en volgende afleveringen. Dit zijn Plozz-instellingen; je server wordt niet gewijzigd."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ustawienia domyślne serwera zachowują sekcje wyróżnione przez Plex, a dla Emby i Jellyfin stosują prostszy układ z ostatnio dodanymi tytułami i następnymi odcinkami. Są to ustawienia Plozz, które nie zmieniają serwera."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Os padrões do servidor mantêm as linhas em destaque do Plex e usam um layout mais simples com adições recentes e próximos episódios para Emby e Jellyfin. São ajustes do Plozz e não alteram seu servidor."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Setările implicite ale serverului păstrează rândurile evidențiate de Plex și folosesc un aranjament mai simplu cu titlurile adăugate recent și episoadele următoare pentru Emby și Jellyfin. Acestea sunt setări ale aplicației Plozz, nu modificări ale serverului."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Настройки сервера по умолчанию сохраняют строки, выделенные сервером Plex, а для Emby и Jellyfin используют более простое расположение строк с недавними добавлениями и следующими сериями. Это настройки Plozz, а не изменения на вашем сервере."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Predvolené nastavenia servera zachovávajú riadky zvýraznené serverom Plex a pre Emby a Jellyfin používajú jednoduchšie rozloženie s nedávno pridanými titulmi a ďalšími epizódami. Ide o nastavenia aplikácie Plozz, nie o zmeny na vašom serveri."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Privzete nastavitve strežnika ohranijo vrstice, ki jih izpostavi strežnik Plex, za Emby in Jellyfin pa uporabijo preprostejšo postavitev z nedavno dodanimi naslovi in naslednjimi epizodami. To so nastavitve aplikacije Plozz, ne spremembe strežnika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podrazumevana podešavanja servera zadržavaju redove koje ističe server Plex, a za Emby i Jellyfin koriste jednostavniji raspored sa nedavno dodatim naslovima i sledećim epizodama. To su podešavanja aplikacije Plozz, a ne promene na vašem serveru."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Serverns standardinställningar behåller de rader som Plex lyfter fram och använder en enklare layout med nyligen tillagda titlar och nästa avsnitt för Emby och Jellyfin. Det här är inställningar i Plozz, inte ändringar på din server."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ค่าเริ่มต้นของเซิร์ฟเวอร์จะคงแถวที่เน้นแสดงโดยเซิร์ฟเวอร์ Plex และใช้เค้าโครงที่เรียบง่ายกว่า โดยมีแถว “เพิ่มล่าสุด” และ “ตอนถัดไป” สำหรับ Emby และ Jellyfin ทั้งหมดนี้เป็นการตั้งค่าของ Plozz และไม่เปลี่ยนแปลงเซิร์ฟเวอร์ของคุณ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sunucu varsayılanları, Plex sunucusunun öne çıkardığı satırları korur; Emby ve Jellyfin için “Son eklenenler” ve “Sıradaki bölümler” satırlarından oluşan daha sade bir düzen kullanır. Bunlar Plozz ayarlarıdır; sunucunuzda değişiklik yapmaz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Типові налаштування сервера зберігають рядки, які сервер Plex виділяє для показу, а для Emby і Jellyfin використовують простіше розташування з рядками «Нещодавно додане» та «Наступні серії». Це налаштування Plozz, які не змінюють ваш сервер."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mặc định của máy chủ giữ lại các hàng được máy chủ Plex làm nổi bật và dùng bố cục đơn giản hơn với các hàng “Mới thêm” và “Các tập tiếp theo” cho Emby và Jellyfin. Đây là các cài đặt của Plozz, không làm thay đổi máy chủ của bạn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "服务器默认布局会保留 Plex 服务器重点展示的内容栏，并为 Emby 和 Jellyfin 使用包含“最近添加”和“下一集”内容栏的更简洁布局。这些是 Plozz 的设置，不会更改你的服务器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "伺服器預設佈局會保留 Plex 伺服器重點展示的橫列，並為 Emby 和 Jellyfin 使用包含「最近新增」和「下一集」橫列的更簡潔佈局。這些是 Plozz 的設定，不會更改你的伺服器。"
+          }
+        }
+      }
+    },
     "Server unavailable" : {
       "comment" : "Error or empty-state title shown when a title, library, or playback target's server is no longer connected in iOS.",
       "localizations" : {
@@ -602878,6 +605742,7 @@
       }
     },
     "Shared rows" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -606627,6 +609492,7 @@
       }
     },
     "Show each library's own rows" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -631657,6 +634523,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "此多畫面中的部分頻道無法使用。請檢查其來源後再試一次。"
+          }
+        }
+      }
+    },
+    "Some libraries are unavailable. Saved row choices are kept." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بعض المكتبات غير متاحة. يتم الاحتفاظ باختيارات الصفوف المحفوظة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Някои библиотеки са недостъпни. Запазеният ви избор на редове остава непроменен."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Algunes biblioteques no estan disponibles. Es conserven les opcions desades de les files."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Některé knihovny nejsou dostupné. Uložené volby řádků zůstávají zachovány."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nogle biblioteker er utilgængelige. Gemte rækkevalg bevares."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Einige Mediatheken sind nicht verfügbar. Gespeicherte Reiheneinstellungen bleiben erhalten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ορισμένες βιβλιοθήκες δεν είναι διαθέσιμες. Οι αποθηκευμένες επιλογές σειρών διατηρούνται."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Algunas bibliotecas no están disponibles. Se conservan las opciones guardadas para las filas."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "برخی کتابخانه‌ها در دسترس نیستند. انتخاب‌های ذخیره‌شدهٔ سطرها حفظ می‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jotkin kirjastot eivät ole käytettävissä. Tallennetut rivivalinnat säilytetään."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Certaines bibliothèques sont indisponibles. Les choix de rangées enregistrés sont conservés."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "חלק מהספריות אינן זמינות. בחירת השורות נשארת כפי שנשמרה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कुछ लाइब्रेरी उपलब्ध नहीं हैं। रो के सहेजे गए विकल्प सुरक्षित हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neke biblioteke nisu dostupne. Spremljeni odabiri redova zadržavaju se."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Néhány könyvtár nem érhető el. A sorok mentett beállításai megmaradnak."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beberapa pustaka tidak tersedia. Pilihan baris tersimpan tetap dipertahankan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alcune librerie non sono disponibili. Le scelte salvate per le righe vengono mantenute."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "一部のライブラリを利用できません。保存済みの行の設定は維持されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일부 라이브러리를 사용할 수 없습니다. 저장된 행 선택 사항은 유지됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sesetengah pustaka tidak tersedia. Pilihan baris yang disimpan dikekalkan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Noen biblioteker er utilgjengelige. Lagrede radvalg beholdes."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sommige bibliotheken zijn niet beschikbaar. Opgeslagen keuzes voor rijen blijven behouden."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Niektóre biblioteki są niedostępne. Zapisane ustawienia sekcji są zachowywane."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Algumas bibliotecas estão indisponíveis. As escolhas salvas para as linhas são mantidas."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Unele biblioteci nu sunt disponibile. Opțiunile salvate pentru rânduri sunt păstrate."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Некоторые библиотеки недоступны. Сохранённые настройки строк не теряются."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Niektoré knižnice nie sú dostupné. Uložené voľby riadkov zostávajú zachované."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nekatere knjižnice niso na voljo. Shranjene izbire vrstic se ohranijo."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Neke biblioteke nisu dostupne. Sačuvani izbori redova se zadržavaju."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vissa bibliotek är inte tillgängliga. Sparade radval behålls."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "บางคลังไม่พร้อมใช้งาน ตัวเลือกแถวที่บันทึกไว้จะยังคงอยู่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bazı kütüphaneler kullanılamıyor. Kaydedilmiş satır seçimleri korunur."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Деякі бібліотеки недоступні. Ваші збережені налаштування рядків залишаються без змін."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Một số thư viện không khả dụng. Các lựa chọn hàng đã lưu vẫn được giữ lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "部分媒体库不可用。已保存的内容栏选择会保留。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "部分媒體庫無法使用。已儲存的橫列選擇會保留。"
           }
         }
       }
@@ -747497,45 +750583,9 @@
     },
     "Unwatched episodes: %lld" : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Unwatched episode: %lld"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Unwatched episodes: %lld"
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "variations" : {
             "plural" : {
-              "zero" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقات غير مشاهدة: %lld"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقة غير مشاهدة: %lld"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "حلقتان غير مشاهدتين: %lld"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747548,7 +750598,25 @@
                   "value" : "حلقة غير مشاهدة: %lld"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقة غير مشاهدة: %lld"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقات غير مشاهدة: %lld"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "حلقتان غير مشاهدتين: %lld"
+                }
+              },
+              "zero" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "حلقات غير مشاهدة: %lld"
@@ -747578,16 +750646,16 @@
         "ca" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episodi no vist"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodis no vistos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodi no vist"
                 }
               },
               "other" : {
@@ -747602,12 +750670,6 @@
         "cs" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nezhlédnutá epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747618,6 +750680,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nezhlédnuté epizody"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nezhlédnutá epizoda"
                 }
               },
               "other" : {
@@ -747683,19 +750751,37 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "variations" : {
             "plural" : {
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
-                  "value" : "%lld episodio no visto"
+                  "value" : "Unwatched episode: %lld"
                 }
               },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Unwatched episodes: %lld"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodios no vistos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodio no visto"
                 }
               },
               "other" : {
@@ -747746,16 +750832,16 @@
         "fr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld épisode non regardé"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld épisodes non regardés"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld épisode non regardé"
                 }
               },
               "other" : {
@@ -747776,13 +750862,13 @@
                   "value" : "פרק שטרם נצפה: %lld"
                 }
               },
-              "two" : {
+              "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "פרקים שטרם נצפו: %lld"
                 }
               },
-              "other" : {
+              "two" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "פרקים שטרם נצפו: %lld"
@@ -747812,16 +750898,16 @@
         "hr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld negledana epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld negledane epizode"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld negledana epizoda"
                 }
               },
               "other" : {
@@ -747866,16 +750952,16 @@
         "it" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episodio non visto"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episodi non visti"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episodio non visto"
                 }
               },
               "other" : {
@@ -747962,12 +751048,6 @@
         "pl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nieobejrzany odcinek"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -747978,6 +751058,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nieobejrzanych odcinków"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nieobejrzany odcinek"
                 }
               },
               "other" : {
@@ -747992,16 +751078,16 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episódio não assistido"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episódios não assistidos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episódio não assistido"
                 }
               },
               "other" : {
@@ -748016,16 +751102,16 @@
         "ro" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld episod nevizionat"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld episoade nevizionate"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld episod nevizionat"
                 }
               },
               "other" : {
@@ -748040,12 +751126,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld непросмотренный эпизод"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748056,6 +751136,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld непросмотренных эпизодов"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld непросмотренный эпизод"
                 }
               },
               "other" : {
@@ -748070,12 +751156,6 @@
         "sk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld nepozretá epizóda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748086,6 +751166,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld nepozretej epizódy"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld nepozretá epizóda"
                 }
               },
               "other" : {
@@ -748100,28 +751186,28 @@
         "sl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld neogledana epizoda"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld neogledani epizodi"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld neogledane epizode"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld neogledana epizoda"
+                }
+              },
               "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld neogledanih epizod"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld neogledani epizodi"
                 }
               }
             }
@@ -748130,16 +751216,16 @@
         "sr-Latn" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld negledana epizoda"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld negledane epizode"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld negledana epizoda"
                 }
               },
               "other" : {
@@ -748202,12 +751288,6 @@
         "uk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld непереглянутий епізод"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -748218,6 +751298,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld непереглянутих епізодів"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld непереглянутий епізод"
                 }
               },
               "other" : {
@@ -756732,6 +759818,226 @@
         }
       }
     },
+    "Use combined rows" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استخدام الصفوف المجمّعة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Използване на обединени редове"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilitza files combinades"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použít sloučené řádky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brug samlede rækker"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zusammengefasste Reihen verwenden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρήση συνδυασμένων σειρών"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar filas combinadas"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استفاده از سطرهای ترکیبی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käytä yhdistettyjä rivejä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utiliser des rangées combinées"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שימוש בשורות משולבות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "संयुक्त रो इस्तेमाल करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi objedinjene redove"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Összevont sorok használata"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan baris gabungan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa righe combinate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "統合した行を使う"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "통합된 행 사용"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan baris gabungan"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruk samlede rader"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gecombineerde rijen gebruiken"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Użyj połączonych sekcji"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar linhas combinadas"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folosește rânduri combinate"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Использовать объединённые строки"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použiť zlúčené riadky"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uporabi združene vrstice"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi objedinjene redove"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använd sammanslagna rader"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้แถวแบบรวม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Birleştirilmiş satırları kullan"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Використовувати об’єднані рядки"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dùng các hàng kết hợp"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用合并内容栏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用合併橫列"
+          }
+        }
+      }
+    },
     "Use community markers" : {
       "localizations" : {
         "ar" : {
@@ -758492,6 +761798,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "要在這台 Apple TV 上使用個人檔案嗎？"
+          }
+        }
+      }
+    },
+    "Use server defaults" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استخدام إعدادات الخادم الافتراضية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Използване на настройките по подразбиране за сървъра"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilitza els valors predeterminats del servidor"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použít výchozí nastavení serveru"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brug serverstandarder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Serverstandard verwenden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρήση προεπιλογών διακομιστή"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar valores predeterminados del servidor"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استفاده از پیش‌فرض‌های سرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käytä palvelimen oletuksia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utiliser les valeurs par défaut du serveur"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שימוש בברירות המחדל של השרת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सर्वर डिफ़ॉल्ट इस्तेमाल करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi zadane postavke poslužitelja"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szerver alapbeállításainak használata"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan pengaturan bawaan server"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa impostazioni predefinite del server"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サーバー別の標準設定を使う"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "서버 기본값 사용"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan tetapan lalai pelayan"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruk standardoppsett for serveren"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Standaardindeling voor de server gebruiken"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Użyj ustawień domyślnych serwera"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar padrões do servidor"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folosește setările implicite ale serverului"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Использовать настройки сервера по умолчанию"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použiť predvolené nastavenia servera"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uporabi privzete nastavitve strežnika"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi podrazumevana podešavanja servera"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använd serverns standardinställningar"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้ค่าเริ่มต้นของเซิร์ฟเวอร์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sunucu varsayılanlarını kullan"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Використовувати типові налаштування сервера"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dùng mặc định của máy chủ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用服务器默认布局"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用伺服器預設佈局"
           }
         }
       }

@@ -401,6 +401,9 @@ public struct HomeView: View {
                 failures: viewModel.rowFailures,
                 skeletonLayout: viewModel.skeletonLayout
             )
+            let presentationRows = HomePresentationRow.resolve(
+                rows: rows, content: content, visibility: visibility.visibility
+            )
             let heroContent = HomeHeroLaunchPolicy.content(
                 content,
                 awaitingLiveContinueWatching: !viewModel.hasLiveContinueWatching,
@@ -607,27 +610,16 @@ public struct HomeView: View {
                                             onReload: { Task { await viewModel.load() } }
                                         )
                                     }
-                                    if content.mergeLibraries {
-                                        // Merged: the classic ordered rows (Continue Watching,
-                                        // Watchlist, Recently Added, Libraries tiles).
-                                        ForEach(rows) { row in
-                                            rowView(row, reservesLoadingFocus: !heroLayoutActive && row.id == rows.first?.id)
-                                        }
-                                    } else {
-                                        // Unmerged: global media rows first, then each library's
-                                        // opted-in rows, then the Libraries tiles (boxes) last as
-                                        // the browse entry points — so per-library rows sit with
-                                        // the global rows and the grid of tiles anchors the foot.
-                                        ForEach(rows.filter {
-                                            $0.kind != .libraries
-                                        }) { row in
-                                            rowView(row, reservesLoadingFocus: !heroLayoutActive && row.id == rows.first?.id)
-                                        }
-                                        ForEach(content.librarySections) { group in
-                                            libraryGroupView(group)
-                                        }
-                                        if let librariesRow = rows.first(where: { $0.kind == .libraries }) {
-                                            rowView(librariesRow)
+                                    ForEach(presentationRows) { presentation in
+                                        switch presentation.source {
+                                        case let .home(row):
+                                            rowView(
+                                                row,
+                                                reservesLoadingFocus: !heroLayoutActive
+                                                    && presentation.id == presentationRows.first?.id
+                                            )
+                                        case let .library(row):
+                                            libraryRowView(row)
                                         }
                                     }
                                 }
@@ -880,6 +872,23 @@ public struct HomeView: View {
     private var contentNotice: HomeContentNotice? {
         if configuredServerCount == 0 { return .noServersConfigured }
         if enabledServerCount == 0 { return .allServersSwitchedOff }
+        if visibility.visibility.rowCustomization != nil, let content = viewModel.state.value {
+            let choices = HomeRowChoice.shared
+                + content.libraries.filter { visibility.isEnabled($0.key) }.flatMap(HomeRowChoice.baseRows)
+                + content.librarySections.flatMap { group in
+                    group.sections.map { HomeRowChoice(section: $0, library: group.library) }
+                }
+            let rows = HomeRow.rows(
+                for: content, isLibraryVisible: visibility.isVisible,
+                isGlobalRowEnabled: visibility.isGlobalRowEnabled,
+                loadingRows: viewModel.loadingRows, failures: viewModel.rowFailures
+            )
+            if HomePresentationRow.resolve(
+                rows: rows, content: content, visibility: visibility.visibility
+            ).isEmpty, visibility.visibility.rowSections(choices: choices).enabled.isEmpty {
+                return .noHomeRows
+            }
+        }
         return nil
     }
 
@@ -1402,12 +1411,27 @@ public struct HomeView: View {
                 .home(row)
             )
         }
-        var result: [(row: FocusHeroRow, source: FocusHomeRowSource)]
-        if content.mergeLibraries {
-            result = rows.map(entry)
-        } else {
-            result = rows.filter { $0.kind != .libraries }.map(entry)
-            appendLibrarySections(content: content, to: &result, libraries: rows.first { $0.kind == .libraries }, entry: entry)
+        var result: [(row: FocusHeroRow, source: FocusHomeRowSource)] = []
+        for presentation in HomePresentationRow.resolve(
+            rows: rows, content: content, visibility: visibility.visibility
+        ) {
+            switch presentation.source {
+            case let .home(row): result.append(entry(row))
+            case let .library(row):
+                let section = row.section
+                result.append((
+                    FocusHeroRow(
+                        id: presentation.id.presentationID,
+                        itemIDs: section.items.map(\.stablePresentationID),
+                        leadItem: section.items.first, items: section.items,
+                        isPlaceholder: row.isLoading,
+                        cardArtwork: section.style == .landscape
+                            ? { PosterCardView.leadingLandscapeArtwork(for: $0, showsSeriesArtwork: false) }
+                            : nil
+                    ),
+                    .section(row)
+                ))
+            }
         }
         // First, as in the classic layout: it names the setting hiding everything
         // else, and is what keeps a Home with nothing else to focus escapable.
@@ -1429,35 +1453,6 @@ public struct HomeView: View {
             ), at: index)
         }
         return result
-    }
-
-    private func appendLibrarySections(
-        content: HomeViewModel.Content,
-        to result: inout [(row: FocusHeroRow, source: FocusHomeRowSource)],
-        libraries: HomeRow?,
-        entry: (HomeRow) -> (row: FocusHeroRow, source: FocusHomeRowSource)
-    ) {
-        for group in content.librarySections {
-            for row in group.rows {
-                let section = row.section
-                result.append((
-                    FocusHeroRow(
-                        id: "section-\(group.id)-\(section.id)",
-                        itemIDs: section.items.map(\.stablePresentationID),
-                        leadItem: section.items.first,
-                        items: section.items,
-                        isPlaceholder: row.isLoading,
-                        cardArtwork: section.style == .landscape
-                            ? { PosterCardView.leadingLandscapeArtwork(for: $0, showsSeriesArtwork: false) }
-                            : nil
-                    ),
-                    .section(row)
-                ))
-            }
-        }
-        if let libraries {
-            result.append(entry(libraries))
-        }
     }
 
     /// The Showcase layout while Continue Watching is loading: the real view,
@@ -1703,8 +1698,7 @@ public struct HomeView: View {
     /// browse entry points into each library's full grid. Poster rows open detail
     /// on select; a landscape row plays — matching the merged rows' behaviour.
     @ViewBuilder
-    private func libraryGroupView(_ group: HomeLibrarySectionGroup) -> some View {
-        ForEach(group.rows) { row in
+    private func libraryRowView(_ row: HomeLibrarySectionGroup.Row) -> some View {
             let section = row.section
             if let failure = row.failure {
                 rowFailureView(title: section.displayName, error: failure)
@@ -1718,7 +1712,6 @@ public struct HomeView: View {
                     playsOnSelect: section.style == .landscape,
                     onSelect: section.style == .landscape ? onPlayItem : onSelectItem
                 )
-            }
         }
     }
 

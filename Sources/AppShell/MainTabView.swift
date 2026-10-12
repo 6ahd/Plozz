@@ -1084,7 +1084,8 @@ struct MainTabView: View {
                 onIgnorePendingServer: onIgnorePendingServer,
                 onSetUpPendingServer: onSetUpPendingServer,
                 metadataSettings: metadataSettings,
-                navigation: settingsNavigation
+                navigation: settingsNavigation,
+                homeRowAccounts: accounts
             )
             .background { SettingsPageBackground() }
             .environment(Self.subtitleStyleDestination)

@@ -227,7 +227,8 @@ public final class HomeViewModel {
                             LibrarySection(id: $0.id, title: $0.title,
                                            localizedTitle: $0.localizedTitle, localizedTitleSuffix: $0.localizedTitleSuffix,
                                            style: $0.style,
-                                           items: Array($0.items.prefix(perRow)))
+                                           items: Array($0.items.prefix(perRow)), isHomeDefault: $0.isHomeDefault,
+                                           isLegacyHomeDefault: $0.isLegacyHomeDefault)
                         }
                     )
                 }
@@ -290,9 +291,12 @@ public final class HomeViewModel {
         let content = state.value
         let visible = hasReceivedLiveContent ? content?.continueWatching ?? [] : []
         let native = accounts.flatMap { detailResumeByAccount[$0.account.id] ?? [] }
+        let nextUp = content?.librarySections.flatMap { group in
+            group.sections.filter { $0.id == "nextUp" }.flatMap(\.items)
+        } ?? []
         let visibility = currentVisibility()
         var seen = Set<String>()
-        return (visible + native).filter { item in
+        return (visible + native + nextUp).filter { item in
             item.isVisibleOnHome(isLibraryVisible: { visibility.isVisibleOnHome($0) })
                 && seen.insert("\(item.sourceAccountID ?? ""):\(item.id)").inserted
         }
@@ -540,7 +544,7 @@ public final class HomeViewModel {
                 scheduleSnapshotClear()
             }
             if !cached.isEmpty {
-                cached.mergeLibraries = currentVisibility().mergeLibrariesOnHome
+                cached.mergeLibraries = !currentVisibility().usesIndividualHomeRows
                 if !cached.mergeLibraries {
                     cached.librarySections = Self.plannedLibrarySections(
                         libraries: cached.libraries, visibility: currentVisibility()
@@ -712,8 +716,8 @@ public final class HomeViewModel {
             rowFailures = [:]
             loadingRows = Set(HomeRowKind.allCases)
             var initial = previousContent ?? Content()
-            initial.mergeLibraries = visibility.mergeLibrariesOnHome
-            initial.librarySections = visibility.mergeLibrariesOnHome ? [] : Self.plannedLibrarySections(
+            initial.mergeLibraries = !visibility.usesIndividualHomeRows
+            initial.librarySections = !visibility.usesIndividualHomeRows ? [] : Self.plannedLibrarySections(
                 libraries: initial.libraries, visibility: visibility
             )
             state = .loaded(initial)
@@ -757,7 +761,7 @@ public final class HomeViewModel {
         // fetched Continue Watching row so a reload doesn't revert it to stale
         // pre-play order while the server catches up (r8-cw-outbox-patch).
         var content: Content
-        if visibility.mergeLibrariesOnHome {
+        if !visibility.usesIndividualHomeRows {
             let aggregationTask = Task.detached(priority: .userInitiated) {
                 await aggregator.content(
                     from: accounts, policy: policy, visibility: visibility,
@@ -951,9 +955,7 @@ public final class HomeViewModel {
     ) -> [HomeLibrarySectionGroup] {
         libraries.compactMap { library in
             guard !library.library.isMusic, visibility.isVisibleOnHome(library.key) else { return nil }
-            let rows = Set(LibraryHomeRowKind.allCases.filter {
-                visibility.isLibraryRowEnabled(library.key, kind: $0)
-            })
+            let rows = Set(visibility.requestedRowKinds(for: library))
             guard !rows.isEmpty else { return nil }
             return HomeLibrarySectionGroup(library: library, sections: [], loadingRows: rows)
         }
@@ -989,7 +991,7 @@ public final class HomeViewModel {
         }
         var content = state.value ?? Content()
         let previousLibraryRowCount = content.librarySections.reduce(0) { $0 + $1.sections.count }
-        content.mergeLibraries = visibility.mergeLibrariesOnHome
+        content.mergeLibraries = !visibility.usesIndividualHomeRows
         if let resume { content.continueWatching = resume }
         if newlyReady.contains(.recentlyAdded) { content.latest = progress.content.latest }
         if newlyReady.contains(.libraries) { content.libraries = progress.content.libraries }
@@ -1006,7 +1008,7 @@ public final class HomeViewModel {
                 visible: content.watchlist, handler: mediaItemActionHandler
             )
         }
-        if !visibility.mergeLibrariesOnHome {
+        if visibility.usesIndividualHomeRows {
             let arrived = Dictionary(
                 progress.content.librarySections.map { ($0.id, $0) },
                 uniquingKeysWith: { first, _ in first }
@@ -1057,7 +1059,7 @@ public final class HomeViewModel {
                 var group = group
                 group.sections = group.sections.map { section in
                     var section = section
-                    section.items = section.items.map { apply(mutation, to: $0) }
+                    section.items = applying(mutation, to: section)
                     return section
                 }
                 return group
@@ -1099,6 +1101,10 @@ public final class HomeViewModel {
         let completedEpisode = mutation.played == true && (
             state.value?.continueWatching.contains {
                 $0.kind == .episode && mutation.targets($0)
+            } == true || state.value?.librarySections.contains { group in
+                group.sections.contains { section in
+                    section.id == "nextUp" && section.items.contains { mutation.targets($0) }
+                }
             } == true || mutation.item.map { item in
                 item.kind == .episode && mutation.targets(item) && accounts.contains { account in
                     mutation.matches(accountID: account.account.id, itemID: item.id)
@@ -1257,7 +1263,7 @@ public final class HomeViewModel {
                 var group = group
                 group.sections = group.sections.map { section in
                     var section = section
-                    section.items = section.items.map { apply(mutation, to: $0) }
+                    section.items = applying(mutation, to: section)
                     return section
                 }
                 return group
@@ -1268,6 +1274,16 @@ public final class HomeViewModel {
         // Without this, quitting after playback resurrects the pre-play Continue
         // Watching order until the next live refresh completes.
         saveSnapshot(content)
+    }
+
+    private func applying(_ mutation: MediaItemMutation, to section: LibrarySection) -> [MediaItem] {
+        section.items.compactMap { item in
+            if section.id == "nextUp", mutation.targets(item),
+               mutation.played == true || (mutation.resumePosition ?? 0) > 0 {
+                return nil
+            }
+            return apply(mutation, to: item)
+        }
     }
 
     /// Re-resolves the durable alias-ordered Watchlist against already-loaded

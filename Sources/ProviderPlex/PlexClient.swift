@@ -702,6 +702,19 @@ public struct PlexClient: Sendable {
         ).MediaContainer.Hub ?? []
     }
 
+    func promotedHubs(sectionID: String, count: Int) async throws -> [PlexHub] {
+        try await decodeStreamEnriched(
+            PlexMediaContainerResponse.self,
+            path: "/hubs/promoted",
+            query: [
+                URLQueryItem(name: "contentDirectoryID", value: sectionID),
+                URLQueryItem(name: "pinnedContentDirectoryID", value: sectionID),
+                URLQueryItem(name: "count", value: String(max(1, count))),
+                URLQueryItem(name: "includeGuids", value: "1")
+            ]
+        ).MediaContainer.Hub ?? []
+    }
+
     /// `GET /hubs/continueWatching/items` returns both resumes and next episodes
     /// from the Continue Watching hub. The `/hubs/home/continueWatching` route
     /// can return only resumes, silently omitting untouched successors.

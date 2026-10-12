@@ -34,6 +34,21 @@ first-class backends; co-equal with `ProviderJellyfin`.
   rewrites the stored admin account's token; per-user tokens live in a
   short-lived override map.
 
+## Home recommendations
+
+`homeHubs` reads `/hubs/promoted` for the current user's Home-promoted rows,
+scoped to the requested library. It does not substitute the full
+`/hubs/sections/{id}` recommendation menu for Home. The shared arranger may
+enumerate that menu as optional rows; promotion eligibility and legacy
+eligibility stay separate from the row's title and stable hub identifier.
+Subject-driven rows (similar titles and people) retain a family/slot identity
+when the suggested movie or person changes; ordinary genre/collection IDs remain
+server-authored. The shared library key scopes both forms to their account.
+Explicit row choices can include person or sparse shelves that legacy Home
+excluded. The library Recommended view retains `libraryHubs` behavior.
+Home continues to use the canonical Continue Watching feed rather than
+duplicating a resume/on-deck hub inside each library.
+
 ## Continue Watching artwork
 
 The existing parent-series metadata batches (at most 50 referenced series per

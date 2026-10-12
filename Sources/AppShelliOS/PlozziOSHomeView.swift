@@ -532,8 +532,11 @@ struct PlozziOSHomeView: View {
             // `PlozziOSFeaturedRow(items: featuredItems, appModel: appModel)`
             // here — the view itself is left in place.
 
-            if content.mergeLibraries {
-                ForEach(rows) { row in
+            ForEach(HomePresentationRow.resolve(
+                rows: rows, content: content, visibility: visibility.visibility
+            )) { presentation in
+                switch presentation.source {
+                case let .home(row):
                     PlozziOSHomeRowView(
                         row: row,
                         appModel: appModel,
@@ -542,34 +545,22 @@ struct PlozziOSHomeView: View {
                         watchlistLoadingPlaceholderCount:
                             viewModel.watchlistLoadingPlaceholderCount
                     )
-                }
-            } else {
-                ForEach(rows.filter { $0.kind != .libraries }) { row in
-                    PlozziOSHomeRowView(
-                        row: row,
-                        appModel: appModel,
-                        viewModel: viewModel,
-                        watchlistIntentRevision: watchlistIntentRevision,
-                        watchlistLoadingPlaceholderCount:
-                            viewModel.watchlistLoadingPlaceholderCount
-                    )
-                }
-                ForEach(content.librarySections) { group in
-                    ForEach(group.rows) { row in
+                case let .library(row):
                         let section = row.section
                         if let failure = row.failure {
                             PlozziOSHomeRowFailure(
-                                title: Text(verbatim: section.title),
+                                title: section.displayName,
                                 error: failure, viewModel: viewModel
                             )
                         } else if row.isLoading {
                             PlozziOSHomeSkeletonRail(
-                                title: Text(verbatim: section.title), style: .poster,
+                                title: section.displayName,
+                                style: section.style == .landscape ? .landscape : .poster,
                                 showsCaption: appModel.settings.cardStyle.captions.showsLabels(in: .home)
                             )
                         } else {
                             PlozziOSHomeMediaRail(
-                                title: Text(verbatim: section.title),
+                                title: section.displayName,
                                 items: section.items,
                                 style: section.style == .landscape
                                     ? .landscape
@@ -579,18 +570,6 @@ struct PlozziOSHomeView: View {
                                     viewModel.noteHomeNavigationInteraction
                             )
                         }
-                    }
-                }
-                if let libraries = rows.first(where: {
-                    $0.kind == .libraries
-                }) {
-                    PlozziOSHomeRowView(
-                        row: libraries,
-                        appModel: appModel,
-                        viewModel: viewModel,
-                        watchlistIntentRevision: watchlistIntentRevision,
-                        watchlistLoadingPlaceholderCount: 0
-                    )
                 }
             }
         }

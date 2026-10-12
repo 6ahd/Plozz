@@ -5,6 +5,24 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+- **Home row customization** — Settings > Customize Home > Rows on Home uses
+  the same individual-row arranger on TV, iPhone and iPad. Rows from different
+  libraries can be interleaved, reordered or hidden, including the Libraries
+  tiles. `HomeRowCustomization` stores typed identity, order and explicit
+  visibility inside the profile's existing Home settings blob; profile transfer
+  carries it to other devices. Editing available rows preserves offline keys.
+  `HomePresentationRow` resolves the one list consumed by standard, carousel,
+  Showcase and mobile Home. Hiding every row retains an escapable TV notice.
+  Fresh profiles use provider-style defaults; saved legacy arrangements remain
+  unchanged until edited. Server-default and combined-row presets are explicit
+  resets, not imports of a web client's private display preferences.
+  Plex Home uses promoted hubs; Emby/Jellyfin start with Resume, Next Up and
+  per-library Latest, without automatic movie-recommendation shelves.
+  The arranger enumerates optional recommendations only while open. Home omits
+  unselected row-family requests and stops a recommendation family after all its
+  known rows are hidden. The separate library Recommended screen and Showcase's
+  optional external Discover row are not redefined by these Home preferences.
+
 - **Home** — `HomeView` + `HomeViewModel` render the focused tvOS rows:
   Continue Watching, Latest, Recently Added (per library). `HomeLayout`
   centralises sizing/spacing so all rows feel uniform.

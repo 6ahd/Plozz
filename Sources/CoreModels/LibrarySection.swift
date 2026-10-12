@@ -39,10 +39,16 @@ public struct LibrarySection: Identifiable, Equatable, Sendable {
     /// row.
     public var items: [MediaItem]
 
+    /// Home eligibility is distinct from the richer library Recommended screen.
+    /// Nil retains the provider's legacy behavior.
+    public var isHomeDefault: Bool?
+    public var isLegacyHomeDefault: Bool?
+
     public init(
         id: String, title: String,  // l10n:content — provider heading or stable fallback
         localizedTitle: LocalizedStringResource? = nil,
-        localizedTitleSuffix: String? = nil, style: Style = .poster, items: [MediaItem] = []
+        localizedTitleSuffix: String? = nil, style: Style = .poster, items: [MediaItem] = [],
+        isHomeDefault: Bool? = nil, isLegacyHomeDefault: Bool? = nil
     ) {
         self.id = id
         self.title = title
@@ -50,5 +56,7 @@ public struct LibrarySection: Identifiable, Equatable, Sendable {
         self.localizedTitleSuffix = localizedTitleSuffix
         self.style = style
         self.items = items
+        self.isHomeDefault = isHomeDefault
+        self.isLegacyHomeDefault = isLegacyHomeDefault
     }
 }

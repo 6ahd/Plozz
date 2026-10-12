@@ -132,20 +132,25 @@ public protocol MediaProvider: Sendable {
     func letterPosition(in containerID: String, kind: MediaItemKind, letter: String,
                         sort: SortDescriptor) async throws -> Int?
 
-    /// Provider-native "hubs" for a single library — the promoted discovery rows a
-    /// backend defines at the library level (Plex `/hubs/sections/{id}`: "More in
-    /// Drama", "Because you watched…", "Top Rated", …).
-    ///
-    /// These are surfaced **in unmerged Home mode only**, and are *additional* to
-    /// the uniform base rows (Recently Added / Continue Watching) the Home
-    /// aggregator synthesises for every provider from the existing scoped feeds. So
-    /// a conformer must return ONLY its extra discovery rows and omit any hub that
-    /// duplicates the base (a recently-added or on-deck/continue-watching hub), plus
-    /// drop empty hubs. `limit` caps the cards per returned row.
-    ///
-    /// Default: none — Jellyfin and other backends without a native hub concept
-    /// inherit this and show just the uniform base rows.
+    /// Library Recommended shelves from Plex hubs or MediaBrowser movie
+    /// recommendations. Omit empty shelves and duplicates of canonical Resume
+    /// and Latest feeds. `limit` caps cards per row; Home uses `homeHubs` to
+    /// distinguish native defaults from optional recommendations.
     func libraryHubs(libraryID: String, kind: MediaItemKind, limit: Int) async throws -> [LibrarySection]
+
+    /// Home-specific recommendations. The arranger may additionally enumerate
+    /// optional library recommendations; normal Home loads need only its selected rows.
+    func homeHubs(
+        libraryID: String, kind: MediaItemKind, limit: Int, includeUnpromoted: Bool
+    ) async throws -> [LibrarySection]
+
+    /// Provider-style Home can separate MediaBrowser's Resume and Next Up feeds
+    /// without changing Continue Watching used by details and other clients.
+    func homeContinueWatching(
+        limit: Int, inLibraries libraryIDs: [String]?, separateNextUp: Bool
+    ) async throws -> [MediaItem]
+
+    func homeNextUp(libraryID: String, limit: Int) async throws -> [MediaItem]
 
     // MARK: Search
 
@@ -470,10 +475,22 @@ public extension MediaProvider {
             .first { $0.letter == letter }?.startIndex
     }
 
-    /// Default: no native hubs. Only Plex (via `/hubs/sections/{id}`) overrides
-    /// this; Jellyfin and test doubles inherit the safe empty result, so unmerged
-    /// Home falls back to the uniform base rows for them.
+    /// Providers without library recommendations inherit an empty inventory.
     func libraryHubs(libraryID: String, kind: MediaItemKind, limit: Int) async throws -> [LibrarySection] { [] }
+
+    func homeHubs(
+        libraryID: String, kind: MediaItemKind, limit: Int, includeUnpromoted: Bool
+    ) async throws -> [LibrarySection] {
+        try await libraryHubs(libraryID: libraryID, kind: kind, limit: limit)
+    }
+
+    func homeContinueWatching(
+        limit: Int, inLibraries libraryIDs: [String]?, separateNextUp: Bool
+    ) async throws -> [MediaItem] {
+        try await continueWatching(limit: limit, inLibraries: libraryIDs)
+    }
+
+    func homeNextUp(libraryID: String, limit: Int) async throws -> [MediaItem] { [] }
 
     /// Default: cannot query by person, so a person page shows no library credits
     /// for this source rather than failing. Jellyfin/Emby (`PersonIds`), Plex
