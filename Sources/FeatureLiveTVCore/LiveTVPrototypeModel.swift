@@ -355,6 +355,19 @@ public final class LiveTVPrototypeModel {
         _ = guideChannels
         return guideEntries[row]
     }
+
+    /// A removed section occurrence falls back to the first remaining occurrence.
+    public func guideRowIndex(near row: LiveTVGuideRowID?) -> Int? {
+        _ = guideChannels
+        guard let row else { return nil }
+        if let ordinal = guideEntries.ordinals[row] { return ordinal - 1 }
+        for section in [LiveTVGuideSection.recent, .favorites, .channels] {
+            if let ordinal = guideEntries.ordinals[.init(channelID: row.channelID, section: section)] {
+                return ordinal - 1
+            }
+        }
+        return nil
+    }
     private let preferences = LiveTVPrototypePreferencesState()
     public private(set) var recentChannelIDs: [String] {
         get { preferences.recentChannelIDs }
@@ -449,6 +462,7 @@ public final class LiveTVPrototypeModel {
     public private(set) var tuneFailed = false
 
     @ObservationIgnored private var channelsByID = LiveTVCatalogIndex<LiveTVPrototypeChannel>()
+    @ObservationIgnored private var categoryChannelIndices: [String: [Int]] = [:]
     @ObservationIgnored private var isBatchingFilterChanges = false
     @ObservationIgnored private var suppliedChannels: [LiveTVPrototypeChannel]?
     @ObservationIgnored private let preferencesStore: (any LiveTVPreferencesStoring)?
@@ -995,10 +1009,11 @@ public final class LiveTVPrototypeModel {
         let channels = channels
 
         // Sort lightweight keys rather than repeatedly moving whole channel payloads.
-        visibleChannels = channels.enumerated().compactMap {
-            index, channel -> (index: Int, rank: Int, number: Int, id: String, name: String)? in
+        let candidates = selectedCategory.map { categoryChannelIndices[$0] ?? [] } ?? Array(channels.indices)
+        visibleChannels = candidates.compactMap {
+            index -> (index: Int, rank: Int, number: Int, id: String, name: String)? in
+            let channel = channels[index]
             guard !hiddenChannelIDs.contains(channel.id),
-                  selectedCategory == nil || channel.categories.contains(where: { Self.normalized($0) == selectedCategory }),
                   source == nil || channel.source == source,
                   language == nil || channel.languages.contains(where: { Self.normalized($0) == language }),
                   country == nil || channel.countries.contains(where: { Self.normalized($0) == country }),
@@ -1051,11 +1066,22 @@ public final class LiveTVPrototypeModel {
         var categoryValues = Set<String>()
         var languageValues = Set<String>()
         var countryValues = Set<String>()
-        for channel in channels where !hiddenChannelIDs.contains(channel.id) {
+        var categoryIndices: [String: [Int]] = [:]
+        var normalizedCategories: [String: String] = [:]
+        for (index, channel) in channels.enumerated() where !hiddenChannelIDs.contains(channel.id) {
             categoryValues.formUnion(channel.categories)
+            var seenCategories = Set<String>()
+            for category in channel.categories {
+                let normalized = normalizedCategories[category] ?? Self.normalized(category)
+                normalizedCategories[category] = normalized
+                if seenCategories.insert(normalized).inserted {
+                    categoryIndices[normalized, default: []].append(index)
+                }
+            }
             if let language = channel.language { languageValues.insert(language) }
             if let country = channel.country { countryValues.insert(country) }
         }
+        categoryChannelIndices = categoryIndices
         categories = categoryValues.sorted {
             Self.normalized($0) < Self.normalized($1)
         }
