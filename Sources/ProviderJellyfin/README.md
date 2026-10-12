@@ -152,6 +152,10 @@ of requesting independently shuffled server pages that could omit collections.
 omits `IncludeItemTypes`, `SortBy`, and `SortOrder`: members can have mixed kinds,
 and the server owns collection membership and display order. Library listing
 remains a separate `items(in:kind:page:)` query; the member API is unchanged.
+Member requests explicitly enable `UserData` and request it with the other
+fields, retaining the server user's watched state and unplayed episode count.
+Zero unplayed episodes must not become an unwatched flag merely because a
+partial response omits the aggregate `Played` boolean.
 
 Both platforms browse members in the existing vertical library grid. The first
 page paints without waiting for the rest of the collection; later pages load as

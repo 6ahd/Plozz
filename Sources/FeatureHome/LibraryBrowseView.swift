@@ -420,7 +420,6 @@ public struct LibraryBrowseView: View {
                 nativeScrollTarget.scroll(to: destination.index, focusesItem: destination.focusesItem)
             }
         }
-        .onDisappear { nativeScrollTarget.moveHeader(with: 0) }
     }
     #endif
 
@@ -493,7 +492,6 @@ public struct LibraryBrowseView: View {
             } action: { _, offset in
                 nativeScrollTarget.moveHeader(with: offset)
             }
-            .onDisappear { nativeScrollTarget.moveHeader(with: 0) }
             #endif
             // Rail + its "you are here" highlight live in a dedicated layer so
             // that tracking `topVisibleIndex` (which ticks on every cell that

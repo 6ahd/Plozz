@@ -26,7 +26,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
     private var overlay: (UIView & UIContentView)?
     private var overlayFocused = false
     private var isConfiguredForDisplay = false
-    private var compositedArtwork: UIImageView?
+    private var compositedArtwork: NativePosterImageView?
     private var compositeKey: NativeLibraryPosterBitmap.Key?
     private weak var compositeSource: UIImage?
     private var needsCompositeUpdate = true
@@ -178,11 +178,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
                 nativeArtwork.configuration = TVMediaItemContentConfiguration.wideCell()
             }
             if compositedArtwork == nil {
-                let image = UIImageView()
-                image.adjustsImageWhenAncestorFocused = true
-                image.masksFocusEffectToContents = true
-                image.isUserInteractionEnabled = false
-                compositedArtwork = image
+                compositedArtwork = NativePosterImageView(masksFocusEffectToContents: false)
             }
             if let compositedArtwork, compositedArtwork.superview !== self {
                 insertSubview(compositedArtwork, belowSubview: caption)
@@ -193,6 +189,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
         }
         compositedArtwork?.removeFromSuperview()
         compositedArtwork?.image = nil
+        compositedArtwork?.updateIndicator(nil, focused: false)
         compositeKey = nil
         nativeArtwork.isHidden = false
         var configuration = TVMediaItemContentConfiguration.wideCell()
@@ -209,8 +206,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
         let inset = framed ? metrics.cardInset : metrics.borderlessCardSideMargin
         let width = max(1, bounds.width - inset * 2)
         let scale = traitCollection.displayScale
-        // The image view and raster must have exactly the same aspect ratio
-        // for UIKit's transparent-content focus mask to remain active.
+        // Keep native artwork and overlay projection on the same pixel-aligned surface.
         let size = usesCompositedArtwork
             ? CGSize(width: ceil(width * scale) / scale, height: ceil(width * 1.5 * scale) / scale)
             : CGSize(width: width, height: width * 1.5)
@@ -227,6 +223,9 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
                 if key != compositeKey || compositeSource !== artwork {
                     compositedArtwork.image = NativeLibraryPosterBitmap.image(
                         source: artwork, key: key, environment: environment
+                    )
+                    compositedArtwork.updateIndicator(
+                        NativeLibraryPosterBitmap.overlay(key: key, environment: environment), focused: isFocused
                     )
                     compositeKey = key
                     compositeSource = artwork
@@ -252,6 +251,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
 
     public override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
         super.didUpdateFocus(in: context, with: coordinator)
+        compositedArtwork?.updateFocus(isFocused, coordinator: coordinator)
         source.isFocused = isFocused
         updateCaption(animated: true)
         if overlayFocused != isFocused {
@@ -284,6 +284,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
         artworkItemIdentity = nil
         artwork = nil
         compositedArtwork?.image = nil
+        compositedArtwork?.updateIndicator(nil, focused: false)
         compositeKey = nil
         compositeSource = nil
         needsCompositeUpdate = true

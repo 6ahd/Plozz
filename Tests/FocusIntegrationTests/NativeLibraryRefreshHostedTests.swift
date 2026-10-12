@@ -481,6 +481,65 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
         }
     }
 
+    func testCollectionControlsStayScrolledAwayAfterNavigationReturn() async throws {
+        for style: CardFocusStyle in [.system, .highlight] {
+            let provider = RefreshLibraryProvider(kind: .jellyfin, supportsModes: true)
+            let name = "CollectionHeaderReturn.\(UUID())"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+            defer { defaults.removePersistentDomain(forName: name) }
+            let model = LibraryBrowseViewModel(
+                provider: provider, containerID: "library", containerKind: .movie,
+                defaults: defaults, initialContentMode: .collections
+            )
+            await model.loadFirstPage()
+            try await withLibrary(model: model, focusStyle: style) { root, window in
+                let scroll = try XCTUnwrap(self.find(UIScrollView.self, in: root))
+                let controller = try XCTUnwrap(window.rootViewController as? LibraryFocusFixtureController)
+                let header = try XCTUnwrap(self.findController(NativeLibraryHeaderController.self, in: controller))
+                let controls = self.focusItems(in: header.view)
+                XCTAssertFalse(controls.isEmpty)
+                scroll.setContentOffset(CGPoint(x: 0, y: scroll.contentOffset.y + 640), animated: false)
+                try await Task.sleep(for: .milliseconds(300))
+                let poster = try XCTUnwrap(self.focusItems(in: window).first { item in
+                    guard let frame = NavigationRowFocusRequester.frame(of: item, relativeTo: window) else { return false }
+                    return frame.minY > 0 && frame.maxY < window.bounds.maxY
+                })
+                controller.target = poster
+                let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+                system.requestFocusUpdate(to: controller)
+                system.updateFocusIfNeeded()
+                try await Task.sleep(for: .milliseconds(500))
+                let retainedOffset = scroll.contentOffset.y
+                let positions = try controls.map {
+                    try XCTUnwrap(NavigationRowFocusRequester.frame(of: $0, relativeTo: window))
+                }
+                XCTAssertTrue(positions.allSatisfy { $0.maxY < 0 })
+                let detail = UIViewController()
+                detail.modalPresentationStyle = .fullScreen
+                detail.view.backgroundColor = .black
+                let back = UIButton(type: .system)
+                back.setTitle("Back", for: .normal)
+                back.frame = CGRect(x: 100, y: 100, width: 200, height: 80)
+                detail.view.addSubview(back)
+                controller.present(detail, animated: false)
+                try await Task.sleep(for: .milliseconds(400))
+                XCTAssertTrue(controller.presentedViewController === detail)
+                controller.dismiss(animated: false)
+                try await Task.sleep(for: .milliseconds(400))
+                XCTAssertNil(controller.presentedViewController)
+                let restorationScroll = scroll.contentOffset.y - retainedOffset
+                XCTAssertLessThan(abs(restorationScroll), 20, "Focus restoration must not reset the viewport.")
+                for (item, before) in zip(controls, positions) {
+                    let after = try XCTUnwrap(NavigationRowFocusRequester.frame(of: item, relativeTo: window))
+                    XCTAssertEqual(after.minY, before.minY - restorationScroll, accuracy: 1,
+                                   "\(style): returning must keep the header attached to the actual viewport.")
+                    XCTAssertLessThan(after.maxY, 0, "Returning must not overlay controls on scrolled posters.")
+                }
+                controller.target = nil
+            }
+        }
+    }
+
     func testNativeBrowseKeepsPartiallyVisibleRowsMountedUntilTheyLeaveTheScreen() async throws {
         for style in [NavigationStyle.sidebar, .tabBar, .rail] {
             try await withNavigatedLibrary(style: style, artwork: .init(preference: .online)) { root, window, model in

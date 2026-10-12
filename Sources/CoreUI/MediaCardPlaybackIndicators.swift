@@ -528,12 +528,11 @@ enum MediaPlaybackIndicatorPresentation {
         for item: MediaPlaybackIndicatorState, hidesStatus: Bool, indicator: WatchStatusIndicator,
         showsEpisodeCount: Bool, seerConnected: Bool
     ) -> Status? {
-        guard !hidesStatus else { return nil }
+        guard !hidesStatus, PosterCardPresentation.showsWatchStatus(for: item.kind) else { return nil }
         if let mark = item.libraryMark(seerConnected: seerConnected) { return .library(mark) }
         if let count = episodeCount(for: item, enabled: showsEpisodeCount, hidesStatus: hidesStatus) {
             return .episodeCount(count)
         }
-        guard PosterCardPresentation.showsWatchStatus(for: item.kind) else { return nil }
         switch indicator {
         case .watched:
             return showsWatchedBadge(for: item, hidesStatus: hidesStatus) ? .watched : nil
@@ -592,7 +591,9 @@ enum MediaPlaybackIndicatorPresentation {
         for item: MediaPlaybackIndicatorState,
         hidesStatus: Bool
     ) -> Bool {
-        !item.isPlayed && !hasStartedPlayback(item) && !hidesStatus
+        let hasNoUnwatchedEpisodes = (item.kind == .series || item.kind == .season)
+            && item.unwatchedEpisodeCount == 0
+        return !item.isPlayed && !hasStartedPlayback(item) && !hidesStatus && !hasNoUnwatchedEpisodes
     }
 }
 #endif

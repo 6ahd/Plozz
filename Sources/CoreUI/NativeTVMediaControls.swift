@@ -289,11 +289,78 @@ enum NativePosterImageTreatment: Equatable {
     case upcoming(Color)
 }
 
-final class NativePosterButton: UIButton {
-    let artworkView = UIImageView()
+final class NativePosterImageView: UIImageView {
     let indicatorView = UIImageView()
     private var indicatorPlacement: NativePosterOverlayPlacement?
     private var indicatorLayoutDirection = LayoutDirection.leftToRight
+    private var artworkFocused = false
+
+    init(masksFocusEffectToContents: Bool) {
+        super.init(frame: .zero)
+        adjustsImageWhenAncestorFocused = true
+        self.masksFocusEffectToContents = masksFocusEffectToContents
+        clipsToBounds = false
+        isUserInteractionEnabled = false
+        indicatorView.isUserInteractionEnabled = false
+        overlayContentView.addSubview(indicatorView)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layoutIndicator()
+    }
+
+    func updateFocus(_ focused: Bool, coordinator: UIFocusAnimationCoordinator) {
+        artworkFocused = focused
+        coordinator.addCoordinatedAnimations { [weak self] in
+            self?.layoutIndicator()
+        }
+    }
+
+    func updateIndicator(_ overlay: NativePosterOverlay?, focused: Bool) {
+        artworkFocused = focused
+        if indicatorView.image !== overlay?.image { indicatorView.image = overlay?.image }
+        indicatorPlacement = overlay?.placement
+        if let overlay { indicatorLayoutDirection = overlay.layoutDirection }
+        indicatorView.isHidden = overlay == nil
+        layoutIndicator()
+    }
+
+    private func layoutIndicator() {
+        let overlayView = overlayContentView
+        guard let indicatorPlacement, !overlayView.bounds.isEmpty, !bounds.isEmpty else { return }
+        // UIKit lifts overlays onto a nearer plane. Align only our badge to the
+        // destination artwork geometry, never a sampled in-flight transform.
+        guard let projected = NativeFocusProjection.frame(
+            of: overlayView.layer, in: layer, usePresentation: false
+        ), projected.width > 0 else {
+            PlozzLog.app.error("Unable to align native poster indicators with their artwork")
+            return
+        }
+        let size = bounds.size
+        let viewport = artworkFocused ? focusedFrameGuide.layoutFrame : bounds
+        let crop = artworkFocused && indicatorPlacement == .croppedCount
+            ? NativePosterArtworkBitmap.portraitFocusCrop(for: size) : .zero
+        let artworkScale = viewport.width / (size.width - 2 * crop.width)
+        let scale = artworkScale / (projected.width / overlayView.bounds.width)
+        // The baked tile loses its top/trailing edges to the native crop.
+        let trailingDirection: CGFloat = indicatorLayoutDirection == .leftToRight ? -1 : 1
+        let center = CGPoint(
+            x: overlayView.bounds.midX + trailingDirection * crop.width * scale / 2,
+            y: overlayView.bounds.midY + crop.height * scale / 2
+        )
+        if indicatorView.bounds != bounds { indicatorView.bounds = bounds }
+        if indicatorView.center != center { indicatorView.center = center }
+        let transform = CGAffineTransform(scaleX: scale, y: scale)
+        if indicatorView.transform != transform { indicatorView.transform = transform }
+    }
+}
+
+final class NativePosterButton: UIButton {
+    let artworkView: NativePosterImageView
+    var indicatorView: UIImageView { artworkView.indicatorView }
     var overlayView: UIView { artworkView.overlayContentView }
     var contentSize = CGSize.zero {
         didSet {
@@ -311,16 +378,11 @@ final class NativePosterButton: UIButton {
     var prepareOverlay: ((CGSize) -> NativePosterOverlay?)?
 
     init(image: UIImage, masksFocusEffectToContents: Bool = true) {
+        artworkView = NativePosterImageView(masksFocusEffectToContents: masksFocusEffectToContents)
         super.init(frame: .zero)
         clipsToBounds = false
-        artworkView.adjustsImageWhenAncestorFocused = true
-        artworkView.masksFocusEffectToContents = masksFocusEffectToContents
-        artworkView.clipsToBounds = false
-        artworkView.isUserInteractionEnabled = false
         addSubview(artworkView)
         updateImage(image)
-        indicatorView.isUserInteractionEnabled = false
-        overlayView.addSubview(indicatorView)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -348,9 +410,7 @@ final class NativePosterButton: UIButton {
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
         super.didUpdateFocus(in: context, with: coordinator)
-        coordinator.addCoordinatedAnimations { [weak self] in
-            self?.layoutIndicator()
-        }
+        artworkView.updateFocus(isFocused, coordinator: coordinator)
         onFocus?(isFocused)
     }
 
@@ -358,41 +418,8 @@ final class NativePosterButton: UIButton {
         guard window != nil, bounds.width > 0, bounds.height > 0 else { return }
         autoreleasepool {
             if let image = prepareArtwork?(bounds.size) { updateImage(image) }
-            let overlay = prepareOverlay?(bounds.size)
-            if indicatorView.image !== overlay?.image { indicatorView.image = overlay?.image }
-            indicatorPlacement = overlay?.placement
-            if let overlay { indicatorLayoutDirection = overlay.layoutDirection }
-            indicatorView.isHidden = overlay == nil
-            layoutIndicator()
+            artworkView.updateIndicator(prepareOverlay?(bounds.size), focused: isFocused)
         }
-    }
-
-    private func layoutIndicator() {
-        guard let indicatorPlacement, !overlayView.bounds.isEmpty, !artworkView.bounds.isEmpty else { return }
-        // UIKit lifts overlays onto a nearer plane. Align only our badge to the
-        // destination artwork geometry, never a sampled in-flight transform.
-        guard let projected = NativeFocusProjection.frame(
-            of: overlayView.layer, in: artworkView.layer, usePresentation: false
-        ), projected.width > 0 else {
-            PlozzLog.app.error("Unable to align native poster indicators with their artwork")
-            return
-        }
-        let size = artworkView.bounds.size
-        let viewport = isFocused ? artworkView.focusedFrameGuide.layoutFrame : artworkView.bounds
-        let crop = isFocused && indicatorPlacement == .croppedCount
-            ? NativePosterArtworkBitmap.portraitFocusCrop(for: size) : .zero
-        let artworkScale = viewport.width / (size.width - 2 * crop.width)
-        let scale = artworkScale / (projected.width / overlayView.bounds.width)
-        // The baked tile loses its top/trailing edges to the native crop.
-        let trailingDirection: CGFloat = indicatorLayoutDirection == .leftToRight ? -1 : 1
-        let center = CGPoint(
-            x: overlayView.bounds.midX + trailingDirection * crop.width * scale / 2,
-            y: overlayView.bounds.midY + crop.height * scale / 2
-        )
-        if indicatorView.bounds != artworkView.bounds { indicatorView.bounds = artworkView.bounds }
-        if indicatorView.center != center { indicatorView.center = center }
-        let transform = CGAffineTransform(scaleX: scale, y: scale)
-        if indicatorView.transform != transform { indicatorView.transform = transform }
     }
 }
 

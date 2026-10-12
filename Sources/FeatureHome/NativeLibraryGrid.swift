@@ -313,6 +313,7 @@ final class NativeLibraryGridController: UIViewController, UICollectionViewDataS
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         layoutViewport()
+        scrollTarget?.moveHeader(with: collection.contentOffset.y + collection.adjustedContentInset.top)
         guard view.bounds.width > 0 else { return }
         let metrics = environment.plozzMetrics
         let columns = max(1, metrics.libraryPosterColumns.count)

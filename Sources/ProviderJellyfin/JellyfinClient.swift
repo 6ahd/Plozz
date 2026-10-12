@@ -631,7 +631,8 @@ public struct JellyfinClient: Sendable {
                 URLQueryItem(name: "StartIndex", value: String(page.startIndex)),
                 URLQueryItem(name: "Limit", value: String(page.limit)),
                 URLQueryItem(name: "EnableTotalRecordCount", value: "true"),
-                URLQueryItem(name: "Fields", value: "Overview,MediaStreams,MediaSources,Genres,ProviderIds")
+                URLQueryItem(name: "EnableUserData", value: "true"),
+                URLQueryItem(name: "Fields", value: "Overview,MediaStreams,MediaSources,Genres,ProviderIds,UserData")
             ],
             headers: authHeaders
         )

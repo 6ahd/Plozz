@@ -1480,11 +1480,11 @@ enum PosterCardPresentation {
     }
 
     static func showsWatchStatus(for kind: MediaItemKind) -> Bool {
-        kind != .folder
+        kind != .folder && kind != .collection && kind != .playlist
     }
 
     static func showsPlaybackIndicators(for kind: MediaItemKind) -> Bool {
-        kind != .folder
+        showsWatchStatus(for: kind)
     }
 
     static func folderIconSize(for style: PosterCardView.Style) -> CGFloat {

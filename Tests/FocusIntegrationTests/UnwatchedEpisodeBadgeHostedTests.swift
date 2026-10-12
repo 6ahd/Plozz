@@ -9,6 +9,32 @@ import XCTest
 
 @MainActor
 final class UnwatchedEpisodeBadgeHostedTests: XCTestCase {
+    func testNavigationContainersRenderWithoutWatchIndicators() throws {
+        for kind: MediaItemKind in [.collection, .playlist, .folder] {
+            for indicator in WatchStatusIndicator.allCases {
+                for played in [false, true] {
+                    let item = MediaItem(id: "container", title: "Container", kind: kind, isPlayed: played)
+                    XCTAssertEqual(
+                        try render(item, enabled: true, scheme: .dark, indicator: indicator).pngData(),
+                        try render(item, enabled: true, scheme: .dark, hidesStatus: true, indicator: indicator).pngData()
+                    )
+                }
+            }
+        }
+    }
+
+    func testZeroRemainingEpisodesDoesNotRenderAnUnwatchedCorner() throws {
+        for kind: MediaItemKind in [.series, .season] {
+            let item = MediaItem(id: "complete", title: "Complete", kind: kind, unwatchedEpisodeCount: 0)
+            for enabled in [false, true] {
+                XCTAssertEqual(
+                    try render(item, enabled: enabled, scheme: .dark, indicator: .unwatched).pngData(),
+                    try render(item, enabled: enabled, scheme: .dark, hidesStatus: true, indicator: .unwatched).pngData()
+                )
+            }
+        }
+    }
+
     func testAttachedStatusRendererClearsWatchedMark() throws {
         var rendered: [Data] = []
         for isPlayed in [true, false] {

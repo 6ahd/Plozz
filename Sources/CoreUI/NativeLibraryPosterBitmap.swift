@@ -250,7 +250,7 @@ enum NativePosterArtworkBitmap {
     }
 }
 
-/// Artwork and its indicators share one native floating image without internal zoom.
+/// Browse uses the same opaque native surface and aligned indicator foreground as poster rows.
 @MainActor
 enum NativeLibraryPosterBitmap {
     struct Presentation: Equatable {
@@ -269,6 +269,18 @@ enum NativeLibraryPosterBitmap {
         let contrast: ColorSchemeContrast
         let dynamicTypeSize: DynamicTypeSize
         let legibilityWeight: LegibilityWeight?
+
+        var indicators: MediaCardPlaybackIndicators? {
+            playback.map {
+                MediaCardPlaybackIndicators(
+                    playback: $0, hidesStatus: hidesStatus,
+                    showsProgressBar: true, badgeInset: 8,
+                    progressHeight: metrics.progressBarHeight,
+                    progressHorizontalInset: 16, progressBottomInset: 16,
+                    artworkCornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
+                )
+            }
+        }
 
         init(item: MediaItem?, spoilerSettings: SpoilerSettings, environment: EnvironmentValues) {
             playback = item.map(MediaPlaybackIndicatorState.init)
@@ -352,21 +364,26 @@ enum NativeLibraryPosterBitmap {
                 symbol: presentation.symbol, hasArtwork: hasArtwork,
                 isFolder: presentation.playback?.kind == .folder,
                 isFocused: false,
-                indicators: presentation.playback.map {
-                    MediaCardPlaybackIndicators(
-                        playback: $0, hidesStatus: presentation.hidesStatus,
-                        showsProgressBar: true, badgeInset: 8,
-                        progressHeight: presentation.metrics.progressBarHeight,
-                        progressHorizontalInset: 16, progressBottomInset: 16,
-                        artworkCornerRadius: PlozzTheme.Metrics.nativePosterArtworkCornerRadius
-                    )
-                },
+                indicators: presentation.indicators,
                 title: presentation.title.map { Text(verbatim: $0) }
             )
             .frame(width: size.width, height: size.height)
+            .environment(\.nativePosterIndicatorLayer, .background)
             .environment(\.self, environment)
             .plozzChromeFocused(false)
         }
+    }
+
+    static func overlay(key: Key, environment: EnvironmentValues) -> NativePosterOverlay? {
+        guard let indicators = key.presentation.indicators else { return nil }
+        let indicatorKey = NativePosterArtworkBitmap.IndicatorKey(
+            .media(indicators), environment: environment, layer: .foreground
+        )
+        guard let placement = indicatorKey.overlayPlacement,
+              let image = NativePosterArtworkBitmap.indicatorImage(
+                  key: indicatorKey, size: key.size, scale: key.scale, environment: environment
+              ) else { return nil }
+        return NativePosterOverlay(image: image, placement: placement, layoutDirection: indicatorKey.layoutDirection)
     }
 
     static func image(source: UIImage?, key: Key, environment: EnvironmentValues) -> UIImage? {
@@ -393,7 +410,8 @@ enum NativeLibraryPosterBitmap {
             return nil
         }
         guard let image = NativePosterArtworkBitmap.image(
-            source: source, overlay: overlay, size: size, scale: key.scale, backgroundColor: .darkGray
+            source: source, overlay: overlay, size: size, scale: key.scale,
+            backgroundColor: .darkGray, clipsToArtwork: false
         ) else { return nil }
         renderCount += 1
         if let replaced = cache.removeValue(forKey: key) { retainedBytes -= replaced.cost }

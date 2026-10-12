@@ -668,7 +668,7 @@ configuration did not preserve both the no-crop composition and clean highlight.
 The `TVCardView` trial removed the desired moving sheen and was rejected.
 Do not modify private UIKit layers or compensate with per-frame transforms.
 
-Portrait row posters now retain the native image effect with its rectangular
+Portrait row posters and native Browse cells retain the native image effect with its rectangular
 focus mask and the explicitly accepted small internal crop. Hosted measurements
 at 200-320pt widths show about 1-2% extra enlargement inside the visible frame.
 Their source bitmaps and placeholders are fully opaque rectangles, as required
@@ -676,9 +676,10 @@ by UIKit's non-content-masked mode. UIKit owns the only outer corner shape.
 Retaining baked rounded-alpha corners underneath that surface left competing
 artwork/highlight silhouettes; transparent portrait sources now receive a dark
 backing before composition. No clipping view or per-frame mask is added.
-Continue Watching, landscape/square artwork and Browse's cell-owned renderer
-keep their alpha-masked no-internal-zoom path. The existing UIButton remains
-the sole focus owner; there is no card ancestor or custom animation.
+Continue Watching and landscape/square artwork keep their alpha-masked
+no-internal-zoom path. Rows and Browse share `NativePosterImageView`; the existing
+UIButton or collection cell remains the sole focus owner. There is no card
+ancestor or custom animation.
 Count-tile backgrounds stay flush. The original 2pt trailing/aspect-scaled top
 padding adjustment was baked into the whole image. Applying it permanently made
 resting digits uneven. Switching images at focus changes fixed the padding but
@@ -701,8 +702,14 @@ Background and foreground pixels reuse the same 24 MiB/64-entry indicator cache.
 The layer role, rather than focus, participates in the key. Environment overrides
 stay inside the full environment injection. Stable layouts and focus changes
 reuse both images; data/size/environment changes invalidate the appropriate pixels.
-Continue Watching, landscape/square artwork, Browse and mobile stay on the
+Continue Watching, landscape/square artwork and mobile stay on the
 combined rendering path.
+
+The library header retains its scrolling offset while another page covers the
+library. Disappearance is not a scroll-to-top event; resetting then overlays
+mode/sort controls on the retained lower rows when returning. Native layout also
+synchronizes the header with the actual collection viewport. A full-screen
+cover/return regression exercises both system and custom-focus grids.
 
 `testPortraitArtworkLeavesCornerClippingToUIKit` checks opaque source corners and
 native rendered rounding at rest, focus and defocus on indigo artwork. The

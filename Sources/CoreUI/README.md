@@ -256,17 +256,18 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 - **Native poster focus** — the shared `NativeTVPoster` uses a
   `NativePosterButton`, not `TVPosterView` or a `TVCardView` ancestor. Its
   `UIImageView` retains native enlargement, remote motion and the moving
-  specular highlight. Portrait row posters use UIKit's rectangular focus mask:
+  specular highlight. Portrait rows and native Browse cells share
+  `NativePosterImageView` and UIKit's rectangular focus mask:
   the small native internal crop (about 1-2% in hosted measurements) is an
   intentional tradeoff for retaining that native surface.
   The alpha-derived highlight mask produced an offset crescent at extreme tilt.
   Continue Watching, landscape/square artwork, transparent landscape library
-  covers, and native Browse cells keep their no-internal-zoom alpha-masked path.
+  covers keep their no-internal-zoom alpha-masked path.
   Portrait artwork and placeholders are opaque rectangles; UIKit alone rounds
   the visible surface. Pre-rounded alpha pixels beneath that native mask create
   a second corner silhouette that can separate from the highlight. Transparent
   portrait sources receive the same dark backing as missing artwork.
-  Alpha-masked landscape/square and Browse artwork remain rounded in the bitmap.
+  Alpha-masked landscape/square artwork remains rounded in the bitmap.
   Corner flags, count-tile backgrounds and legibility washes are composited into
   the artwork itself. Portrait count digits and floating status/library marks
   use a cached foreground on `overlayContentView`. That surface receives a nearer
@@ -286,26 +287,25 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   images remain identical across focus changes: no late bitmap replacement,
   delayed number repositioning, custom poster scale, spring, duration or timer.
   Background/foreground indicator layers share the existing bounded bitmap cache;
-  only data, environment or size changes render new pixels. Mobile, Browse and
+  only data, environment or size changes render new pixels. Mobile and
   landscape cards keep their combined indicator rendering.
   The button keeps the existing artwork slot and committed-bounds bitmap
   preparation, preserving row pitch and captions.
   SwiftUI measurement is side-effect-free: candidate widths never resize the
   native image or trigger artwork/status rendering. A mounted poster prepares
   its latest inputs at the committed UIKit size, with a per-poster autorelease
-  pool for temporary raster surfaces. Creation uses shared rounded loading
-  masks (evictable cache targets: 8 entries, 4 MiB), not per-item composition.
+  pool for temporary raster surfaces. Creation uses shared loading surfaces
+  (evictable cache targets: 8 entries, 4 MiB), not per-item composition.
   Ordinary artwork uses one final normalized/composited surface rather than
   retaining an additional unmarked full-size copy per card. Identical status
   presentations share concrete pixels in a separate 24 MiB/64-entry cache;
   cached images do not retain a SwiftUI renderer or its environment.
   Status-cache pixels remain unrounded until the final composite. Rounded alpha
-  is applied once after artwork, washes and marks are combined; clipping the
+  is applied once to alpha-masked artwork after washes and marks are combined; clipping the
   individual draws exposes pale artwork through an antialiased count-tile edge.
   The inverse mask's outer eraser extends beyond the allocated raster, including
   the extra row/column at fractional sizes. Artwork uses committed view bounds;
-  Browse aligns its view and bitmap to the same physical pixels. UIKit's
-  content-masked focus requires identical image/view aspect ratios at 1x and 2x.
+  Browse aligns its view and bitmap to the same physical pixels at 1x and 2x.
   Ordinary watch flags/check badges use opaque white; episode-count tiles keep
   their dark fill and white text.
   This keeps lazy-row estimation out of the expensive rendering path without
@@ -326,9 +326,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Native Browse uses the correction for both borderless and framed system-focus
   cells. Debug's `--original-library-posters` opts out of Browse only.
   The collection cell remains the focus and selection owner,
-  with one rounded-alpha `UIImageView` using native ancestor-focus adjustment
-  and content masking. Artwork and the existing watch/count/progress overlay
-  share the image, so enlargement does not change their relative insets.
+  with the same opaque artwork, native ancestor-focus adjustment, and immediate
+  foreground alignment as row posters. Reuse clears both image layers.
+  Collections, playlists and folders have no watch/progress indicators. A series
+  or season with zero known unwatched episodes never falls back to an unwatched
+  flag when its aggregate played boolean is absent or false.
   Captions and detail transitions retain their existing owners. Custom focus,
   SwiftUI content inside native framed cards, and mobile retain their existing
   rendering paths; none uses the replaced poster control.
