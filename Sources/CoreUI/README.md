@@ -129,6 +129,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   pickers can promote their menu to that whole cell and intercept neighboring
   navigation links or controls. Keep picker activation local without replacing
   the shared group surface, separators, or tvOS control styles.
+- **Detail-opening feedback** — `detailOpenFeedback()` provides one soft haptic
+  when a mobile media, person, downloaded-show, or music detail page first
+  appears. The page owns the one-shot state, outside loading content, so data
+  refreshes, returning from playback, and popping a nested detail do not repeat
+  it. Opening a new page emits again; tvOS and devices without haptics are silent.
 - **Async artwork** — `FallbackAsyncImage` and `ArtworkImageCache`: an
   on-disk + in-memory image cache shared with `MetadataKit`'s URL cache,
   with profile-scoped source choices in Appearance > Artwork. Recommended uses

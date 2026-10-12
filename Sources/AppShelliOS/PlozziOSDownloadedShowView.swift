@@ -104,6 +104,7 @@ struct PlozziOSDownloadedShowView: View {
                 )
             }
         }
+        .detailOpenFeedback()
         .confirmationDialog(
             pendingBulkDeletion.map { Text($0.title) } ?? Text(verbatim: ""),
             isPresented: Binding(

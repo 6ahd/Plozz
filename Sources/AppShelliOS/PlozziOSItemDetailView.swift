@@ -56,6 +56,7 @@ struct PlozziOSItemDetailView: View {
 
     var body: some View {
         detailBody
+            .detailOpenFeedback()
             .environment(\.plozzArtworkArea, .details)
             // Each detail page installs its own router. A pushed destination —
             // whether from an inline `NavigationLink` or a
