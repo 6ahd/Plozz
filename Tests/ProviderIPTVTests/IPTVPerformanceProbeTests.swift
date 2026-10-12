@@ -5,10 +5,37 @@ import Darwin
 import FeatureLiveTVCore
 import Foundation
 @testable import ProviderIPTV
+@testable import TestSupportPerformance
 import XCTest
 
 @MainActor
 final class IPTVPerformanceProbeTests: XCTestCase {
+    func testPerformanceCatalogImport() async throws {
+        try PerformanceProbe.requireEnabled()
+        let records = (0..<10_000).map { index in
+            IPTVRecord(
+                item: MediaItem(id: "movie:\(index)", title: "Movie \(index)", kind: .movie, libraryID: "movies"),
+                streamURL: URL(string: "https://fixture.invalid/movie/\(index)")
+            )
+        }
+        try await PerformanceProbe.measure(self, scenario: "catalog-import") {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer {
+                do { try FileManager.default.removeItem(at: root) }
+                catch { XCTFail("Could not remove the owned performance catalogue: \(error)") }
+            }
+            let catalog = try IPTVCatalog(url: root.appendingPathComponent("catalog.sqlite"), key: Data(repeating: 7, count: 32))
+            try catalog.beginImport()
+            defer { catalog.discardImport() }
+            for record in records { try catalog.insert(record, into: .incoming) }
+            try catalog.commitImport(library: nil, scope: "playlist")
+            let count = try catalog.count(where: "1 = 1")
+            XCTAssertEqual(count, records.count)
+            XCTAssertEqual(try catalog.record("movie:9999").item.title, "Movie 9999")
+            return ["records": count]
+        }
+    }
+
     func testOptInXtreamImportAndLibraryDiscovery() async throws {
         let control = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()

@@ -7,6 +7,12 @@ the methodology, the on-device tooling, how to read an Instruments trace without
 the GUI, and two worked case studies (a memory/CPU storm and a SwiftUI re-render
 storm) that this process actually solved.
 
+For proactive, agent-driven optimization without borrowing a physical device,
+start with the [simulator performance lab](performance-lab.md). It owns automated
+workloads, configuration matrices, baselines and evidence comparison. This
+playbook owns attribution and physical confirmation, not a requirement to deploy
+every experimental edit.
+
 > Golden rule: **get ground truth before changing code.** tvOS performance bugs
 > are almost always the opposite of what they look like. "No artwork" was never an
 > artwork bug; it was JavaScriptCore garbage collection pinning every core. "The
@@ -25,13 +31,13 @@ cycle: jump straight to §10.
 **Focus missing until the next remote press, or landing on the wrong control?**
 Start with [tvOS focus handoffs](#tvos-focus-handoffs-searchsidebar), not a CPU trace.
 
-Most of this playbook was written against the Apple TV, and §0 still holds there
-(the TV is the honest signal for *performance*). But it applies to **iPhone and
-iPad too** — the July 2026 leak in §10 was iOS-only, and treating this as a
-tvOS-only document is exactly why it went unread for two hours. The drill is always the same: **reproduce on the
-device → measure with the watchdog and/or `xctrace` → aggregate the trace →
-name the subsystem → fix at the source → re-measure.** Do not change code on a
-hunch before a measurement names the culprit.
+Most of this playbook was written against the Apple TV, but it applies to
+**iPhone and iPad too** — the July 2026 leak in §10 was iOS-only. For a physical
+failure, reproduce on the affected device, measure with the watchdog and/or
+`xctrace`, aggregate the trace, name the subsystem, fix the source and re-measure.
+For device-free optimization, follow the simulator lab's equivalent measured
+loop and reserve hardware-specific confirmation for a checkpoint. Do not change
+code on a hunch before a measurement names the culprit.
 
 There are two dominant bug **classes** in this app; identify which one you're in
 early (the decision tree in §4 routes you):
@@ -216,11 +222,14 @@ that commit. Failures invalidate preparation and preserve the caller's fallback;
 unchanged observations do not trigger another disk flush. Do not fix `fsync`
 hangs by removing atomic writes or returning before persistence finishes.
 
-## 0. The Apple TV is the only honest signal
+## 0. Match the evidence to the claim
 
-- The Simulator does **not** reproduce these problems. CPU, memory pressure, the
-  cooperative-thread-pool size, and the H.264/HEVC decoders all differ. Always
-  reproduce and confirm on the **physical Apple TV**.
+- Simulator workloads can expose repeated computation, I/O, invalidation and
+  lifetime defects without using a physical device. Use them for the automated
+  inner loop; count actual work and compare controlled measurements.
+- CPU, GPU, memory pressure, scheduling and H.264/HEVC decoders differ on
+  hardware. Confirm a hardware-specific claim on the affected physical
+  platform. A simulator improvement is not proof of Apple TV frame pacing.
 - The device is shared and is a hard lock: **one install at a time**. Compiling is
   free; installing replaces the app, so two deploys clobber each other. Only the
   agent who "holds" the device deploys.

@@ -6,6 +6,12 @@ knowledge is **derived at runtime** from `swift package dump-package`; nothing i
 the test tooling hardcodes the target list, so new targets (e.g. the WebDAV work's
 `MediaTransportWebDAVTests`) are picked up automatically.
 
+Performance investigations use the opt-in [simulator performance lab](performance-lab.md),
+not ordinary correctness-test durations. Its runner builds optimized selected
+workloads once, keeps five measured repetitions, checks work-count invariants,
+and compares source-identified baseline/candidate evidence without hardware
+deployment or automatic retries. Normal suites skip those opt-in probes.
+
 ## The two speed wins
 
 ### 1. Build once, run many (`tools/run-tests.sh`)

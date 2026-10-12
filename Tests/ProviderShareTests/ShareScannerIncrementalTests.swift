@@ -2,6 +2,7 @@ import XCTest
 import CoreModels
 import MediaTransportCore
 @testable import ProviderShare
+@testable import TestSupportPerformance
 
 /// Guards the two rules that decide whether a directory is re-listed.
 ///
@@ -93,6 +94,48 @@ final class ShareScannerIncrementalTests: XCTestCase {
     private actor ListingRecorder {
         var paths: [String] = []
         func record(_ path: String) { paths.append(path) }
+    }
+
+    @MainActor
+    func testPerformanceUnchangedLibrary() async throws {
+        try PerformanceProbe.requireEnabled()
+        let fixture = ShareCatalogSQLiteFixture()
+        defer { fixture.cleanup() }
+        let store = fixture.makeStore()
+        let count = 1_000
+        var tree: [String: [RemoteFileEntry]] = ["": [try directory("Movies")]]
+        tree["Movies"] = try (0..<count).map { try directory("Movies/Film \($0) (2000)") }
+        for index in 0..<count {
+            let path = "Movies/Film \(index) (2000)"
+            tree[path] = [try video("\(path)/Film \(index) (2000).mkv")]
+        }
+        let initial = await scanner(store, tree: tree).scan()
+        XCTAssertEqual(initial, .completedClean)
+        try fixture.execute("""
+        CREATE TABLE performance_inventory_writes(value INTEGER NOT NULL);
+        INSERT INTO performance_inventory_writes VALUES(0);
+        CREATE TRIGGER performance_inventory_update AFTER UPDATE ON playable_inventory BEGIN
+          UPDATE performance_inventory_writes SET value=value+1;
+        END;
+        """)
+        try await PerformanceProbe.measure(self, scenario: "library-unchanged") {
+            try fixture.execute("UPDATE performance_inventory_writes SET value=0;")
+            let recorder = ListingRecorder()
+            let result = await self.scanner(store, tree: tree, recorder: recorder).scan(deep: false)
+            let paths = await recorder.paths
+            XCTAssertEqual(result, .completedClean)
+            XCTAssertEqual(paths, ["", "Movies"])
+            let assets = try fixture.integer("SELECT COUNT(*) FROM assets;")
+            let writes = try fixture.integer("SELECT value FROM performance_inventory_writes;")
+            XCTAssertEqual(assets, count)
+            XCTAssertLessThanOrEqual(writes, count, "Inventory stamping must not multiply by the whole library.")
+            return ["directoryListings": paths.count, "assets": assets, "inventoryUpdates": writes]
+        }
+        tree["Movies"]?[0] = try directory("Movies/Film 0 (2000)", timestamp: 200)
+        tree["Movies/Film 0 (2000)"]?.append(try video("Movies/Film 0 (2000)/New (2001).mkv"))
+        let changed = await scanner(store, tree: tree).scan(deep: false)
+        XCTAssertEqual(changed, .completedClean)
+        XCTAssertEqual(try fixture.integer("SELECT COUNT(*) FROM assets;"), count + 1)
     }
 
     private func directory(_ path: String, timestamp: TimeInterval = 100) throws -> RemoteFileEntry {

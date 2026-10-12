@@ -922,6 +922,10 @@ let package = Package(
             path: "Tests/TestSupportNetworking",
             swiftSettings: [.unsafeFlags(["-strict-concurrency=complete"])]
         ),
+        .target(
+            name: "TestSupportPerformance",
+            path: "Tests/TestSupportPerformance"
+        ),
 
         // MARK: Tests (pure logic, no UI required)
         .testTarget(
@@ -942,11 +946,15 @@ let package = Package(
         ),
         .testTarget(
             name: "FeatureSyncCloudTests",
-            dependencies: ["FeatureSyncCloud", "CoreModels"]
+            dependencies: ["FeatureSyncCloud", "CoreModels", "TestSupportPerformance"]
         ),
         .testTarget(
             name: "AppRuntimeTests",
-            dependencies: ["AppRuntime", "CoreModels", "FeatureAuthCore", "CrashReporting", "FeatureHome"]
+            dependencies: [
+                "AppRuntime", "CoreModels", "FeatureAuthCore", "CrashReporting", "FeatureHomeCore",
+                .target(name: "FeatureHome", condition: .when(platforms: [.tvOS])),
+                "FeatureSyncCloud", "TestSupportPerformance"
+            ]
         ),
         .testTarget(
             name: "MediaDownloadsTests",
@@ -982,7 +990,7 @@ let package = Package(
         ),
         .testTarget(
             name: "ProviderIPTVTests",
-            dependencies: ["ProviderIPTV", "CoreModels", "CoreNetworking", "FeatureLiveTVCore"]
+            dependencies: ["ProviderIPTV", "CoreModels", "CoreNetworking", "FeatureLiveTVCore", "TestSupportPerformance"]
         ),
         .testTarget(
             name: "ProviderPlexTests",
@@ -1064,7 +1072,7 @@ let package = Package(
         ),
         .testTarget(
             name: "ProviderShareTests",
-            dependencies: ["ProviderShare", "CoreModels", "MediaTransportCore"]
+            dependencies: ["ProviderShare", "CoreModels", "MediaTransportCore", "TestSupportPerformance"]
         ),
         .testTarget(
             name: "FeatureSettingsTests",
