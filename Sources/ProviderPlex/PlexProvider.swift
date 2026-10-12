@@ -684,7 +684,47 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
             ratingKey: collectionID, start: page.startIndex, size: page.limit
         )
         try Self.validateCollectionPage(container, startIndex: page.startIndex)
-        let items = (container.Metadata ?? []).map(map(metadata:))
+        let members = container.Metadata ?? []
+        var items = members.map(map(metadata:))
+        let incompleteIDs = Array(Set(members.compactMap { member -> String? in
+            let kind = Self.kind(forItemType: member.type)
+            guard kind == .series || kind == .season,
+                  member.leafCount == nil || member.viewedLeafCount == nil,
+                  let id = member.ratingKey, !id.isEmpty else { return nil }
+            return id
+        })).sorted()
+        // Collection responses can omit episode aggregates; resolve them once
+        // per bounded batch, not through requests from individual poster views.
+        for start in stride(from: 0, to: incompleteIDs.count, by: 50) {
+            try Task.checkCancellation()
+            let ids = Array(incompleteIDs[start..<min(start + 50, incompleteIDs.count)])
+            let metadata = try await client.metadata(ratingKeys: ids)
+            var watchStates: [String: MediaItem] = [:]
+            for var record in metadata {
+                guard let id = record.ratingKey, ids.contains(id),
+                      let member = members.first(where: { $0.ratingKey == id }) else { throw AppError.invalidResponse }
+                record.leafCount = record.leafCount ?? member.leafCount
+                record.viewedLeafCount = record.viewedLeafCount ?? member.viewedLeafCount
+                guard let total = record.leafCount, let watched = record.viewedLeafCount,
+                      total >= 0, watched >= 0, watched <= total else { throw AppError.invalidResponse }
+                let state = map(metadata: record)
+                guard state.kind == .series || state.kind == .season,
+                      watchStates.updateValue(state, forKey: id) == nil else { throw AppError.invalidResponse }
+            }
+            guard watchStates.count == ids.count else { throw AppError.invalidResponse }
+            for index in items.indices {
+                guard let state = watchStates[items[index].id] else { continue }
+                guard state.kind == items[index].kind else { throw AppError.invalidResponse }
+                items[index].isPlayed = state.isPlayed
+                items[index].hasBeenPlayed = state.hasBeenPlayed
+                items[index].playedPercentage = state.playedPercentage
+                items[index].unwatchedEpisodeCount = state.unwatchedEpisodeCount
+                items[index].resumePosition = state.resumePosition
+                items[index].lastPlayedAt = state.lastPlayedAt
+                items[index].librarySortValues?.watched = state.librarySortValues?.watched
+                items[index].librarySortValues?.playCount = state.librarySortValues?.playCount
+            }
+        }
         return MediaPage(
             items: items,
             startIndex: page.startIndex,

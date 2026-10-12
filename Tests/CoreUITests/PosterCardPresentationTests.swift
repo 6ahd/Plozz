@@ -168,6 +168,40 @@ final class PosterCardPresentationTests: XCTestCase {
         }
     }
 
+    func testNavigationContainersNeverShowPlaybackStatus() {
+        for kind: MediaItemKind in [.folder, .collection, .playlist] {
+            XCTAssertFalse(PosterCardPresentation.showsWatchStatus(for: kind))
+            XCTAssertFalse(PosterCardPresentation.showsPlaybackIndicators(for: kind))
+            for played in [false, true] {
+                let state = MediaPlaybackIndicatorState(MediaItem(
+                    id: "container", title: "Container", kind: kind,
+                    resumePosition: 20, playedPercentage: 0.3, unwatchedEpisodeCount: 12, isPlayed: played
+                ))
+                XCTAssertFalse(MediaPlaybackIndicatorPresentation.showsProgress(for: state))
+                for indicator in WatchStatusIndicator.allCases {
+                    XCTAssertNil(MediaPlaybackIndicatorPresentation.status(
+                        for: state, hidesStatus: false, indicator: indicator, showsEpisodeCount: true,
+                        seerConnected: false
+                    ))
+                }
+            }
+        }
+    }
+
+    func testZeroRemainingEpisodesNeverFallsBackToAnUnwatchedFlag() {
+        for kind: MediaItemKind in [.series, .season] {
+            for count in [nil, 0, 12] as [Int?] {
+                let state = MediaPlaybackIndicatorState(MediaItem(
+                    id: "series", title: "Series", kind: kind, unwatchedEpisodeCount: count
+                ))
+                XCTAssertEqual(
+                    MediaPlaybackIndicatorPresentation.showsUnwatchedFlag(for: state, hidesStatus: false),
+                    count != 0
+                )
+            }
+        }
+    }
+
     /// A rewatch a couple of minutes into a feature film sits below one percent,
     /// and used to render as an untouched card while the server's own app showed a
     /// bar. Where the viewer left off is the most useful thing a card can say, and

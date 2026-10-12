@@ -58,6 +58,8 @@ public enum PlozzTheme {
         /// Standard poster card width (3:2-ish) tuned for tvOS 10-foot UI.
         public static let posterWidth: CGFloat = 280
         public static let posterHeight: CGFloat = 420
+        /// Resting portrait cards visible in a television row at standard density.
+        public static let portraitRowVisibleCards: CGFloat = 6.25
         public static let landscapeWidth: CGFloat = 480
         public static let landscapeHeight: CGFloat = 270
 

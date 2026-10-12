@@ -224,6 +224,142 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   clearance in its 18pt gutters. Focused read-only cards and card buttons draw
   above their peers. This policy does not change ordinary media-card growth,
   custom focus styles, or touch layouts.
+- **Native artwork focus comparison** — launch the separate tvOS focus host
+  with `--native-artwork-focus-comparison`. It compares the current poster,
+  a single-image poster, a content-masked poster with separate overlays, and a
+  plain native card. The goal is to preserve outer enlargement and the native
+  highlight without extra zoom/cropping inside the artwork, not disable growth.
+  The single-image case prepares rounded transparent artwork and overlays once,
+  then enables `masksFocusEffectToContents`; no custom focus transform is used.
+  Geometry checks on tvOS 26.5 found preserved composition and overlay insets
+  while enlarging 400×225 artwork to 440×247.5. Those checks did not validate
+  the highlight bounds: subsequent physical testing exposed an offset highlight
+  mask on the single-image `TVPosterView`. Content masking alone also leaves
+  separate native overlays floating at a different depth. Neither is an
+  accepted production replacement.
+  `NativeArtworkFocusComparisonHostedTests` checks real focus, enlargement,
+  baked-in image landmarks, overlay-marker pixels, visible highlight, and action
+  delivery. Run it with
+  `tools/run-focus-tests.sh -only-testing:PlozzFocusTests/NativeArtworkFocusComparisonHostedTests`.
+  This fixture does not change production style. Its composited chrome is
+  deliberately static: live content updates and image replacement during focus
+  need separate coverage before adoption. Alpha masking also has a documented
+  rendering cost; these geometry checks do not establish physical frame pacing
+  or full Siri Remote motion behavior.
+- **Native library artwork layout** — `NativeTVLibraryCell` leaves UIKit's
+  `contentView` at the full cell size and owns the artwork as a separate direct
+  child. Resizing `contentView` to exclude captions caused every repeated
+  layout pass to grow then shrink its hosted artwork, invalidating SwiftUI
+  geometry even when the final size was unchanged. The artwork remains directly
+  under the focused cell for TVUIKit projection, with captions outside it and
+  detail transitions referencing the artwork rather than the full cell.
+- **Native poster focus** — the shared `NativeTVPoster` uses a
+  `NativePosterButton`, not `TVPosterView` or a `TVCardView` ancestor. Its
+  `UIImageView` retains native enlargement, remote motion and the moving
+  specular highlight. Portrait rows and native Browse cells share
+  `NativePosterImageView` and UIKit's rectangular focus mask:
+  the small native internal crop (about 1-2% in hosted measurements) is an
+  intentional tradeoff for retaining that native surface.
+  The alpha-derived highlight mask produced an offset crescent at extreme tilt.
+  Continue Watching, landscape/square artwork, transparent landscape library
+  covers keep their no-internal-zoom alpha-masked path.
+  Portrait artwork and placeholders are opaque rectangles; UIKit alone rounds
+  the visible surface. Pre-rounded alpha pixels beneath that native mask create
+  a second corner silhouette that can separate from the highlight. Transparent
+  portrait sources receive the same dark backing as missing artwork.
+  Alpha-masked landscape/square artwork remains rounded in the bitmap.
+  Corner flags, count-tile backgrounds and legibility washes are composited into
+  the artwork itself. Portrait count digits and floating status/library marks
+  use a cached foreground on `overlayContentView`. That surface receives a nearer
+  native depth projection; its badge alone is aligned to the public artwork
+  viewport so it does not drift outside the image.
+  Async logos, focus-reactive progress and animated content remain live in
+  `overlayContentView`; edge backgrounds and full-card legibility washes do not. Continue Watching
+  keeps its established size, reflection, logo position and resume chrome without
+  top-corner watch marks. Its adaptive logo dimming and the shared bottom scrim
+  are drawn into the artwork; projecting those backgrounds with the live overlay
+  creates a dark rim outside the focused image. Captions stay outside it. Transparent
+  landscape artwork retains its alpha, and protected/extended artwork is prepared before
+  normalization. Portrait count tiles stay flush. Their digits center inside the
+  visible tile using the native crop allowance (2pt horizontally, aspect-scaled
+  vertically). Badge destination geometry updates in UIKit's focus coordinator
+  at the focus event, not in a completion callback. The poster and foreground
+  images remain identical across focus changes: no late bitmap replacement,
+  delayed number repositioning, custom poster scale, spring, duration or timer.
+  Background/foreground indicator layers share the existing bounded bitmap cache;
+  only data, environment or size changes render new pixels. Mobile and
+  landscape cards keep their combined indicator rendering.
+  The button keeps the existing artwork slot and committed-bounds bitmap
+  preparation, preserving row pitch and captions.
+  SwiftUI measurement is side-effect-free: candidate widths never resize the
+  native image or trigger artwork/status rendering. A mounted poster prepares
+  its latest inputs at the committed UIKit size, with a per-poster autorelease
+  pool for temporary raster surfaces. Creation uses shared loading surfaces
+  (evictable cache targets: 8 entries, 4 MiB), not per-item composition.
+  Ordinary artwork uses one final normalized/composited surface rather than
+  retaining an additional unmarked full-size copy per card. Identical status
+  presentations share concrete pixels in a separate 24 MiB/64-entry cache;
+  cached images do not retain a SwiftUI renderer or its environment.
+  Status-cache pixels remain unrounded until the final composite. Rounded alpha
+  is applied once to alpha-masked artwork after washes and marks are combined; clipping the
+  individual draws exposes pale artwork through an antialiased count-tile edge.
+  The inverse mask's outer eraser extends beyond the allocated raster, including
+  the extra row/column at fractional sizes. Artwork uses committed view bounds;
+  Browse aligns its view and bitmap to the same physical pixels at 1x and 2x.
+  Ordinary watch flags/check badges use opaque white; episode-count tiles keep
+  their dark fill and white text.
+  This keeps lazy-row estimation out of the expensive rendering path without
+  delaying first paint through another observable loading state.
+  Portrait television rows fit six full cards and a quarter of the seventh at
+  standard display size. `PlozzMetrics.portraitRowSlotWidth` uses the actual
+  navigation-safe viewport and visible card margins, shared by loaded cards,
+  placeholders and pinned-sidebar scroll parking. Only viewport-width changes
+  update sizing; scrolling does not invalidate the row. Showcase's row viewport
+  reaches the trailing screen edge with native navigation as well as pinned
+  navigation. Showcase's nested motion surfaces expand their leading viewport
+  with matching safe-area padding so SwiftUI does not cull native cards while
+  they are still visible in the overscan gutter. The trailing viewport is not
+  expanded, preserving row density and pinned slot parking. Hosted loaded-artwork
+  checks cover both screen edges in both scroll directions and navigation styles.
+  Display-size preferences still adjust density; library Browse
+  grids, landscape/episode card widths and mobile sizing are unchanged.
+  Native Browse uses the correction for both borderless and framed system-focus
+  cells. Debug's `--original-library-posters` opts out of Browse only.
+  The collection cell remains the focus and selection owner,
+  with the same opaque artwork, native ancestor-focus adjustment, and immediate
+  foreground alignment as row posters. Reuse clears both image layers.
+  Collections, playlists and folders have no watch/progress indicators. A series
+  or season with zero known unwatched episodes never falls back to an unwatched
+  flag when its aggregate played boolean is absent or false.
+  Captions and detail transitions retain their existing owners. Custom focus,
+  SwiftUI content inside native framed cards, and mobile retain their existing
+  rendering paths; none uses the replaced poster control.
+  The shared cache is bounded to 24 MiB and 64 entries, keyed by source identity,
+  size, scale, and visible presentation settings. These limits exclude images
+  retained by visible cells and are not a process-memory budget. Content changes
+  invalidate composition; focus movement alone does not. Full SwiftUI
+  environments and providers are not retained in the shared cache.
+  `NativeLibraryCardHostedTests` covers live episode-count/artwork replacement,
+  focus retention, unchanged-configuration reuse, and cache accounting. Shared
+  poster regressions compare painted landmarks with native enlargement for
+  portrait, landscape, square and Continue Watching artwork, alongside live
+  overlays, focus requests, captions and transparent library covers. Portrait
+  coverage bounds the approved crop, verifies UIKit rounds opaque portrait pixels
+  at rest/focus/defocus, and samples fixed motion-effect offsets with moving
+  highlights on gray artwork. Those offsets do not simulate continuous remote
+  touch or its focus-movement-hint transform; actual corner tilt needs a user check.
+  Focused counts check actual visible digit padding, not just layout bounds. Corner-flag
+  regressions count painted pixels outside the artwork's actual top/right edges,
+  and real Home cards cover count/watch/preference updates without focus replacement.
+  Earlier real TV Shows comparisons recorded more native hitch counts with this
+  renderer; a performance improvement has not been established. It is enabled
+  for the requested zoom correction, not to claim better scrolling. See the
+  [actual-library measurement protocol](../../docs/performance-debugging.md#actual-library-poster-comparisons)
+  for the workload, numbers and transport limitations.
+  Physical comparisons must use the actual populated library, repeated fresh
+  launches, matched startup/settling times and input cadence, and separate idle
+  measurements. Preserve the profile's servers, filters and sorting; retain
+  background-activity evidence rather than assuming a quiet app from its age.
 - **Continue Watching logo contrast** — logo-overlay cards use a 40% base
   artwork dim, reduced for dark artwork and increased by up to 25 percentage
   points when the logo blends into its background (65% maximum). The dim sits

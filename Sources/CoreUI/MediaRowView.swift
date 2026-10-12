@@ -128,6 +128,9 @@ public struct MediaRowView: View {
     @Environment(\.plozzRowTitleTightening) private var titleTightening
     /// Keeps branch-specific masking completely out of native navigation styles.
     @Environment(\.plozzPinnedSidebarActive) private var pinnedSidebarActive
+    #if os(tvOS)
+    @State private var portraitViewportWidth: CGFloat = 0
+    #endif
 
     /// Extra scroll margin beyond the fade, so a FOCUSED card — which grows
     /// outward past its layout frame — still parks entirely clear of the feather.
@@ -529,6 +532,16 @@ public struct MediaRowView: View {
                         .padding(.vertical, layoutMetrics.railShadowClearance)
                     }
                     .scrollClipDisabled()
+                    #if os(tvOS)
+                    .ignoresSafeArea(.container, edges: presentation == .poster ? .trailing : [])
+                    // This width already excludes the navigation safe area.
+                    // Observe size only; scrolling must not invalidate the row.
+                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                        presentation == .poster ? geometry.containerSize.width : 0
+                    } action: { _, width in
+                        portraitViewportWidth = width
+                    }
+                    #endif
                     .padding(.top, layoutMetrics.railTopClearanceOffset)
                     .padding(.bottom, layoutMetrics.railBottomClearanceOffset)
                     .coordinateSpace(name: episodeEntrySpace)
@@ -867,7 +880,15 @@ public struct MediaRowView: View {
     private var cardSlotWidth: CGFloat {
         switch presentation {
         case .poster:
+            #if os(tvOS)
+            return metrics.portraitRowSlotWidth(
+                viewportWidth: portraitViewportWidth,
+                leadingInset: leadingInset,
+                cardStyle: cardStyle
+            )
+            #else
             return metrics.posterWidth
+            #endif
         case .landscape:
             return metrics.cardSlotWidth(
                 for: .landscape,

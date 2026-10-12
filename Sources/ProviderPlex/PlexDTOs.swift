@@ -161,7 +161,7 @@ struct PlexMetadata: Decodable {
     let viewOffset: Int?       // milliseconds resumed-to
     let viewCount: Int?
     /// Number of watched episodes rolled up onto a series.
-    let viewedLeafCount: Int?
+    var viewedLeafCount: Int?
     /// Epoch-seconds timestamp of the user's last playback, used as the
     /// most-recent-wins tiebreaker when unifying watch-state across servers.
     let lastViewedAt: Int?
@@ -177,7 +177,7 @@ struct PlexMetadata: Decodable {
     let parentThumb: String?
     /// Series episode count or album/playlist track count (`leafCount`) and artist album count
     /// (`childCount`) — used to populate music nodes' counts.
-    let leafCount: Int?
+    var leafCount: Int?
     let childCount: Int?
     /// Composite mosaic art for a playlist (`/playlists/{id}/composite/...`),
     /// used as the playlist's artwork when it has no single cover.

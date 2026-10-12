@@ -181,6 +181,11 @@ public struct EpisodeColumnCard: View, Equatable {
     }
 
     private var episodeOverlays: some View {
+        episodeOverlayContent
+            .overlay(alignment: .topTrailing) { statusIndicator }
+    }
+
+    private var episodeOverlayContent: some View {
         ZStack {
             if presentation.isUpcoming, let air = item.upcomingReleaseText {
                 VStack(spacing: 8) {
@@ -204,7 +209,6 @@ public struct EpisodeColumnCard: View, Equatable {
                 ResumeChipOverlay(item: item).plozzChromeFocused(isFocused)
             }
         }
-        .overlay(alignment: .topTrailing) { statusIndicator }
     }
 
     #if os(tvOS)
@@ -221,8 +225,9 @@ public struct EpisodeColumnCard: View, Equatable {
             fallbackWidth: Self.artworkSize.width, title: nil, subtitle: nil,
             overlay: ZStack {
                 if captionsHidden && nativeArtwork.image == nil { neutralPlaceholder }
-                episodeOverlays
+                episodeOverlayContent
             },
+            indicators: nativeStatusIndicator,
             focus: $isFocused, action: action
         )
         .focused($isFocused.focusState)
@@ -271,23 +276,16 @@ public struct EpisodeColumnCard: View, Equatable {
         .opacity(presentation.isUpcoming && !captionsHidden ? 0.05 : 1)
     }
 
-    @ViewBuilder
     private var statusIndicator: some View {
-        // An unaired episode has no watch state to report, so neither the watched
-        // tick nor the unwatched dot applies.
-        if presentation.artworkTreatment == .visible, !presentation.isUpcoming {
-            switch watchStatusIndicator {
-            case .watched:
-                if presentation.isWatched {
-                    MediaWatchedBadge(size: metrics.watchedBadgeSize)
-                        .padding(max(12, MediaWatchIndicatorStyle.floatingInset(for: metrics.watchedBadgeSize)))
-                }
-            case .unwatched:
-                if !presentation.isWatched, presentation.progress == nil {
-                    MediaUnwatchedCorner(size: metrics.unwatchedFlagSize)
-                }
-            }
-        }
+        nativeStatusIndicator
+    }
+
+    private var nativeStatusIndicator: NativePosterIndicators {
+        .episode(
+            isWatched: presentation.isWatched, hasProgress: presentation.progress != nil,
+            isVisible: presentation.artworkTreatment == .visible && !presentation.isUpcoming,
+            style: watchStatusIndicator, badgeSize: metrics.watchedBadgeSize, flagSize: metrics.unwatchedFlagSize
+        )
     }
 }
 #endif
