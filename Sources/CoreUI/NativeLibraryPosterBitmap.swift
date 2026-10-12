@@ -130,8 +130,17 @@ enum NativePosterArtworkBitmap {
 
     private static var indicatorCache: [IndicatorEntry] = []
     private(set) static var indicatorBytes = 0
-    static let indicatorByteLimit = 24 * 1024 * 1024
+    static let indicatorByteLimit = ArtworkMemoryBudget.current.indicatorBytes
+    static let indicatorCountLimit = ArtworkMemoryBudget.current.compositeCount
     static var indicatorCount: Int { indicatorCache.count }
+    private static let indicatorMemoryWarning = NotificationCenter.default.addObserver(
+        forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
+    ) { _ in
+        MainActor.assumeIsolated {
+            indicatorCache.removeAll()
+            indicatorBytes = 0
+        }
+    }
 
     static func indicatorImage(key: IndicatorKey, size: CGSize, scale: CGFloat, environment: EnvironmentValues) -> UIImage? {
         if let index = indicatorCache.firstIndex(where: { $0.key == key && $0.size == size && $0.scale == scale }) {
@@ -160,7 +169,9 @@ enum NativePosterArtworkBitmap {
         }
         let (cost, overflow) = pixels.bytesPerRow.multipliedReportingOverflow(by: pixels.height)
         if !overflow, cost <= indicatorByteLimit {
-            while !indicatorCache.isEmpty && (indicatorBytes + cost > indicatorByteLimit || indicatorCache.count >= 64) {
+            _ = indicatorMemoryWarning
+            while !indicatorCache.isEmpty
+                && (indicatorBytes + cost > indicatorByteLimit || indicatorCache.count >= indicatorCountLimit) {
                 indicatorBytes -= indicatorCache.removeFirst().cost
             }
             indicatorCache.append(IndicatorEntry(key: key, size: size, scale: scale, image: rendered, cost: cost))
@@ -346,12 +357,20 @@ enum NativeLibraryPosterBitmap {
         }
     }
 
-    static let byteLimit = 24 * 1024 * 1024
-    static let countLimit = 64
+    static let byteLimit = ArtworkMemoryBudget.current.compositeBytes
+    static let countLimit = ArtworkMemoryBudget.current.compositeCount
     private(set) static var retainedBytes = 0
     private(set) static var renderCount = 0
     private static var cache: [Key: Entry] = [:]
     private static var clock: UInt64 = 0
+    private static let memoryWarning = NotificationCenter.default.addObserver(
+        forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
+    ) { _ in
+        MainActor.assumeIsolated {
+            cache.removeAll()
+            retainedBytes = 0
+        }
+    }
 
     private struct Content: View {
         let presentation: Presentation
@@ -418,6 +437,7 @@ enum NativeLibraryPosterBitmap {
         if let pixels = image.cgImage {
             let (cost, overflow) = pixels.bytesPerRow.multipliedReportingOverflow(by: pixels.height)
             if !overflow, cost <= byteLimit {
+                _ = memoryWarning
                 while !cache.isEmpty && (retainedBytes + cost > byteLimit || cache.count >= countLimit) {
                     guard let oldest = cache.min(by: { $0.value.access < $1.value.access }) else { break }
                     retainedBytes -= oldest.value.cost
