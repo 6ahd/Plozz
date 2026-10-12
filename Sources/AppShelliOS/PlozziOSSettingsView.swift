@@ -1907,15 +1907,13 @@ struct PlozziOSArtworkSettingsView: View {
     }
 }
 
-private struct PlozziOSHomeSettingsView: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+struct PlozziOSHomeSettingsView: View {
     @Bindable var hero: HeroSettingsModel
     @Bindable var heroBackground: HeroBackgroundSettingsModel
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
     @State private var libraries: [HomeLibraryChoice] = []
     @State private var isLoadingLibraries = false
-    @State private var libraryFailures: Set<String> = []
     @State private var showHomeRows = false
     @State private var selectedLibraryID: String?
 
@@ -1959,7 +1957,6 @@ private struct PlozziOSHomeSettingsView: View {
             }
 
             SettingsSectionGroup("Libraries") {
-                libraryFailureNotice
                 if isLoadingLibraries, libraries.isEmpty {
                     HStack {
                         ProgressView()
@@ -2100,14 +2097,12 @@ private struct PlozziOSHomeSettingsView: View {
         .navigationTitle("Customize Home")
         .navigationDestination(isPresented: $showHomeRows) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    libraryFailureNotice
-                    HomeRowsSettingsView(
-                        libraries: aggregatedHomeLibraries, accounts: accounts,
-                        visibility: visibility
-                    )
-                    .id(ObjectIdentifier(visibility))
-                }.padding()
+                HomeRowsSettingsView(
+                    libraries: aggregatedHomeLibraries, accounts: accounts,
+                    visibility: visibility
+                )
+                .id(ObjectIdentifier(visibility))
+                .padding()
             }
             .navigationTitle("Rows on Home")
             .settingsPageSurface()
@@ -2121,7 +2116,6 @@ private struct PlozziOSHomeSettingsView: View {
             [$0.account.id, $0.account.credentialRevision.rawValue.uuidString, $0.provider.session.userID]
         }) {
             libraries = []
-            libraryFailures = []
             await loadLibraries()
         }
     }
@@ -2138,28 +2132,6 @@ private struct PlozziOSHomeSettingsView: View {
                 transportKind: MediaShareTransportKind(mediaShareScheme: account.server.baseURL.scheme),
                 library: choice.library
             )
-        }
-    }
-
-    @ViewBuilder private var libraryFailureNotice: some View {
-        if !libraryFailures.isEmpty {
-            let layout = dynamicTypeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-                : AnyLayout(HStackLayout(spacing: 12))
-            layout {
-                InlineErrorMessage(
-                    Text("Some libraries are unavailable. Saved row choices are kept."),
-                    systemImage: "wifi.exclamationmark"
-                )
-                .font(.footnote)
-                .fixedSize(horizontal: false, vertical: true)
-                Button("Retry") { Task { await loadLibraries() } }
-                    .plozzActionButton(role: .secondary)
-                    .fixedSize()
-                    .disabled(isLoadingLibraries)
-            }
-            .padding(16)
-            .settingsGroupSurface(cornerRadius: 18)
         }
     }
 
@@ -2212,11 +2184,9 @@ private struct PlozziOSHomeSettingsView: View {
             do {
                 discovered = try await resolved.provider.libraries()
                 try Task.checkCancellation()
-                libraryFailures.remove(resolved.account.id)
             } catch is CancellationError {
                 return
             } catch {
-                libraryFailures.insert(resolved.account.id)
                 PlozzLog.app.error("Home settings library discovery failed")
                 loaded += libraries.filter { $0.accountID == resolved.account.id }
                 continue

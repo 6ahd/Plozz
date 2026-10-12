@@ -623,7 +623,7 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(artwork.staticTexts["Thumbnail & Title"].exists)
     }
 
-    func testHomeRowPresetsRequireConfirmationAndRetainSelection() {
+    func testHomeRowPresetsRequireConfirmationAndKeepRowsEditable() {
         openSettingsPage("Customize Home")
         button("Rows on Home").tap()
         let provider = app.buttons["home-row-preset-provider"]
@@ -633,14 +633,27 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(provider.frame.height, 44)
         XCTAssertGreaterThanOrEqual(combined.frame.height, 44)
         XCTAssertLessThanOrEqual(provider.frame.maxY, combined.frame.minY)
-        let providerWasSelected = provider.isSelected
-        let combinedWasSelected = combined.isSelected
-        let preset = combinedWasSelected ? provider : combined
-        let otherPreset = combinedWasSelected ? combined : provider
-        let presetTitle = combinedWasSelected ? "Server defaults" : "Combined rows"
-        capture("home-row-preset-controls")
+        XCTAssertFalse(provider.isSelected)
+        XCTAssertFalse(combined.isSelected)
+        capture("home-row-preset-actions")
 
-        preset.tap()
+        provider.tap()
+        let providerConfirmation = app.buttons.matching(NSPredicate(
+            format: "label == %@ AND identifier != %@",
+            "Use server-style rows", provider.identifier
+        )).firstMatch
+        XCTAssertTrue(providerConfirmation.waitForExistence(timeout: 3), app.debugDescription)
+        providerConfirmation.tap()
+        let recent = app.staticTexts["Recently Added"].firstMatch
+        let hidden = app.staticTexts["HIDDEN"].firstMatch
+        let hiddenRecent = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                recent.exists && hidden.exists && recent.frame.minY > hidden.frame.minY
+            }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [hiddenRecent], timeout: 3), .completed, app.debugDescription)
+
+        combined.tap()
         XCTAssertTrue(app.staticTexts["Replace your row arrangement?"].waitForExistence(timeout: 3))
         capture("home-row-preset-confirmation")
         if app.buttons["Cancel"].exists {
@@ -651,26 +664,29 @@ final class SettingsInteractionTests: XCTestCase {
             dismissRegion.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.95)).tap()
         }
         XCTAssertTrue(app.staticTexts["Replace your row arrangement?"].waitForNonExistence(timeout: 3))
-        XCTAssertEqual(provider.isSelected, providerWasSelected)
-        XCTAssertEqual(combined.isSelected, combinedWasSelected)
+        XCTAssertGreaterThan(recent.frame.minY, hidden.frame.minY)
 
-        preset.tap()
+        combined.tap()
         let confirm = app.buttons.matching(NSPredicate(
             format: "label == %@ AND identifier != %@",
-            presetTitle, preset.identifier
+            "Use shared rows", combined.identifier
         )).firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 3), app.debugDescription)
         confirm.tap()
-        let selection = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "selected == true"), object: preset
+        let shownRecent = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                recent.exists && hidden.exists && recent.frame.minY < hidden.frame.minY
+            }, object: nil
         )
-        XCTAssertEqual(XCTWaiter.wait(for: [selection], timeout: 3), .completed, app.debugDescription)
-        XCTAssertFalse(otherPreset.isSelected)
+        XCTAssertEqual(XCTWaiter.wait(for: [shownRecent], timeout: 3), .completed, app.debugDescription)
+        XCTAssertFalse(provider.isSelected)
+        XCTAssertFalse(combined.isSelected)
+        XCTAssertGreaterThan(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reorder '")).count, 0)
         app.navigationBars.buttons.firstMatch.tap()
         button("Rows on Home").tap()
-        XCTAssertTrue(preset.waitForExistence(timeout: 3))
-        XCTAssertTrue(preset.isSelected)
-        capture("home-row-confirmed-preset")
+        XCTAssertTrue(combined.waitForExistence(timeout: 3))
+        XCTAssertLessThan(recent.frame.minY, hidden.frame.minY)
+        capture("home-row-shared-preset")
     }
 
     private func openSettingsPage(_ title: String, verifyTitleLayout: Bool = true) {

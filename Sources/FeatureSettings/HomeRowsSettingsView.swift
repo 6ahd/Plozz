@@ -41,10 +41,7 @@ public struct HomeRowsSettingsView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            HomeRowPresetControls(
-                customization: visibility.visibility.rowCustomization,
-                onSelect: { visibility.useRowDefaults($0) }
-            )
+            HomeRowPresetActions(onSelect: { visibility.useRowDefaults($0) })
             .disabled(isLifting)
             VStack(alignment: .leading, spacing: 8) {
                 Text("Rows").settingsSectionHeader()
@@ -65,12 +62,12 @@ public struct HomeRowsSettingsView: View {
                     return LiftableReorderList<HomeRowID>.Row(
                         title: choice?.localizedTitle.map(Text.init)
                             ?? Text(verbatim: choice?.title ?? ""),
-                        symbolName: id == .libraries ? "rectangle.stack" : "rectangle.grid.1x2",
+                        symbolName: choice?.library == nil ? "square.stack.3d.up.fill" : "rectangle.grid.1x2",
                         providerKind: choice?.library?.providerKind,
                         mediaShareTransport: choice?.library?.transportKind,
                         subtitle: choice?.library.map {
                             $0.library.displayName + Text(verbatim: " · \($0.serverName)")
-                        }
+                        } ?? Text("Shared rows")
                     )
                 },
                 onChange: { visibility.applyRows($0, choices: choices) }
@@ -158,36 +155,37 @@ public struct HomeRowsSettingsView: View {
     }
 }
 
-private struct HomeRowPresetControls: View {
-    let customization: HomeRowCustomization?
+private struct HomeRowPresetActions: View {
     let onSelect: (HomeRowCustomization.Defaults) -> Void
     @State private var resetDefaults: HomeRowCustomization.Defaults?
 
-    private var selectedDefaults: HomeRowCustomization.Defaults? {
-        guard let customization, customization.defaults != .legacy,
-              customization.order.isEmpty, customization.hidden.isEmpty,
-              customization.shown.isEmpty else { return nil }
-        return customization.defaults
+    private func actionTitle(for preset: HomeRowCustomization.Defaults) -> LocalizedStringResource {
+        preset == .provider ? "Use server-style rows" : "Use shared rows"
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Layout").settingsSectionHeader()
-                Spacer()
-                if selectedDefaults == nil {
-                    Text("Custom")
-                        .font(.caption.weight(.medium))
-                        .plozzForeground(.secondary)
-                }
-            }
+            Text("Presets").settingsSectionHeader()
+            Text("You can mix shared rows and individual library rows in any order.")
+                .settingsSectionDescription()
+                .fixedSize(horizontal: false, vertical: true)
             ViewPreferenceChoiceGroup {
                 ForEach([HomeRowCustomization.Defaults.provider, .combined], id: \.self) { preset in
-                    ViewPreferenceChoiceRow(
-                        title: preset.title,
-                        isSelected: selectedDefaults == preset,
-                        action: { resetDefaults = preset }
-                    )
+                    Button {
+                        resetDefaults = preset
+                    } label: {
+                        Label {
+                            Text(actionTitle(for: preset))
+                                .multilineTextAlignment(.leading)
+                        } icon: {
+                            Image(systemName: "arrow.counterclockwise")
+                                .accessibilityHidden(true)
+                        }
+                        .font(.body.weight(.medium))
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(SettingsFormButtonStyle())
                     .accessibilityIdentifier("home-row-preset-\(preset.rawValue)")
                     .confirmationDialog(
                         "Replace your row arrangement?",
@@ -197,16 +195,16 @@ private struct HomeRowPresetControls: View {
                         ),
                         titleVisibility: .visible
                     ) {
-                        Button(preset.title) {
+                        Button(actionTitle(for: preset)) {
                             onSelect(preset)
                             resetDefaults = nil
                         }
                         Button("Cancel", role: .cancel) { resetDefaults = nil }
                     } message: {
                         if preset == .provider {
-                            Text("Server defaults keep Plex's promoted rows and a simpler Latest and Next Up layout for Emby and Jellyfin. These are Plozz settings, not changes to your server.")
+                            Text("Start with rows suited to your servers, alongside shared Continue Watching and Watchlist rows. You can then reorder, hide, or add any row.")
                         } else {
-                            Text("Combined across all your libraries")
+                            Text("Start with shared rows that combine your libraries. You can then add individual library rows and arrange everything together.")
                         }
                     }
                 }
