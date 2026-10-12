@@ -79,7 +79,9 @@ final class NativeArtworkFocusComparisonHostedTests: XCTestCase {
             XCTAssertGreaterThan(focused.width, rest.width + 2, "Keep native outer enlargement.")
             if sample.variant == .card || sample.variant == .compositedPoster {
                 XCTAssertEqual(internalScale, 1, accuracy: 0.01, "The image must not zoom inside its enlarged bounds.")
-                XCTAssertEqual(focusedMarkers.width, restingMarkers.width * outerScale, accuracy: 1)
+                // Both measured spans have already been rounded to their screenshot's pixel grid.
+                let spanRounding = outerScale / restingImage.scale + 1 / screenshot.scale
+                XCTAssertEqual(focusedMarkers.width, restingMarkers.width * outerScale, accuracy: spanRounding)
                 XCTAssertEqual(focusedMarkers.height, restingMarkers.height * outerScale, accuracy: 2)
                 XCTAssertEqual(focusedMarkers.minX - focused.minX, (restingMarkers.minX - rest.minX) * outerScale, accuracy: 1)
                 XCTAssertEqual(focusedMarkers.minY - focused.minY, (restingMarkers.minY - rest.minY) * outerScale, accuracy: 1)

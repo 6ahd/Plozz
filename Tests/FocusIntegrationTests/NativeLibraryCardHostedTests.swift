@@ -1005,8 +1005,10 @@ final class NativeLibraryCardHostedTests: XCTestCase {
             }
         }
         XCTAssertGreaterThan(maxX, minX, "The complete count must remain visible: \(label)")
-        XCTAssertEqual(minX - left, right - maxX, accuracy: 2, "Trailing padding: \(label)")
-        XCTAssertEqual(minY - top, bottom - maxY, accuracy: 2, "Top padding: \(label)")
+        // Preserve the two-point resting allowance when native focus projects it onto whole screen pixels.
+        let paddingTolerance = ceil(2 * nativeFrame.width / artwork.bounds.width)
+        XCTAssertEqual(CGFloat(minX - left), CGFloat(right - maxX), accuracy: paddingTolerance, "Trailing padding: \(label)")
+        XCTAssertEqual(CGFloat(minY - top), CGFloat(bottom - maxY), accuracy: paddingTolerance, "Top padding: \(label)")
         let attachment = XCTAttachment(image: rendered)
         attachment.name = "native-count-\(label)"
         attachment.lifetime = .keepAlways
@@ -1477,12 +1479,15 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         let sourceSpan = try markerSpan(source, frame: CGRect(origin: .zero, size: source.size))
         let expectedSpan = sourceSpan * frame.width / source.size.width
         let actualSpan = try markerSpan(rendered, frame: frame)
+        // Inclusive pixel spans incur rounding at both the source and final rasterization.
+        let spanRounding = frame.width / source.size.width / source.scale + 1 / rendered.scale
+        let tolerance = max(landmarkTolerance, spanRounding)
         if maximumInternalScale > 1 {
-            XCTAssertGreaterThanOrEqual(actualSpan, expectedSpan - landmarkTolerance)
-            XCTAssertLessThanOrEqual(actualSpan, expectedSpan * maximumInternalScale + landmarkTolerance,
+            XCTAssertGreaterThanOrEqual(actualSpan, expectedSpan - tolerance)
+            XCTAssertLessThanOrEqual(actualSpan, expectedSpan * maximumInternalScale + tolerance,
                                      "Only the approved small native crop is allowed.")
         } else {
-            XCTAssertEqual(actualSpan, expectedSpan, accuracy: landmarkTolerance,
+            XCTAssertEqual(actualSpan, expectedSpan, accuracy: tolerance,
                            "Painted landmarks must enlarge with the card, without additional internal zoom.")
         }
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0

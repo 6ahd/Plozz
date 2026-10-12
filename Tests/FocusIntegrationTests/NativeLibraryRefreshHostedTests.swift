@@ -553,7 +553,7 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
         addTeardownBlock { await server.stop() }
         let url = try await server.start().appendingPathComponent("poster.png")
         let loaded = await ArtworkImageCache.shared.image(for: url, variant: .posterCard)
-        let bitmap = try XCTUnwrap(loaded)
+        XCTAssertNotNil(loaded)
         for style in [NavigationStyle.sidebar, .tabBar, .rail] {
             try await withNavigatedLibrary(style: style, artwork: .init(preference: .online), posterURL: url) {
                 root, window, model in
@@ -563,12 +563,17 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
                 let collection = try XCTUnwrap(self.find(UICollectionView.self, in: root))
                 let path = IndexPath(item: 2, section: 0)
                 let cell = try XCTUnwrap(collection.cellForItem(at: path) as? NativeTVLibraryCell)
+                @MainActor func hasDecodedArtwork() throws -> Bool {
+                    guard let image = (try self.libraryArtwork(in: cell) as? UIImageView)?.image,
+                          let bitmap = image.cgImage else { return false }
+                    let center = try self.pixel(image, at: CGPoint(x: bitmap.width / 2, y: bitmap.height / 2))
+                    return center[0] > 180 && center[1] < 30 && center[2] < 30
+                }
                 let deadline = ContinuousClock.now + .seconds(5)
-                while (cell.contentConfiguration as? TVMediaItemContentConfiguration)?.image !== bitmap,
-                      ContinuousClock.now < deadline {
+                while try !hasDecodedArtwork(), ContinuousClock.now < deadline {
                     try await Task.sleep(for: .milliseconds(20))
                 }
-                XCTAssertTrue((cell.contentConfiguration as? TVMediaItemContentConfiguration)?.image === bitmap,
+                XCTAssertTrue(try hasDecodedArtwork(),
                               "Compare actual artwork, not a system placeholder whose shading follows the viewport.")
                 let itemID = try XCTUnwrap(cell.item?.id)
                 let artworkFrame = try self.libraryArtwork(in: cell).frame
@@ -582,17 +587,16 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
                 let origin = collection.contentOffset.y
                 let target = origin + initialFrame.maxY - 80
                 let movement = ScrollMountProbe()
-                // Observe UIKit's movement directly; a busy runner can resume a timer after the animation ends.
-                let observation = collection.observe(\.contentOffset, options: [.new]) { _, change in
-                    MainActor.assumeIsolated {
-                        guard let offset = change.newValue?.y, offset > origin + 1, offset < target - 1 else { return }
-                        movement.intermediateFrames += 1
-                        XCTAssertTrue(cell.window === window)
-                        XCTAssertFalse(cell.isHidden)
-                        XCTAssertEqual(cell.alpha, 1, accuracy: 0.01)
-                    }
+                // UIScrollView's animated bounds updates are not guaranteed to emit contentOffset KVO.
+                movement.start {
+                    let offset = collection.contentOffset.y
+                    guard offset > origin + 1, offset < target - 1 else { return }
+                    movement.intermediateFrames += 1
+                    XCTAssertTrue(cell.window === window)
+                    XCTAssertFalse(cell.isHidden)
+                    XCTAssertEqual(cell.alpha, 1, accuracy: 0.01)
                 }
-                defer { observation.invalidate() }
+                defer { movement.stop() }
                 collection.setContentOffset(CGPoint(x: 0, y: target), animated: true)
                 for _ in 0..<25 {
                     try await Task.sleep(for: .milliseconds(20))
@@ -600,7 +604,7 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
                     XCTAssertFalse(cell.isHidden)
                     XCTAssertEqual(cell.alpha, 1, accuracy: 0.01)
                 }
-                observation.invalidate()
+                movement.stop()
                 XCTAssertGreaterThan(movement.intermediateFrames, 0, "Exercise the moving viewport, not only its endpoint.")
                 collection.layoutIfNeeded()
 
@@ -644,8 +648,28 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
         }
     }
 
-    private final class ScrollMountProbe {
+    @MainActor
+    private final class ScrollMountProbe: NSObject {
         var intermediateFrames = 0
+        private var displayLink: CADisplayLink?
+        private var sample: (() -> Void)?
+
+        func start(sample: @escaping () -> Void) {
+            self.sample = sample
+            let link = CADisplayLink(target: self, selector: #selector(sampleFrame))
+            link.add(to: .main, forMode: .common)
+            displayLink = link
+        }
+
+        func stop() {
+            displayLink?.invalidate()
+            displayLink = nil
+            sample = nil
+        }
+
+        @objc private func sampleFrame() {
+            sample?()
+        }
     }
 
     func testRemovingEarlierHubKeepsFocusedHubMounted() async throws {

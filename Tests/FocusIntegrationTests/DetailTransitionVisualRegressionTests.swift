@@ -449,11 +449,10 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                     && host.settledFocusItemID == ObjectIdentifier(season)
             }
             host.target = nil
-            let rail = try XCTUnwrap(episodeScroll(in: page))
-            rail.setContentOffset(CGPoint(x: -rail.adjustedContentInset.left, y: rail.contentOffset.y), animated: false)
+            // Let the row align its remembered entry target; forcing offset zero can hide that target.
             window.layoutIfNeeded()
             let restingSnapshot = try await restingEpisodeSnapshot(in: window)
-            let episodeEdge = try episodeArtworkSpan(in: restingSnapshot).lowerBound
+            let episodeEdge = try XCTUnwrap(episodeArtworkSpan(in: restingSnapshot)).lowerBound
             let aboutEdge = try leadingPixel(
                 in: restingSnapshot, region: CGRect(x: 0, y: 975, width: 300, height: 60)
             ) { r, g, b in r > 230 && g > 230 && b > 230 }
@@ -556,11 +555,12 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         while ContinuousClock.now < deadline {
             let snapshot = renderedKeylineSnapshot(in: window)
             let range = try episodeArtworkSpan(in: snapshot)
-            let width = range.upperBound - range.lowerBound + 1
             // Native/custom focus paint outlives the focus callback. Check its
             // resting width, not its x-position, so a misaligned card still fails.
             let restingWidth = EpisodeColumnCard.artworkSize.width
-            if (restingWidth - 2...restingWidth).contains(width), range == previous {
+            if let range,
+               (restingWidth - 2...restingWidth).contains(range.upperBound - range.lowerBound + 1),
+               range == previous {
                 stableSamples += 1
                 if stableSamples == 2 { return snapshot }
             } else {
@@ -569,6 +569,10 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             previous = range
             try await Task.sleep(for: .milliseconds(25))
         }
+        let attachment = XCTAttachment(image: renderedKeylineSnapshot(in: window))
+        attachment.name = "production-resting-episode-timeout"
+        attachment.lifetime = .keepAlways
+        add(attachment)
         XCTFail("Episode focus paint did not return to its resting width: \(String(describing: previous)).")
         throw AppError.notFound
     }
@@ -628,13 +632,13 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         ).lowerBound
     }
 
-    private func episodeArtworkSpan(in snapshot: UIImage) throws -> ClosedRange<CGFloat> {
+    private func episodeArtworkSpan(in snapshot: UIImage) throws -> ClosedRange<CGFloat>? {
         let spans = try horizontalPixelSpans(
             in: snapshot, region: CGRect(x: 60, y: 510, width: 540, height: 40)
         ) { r, g, b in b > 150 && r < 50 && g < 80 }
-        return try XCTUnwrap(spans.max {
+        return spans.max {
             $0.upperBound - $0.lowerBound < $1.upperBound - $1.lowerBound
-        })
+        }
     }
 
     private func horizontalPixelSpans(
@@ -684,7 +688,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 UIColor.white.setFill()
                 context.fill(CGRect(x: 81, y: 990, width: 20, height: 20))
             }
-            let artwork = try episodeArtworkSpan(in: snapshot)
+            let artwork = try XCTUnwrap(episodeArtworkSpan(in: snapshot))
             let about = try leadingPixel(
                 in: snapshot, region: CGRect(x: 0, y: 975, width: 300, height: 60)
             ) { r, g, b in r > 230 && g > 230 && b > 230 }

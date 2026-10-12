@@ -334,6 +334,7 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         host.safeAreaRegions = []
         window.rootViewController = host
         window.makeKeyAndVisible()
+        window.layoutIfNeeded()
         defer {
             window.isHidden = true
             window.rootViewController = nil
@@ -380,8 +381,8 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
     }
 
     #if os(tvOS)
-    private func nativePoster(in view: UIView) -> TVPosterView? {
-        (view as? TVPosterView) ?? view.subviews.lazy.compactMap { self.nativePoster(in: $0) }.first
+    private func nativePoster(in view: UIView) -> NativePosterButton? {
+        (view as? NativePosterButton) ?? view.subviews.lazy.compactMap { self.nativePoster(in: $0) }.first
     }
     #endif
 }
