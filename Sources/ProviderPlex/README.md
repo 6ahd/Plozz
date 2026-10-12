@@ -76,8 +76,10 @@ pages remain valid.
 Series/season members missing episode aggregates receive exact metadata in
 batches of at most 50 IDs, using the same authenticated client. Only watch state
 is applied; membership order, artwork and identity remain from the collection
-response. Complete aggregates require no extra request. Failed or missing
-metadata fails the page rather than publishing a false unwatched state.
+response. Complementary aggregate fields retain the collection's known counts;
+unresolved or invalid totals fail the page rather than publishing guessed watch
+state. Complete aggregates require no extra request. Failed or missing metadata
+also fails the page rather than publishing a false unwatched state.
 Both platforms browse members in the existing vertical library grid, fetching
 bounded pages on demand rather than loading a whole collection before first paint.
 Failures remain separate from empty results and expose retry.

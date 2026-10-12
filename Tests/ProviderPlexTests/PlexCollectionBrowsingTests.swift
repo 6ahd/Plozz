@@ -255,6 +255,51 @@ final class PlexCollectionBrowsingTests: XCTestCase {
         }
     }
 
+    func testCollectionCombinesComplementaryEpisodeAggregates() async throws {
+        let http = StubHTTPClient()
+        http.stub(pathSuffix: "/library/collections/set/children", json: """
+        {"MediaContainer":{"size":2,"totalSize":2,"Metadata":[
+          {"ratingKey":"seen","type":"show","viewedLeafCount":12},
+          {"ratingKey":"partial","type":"season","leafCount":12}
+        ]}}
+        """)
+        http.stub(pathSuffix: "/library/metadata/partial,seen", json: """
+        {"MediaContainer":{"Metadata":[
+          {"ratingKey":"seen","type":"show","leafCount":12},
+          {"ratingKey":"partial","type":"season","viewedLeafCount":5}
+        ]}}
+        """)
+        let page = try await provider(http).collectionMembers(of: "set", page: PageRequest())
+        XCTAssertEqual(page.items.map(\.unwatchedEpisodeCount), [0, 7])
+        XCTAssertEqual(page.items.map(\.isPlayed), [true, false])
+        XCTAssertTrue(page.items.allSatisfy(\.hasBeenPlayed))
+        XCTAssertEqual(page.items[0].librarySortValues?.watched, true)
+        XCTAssertEqual(try XCTUnwrap(page.items[1].playedPercentage), 5.0 / 12, accuracy: 0.001)
+    }
+
+    func testUnresolvedOrInvalidEpisodeAggregatesRejectHydratedPage() async throws {
+        for aggregates in [
+            "", #","leafCount":12"#, #","viewedLeafCount":12"#,
+            #","leafCount":-1,"viewedLeafCount":0"#,
+            #","leafCount":12,"viewedLeafCount":-1"#,
+            #","leafCount":12,"viewedLeafCount":13"#
+        ] {
+            let http = StubHTTPClient()
+            http.stub(pathSuffix: "/library/collections/set/children", json: """
+            {"MediaContainer":{"size":1,"totalSize":1,"Metadata":[{"ratingKey":"show","type":"show"}]}}
+            """)
+            http.stub(pathSuffix: "/library/metadata/show", json: """
+            {"MediaContainer":{"Metadata":[{"ratingKey":"show","type":"show"\(aggregates)}]}}
+            """)
+            do {
+                _ = try await provider(http).collectionMembers(of: "set", page: PageRequest())
+                XCTFail("Unresolved or invalid aggregates must not publish guessed watch state: \(aggregates)")
+            } catch {
+                XCTAssertEqual(error as? AppError, .invalidResponse)
+            }
+        }
+    }
+
     func testSmartCollectionMembersSurviveServerElementWhitelisting() async throws {
         let page = try await provider(CollectionWhitelistHTTPClient()).collectionMembers(
             of: "13", page: PageRequest()

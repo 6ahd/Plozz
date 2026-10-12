@@ -256,7 +256,7 @@ enum NativeLibraryPosterBitmap {
     struct Presentation: Equatable {
         let playback: MediaPlaybackIndicatorState?
         let symbol: MediaArtworkPlaceholder.Symbol
-        let title: String?
+        let title: String? // l10n:content — resolved provider title or spoiler-safe caption
         let hidesStatus: Bool
         let metrics: PlozzMetrics
         let palette: ThemePalette

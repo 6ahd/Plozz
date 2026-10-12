@@ -700,8 +700,13 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
             let ids = Array(incompleteIDs[start..<min(start + 50, incompleteIDs.count)])
             let metadata = try await client.metadata(ratingKeys: ids)
             var watchStates: [String: MediaItem] = [:]
-            for record in metadata {
-                guard let id = record.ratingKey, ids.contains(id) else { throw AppError.invalidResponse }
+            for var record in metadata {
+                guard let id = record.ratingKey, ids.contains(id),
+                      let member = members.first(where: { $0.ratingKey == id }) else { throw AppError.invalidResponse }
+                record.leafCount = record.leafCount ?? member.leafCount
+                record.viewedLeafCount = record.viewedLeafCount ?? member.viewedLeafCount
+                guard let total = record.leafCount, let watched = record.viewedLeafCount,
+                      total >= 0, watched >= 0, watched <= total else { throw AppError.invalidResponse }
                 let state = map(metadata: record)
                 guard state.kind == .series || state.kind == .season,
                       watchStates.updateValue(state, forKey: id) == nil else { throw AppError.invalidResponse }
