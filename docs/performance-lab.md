@@ -105,6 +105,10 @@ The matrix uses 500 library items per provider and 1,000 cached IPTV channels
 when enabled. Startup/discovery happens before measurement; each warm sample
 performs ten unchanged refresh/capture cycles. It distinguishes feature
 interaction and provider-count scaling without introducing real network noise.
+Catalogue revision callbacks and ledger capture acknowledgements mirror the
+production sync composition, so warm samples exercise its unchanged-state path.
+Assertions require the initial export to run, subsequent unchanged exports to
+be reused, and an actual source edit to invalidate that reuse after measurement.
 It does **not** log into iCloud, run CKSyncEngine delivery, simulate CloudKit
 push timing, fetch a provider's server, or mount the Live TV guide UI.
 “Live TV on” here means cached source/channel data participates, not a claim

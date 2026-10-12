@@ -62,11 +62,24 @@ final class LiveTVAutomaticChannelsRuntimeTests: XCTestCase {
             let imported = try await cache.reconcile(playlist, sourceID: "source")
             XCTAssertEqual(imported.playlist.channels.count, 1_000)
         }
+        let absentCatalogRevision = UUID()
+        var identityCaptures = 0
         let bridge = LiveTVPortableSyncBridge(
             profiles: fixture.profiles, directory: folder, defaults: fixture.defaults,
             followsMainSync: true, sourceStore: { _ in sources },
             definitions: { _ in fixture.definitions }, snapshots: fixture.snapshots,
-            guideCache: { _ in liveTV ? cache : nil }
+            guideCache: { _ in liveTV ? cache : nil },
+            captureIdentityHints: { _ in
+                identityCaptures += 1
+                guard liveTV else { return nil }
+                return try await cache.portableSyncIdentityHints(
+                    configuration: sources.load(), channelIDs: []
+                )
+            },
+            captureIdentityRevision: { _ in
+                guard liveTV else { return absentCatalogRevision }
+                return try await cache.portableSyncRevision(configuration: sources.load())
+            }
         )
         bridge.refreshParticipation()
         let sourceBridge = LiveTVSourceSyncBridge(
@@ -83,6 +96,7 @@ final class LiveTVAutomaticChannelsRuntimeTests: XCTestCase {
             var requestsBefore = 0
             for provider in [fixture.provider] + extras { requestsBefore += await provider.requests.count }
             let writesBefore = writes
+            let capturesBefore = identityCaptures
             for _ in 0..<10 {
                 for accountID in fixture.accounts.activeAccountIDs {
                     XCTAssertNotNil(fixture.accounts.provider(forAccountID: accountID))
@@ -95,7 +109,8 @@ final class LiveTVAutomaticChannelsRuntimeTests: XCTestCase {
                     sequence += 1
                     sourceRecords = try await sourceBridge.capture(.init(
                         sequence: sequence, authority: LiveTVPortableSyncPreferenceStore.storageEpoch(defaults: fixture.defaults),
-                        records: sourceRecords, localCaptureDigests: [:]
+                        records: sourceRecords,
+                        localCaptureDigests: ledger.entries.compactMapValues(\.localCaptureDigest)
                     ))
                     _ = ledger.reconcileLocal(desired: records.merging(sourceRecords) { _, new in new }, now: 1)
                     _ = persistence.writeIfChanged(ledger: ledger, engineRevision: nil) { writes += 1 }
@@ -107,12 +122,32 @@ final class LiveTVAutomaticChannelsRuntimeTests: XCTestCase {
             XCTAssertLessThanOrEqual(writes - writesBefore, 1)
             if writesBefore > 0 {
                 XCTAssertEqual(writes, writesBefore, "After warmup, unchanged combined state must not persist again.")
+                XCTAssertEqual(identityCaptures, capturesBefore, "Warm captures must reuse the production unchanged-state path.")
+            }
+            if cloud {
+                XCTAssertGreaterThan(identityCaptures, 0, "The initial portable export must actually run.")
             }
             return ["providers": providers, "automaticChannels": channels ? 1 : 0,
                     "liveTV": liveTV ? 1 : 0, "cloudSync": cloud ? 1 : 0, "refreshes": 10,
                     "providerRequests": requestsAfter - requestsBefore,
                     "portableRecords": records.count + sourceRecords.count,
                     "persistenceCalls": writes - writesBefore]
+        }
+        if cloud && liveTV {
+            let capturesBefore = identityCaptures
+            var updated = try sources.load()
+            updated.playlists[0].name = "Changed fixture"
+            try sources.save(updated)
+            _ = await bridge.capture(fallback: records)
+            XCTAssertGreaterThan(identityCaptures, capturesBefore, "A real source edit must invalidate the capture cache.")
+            XCTAssertEqual(bridge.statuses[fixture.profiles.activeProfileID], .ready)
+            sequence += 1
+            let changedSources = try await sourceBridge.capture(.init(
+                sequence: sequence, authority: LiveTVPortableSyncPreferenceStore.storageEpoch(defaults: fixture.defaults),
+                records: sourceRecords,
+                localCaptureDigests: ledger.entries.compactMapValues(\.localCaptureDigest)
+            ))
+            XCTAssertNotEqual(changedSources, sourceRecords, "An acknowledged source must still capture later local edits.")
         }
     }
 
