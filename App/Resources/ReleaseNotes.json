@@ -2,6 +2,165 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/053",
+      "version": "2026.10.12",
+      "marketingVersion": "2026.9.25",
+      "build": 53,
+      "releasedAt": "2026-10-12",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "Choose artwork sources per profile and screen in Appearance > Artwork.",
+            "See unwatched episode counts on show and season cards when available.",
+            {
+              "text": "On iOS and iPadOS 26, a download Live Activity shows progress and keeps eligible Media Share downloads running in the background when the system allows it.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Open the downloaded movie, show or season from its completion notification.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Customize card labels with app-wide and per-screen choices, including episodes.",
+            "Clearer white watch-status marks and better-sized library and request icons.",
+            {
+              "text": "Downloaded items have a download-arrow badge, distinct from watched marks.",
+              "platforms": ["iOS"]
+            },
+            "IPTV now has a coral-red icon, distinct from Media Share.",
+            {
+              "text": "Clearer artwork and label settings, with focus returning to your last choice.",
+              "platforms": ["tvOS"]
+            },
+            "More readable Seerr setup, with the selected profile shown clearly.",
+            {
+              "text": "Better-fitting poster rows, native focus movement and aligned card marks.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "New profiles default to the pinned navigation rail.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Offline status beside unavailable libraries in Apple TV navigation.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "The profile picker adapts to narrow screens, longer names and larger text.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "More consistent spacing and captions, with clearer progress bars in media rows.",
+              "platforms": ["iOS"]
+            },
+            "Library setup shows discovery progress and offers Choose later.",
+            "IPTV setup shows import stages and counts, and keeps the display awake.",
+            "Clearer IPTV errors for invalid headers, subscription restrictions and full storage.",
+            "Saved IPTV libraries open without waiting for a background refresh.",
+            {
+              "text": "Live TV asks before automatically playing highlighted channels behind the guide.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "A wider Live TV guide; move toward categories from the first channel to reveal them.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "A clearer Favorite Multiview picker with Done and Back controls.",
+              "platforms": ["tvOS"]
+            },
+            "Returning to Live TV reuses saved channels; Refresh and Retry still fetch fresh data.",
+            "Less repeated background work when Live TV and Plozz Channel settings are unchanged.",
+            "Starting Plozz Channels checks saved permissions without blocking navigation.",
+            "Library errors identify the affected server.",
+            "Jellyfin recommendation headings use More like followed by the movie title.",
+            "More consistent Continue Watching backgrounds, with nearby artwork and logos preloaded.",
+            "Recognized Media Share folders can show artwork for their matching movie or show.",
+            {
+              "text": "Top Shelf follows the active profile's artwork choices.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Completion notifications default on unless you chose otherwise; permission is still required.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Compact Downloads rows with show and season progress, menus, Pause All and Resume All.",
+              "platforms": ["iOS"]
+            },
+            "Playback details support translated labels and longer text.",
+            "Updated playback handling for MPEG-TS live IPTV channels."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            {
+              "text": "Misaligned posters and scrolling headers in Browse.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Focus getting stuck between the pinned rail and Home, Browse or Music.",
+              "platforms": ["tvOS"]
+            },
+            "Unnamed IPTV entries disappearing during import.",
+            "Incorrect playback format for IPTV links with no file extension.",
+            "Guide availability being reported for IPTV libraries without a guide.",
+            {
+              "text": "Live TV category focus jumping to Search.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "One guide-edge press also opening the app's native sidebar.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Live TV Search taking focus from the selected program.",
+              "platforms": ["tvOS"]
+            },
+            "Home not reloading after library visibility changes during loading.",
+            "Combined Browse failing during initial loading when one server is unavailable.",
+            "Browse Retry reusing failed results instead of retrying sources.",
+            "Conflicting metadata merging different titles' sources or details.",
+            "Watch actions reaching unrelated titles with conflicting metadata.",
+            "Older watch updates overriding a newer watched or unwatched choice.",
+            "Watchlist opening the wrong owned copy or showing its artwork.",
+            "Plex collections failing to load their contents.",
+            "Missing Jellyfin recommendations from some servers.",
+            "Some HEVC videos transcoded by Jellyfin or Emby failing to start.",
+            "Incorrect colors when Jellyfin or Emby transcodes HDR video to H.264.",
+            "Subtitle changes not taking effect reliably during paused native playback.",
+            "The display sleeping while another player still needs it awake.",
+            {
+              "text": "Music artwork ignoring metadata-provider choices.",
+              "platforms": ["tvOS"]
+            },
+            "Artwork saves blocking navigation.",
+            "Artwork keeping an early fallback or using disabled providers.",
+            {
+              "text": "Completion notifications being lost after reopening the app.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Some downloads losing track of their saved transfer when resuming.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Downloaded items not recovering missing or damaged artwork on an allowed connection.",
+              "platforms": ["iOS"]
+            },
+            "iCloud Sync showing success while changes are pending or have failed.",
+            "Shared Trakt sign-in refresh failing in some app installations."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/052",
       "version": "2026.10.7",
       "marketingVersion": "2026.9.25",
