@@ -186084,7 +186084,6 @@
       }
     },
     "Combined across all your libraries" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -759819,6 +759818,7 @@
       }
     },
     "Use combined rows" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -761803,6 +761803,7 @@
       }
     },
     "Use server defaults" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

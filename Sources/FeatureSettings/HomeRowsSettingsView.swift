@@ -13,7 +13,6 @@ public struct HomeRowsSettingsView: View {
     @State private var failures: [String: AppError] = [:]
     @State private var isLoading = false
     @State private var isLifting = false
-    @State private var resetDefaults: HomeRowCustomization.Defaults?
     @State private var reloadRevision = 0
 
     public init(
@@ -42,21 +41,18 @@ public struct HomeRowsSettingsView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Arrange rows from any library together. Move a row below Hidden to turn it off.")
-                .font(.callout)
-                .plozzForeground(.secondary)
-            ViewThatFits(in: .horizontal) {
-                HStack {
-                    resetButtons
-                }
-                VStack(alignment: .leading) {
-                    resetButtons
-                }
-            }
+            HomeRowPresetControls(
+                customization: visibility.visibility.rowCustomization,
+                onSelect: { visibility.useRowDefaults($0) }
+            )
             .disabled(isLifting)
-            Text("Server defaults keep Plex's promoted rows and a simpler Latest and Next Up layout for Emby and Jellyfin. These are Plozz settings, not changes to your server.")
-                .font(.caption)
-                .plozzForeground(.secondary)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Rows").settingsSectionHeader()
+                Text("Arrange rows from any library together. Move a row below Hidden to turn it off.")
+                    .font(.footnote)
+                    .plozzForeground(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             let choices = choices
             let byID = Dictionary(choices.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             LiftableReorderList(
@@ -84,30 +80,17 @@ public struct HomeRowsSettingsView: View {
             }
             ForEach(availableLibraries.filter { failures[$0.key] != nil }) { library in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Couldn't load recommended rows from \(library.library.title). Your saved choices are unchanged.")
-                        .font(.callout)
+                    InlineErrorMessage(
+                        Text("Couldn't load recommended rows from \(library.library.title). Your saved choices are unchanged.")
+                    )
+                    .font(.footnote)
                     Button("Retry") { reloadRevision += 1 }
+                        .plozzActionButton(role: .secondary)
                         .disabled(isLifting)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .confirmationDialog(
-            "Replace your row arrangement?",
-            isPresented: Binding(
-                get: { resetDefaults != nil },
-                set: { if !$0 { resetDefaults = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let resetDefaults {
-                Button(resetDefaults.title) {
-                    visibility.useRowDefaults(resetDefaults)
-                    self.resetDefaults = nil
-                }
-            }
-            Button("Cancel", role: .cancel) { resetDefaults = nil }
-        }
         .task(id: RequestID(
             accounts: accounts.map(\.account.id),
             credentials: accounts.map(\.account.credentialRevision),
@@ -118,11 +101,6 @@ public struct HomeRowsSettingsView: View {
             recommendations = [:]
             await loadRecommendations()
         }
-    }
-
-    @ViewBuilder private var resetButtons: some View {
-        Button("Use server defaults") { resetDefaults = .provider }
-        Button("Use combined rows") { resetDefaults = .combined }
     }
 
     private struct RequestID: Hashable {
@@ -175,6 +153,63 @@ public struct HomeRowsSettingsView: View {
                     }
                 }
                 enqueue()
+            }
+        }
+    }
+}
+
+private struct HomeRowPresetControls: View {
+    let customization: HomeRowCustomization?
+    let onSelect: (HomeRowCustomization.Defaults) -> Void
+    @State private var resetDefaults: HomeRowCustomization.Defaults?
+
+    private var selectedDefaults: HomeRowCustomization.Defaults? {
+        guard let customization, customization.defaults != .legacy,
+              customization.order.isEmpty, customization.hidden.isEmpty,
+              customization.shown.isEmpty else { return nil }
+        return customization.defaults
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Layout").settingsSectionHeader()
+                Spacer()
+                if selectedDefaults == nil {
+                    Text("Custom")
+                        .font(.caption.weight(.medium))
+                        .plozzForeground(.secondary)
+                }
+            }
+            ViewPreferenceChoiceGroup {
+                ForEach([HomeRowCustomization.Defaults.provider, .combined], id: \.self) { preset in
+                    ViewPreferenceChoiceRow(
+                        title: preset.title,
+                        isSelected: selectedDefaults == preset,
+                        action: { resetDefaults = preset }
+                    )
+                    .accessibilityIdentifier("home-row-preset-\(preset.rawValue)")
+                    .confirmationDialog(
+                        "Replace your row arrangement?",
+                        isPresented: Binding(
+                            get: { resetDefaults == preset },
+                            set: { if !$0, resetDefaults == preset { resetDefaults = nil } }
+                        ),
+                        titleVisibility: .visible
+                    ) {
+                        Button(preset.title) {
+                            onSelect(preset)
+                            resetDefaults = nil
+                        }
+                        Button("Cancel", role: .cancel) { resetDefaults = nil }
+                    } message: {
+                        if preset == .provider {
+                            Text("Server defaults keep Plex's promoted rows and a simpler Latest and Next Up layout for Emby and Jellyfin. These are Plozz settings, not changes to your server.")
+                        } else {
+                            Text("Combined across all your libraries")
+                        }
+                    }
+                }
             }
         }
     }

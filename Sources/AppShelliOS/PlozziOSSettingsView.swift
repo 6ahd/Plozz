@@ -1908,6 +1908,7 @@ struct PlozziOSArtworkSettingsView: View {
 }
 
 private struct PlozziOSHomeSettingsView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable var hero: HeroSettingsModel
     @Bindable var heroBackground: HeroBackgroundSettingsModel
     let visibility: HomeLibraryVisibilityModel
@@ -1915,26 +1916,22 @@ private struct PlozziOSHomeSettingsView: View {
     @State private var libraries: [HomeLibraryChoice] = []
     @State private var isLoadingLibraries = false
     @State private var libraryFailures: Set<String> = []
+    @State private var showHomeRows = false
     @State private var selectedLibraryID: String?
 
     var body: some View {
         List {
             SettingsSectionGroup("Rows") {
-                NavigationLink {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            libraryFailureNotice
-                            HomeRowsSettingsView(
-                                libraries: aggregatedHomeLibraries, accounts: accounts,
-                                visibility: visibility
-                            )
-                            .id(ObjectIdentifier(visibility))
-                        }.padding()
-                    }
-                    .navigationTitle("Rows on Home")
-                    .settingsPageSurface()
+                Button {
+                    showHomeRows = true
                 } label: {
-                    Text("Rows on Home")
+                    HStack {
+                        Text("Rows on Home")
+                        Spacer()
+                        Image(systemName: "chevron.forward")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 // Nested under the row it belongs to, and only while that row is
                 // on — a preference for a hidden row is noise. A picker rather
@@ -2101,6 +2098,20 @@ private struct PlozziOSHomeSettingsView: View {
         }
         .settingsPageSurface()
         .navigationTitle("Customize Home")
+        .navigationDestination(isPresented: $showHomeRows) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    libraryFailureNotice
+                    HomeRowsSettingsView(
+                        libraries: aggregatedHomeLibraries, accounts: accounts,
+                        visibility: visibility
+                    )
+                    .id(ObjectIdentifier(visibility))
+                }.padding()
+            }
+            .navigationTitle("Rows on Home")
+            .settingsPageSurface()
+        }
         .navigationDestination(item: $selectedLibraryID) { id in
             if let library = libraries.first(where: { $0.id == id }) {
                 PlozziOSLibraryHomeSettingsView(library: library, visibility: visibility)
@@ -2132,11 +2143,23 @@ private struct PlozziOSHomeSettingsView: View {
 
     @ViewBuilder private var libraryFailureNotice: some View {
         if !libraryFailures.isEmpty {
-            Text("Some libraries are unavailable. Saved row choices are kept.")
-                .font(.callout)
-                .plozzForeground(.secondary)
-            Button("Retry") { Task { await loadLibraries() } }
-                .disabled(isLoadingLibraries)
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                : AnyLayout(HStackLayout(spacing: 12))
+            layout {
+                InlineErrorMessage(
+                    Text("Some libraries are unavailable. Saved row choices are kept."),
+                    systemImage: "wifi.exclamationmark"
+                )
+                .font(.footnote)
+                .fixedSize(horizontal: false, vertical: true)
+                Button("Retry") { Task { await loadLibraries() } }
+                    .plozzActionButton(role: .secondary)
+                    .fixedSize()
+                    .disabled(isLoadingLibraries)
+            }
+            .padding(16)
+            .settingsGroupSurface(cornerRadius: 18)
         }
     }
 

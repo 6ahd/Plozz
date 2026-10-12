@@ -40,6 +40,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         } inspect: { window in
             let before = try await self.capture(window, name: "Home arranger original order")
             XCTAssertGreaterThan(try self.y("Alpha", in: before), try self.y("Beta", in: before))
+            XCTAssertTrue(before.contains { $0.0 == "Custom" })
             visibility.applyRows(.init(enabled: Array(ids.reversed()), disabled: hidden), choices: choices)
             let after = try await self.capture(window, name: "Home arranger reversed order")
             XCTAssertGreaterThan(try self.y("Beta", in: after), try self.y("Alpha", in: after))
@@ -69,6 +70,40 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 let text = try await self.capture(window, name: "Home row text size \(size)")
                 XCTAssertGreaterThan(try self.y("Alpha", in: text), try self.y("Beta", in: text))
                 XCTAssertEqual(text.filter { $0.0.contains("Movies") }.count, 2)
+            }
+        }
+    }
+
+    func testPresetControlsRemainSeparatedAtLargeTextSizes() async throws {
+        let suite = "HomeRowPresets.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(
+            store: HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        )
+        for size in [DynamicTypeSize.large, .accessibility3] {
+            try await withWindow {
+                ScrollView {
+                    HomeRowsSettingsView(libraries: [], accounts: [], visibility: visibility)
+                        .padding(24)
+                }
+                .environment(\.dynamicTypeSize, size)
+                #if os(tvOS)
+                .frame(width: 1050)
+                #endif
+            } inspect: { window in
+                let lines = try await self.capture(window, name: "Home presets text size \(size)")
+                let text = lines.map(\.0).joined(separator: " ")
+                XCTAssertTrue(text.contains("Server defaults"), text)
+                XCTAssertTrue(text.contains("Combined rows"), text)
+                XCTAssertGreaterThan(
+                    try self.y("Server", in: lines),
+                    try self.y("Combined", in: lines)
+                )
+                XCTAssertGreaterThan(
+                    try self.y("Combined", in: lines),
+                    try self.y("ROWS", in: lines)
+                )
             }
         }
     }

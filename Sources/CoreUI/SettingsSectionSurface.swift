@@ -1,6 +1,9 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
+/// A group occupies one native List cell. On iOS, navigation beside other
+/// controls must use a Button and navigationDestination: a NavigationLink can
+/// claim the cell's primary action, including taps on a sibling picker's label.
 public struct SettingsSectionGroup<Content: View, Footer: View>: View {
     @Environment(\.themePalette) private var palette
     private let title: Text?

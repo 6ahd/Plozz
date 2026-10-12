@@ -596,18 +596,81 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(sort.buttons["Name"].isSelected)
     }
 
-    func testHomeRowToggleDoesNotOpenArtworkPicker() {
+    func testContinueWatchingLabelDoesNotOpenHomeRowArrangement() {
         openSettingsPage("Customize Home")
-        let row = app.switches["Continue Watching"].firstMatch
+        let label = app.staticTexts["Continue Watching"].firstMatch
+        XCTAssertTrue(label.waitForExistence(timeout: 3), app.debugDescription)
+        label.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        capture("after-tapping-continue-watching-label")
+        XCTAssertTrue(app.navigationBars["Customize Home"].exists, app.debugDescription)
+        XCTAssertFalse(app.navigationBars["Rows on Home"].exists)
+    }
+
+    func testHomeRowArrangementAndArtworkMenuKeepSeparateActions() {
+        openSettingsPage("Customize Home")
         let artwork = button("Continue Watching")
-        if row.value as? String == "0" { row.tap() }
-        XCTAssertTrue(artwork.exists)
-        row.tap()
-        XCTAssertEqual(row.value as? String, "0")
-        XCTAssertFalse(artwork.exists)
-        row.tap()
-        XCTAssertTrue(artwork.exists)
+        XCTAssertTrue(artwork.waitForExistence(timeout: 3), app.debugDescription)
+        artwork.tap()
+        let thumbnail = app.buttons["Thumbnail & Title"]
+        XCTAssertTrue(thumbnail.waitForExistence(timeout: 3), app.debugDescription)
+        thumbnail.tap()
         XCTAssertTrue(app.navigationBars["Customize Home"].exists)
+        XCTAssertTrue(artwork.staticTexts["Thumbnail & Title"].exists)
+        button("Rows on Home").tap()
+        XCTAssertTrue(app.navigationBars["Rows on Home"].waitForExistence(timeout: 3), app.debugDescription)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Customize Home"].waitForExistence(timeout: 3))
+        XCTAssertTrue(artwork.staticTexts["Thumbnail & Title"].exists)
+    }
+
+    func testHomeRowPresetsRequireConfirmationAndRetainSelection() {
+        openSettingsPage("Customize Home")
+        button("Rows on Home").tap()
+        let provider = app.buttons["home-row-preset-provider"]
+        let combined = app.buttons["home-row-preset-combined"]
+        XCTAssertTrue(provider.waitForExistence(timeout: 3), app.debugDescription)
+        XCTAssertTrue(combined.isHittable)
+        XCTAssertGreaterThanOrEqual(provider.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(combined.frame.height, 44)
+        XCTAssertLessThanOrEqual(provider.frame.maxY, combined.frame.minY)
+        let providerWasSelected = provider.isSelected
+        let combinedWasSelected = combined.isSelected
+        let preset = combinedWasSelected ? provider : combined
+        let otherPreset = combinedWasSelected ? combined : provider
+        let presetTitle = combinedWasSelected ? "Server defaults" : "Combined rows"
+        capture("home-row-preset-controls")
+
+        preset.tap()
+        XCTAssertTrue(app.staticTexts["Replace your row arrangement?"].waitForExistence(timeout: 3))
+        capture("home-row-preset-confirmation")
+        if app.buttons["Cancel"].exists {
+            app.buttons["Cancel"].tap()
+        } else {
+            let dismissRegion = app.otherElements["PopoverDismissRegion"]
+            XCTAssertTrue(dismissRegion.exists, app.debugDescription)
+            dismissRegion.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.95)).tap()
+        }
+        XCTAssertTrue(app.staticTexts["Replace your row arrangement?"].waitForNonExistence(timeout: 3))
+        XCTAssertEqual(provider.isSelected, providerWasSelected)
+        XCTAssertEqual(combined.isSelected, combinedWasSelected)
+
+        preset.tap()
+        let confirm = app.buttons.matching(NSPredicate(
+            format: "label == %@ AND identifier != %@",
+            presetTitle, preset.identifier
+        )).firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 3), app.debugDescription)
+        confirm.tap()
+        let selection = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "selected == true"), object: preset
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [selection], timeout: 3), .completed, app.debugDescription)
+        XCTAssertFalse(otherPreset.isSelected)
+        app.navigationBars.buttons.firstMatch.tap()
+        button("Rows on Home").tap()
+        XCTAssertTrue(preset.waitForExistence(timeout: 3))
+        XCTAssertTrue(preset.isSelected)
+        capture("home-row-confirmed-preset")
     }
 
     private func openSettingsPage(_ title: String, verifyTitleLayout: Bool = true) {

@@ -16,6 +16,9 @@ fallback when the user's server has no attached trailer.
   Fresh profiles use provider-style defaults; saved legacy arrangements remain
   unchanged until edited. Server-default and combined-row presets are explicit
   resets, not imports of a web client's private display preferences.
+  Layout presets reuse Artwork's shared choice controls, with the current preset
+  checked and edited arrangements marked Custom. Reset explanations appear in
+  the confirmation rather than crowding the row list.
   Plex Home uses promoted hubs; Emby/Jellyfin start with Resume, Next Up and
   per-library Latest, without automatic movie-recommendation shelves.
   The arranger enumerates optional recommendations only while open. Home omits
