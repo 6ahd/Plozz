@@ -37,15 +37,35 @@ public final class IPTVProvider: MediaProvider, CapabilityReporting, MediaSortFi
         cacheDirectory: URL? = nil, configuration: URLSessionConfiguration? = nil,
         progress: @escaping @Sendable (IPTVImportProgress) -> Void = { _ in }
     ) async throws -> UserSession {
+        let detected = try IPTVXtreamDetection.candidate(for: credential)
+        if let detected, IPTVXtreamDetection.isAPIEndpoint(credential.address) {
+            PlozzLog.auth.info("IPTV setup recognized an Xtream API address")
+            return try await signIn(
+                credential: detected, name: name, deviceID: deviceID,
+                cacheDirectory: cacheDirectory, configuration: configuration, progress: progress
+            )
+        }
         IPTVSetupDiagnostics.current?.advance(to: .catalogOpen)
         let client = try IPTVClient(
             credential: credential, directory: cacheDirectory, configuration: configuration, progress: progress
         )
         // A playlist import validates the response itself. Probing it first
         // makes slow providers generate the same large playlist twice.
-        if credential.mode != .playlist { try await client.authenticate() }
-        for library in credential.mode == .xtream ? ["live", "movies", "series"] : ["live"] {
-            try await client.ensureCatalog(library, force: credential.mode == .playlist)
+        do {
+            if credential.mode != .playlist { try await client.authenticate() }
+            for library in credential.mode == .xtream ? ["live", "movies", "series"] : ["live"] {
+                try await client.ensureCatalog(library, force: credential.mode == .playlist)
+            }
+        } catch {
+            guard let detected, IPTVXtreamDetection.permitsFallback(after: error) else { throw error }
+            await client.cancel()
+            try Task.checkCancellation()
+            PlozzLog.auth.info("IPTV address is not a playlist; trying Xtream with the supplied login")
+            progress(IPTVImportProgress(stage: .connecting))
+            return try await signIn(
+                credential: detected, name: name, deviceID: deviceID,
+                cacheDirectory: cacheDirectory, configuration: configuration, progress: progress
+            )
         }
         try Task.checkCancellation()
         IPTVSetupDiagnostics.current?.advance(to: .sessionCreation)
