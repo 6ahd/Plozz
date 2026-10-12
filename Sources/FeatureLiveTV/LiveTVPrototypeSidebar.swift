@@ -125,6 +125,13 @@ struct PrototypeBrowseSidebar: View {
             $focused, restoresCategoryFocus ? .category(model.category) : .search,
             priority: .automatic
         )
+        .background {
+            NativeFocusRegionObserver(
+                isEnabled: restoresCategoryFocus,
+                onFocusExited: { completedCategoryFocusRequest = 0 },
+                onFocusEntered: {}
+            )
+        }
         .onMoveCommand { direction in
             guard focused != nil else { return }
             if direction == (layoutDirection == .rightToLeft ? .left : .right) {
@@ -136,8 +143,6 @@ struct PrototypeBrowseSidebar: View {
             if target != nil { active = true }
             if target == .category(model.category) {
                 completedCategoryFocusRequest = categoryFocusRequest
-            } else if target == nil, restoresCategoryFocus {
-                completedCategoryFocusRequest = 0
             }
         }
         .onChange(of: focusRequest, initial: true) { _, request in

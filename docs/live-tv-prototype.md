@@ -490,6 +490,12 @@ is no prior in-memory history to migrate on the first updated launch.
   vertical position, or time. A leading-edge move out of the guide reveals the
   panel and focuses the selected category. Back still opens Search. Internal
   programme-to-programme moves keep their normal timeline behavior.
+  Once a category-entry focus request completes, transient focus loss during
+  native fast scrolling must not re-arm its eligibility gate. Only a new
+  entry request or a real native focus departure to another region may gate
+  the other controls; otherwise an offscreen selected category can leave every
+  visible category disabled. Real menu round trips still restore the selected
+  category before releasing that gate.
   Left/Right continues across the guide normally. Exactly one leading press
   from the far-left channel column (far-right in RTL) must reveal categories
   and Search, without revealing them early or also opening app navigation.
