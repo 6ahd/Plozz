@@ -11,14 +11,14 @@
         {
           "category": "New",
           "items": [
-            "Choose artwork sources per profile and screen in Appearance > Artwork.",
-            "See unwatched episode counts on show and season cards when available.",
+            "Choose artwork sources per screen in Appearance > Artwork.",
+            "See unwatched episode counts on TV show and season cards when available.",
             {
               "text": "On iOS and iPadOS 26, a download Live Activity shows progress and keeps eligible Media Share downloads running in the background when the system allows it.",
               "platforms": ["iOS"]
             },
             {
-              "text": "Open the downloaded movie, show or season from its completion notification.",
+              "text": "Open the downloaded movie, TV show or season from its completion notification.",
               "platforms": ["iOS"]
             }
           ]
@@ -32,7 +32,6 @@
               "text": "Downloaded items have a download-arrow badge, distinct from watched marks.",
               "platforms": ["iOS"]
             },
-            "IPTV now has a coral-red icon, distinct from Media Share.",
             {
               "text": "Clearer artwork and label settings, with focus returning to your last choice.",
               "platforms": ["tvOS"]
@@ -80,7 +79,7 @@
             "Library errors identify the affected server.",
             "Jellyfin recommendation headings use More like followed by the movie title.",
             "More consistent Continue Watching backgrounds, with nearby artwork and logos preloaded.",
-            "Recognized Media Share folders can show artwork for their matching movie or show.",
+            "Recognized Media Share folders can show artwork for their matching movie or TV show.",
             {
               "text": "Top Shelf follows the active profile's artwork choices.",
               "platforms": ["tvOS"]
@@ -90,7 +89,7 @@
               "platforms": ["iOS"]
             },
             {
-              "text": "Compact Downloads rows with show and season progress, menus, Pause All and Resume All.",
+              "text": "Compact Downloads rows with TV show and season progress, menus, Pause All and Resume All.",
               "platforms": ["iOS"]
             },
             "Playback details support translated labels and longer text.",
