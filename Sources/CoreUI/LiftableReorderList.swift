@@ -248,6 +248,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
             ForEach(items, id: \.self) { item in
                 listRow(item)
                     .frame(height: max(0, height(for: item) - 16))
+                    .contentShape(.dragPreview, RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .moveDisabled(item == .divider)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))

@@ -14,6 +14,45 @@ import XCTest
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
     #if os(iOS)
+    func testNativeReorderPreviewHasRoundedCorners() async throws {
+        try await withWindow {
+            LiftableReorderList(
+                sections: .init(enabled: ["Alpha", "Beta"], disabled: []),
+                disabledSectionTitle: "Hidden", disabledPlaceholder: "No hidden rows",
+                isLifting: .constant(false),
+                row: { .init(title: Text(verbatim: $0), subtitle: Text("Movies")) },
+                onChange: { _ in }
+            )
+            .padding(24)
+        } inspect: { window in
+            _ = try await self.capture(window, name: "Native reorder rows")
+            var views: [UIView] = [window]
+            var collection: UICollectionView?
+            while let view = views.popLast() {
+                if let list = view as? UICollectionView {
+                    collection = list
+                    break
+                }
+                views += view.subviews
+            }
+            let list = try XCTUnwrap(collection)
+            let index = IndexPath(item: 0, section: 0)
+            let parameters = try XCTUnwrap(
+                list.dragDelegate?.collectionView?(list, dragPreviewParametersForItemAt: index)
+            )
+            let path = try XCTUnwrap(parameters.visiblePath)
+            let bounds = path.bounds
+            XCTAssertGreaterThan(bounds.width, 200)
+            XCTAssertGreaterThan(bounds.height, 40)
+            XCTAssertTrue(path.contains(CGPoint(x: bounds.midX, y: bounds.midY)))
+            for x in [bounds.minX + 1, bounds.maxX - 1] {
+                for y in [bounds.minY + 1, bounds.maxY - 1] {
+                    XCTAssertFalse(path.contains(CGPoint(x: x, y: y)), "Drag previews must cut out each corner.")
+                }
+            }
+        }
+    }
+
     func testOfflineServerDoesNotAddAGlobalWarningToHomeCustomization() async throws {
         let suite = "HomeSettingsOffline.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

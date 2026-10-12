@@ -689,6 +689,40 @@ final class SettingsInteractionTests: XCTestCase {
         capture("home-row-shared-preset")
     }
 
+    func testHomeRowNativeDragReordersAndPersists() {
+        openSettingsPage("Customize Home")
+        button("Rows on Home").tap()
+        let provider = app.buttons["home-row-preset-provider"]
+        XCTAssertTrue(provider.waitForExistence(timeout: 3))
+        provider.tap()
+        let confirm = app.buttons.matching(NSPredicate(
+            format: "label == %@ AND identifier != %@",
+            "Use server-style rows", provider.identifier
+        )).firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 3))
+        confirm.tap()
+        let watching = app.staticTexts["Continue Watching"].firstMatch
+        let watchlist = app.staticTexts["Watchlist"].firstMatch
+        XCTAssertTrue(watching.waitForExistence(timeout: 3))
+        XCTAssertLessThan(watching.frame.minY, watchlist.frame.minY)
+        let cell = app.cells.containing(.staticText, identifier: "Continue Watching").firstMatch
+        let handle = cell.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reorder '")).firstMatch
+        XCTAssertTrue(handle.isHittable, app.debugDescription)
+        capture("home-row-before-native-drag")
+        let start = handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let destination = start.withOffset(CGVector(dx: 0, dy: watchlist.frame.maxY - watching.frame.midY))
+        start.press(forDuration: 1, thenDragTo: destination, withVelocity: .slow, thenHoldForDuration: 3)
+        let reordered = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in watching.frame.minY > watchlist.frame.minY }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [reordered], timeout: 3), .completed, app.debugDescription)
+        capture("home-row-after-native-drag")
+        app.navigationBars.buttons.firstMatch.tap()
+        button("Rows on Home").tap()
+        XCTAssertTrue(provider.waitForExistence(timeout: 3))
+        XCTAssertGreaterThan(watching.frame.minY, watchlist.frame.minY)
+    }
+
     private func openSettingsPage(_ title: String, verifyTitleLayout: Bool = true) {
         launch(settingsRoot: true)
         let usesAboutPage = app.windows.firstMatch.frame.width >= 600
