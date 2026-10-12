@@ -207,7 +207,9 @@ struct PlozziOSPlayerControlsOverlay: View {
 
             if viewModel.controls.skipButtonVisible {
                 Button {
+                    let canSkip = viewModel.controls.activeSkipSegment != nil
                     viewModel.skipActiveSegment()
+                    if canSkip { TouchFeedback.shared.emit(.impact) }
                     noteInteraction()
                 } label: {
                     Text(skipTitle)
@@ -305,11 +307,15 @@ struct PlozziOSPlayerControlsOverlay: View {
     }
 
     private func seek(by interval: TimeInterval) {
+        guard viewModel.controls.duration.isFinite, viewModel.controls.duration > 0 else { return }
+        let start = viewModel.controls.pendingSeekTarget ?? viewModel.controls.currentSeconds
         let target = min(
-            max(viewModel.controls.currentSeconds + interval, 0),
+            max(start + interval, 0),
             viewModel.controls.duration
         )
+        guard target != start else { return }
         viewModel.requestSeek(to: target)
+        TouchFeedback.shared.emit(.impact)
         noteInteraction()
     }
 

@@ -426,7 +426,7 @@ final class PlozziOSAppModel {
                 self.settings.playback.settings.syncWatchAcrossServers
             },
             enqueueWatchMutation: { [unowned self] mutation in
-                self.applyWatchMutation(mutation)
+                self.applyWatchMutation(mutation, confirmsUserAction: true)
             },
             universalWatchlistEnabled: { [unowned self] in
                 self.runtimeFeatureFlags.isEnabled(.universalWatchlist)
@@ -481,7 +481,8 @@ final class PlozziOSAppModel {
             },
             performDownloadAction: { [unowned self] action, item in
                 Task { await self.performDownloadMenuAction(action, on: item) }
-            }
+            },
+            makeActionConfirmation: { [unowned self] in self.makeLibraryActionConfirmation() }
         )
 
     /// Internal (not private) so the KeychainSync extension in another file can read
@@ -1668,11 +1669,24 @@ final class PlozziOSAppModel {
         trackerScopedNamespace = .some(namespace)
     }
 
-    private func applyWatchMutation(_ mutation: WatchMutation) {
+    private func makeLibraryActionConfirmation() -> @MainActor @Sendable () -> Void {
+        let profileID = profiles.activeProfileID
+        return TouchFeedback.shared.confirmation { [weak self] in
+            self?.profiles.activeProfileID == profileID
+        }
+    }
+
+    private func applyWatchMutation(
+        _ mutation: WatchMutation,
+        confirmsUserAction: Bool = false
+    ) {
+        let confirmation = confirmsUserAction && mutation.played != nil ? makeLibraryActionConfirmation() : nil
         let mutation = mutation.bindingServerScope(accountsProviders.watchMutationServerScope)
         let reconciler = watchReconciler
         Task {
-            await reconciler.enqueue(mutation)
+            await reconciler.enqueue(mutation) {
+                if let confirmation { Task { @MainActor in confirmation() } }
+            }
             await reconciler.drain()
         }
     }

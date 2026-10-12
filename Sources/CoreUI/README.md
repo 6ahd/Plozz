@@ -134,6 +134,15 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   appears. The page owns the one-shot state, outside loading content, so data
   refreshes, returning from playback, and popping a nested detail do not repeat
   it. Opening a new page emits again; tvOS and devices without haptics are silent.
+- **Touch action feedback** — `TouchFeedback` gives mobile skip actions a light
+  impact and committed scrubs / explicit reorder moves a selection tick. Native
+  List drag reordering retains system feedback without a second app vibration.
+  Watchlist and favorite confirmations follow successful writes; manual watched
+  changes confirm durable outbox acceptance, not eventual server synchronization.
+  Capture asynchronous confirmations at the user action: they are one-shot,
+  expire after three seconds, and require the app and originating profile to
+  remain active. Scrolling, menu opening, automatic playback and background
+  persistence/retry events do not trigger action feedback.
 - **Async artwork** — `FallbackAsyncImage` and `ArtworkImageCache`: an
   on-disk + in-memory image cache shared with `MetadataKit`'s URL cache,
   with profile-scoped source choices in Appearance > Artwork. Recommended uses

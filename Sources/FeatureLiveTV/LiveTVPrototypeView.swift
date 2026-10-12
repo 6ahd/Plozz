@@ -487,7 +487,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             nextChannel: { changeChannel(by: 1) },
             isFavorite: model.favoriteIDs.contains(prepared.channel.id),
             canToggleFavorite: model.preferencesIssue != .loadFailed,
-            onToggleFavorite: { model.toggleFavorite(prepared.channel.id) },
+            onToggleFavorite: { model.toggleFavoriteWithFeedback(prepared.channel.id) },
             isExpanded: preview.isExpanded && !multiview.isEnabled,
             returnToGuide: {
                 guard playback.ownsPlayerPresentation(presentationID) else { return }
@@ -1582,9 +1582,9 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
 
     private func toggleMultiviewFavorite() {
         if let favorite = model.favoriteMultiviews.first(where: multiview.matches) {
-            model.removeMultiviewFavorite(favorite.id)
+            if model.removeMultiviewFavorite(favorite.id) { TouchFeedback.shared.emit(.confirmation) }
         } else if let favorite = multiview.favoriteSnapshot() {
-            model.saveMultiviewFavorite(favorite)
+            if model.saveMultiviewFavorite(favorite) { TouchFeedback.shared.emit(.confirmation) }
         } else {
             multiviewFavoriteIssue = "Wait for the channels to load before saving this Multiview."
         }

@@ -91,6 +91,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
     /// is dropped the moment the durable read agrees, and reverted if the write
     /// fails, so the two can never end up disagreeing silently.
     private var watchlistIntents: [String: Bool] = [:]
+    private var watchlistConfirmations: [String: @MainActor () -> Void] = [:]
 
     /// Titles with a write in flight. One writer per title, so a burst of presses
     /// cannot interleave: without this, two taps race two `resolveOrCreate` +
@@ -129,6 +130,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
 
     private let downloadState: (MediaItem) -> MediaItemDownloadState??
     private let performDownloadAction: (MediaItemAction, MediaItem) -> Void
+    private let makeActionConfirmation: @MainActor () -> (@MainActor () -> Void)
 
     public init(
         providerResolver: @escaping (String?) -> (any MediaProvider)?,
@@ -164,9 +166,11 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
             @escaping ([MediaItem]) -> [MediaItem] = { $0 },
         seedLegacyUniversalWatchlist: @escaping ([MediaItem]) async -> Void = { _ in },
         downloadState: @escaping (MediaItem) -> MediaItemDownloadState?? = { _ in nil },
-        performDownloadAction: @escaping (MediaItemAction, MediaItem) -> Void = { _, _ in }
+        performDownloadAction: @escaping (MediaItemAction, MediaItem) -> Void = { _, _ in },
+        makeActionConfirmation: @escaping @MainActor () -> (@MainActor () -> Void) = { {} }
     ) {
         self.providerResolver = providerResolver
+        self.makeActionConfirmation = makeActionConfirmation
         self.providerCapabilityResolver = providerCapabilityResolver
         self.additionalSources = additionalSources
         self.primaryAccountID = primaryAccountID
@@ -398,6 +402,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
     /// item so one unreachable episode doesn't abort the rest.
     private func performMarkUpToHere(on item: MediaItem, context: MediaItemActionContext) {
         guard let watch = provider(for: item) as? WatchStateProviding else { return }
+        let confirm = makeActionConfirmation()
         var ids = Set(context.precedingContainerIDs)
         ids.formUnion(MediaItemActionCatalog.siblingsToMarkUpToHere(item, in: context.orderedSiblings).map(\.id))
         ids.insert(item.id)
@@ -417,9 +422,16 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
             kind: item.kind
         ).post()
         Task {
+            var allSucceeded = true
             for id in ids {
-                try? await watch.setPlayed(true, itemID: id)
+                do {
+                    try await watch.setPlayed(true, itemID: id)
+                } catch {
+                    allSucceeded = false
+                    PlozzLog.app.error("Mark watched up to here failed on an item")
+                }
             }
+            if allSucceeded { confirm() }
         }
     }
 
@@ -439,6 +451,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
     /// with the live identity index — the same source of truth the mark-watched
     /// fan-out uses — so a title only one server surfaced still saves everywhere.
     private func performWatchlist(adding: Bool, on item: MediaItem) {
+        let confirm = makeActionConfirmation()
         if universalWatchlistEnabled() {
             let performUniversalWatchlist = self.performUniversalWatchlist
             let presentFeedback = self.presentUniversalWatchlistFeedback
@@ -460,6 +473,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
             // the press is on screen this frame instead of after the ledger write.
             let key = Self.membershipKey(item)
             watchlistIntents[key] = adding
+            watchlistConfirmations[key] = confirm
             announceWatchlistIntentChanged()
 
             // One writer per title. A second press while a write is in flight only
@@ -472,6 +486,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
             Task { @MainActor in
                 defer {
                     self.watchlistWriters.remove(key)
+                    self.watchlistConfirmations[key] = nil
                     self.announceWatchlistIntentChanged()
                 }
                 // Keep writing until what's on disk is what the viewer last asked
@@ -522,6 +537,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
 
                     // Pressed again while that was in flight? Write the new answer.
                     guard self.watchlistIntents[key] == desired else { continue }
+                    self.watchlistConfirmations.removeValue(forKey: key)?()
                     // Hand back to the durable read once it agrees.
                     if self.watchlistMembership(item) == desired {
                         self.watchlistIntents[key] = nil
@@ -572,6 +588,8 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
             // If every provider failed, revert the optimistic change.
             if !anySucceeded {
                 MediaItemMutation(itemIDs: [item.id], scopedItemIDs: scoped, favorite: !adding).post()
+            } else {
+                confirm()
             }
         }
     }

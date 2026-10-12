@@ -348,6 +348,9 @@ public struct LiftableReorderList<Element: Hashable>: View {
         restoreFocusAfterLayout(to: edit.focusTarget)
         #else
         onChange(edit.sections)
+        if action == .moveUp || action == .moveDown {
+            TouchFeedback.shared.emit(.selection)
+        }
         #endif
     }
 }
