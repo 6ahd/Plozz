@@ -88,9 +88,13 @@ The pane has one geometry group, so button-local focus styling
 cannot cancel Search or Multiviews movement independently of the categories.
 The category list remains lazy; no per-row animation timers or rasterized
 snapshots are used.
+Native guide row hosts accept both growing and shrinking widths with leading
+alignment, so explicit-width programme timelines do not recenter independently
+of channels without listings during the sidebar transition.
 Native-menu round trips, selected-category restoration, and preview-session
 identity have remote regressions; hosted rendered-pixel tests cover synchronized
-Search/Multiviews/category movement, guide travel, and rapid reversal.
+Search/Multiviews/category movement, mixed-source guide rows, guide travel, and
+rapid reversal.
 
 ### IPTV accounts and large catalogues
 
