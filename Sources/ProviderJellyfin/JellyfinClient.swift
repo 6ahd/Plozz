@@ -192,6 +192,65 @@ public struct JellyfinClient: Sendable {
 
     // MARK: Items
 
+    func homeDisplayPreferences(userID: String) async throws -> HomeDisplayPreferencesDto {
+        let endpoint = Endpoint(
+            path: "/DisplayPreferences/usersettings",
+            queryItems: [
+                URLQueryItem(name: "userId", value: userID),
+                // Jellyfin Web still uses the legacy Emby client identifier.
+                URLQueryItem(name: "client", value: "emby")
+            ],
+            headers: authHeaders
+        )
+        return try await http.decode(HomeDisplayPreferencesDto.self, from: endpoint, baseURL: baseURL)
+    }
+
+    func nativeHomeSections(userID: String) async throws -> [EmbyHomeSectionDto] {
+        try await http.decode(
+            [EmbyHomeSectionDto].self,
+            from: Endpoint(path: "/Users/\(userID)/HomeSections", headers: authHeaders),
+            baseURL: baseURL
+        )
+    }
+
+    func nativeHomeItems(
+        userID: String, sectionID: String, limit: Int, parentID: String?
+    ) async throws -> [BaseItemDto] {
+        // A section ID is a path component, never a server-provided URL/query.
+        guard !sectionID.isEmpty, !sectionID.contains("/"),
+              sectionID != ".", sectionID != ".." else { throw AppError.invalidResponse }
+        var query = [
+            URLQueryItem(name: "Limit", value: String(limit)),
+            URLQueryItem(name: "StartIndex", value: "0"),
+            URLQueryItem(name: "IncludeItemTypes", value: "Movie,Series,Season,Episode,Video"),
+            URLQueryItem(name: "Fields", value: "Overview,OriginalTitle,PrimaryImageAspectRatio,ProviderIds")
+        ]
+        if let parentID { query.append(URLQueryItem(name: "ParentId", value: parentID)) }
+        return try await http.decode(
+            ItemsResponse.self,
+            from: Endpoint(
+                path: "/Users/\(userID)/Sections/\(sectionID)/Items",
+                queryItems: query, headers: authHeaders
+            ),
+            baseURL: baseURL
+        ).Items
+    }
+
+    func activeHomeRecordings(userID: String, limit: Int) async throws -> [BaseItemDto] {
+        let endpoint = Endpoint(
+            path: "/LiveTv/Recordings",
+            queryItems: [
+                URLQueryItem(name: "UserId", value: userID),
+                URLQueryItem(name: "Limit", value: String(limit)),
+                URLQueryItem(name: "IsInProgress", value: "true"),
+                URLQueryItem(name: "EnableTotalRecordCount", value: "false"),
+                URLQueryItem(name: "Fields", value: "Overview,PrimaryImageAspectRatio,ProviderIds")
+            ],
+            headers: authHeaders
+        )
+        return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL).Items
+    }
+
     func userViews(userID: String) async throws -> [BaseItemDto] {
         let endpoint = Endpoint(
             path: "/Users/\(userID)/Views",
@@ -505,13 +564,18 @@ public struct JellyfinClient: Sendable {
         return try await http.decode(BaseItemDto.self, from: endpoint, baseURL: baseURL)
     }
 
-    func latestItems(userID: String, limit: Int, parentID: String? = nil) async throws -> [BaseItemDto] {
+    func latestItems(
+        userID: String, limit: Int, parentID: String? = nil, videoOnly: Bool = false
+    ) async throws -> [BaseItemDto] {
         var queryItems = [
             URLQueryItem(name: "Limit", value: String(limit)),
             URLQueryItem(name: "Fields", value: "Overview,OriginalTitle,ProviderIds")
         ]
         if let parentID {
             queryItems.append(URLQueryItem(name: "ParentId", value: parentID))
+        }
+        if videoOnly {
+            queryItems.append(URLQueryItem(name: "IncludeItemTypes", value: "Movie,Series,Season,Episode,Video"))
         }
         let endpoint = Endpoint(
             path: "/Users/\(userID)/Items/Latest",

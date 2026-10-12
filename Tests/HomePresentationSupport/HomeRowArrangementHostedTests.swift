@@ -128,7 +128,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         } inspect: { window in
             let before = try await self.capture(window, name: "Home arranger original order")
             XCTAssertGreaterThan(try self.y("Alpha", in: before), try self.y("Beta", in: before))
-            XCTAssertTrue(before.contains { $0.0.contains("Shared rows") })
+            XCTAssertTrue(before.contains { $0.0.contains("All libraries") })
             visibility.applyRows(.init(enabled: Array(ids.reversed()), disabled: hidden), choices: choices)
             let after = try await self.capture(window, name: "Home arranger reversed order")
             XCTAssertGreaterThan(try self.y("Beta", in: after), try self.y("Alpha", in: after))
@@ -182,14 +182,14 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             } inspect: { window in
                 let lines = try await self.capture(window, name: "Home presets text size \(size)")
                 let text = lines.map(\.0).joined(separator: " ").replacingOccurrences(of: "- ", with: "-")
-                XCTAssertTrue(text.contains("Use server-style rows"), text)
-                XCTAssertTrue(text.contains("Use shared rows"), text)
+                XCTAssertTrue(text.contains("Match server"), text)
+                XCTAssertTrue(text.contains("Combined rows"), text)
                 XCTAssertGreaterThan(
-                    try self.y("Use server", in: lines),
-                    try self.y("Use shared", in: lines)
+                    try self.y("Match server", in: lines),
+                    try self.y("Combined rows", in: lines)
                 )
                 XCTAssertGreaterThan(
-                    try self.y("Use shared", in: lines),
+                    try self.y("Combined rows", in: lines),
                     try self.y("ROWS", in: lines)
                 )
             }

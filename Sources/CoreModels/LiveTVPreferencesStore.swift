@@ -1,5 +1,9 @@
 import Foundation
 
+public extension Notification.Name {
+    static let plozzLiveTVPreferencesDidChange = Notification.Name("com.plozz.liveTV.preferencesDidChange")
+}
+
 /// Non-secret metadata retained for a channel hidden by one profile.
 ///
 /// The display name lets Settings offer restoration even while the channel's
@@ -241,13 +245,20 @@ public final class LiveTVPreferencesStore: LiveTVPreferencesStoring, @unchecked 
             throw LiveTVPreferencesStoreError.encodingFailed
         }
 
+        var didSave = false
         lock.lock()
-        defer { lock.unlock() }
+        defer {
+            lock.unlock()
+            if didSave {
+                NotificationCenter.default.post(name: .plozzLiveTVPreferencesDidChange, object: key)
+            }
+        }
 
         if defaults.object(forKey: key) != nil {
             _ = try loadLocked()
         }
         defaults.set(encoded, forKey: key)
+        didSave = true
     }
 
     private func loadLocked() throws -> LiveTVPreferences {

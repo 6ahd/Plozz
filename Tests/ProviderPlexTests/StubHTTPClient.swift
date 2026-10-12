@@ -36,6 +36,7 @@ final class StubHTTPClient: HTTPClient {
     var sentPaths: [String] { state.withLock { $0.requests.map(\.endpoint.path) } }
     var sentMethods: [HTTPMethod] { state.withLock { $0.requests.map(\.endpoint.method) } }
     var sentQueryItems: [[URLQueryItem]] { state.withLock { $0.requests.map(\.endpoint.queryItems) } }
+    var sentHeaders: [[String: String]] { state.withLock { $0.requests.map(\.endpoint.headers) } }
     var sentBaseURLs: [URL] { state.withLock { $0.requests.map(\.baseURL) } }
 
     func stub(

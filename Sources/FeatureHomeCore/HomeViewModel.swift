@@ -178,6 +178,7 @@ public final class HomeViewModel {
         /// Per-library section blocks — populated only in unmerged mode. Each
         /// library's own Continue Watching / Recently Added / discovery-hub rows.
         public var librarySections: [HomeLibrarySectionGroup] = []
+        public var serverRows: [HomeServerRow] = []
 
         public init(
             continueWatching: [MediaItem] = [],
@@ -185,7 +186,8 @@ public final class HomeViewModel {
             watchlist: [MediaItem] = [],
             libraries: [AggregatedLibrary] = [],
             mergeLibraries: Bool = true,
-            librarySections: [HomeLibrarySectionGroup] = []
+            librarySections: [HomeLibrarySectionGroup] = [],
+            serverRows: [HomeServerRow] = []
         ) {
             self.continueWatching = continueWatching
             self.latest = latest
@@ -193,6 +195,7 @@ public final class HomeViewModel {
             self.libraries = libraries
             self.mergeLibraries = mergeLibraries
             self.librarySections = librarySections
+            self.serverRows = serverRows
         }
 
         // The launch snapshot persists only the merged-mode rows plus the merge
@@ -207,7 +210,7 @@ public final class HomeViewModel {
 
         public var isEmpty: Bool {
             continueWatching.isEmpty && latest.isEmpty && watchlist.isEmpty
-                && libraries.isEmpty && librarySections.isEmpty
+                && libraries.isEmpty && librarySections.isEmpty && serverRows.isEmpty
         }
 
         /// Bounds discovery previews for launch persistence, not Continue Watching.
@@ -231,6 +234,11 @@ public final class HomeViewModel {
                                            isLegacyHomeDefault: $0.isLegacyHomeDefault)
                         }
                     )
+                },
+                serverRows: serverRows.map { row in
+                    var row = row
+                    row.items = Array(row.items.prefix(perRow))
+                    return row
                 }
             )
         }
@@ -265,6 +273,11 @@ public final class HomeViewModel {
                         return section
                     }
                     return group
+                },
+                serverRows: serverRows.map { row in
+                    var row = row
+                    row.items = row.items.map { $0.sanitizingArtworkCredentials() }
+                    return row
                 }
             )
         }
@@ -291,9 +304,11 @@ public final class HomeViewModel {
         let content = state.value
         let visible = hasReceivedLiveContent ? content?.continueWatching ?? [] : []
         let native = accounts.flatMap { detailResumeByAccount[$0.account.id] ?? [] }
-        let nextUp = content?.librarySections.flatMap { group in
+        let nextUp = (content?.librarySections.flatMap { group in
             group.sections.filter { $0.id == "nextUp" }.flatMap(\.items)
-        } ?? []
+        } ?? []) + (content?.serverRows.filter {
+            $0.definition.section.kind == .nextUp
+        }.flatMap(\.items) ?? [])
         let visibility = currentVisibility()
         var seen = Set<String>()
         return (visible + native + nextUp).filter { item in
@@ -352,6 +367,7 @@ public final class HomeViewModel {
     /// accounts; the per-item row filter still lives in the view so toggles that
     /// need no re-fetch (Plex, already-tagged items) apply instantly.
     private let currentVisibility: () -> HomeLibraryVisibility
+    private let prepareVisibility: @MainActor () async -> Void
 
     /// A snapshot of the durable watch-outbox's not-yet-confirmed mutations, read
     /// at load time so the freshly-fetched Continue Watching row reflects plays the
@@ -458,6 +474,7 @@ public final class HomeViewModel {
         contentStore: HomeContentStoring = NoOpHomeContentStore(),
         identitySources: @escaping @Sendable (MediaItem) -> [MediaSourceRef] = { _ in [] },
         currentVisibility: @escaping () -> HomeLibraryVisibility = { .default },
+        prepareVisibility: @escaping @MainActor () async -> Void = {},
         pendingWatchMutations: @escaping @Sendable () async -> [WatchMutation] = { [] },
         recentlyAppliedRecency: @escaping @Sendable () async -> [String: AppliedResumeRecord] = { [:] },
         mediaItemActionHandler: (any MediaItemActionHandling)? = nil,
@@ -471,6 +488,7 @@ public final class HomeViewModel {
         self.heroExposureState = HeroExposureState.state(for: contentStore)
         self.identitySources = identitySources
         self.currentVisibility = currentVisibility
+        self.prepareVisibility = prepareVisibility
         self.pendingWatchMutations = pendingWatchMutations
         self.recentlyAppliedRecency = recentlyAppliedRecency
         self.policy = policy
@@ -606,7 +624,7 @@ public final class HomeViewModel {
     /// change: hiding/showing/disabling a library, or flipping the merge switch.
     public func loadIfNeeded(for visibility: HomeLibraryVisibility) async {
         if isLoading {
-            if loadingVisibility != visibility {
+            if loadingVisibility?.intent != visibility.intent {
                 wantsReloadAfterCurrent = true
                 aggregationTask?.cancel()
                 unmergedTask?.cancel()
@@ -705,6 +723,9 @@ public final class HomeViewModel {
             }
         }
         PlozzLog.boot("HomeVM.load START vm=\(UInt(bitPattern: ObjectIdentifier(self).hashValue)) accounts=\(accounts.count) state=\(state.diagnosticName) silent=\(!showLoadingState)")
+        loadingVisibility = currentVisibility()
+        await prepareVisibility()
+        guard !Task.isCancelled else { return }
         let previousContent = state.value
         let hadLiveContent = hasReceivedLiveContent
         let onScreenWatchlist = previousContent?.watchlist ?? []
@@ -863,7 +884,8 @@ public final class HomeViewModel {
                 watchlist: durableWatchlist,
                 libraries: unmerged.libraries,
                 mergeLibraries: false,
-                librarySections: unmerged.librarySections
+                librarySections: unmerged.librarySections,
+                serverRows: unmerged.serverRows
             )
         }
         // A SILENT background refresh that came back empty must not blank out good
@@ -883,6 +905,9 @@ public final class HomeViewModel {
         // is what kept a switched-off server's library on screen. With no sources
         // the emptiness IS the answer, so fall through and let it stand (which
         // also republishes the Top Shelf, rather than leaving it on the old rows).
+        content.serverRows = retainingServerRowContent(
+            content.serverRows, previous: previousContent?.serverRows ?? []
+        )
         content = applyingLoadMutations(to: content)
         loadingRows = []
         rowFailures = loadFailures
@@ -992,6 +1017,9 @@ public final class HomeViewModel {
         var content = state.value ?? Content()
         let previousLibraryRowCount = content.librarySections.reduce(0) { $0 + $1.sections.count }
         content.mergeLibraries = !visibility.usesIndividualHomeRows
+        content.serverRows = retainingServerRowContent(
+            progress.content.serverRows, previous: content.serverRows
+        )
         if let resume { content.continueWatching = resume }
         if newlyReady.contains(.recentlyAdded) { content.latest = progress.content.latest }
         if newlyReady.contains(.libraries) { content.libraries = progress.content.libraries }
@@ -1054,6 +1082,7 @@ public final class HomeViewModel {
                 return apply(mutation, to: item)
             }
             content.latest = content.latest.map { apply(mutation, to: $0) }
+            content.serverRows = applying(mutation, to: content.serverRows)
             content.watchlist = updatedWatchlist(content.watchlist, mutation: mutation, in: content)
             content.librarySections = content.librarySections.map { group in
                 var group = group
@@ -1105,6 +1134,9 @@ public final class HomeViewModel {
                 group.sections.contains { section in
                     section.id == "nextUp" && section.items.contains { mutation.targets($0) }
                 }
+            } == true || state.value?.serverRows.contains { row in
+                row.definition.section.kind == .nextUp
+                    && row.items.contains { mutation.targets($0) }
             } == true || mutation.item.map { item in
                 item.kind == .episode && mutation.targets(item) && accounts.contains { account in
                     mutation.matches(accountID: account.account.id, itemID: item.id)
@@ -1251,6 +1283,7 @@ public final class HomeViewModel {
             content.continueWatching = content.continueWatching.map { apply(mutation, to: $0) }
         }
         content.latest = content.latest.map { apply(mutation, to: $0) }
+        content.serverRows = applying(mutation, to: content.serverRows)
         content.watchlist = updatedWatchlist(content.watchlist, mutation: mutation, in: content)
         // Unmerged mode renders the per-library rows straight from
         // `librarySections`, so the same title's card there must reflect an
@@ -1274,6 +1307,32 @@ public final class HomeViewModel {
         // Without this, quitting after playback resurrects the pre-play Continue
         // Watching order until the next live refresh completes.
         saveSnapshot(content)
+    }
+
+    private func retainingServerRowContent(
+        _ rows: [HomeServerRow], previous: [HomeServerRow]
+    ) -> [HomeServerRow] {
+        rows.map { row in
+            guard row.isLoading || row.failure != nil,
+                  let cached = previous.first(where: { $0.definition == row.definition }) else { return row }
+            var row = row
+            row.items = cached.items
+            return row
+        }
+    }
+
+    private func applying(_ mutation: MediaItemMutation, to rows: [HomeServerRow]) -> [HomeServerRow] {
+        rows.map { row in
+            var row = row
+            row.items = row.items.compactMap { item in
+                if row.definition.section.kind == .nextUp, mutation.targets(item),
+                   mutation.played == true || (mutation.resumePosition ?? 0) > 0 {
+                    return nil
+                }
+                return apply(mutation, to: item)
+            }
+            return row
+        }
     }
 
     private func applying(_ mutation: MediaItemMutation, to section: LibrarySection) -> [MediaItem] {
@@ -1345,6 +1404,7 @@ public final class HomeViewModel {
         candidates += content.librarySections.flatMap {
             $0.sections.flatMap(\.items)
         }
+        candidates += content.serverRows.flatMap(\.items)
 
         let authoritative = Self.resolvedWatchlist(
             candidates: candidates,

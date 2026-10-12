@@ -3,6 +3,37 @@ import CoreModels
 @testable import FeatureHomeCore
 
 final class HomePresentationRowTests: XCTestCase {
+    func testLiveOnlyHomeUsesTypedRowsAndIndependentVisibility() {
+        let card = HomeLiveTVChannel(
+            route: .init(
+                profileID: "profile", channelID: "live", sourceID: "playlist",
+                sourceAuthorizationID: "approval", serverAuthorizationID: "servers"
+            ), name: "News", sourceName: "Playlist", number: 1
+        )
+        let snapshot = HomeLiveTVSnapshot(recentChannels: [card], channels: [card])
+        let order: [HomeRowID] = [.liveTV, .global(.continueWatching)]
+        let visibility = HomeLibraryVisibility(rowCustomization: .init(order: order, shown: Set(order)))
+        let rows = HomePresentationRow.resolve(rows: [], content: .init(), visibility: visibility, liveTV: snapshot)
+        XCTAssertEqual(rows.map(\.id), order)
+        guard case .liveTV(let channels) = rows.first?.source,
+              case .home(let recent) = rows.last?.source else { return XCTFail("Expected typed Live TV and mixed recent row") }
+        XCTAssertEqual(channels, [card])
+        XCTAssertEqual(recent.kind, .continueWatching)
+        XCTAssertTrue(recent.items.isEmpty, "A live channel must never masquerade as a MediaItem.")
+        if case .loaded = HomePresentationRow.displayState(.empty, liveTV: snapshot, visibility: visibility) {
+        } else { XCTFail("Cached Live TV can populate an otherwise empty Home.") }
+
+        let hidden = HomeLibraryVisibility(rowCustomization: .init(order: order, hidden: Set(order)))
+        XCTAssertFalse(HomePresentationRow.hasLiveTVRows(snapshot, visibility: hidden))
+        let noRecent = HomeLibraryVisibility(rowCustomization: .init(
+            order: order, hidden: [.global(.continueWatching)], shown: [.liveTV]
+        ))
+        XCTAssertEqual(
+            HomePresentationRow.resolve(rows: [], content: .init(), visibility: noRecent, liveTV: snapshot).map(\.id),
+            [.liveTV]
+        )
+    }
+
     private func library(_ account: String) -> AggregatedLibrary {
         AggregatedLibrary(
             accountID: account, accountName: account, serverName: "Server",

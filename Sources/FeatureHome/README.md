@@ -13,22 +13,33 @@ fallback when the user's server has no attached trailer.
   carries it to other devices. Editing available rows preserves offline keys.
   `HomePresentationRow` resolves the one list consumed by standard, carousel,
   Showcase and mobile Home. Hiding every row retains an escapable TV notice.
-  Fresh profiles use provider-style defaults; saved legacy arrangements remain
-  unchanged until edited. Server-default and combined-row presets are explicit
-  resets, not imports of a web client's private display preferences.
-  Presets are starting-point actions, not mutually exclusive layout modes.
-  Shared rows are labeled explicitly; library rows carry their library and
-  server names. Both kinds can be freely interleaved. Replacing an arrangement
-  still requires confirmation.
+  Fresh profiles select **Match server**: one server follows its available Home
+  arrangement; multiple servers use combined rows. It adapts to source changes
+  until a manual row edit freezes a **Custom arrangement**. Choosing Match server
+  again resumes adaptation. **Combined rows** starts with cross-library rows
+  regardless of source count. Existing legacy arrangements remain unchanged.
+  Global rows say **All libraries**; native server and library rows identify their
+  source. All can be freely interleaved. Changing presets requires confirmation;
+  selecting the already active preset does nothing.
+  Jellyfin uses its saved web Home preferences, Emby its native Home sections
+  with an older-server fallback, and Plex its promoted hubs—not another client's
+  private sidebar pins. Unsupported providers retain their normal default rows.
+  Matching excludes music and reading. Derived layouts are cached locally by
+  account/server/user, separate from profile-synced arrangement intent. A real
+  refresh or opening the arranger can refresh them; there is no polling timer.
+  Native content requests batch by account and library so several Plex rows
+  reuse one promoted-hub response. Sharing lasts only for that refresh; it never
+  leaves Next Up stale behind a cross-refresh item cache.
   Server connection failures belong to the affected server card in Libraries,
   not a global warning in Customize Home or Rows on Home. Discovery failures
   remain logged and never reset saved row choices.
-  Plex Home uses promoted hubs; Emby/Jellyfin start with Resume, Next Up and
-  per-library Latest, without automatic movie-recommendation shelves.
   The arranger enumerates optional recommendations only while open. Home omits
   unselected row-family requests and stops a recommendation family after all its
   known rows are hidden. The separate library Recommended screen and Showcase's
   optional external Discover row are not redefined by these Home preferences.
+  Live TV contributes typed cached channel cards to Continue Watching and its
+  own optional row, never VOD items. Cache bounds, authorization and managed
+  tuning are documented in [Live TV](../../docs/live-tv-prototype.md).
 
 - **Home** — `HomeView` + `HomeViewModel` render the focused tvOS rows:
   Continue Watching, Latest, Recently Added (per library). `HomeLayout`

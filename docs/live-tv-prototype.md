@@ -11,6 +11,36 @@ management, guide/search, Multiview, playback and profile-scoped iCloud sync. Ex
 profile authorization, parental approval, account, source and persistence gates
 remain in force.
 
+## Cached Home cards
+
+Normal Live TV use publishes a small, profile-scoped **local** Home snapshot:
+up to three recently watched channels in Continue Watching and an eight-channel,
+favorites-first Live TV row. Existing Home row controls determine their visibility
+and order on Apple TV, iPhone and iPad. The selected cards persist in a separate
+device-local cache file (at most 64 KiB, three recent cards and eight row cards).
+Cold launches hydrate only that file; opening Home does not warm the lineup.
+Absent, corrupt, oversized or unsupported cache files are treated as cache misses.
+There is no portable-state initialization or sync registration for this cache.
+
+Home performs at most 24 candidate lookups in the already indexed catalog when
+the Live TV owner publishes a snapshot. It never reads/decrypts a full lineup,
+hashes an imported playlist file, refreshes a playlist/guide/provider, starts a
+tuner, runs a preview, or introduces a polling timer. Cards retain only channel
+identity and display text, using a local broadcast glyph rather than potentially
+credential-bearing artwork URLs. Playlist sources and server-backed sources
+(including IPTV accounts) retain current profile, source-approval and server-user
+authorization fences. Persisted scope uses non-secret account credential revisions
+and profile/server-user identity, not ephemeral per-launch Plex override revisions.
+Current source approval, credentials and profile access are checked before cached
+cards are exposed. Credentials and token-derived hashes are not persisted.
+Scheduled library channels remain in the Live TV guide.
+
+Selecting a card first enters the existing Live TV destination. A one-shot typed
+request waits for that destination's current authorized catalog and ordinary
+playback gates, then uses its owned watch coordinator. Home itself neither opens
+a stream nor records a channel as watched; normal video acceptance owns recents
+and existing playback/lease cleanup remains unchanged.
+
 ## Run
 
 Generate the project using the normal wrapper:

@@ -99,7 +99,12 @@ final class HomeRowCustomizationTests: XCTestCase {
             library: source, isProviderDefault: false
         )
         var visibility = HomeLibraryVisibility.default
-        visibility.applyRows(.init(enabled: [one.id], disabled: [two.id]), choices: [one, two])
+        let base = HomeRowChoice.baseRows(for: source)
+        let defaults = visibility.rowSections(choices: base)
+        visibility.applyRows(
+            .init(enabled: defaults.enabled + [one.id], disabled: defaults.disabled + [two.id]),
+            choices: base + [one, two]
+        )
         XCTAssertTrue(visibility.isHomeRowVisible(one))
         XCTAssertFalse(visibility.isHomeRowVisible(two))
         XCTAssertEqual(visibility.requestedRowKinds(for: source), [.recentlyAdded, .hubs])

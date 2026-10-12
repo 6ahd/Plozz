@@ -4,7 +4,9 @@ import Foundation
 public enum HomeRowID: Hashable, Codable, Sendable {
     case global(HomeGlobalRow)
     case libraries
+    case liveTV
     case library(key: String, section: String)
+    case server(accountID: String, section: String)
 
     public static func library(_ key: String, kind: LibraryHomeRowKind) -> Self {
         .library(key: key, section: kind.rawValue)
@@ -24,8 +26,11 @@ public enum HomeRowID: Hashable, Codable, Sendable {
         switch self {
         case let .global(row): return "home-\(row.rawValue)"
         case .libraries: return "home-libraries"
+        case .liveTV: return "home-live-tv"
         case let .library(key, section):
             return "home-library-\(key.utf8.count):\(key)-\(section)"
+        case let .server(accountID, section):
+            return "home-server-\(accountID.utf8.count):\(accountID)-\(section)"
         }
     }
 }
@@ -38,10 +43,12 @@ public struct HomeRowChoice: Identifiable, Equatable, Sendable {
     public let library: AggregatedLibrary?
     public let isProviderDefault: Bool
     public let isLegacyDefault: Bool
+    public let serverRow: HomeServerRowDefinition?
 
     public init(
         id: HomeRowID, title: String, localizedTitle: LocalizedStringResource? = nil,
-        library: AggregatedLibrary? = nil, isProviderDefault: Bool, isLegacyDefault: Bool = true
+        library: AggregatedLibrary? = nil, isProviderDefault: Bool, isLegacyDefault: Bool = true,
+        serverRow: HomeServerRowDefinition? = nil
     ) {
         self.id = id
         self.title = title
@@ -49,6 +56,7 @@ public struct HomeRowChoice: Identifiable, Equatable, Sendable {
         self.library = library
         self.isProviderDefault = isProviderDefault
         self.isLegacyDefault = isLegacyDefault
+        self.serverRow = serverRow
     }
 
     public static var shared: [Self] {
@@ -57,8 +65,18 @@ public struct HomeRowChoice: Identifiable, Equatable, Sendable {
                  isProviderDefault: $0 != .recentlyAdded)
         } + [
             Self(id: .libraries, title: "Libraries", localizedTitle: "Libraries",
-                 isProviderDefault: true)
+                 isProviderDefault: true),
+            Self(id: .liveTV, title: "Live TV", localizedTitle: "Live TV",
+                 isProviderDefault: false, isLegacyDefault: false)
         ]
+    }
+
+    public init(serverRow: HomeServerRowDefinition) {
+        self.init(
+            id: serverRow.id, title: serverRow.section.title ?? serverRow.section.kind.rawValue,
+            localizedTitle: serverRow.section.title == nil ? serverRow.section.kind.title : nil,
+            isProviderDefault: true, isLegacyDefault: false, serverRow: serverRow
+        )
     }
 
     public static func baseRows(for library: AggregatedLibrary) -> [Self] {
@@ -86,15 +104,19 @@ public struct HomeRowChoice: Identifiable, Equatable, Sendable {
 /// Profile-synced intent. Missing/offline rows retain both order and visibility.
 public struct HomeRowCustomization: Codable, Equatable, Sendable {
     public enum Defaults: String, Codable, CaseIterable, Sendable {
+        case matchServer
         case provider
         case combined
         case legacy
+        case custom
 
         public var title: LocalizedStringResource {
             switch self {
+            case .matchServer: return "Match server"
             case .provider: return "Server defaults"
             case .combined: return "Combined rows"
             case .legacy: return "Previous layout"
+            case .custom: return "Custom"
             }
         }
     }
@@ -103,34 +125,77 @@ public struct HomeRowCustomization: Codable, Equatable, Sendable {
     public var order: [HomeRowID]
     public var hidden: Set<HomeRowID>
     public var shown: Set<HomeRowID>
+    public var serverRows: [HomeServerRowDefinition]
+    /// Effective server defaults are runtime state, not profile-synced intent.
+    public var resolvedDefaults: HomeResolvedRowDefaults?
+
+    public var effectiveOrder: [HomeRowID] {
+        defaults == .matchServer ? resolvedDefaults?.order ?? order : order
+    }
+
+    public var availableServerRows: [HomeServerRowDefinition] {
+        defaults == .matchServer ? resolvedDefaults?.serverRows ?? [] : serverRows
+    }
 
     public init(
         defaults: Defaults = .provider, order: [HomeRowID] = [],
-        hidden: Set<HomeRowID> = [], shown: Set<HomeRowID> = []
+        hidden: Set<HomeRowID> = [], shown: Set<HomeRowID> = [],
+        serverRows: [HomeServerRowDefinition] = []
     ) {
         self.defaults = defaults
         self.order = order
         self.hidden = hidden
         self.shown = shown.subtracting(hidden)
+        self.serverRows = serverRows
     }
 
     public func isVisible(_ id: HomeRowID, providerDefault: Bool) -> Bool {
         if hidden.contains(id) { return false }
         if shown.contains(id) { return true }
         switch defaults {
+        case .matchServer:
+            guard let resolvedDefaults else { return providerDefault }
+            switch resolvedDefaults.mode {
+            case .server: return resolvedDefaults.order.contains(id)
+            case .combined: return Self.isCombinedRow(id)
+            case .providerFallback: return providerDefault
+            }
         case .provider, .legacy: return providerDefault
-        case .combined: return id.libraryKey == nil
+        case .combined: return Self.isCombinedRow(id)
+        case .custom: return false
+        }
+    }
+
+    private static func isCombinedRow(_ id: HomeRowID) -> Bool {
+        switch id {
+        case .global, .libraries, .liveTV: return true
+        case .library, .server: return false
         }
     }
 
     public func sections(choices: [HomeRowChoice]) -> OrderedVisibilityList.Sections<HomeRowID> {
         OrderedVisibilityList.resolving(
-            available: choices.map(\.id), order: order,
+            available: choices.map(\.id), order: effectiveOrder,
             hidden: Set(choices.filter { !isVisible($0.id, providerDefault: $0.isProviderDefault) }.map(\.id))
         )
     }
 
     public mutating func setVisible(_ visible: Bool, for id: HomeRowID) {
+        if defaults == .matchServer {
+            let rows = availableServerRows
+            let choices = HomeRowChoice.shared + rows.map(HomeRowChoice.init(serverRow:))
+            let current = sections(choices: choices)
+            order = effectiveOrder.isEmpty ? current.combined : effectiveOrder
+            shown.formUnion(current.enabled)
+            hidden.formUnion(current.disabled)
+            serverRows = rows
+            defaults = .custom
+            resolvedDefaults = nil
+        }
+        updateVisibility(visible, for: id)
+    }
+
+    private mutating func updateVisibility(_ visible: Bool, for id: HomeRowID) {
         if visible {
             hidden.remove(id)
             shown.insert(id)
@@ -145,6 +210,9 @@ public struct HomeRowCustomization: Codable, Equatable, Sendable {
     ) {
         let available = Set(choices.map(\.id))
         let previous = self.sections(choices: choices)
+        if defaults == .matchServer {
+            order = effectiveOrder
+        }
         var seen = Set<HomeRowID>()
         let edited = sections.combined.filter { available.contains($0) && seen.insert($0).inserted }
         var iterator = edited.makeIterator()
@@ -161,16 +229,32 @@ public struct HomeRowCustomization: Codable, Equatable, Sendable {
         order = result.filter { seen.insert($0).inserted }
         let enabled = Set(sections.enabled)
         for id in Set(previous.enabled).symmetricDifference(enabled).intersection(available) {
-            setVisible(enabled.contains(id), for: id)
+            updateVisibility(enabled.contains(id), for: id)
         }
         // A saved arrangement also remembers automatically hidden choices, so
         // loading placeholders cannot turn optional rows back on.
         hidden.formUnion(Set(sections.disabled).intersection(available))
+        shown.formUnion(enabled.intersection(available))
         shown.subtract(hidden)
+        let incoming = choices.compactMap(\.serverRow)
+        let incomingIDs = Set(incoming.map(\.id))
+        serverRows = incoming + availableServerRows.filter { !incomingIDs.contains($0.id) }
+        if defaults != .legacy { defaults = .custom }
+        resolvedDefaults = nil
     }
 
     private enum CodingKeys: String, CodingKey {
-        case defaults, order, hidden, shown
+        case defaults, order, hidden, shown, serverRows
+    }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        defaults = try values.decode(Defaults.self, forKey: .defaults)
+        order = try values.decode([HomeRowID].self, forKey: .order)
+        hidden = try values.decode(Set<HomeRowID>.self, forKey: .hidden)
+        shown = try values.decode(Set<HomeRowID>.self, forKey: .shown)
+        serverRows = try values.decodeIfPresent([HomeServerRowDefinition].self, forKey: .serverRows) ?? []
+        shown.subtract(hidden)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -179,5 +263,6 @@ public struct HomeRowCustomization: Codable, Equatable, Sendable {
         try values.encode(order, forKey: .order)
         try values.encode(hidden.sorted { $0.presentationID < $1.presentationID }, forKey: .hidden)
         try values.encode(shown.sorted { $0.presentationID < $1.presentationID }, forKey: .shown)
+        if !serverRows.isEmpty { try values.encode(serverRows, forKey: .serverRows) }
     }
 }

@@ -10,10 +10,12 @@ public struct HomeRowsSettingsView: View {
     public let accounts: [ResolvedAccount]
     public let visibility: HomeLibraryVisibilityModel
     @State private var recommendations: [String: [LibrarySection]] = [:]
+    @State private var serverRows: [HomeServerRowDefinition] = []
     @State private var failures: [String: AppError] = [:]
     @State private var isLoading = false
     @State private var isLifting = false
     @State private var reloadRevision = 0
+    @State private var catalogIdentity: RequestID?
 
     public init(
         libraries: [AggregatedLibrary], accounts: [ResolvedAccount],
@@ -30,18 +32,35 @@ public struct HomeRowsSettingsView: View {
 
     private var choices: [HomeRowChoice] {
         let shared = HomeRowChoice.shared
-        return shared.filter { $0.id != .libraries }
+        let native = (visibility.visibility.rowCustomization?.availableServerRows ?? []) + serverRows
+        var seen = Set<HomeRowID>()
+        let nativeChoices = native.filter { row in
+            guard case .server = row.id, seen.insert(row.id).inserted else { return false }
+            return row.section.libraryID.map { id in
+                visibility.isEnabled("\(row.accountID):\(id)")
+            } != false
+        }.map(HomeRowChoice.init(serverRow:))
+        return shared.filter { $0.id != .libraries && $0.id != .liveTV }
+            + nativeChoices
             + availableLibraries.flatMap { library in
                 HomeRowChoice.baseRows(for: library)
                     + (recommendations[library.key] ?? []).map {
                         HomeRowChoice(section: $0, library: library)
                     }
-            } + shared.filter { $0.id == .libraries }
+            } + shared.filter { $0.id == .libraries || $0.id == .liveTV }
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            HomeRowPresetActions(onSelect: { visibility.useRowDefaults($0) })
+            HomeRowPresetActions(
+                selection: visibility.visibility.rowCustomization?.defaults,
+                resolved: visibility.visibility.rowCustomization?.resolvedDefaults,
+                matchFailed: visibility.serverMatchError != nil,
+                onSelect: { preset in
+                    visibility.useRowDefaults(preset)
+                    Task { await visibility.prepareServerDefaults(accounts: accounts) }
+                }
+            )
             .disabled(isLifting)
             VStack(alignment: .leading, spacing: 8) {
                 Text("Rows").settingsSectionHeader()
@@ -63,11 +82,13 @@ public struct HomeRowsSettingsView: View {
                         title: choice?.localizedTitle.map(Text.init)
                             ?? Text(verbatim: choice?.title ?? ""),
                         symbolName: choice?.library == nil ? "square.stack.3d.up.fill" : "rectangle.grid.1x2",
-                        providerKind: choice?.library?.providerKind,
+                        providerKind: choice?.library?.providerKind ?? choice?.serverRow?.providerKind,
                         mediaShareTransport: choice?.library?.transportKind,
                         subtitle: choice?.library.map {
                             $0.library.displayName + Text(verbatim: " · \($0.serverName)")
-                        } ?? Text("Shared rows")
+                        } ?? choice?.serverRow.map {
+                            Text(verbatim: $0.serverName)
+                        } ?? (id == .liveTV ? Text("All live sources") : Text("All libraries"))
                     )
                 },
                 onChange: { visibility.applyRows($0, choices: choices) }
@@ -95,8 +116,22 @@ public struct HomeRowsSettingsView: View {
             libraries: availableLibraries.map(\.key),
             scope: ObjectIdentifier(visibility), revision: reloadRevision
         )) {
-            recommendations = [:]
-            await loadRecommendations()
+            let identity = RequestID(
+                accounts: accounts.map(\.account.id),
+                credentials: accounts.map(\.account.credentialRevision),
+                users: accounts.map(\.provider.session.userID),
+                libraries: availableLibraries.map(\.key),
+                scope: ObjectIdentifier(visibility), revision: 0
+            )
+            if catalogIdentity != identity {
+                recommendations = [:]
+                serverRows = []
+                catalogIdentity = identity
+            }
+            await visibility.prepareServerDefaults(accounts: accounts)
+            async let recommendations: Void = loadRecommendations()
+            async let sections: Void = loadServerRows()
+            _ = await (recommendations, sections)
         }
     }
 
@@ -107,6 +142,52 @@ public struct HomeRowsSettingsView: View {
         let libraries: [String]
         let scope: ObjectIdentifier
         let revision: Int
+    }
+
+    private func loadServerRows() async {
+        if visibility.visibility.rowCustomization?.defaults == .matchServer,
+           visibility.visibility.rowCustomization?.resolvedDefaults?.mode == .server {
+            serverRows = visibility.visibility.rowCustomization?.availableServerRows ?? []
+            return
+        }
+        await withTaskGroup(of: (String, Result<[HomeServerRowDefinition], AppError>).self) { group in
+            var next = 0
+            func enqueue() {
+                guard next < accounts.count, !Task.isCancelled else { return }
+                let source = accounts[next]
+                next += 1
+                group.addTask {
+                    do {
+                        let layout = try await source.provider.serverHomeLayout()
+                        let rows = (layout?.sections ?? []).map {
+                            HomeServerRowDefinition(
+                                accountID: source.account.id, serverName: source.account.server.name,
+                                providerKind: source.account.server.provider, section: $0
+                            )
+                        }
+                        return (source.account.id, .success(rows))
+                    } catch is CancellationError {
+                        return (source.account.id, .failure(.cancelled))
+                    } catch {
+                        return (source.account.id, .failure((error as? AppError) ?? .unknown("")))
+                    }
+                }
+            }
+            for _ in 0..<min(3, accounts.count) { enqueue() }
+            var loaded = Dictionary(grouping: serverRows, by: \.accountID)
+            while let (accountID, result) = await group.next() {
+                guard !Task.isCancelled else { group.cancelAll(); return }
+                switch result {
+                case let .success(rows): loaded[accountID] = rows
+                case let .failure(error):
+                    if error != .cancelled {
+                        PlozzLog.app.error("Home server row catalog request failed; preserving known rows")
+                    }
+                }
+                enqueue()
+            }
+            serverRows = accounts.flatMap { loaded[$0.account.id] ?? [] }
+        }
     }
 
     private func loadRecommendations() async {
@@ -156,36 +237,47 @@ public struct HomeRowsSettingsView: View {
 }
 
 private struct HomeRowPresetActions: View {
+    let selection: HomeRowCustomization.Defaults?
+    let resolved: HomeResolvedRowDefaults?
+    let matchFailed: Bool
     let onSelect: (HomeRowCustomization.Defaults) -> Void
     @State private var resetDefaults: HomeRowCustomization.Defaults?
 
     private func actionTitle(for preset: HomeRowCustomization.Defaults) -> LocalizedStringResource {
-        preset == .provider ? "Use server-style rows" : "Use shared rows"
+        preset == .matchServer ? "Match server" : "Combined rows"
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Presets").settingsSectionHeader()
-            Text("You can mix shared rows and individual library rows in any order.")
+            Text("Use your server's Home arrangement, or combine your libraries. You can reorder or hide any row.")
                 .settingsSectionDescription()
                 .fixedSize(horizontal: false, vertical: true)
+            if selection != .matchServer && selection != .combined {
+                Text("Custom arrangement")
+                    .font(.subheadline.weight(.medium))
+                    .accessibilityIdentifier("home-row-preset-custom")
+            }
             ViewPreferenceChoiceGroup {
-                ForEach([HomeRowCustomization.Defaults.provider, .combined], id: \.self) { preset in
+                ForEach([HomeRowCustomization.Defaults.matchServer, .combined], id: \.self) { preset in
                     Button {
+                        guard selection != preset else { return }
                         resetDefaults = preset
                     } label: {
-                        Label {
+                        HStack {
                             Text(actionTitle(for: preset))
                                 .multilineTextAlignment(.leading)
-                        } icon: {
-                            Image(systemName: "arrow.counterclockwise")
-                                .accessibilityHidden(true)
+                            Spacer()
+                            if selection == preset {
+                                Image(systemName: "checkmark").accessibilityHidden(true)
+                            }
                         }
                         .font(.body.weight(.medium))
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(SettingsFormButtonStyle())
+                    .accessibilityAddTraits(selection == preset ? .isSelected : [])
                     .accessibilityIdentifier("home-row-preset-\(preset.rawValue)")
                     .confirmationDialog(
                         "Replace your row arrangement?",
@@ -201,14 +293,40 @@ private struct HomeRowPresetActions: View {
                         }
                         Button("Cancel", role: .cancel) { resetDefaults = nil }
                     } message: {
-                        if preset == .provider {
-                            Text("Start with rows suited to your servers, alongside shared Continue Watching and Watchlist rows. You can then reorder, hide, or add any row.")
+                        if preset == .matchServer {
+                            Text("Follow one server's Home arrangement, or use combined rows with multiple servers. This adapts when your sources change, until you customize a row.")
                         } else {
-                            Text("Start with shared rows that combine your libraries. You can then add individual library rows and arrange everything together.")
+                            Text("Start with rows across all libraries. You can also add individual library or server rows, then arrange everything together.")
                         }
                     }
                 }
             }
+            if selection == .matchServer {
+                matchDescription
+                    .font(.footnote)
+                    .plozzForeground(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var matchDescription: Text {
+        if matchFailed {
+            return resolved?.mode == .server
+                ? Text("Using the last known server arrangement.")
+                : Text("The server arrangement isn't available yet. Default rows are shown for now.")
+        }
+        switch resolved?.mode {
+        case .combined:
+            return Text("Combining rows from your active sources.")
+        case .providerFallback:
+            return Text("This source doesn't share a saved Home arrangement. Using its default rows.")
+        case .server where resolved?.source == .promotedHubs:
+            return Text("Using Plex's promoted Home rows. Other clients' pinned-library choices aren't shared.")
+        case .server:
+            return Text("Following your server's Home rows. Music and reading are not included.")
+        case nil:
+            return Text("One server follows its Home arrangement. Multiple servers use combined rows.")
         }
     }
 }

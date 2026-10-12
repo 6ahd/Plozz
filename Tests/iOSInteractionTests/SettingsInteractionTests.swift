@@ -626,24 +626,19 @@ final class SettingsInteractionTests: XCTestCase {
     func testHomeRowPresetsRequireConfirmationAndKeepRowsEditable() {
         openSettingsPage("Customize Home")
         button("Rows on Home").tap()
-        let provider = app.buttons["home-row-preset-provider"]
+        let provider = app.buttons["home-row-preset-matchServer"]
         let combined = app.buttons["home-row-preset-combined"]
         XCTAssertTrue(provider.waitForExistence(timeout: 3), app.debugDescription)
         XCTAssertTrue(combined.isHittable)
         XCTAssertGreaterThanOrEqual(provider.frame.height, 44)
         XCTAssertGreaterThanOrEqual(combined.frame.height, 44)
         XCTAssertLessThanOrEqual(provider.frame.maxY, combined.frame.minY)
-        XCTAssertFalse(provider.isSelected)
+        XCTAssertTrue(provider.isSelected)
         XCTAssertFalse(combined.isSelected)
         capture("home-row-preset-actions")
 
         provider.tap()
-        let providerConfirmation = app.buttons.matching(NSPredicate(
-            format: "label == %@ AND identifier != %@",
-            "Use server-style rows", provider.identifier
-        )).firstMatch
-        XCTAssertTrue(providerConfirmation.waitForExistence(timeout: 3), app.debugDescription)
-        providerConfirmation.tap()
+        XCTAssertFalse(app.staticTexts["Replace your row arrangement?"].exists)
         let recent = app.staticTexts["Recently Added"].firstMatch
         let hidden = app.staticTexts["HIDDEN"].firstMatch
         let hiddenRecent = XCTNSPredicateExpectation(
@@ -669,7 +664,7 @@ final class SettingsInteractionTests: XCTestCase {
         combined.tap()
         let confirm = app.buttons.matching(NSPredicate(
             format: "label == %@ AND identifier != %@",
-            "Use shared rows", combined.identifier
+            "Combined rows", combined.identifier
         )).firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 3), app.debugDescription)
         confirm.tap()
@@ -680,7 +675,7 @@ final class SettingsInteractionTests: XCTestCase {
         )
         XCTAssertEqual(XCTWaiter.wait(for: [shownRecent], timeout: 3), .completed, app.debugDescription)
         XCTAssertFalse(provider.isSelected)
-        XCTAssertFalse(combined.isSelected)
+        XCTAssertTrue(combined.isSelected)
         XCTAssertGreaterThan(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reorder '")).count, 0)
         app.navigationBars.buttons.firstMatch.tap()
         button("Rows on Home").tap()
@@ -692,15 +687,9 @@ final class SettingsInteractionTests: XCTestCase {
     func testHomeRowNativeDragReordersAndPersists() {
         openSettingsPage("Customize Home")
         button("Rows on Home").tap()
-        let provider = app.buttons["home-row-preset-provider"]
+        let provider = app.buttons["home-row-preset-matchServer"]
         XCTAssertTrue(provider.waitForExistence(timeout: 3))
-        provider.tap()
-        let confirm = app.buttons.matching(NSPredicate(
-            format: "label == %@ AND identifier != %@",
-            "Use server-style rows", provider.identifier
-        )).firstMatch
-        XCTAssertTrue(confirm.waitForExistence(timeout: 3))
-        confirm.tap()
+        XCTAssertTrue(provider.isSelected)
         let watching = app.staticTexts["Continue Watching"].firstMatch
         let watchlist = app.staticTexts["Watchlist"].firstMatch
         XCTAssertTrue(watching.waitForExistence(timeout: 3))
@@ -716,6 +705,8 @@ final class SettingsInteractionTests: XCTestCase {
             predicate: NSPredicate { _, _ in watching.frame.minY > watchlist.frame.minY }, object: nil
         )
         XCTAssertEqual(XCTWaiter.wait(for: [reordered], timeout: 3), .completed, app.debugDescription)
+        XCTAssertFalse(provider.isSelected)
+        XCTAssertTrue(app.staticTexts["home-row-preset-custom"].exists)
         capture("home-row-after-native-drag")
         app.navigationBars.buttons.firstMatch.tap()
         button("Rows on Home").tap()

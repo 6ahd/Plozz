@@ -132,6 +132,7 @@ final class HomeNavigationActivity {
 /// The Home screen: an optional cinematic **hero** carousel followed by
 /// Continue Watching, Latest, and library shortcuts.
 public struct HomeView: View {
+    @Environment(\.homeLiveTVSnapshot) private var liveTV
     @State private var viewModel: HomeViewModel
     private var visibility: HomeLibraryVisibilityModel
     private let spoilerSettings: SpoilerSettings
@@ -369,7 +370,9 @@ public struct HomeView: View {
     public var body: some View {
         let _ = PlozzBodyRate.tick("HomeView")
         return ContentStateView(
-            state: viewModel.state,
+            state: HomePresentationRow.displayState(
+                viewModel.state, liveTV: liveTV, visibility: visibility.visibility
+            ),
             emptyMessage: "Your libraries are empty. Add media on your media server to see it here.",
             onRetry: { Task { await viewModel.load() } },
             loadingContent: {
@@ -402,7 +405,7 @@ public struct HomeView: View {
                 skeletonLayout: viewModel.skeletonLayout
             )
             let presentationRows = HomePresentationRow.resolve(
-                rows: rows, content: content, visibility: visibility.visibility
+                rows: rows, content: content, visibility: visibility.visibility, liveTV: liveTV
             )
             let heroContent = HomeHeroLaunchPolicy.content(
                 content,
@@ -620,6 +623,11 @@ public struct HomeView: View {
                                             )
                                         case let .library(row):
                                             libraryRowView(row)
+                                        case let .liveTV(channels):
+                                            MediaRowView(
+                                                title: Text("Live TV"), items: [], style: .landscape,
+                                                liveChannels: channels, onSelect: { _ in }
+                                            )
                                         }
                                     }
                                 }
@@ -740,7 +748,7 @@ public struct HomeView: View {
                 heroRuntime.cachedKey = HeroConfigurationKey(settings: settings)
             }
         }
-        .task(id: visibility.visibility) {
+        .task(id: visibility.visibility.intent) {
             // First appearance loads; thereafter any change to the visibility
             // snapshot — a hidden/disabled library, or the merged↔unmerged flip —
             // re-aggregates so library-scoped providers (Jellyfin) re-fetch with the
@@ -870,6 +878,7 @@ public struct HomeView: View {
     /// switched their servers off, and offering the wrong one sends them looking
     /// in the wrong place.
     private var contentNotice: HomeContentNotice? {
+        if HomePresentationRow.hasLiveTVRows(liveTV, visibility: visibility.visibility) { return nil }
         if configuredServerCount == 0 { return .noServersConfigured }
         if enabledServerCount == 0 { return .allServersSwitchedOff }
         if visibility.visibility.rowCustomization != nil, let content = viewModel.state.value {
@@ -884,7 +893,7 @@ public struct HomeView: View {
                 loadingRows: viewModel.loadingRows, failures: viewModel.rowFailures
             )
             if HomePresentationRow.resolve(
-                rows: rows, content: content, visibility: visibility.visibility
+                rows: rows, content: content, visibility: visibility.visibility, liveTV: liveTV
             ).isEmpty, visibility.visibility.rowSections(choices: choices).enabled.isEmpty {
                 return .noHomeRows
             }
@@ -1293,7 +1302,8 @@ public struct HomeView: View {
     /// view used inline before the row model existed.
     @ViewBuilder
     private func rowView(_ row: HomeRow, reservesLoadingFocus: Bool = false) -> some View {
-        if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty {
+        if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty,
+           row.kind != .continueWatching || liveTV.recentChannels.isEmpty {
             rowFailureView(title: Text(row.title), error: failure)
         } else {
             homeRowContent(row, reservesLoadingFocus: reservesLoadingFocus)
@@ -1308,7 +1318,8 @@ public struct HomeView: View {
                 title: Text(row.title), items: row.items, style: posterStyle(row.style),
                 spoilerSettings: spoilerSettings, showsSeriesArtwork: visibility.continueWatchingShowsSeriesArtwork,
                 loadingPlaceholderCount: row.loadingPlaceholderCount,
-                reservesLoadingFocus: reservesLoadingFocus, playsOnSelect: true, onSelect: onPlayItem
+                reservesLoadingFocus: reservesLoadingFocus, playsOnSelect: true,
+                liveChannels: liveTV.recentChannels, onSelect: onPlayItem
             )
             .environment(\.plozzArtworkArea, .continueWatching)
         case .watchlist:
@@ -1380,6 +1391,7 @@ public struct HomeView: View {
     private enum FocusHomeRowSource {
         case home(HomeRow)
         case section(HomeLibrarySectionGroup.Row)
+        case liveTV([HomeLiveTVChannel])
         case discover([MediaItem], isLoading: Bool)
         case notice(HomeContentNotice)
     }
@@ -1406,17 +1418,26 @@ public struct HomeView: View {
                             for: $0, showsSeriesArtwork: seriesArtwork,
                             prefersTextlessArtwork: artworkSettings.prefersTextlessArtwork(in: .continueWatching)
                         ) }
-                        : nil
+                        : nil,
+                    liveChannels: row.kind == .continueWatching ? liveTV.recentChannels : []
                 ),
                 .home(row)
             )
         }
         var result: [(row: FocusHeroRow, source: FocusHomeRowSource)] = []
         for presentation in HomePresentationRow.resolve(
-            rows: rows, content: content, visibility: visibility.visibility
+            rows: rows, content: content, visibility: visibility.visibility, liveTV: liveTV
         ) {
             switch presentation.source {
             case let .home(row): result.append(entry(row))
+            case let .liveTV(channels):
+                result.append((
+                    FocusHeroRow(
+                        id: presentation.id.presentationID, itemIDs: [], leadItem: nil,
+                        liveChannels: channels
+                    ),
+                    .liveTV(channels)
+                ))
             case let .library(row):
                 let section = row.section
                 result.append((
@@ -1551,8 +1572,16 @@ public struct HomeView: View {
             if let item { reporter.focusedItem(item) }
         }
         switch source {
+        case .liveTV(let channels):
+            MediaRowView(
+                title: Text("Live TV"), items: [], style: .landscape,
+                onFocusEntered: reporter.entered,
+                liveChannels: channels, onLiveChannelFocused: reporter.focusedLiveChannel,
+                onSelect: { _ in }
+            )
         case .home(let row):
-            if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty {
+            if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty,
+               row.kind != .continueWatching || liveTV.recentChannels.isEmpty {
                 rowFailureView(title: Text(row.title), error: failure, onFocusEntered: reporter.entered)
             } else {
                 switch row.kind {
@@ -1569,6 +1598,8 @@ public struct HomeView: View {
                         loadingPlaceholderCount: row.loadingPlaceholderCount,
                         reservesLoadingFocus: reservesLoadingFocus,
                         playsOnSelect: true,
+                        liveChannels: liveTV.recentChannels,
+                        onLiveChannelFocused: reporter.focusedLiveChannel,
                         onSelect: onPlayItem
                     )
                     .environment(\.plozzArtworkArea, .continueWatching)

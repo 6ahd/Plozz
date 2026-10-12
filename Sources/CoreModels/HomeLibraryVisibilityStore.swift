@@ -5,6 +5,13 @@ import Observation
 public protocol HomeLibraryVisibilityStoring: Sendable {
     func load() -> HomeLibraryVisibility
     func save(_ visibility: HomeLibraryVisibility)
+    func loadServerDefaults() -> CachedHomeRowDefaults?
+    func saveServerDefaults(_ snapshot: CachedHomeRowDefaults)
+}
+
+public extension HomeLibraryVisibilityStoring {
+    func loadServerDefaults() -> CachedHomeRowDefaults? { nil }
+    func saveServerDefaults(_ snapshot: CachedHomeRowDefaults) {}
 }
 
 public final class HomeLibraryVisibilityStore: HomeLibraryVisibilityStoring, @unchecked Sendable {
@@ -35,6 +42,17 @@ public final class HomeLibraryVisibilityStore: HomeLibraryVisibilityStoring, @un
             defaults.set(data, forKey: key)
         }
     }
+
+    public func loadServerDefaults() -> CachedHomeRowDefaults? {
+        guard let data = defaults.data(forKey: key + ".serverDefaults") else { return nil }
+        return try? JSONDecoder().decode(CachedHomeRowDefaults.self, from: data)
+    }
+
+    public func saveServerDefaults(_ snapshot: CachedHomeRowDefaults) {
+        if let data = try? JSONEncoder().encode(snapshot) {
+            defaults.set(data, forKey: key + ".serverDefaults")
+        }
+    }
 }
 
 /// Observable wrapper so the Settings checklist can two-way bind the per-library
@@ -44,12 +62,100 @@ public final class HomeLibraryVisibilityStore: HomeLibraryVisibilityStoring, @un
 @Observable
 public final class HomeLibraryVisibilityModel {
     public private(set) var visibility: HomeLibraryVisibility
+    public private(set) var serverMatchError: AppError?
 
     private let store: HomeLibraryVisibilityStoring
+    @ObservationIgnored private var cachedServerDefaults: CachedHomeRowDefaults?
+    @ObservationIgnored private var lastServerCheck: Date?
+    @ObservationIgnored private var serverRequestScope: [String] = []
+    @ObservationIgnored private var serverRequest: Task<Result<ServerHomeLayout?, AppError>, Never>?
 
     public init(store: HomeLibraryVisibilityStoring = HomeLibraryVisibilityStore()) {
         self.store = store
         self.visibility = store.load()
+        self.cachedServerDefaults = store.loadServerDefaults()
+    }
+
+    /// Called only by a real Home refresh or the open arranger, never a timer.
+    public func prepareServerDefaults(accounts: [ResolvedAccount], now: Date = Date()) async {
+        guard visibility.rowCustomization?.defaults == .matchServer else { return }
+        let sources = accounts.sorted { $0.account.id < $1.account.id }
+        let scope = sources.flatMap {
+            [$0.account.id, $0.account.server.provider.rawValue,
+             $0.account.server.identityKey, $0.provider.session.userID]
+        }
+        if scope == cachedServerDefaults?.scope,
+           let lastServerCheck, now.timeIntervalSince(lastServerCheck) < 120 {
+            visibility.rowCustomization?.resolvedDefaults = cachedServerDefaults?.defaults
+            return
+        }
+        let servers = Set(sources.map {
+            $0.account.server.provider.rawValue + ":" + $0.account.server.identityKey
+        })
+        let users = Set(sources.map(\.provider.session.userID))
+        if servers.count > 1 || users.count > 1 {
+            acceptServerDefaults(.init(mode: .combined), scope: scope, now: now)
+            return
+        }
+        guard let source = sources.first else {
+            acceptServerDefaults(.init(mode: .providerFallback), scope: scope, now: now)
+            return
+        }
+        visibility.rowCustomization?.resolvedDefaults =
+            cachedServerDefaults?.scope == scope ? cachedServerDefaults?.defaults : nil
+        let request: Task<Result<ServerHomeLayout?, AppError>, Never>
+        if serverRequestScope == scope, let pending = serverRequest {
+            request = pending
+        } else {
+            serverRequest?.cancel()
+            serverRequestScope = scope
+            request = Task {
+                do {
+                    return .success(try await source.provider.serverHomeLayout())
+                } catch is CancellationError {
+                    return .failure(.cancelled)
+                } catch {
+                    return .failure((error as? AppError) ?? .unknown(""))
+                }
+            }
+            serverRequest = request
+        }
+        let result = await request.value
+        guard !Task.isCancelled, serverRequestScope == scope,
+              visibility.rowCustomization?.defaults == .matchServer else { return }
+        serverRequest = nil
+        switch result {
+        case let .success(layout?):
+            let rows = layout.sections.map {
+                HomeServerRowDefinition(
+                    accountID: source.account.id, serverName: source.account.server.name,
+                    providerKind: source.account.server.provider, section: $0
+                )
+            }
+            acceptServerDefaults(.init(
+                mode: .server, order: rows.map(\.id), serverRows: rows,
+                omitsMusic: layout.omitsMusic, omitsReading: layout.omitsReading,
+                source: layout.source
+            ), scope: scope, now: now)
+        case .success(nil):
+            acceptServerDefaults(.init(mode: .providerFallback), scope: scope, now: now)
+        case let .failure(error):
+            if error != .cancelled { serverMatchError = error }
+        }
+    }
+
+    private func acceptServerDefaults(
+        _ defaults: HomeResolvedRowDefaults, scope: [String], now: Date
+    ) {
+        serverRequest?.cancel()
+        serverRequest = nil
+        serverRequestScope = scope
+        serverMatchError = nil
+        lastServerCheck = now
+        let snapshot = CachedHomeRowDefaults(scope: scope, defaults: defaults)
+        if cachedServerDefaults != snapshot { store.saveServerDefaults(snapshot) }
+        cachedServerDefaults = snapshot
+        visibility.rowCustomization?.resolvedDefaults = defaults
     }
 
     public func applyRows(
@@ -61,6 +167,7 @@ public final class HomeLibraryVisibilityModel {
 
     public func useRowDefaults(_ defaults: HomeRowCustomization.Defaults) {
         visibility.rowCustomization = HomeRowCustomization(defaults: defaults)
+        serverMatchError = nil
         store.save(visibility)
     }
 

@@ -5,14 +5,32 @@ public struct HomePresentationRow: Identifiable, Equatable, Sendable {
     public enum Source: Equatable, Sendable {
         case home(HomeRow)
         case library(HomeLibrarySectionGroup.Row)
+        case liveTV([HomeLiveTVChannel])
     }
 
     public let choice: HomeRowChoice
     public let source: Source
     public var id: HomeRowID { choice.id }
 
+    public static func hasLiveTVRows(
+        _ liveTV: HomeLiveTVSnapshot, visibility: HomeLibraryVisibility
+    ) -> Bool {
+        !resolve(rows: [], content: .init(), visibility: visibility, liveTV: liveTV).isEmpty
+    }
+
+    public static func displayState(
+        _ state: LoadState<HomeViewModel.Content>,
+        liveTV: HomeLiveTVSnapshot, visibility: HomeLibraryVisibility
+    ) -> LoadState<HomeViewModel.Content> {
+        if case .empty = state, hasLiveTVRows(liveTV, visibility: visibility) {
+            return .loaded(.init())
+        }
+        return state
+    }
+
     public static func resolve(
-        rows: [HomeRow], content: HomeViewModel.Content, visibility: HomeLibraryVisibility
+        rows: [HomeRow], content: HomeViewModel.Content, visibility: HomeLibraryVisibility,
+        liveTV: HomeLiveTVSnapshot = .empty
     ) -> [Self] {
         let shared = HomeRowChoice.shared
         func entry(_ row: HomeRow) -> Self? {
@@ -28,6 +46,13 @@ public struct HomePresentationRow: Identifiable, Equatable, Sendable {
             return Self(choice: choice, source: .home(row))
         }
         var available = rows.filter { $0.kind != .libraries }.compactMap(entry)
+        if !liveTV.recentChannels.isEmpty, !rows.contains(where: { $0.kind == .continueWatching }),
+           let recent = entry(HomeRow(kind: .continueWatching)) {
+            available.insert(recent, at: 0)
+        }
+        if !liveTV.channels.isEmpty, let choice = shared.first(where: { $0.id == .liveTV }) {
+            available.append(Self(choice: choice, source: .liveTV(liveTV.channels)))
+        }
         if visibility.usesIndividualHomeRows {
             for group in content.librarySections where visibility.isEnabled(group.library.key) {
                 for row in group.rows {
@@ -54,6 +79,12 @@ public struct HomePresentationRow: Identifiable, Equatable, Sendable {
                         ))
                     }
                 }
+            }
+            for row in content.serverRows {
+                guard !row.items.isEmpty || row.isLoading || row.failure != nil else { continue }
+                available.append(Self(
+                    choice: HomeRowChoice(serverRow: row.definition), source: .library(row.row)
+                ))
             }
         }
         available += rows.filter { $0.kind == .libraries }.compactMap(entry)

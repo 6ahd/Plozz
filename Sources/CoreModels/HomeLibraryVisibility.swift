@@ -31,12 +31,23 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     /// Nil preserves an existing profile's legacy combined/grouped choices.
     public var rowCustomization: HomeRowCustomization?
 
+    public var intent: Self {
+        var copy = self
+        copy.rowCustomization?.resolvedDefaults = nil
+        return copy
+    }
+
     public var usesIndividualHomeRows: Bool {
         rowCustomization != nil || !mergeLibrariesOnHome
     }
 
     public var separatesNextUp: Bool {
-        rowCustomization?.defaults == .provider
+        (rowCustomization?.defaults == .matchServer
+            && rowCustomization?.resolvedDefaults?.mode != .combined
+            && rowCustomization?.availableServerRows.first {
+                $0.section.kind == .continueWatching
+            }?.section.includesNextUp != true)
+            || rowCustomization?.defaults == .provider
             || rowCustomization?.shown.contains { $0.libraryKind == .nextUp } == true
     }
 
@@ -97,9 +108,9 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.rowCustomization = rowCustomization
     }
 
-    /// Fresh profiles use provider-style rows; existing blobs retain legacy behavior.
+    /// Fresh profiles match their server; existing blobs retain legacy behavior.
     public static let `default` = HomeLibraryVisibility(
-        mergeLibrariesOnHome: false, rowCustomization: HomeRowCustomization()
+        mergeLibrariesOnHome: false, rowCustomization: HomeRowCustomization(defaults: .matchServer)
     )
 
     // MARK: - Library availability predicates
@@ -180,6 +191,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         switch id {
         case let .global(row): return isGlobalRowEnabled(row)
         case .libraries: return true
+        case .server, .liveTV: return false
         case let .library(key, _):
             return !mergeLibrariesOnHome
                 && id.libraryKind.map { isLibraryRowEnabled(key, kind: $0) } == true
@@ -203,7 +215,10 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
                 }
                 let automatic = rowCustomization.defaults == .legacy
                     ? (!mergeLibrariesOnHome && isLibraryRowEnabled(library.key, kind: kind))
-                    : (rowCustomization.defaults == .provider && library.providerKind == .plex)
+                    : rowCustomization.isVisible(
+                        .library(library.key, kind: .hubs),
+                        providerDefault: library.providerKind == .plex
+                    )
                 return automatic
             }
             return rowCustomization.isVisible(
@@ -216,7 +231,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
 
     public func rowSections(choices: [HomeRowChoice]) -> OrderedVisibilityList.Sections<HomeRowID> {
         return OrderedVisibilityList.resolving(
-            available: choices.map(\.id), order: rowCustomization?.order ?? [],
+            available: choices.map(\.id), order: rowCustomization?.effectiveOrder ?? [],
             hidden: Set(choices.filter { !isHomeRowVisible($0) }.map(\.id))
         )
     }
@@ -236,7 +251,8 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
                 id: $0.id, title: $0.title, localizedTitle: $0.localizedTitle,
                 library: $0.library,
                 isProviderDefault: rowCustomization?.defaults == .legacy
-                    ? (isLegacyRowVisible($0.id) && $0.isLegacyDefault) : $0.isProviderDefault
+                    ? (isLegacyRowVisible($0.id) && $0.isLegacyDefault) : $0.isProviderDefault,
+                serverRow: $0.serverRow
             )
         }
         rowCustomization?.apply(sections, choices: resolvedChoices)

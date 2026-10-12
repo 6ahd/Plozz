@@ -656,8 +656,8 @@ struct MainTabView: View {
         return AppAdmissionNavigation.destinations(
             destinations,
             liveTV: .liveTV,
-            includesExplicitEntry: admissionContext.explicitStandaloneChoice
-                && (pendingStandaloneLiveTVEntry || retainsExplicitLiveTVEntry)
+            includesExplicitEntry: (admissionContext.explicitStandaloneChoice && pendingStandaloneLiveTVEntry)
+                || retainsExplicitLiveTVEntry
         )
     }
 
@@ -1684,6 +1684,20 @@ struct MainTabView: View {
         let _ = plozzPrintChanges { Self._printChanges() }
         let _ = PlozzBodyRate.tick("MainTabView")
         return contentAwareShell
+        .homeLiveTVScope(
+            profileID: activeProfile.id, namespace: liveTVPreferencesNamespace,
+            accounts: accountsProviders, isAuthorized: isLiveTVProfileAuthorized,
+            navigate: {
+                guard isLiveTVProfileAuthorized() else { return false }
+                retainsExplicitLiveTVEntry = true
+                if navigationStyle == .tabBar {
+                    selectedTab.wrappedValue = .liveTV
+                } else {
+                    libraryNavigationSelection.wrappedValue = .liveTV
+                }
+                return true
+            }
+        )
         .onChange(of: pendingStandaloneLiveTVEntry, initial: true) { _, _ in
             settleFreshLaunch()
             settleStandaloneStartup()

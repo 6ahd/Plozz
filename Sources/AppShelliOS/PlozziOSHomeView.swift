@@ -87,6 +87,7 @@ struct PlozziOSHomeScrollView<Hero: View, Rows: View>: View {
 }
 
 struct PlozziOSHomeView: View {
+    @Environment(\.homeLiveTVSnapshot) private var liveTV
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.plozziOSHeroContainerHeight) private var heroContainerHeight
@@ -195,7 +196,10 @@ struct PlozziOSHomeView: View {
 
     var body: some View {
         Group {
-            switch viewModel.state {
+            switch HomePresentationRow.displayState(
+                viewModel.state, liveTV: liveTV,
+                visibility: appModel.settings.homeVisibility.visibility
+            ) {
             case .idle, .loading:
                 // Skeleton rails rather than a bare spinner, matching tvOS: the
                 // placeholders occupy the same geometry the real rows will, so
@@ -280,7 +284,7 @@ struct PlozziOSHomeView: View {
         }
         .task(
             id: PlozziOSHomeLoadID(
-                visibility: appModel.settings.homeVisibility.visibility,
+                visibility: appModel.settings.homeVisibility.visibility.intent,
                 viewModel: viewModel
             )
         ) {
@@ -533,7 +537,7 @@ struct PlozziOSHomeView: View {
             // here — the view itself is left in place.
 
             ForEach(HomePresentationRow.resolve(
-                rows: rows, content: content, visibility: visibility.visibility
+                rows: rows, content: content, visibility: visibility.visibility, liveTV: liveTV
             )) { presentation in
                 switch presentation.source {
                 case let .home(row):
@@ -544,6 +548,12 @@ struct PlozziOSHomeView: View {
                         watchlistIntentRevision: watchlistIntentRevision,
                         watchlistLoadingPlaceholderCount:
                             viewModel.watchlistLoadingPlaceholderCount
+                    )
+                case let .liveTV(channels):
+                    PlozziOSHomeMediaRail(
+                        title: Text("Live TV"), items: [], style: .landscape,
+                        appModel: appModel, liveChannels: channels,
+                        onNavigationInteraction: viewModel.noteHomeNavigationInteraction
                     )
                 case let .library(row):
                         let section = row.section
@@ -2254,21 +2264,25 @@ private struct PlozziOSHomeRowFailure: View {
 
 private struct PlozziOSHomeRowView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.homeLiveTVSnapshot) private var liveTV
     let row: HomeRow
     let appModel: PlozziOSAppModel
     let viewModel: HomeViewModel
     let watchlistIntentRevision: Int
     let watchlistLoadingPlaceholderCount: Int
+    private var liveChannels: [HomeLiveTVChannel] {
+        row.kind == .continueWatching ? liveTV.recentChannels : []
+    }
 
     var body: some View {
         Group {
-            if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty {
+            if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty, liveChannels.isEmpty {
                 PlozziOSHomeRowFailure(title: Text(row.title), error: failure, viewModel: viewModel)
             } else if row.kind == .libraries, row.loadingPlaceholderCount == 0 {
                 PlozziOSMediaSection(title: Text(row.title)) {
                     libraryRow
                 }
-            } else if row.items.isEmpty {
+            } else if row.items.isEmpty, liveChannels.isEmpty {
                 // A row that exists but hasn't resolved its items yet: show the
                 // placeholder rail rather than a title over empty space. Same
                 // geometry as the real rail, so the cards swap in without the
@@ -2305,6 +2319,7 @@ private struct PlozziOSHomeRowView: View {
                     // the user has turned that off in Customize Home.
                     showsSeriesArtwork: row.kind == .continueWatching
                         && appModel.settings.homeVisibility.continueWatchingShowsSeriesArtwork,
+                    liveChannels: liveChannels,
                     onNavigationInteraction:
                         viewModel.noteHomeNavigationInteraction
                 )
@@ -2388,6 +2403,7 @@ struct PlozziOSHomeMediaRail: View {
     /// Identify each card by its show — artwork plus logo — instead of by the
     /// item's own thumbnail.
     var showsSeriesArtwork: Bool = false
+    var liveChannels: [HomeLiveTVChannel] = []
     var onNavigationInteraction: () -> Void = {}
     @State private var prefetchedIDs: Set<String> = []
     @State private var prefetchedPreviewIDs: Set<String> = []
@@ -2453,6 +2469,15 @@ struct PlozziOSHomeMediaRail: View {
                                 )
                             )
                         }
+                    }
+                    ForEach(liveChannels) { channel in
+                        HomeLiveTVCard(
+                            channel: channel,
+                            width: metrics.cardSlotWidth(
+                                for: .landscape, cardStyle: cardStyle,
+                                showsSeriesArtwork: showsSeriesArtwork
+                            )
+                        )
                     }
                 }
             }

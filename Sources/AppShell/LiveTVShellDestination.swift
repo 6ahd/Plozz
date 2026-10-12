@@ -139,6 +139,8 @@ struct LiveTVShellDestination: View {
             prepareLibraryChannels: library.prepareForEditing,
             libraryIsAuthorized: { [weak library] in library?.authorizationID != nil },
             sourceApprovalContext: { [profiles] in LiveTVSourceApprovalContext(profiles: profiles) },
+            homeModel: HomeLiveTVRuntime.model(profileID: profileID),
+            homeAuthorizationID: HomeLiveTVRuntime.authorizationID(profileID: profileID, accounts: accountsProviders),
             onOpenTitle: onOpenTitle
         ) { playback in
             LiveChannelPlayerView(

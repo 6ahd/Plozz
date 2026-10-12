@@ -152,6 +152,19 @@ public protocol MediaProvider: Sendable {
 
     func homeNextUp(libraryID: String, limit: Int) async throws -> [MediaItem]
 
+    /// Nil explicitly means this provider does not expose a Home layout.
+    /// Transport, permission and decoding failures must throw instead.
+    func serverHomeLayout() async throws -> ServerHomeLayout?
+
+    func serverHomeItems(
+        section: ServerHomeSection, limit: Int, excludingLibraryIDs: Set<String>
+    ) async throws -> [MediaItem]
+
+    /// One refresh-scoped batch lets providers share a library's hub payload.
+    func serverHomeItems(
+        sections: [ServerHomeSection], limit: Int, excludingLibraryIDs: Set<String>
+    ) async -> [String: Result<[MediaItem], AppError>]
+
     // MARK: Search
 
     /// Search the user's libraries for items matching a free-text query.
@@ -491,6 +504,33 @@ public extension MediaProvider {
     }
 
     func homeNextUp(libraryID: String, limit: Int) async throws -> [MediaItem] { [] }
+
+    func serverHomeLayout() async throws -> ServerHomeLayout? { nil }
+
+    func serverHomeItems(
+        section: ServerHomeSection, limit: Int, excludingLibraryIDs: Set<String>
+    ) async throws -> [MediaItem] {
+        throw AppError.notFound
+    }
+
+    func serverHomeItems(
+        sections: [ServerHomeSection], limit: Int, excludingLibraryIDs: Set<String>
+    ) async -> [String: Result<[MediaItem], AppError>] {
+        var results: [String: Result<[MediaItem], AppError>] = [:]
+        for section in sections {
+            do {
+                try Task.checkCancellation()
+                results[section.id] = .success(try await serverHomeItems(
+                    section: section, limit: limit, excludingLibraryIDs: excludingLibraryIDs
+                ))
+            } catch is CancellationError {
+                results[section.id] = .failure(.cancelled)
+            } catch {
+                results[section.id] = .failure((error as? AppError) ?? .unknown(""))
+            }
+        }
+        return results
+    }
 
     /// Default: cannot query by person, so a person page shows no library credits
     /// for this source rather than failing. Jellyfin/Emby (`PersonIds`), Plex

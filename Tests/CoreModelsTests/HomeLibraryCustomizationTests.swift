@@ -79,10 +79,10 @@ final class HomeLibraryVisibilityTests: XCTestCase {
 
     // MARK: - Single on/off axis (the Home-only opt-out was retired)
 
-    func testDefaultsUseProviderRowsWithoutDisablingLibraries() {
+    func testDefaultsMatchServerWithoutDisablingLibraries() {
         let v = HomeLibraryVisibility.default
         XCTAssertFalse(v.mergeLibrariesOnHome)
-        XCTAssertEqual(v.rowCustomization?.defaults, .provider)
+        XCTAssertEqual(v.rowCustomization?.defaults, .matchServer)
         XCTAssertTrue(v.disabledKeys.isEmpty)
         XCTAssertTrue(v.isEnabled("acct:anything"))
         XCTAssertTrue(v.isVisibleOnHome("acct:anything"))
