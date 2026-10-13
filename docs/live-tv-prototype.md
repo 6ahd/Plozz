@@ -36,10 +36,13 @@ is needed for artwork. Snapshots containing potentially credential-bearing URLs
 are authenticated ciphertext with a profile-specific Keychain key. URL-free
 legacy snapshots remain readable; plaintext artwork URLs are rejected, and a
 missing or locked key never causes a plaintext fallback or replacement key on read.
-TV cards use the shared native/custom Home focus owner, preserving their dark
-surface and fixed row footprint instead of adding a white button plate. System
-focus leaves the surface, border and corner shape entirely to TVUIKit; only
-custom-focus and mobile cards draw the fallback surface.
+Home TV cards use a direct SwiftUI Button with the native card style for System
+focus, keeping artwork loading and focus in the same view hierarchy. The native
+style owns the dark surface, sheen and corner shape; only custom-focus and mobile
+cards draw the fallback surface. Fast row scrolling must retire the previous
+card's visible highlight as well as its focus state. Loading Continue Watching
+keeps the hero empty until a real card is focused or the first slot finishes
+loading, rather than seeding it from a trailing cached channel.
 Playlist sources and server-backed sources
 (including IPTV accounts) retain current profile, source-approval and server-user
 authorization fences. Persisted scope uses non-secret account credential revisions

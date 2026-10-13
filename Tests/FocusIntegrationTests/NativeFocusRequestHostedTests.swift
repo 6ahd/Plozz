@@ -326,6 +326,52 @@ final class NativeFocusRequestHostedTests: XCTestCase {
         }
     }
 
+    func testNativeLoadingCardHasNoSecondBackgroundOnTheFloatingOverlay() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let model = SkeletonFocusMatrixModel()
+        defer { model.focus = nil; model.focusAnchor = nil }
+        let host = UIHostingController(rootView: SkeletonFocusMatrixView(
+            model: model, style: .landscape, seriesArtwork: true, caption: false
+        )
+        .environment(\.plozzCardStyle, .borderless)
+        .environment(\.plozzCardFocusStyle, .system)
+        .environment(\.themePalette, .dark))
+        host.overrideUserInterfaceStyle = .dark
+        fixture.window.rootViewController = host
+        fixture.window.layoutIfNeeded()
+        try await waitUntil { model.focus != nil && model.frame.width > 0 }
+        model.focusAnchor?()
+        try await waitUntil { model.anchorFocused }
+        model.focus?.requestFocus(animated: false)
+        try await waitUntil { model.isFocused }
+        try await Task.sleep(for: .milliseconds(300))
+        let poster = try XCTUnwrap(lockups(in: host.view).first(where: \.isFocused) as? NativePosterButton)
+        let overlay = try XCTUnwrap(poster.hostedOverlay)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let image = UIGraphicsImageRenderer(size: overlay.bounds.size, format: format).image { context in
+            overlay.layer.render(in: context.cgContext)
+        }
+        let crop = try XCTUnwrap(image.cgImage?.cropping(to: CGRect(
+            x: overlay.bounds.width * 0.2, y: overlay.bounds.height * 0.2, width: 1, height: 1
+        )))
+        var pixel = [UInt8](repeating: 0, count: 4)
+        try pixel.withUnsafeMutableBytes { bytes in
+            let context = try XCTUnwrap(CGContext(
+                data: bytes.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        }
+        XCTAssertEqual(pixel[3], 0, "Only the spinner belongs on the floating plane; a second fill exposes the base as a border.")
+        let attachment = XCTAttachment(image: DetailTransitionSnapshot.image(of: fixture.window))
+        attachment.name = "native-loading-card-single-surface"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     func testLoadingCardFocusStyleAndPresentationMatrix() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }

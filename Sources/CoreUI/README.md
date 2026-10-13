@@ -274,6 +274,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   a second corner silhouette that can separate from the highlight. Transparent
   portrait sources receive the same dark backing as missing artwork.
   Alpha-masked landscape/square artwork remains rounded in the bitmap.
+  Native loading cards bake their neutral fill into that same artwork plane.
+  Only the spinner belongs on the nearer overlay plane; a full rounded fill
+  there scales independently and exposes the underlying image as an extra rim.
   Corner flags, count-tile backgrounds and legibility washes are composited into
   the artwork itself. Portrait count digits and floating status/library marks
   use a cached foreground on `overlayContentView`. That surface receives a nearer

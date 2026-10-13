@@ -32,7 +32,7 @@ public struct HomeLiveTVCard: View {
     @Environment(\.plozzCardFocusStyle) private var focusStyle
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openHomeLiveTV) private var open
-    @PlozzCardFocus private var isFocused: Bool
+    @FocusState private var isFocused: Bool
 
     public init(
         channel: HomeLiveTVChannel, width: CGFloat,
@@ -57,19 +57,26 @@ public struct HomeLiveTVCard: View {
     @ViewBuilder
     private var control: some View {
         #if os(tvOS)
-        label
-            .plozzFocusHalo(
-                cornerRadius: metrics.landscapeCardCornerRadius,
-                focusScale: reduceMotion ? 1 : PlozzTheme.Metrics.mediumFocusedCardScale,
-                isFocused: isFocused
-            )
-            .focusableCard(
-                isFocused: $isFocused, cornerRadius: metrics.landscapeCardCornerRadius,
-                action: { open(channel.route) }
-            )
-            .frame(width: width, height: width * 9 / 16)
-            .zIndex(isFocused ? 1 : 0)
-            .plozzCardFocusTransition(isFocused: isFocused, animates: !reduceMotion)
+        if focusStyle.usesSystemEffect {
+            Button { open(channel.route) } label: { label }
+                .buttonStyle(.card)
+                .focused($isFocused)
+                .frame(width: width, height: width * 9 / 16)
+        } else {
+            label
+                .plozzFocusHalo(
+                    cornerRadius: metrics.landscapeCardCornerRadius,
+                    focusScale: reduceMotion ? 1 : PlozzTheme.Metrics.mediumFocusedCardScale,
+                    isFocused: isFocused
+                )
+                .focusableCard(
+                    isFocused: $isFocused, cornerRadius: metrics.landscapeCardCornerRadius,
+                    action: { open(channel.route) }
+                )
+                .frame(width: width, height: width * 9 / 16)
+                .zIndex(isFocused ? 1 : 0)
+                .plozzCardFocusTransition(isFocused: isFocused, animates: !reduceMotion)
+        }
         #else
         Button { open(channel.route) } label: { label }
             .buttonStyle(.plain)

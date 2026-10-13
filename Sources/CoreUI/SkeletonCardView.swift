@@ -202,7 +202,9 @@ public struct SkeletonCardView: View {
     /// and the same corners as the real one.
     private var nativeCard: some View {
         VStack(spacing: metrics.nativePosterCaptionSpacing) {
-            nativeArtwork.frame(maxWidth: .infinity)
+            nativeArtwork
+                .shimmering(active: !showsProgress)
+                .frame(maxWidth: .infinity)
             if showsCaption {
                 nativeCaption
                     .offset(y: isFocused ? metrics.nativePosterCaptionFocusTravel : 0)

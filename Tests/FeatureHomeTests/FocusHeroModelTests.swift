@@ -64,6 +64,51 @@ final class FocusHeroModelTests: XCTestCase {
         XCTAssertEqual(model.subject?.item?.id, "second")
     }
 
+    func testLoadingContinueWatchingDoesNotSeedItsTrailingLiveChannel() {
+        let model = FocusHeroModel()
+        let channel = HomeLiveTVChannel(route: .init(
+            profileID: "profile", channelID: "channel", sourceID: "source",
+            sourceAuthorizationID: "approval", serverAuthorizationID: "server"
+        ), name: "Channel", sourceName: "Source", number: 1)
+        var loading = row("continue", [])
+        loading.isPlaceholder = true
+        loading.liveChannels = [channel]
+        model.seed(from: [loading])
+        XCTAssertNil(model.subject)
+        XCTAssertNil(model.details)
+        model.activate(loading, in: [loading])
+        XCTAssertNil(model.subject)
+
+        model.show(.liveChannel(channel), in: loading)
+        model.seed(from: [loading])
+        XCTAssertEqual(model.subject, .liveChannel(channel), "An actually focused live card still has a title.")
+        model.activate(loading, in: [loading])
+        XCTAssertNil(model.subject, "Returning to the waiting card clears the live title.")
+        XCTAssertNil(model.details)
+        XCTAssertTrue(model.shownArtwork.isEmpty)
+
+        loading.isPlaceholder = false
+        model.seed(from: [loading])
+        XCTAssertEqual(model.subject, .liveChannel(channel), "Once loading completes, the real first card may seed Home.")
+    }
+
+    func testEnteringLoadingRowCancelsPendingTitleFromPreviousRow() async throws {
+        let model = FocusHeroModel()
+        let first = row("first", ["first"])
+        let second = row("second", ["second"])
+        var loading = row("continue", [])
+        loading.isPlaceholder = true
+        let rows = [first, second, loading]
+        model.activate(first, in: rows)
+        model.show(.item(item("first")), in: first)
+        model.activate(second, in: rows)
+        model.show(.item(item("second")), in: second)
+        model.activate(loading, in: rows)
+        try await Task.sleep(for: .milliseconds(400))
+        XCTAssertNil(model.subject, "A cancelled previous-row title must not reappear over the skeleton.")
+        XCTAssertNil(model.details)
+    }
+
     func testAFocusedRowKeepsThePinWhenARowArrivesAboveIt() {
         let model = FocusHeroModel()
         let watchlist = row("watchlist", ["terror", "dune"])

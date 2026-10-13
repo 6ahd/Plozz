@@ -446,7 +446,9 @@ does not overwrite the durable snapshot.
 Showcase keeps its first-row anchor while that row loads; a lower row finishing
 does not choose focus or scroll the page. Its leading loading card has a visible
 progress indicator and can hold focus without making the other skeletons
-interactive. The waiting card uses the loaded cards' shared focus treatment:
+interactive. Its hero stays empty, even if cached Live TV cards are available
+after the waiting slots; returning to that slot also cancels any delayed title
+from the previous row. The waiting card uses the loaded cards' shared focus treatment:
 native TVUIKit for System, lighting/lift for Highlight, and glass for Outline.
 Borderless effects belong to the artwork, not its wider layout/caption slot;
 framed cards use the same concentric card surface as loaded content.
