@@ -16,6 +16,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
     private var artworkPolicyIdentity: String?
     private var artworkItemIdentity: String?
     private var imageTask: Task<Void, Never>?
+    private var compositeTask: Task<Void, Never>?
     private var imageRevision = UUID()
     private let caption = SystemPosterCaption.CaptionView()
     private let nativeArtwork = TVMediaItemContentView(configuration: TVMediaItemContentConfiguration.wideCell())
@@ -187,6 +188,8 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
             setNeedsLayout()
             return
         }
+        compositeTask?.cancel()
+        compositeTask = nil
         compositedArtwork?.removeFromSuperview()
         compositedArtwork?.image = nil
         compositedArtwork?.updateIndicator(nil, focused: false)
@@ -221,14 +224,34 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
                     size: size, scale: scale
                 )
                 if key != compositeKey || compositeSource !== artwork {
-                    compositedArtwork.image = NativeLibraryPosterBitmap.image(
-                        source: artwork, key: key, environment: environment
-                    )
                     compositedArtwork.updateIndicator(
                         NativeLibraryPosterBitmap.overlay(key: key, environment: environment), focused: isFocused
                     )
                     compositeKey = key
                     compositeSource = artwork
+                    compositeTask?.cancel()
+                    compositeTask = nil
+                    if let cached = NativeLibraryPosterBitmap.cachedImage(source: artwork, key: key) {
+                        compositedArtwork.image = cached
+                    } else {
+                        // Drawing a full-size poster takes several milliseconds; keep it off the
+                        // main thread. A reused cell shows the plain tile until it is ready, and
+                        // the same item keeps its previous composite.
+                        if compositedArtwork.image == nil {
+                            compositedArtwork.image = NativePosterArtworkBitmap.placeholder(
+                                size: size, scale: scale, clipsToArtwork: false
+                            )
+                        }
+                        let pending = artwork, environment = environment
+                        compositeTask = Task { [weak self] in
+                            let image = await NativeLibraryPosterBitmap.composite(
+                                source: pending, key: key, environment: environment
+                            )
+                            guard !Task.isCancelled, let self, let image,
+                                  self.compositeKey == key, self.compositeSource === pending else { return }
+                            self.compositedArtwork?.image = image
+                        }
+                    }
                 }
             }
         } else {
@@ -278,6 +301,8 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
         super.prepareForReuse()
         imageTask?.cancel()
         imageTask = nil
+        compositeTask?.cancel()
+        compositeTask = nil
         imageRevision = UUID()
         artworkReferences = []
         artworkPolicyIdentity = nil
