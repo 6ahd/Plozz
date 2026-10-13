@@ -1173,7 +1173,7 @@ public final class LiveTVPrototypeImportModel {
     }
 
     @discardableResult
-    private func ensureCatalogAuthorization(into model: LiveTVPrototypeModel) -> Bool {
+    func ensureCatalogAuthorization(into model: LiveTVPrototypeModel) -> Bool {
         guard !catalogIsAuthorized() else { return true }
         revision &+= 1
         reloadGeneration &+= 1

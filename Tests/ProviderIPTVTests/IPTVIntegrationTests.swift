@@ -10,6 +10,78 @@ final class IPTVIntegrationTests: XCTestCase {
         super.tearDown()
     }
 
+    func testSavedXtreamCatalogueRestoresWithoutAnyProviderRequestAfterSignIn() async throws {
+        IPTVFixture.state.handler = Self.xtream
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        addTeardownBlock { try FileManager.default.removeItem(at: root) }
+        let credential = try IPTVCredential(
+            mode: .xtream, address: XCTUnwrap(URL(string: "https://provider.test/prefix")),
+            username: "fixture-user", password: "fixture-password"
+        )
+        let session = try await IPTVProvider.signIn(
+            credential: credential, name: "Fixture", deviceID: "device",
+            cacheDirectory: root, configuration: configuration()
+        )
+        IPTVFixture.state.reset()
+        IPTVFixture.state.handler = { _ in
+            XCTFail("Restoring Settings must not authenticate, refresh, tune, or fetch a guide.")
+            throw URLError(.notConnectedToInternet)
+        }
+        let provider = try IPTVProvider(
+            context: .init(
+                session: session, accountID: "account", credentialRevision: .init(),
+                localMediaContext: .init(accountID: "account", profileID: "profile", profileNamespace: nil)
+            ), cacheDirectory: root, configuration: configuration()
+        )
+        addTeardownBlock { await provider.teardown() }
+        let restored = try await provider.cachedLiveTVCatalog()
+        XCTAssertEqual(restored?.channels.map(\.id), ["live:10"])
+        XCTAssertEqual(restored?.supportsGuide, true)
+        XCTAssertTrue(IPTVFixture.state.requests.isEmpty)
+    }
+
+    func testCacheOnlyPlaylistRestoreDistinguishesMissingAndCommittedEmptyCatalogues() async throws {
+        for isFile in [false, true] {
+            for hasChannels in [false, true] {
+                IPTVFixture.state.reset()
+                let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                addTeardownBlock { try FileManager.default.removeItem(at: root) }
+                let credential = try IPTVCredential(
+                    mode: isFile ? .file : .playlist,
+                    address: XCTUnwrap(URL(string: "https://provider.test/playlist"))
+                )
+                let client = try IPTVClient(credential: credential, directory: root, configuration: configuration())
+                let missing = try await client.cachedLiveTVCatalog()
+                XCTAssertNil(missing)
+                XCTAssertTrue(IPTVFixture.state.requests.isEmpty)
+                let payload = Data(("#EXTM3U\n" + (hasChannels
+                    ? "#EXTINF:-1,Channel\nhttps://provider.test/live.ts\n" : "")).utf8)
+                IPTVFixture.state.handler = { _ in (200, [:], payload) }
+                if isFile {
+                    let file = root.appendingPathComponent("fixture.m3u")
+                    try payload.write(to: file)
+                    try await client.importFile(file)
+                } else {
+                    _ = try await client.liveChannels()
+                }
+                await client.cancel()
+                IPTVFixture.state.reset()
+                IPTVFixture.state.handler = { _ in
+                    XCTFail("A saved catalogue read must not request a playlist or guide.")
+                    throw URLError(.notConnectedToInternet)
+                }
+                let reopened = try IPTVClient(
+                    credential: credential, directory: root, configuration: configuration()
+                )
+                let cached = try await reopened.cachedLiveTVCatalog()
+                XCTAssertEqual(cached?.channels.map(\.name), hasChannels ? ["Channel"] : [])
+                XCTAssertEqual(cached?.supportsGuide, false)
+                XCTAssertTrue(IPTVFixture.state.requests.isEmpty)
+                await reopened.cancel()
+            }
+        }
+    }
+
     func testXtreamMoviesSeriesLiveGuideAndOpaquePlayback() async throws {
         IPTVFixture.state.handler = Self.xtream
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

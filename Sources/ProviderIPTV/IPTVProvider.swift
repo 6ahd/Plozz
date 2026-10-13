@@ -253,6 +253,10 @@ public final class IPTVProvider: MediaProvider, CapabilityReporting, MediaSortFi
         )
     }
 
+    public func cachedLiveTVCatalog() async throws -> ServerLiveTVCatalogSnapshot? {
+        try await client.cachedLiveTVCatalog()
+    }
+
     public func refreshLiveTVAvailability() async throws -> ServerLiveTVAvailability {
         try await client.ensureCatalog("live", force: true)
         return try await liveTVAvailability()

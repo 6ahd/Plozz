@@ -566,6 +566,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         let outputPolicy = liveOutputPolicy
         defer { finishOutputLoad(outputGeneration, policy: outputPolicy) }
         let liveGeneration = beginLiveAttempt()
+        liveDeliveryFailure = PlaybackDeliveryFailure.state(for: url)
         _ = probePublicationGate.beginLoad()
         sourceFormatCancellable?.cancel()
         sourceFormatCancellable = nil
@@ -761,6 +762,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     private var liveFailureDiagnostic: PlaybackFailureAttempt?
+    private var liveDeliveryFailure: PlaybackDeliveryFailure?
 
     private func beginLiveAttempt() -> UInt64 {
         let generation = liveAttemptGate.begin()
@@ -781,6 +783,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     private func endLiveAttempt() {
         liveAttemptGate.invalidate()
         liveFailureDiagnostic = nil
+        liveDeliveryFailure = nil
         liveSourceResetCancellable?.cancel()
         liveSourceResetCancellable = nil
     }
@@ -804,7 +807,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         PlozzLog.playback.error(
             "Plozzigen live playback failed at \(stage): \(classification) \(redacted)"
         )
-        let error = PlozzigenLiveFailure.appError(info)
+        let error = PlozzigenLiveFailure.appError(info, deliveryFailure: liveDeliveryFailure?.error)
         status = .failed(error)
         onFailure?(error)
     }

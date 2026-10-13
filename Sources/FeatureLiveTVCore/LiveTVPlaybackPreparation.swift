@@ -169,6 +169,7 @@ public final class LiveTVPlaybackPreparation {
     @ObservationIgnored private var currentLease: PreparedLiveTVLeaseOwner?
     @ObservationIgnored private var pendingLeases: [UUID: PreparedLiveTVLeaseOwner] = [:]
     @ObservationIgnored private var cleanups: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored private var iptvCleanupIDs = Set<UUID>()
     @ObservationIgnored private var operations: [UUID: LiveTVPreparationCompletion] = [:]
 
     public init(
@@ -321,6 +322,14 @@ public final class LiveTVPlaybackPreparation {
                 return false
             }
             try requireCurrent(requestID, binding: binding)
+            if channel.source == .iptv {
+                if currentBinding?.context?.kind == .iptv, currentLease != nil { retireCurrent() }
+                // A replacement URL must not reach the player while a previous
+                // IPTV proxy is still draining its provider connection.
+                let pending = cleanups.filter { iptvCleanupIDs.contains($0.key) }.map(\.value)
+                for cleanup in pending { await cleanup.value }
+                try requireCurrent(requestID, binding: binding)
+            }
             let previous = currentLease
             pendingLeases.removeValue(forKey: requestID)
             currentLease = candidate
@@ -610,11 +619,15 @@ public final class LiveTVPlaybackPreparation {
             await self?.finishedCleanup(id)
         }
         cleanups[id] = task
+        if case .authenticatedHTTP(let locator) = lease.playbackSource, locator.provider == .iptv {
+            iptvCleanupIDs.insert(id)
+        }
         return task
     }
 
     private func finishedCleanup(_ id: UUID) {
         cleanups.removeValue(forKey: id)
+        iptvCleanupIDs.remove(id)
     }
 
     private static func source(for provider: ProviderKind) -> LiveTVPrototypeSource? {
