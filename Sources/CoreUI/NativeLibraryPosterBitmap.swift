@@ -1,6 +1,7 @@
 #if os(tvOS)
 import CoreModels
 import CoreNetworking
+import os
 import SwiftUI
 import UIKit
 
@@ -457,15 +458,33 @@ enum NativeLibraryPosterBitmap {
         return image
     }
 
-    @concurrent
-    private nonisolated static func composeOffMain(
+    /// Composites get their own bounded lane, like artwork decoding: CPU-bound pixel work on
+    /// Swift's cooperative pool (2-3 threads on tvOS) would hold up unrelated async work.
+    private nonisolated static let composeQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 2
+        queue.qualityOfService = .userInitiated
+        return queue
+    }()
+
+    private static func composeOffMain(
         source: UIImage?, overlay: UIImage, size: CGSize, scale: CGFloat
     ) async -> UIImage? {
-        guard !Task.isCancelled else { return nil }
-        return NativePosterArtworkBitmap.compose(
-            source: source, overlay: overlay, size: size, scale: scale,
-            backgroundColor: .darkGray, clipsToArtwork: false
-        )
+        let cancelled = OSAllocatedUnfairLock(initialState: false)
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                composeQueue.addOperation {
+                    // A queued draw for a cell that scrolled away is skipped, not drawn.
+                    guard !cancelled.withLock({ $0 }) else { return continuation.resume(returning: nil) }
+                    continuation.resume(returning: NativePosterArtworkBitmap.compose(
+                        source: source, overlay: overlay, size: size, scale: scale,
+                        backgroundColor: .darkGray, clipsToArtwork: false
+                    ))
+                }
+            }
+        } onCancel: {
+            cancelled.withLock { $0 = true }
+        }
     }
 
     private static func indicatorLayer(source: UIImage?, key: Key, environment: EnvironmentValues) -> UIImage? {
