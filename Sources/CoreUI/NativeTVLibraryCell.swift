@@ -32,6 +32,8 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
     private weak var compositeSource: UIImage?
     /// The item whose composite the image view shows, so another item never inherits it.
     private var compositeItem: String?
+    /// The image view shows that item's artwork, composited or not, rather than a plain tile.
+    private var showsArtwork = false
     private var needsCompositeUpdate = true
 
     private var usesCompositedArtwork: Bool {
@@ -196,6 +198,8 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
         compositedArtwork?.image = nil
         compositedArtwork?.updateIndicator(nil, focused: false)
         compositeKey = nil
+        compositeItem = nil
+        showsArtwork = false
         nativeArtwork.isHidden = false
         var configuration = TVMediaItemContentConfiguration.wideCell()
         configuration.image = artwork ?? Self.placeholder
@@ -237,15 +241,22 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
                     if let cached = NativeLibraryPosterBitmap.cachedImage(source: artwork, key: key) {
                         compositedArtwork.image = cached
                         compositeItem = itemKey
+                        showsArtwork = artwork != nil
                     } else {
                         // Drawing a full-size poster takes several milliseconds; keep it off the
-                        // main thread. The same item keeps its previous composite meanwhile; any
-                        // other item shows the plain tile.
-                        if compositedArtwork.image == nil || compositeItem != itemKey {
+                        // main thread. Meanwhile the decoded artwork alone stands in, so fast
+                        // scrolling does not flash rows of blank tiles. Without artwork the same
+                        // item keeps its previous composite, and any other item shows the tile.
+                        if let artwork, compositeItem != itemKey || !showsArtwork {
+                            compositedArtwork.image = artwork
+                            compositeItem = itemKey
+                            showsArtwork = true
+                        } else if compositedArtwork.image == nil || compositeItem != itemKey {
                             compositedArtwork.image = NativePosterArtworkBitmap.placeholder(
                                 size: size, scale: scale, clipsToArtwork: false
                             )
                             compositeItem = itemKey
+                            showsArtwork = false
                         }
                         let pending = artwork, environment = environment
                         compositeTask = Task { [weak self] in
@@ -256,6 +267,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
                                   self.compositeKey == key, self.compositeSource === pending else { return }
                             self.compositedArtwork?.image = image
                             self.compositeItem = itemKey
+                            self.showsArtwork = pending != nil
                         }
                     }
                 }
@@ -319,6 +331,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
         compositeKey = nil
         compositeSource = nil
         compositeItem = nil
+        showsArtwork = false
         needsCompositeUpdate = true
         item = nil
         isConfiguredForDisplay = false

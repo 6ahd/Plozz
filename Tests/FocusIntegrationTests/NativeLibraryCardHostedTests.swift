@@ -1415,7 +1415,13 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         }
         update()
         let imageView = try XCTUnwrap(cell.subviews.compactMap { $0 as? NativePosterImageView }.first)
-        let before = try XCTUnwrap(imageView.image)
+        // A cache miss composites off the main thread; the decoded artwork stands in until then.
+        var before = try XCTUnwrap(imageView.image)
+        let compositeDeadline = Date().addingTimeInterval(2)
+        while before.size != imageView.bounds.size, Date() < compositeDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+            before = try XCTUnwrap(imageView.image)
+        }
         let beforeForeground = try XCTUnwrap(imageView.indicatorView.image)
         XCTAssertFalse(imageView.masksFocusEffectToContents, "Browse and rows must share the same native focus surface.")
         XCTAssertEqual(try rgba(XCTUnwrap(before.cgImage))[3], 255)
