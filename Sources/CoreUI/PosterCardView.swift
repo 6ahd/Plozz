@@ -127,7 +127,7 @@ public struct PosterCardView: View {
     }
 
     private var hidesPlaybackStatus: Bool {
-        hideThumbnail || showsSeriesArtwork || playsOnSelect || showsResumeChipOverride
+        hideThumbnail || presentationArtworkPolicy.area == .continueWatching
     }
 
     /// A poster-shaped episode card is masked by *narrowing its sources*, not by

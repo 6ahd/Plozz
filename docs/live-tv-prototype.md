@@ -139,6 +139,28 @@ through Files into the same disk-backed catalogue. File catalogues remain on
 the importing device; they are not copied by account sync. Use a playlist URL
 for a source that should refresh independently on multiple devices.
 
+Selecting **Playlist URL** does not require knowing the provider's protocol.
+An Xtream `player_api.php` link containing a username and password is recognized
+directly. For a server address or `get.php` link, Plozz first accepts a real
+playlist; if the response is not a playlist or the endpoint is absent/unsupported,
+it tries Xtream once on that same server using the URL's credentials or the
+username/password entered under **Advanced options**. Basic-authenticated M3U
+feeds remain playlists. No credentials are guessed, conflicting or incomplete
+login parameters are not inferred, and authentication failures, rate limits,
+network failures and cancellation do not trigger a protocol retry. The saved
+account uses the detected protocol, including when reopening its connection.
+
+Xtream and playlist playback follow provider-issued HTTP(S) redirects to
+delivery servers automatically, including changing hosts/ports and URLs carrying
+account credentials. No provider domain or delivery IP is hardcoded, and no
+manual allowlist is required. This applies to live streams, movies, episodes,
+and redirected HLS manifests, segments and keys behind the authenticated
+loopback proxy. Provider-issued HTTP delivery can be unencrypted even when the
+initial stream uses HTTPS; only connect providers you trust with the account.
+Authorization, cookie and custom account headers are stripped when crossing
+origins, including subsequent hops. Login, catalogue and guide requests retain
+their stricter checks against copied credentials and HTTPS downgrades.
+
 Event playlists can be added before their streams go live. A valid `#EXTM3U`
 playlist with no entries is saved and remains in Sources with zero channels.
 Refreshing Live TV or Sources checks the provider again, bypassing the IPTV

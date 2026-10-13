@@ -30,7 +30,10 @@ actor IPTVPlaybackProxy {
         self.origin = origin
         self.headers = headers
         self.formatHint = formatHint
-        http = IPTVHTTP(configuration: configuration, resourceTimeout: 86_400, sensitiveValues: sensitiveValues)
+        http = IPTVHTTP(
+            configuration: configuration, resourceTimeout: 86_400,
+            sensitiveValues: sensitiveValues, redirectScope: .playback
+        )
         let parameters = NWParameters.tcp
         parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: .any)
         listener = try NWListener(using: parameters)

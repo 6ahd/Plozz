@@ -614,6 +614,8 @@ actor IPTVClient {
             URLQueryItem(name: "username", value: credential.username),
             URLQueryItem(name: "password", value: credential.password)
         ] + (action.map { [URLQueryItem(name: "action", value: $0)] } ?? []) + extra
+        // Xtream's PHP query decoder treats a literal plus as a space.
+        parts.percentEncodedQuery = parts.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
         guard let result = parts.url else { throw IPTVError.invalidAddress }
         return result
     }

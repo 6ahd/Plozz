@@ -282,7 +282,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Async logos, focus-reactive progress and animated content remain live in
   `overlayContentView`; edge backgrounds and full-card legibility washes do not. Continue Watching
   keeps its established size, reflection, logo position and resume chrome without
-  top-corner watch marks. Its adaptive logo dimming and the shared bottom scrim
+  top-corner watch marks, including when series artwork is disabled. This uses
+  the Continue Watching presentation area, not instant-play or resume-chip flags:
+  extras and other playable cards retain the profile's watched/unwatched marks
+  independently of their resume chrome. Spoiler-hidden cards still suppress marks.
+  Its adaptive logo dimming and the shared bottom scrim
   are drawn into the artwork; projecting those backgrounds with the live overlay
   creates a dark rim outside the focused image. Captions stay outside it. Transparent
   landscape artwork retains its alpha, and protected/extended artwork is prepared before
