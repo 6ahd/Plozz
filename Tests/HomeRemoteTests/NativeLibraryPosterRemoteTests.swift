@@ -136,8 +136,10 @@ final class NativeLibraryPosterRemoteTests: XCTestCase {
             try await Task.sleep(for: .seconds(min(45, max(0, remaining))))
             XCTContext.runActivity(named: "Waiting for the recorded startup settling deadline") { _ in }
             if measurementEpoch - Date().timeIntervalSince1970 > 30 {
+                // The calibrated start is the first poster, so Right always has a neighbor.
                 XCUIRemote.shared.press(.right)
                 XCUIRemote.shared.press(.left)
+                try await Task.sleep(for: .milliseconds(500))
                 XCTAssertEqual(try focusedPoster(in: app, arm: arm).label, initial)
             }
         }
