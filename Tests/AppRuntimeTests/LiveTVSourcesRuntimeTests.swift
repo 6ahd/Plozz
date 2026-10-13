@@ -7,6 +7,56 @@ import XCTest
 
 @MainActor
 final class LiveTVSourcesRuntimeTests: XCTestCase {
+    func testSyncBookkeepingDoesNotRevokeSourcesOrScanAdmission() async throws {
+        let fixture = try SourcesRuntimeFixture()
+        defer { fixture.removeOwnedFiles() }
+        try await fixture.seed()
+        let runtime = fixture.runtime()
+        defer { runtime.invalidate() }
+        await runtime.restore()
+        let identity = runtime.authorityID
+        let channels = runtime.catalog.catalog.channels
+
+        var configuration = try fixture.store.load()
+        configuration.syncCheckpoint = .init(profileID: fixture.profile.id, accountEpoch: "sync-generation")
+        configuration.syncCheckpoint?.pendingCaptures["source"] = Data([1, 2, 3])
+        try fixture.store.save(configuration)
+
+        XCTAssertEqual(runtime.authorityID, identity)
+        XCTAssertTrue(runtime.isCurrent, "Cloud sync bookkeeping is not a change to profile access.")
+        runtime.scanBinding.updateCatalog(runtime.catalog.imports.configuration, channels: channels)
+        await runtime.scanBinding.waitUntilPrepared()
+        XCTAssertEqual(runtime.scanBinding.coordinator.sourceIDs, ["source"])
+        XCTAssertEqual(runtime.catalog.catalog.channels, channels)
+        XCTAssertNil(runtime.catalog.issue)
+        XCTAssertEqual(try fixture.store.load().syncCheckpoint, configuration.syncCheckpoint)
+        let loads = await fixture.loader.loads
+        XCTAssertEqual(loads, 0)
+    }
+
+    func testSyncCheckpointDuringRefreshDoesNotCauseProfileAccessFailure() async throws {
+        let gate = SourcesRuntimeLoadGate()
+        let fixture = try SourcesRuntimeFixture(gate: gate)
+        defer { fixture.removeOwnedFiles() }
+        let runtime = fixture.runtime()
+        defer { runtime.invalidate() }
+        await runtime.restore()
+        let refresh = Task { await runtime.catalog.refresh() }
+        await gate.waitUntilStarted()
+        var configuration = try fixture.store.load()
+        configuration.syncCheckpoint = .init(profileID: fixture.profile.id, accountEpoch: "sync-generation")
+        try fixture.store.save(configuration)
+        await gate.release()
+        await refresh.value
+
+        XCTAssertNil(runtime.catalog.issue)
+        XCTAssertTrue(runtime.isCurrent)
+        XCTAssertEqual(runtime.catalog.catalog.channels.map(\.name), ["Refreshed channel"])
+        XCTAssertEqual(try fixture.store.load().syncCheckpoint, configuration.syncCheckpoint)
+        let loads = await fixture.loader.loads
+        XCTAssertEqual(loads, 1)
+    }
+
     func testEmptyEventSourceStaysRegisteredAsEventsAppearAndEnd() async throws {
         let fixture = try SourcesRuntimeFixture()
         defer { fixture.removeOwnedFiles() }

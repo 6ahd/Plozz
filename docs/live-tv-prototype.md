@@ -249,8 +249,12 @@ native listings are retained. Explicit guides bypass that fallback selection.
 An unavailable endpoint is not retried once per remaining channel in the batch.
 Authentication failures, rate limits, transport failures and ordinary server
 errors remain visible rather than triggering another request path; a failed
-XMLTV fallback also remains an error. Auto-discovered guide URLs on
-another origin require explicit configuration for URL-based playlists.
+XMLTV fallback also remains an error. Playlist-declared HTTP(S) guide URLs load
+automatically, including guides hosted on another server, scheme, or port.
+Each guide is requested at its declared address without copying the playlist's
+query credentials. Account headers stay scoped to their configured origin;
+the standalone source loader does not share cookies or stored HTTP credentials.
+Guide redirects retain their existing transport safeguards.
 Playlist and imported-file accounts without an explicit or enabled playlist-declared
 guide immediately report no guide capability. Both platforms show "No program
 guide available" and skip guide warmup and browsing requests instead of showing
@@ -448,6 +452,11 @@ Catalog display state checks the current in-memory profile/account admission wit
 the secure source store. This display state is not an operation permit: catalog
 publication, scans, imports and mutations retain their fresh durable-source and
 parental-authorization checks.
+Sources admission compares actual playlist/server settings and current authorization,
+not the Cloud sync checkpoint stored alongside them. A checkpoint-only write must
+not revoke an open Sources page, discard a pending channel refresh, or stop channel
+checks. Checkpoints remain intact in secure storage; real source edits, account
+changes, profile locks and parental-approval revocations still invalidate old work.
 Earlier prototype builds did not store Favorites or Recents on disk, so there
 is no prior in-memory history to migrate on the first updated launch.
 
@@ -1119,8 +1128,9 @@ guide-source budget does not reject playable channels. Header/attribute size
 guards still bound parsing. Each playlist retains at most 32 configured and
 discovered guide sources, with explicit guide URLs taking priority and an
 informational notice when additional declarations cannot be added. Discovered
-guides still require the allowed origin; excess declarations do not authorize
-extra requests.
+guides may use a different HTTP(S) origin and retain their stable IDs through
+cache restores and portable mapping sync. Excess declarations do not authorize
+extra requests; unsupported URLs and embedded user-info credentials remain rejected.
 
 Matching first uses exact native Pluto IDs from recognized stream URLs, then
 explicit guide IDs, verified aliases and unique display names. Provider guides

@@ -472,6 +472,7 @@ targets:
     platform: iOS
     sources:
       - path: Tests/iOSPresentationHost
+      - path: Tests/ProviderIPTVTests/IPTVTestHTTPServer.swift
       - path: Tests/SubtitlePresentationSupport/Fixtures/four-three.mp4
         buildPhase: resources
       - path: Tests/AuthPresentationSupport/IPTVSetupFixture.swift
@@ -516,6 +517,7 @@ targets:
     platform: iOS
     sources:
       - path: Tests/iOSPresentationTests
+      - path: Tests/FocusIntegrationTests/LiveTVSourcesRuntimeHostedTests.swift
       - path: Tests/HomePresentationSupport
       - path: Tests/TestSupportPerformance
       - path: Tests/PerformancePresentationSupport

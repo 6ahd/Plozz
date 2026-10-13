@@ -182,7 +182,7 @@ extension View {
     }
 }
 
-private struct PlozziOSPlayerPresentation<Content: View>: UIViewControllerRepresentable {
+struct PlozziOSPlayerPresentation<Content: View>: UIViewControllerRepresentable {
     @Environment(\.self) private var environment
     @Binding var item: PlozziOSPlaybackRequest?
     let preference: PlaybackOrientation
@@ -245,6 +245,14 @@ private struct PlozziOSPlayerPresentation<Content: View>: UIViewControllerRepres
         var clearRequest: ((UUID) -> Void)?
         private var transitioning = false
 
+        func close(_ id: UUID) {
+            guard presentedID == id else { return }
+            if request?.id == id { request = nil }
+            clearRequest?(id)
+            // The full-screen presenter may not receive another SwiftUI update while hidden.
+            reconcile()
+        }
+
         func reconcile() {
             guard !transitioning else { return }
             if let host {
@@ -271,7 +279,7 @@ private struct PlozziOSPlayerPresentation<Content: View>: UIViewControllerRepres
             while let parent = presenter.parent { presenter = parent }
             guard presenter.presentedViewController == nil, !presenter.isBeingDismissed else { return }
             let orientation = PlozziOSPlayerOrientation(preference: preference)
-            orientation.close = { [weak self] in self?.clearRequest?(request.id) }
+            orientation.close = { [weak self] in self?.close(request.id) }
             let host = PlozziOSOrientationHostingController(
                 rootView: makeContent(request, orientation), orientation: orientation
             )

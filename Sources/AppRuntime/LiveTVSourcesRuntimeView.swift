@@ -57,7 +57,7 @@ public struct LiveTVSourcesRuntimeView<Content: View>: View {
     }
 }
 
-private struct LiveTVSourcesRuntimeHost<Content: View>: View {
+struct LiveTVSourcesRuntimeHost<Content: View>: View {
     let profileID: String
     let namespace: String?
     let profiles: ProfilesModel
@@ -66,7 +66,7 @@ private struct LiveTVSourcesRuntimeHost<Content: View>: View {
     let isPresented: Bool
     let isProfileAuthorized: @MainActor () -> Bool
     let content: (LiveTVSourcesRuntime) -> Content
-    @State private var runtime: LiveTVSourcesRuntime?
+    @State var runtime: LiveTVSourcesRuntime?
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {

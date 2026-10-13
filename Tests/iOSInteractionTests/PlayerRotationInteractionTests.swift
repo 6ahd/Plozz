@@ -90,8 +90,55 @@ final class PlayerRotationInteractionTests: XCTestCase {
         XCTAssertEqual(app.staticTexts["saved-orientation"].label, "portrait")
     }
 
-    private func launch(_ preference: String? = nil) {
-        app.launchArguments = ["--rotation-player-fixture"] + (preference.map { [$0] } ?? [])
+    func testPlayerXClosesFromNestedNavigationAndReopens() {
+        launch("--nested-player-presentation")
+        openPlayer()
+        closePlayer()
+        openPlayer()
+        closePlayer()
+    }
+
+    func testPlayerXClosesWithEmbyStreamingQualityAndAutomaticRotation() {
+        launch("--emby-streaming-fixture", "--auto")
+        openPlayer()
+        rotate(.landscapeLeft)
+        rotate(.portrait)
+        closePlayer()
+        openPlayer()
+        closePlayer()
+    }
+
+    func testEmbyQualitySheetDoesNotReplacePlayerAndXStillCloses() {
+        launch("--emby-streaming-fixture")
+        openPlayer()
+        revealControls()
+        app.buttons["Playback options"].tap()
+        XCTAssertTrue(app.buttons["Quality"].waitForExistence(timeout: 5), app.debugDescription)
+        app.buttons["Quality"].tap()
+        XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 5), app.debugDescription)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["Cancel"].waitForNonExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["rotation-load-count"].label, "Loads 1",
+                       "Opening and cancelling quality must not recreate the player.")
+        revealControls()
+        app.buttons["Playback options"].tap()
+        XCTAssertTrue(app.buttons["Quality"].waitForExistence(timeout: 5), app.debugDescription)
+        app.buttons["Quality"].tap()
+        XCTAssertTrue(app.buttons["Advanced"].waitForExistence(timeout: 5), app.debugDescription)
+        app.buttons["Advanced"].tap()
+        app.switches["Force transcoding"].switches.firstMatch.tap()
+        XCTAssertEqual(app.switches["Force transcoding"].value as? String, "1", app.debugDescription)
+        app.buttons["Apply"].tap()
+        XCTAssertTrue(app.buttons["Apply"].waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Pause"].waitForExistence(timeout: 25), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["rotation-load-count"].wait(
+            for: \.label, toEqual: "Loads 2", timeout: 10
+        ), "Changing quality must reload exactly once without reopening the player: \(app.staticTexts["rotation-load-count"].label)")
+        closePlayer()
+    }
+
+    private func launch(_ arguments: String...) {
+        app.launchArguments = ["--rotation-player-fixture"] + arguments
         app.launch()
         XCTAssertTrue(app.buttons["Open rotation player"].waitForExistence(timeout: 10))
     }
@@ -122,7 +169,9 @@ final class PlayerRotationInteractionTests: XCTestCase {
     private func closePlayer() {
         revealControls()
         app.buttons["Close player"].tap()
-        XCTAssertTrue(app.buttons["Open rotation player"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.buttons["Open rotation player"].wait(
+            for: \.isHittable, toEqual: true, timeout: 10
+        ), app.debugDescription)
     }
 
     private func rotate(_ orientation: UIDeviceOrientation, player: Bool = true) {

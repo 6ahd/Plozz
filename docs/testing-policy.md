@@ -400,6 +400,16 @@ use synthetic received data, not pairing services or stored household credential
 Package-only UIKit snapshots cannot replace this gate:
 without an application scene, `drawHierarchy` returns an empty image.
 
+`PlayerOrientationTests` checks the UIKit player owner's close path without
+another update from the hidden SwiftUI presenter, including disappearance
+cleanup, closing during presentation, reopening, and stale close callbacks.
+`PlayerRotationInteractionTests` verifies actual X taps and return to a hittable
+presenting screen across rotation preferences and nested navigation. Its
+synthetic Emby-quality fixture serves local HTTP video so quality changes are
+available; cancelling preserves the rendition, and applying a changed selection
+reloads once before X closes the player. This is presentation coverage, not
+evidence for real Emby transcoding or Aether loopback transport.
+
 `ProfilePickerPresentationTests` covers compact/adaptive avatar sizing, small
 and large households, themes/gradients, landscape, iPad, accessible names and RTL.
 Hosted animation frames check the stagger and settled scale; Reduce Motion
