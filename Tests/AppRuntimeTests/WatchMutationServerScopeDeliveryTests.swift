@@ -6,6 +6,24 @@ import XCTest
 
 @MainActor
 final class WatchMutationServerScopeDeliveryTests: XCTestCase {
+    func testResolvedHomeAccountsCarrySelectedViewerAndEffectiveCredentialRevision() async throws {
+        let fixture = try fixture()
+        for viewer in ["a", "b"] {
+            try await fixture.activate(viewer)
+            for resolved in fixture.accounts.homeAccounts
+                + fixture.accounts.resolvedActiveAccounts
+                + fixture.accounts.resolvedAccounts(withIDs: [fixture.account.id]) {
+                XCTAssertEqual(resolved.plexHomeUserID, viewer)
+                XCTAssertEqual(
+                    resolved.credentialRevision,
+                    fixture.plex.effectiveCredentialRevision(for: fixture.account)
+                )
+                XCTAssertNotEqual(resolved.credentialRevision, resolved.account.credentialRevision)
+            }
+            XCTAssertFalse(fixture.accounts.homeAccounts.isEmpty)
+        }
+    }
+
     private func fixture() throws -> ServerViewerFixture {
         let suite = "WatchMutationServerScopeDeliveryTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

@@ -1,6 +1,7 @@
 #if os(iOS)
 import AppRuntime
 import CoreModels
+import CoreNetworking
 import CoreUI
 import FeaturePlayback
 import FeatureSettings
@@ -655,6 +656,7 @@ private struct PlozziOSSettingsSplitView: View {
                 visibility: appModel.settings.homeVisibility,
                 accounts: appModel.accountsProviders.resolvedActiveAccounts
             )
+            .id(ObjectIdentifier(appModel.settings.homeVisibility))
         case .liveTV:
             LiveTVSettingsView(
                 store: LiveTVViewSettingsStore(
@@ -988,6 +990,7 @@ private struct PlozziOSSettingsCompactMenu: View {
                         visibility: appModel.settings.homeVisibility,
                         accounts: appModel.accountsProviders.resolvedActiveAccounts
                     )
+                    .id(ObjectIdentifier(appModel.settings.homeVisibility))
                 } label: {
                     Label("Customize Home", systemImage: "house")
                 }
@@ -1904,26 +1907,29 @@ struct PlozziOSArtworkSettingsView: View {
     }
 }
 
-private struct PlozziOSHomeSettingsView: View {
+struct PlozziOSHomeSettingsView: View {
     @Bindable var hero: HeroSettingsModel
     @Bindable var heroBackground: HeroBackgroundSettingsModel
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
     @State private var libraries: [HomeLibraryChoice] = []
     @State private var isLoadingLibraries = false
+    @State private var showHomeRows = false
     @State private var selectedLibraryID: String?
 
     var body: some View {
         List {
             SettingsSectionGroup("Rows") {
-                ForEach(HomeGlobalRow.allCases, id: \.rawValue) { row in
-                    Toggle(
-                        row.title,
-                        isOn: Binding(
-                            get: { visibility.isGlobalRowEnabled(row) },
-                            set: { visibility.setGlobalRowEnabled($0, for: row) }
-                        )
-                    )
+                Button {
+                    showHomeRows = true
+                } label: {
+                    HStack {
+                        Text("Rows on Home")
+                        Spacer()
+                        Image(systemName: "chevron.forward")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 // Nested under the row it belongs to, and only while that row is
                 // on — a preference for a hidden row is noise. A picker rather
@@ -1948,24 +1954,6 @@ private struct PlozziOSHomeSettingsView: View {
                         }
                     }
                 }
-                Toggle(
-                    "Merge libraries",
-                    isOn: Binding(
-                        get: { visibility.visibility.mergeLibrariesOnHome },
-                        set: { merge in
-                            visibility.setMergeLibrariesOnHome(merge)
-                            if !merge {
-                                visibility.seedLibraryRowsIfNeeded(
-                                    libraries.flatMap { library in
-                                        LibraryHomeRowKind.allCases.map {
-                                            (library.key, $0)
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    )
-                )
             }
 
             SettingsSectionGroup("Libraries") {
@@ -2107,13 +2095,44 @@ private struct PlozziOSHomeSettingsView: View {
         }
         .settingsPageSurface()
         .navigationTitle("Customize Home")
+        .navigationDestination(isPresented: $showHomeRows) {
+            ScrollView {
+                HomeRowsSettingsView(
+                    libraries: aggregatedHomeLibraries, accounts: accounts,
+                    visibility: visibility
+                )
+                .id(ObjectIdentifier(visibility))
+                .padding()
+            }
+            .navigationTitle("Rows on Home")
+            .settingsPageSurface()
+        }
         .navigationDestination(item: $selectedLibraryID) { id in
             if let library = libraries.first(where: { $0.id == id }) {
                 PlozziOSLibraryHomeSettingsView(library: library, visibility: visibility)
             }
         }
-        .task(id: accounts.map(\.account.id)) {
+        .task(id: accounts.map {
+            [$0.account.id, $0.credentialRevision.rawValue.uuidString,
+             $0.provider.session.userID, $0.plexHomeUserID ?? ""]
+        }) {
+            libraries = []
             await loadLibraries()
+        }
+    }
+
+    private var aggregatedHomeLibraries: [AggregatedLibrary] {
+        libraries.compactMap { choice in
+            guard let account = accounts.first(where: { $0.account.id == choice.accountID })?.account else {
+                return nil
+            }
+
+            return AggregatedLibrary(
+                accountID: choice.accountID, accountName: account.userName,
+                serverName: choice.serverName, providerKind: account.server.provider,
+                transportKind: MediaShareTransportKind(mediaShareScheme: account.server.baseURL.scheme),
+                library: choice.library
+            )
         }
     }
 
@@ -2159,14 +2178,23 @@ private struct PlozziOSHomeSettingsView: View {
 
     private func loadLibraries() async {
         isLoadingLibraries = true
-        defer { isLoadingLibraries = false }
+        defer { if !Task.isCancelled { isLoadingLibraries = false } }
         var loaded: [HomeLibraryChoice] = []
         for resolved in accounts {
-            guard let libraries = try? await resolved.provider.libraries() else {
+            let discovered: [MediaLibrary]
+            do {
+                discovered = try await resolved.provider.libraries()
+                try Task.checkCancellation()
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled else { return }
+                PlozzLog.app.error("Home settings library discovery failed")
+                loaded += libraries.filter { $0.accountID == resolved.account.id }
                 continue
             }
             loaded.append(
-                contentsOf: libraries
+                contentsOf: discovered
                     .filter { !$0.isMusic }
                     .map {
                         HomeLibraryChoice(
@@ -2177,13 +2205,8 @@ private struct PlozziOSHomeSettingsView: View {
                     }
             )
         }
-        libraries = loaded.sorted {
-            if $0.serverName != $1.serverName {
-                return $0.serverName.localizedStandardCompare($1.serverName)
-                    == .orderedAscending
-            }
-            return $0.title.localizedStandardCompare($1.title) == .orderedAscending
-        }
+        guard !Task.isCancelled else { return }
+        libraries = loaded
     }
 }
 
@@ -2263,31 +2286,6 @@ private struct PlozziOSLibraryHomeSettingsView: View {
                 Text("Disabled libraries are hidden from Home and library browsing.")
             }
 
-            if !visibility.mergeLibrariesOnHome {
-                SettingsSectionGroup("Home rows") {
-                    ForEach(LibraryHomeRowKind.allCases, id: \.rawValue) { kind in
-                        Toggle(
-                            kind.displayName,
-                            isOn: Binding(
-                                get: {
-                                    visibility.isLibraryRowEnabled(
-                                        library.key,
-                                        kind: kind
-                                    )
-                                },
-                                set: {
-                                    visibility.setLibraryRowEnabled(
-                                        $0,
-                                        libraryKey: library.key,
-                                        kind: kind
-                                    )
-                                }
-                            )
-                        )
-                        .disabled(!visibility.isEnabled(library.key))
-                    }
-                }
-            }
         }
         .settingsPageSurface()
         .navigationTitle(library.title)

@@ -41,6 +41,8 @@ public struct LiveTVPrototypePlayback {
     public let openLibraryItem: ((LibraryChannelItem) -> Void)?
     /// What the guide says is airing on this channel now.
     public let program: LiveChannelProgramInfo?
+    /// What aired before it, for a stream whose rewind window reaches back past its start.
+    public let earlierPrograms: [LiveChannelProgramInfo]
     /// What is airing across the lineup, for the player's On Now tab. A closure
     /// so the lineup is only walked when the tab is opened.
     public let onNow: @MainActor () -> [LiveChannelOnNowItem]
@@ -154,6 +156,8 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
     private let serverChoices: [LiveTVServerChoice]
     private let serverAuthorizationID: String
     private let isProfileAuthorized: @MainActor @Sendable () -> Bool
+    private let homeModel: HomeLiveTVModel?
+    private let homeAuthorizationID: String?
     private let connectServer: (() -> Void)?
     private let onExpandedChange: (Bool) -> Void
     private let onOpenTitle: ((MediaItem) -> Void)?
@@ -192,6 +196,8 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         prepareLibraryChannels: (@MainActor () async throws -> Void)? = nil,
         libraryIsAuthorized: @escaping @MainActor @Sendable () -> Bool = { true },
         sourceApprovalContext: @escaping @MainActor @Sendable () -> LiveTVSourceApprovalContext? = { nil },
+        homeModel: HomeLiveTVModel? = nil,
+        homeAuthorizationID: String? = nil,
         onOpenTitle: ((MediaItem) -> Void)? = nil,
         topBarAccessory: AnyView? = nil,
         @ViewBuilder player: @escaping (LiveTVPrototypePlayback) -> PlayerContent
@@ -230,6 +236,8 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         _playbackResolvers = State(initialValue: resolverContext)
         let currentResolver: LiveTVServerProviderResolver = { resolverContext.provider(for: $0) }
         self.isProfileAuthorized = isProfileAuthorized
+        self.homeModel = homeModel
+        self.homeAuthorizationID = homeAuthorizationID
         self.serverChoices = serverChoices
         self.serverAuthorizationID = serverAuthorizationID
         self.connectServer = connectServer
@@ -536,6 +544,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             stopPlayback: { stopPlayer(paneID: pane.id, preparedID: prepared.id) },
             openLibraryItem: onOpenTitle == nil ? nil : openLibraryItem,
             program: model.currentProgram(for: prepared.channel.id)?.playerInfo,
+            earlierPrograms: model.earlierPrograms(for: prepared.channel.id).map(\.playerInfo),
             onNow: { onNowItems(around: prepared.channel.id) },
             tuneChannel: { tune($0) },
             guideOverlay: { embedding in
@@ -749,6 +758,16 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         .task(id: preview.pendingRequest) {
             await preparePendingPreview()
         }
+        .task(id: playback.preparation.current?.channel.id) {
+            // The guide warms only what is on and ahead; the player's timeline
+            // also splits a live rewind window at what already aired.
+            guard let channelID = playback.preparation.current?.channel.id else { return }
+            await imports.reloadServerGuides(
+                channelIDs: [channelID],
+                from: model.now.addingTimeInterval(-LiveTVPrototypeImportModel.guideLookback),
+                to: model.now, into: model
+            )
+        }
         .task(id: isActive) {
             while isActive && !Task.isCancelled {
                 model.synchronizeClock()
@@ -767,7 +786,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             assertionFailure("Unexpected preview timer failure: \(error)")
             return
         }
-        guard !Task.isCancelled, !needsPreviewChoice else { return }
+        guard !Task.isCancelled, !needsPreviewChoice, homeModel?.pendingRequest == nil else { return }
         if await playback.preparePreview(request) {
             let elapsed = request.focusedAt.duration(to: ContinuousClock.now).components
             let milliseconds = Double(elapsed.seconds) * 1_000 + Double(elapsed.attoseconds) / 1e15
@@ -777,8 +796,26 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         }
     }
 
-    private var portableStateObservedContent: some View {
+    private var homeObservedContent: some View {
         loadingContent
+        .onChange(of: model.catalogRevision) { _, _ in publishHomeSnapshot() }
+        .onChange(of: model.recentChannelIDs) { _, _ in publishHomeSnapshot() }
+        .onChange(of: model.favoriteOrder) { _, _ in publishHomeSnapshot() }
+        .onChange(of: model.hiddenChannels) { _, _ in publishHomeSnapshot() }
+        .onChange(of: model.preferencesIssue) { _, _ in publishHomeSnapshot() }
+        .onChange(of: homeModel?.pendingRequest, initial: true) { _, _ in
+            updatePreviewAvailability()
+            handleHomeSelection()
+        }
+        .onChange(of: loadedRequest) { _, _ in
+            publishHomeSnapshot()
+            handleHomeSelection()
+        }
+        .onChange(of: needsPreviewChoice) { _, _ in handleHomeSelection() }
+    }
+
+    private var portableStateObservedContent: some View {
+        homeObservedContent
         .onChange(of: scanBinding.coordinator.scanHiddenChannelIDs) { _, _ in
             scanBinding.synchronizeVisibility()
         }
@@ -908,6 +945,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             }
             updatePreviewAvailability()
             focusInitialChannelIfNeeded()
+            handleHomeSelection()
         }
         .onChange(of: model.guideChannels.first?.id, initial: true) { _, _ in
             focusInitialChannelIfNeeded()
@@ -918,6 +956,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         browsingObservedContent
         .onChange(of: scenePhase, initial: true) { _, _ in
             updatePlaybackAvailability()
+            handleHomeSelection()
         }
         .onChange(of: isProfileAuthorized(), initial: true) { _, _ in
             if !isProfileAuthorized() { enrollment.invalidate() }
@@ -925,9 +964,11 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         }
         .onChange(of: allowsPlayback, initial: true) { _, _ in
             updatePlaybackAvailability()
+            handleHomeSelection()
         }
-        .onChange(of: isActive, initial: true) { _, active in
+        .onChange(of: isActive, initial: true) { wasActive, active in
             if !active {
+                if wasActive { homeModel?.cancelRequest() }
                 enrollment.invalidate()
                 loadedRequest = nil
                 pendingServerConnection = false
@@ -949,6 +990,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             updatePlaybackAvailability()
             if active { playback.focus(selectedChannelID) }
             focusInitialChannelIfNeeded()
+            handleHomeSelection()
         }
         .onChange(of: hidesAppNavigation, initial: true) { _, hidesChrome in
             onExpandedChange(hidesChrome)
@@ -1234,6 +1276,45 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
     private func requestCatalogRefresh() {
         pendingServerRefresh = true
         reloadRequest &+= 1
+    }
+
+    private func publishHomeSnapshot() {
+        guard let homeModel, let homeAuthorizationID, homeModel.profileID == profileID,
+              isProfileAuthorized(), !sourceApplicationFailed,
+              loadedRequest == reloadRequest,
+              let configuration = sources?.configuration,
+              let authorization = try? sourceAuthority.authorization(configuration: configuration),
+              authorization.identity == appliedSourceAuthorizationID else { return }
+        homeModel.publish(HomeLiveTVCatalogProjection.snapshot(
+            model: model, imports: imports, profileID: profileID, authorization: authorization,
+            serverAuthorizationID: homeAuthorizationID, serverProvider: serverProviderResolver
+        ))
+    }
+
+    private func handleHomeSelection() {
+        guard let homeModel, let request = homeModel.pendingRequest, isActive else { return }
+        guard isProfileAuthorized(), request.route.profileID == profileID else {
+            homeModel.cancelRequest()
+            return
+        }
+        guard loadedRequest == reloadRequest, !sourceApplicationFailed,
+              scenePhase == .active, activity.acceptsInteraction, !needsPreviewChoice,
+              sheet == nil, allowsPlayback else { return }
+        guard let homeAuthorizationID, let configuration = sources?.configuration,
+              let authorization = try? sourceAuthority.authorization(configuration: configuration),
+              authorization.identity == appliedSourceAuthorizationID,
+              HomeLiveTVCatalogProjection.accepts(
+                request.route, model: model, imports: imports, profileID: profileID,
+                authorization: authorization, serverAuthorizationID: homeAuthorizationID,
+                serverProvider: serverProviderResolver
+              ) else {
+            _ = homeModel.consume(request)
+            return
+        }
+        guard homeModel.consume(request) else { return }
+        // Reuse the coordinator's explicit watch path, including mobile network
+        // policy, source approval, lease ownership and watched-only recents.
+        tune(request.route.channelID)
     }
 
     private func reloadCatalog() async {
@@ -1654,6 +1735,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         preview.setBrowsingActive(
             activity.acceptsInteraction && playback.canAutoPreview
                 && sheet == nil && !needsPreviewChoice && !controlsActive && canFollowFocus && !multiview.isEnabled
+                && homeModel?.pendingRequest == nil
         )
     }
 

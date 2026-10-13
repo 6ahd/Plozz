@@ -230,6 +230,7 @@ struct HomeTab: View {
                 contentStore: homeContentStore,
                 identitySources: identitySources,
                 currentVisibility: { homeVisibility.visibility },
+                prepareVisibility: { await homeVisibility.prepareServerDefaults(accounts: accounts) },
                 pendingWatchMutations: pendingWatchMutations,
                 recentlyAppliedRecency: appliedWatchRecency,
                 mediaItemActionHandler: mediaItemActionHandler,

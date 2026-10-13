@@ -105,6 +105,8 @@ struct PlozziOSLiveTVDestination: View {
             prepareLibraryChannels: runtime.prepareForEditing,
             libraryIsAuthorized: { [weak runtime] in runtime?.authorizationID != nil },
             sourceApprovalContext: { [profiles] in LiveTVSourceApprovalContext(profiles: profiles) },
+            homeModel: HomeLiveTVRuntime.model(profileID: profileID),
+            homeAuthorizationID: HomeLiveTVRuntime.authorizationID(profileID: profileID, accounts: accountsProviders),
             onOpenTitle: navigateToItem.map { navigator in { navigator($0) } },
             // The guide draws its own top row (browse controls and this), in
             // place of the navigation bar, which is hidden below.
@@ -178,6 +180,7 @@ struct PlozziOSLiveTVDestination: View {
                 onStopPlayback: playback.stopPlayback,
                 onOpenLibraryItem: playback.openLibraryItem,
                 program: playback.program,
+                earlierPrograms: playback.earlierPrograms,
                 loadOnNow: playback.onNow,
                 onTuneChannel: playback.tuneChannel,
                 guideOverlay: playback.guideOverlay

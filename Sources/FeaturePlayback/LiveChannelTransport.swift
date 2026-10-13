@@ -55,6 +55,8 @@ struct LiveChannelOverlay: View {
     let channelID: String
     let input: LiveChannelInput
     let program: LiveChannelProgramInfo?
+    /// The guide's programmes before `program`, for a rewind window reaching past its start.
+    let earlierPrograms: [LiveChannelProgramInfo]
     let libraryItem: LibraryChannelItem?
     let openLibraryItem: ((LibraryChannelItem) -> Void)?
     let phase: LiveChannelPlaybackPhase
@@ -62,6 +64,12 @@ struct LiveChannelOverlay: View {
     let behindLiveSeconds: TimeInterval
     let canPause: Bool
     let canGoLive: Bool
+    /// How far back the stream's own window reaches, when it can be seeked through.
+    let seekWindowSeconds: TimeInterval?
+    /// Step through the window by a signed number of seconds (remote left/right).
+    let onSeekBy: (TimeInterval) -> Void
+    /// Land a set distance behind live (a drag along the touch timeline).
+    let onSeekBehindLive: (TimeInterval) -> Void
     @FocusState.Binding var focus: LiveChannelControl?
     let onClose: () -> Void
     let onPrevious: () -> Void
@@ -549,7 +557,7 @@ struct LiveChannelOverlay: View {
                     .accessibilityIdentifier("live-channel-subtitles")
             }
             if let onMultiview {
-                badge("Multiview", systemImage: "rectangle.split.2x1", control: .multiview, action: onMultiview)
+                badge("Multiview", systemImage: "rectangle.split.2x2", control: .multiview, action: onMultiview)
                     .accessibilityIdentifier("live-channel-multiview")
             }
         }
@@ -646,6 +654,15 @@ struct LiveChannelOverlay: View {
             .buttonStyle(LiveChannelTimelineButtonStyle { focused in
                 if focused { leftTabRow() }
             })
+            // VOD's left/right skip, through the stream's own rewind window.
+            .onMoveCommand { direction in
+                guard seekWindowSeconds != nil else { return }
+                switch direction {
+                case .left: onSeekBy(-Self.seekStep)
+                case .right: onSeekBy(Self.seekStep)
+                default: break
+                }
+            }
             .focusEffectDisabled()
             .focused($focus, equals: .timeline)
             .disabled(openMenu != nil)
@@ -682,12 +699,18 @@ struct LiveChannelOverlay: View {
     private var timeline: some View {
         LiveChannelTimeline(
             program: program,
+            earlierPrograms: earlierPrograms,
+            seekWindowSeconds: seekWindowSeconds,
             behindLiveSeconds: behindLiveSeconds,
             isAtLiveEdge: isAtLiveEdge,
             isPaused: phase == .paused,
-            holdsFocusedShape: cardOpen
+            holdsFocusedShape: cardOpen,
+            seekToBehindLive: seekWindowSeconds == nil ? nil : onSeekBehindLive
         )
     }
+
+    /// One remote press through the rewind window.
+    static let seekStep: TimeInterval = 10
 
     // MARK: Tabs
 
@@ -1308,7 +1331,7 @@ extension LiveChannelOverlay {
                     .accessibilityIdentifier("live-channel-subtitles")
             }
             if let onMultiview {
-                touchBadge("Multiview", systemImage: "rectangle.split.2x1", action: onMultiview)
+                touchBadge("Multiview", systemImage: "rectangle.split.2x2", action: onMultiview)
                     .accessibilityIdentifier("live-channel-multiview")
             }
         }
@@ -1693,12 +1716,18 @@ private struct LiveChannelGuideInfoColumn: View {
 /// on screen. Without guide data the bar is simply full at the live edge.
 private struct LiveChannelTimeline: View {
     let program: LiveChannelProgramInfo?
+    /// Programmes before `program`, for a rewind window that reaches past its start.
+    let earlierPrograms: [LiveChannelProgramInfo]
+    /// How far back the stream can be rewound; nil without a usable window.
+    let seekWindowSeconds: TimeInterval?
     let behindLiveSeconds: TimeInterval
     let isAtLiveEdge: Bool
     let isPaused: Bool
     /// The card is up: keep the bar in its focused shape while it travels
     /// (see `ScrubBar`), whatever holds focus.
     let holdsFocusedShape: Bool
+    /// Touch: a drag along the bar seeks through the window.
+    var seekToBehindLive: ((TimeInterval) -> Void)?
 
     @Environment(\.locale) private var locale
     /// The timeline's own button's focus: a `Button` label sees it natively.
@@ -1715,12 +1744,15 @@ private struct LiveChannelTimeline: View {
 
     private func content(now: Date) -> some View {
         let onScreen = now.addingTimeInterval(-behindLiveSeconds)
-        let aired = program?.progress(at: now) ?? 1
-        let playing = program?.progress(at: onScreen) ?? 1
+        let layout = LiveChannelTimelineLayout(
+            now: now, program: program, earlierPrograms: earlierPrograms,
+            seekWindowSeconds: seekWindowSeconds, behindLiveSeconds: behindLiveSeconds
+        )
         return VStack(spacing: Self.rowSpacing) {
-            bar(aired: aired, playing: playing)
+            bar(layout)
                 .frame(height: Self.barRowHeight)
-            labels(playing: playing, onScreen: onScreen)
+                .modifier(LiveChannelTimelineDrag(layout: layout, now: now, seek: seekToBehindLive))
+            labels(layout, onScreen: onScreen)
                 .frame(height: Self.labelRowHeight)
         }
     }
@@ -1747,24 +1779,38 @@ private struct LiveChannelTimeline: View {
     private static let timeFont: Font = .caption.weight(.semibold)
     #endif
 
-    private func bar(aired: Double, playing: Double) -> some View {
+    /// With a rewind window the faint fill is the window itself (VOD's buffered
+    /// fill: what can be reached), and the bright fill runs from its start to
+    /// the picture on screen. Without one only the faint aired span shows.
+    /// Programme boundaries split the bar into sections.
+    private func bar(_ layout: LiveChannelTimelineLayout) -> some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            let knobX = width * CGFloat(playing)
+            let knobX = width * CGFloat(layout.playing)
+            let fillStart = width * CGFloat(layout.seekableStart ?? 0)
             let barHeight: CGFloat = focused ? 20 : Self.restingBarHeight
             let knobWidth: CGFloat = focused ? 8 : 4
             let knobHeight: CGFloat = focused ? 32 : Self.restingKnobHeight
             ZStack(alignment: .leading) {
-                PlayerScrubTrackSurface(height: barHeight)
-                Capsule()
-                    .fill(.white.opacity(0.14))
-                    .frame(width: width * CGFloat(aired), height: barHeight)
-                UnevenRoundedRectangle(
-                    topLeadingRadius: barHeight / 2, bottomLeadingRadius: barHeight / 2,
-                    bottomTrailingRadius: 0, topTrailingRadius: 0, style: .continuous
-                )
-                .fill(.white.opacity(focused ? 0.62 : 0.32))
-                .frame(width: knobX, height: barHeight)
+                ZStack(alignment: .leading) {
+                    PlayerScrubTrackSurface(height: barHeight)
+                    Rectangle()
+                        .fill(.white.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
+                        .frame(width: max(0, width * CGFloat(layout.aired) - fillStart), height: barHeight)
+                        .offset(x: fillStart)
+                    // The bright fill means "you can go here": without a rewind
+                    // window only the faint aired span shows.
+                    if layout.seekableStart != nil {
+                        Rectangle()
+                            .fill(.white.opacity(focused ? 0.62 : 0.32))
+                            .frame(width: max(0, knobX - fillStart), height: barHeight)
+                            .offset(x: fillStart)
+                    }
+                }
+                .mask {
+                    LiveChannelProgrammeTrack(ranges: layout.maskRanges, height: barHeight)
+                        .equatable()
+                }
                 RoundedRectangle(cornerRadius: focused ? knobWidth / 2 : 0, style: .continuous)
                     .fill(.white)
                     .frame(width: knobWidth, height: knobHeight)
@@ -1778,9 +1824,10 @@ private struct LiveChannelTimeline: View {
 
     /// VOD's timeline labels: the current label rides the playhead and the ends
     /// give way to it rather than colliding.
-    private func labels(playing: Double, onScreen: Date) -> some View {
-        let start = program.map { clock($0.start) }
-        let end = program.map { clock($0.end) }
+    private func labels(_ layout: LiveChannelTimelineLayout, onScreen: Date) -> some View {
+        let playing = layout.playing
+        let start = program == nil && seekWindowSeconds == nil ? nil : clock(layout.start)
+        let end = program.map { _ in clock(layout.end) }
         let startWidth = start.map(PlayerControls.measuredTimeWidth) ?? 0
         let endWidth = end.map(PlayerControls.measuredTimeWidth) ?? 0
         return GeometryReader { geometry in
@@ -1832,6 +1879,60 @@ private struct LiveChannelTimeline: View {
             .foregroundStyle(.white.opacity(opacity))
             .fixedSize()
             .shadow(radius: 3)
+    }
+}
+
+/// Touch: dragging along the timeline seeks through the window, landing where
+/// the finger lifts. Reaching past the live edge lands on it.
+private struct LiveChannelTimelineDrag: ViewModifier {
+    let layout: LiveChannelTimelineLayout
+    let now: Date
+    let seek: ((TimeInterval) -> Void)?
+
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        if let seek {
+            content.overlay {
+                GeometryReader { geometry in
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onEnded { value in
+                            guard geometry.size.width > 0 else { return }
+                            let fraction = min(max(value.location.x / geometry.size.width, 0), 1)
+                            let span = layout.end.timeIntervalSince(layout.start)
+                            let target = layout.start.addingTimeInterval(span * Double(fraction))
+                            seek(max(0, now.timeIntervalSince(target)))
+                        })
+                }
+            }
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
+/// The timeline's track cut into one rounded section per programme, the way
+/// `PlayerSkipMarkerTrack` cuts VOD's bar at skip markers.
+private struct LiveChannelProgrammeTrack: View, Equatable {
+    let ranges: [Range<Double>]
+    let height: CGFloat
+
+    var body: some View {
+        Canvas { context, size in
+            guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return }
+            var mask = Path()
+            for section in SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size) {
+                let radius = min(section.width, section.height) / 2
+                mask.addRoundedRect(in: section, cornerSize: CGSize(width: radius, height: radius))
+            }
+            context.fill(mask, with: .color(.white))
+        }
+        .frame(height: height)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

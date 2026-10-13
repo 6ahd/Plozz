@@ -15,6 +15,11 @@ actor IPTVPlaybackProxy {
     private let http: IPTVHTTP
     private let diagnostic: PlaybackFailureAttempt?
     private let key = SymmetricKey(size: .bits256)
+    /// Derives each address's nonce from its URL, so a segment keeps one
+    /// loopback address across playlist refreshes. A random nonce gave every
+    /// refresh new URLs for the same MEDIA-SEQUENCE, which AVPlayer rejects
+    /// (CoreMedia -12312) and stops following the live playlist.
+    private let nonceKey = SymmetricKey(size: .bits256)
     private let token = UUID().uuidString
     private var port: UInt16?
     private var requests: [UUID: (NWConnection, Task<Void, Never>)] = [:]
@@ -30,7 +35,10 @@ actor IPTVPlaybackProxy {
         self.origin = origin
         self.headers = headers
         self.formatHint = formatHint
-        http = IPTVHTTP(configuration: configuration, resourceTimeout: 86_400, sensitiveValues: sensitiveValues)
+        http = IPTVHTTP(
+            configuration: configuration, resourceTimeout: 86_400,
+            sensitiveValues: sensitiveValues, redirectScope: .playback
+        )
         let parameters = NWParameters.tcp
         parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: .any)
         listener = try NWListener(using: parameters)
@@ -99,7 +107,9 @@ actor IPTVPlaybackProxy {
 
     private func address(for url: URL) throws -> URL {
         guard let port, LiveTVPlaylistSource.isSupportedURL(url),
-              let encrypted = try AES.GCM.seal(Data(url.absoluteString.utf8), using: key).combined else {
+              let encrypted = try AES.GCM.seal(
+                  Data(url.absoluteString.utf8), using: key, nonce: Self.nonce(for: url, key: nonceKey)
+              ).combined else {
             throw IPTVError.invalidAddress
         }
         let payload = encrypted.base64EncodedString().replacingOccurrences(of: "+", with: "-")
@@ -109,6 +119,13 @@ actor IPTVPlaybackProxy {
             throw IPTVError.invalidAddress
         }
         return url
+    }
+
+    /// Deterministic per URL: reveals only that two addresses name the same
+    /// upstream URL, which the playlist already says.
+    static func nonce(for url: URL, key: SymmetricKey) throws -> AES.GCM.Nonce {
+        let code = HMAC<SHA256>.authenticationCode(for: Data(url.absoluteString.utf8), using: key)
+        return try AES.GCM.Nonce(data: Data(code).prefix(12))
     }
 
     private func upstream(for path: String) throws -> URL {

@@ -944,8 +944,8 @@ struct PlozziOSTabShell: View {
         return AppAdmissionNavigation.destinations(
             configured,
             liveTV: .liveTV,
-            includesExplicitEntry: appModel.allowsStandalonePlayback
-                && (appModel.pendingStandaloneLiveTVEntry || retainsExplicitLiveTVEntry)
+            includesExplicitEntry: (appModel.allowsStandalonePlayback && appModel.pendingStandaloneLiveTVEntry)
+                || retainsExplicitLiveTVEntry
         )
     }
 
@@ -1154,6 +1154,12 @@ struct PlozziOSTabShell: View {
             currentVisibility: { [weak appModel] in
                 appModel?.settings.homeVisibility.visibility ?? .default
             },
+            prepareVisibility: { [weak appModel] in
+                guard let appModel else { return }
+                await appModel.settings.homeVisibility.prepareServerDefaults(
+                    accounts: appModel.accountsProviders.homeAccounts
+                )
+            },
             pendingWatchMutations: { [weak appModel] in
                 await appModel?.pendingWatchMutations() ?? []
             },
@@ -1264,6 +1270,18 @@ struct PlozziOSTabShell: View {
 
     var body: some View {
         contentAwareTabs
+        .homeLiveTVScope(
+            profileID: appModel.profiles.activeProfileID,
+            namespace: appModel.profiles.activeNamespace,
+            accounts: appModel.accountsProviders,
+            isAuthorized: { appModel.isLiveTVProfileAuthorized },
+            navigate: {
+                guard appModel.isLiveTVProfileAuthorized else { return false }
+                retainsExplicitLiveTVEntry = true
+                openDestination(.liveTV)
+                return true
+            }
+        )
         .onChange(
             of: PlozziOSDownloadNotificationNavigation.shared.presentation?.id, initial: true
         ) { _, _ in
@@ -1483,7 +1501,7 @@ struct PlozziOSTabShell: View {
         let active = appModel.accountsProviders.activeAccountIDs
             .sorted()
             .joined(separator: ",")
-        return "\(appModel.profiles.activeProfileID)#\(credentials)#\(active)"
+        return "\(appModel.profiles.activeProfileID)#\(credentials)#\(active)#\(appModel.plexHomeUsers.plexIdentityGeneration)"
     }
 
     private func showSettings() {

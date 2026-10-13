@@ -15,7 +15,7 @@ final class IPTVHTTP: Sendable {
 
     init(
         configuration: URLSessionConfiguration? = nil, resourceTimeout: TimeInterval = 1_800,
-        sensitiveValues: [String] = []
+        sensitiveValues: [String] = [], redirectScope: IPTVRedirectPolicy.Scope = .account
     ) {
         let configuration = configuration ?? .ephemeral
         configuration.urlCache = nil
@@ -25,7 +25,7 @@ final class IPTVHTTP: Sendable {
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.timeoutIntervalForRequest = 45
         configuration.timeoutIntervalForResource = resourceTimeout
-        redirects = IPTVRedirects(sensitiveValues: sensitiveValues)
+        redirects = IPTVRedirects(sensitiveValues: sensitiveValues, scope: redirectScope)
         session = URLSession(configuration: configuration, delegate: redirects, delegateQueue: nil)
     }
 
@@ -111,8 +111,12 @@ final class IPTVHTTP: Sendable {
 
 private final class IPTVRedirects: NSObject, URLSessionTaskDelegate, Sendable {
     let sensitiveValues: [String]
+    let scope: IPTVRedirectPolicy.Scope
 
-    init(sensitiveValues: [String]) { self.sensitiveValues = sensitiveValues }
+    init(sensitiveValues: [String], scope: IPTVRedirectPolicy.Scope) {
+        self.sensitiveValues = sensitiveValues
+        self.scope = scope
+    }
 
     func urlSession(
         _ session: URLSession, task: URLSessionTask,
@@ -121,31 +125,39 @@ private final class IPTVRedirects: NSObject, URLSessionTaskDelegate, Sendable {
         completionHandler: @escaping @Sendable (URLRequest?) -> Void
     ) {
         completionHandler(IPTVRedirectPolicy.request(
-            request, previous: response.url, original: task.originalRequest, sensitiveValues: sensitiveValues
+            request, previous: response.url, original: task.originalRequest, sensitiveValues: sensitiveValues,
+            scope: scope
         ))
     }
 }
 
 enum IPTVRedirectPolicy {
+    enum Scope: Sendable { case account, playback }
+
     static func request(
-        _ request: URLRequest, previous: URL?, original: URLRequest?, sensitiveValues: [String] = []
+        _ request: URLRequest, previous: URL?, original: URLRequest?, sensitiveValues: [String] = [],
+        scope: Scope = .account
     ) -> URLRequest? {
         guard let next = request.url, let previous,
-              LiveTVPlaylistSource.isSupportedURL(next),
-              !(previous.scheme?.lowercased() == "https" && next.scheme?.lowercased() != "https") else {
+              LiveTVPlaylistSource.isSupportedURL(next) else {
+            return nil
+        }
+        guard scope == .playback
+            || !(previous.scheme?.lowercased() == "https" && next.scheme?.lowercased() != "https") else {
             return nil
         }
         if IPTVCredential.sameOrigin(previous, next),
            IPTVCredential.sameOrigin(original?.url ?? previous, next) {
             return request
         }
-        // A CDN may issue its own signed redirect. Never carry account headers
-        // or a copied account query into that different origin.
+        // Providers route media through changing delivery servers, sometimes
+        // over HTTP with credentials in the URL. This grant is playback-only;
+        // account requests retain their strict origin and downgrade checks.
         let secrets = sensitiveValues + protectedValues(
             url: original?.url ?? previous, headers: original?.allHTTPHeaderFields ?? [:]
         )
         let destination = next.absoluteString.removingPercentEncoding ?? next.absoluteString
-        guard !secrets.contains(where: { !$0.isEmpty && destination.contains($0) }) else {
+        guard scope == .playback || !secrets.contains(where: { !$0.isEmpty && destination.contains($0) }) else {
             return nil
         }
         var clean = URLRequest(url: next)

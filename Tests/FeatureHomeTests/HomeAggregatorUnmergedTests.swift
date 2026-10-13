@@ -1,5 +1,6 @@
 import XCTest
 import CoreModels
+import Synchronization
 @testable import FeatureHome
 
 /// Verifies the unmerged Home aggregation: global Continue Watching / Watchlist
@@ -108,6 +109,39 @@ final class HomeAggregatorUnmergedTests: XCTestCase {
         XCTAssertTrue(content.librarySections.isEmpty, "A disabled library contributes no block")
     }
 
+    func testProviderDefaultsDoNotRequestMediaBrowserRecommendations() async {
+        let stub = UnmergedStub(
+            libraries: [lib("L1", "Movies", .movie)],
+            itemsByContainer: ["L1": [item("latest")]],
+            hubsByLibrary: ["L1": [LibrarySection(id: "optional", title: "Optional", items: [item("suggestion")])]]
+        )
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("acct", provider: stub)], visibility: .default
+        )
+        XCTAssertEqual(content.librarySections.first?.sections.map(\.id), ["recentlyAdded"])
+        XCTAssertFalse(stub.hubsRequested)
+    }
+
+    func testExplicitRecommendationRequestsOnlyTheSelectedRowsOnHome() async {
+        let stub = UnmergedStub(
+            libraries: [lib("L1", "Movies", .movie)],
+            hubsByLibrary: ["L1": [
+                LibrarySection(id: "one", title: "One", items: [item("first")]),
+                LibrarySection(id: "two", title: "Two", items: [item("second")])
+            ]]
+        )
+        let visibility = HomeLibraryVisibility(rowCustomization: .init(
+            hidden: [.library("acct:L1", kind: .recentlyAdded)],
+            shown: [.library(key: "acct:L1", section: "two")]
+        ))
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("acct", provider: stub)], visibility: visibility
+        )
+        XCTAssertEqual(content.librarySections.first?.sections.map(\.id), ["two"])
+        XCTAssertFalse(stub.itemsRequested)
+        XCTAssertTrue(stub.hubsRequested)
+    }
+
     func testGlobalRecentlyAddedSurvivesInUnmergedMode() async {
         let stub = UnmergedStub(
             libraries: [lib("L1", "Movies", .movie)],
@@ -121,6 +155,132 @@ final class HomeAggregatorUnmergedTests: XCTestCase {
 
         XCTAssertEqual(content.latest.map(\.id), ["newMovie"],
                        "Unmerged content must carry the global Recently Added feed for the global row")
+    }
+
+    func testNativeServerRowsFetchOnlyVisibleAuthorizedSectionsAndKeepProviderIDs() async {
+        let account = resolved("acct", provider: UnmergedStub())
+        let definitions = ["shown", "hidden", "disabled"].map {
+            HomeServerRowDefinition(
+                accountID: "acct", serverName: "Server", providerKind: .jellyfin,
+                section: .init(id: $0, kind: .recommendations,
+                               libraryID: $0 == "disabled" ? "L2" : "L1")
+            )
+        }
+        let provider = UnmergedStub(
+            nativeItems: ["shown": [
+                cw("original-provider-id", library: "L1"), cw("excluded", library: "L2")
+            ]]
+        )
+        let visibility = HomeLibraryVisibility(
+            disabledKeys: ["acct:L2"],
+            rowCustomization: .init(
+                defaults: .custom, order: definitions.map(\.id),
+                shown: [definitions[0].id, definitions[2].id], serverRows: definitions
+            )
+        )
+        let content = await HomeAggregator().unmergedContent(
+            from: [ResolvedAccount(account: account.account, provider: provider)],
+            visibility: visibility
+        )
+        XCTAssertEqual(provider.nativeRequests, ["shown"])
+        XCTAssertEqual(content.serverRows.map(\.definition.id), [definitions[0].id])
+        XCTAssertEqual(content.serverRows.first?.items.first?.id, "original-provider-id")
+        XCTAssertEqual(content.serverRows.first?.items.map(\.id), ["original-provider-id"])
+        XCTAssertEqual(content.serverRows.first?.items.first?.sourceAccountID, "acct")
+        XCTAssertFalse(provider.hubsRequested)
+        XCTAssertFalse(provider.itemsRequested)
+    }
+
+    func testNativeRowsBatchByAccountAndLibraryWithoutChangingRowOrder() async {
+        let definitions = ["one", "two", "three"].enumerated().map { index, id in
+            HomeServerRowDefinition(
+                accountID: "acct", serverName: "Server", providerKind: .plex,
+                section: .init(id: id, kind: .recommendations, libraryID: index < 2 ? "L1" : "L2")
+            )
+        }
+        let provider = UnmergedStub(nativeItems: [
+            "one": [item("1")], "two": [item("2")], "three": [item("3")]
+        ])
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("acct", provider: provider)],
+            visibility: .init(rowCustomization: .init(
+                defaults: .custom, shown: Set(definitions.map(\.id)), serverRows: definitions
+            ))
+        )
+        XCTAssertEqual(provider.nativeBatchRequests.map { $0.joined(separator: ",") }.sorted(), ["one,two", "three"])
+        XCTAssertEqual(content.serverRows.map(\.definition.id), definitions.map(\.id))
+        XCTAssertEqual(content.serverRows.flatMap(\.items).map(\.libraryID), ["L1", "L1", "L2"])
+    }
+
+    func testAdaptiveCombinedLayoutFetchesBothServersNativeDefaultsAlongsideCommonRows() async {
+        let definitions = ["a", "b"].map { account in
+            HomeServerRowDefinition(
+                accountID: account, serverName: account, providerKind: .jellyfin,
+                section: .init(id: "picks", kind: .recommendations, libraryID: "L1")
+            )
+        }
+        let a = UnmergedStub(
+            libraries: [lib("L1", "Movies", .movie)], continueWatching: [cw("resume-a", library: "L1")],
+            nativeItems: ["picks": [item("pick-a")]]
+        )
+        let b = UnmergedStub(
+            libraries: [lib("L1", "Movies", .movie)], continueWatching: [cw("resume-b", library: "L1")],
+            nativeItems: ["picks": [item("pick-b")]]
+        )
+        var customization = HomeRowCustomization(defaults: .matchServer)
+        customization.resolvedDefaults = .init(
+            mode: .combined, order: HomeRowChoice.shared.map(\.id) + definitions.map(\.id),
+            serverRows: definitions
+        )
+        let visibility = HomeLibraryVisibility(rowCustomization: customization)
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("a", provider: a), resolved("b", provider: b)], visibility: visibility
+        )
+        XCTAssertEqual(Set(content.continueWatching.map(\.id)), ["resume-a", "resume-b"])
+        XCTAssertEqual(content.serverRows.map(\.definition.id), definitions.map(\.id))
+        XCTAssertEqual(content.serverRows.flatMap(\.items).map(\.id), ["pick-a", "pick-b"])
+        XCTAssertEqual(a.nativeRequests, ["picks"])
+        XCTAssertEqual(b.nativeRequests, ["picks"])
+        XCTAssertFalse(a.itemsRequested || b.itemsRequested, "Do not fetch additional unselected provider rows.")
+    }
+
+    func testNativeSectionFailureIsNotASuccessfulEmptyRow() async {
+        let definition = HomeServerRowDefinition(
+            accountID: "acct", serverName: "Server", providerKind: .jellyfin,
+            section: .init(id: "offline", kind: .recommendations)
+        )
+        let provider = UnmergedStub(nativeError: .serverUnreachable)
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("acct", provider: provider)],
+            visibility: .init(rowCustomization: .init(
+                defaults: .custom, shown: [definition.id], serverRows: [definition]
+            ))
+        )
+        XCTAssertEqual(content.serverRows.first?.failure, .serverUnreachable)
+        XCTAssertEqual(content.serverRows.first?.isLoading, false)
+    }
+
+    func testNativeNextUpSuppliesDetailHintsAndRespondsToWatchMutations() async {
+        let definition = HomeServerRowDefinition(
+            accountID: "acct", serverName: "Server", providerKind: .jellyfin,
+            section: .init(id: "next", kind: .nextUp)
+        )
+        let episode = MediaItem(id: "episode", title: "Next episode", kind: .episode, seriesID: "show")
+        let provider = UnmergedStub(nativeItems: ["next": [episode]])
+        let visibility = HomeLibraryVisibility(rowCustomization: .init(
+            defaults: .custom, shown: [definition.id], serverRows: [definition]
+        ))
+        let model = HomeViewModel(
+            accounts: [resolved("acct", provider: provider)],
+            layoutStore: InMemoryHomeLayoutStore(),
+            contentStore: InMemoryHomeContentStore(),
+            currentVisibility: { visibility }
+        )
+        await model.load()
+        XCTAssertEqual(model.continueWatchingForDetail.map(\.id), ["episode"])
+        model.applyWatchedState(.init(itemIDs: ["episode"], scopedItemIDs: ["acct:episode"], played: true))
+        XCTAssertTrue(model.state.value?.serverRows.first?.items.isEmpty == true)
+        XCTAssertTrue(model.continueWatchingForDetail.isEmpty)
     }
 
     // MARK: - Music exclusion
@@ -221,9 +381,17 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
     private let itemsByContainer: [String: [MediaItem]]
     private let hubsByLibrary: [String: [LibrarySection]]
     private let libraryError: AppError?
+    private let nativeItems: [String: [MediaItem]]
+    private let nativeError: AppError?
+    private let nativeCalls = Mutex<[String]>([])
+    var nativeRequests: [String] { nativeCalls.withLock { $0 } }
+    private let nativeBatches = Mutex<[[String]]>([])
+    var nativeBatchRequests: [[String]] { nativeBatches.withLock { $0 } }
     /// Whether `items(in:)` (Recently Added) was requested — lets a test prove a
     /// non-opted-in row is never fetched.
     private(set) var itemsRequested = false
+    private let hubCalls = Mutex(0)
+    var hubsRequested: Bool { hubCalls.withLock { $0 > 0 } }
 
     init(
         libraries: [MediaLibrary] = [],
@@ -231,7 +399,9 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
         latest: [MediaItem] = [],
         itemsByContainer: [String: [MediaItem]] = [:],
         hubsByLibrary: [String: [LibrarySection]] = [:],
-        libraryError: AppError? = nil
+        libraryError: AppError? = nil,
+        nativeItems: [String: [MediaItem]] = [:],
+        nativeError: AppError? = nil
     ) {
         self.stubbedLibraries = libraries
         self.stubbedContinueWatching = continueWatching
@@ -239,6 +409,8 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
         self.itemsByContainer = itemsByContainer
         self.hubsByLibrary = hubsByLibrary
         self.libraryError = libraryError
+        self.nativeItems = nativeItems
+        self.nativeError = nativeError
         self.session = UserSession(
             server: MediaServer(id: "s", name: "Home", baseURL: URL(string: "http://host")!, provider: .jellyfin),
             userID: "u", userName: "User", deviceID: "d", accessToken: "TOKEN"
@@ -250,6 +422,29 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
         return stubbedLibraries
     }
     func continueWatching(limit: Int) async throws -> [MediaItem] { stubbedContinueWatching }
+    func serverHomeItems(
+        section: ServerHomeSection, limit: Int, excludingLibraryIDs: Set<String>
+    ) async throws -> [MediaItem] {
+        nativeCalls.withLock { $0.append(section.id) }
+        if let nativeError { throw nativeError }
+        return nativeItems[section.id] ?? []
+    }
+    func serverHomeItems(
+        sections: [ServerHomeSection], limit: Int, excludingLibraryIDs: Set<String>
+    ) async -> [String: Result<[MediaItem], AppError>] {
+        nativeBatches.withLock { $0.append(sections.map(\.id)) }
+        var result: [String: Result<[MediaItem], AppError>] = [:]
+        for section in sections {
+            do {
+                result[section.id] = .success(try await serverHomeItems(
+                    section: section, limit: limit, excludingLibraryIDs: excludingLibraryIDs
+                ))
+            } catch {
+                result[section.id] = .failure((error as? AppError) ?? .unknown(""))
+            }
+        }
+        return result
+    }
     func latest(limit: Int) async throws -> [MediaItem] { stubbedLatest }
     func item(id: String) async throws -> MediaItem { throw AppError.notFound }
     func children(of itemID: String) async throws -> [MediaItem] { [] }
@@ -259,7 +454,8 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
         return MediaPage(items: items, startIndex: 0, totalCount: items.count)
     }
     func libraryHubs(libraryID: String, kind: MediaItemKind, limit: Int) async throws -> [LibrarySection] {
-        hubsByLibrary[libraryID] ?? []
+        hubCalls.withLock { $0 += 1 }
+        return hubsByLibrary[libraryID] ?? []
     }
     func search(query: String, limit: Int) async throws -> [MediaItem] { [] }
     func playbackInfo(for itemID: String) async throws -> PlaybackRequest { throw AppError.notFound }

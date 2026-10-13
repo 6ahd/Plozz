@@ -33,6 +33,7 @@ struct PresentationHostApp: App {
         }
         model.settings.spoilers.settings = .default
         model.settings.detailPage.settings = .default
+        model.settings.homeVisibility.useRowDefaults(.matchServer)
         model.settings.subtitleBehavior.settings = .default
         model.settings.subtitlePolicy.overrides = [:]
         model.settings.subtitleStyle.style = .profileDefault

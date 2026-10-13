@@ -21,6 +21,7 @@ struct FocusHeroRow: Identifiable {
     /// The wide picture a card in this row leads with, for rows whose cards show
     /// wide art. The hero steers its backdrop off it. `nil` for poster rows.
     var cardArtwork: ((MediaItem) -> [ArtworkReference])? = nil
+    var liveChannels: [HomeLiveTVChannel] = []
 
     /// The picture a focused card in this row is most likely showing.
     func shownArtwork(for item: MediaItem) -> [ArtworkReference] {
@@ -37,6 +38,7 @@ struct FocusHeroRowReporter {
     let cardFocused: (MediaItem) -> Void
     let focusedItem: (MediaItem) -> Void
     let focusedLibrary: (AggregatedLibrary) -> Void
+    let focusedLiveChannel: (HomeLiveTVChannel) -> Void
 }
 
 /// Geometry and timing for ``FocusHeroHomeView``.
@@ -117,11 +119,13 @@ enum FocusHeroLayout {
 enum FocusHeroSubject: Equatable {
     case item(MediaItem)
     case library(AggregatedLibrary)
+    case liveChannel(HomeLiveTVChannel)
 
     var id: String {
         switch self {
         case .item(let item): "item-\(item.stablePresentationID)"
         case .library(let library): "library-\(library.key)"
+        case .liveChannel(let channel): "live-\(channel.route.channelID)"
         }
     }
 
@@ -234,10 +238,18 @@ final class FocusHeroModel {
                 return
             }
             if case .library? = subject { return }
+            if case .liveChannel(let channel)? = subject,
+               let current = rows.flatMap(\.liveChannels).first(where: { $0.id == channel.id }) {
+                subject = .liveChannel(current)
+                details = subject
+                shownArtwork = []
+                return
+            }
         }
         let row = rows.first { $0.id == resolvedActiveRowID(in: rows) } ?? rows.first
         shownArtwork = row.flatMap { row in row.leadItem.map(row.shownArtwork(for:)) } ?? []
         subject = row?.leadItem.map(FocusHeroSubject.item)
+            ?? row?.liveChannels.first.map(FocusHeroSubject.liveChannel)
         details = subject
     }
 
@@ -381,6 +393,7 @@ struct FocusHeroHomeView<RowContent: View>: View {
         .onAppear { model.seed(from: rows) }
         .onChange(of: rows.map(\.itemIDs)) { _, _ in model.seed(from: rows) }
         .onChange(of: rows.map(\.items)) { _, _ in model.seed(from: rows) }
+        .onChange(of: rows.map(\.liveChannels)) { _, _ in model.seed(from: rows) }
         .task(id: rows.map { $0.items.map(FocusHeroMetadata.Key.init) }) {
             guard let enrich else { return }
             await metadata.prefetch(rows.map { Array($0.items.prefix(16)) }, using: enrich)
@@ -578,7 +591,7 @@ private struct FocusHeroRowStack<RowContent: View>: View {
         // Default-focus preference cannot stop an already-ready lower row
         // from winning while the first native target is still being realized.
         let awaitsFirstEntry = !hasEnteredContent && model.activeRowID == nil
-            && rows.first.map { $0.isPlaceholder || !$0.itemIDs.isEmpty } == true
+            && rows.first.map { $0.isPlaceholder || !$0.itemIDs.isEmpty || !$0.liveChannels.isEmpty } == true
         VStack(alignment: .leading, spacing: FocusHeroLayout.rowSpacing) {
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                 rowBody(row)
@@ -635,6 +648,12 @@ private struct FocusHeroRowStack<RowContent: View>: View {
                 hasEnteredContent = true
                 model.activate(row, in: rows)
                 model.show(.library(library), in: row)
+            },
+            focusedLiveChannel: { channel in
+                hasEnteredContent = true
+                let changedRow = model.resolvedActiveRowID(in: rows) != row.id
+                model.activate(row, in: rows)
+                model.show(.liveChannel(channel), in: row, withRow: changedRow)
             }
         )
     }
@@ -1084,6 +1103,8 @@ private struct FocusHeroBackdropLayer: View {
             )
         case .library(let library):
             [library.library.imageURL].compactMap { $0 }.map(ArtworkReference.remote)
+        case .liveChannel:
+            []
         }
     }
 }
@@ -1154,6 +1175,19 @@ private struct FocusHeroColumn: View {
         switch subject {
         case .item(let item):
             itemColumn(metadata.item(for: item))
+        case .liveChannel(let channel):
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Live TV", systemImage: "antenna.radiowaves.left.and.right")
+                    .font(.system(size: 23, weight: .semibold))
+                Text(verbatim: channel.name)
+                    .font(.system(size: 64, weight: .bold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.5)
+                Text(verbatim: channel.sourceName)
+                    .font(.system(size: 23, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .modifier(HeroTextLegibilityShadow(colorScheme: colorScheme))
         case .library(let library):
             VStack(alignment: .leading, spacing: 12) {
                 library.library.displayName

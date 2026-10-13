@@ -85,7 +85,16 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         let recommendations = try await client.movieRecommendations(
             userID: session.userID, parentID: libraryID, limit: limit
         )
+        return recommendationSections(recommendations, limit: limit, forHome: false)
+    }
+
+    private func recommendationSections(
+        _ recommendations: [MovieRecommendationDto], limit: Int, forHome: Bool
+    ) -> [LibrarySection] {
+        var slots: [String: Int] = [:]
         return recommendations.compactMap { recommendation in
+            let slot = slots[recommendation.RecommendationType, default: 0]
+            slots[recommendation.RecommendationType] = slot + 1
             let items = (recommendation.Items ?? []).map(map(item:))
             guard !items.isEmpty else { return nil }
             let subject = recommendation.BaselineItemName?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -110,12 +119,54 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 localizedTitle = "Suggested movies"
             }
             return LibrarySection(
-                id: recommendation.CategoryId
-                    ?? "\(recommendation.RecommendationType):\(subject ?? "")", title: title,
+                id: forHome ? "recommendation:\(recommendation.RecommendationType):\(slot)"
+                    : (recommendation.CategoryId ?? "\(recommendation.RecommendationType):\(subject ?? "")"),
+                title: title,
                 localizedTitle: localizedTitle,
-                items: Array(items.prefix(limit))
+                items: Array(items.prefix(limit)),
+                isHomeDefault: forHome ? false : nil
             )
         }
+    }
+
+    public func homeHubs(
+        libraryID: String, kind: MediaItemKind, limit: Int, includeUnpromoted: Bool
+    ) async throws -> [LibrarySection] {
+        guard kind == .movie else { return [] }
+        let recommendations = try await client.movieRecommendations(
+            userID: session.userID, parentID: libraryID, limit: limit
+        )
+        return recommendationSections(recommendations, limit: limit, forHome: true)
+    }
+
+    public func homeContinueWatching(
+        limit: Int, inLibraries libraryIDs: [String]?, separateNextUp: Bool
+    ) async throws -> [MediaItem] {
+        guard separateNextUp else {
+            return try await continueWatching(limit: limit, inLibraries: libraryIDs)
+        }
+        let parents: [String?] = libraryIDs.map { $0.map(Optional.some) } ?? [nil]
+        var items: [MediaItem] = []
+        var seen = Set<String>()
+        for parentID in parents {
+            try Task.checkCancellation()
+            let resume = try await client.resumeItems(
+                userID: session.userID, limit: limit, parentID: parentID
+            )
+            items += resume.filter { seen.insert($0.Id).inserted }.map { dto in
+                let item = map(item: dto)
+                return parentID.map { item.taggingLibrary($0) } ?? item
+            }
+        }
+        let ordered = orderedByEffectiveRecency(items)
+        return limit == .max ? ordered : Array(ordered.prefix(limit))
+    }
+
+    public func homeNextUp(libraryID: String, limit: Int) async throws -> [MediaItem] {
+        let items = try await client.nextUpItems(
+            userID: session.userID, limit: limit, parentID: libraryID
+        )
+        return items.map(map(item:))
     }
 
     /// Continue Watching = in-progress items (`/Items/Resume`) followed by the

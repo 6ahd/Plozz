@@ -28,6 +28,29 @@ import Foundation
 ///   separate Home-only opt-out). ``isVisible(_:)`` is a further alias, kept so
 ///   existing Home rendering / aggregation callers stay unchanged.
 public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
+    /// Nil preserves an existing profile's legacy combined/grouped choices.
+    public var rowCustomization: HomeRowCustomization?
+
+    public var intent: Self {
+        var copy = self
+        copy.rowCustomization?.resolvedDefaults = nil
+        return copy
+    }
+
+    public var usesIndividualHomeRows: Bool {
+        rowCustomization != nil || !mergeLibrariesOnHome
+    }
+
+    public var separatesNextUp: Bool {
+        (rowCustomization?.defaults == .matchServer
+            && rowCustomization?.resolvedDefaults?.mode != .combined
+            && rowCustomization?.availableServerRows.first {
+                $0.section.kind == .continueWatching
+            }?.section.includesNextUp != true)
+            || rowCustomization?.defaults == .provider
+            || rowCustomization?.shown.contains { $0.libraryKind == .nextUp } == true
+    }
+
     /// Whether Home merges every library's content into unified cross-server rows
     /// (`true`, the classic behaviour) or lets each library contribute its own
     /// opt-in rows (`false`).
@@ -73,7 +96,8 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         disabledGlobalHomeRows: Set<String> = [],
         enabledLibraryHomeRows: Set<String> = [],
         hasSeededLibraryRows: Bool = false,
-        continueWatchingShowsSeriesArtwork: Bool = true
+        continueWatchingShowsSeriesArtwork: Bool = true,
+        rowCustomization: HomeRowCustomization? = nil
     ) {
         self.mergeLibrariesOnHome = mergeLibrariesOnHome
         self.disabledKeys = disabledKeys
@@ -81,11 +105,13 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.enabledLibraryHomeRows = enabledLibraryHomeRows
         self.hasSeededLibraryRows = hasSeededLibraryRows
         self.continueWatchingShowsSeriesArtwork = continueWatchingShowsSeriesArtwork
+        self.rowCustomization = rowCustomization
     }
 
-    /// The default: merge on, nothing disabled/hidden, every global row on, no
-    /// per-library rows — matching pre-customization behaviour.
-    public static let `default` = HomeLibraryVisibility()
+    /// Fresh profiles match their server; existing blobs retain legacy behavior.
+    public static let `default` = HomeLibraryVisibility(
+        mergeLibrariesOnHome: false, rowCustomization: HomeRowCustomization(defaults: .matchServer)
+    )
 
     // MARK: - Library availability predicates
 
@@ -122,11 +148,16 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
 
     /// Whether a global Home row is shown (default on).
     public func isGlobalRowEnabled(_ row: HomeGlobalRow) -> Bool {
-        !disabledGlobalHomeRows.contains(row.rawValue)
+        rowCustomization?.isVisible(
+            .global(row), providerDefault: rowCustomization?.defaults == .legacy
+                ? !disabledGlobalHomeRows.contains(row.rawValue) : row != .recentlyAdded
+        )
+            ?? !disabledGlobalHomeRows.contains(row.rawValue)
     }
 
     /// Shows/hides a global Home row.
     public mutating func setGlobalRowEnabled(_ enabled: Bool, for row: HomeGlobalRow) {
+        rowCustomization?.setVisible(enabled, for: .global(row))
         if enabled {
             disabledGlobalHomeRows.remove(row.rawValue)
         } else {
@@ -144,6 +175,91 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     /// Whether a per-library row is opted in to Home (default off).
     public func isLibraryRowEnabled(_ libraryKey: String, kind: LibraryHomeRowKind) -> Bool {
         enabledLibraryHomeRows.contains(Self.libraryRowKey(libraryKey, kind: kind))
+    }
+
+    public func isHomeRowVisible(_ choice: HomeRowChoice) -> Bool {
+        if let rowCustomization {
+            return rowCustomization.isVisible(
+                choice.id, providerDefault: rowCustomization.defaults == .legacy
+                    ? (isLegacyRowVisible(choice.id) && choice.isLegacyDefault) : choice.isProviderDefault
+            )
+        }
+        return isLegacyRowVisible(choice.id) && choice.isLegacyDefault
+    }
+
+    private func isLegacyRowVisible(_ id: HomeRowID) -> Bool {
+        switch id {
+        case let .global(row): return isGlobalRowEnabled(row)
+        case .libraries: return true
+        case .server, .liveTV: return false
+        case let .library(key, _):
+            return !mergeLibrariesOnHome
+                && id.libraryKind.map { isLibraryRowEnabled(key, kind: $0) } == true
+        }
+    }
+
+    public func requestedRowKinds(for library: AggregatedLibrary) -> [LibraryHomeRowKind] {
+        guard usesIndividualHomeRows, isEnabled(library.key) else { return [] }
+        return LibraryHomeRowKind.available(for: library).filter { kind in
+            guard let rowCustomization else { return isLibraryRowEnabled(library.key, kind: kind) }
+            if kind == .hubs {
+                let explicit = rowCustomization.shown.contains {
+                    $0.libraryKey == library.key && $0.libraryKind == .hubs && !rowCustomization.hidden.contains($0)
+                }
+                if explicit { return true }
+                let known = rowCustomization.order.filter {
+                    $0.libraryKey == library.key && $0.libraryKind == .hubs
+                }
+                if !known.isEmpty, known.allSatisfy(rowCustomization.hidden.contains) {
+                    return false
+                }
+                let automatic = rowCustomization.defaults == .legacy
+                    ? (!mergeLibrariesOnHome && isLibraryRowEnabled(library.key, kind: kind))
+                    : rowCustomization.isVisible(
+                        .library(library.key, kind: .hubs),
+                        providerDefault: library.providerKind == .plex
+                    )
+                return automatic
+            }
+            return rowCustomization.isVisible(
+                .library(library.key, kind: kind),
+                providerDefault: rowCustomization.defaults == .legacy
+                    ? (!mergeLibrariesOnHome && isLibraryRowEnabled(library.key, kind: kind)) : true
+            )
+        }
+    }
+
+    public func rowSections(choices: [HomeRowChoice]) -> OrderedVisibilityList.Sections<HomeRowID> {
+        let available = choices.map(\.id)
+        let hidden = Set(choices.filter { !isHomeRowVisible($0) }.map(\.id))
+        if let rowCustomization {
+            return rowCustomization.sections(available: available, hidden: hidden)
+        }
+        return OrderedVisibilityList.resolving(
+            available: available, order: [], hidden: hidden
+        )
+    }
+
+    public mutating func applyRows(
+        _ sections: OrderedVisibilityList.Sections<HomeRowID>, choices: [HomeRowChoice]
+    ) {
+        if rowCustomization == nil {
+            let previous = rowSections(choices: choices)
+            rowCustomization = HomeRowCustomization(
+                defaults: .legacy, order: previous.combined,
+                hidden: Set(previous.disabled), shown: Set(previous.enabled)
+            )
+        }
+        let resolvedChoices = choices.map {
+            HomeRowChoice(
+                id: $0.id, title: $0.title, localizedTitle: $0.localizedTitle,
+                library: $0.library,
+                isProviderDefault: rowCustomization?.defaults == .legacy
+                    ? (isLegacyRowVisible($0.id) && $0.isLegacyDefault) : $0.isProviderDefault,
+                serverRow: $0.serverRow
+            )
+        }
+        rowCustomization?.apply(sections, choices: resolvedChoices)
     }
 
     /// Opts a per-library row in/out of Home.
@@ -188,6 +304,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         case enabledLibraryHomeRows
         case hasSeededLibraryRows
         case continueWatchingShowsSeriesArtwork
+        case rowCustomization
     }
 
     /// Decodes leniently so a pre-existing blob still loads: missing fields fall
@@ -217,22 +334,24 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
             Bool.self,
             forKey: .continueWatchingShowsSeriesArtwork
         ) ?? true
+        self.rowCustomization = try container.decodeIfPresent(HomeRowCustomization.self, forKey: .rowCustomization)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(mergeLibrariesOnHome, forKey: .mergeLibrariesOnHome)
-        try container.encode(disabledKeys, forKey: .disabledKeys)
-        try container.encode(disabledGlobalHomeRows, forKey: .disabledGlobalHomeRows)
-        try container.encode(enabledLibraryHomeRows, forKey: .enabledLibraryHomeRows)
+        try container.encode(disabledKeys.sorted(), forKey: .disabledKeys)
+        try container.encode(disabledGlobalHomeRows.sorted(), forKey: .disabledGlobalHomeRows)
+        try container.encode(enabledLibraryHomeRows.sorted(), forKey: .enabledLibraryHomeRows)
         try container.encode(hasSeededLibraryRows, forKey: .hasSeededLibraryRows)
         try container.encode(continueWatchingShowsSeriesArtwork, forKey: .continueWatchingShowsSeriesArtwork)
+        try container.encodeIfPresent(rowCustomization, forKey: .rowCustomization)
     }
 }
 
 /// A global (cross-server, cross-library) row on Home. The hero is handled
 /// separately via `HeroSettings`.
-public enum HomeGlobalRow: String, CaseIterable, Sendable {
+public enum HomeGlobalRow: String, CaseIterable, Codable, Sendable {
     case continueWatching
     case watchlist
     case recentlyAdded
@@ -266,15 +385,30 @@ public enum HomeGlobalRow: String, CaseIterable, Sendable {
 ///
 /// Continue Watching is deliberately **not** here — it's always the single global
 /// Continue Watching row (a per-library duplicate is redundant). `hubs` is the
-/// provider's native discovery rows (Plex "More in Drama", …); providers without
-/// them (Jellyfin) simply contribute nothing for that kind.
+/// provider's native recommendations. Availability is library- and provider-specific.
 public enum LibraryHomeRowKind: String, CaseIterable, Sendable {
+    case nextUp
     case recentlyAdded
     case hubs
+
+    public static func available(for library: AggregatedLibrary) -> [Self] {
+        guard !library.library.isMusic, !library.isRetiredCollectionShortcut else { return [] }
+        var kinds: [Self] = []
+        if library.providerKind.usesMediaBrowserAPI, library.library.kind == .series {
+            kinds.append(.nextUp)
+        }
+        kinds.append(.recentlyAdded)
+        if library.providerKind == .plex
+            || (library.providerKind.usesMediaBrowserAPI && library.library.kind == .movie) {
+            kinds.append(.hubs)
+        }
+        return kinds
+    }
 
     /// A short label for the Customize Home checklist.
     public var displayName: LocalizedStringResource {
         switch self {
+        case .nextUp: return "Next Up"
         case .recentlyAdded:
             return LocalizedStringResource(
                 "libraryRowKind.recentlyAdded",

@@ -30,19 +30,22 @@ public struct LiftableReorderList<Element: Hashable>: View {
         public var mediaShareTransport: MediaShareTransportKind?
         /// Optional trailing detail line, e.g. the server a library came from.
         public var detail: Text?
+        public var subtitle: Text?
 
         public init(
             title: Text,
             symbolName: String? = nil,
             providerKind: ProviderKind? = nil,
             mediaShareTransport: MediaShareTransportKind? = nil,
-            detail: Text? = nil
+            detail: Text? = nil,
+            subtitle: Text? = nil
         ) {
             self.title = title
             self.symbolName = symbolName
             self.providerKind = providerKind
             self.mediaShareTransport = mediaShareTransport
             self.detail = detail
+            self.subtitle = subtitle
         }
     }
 
@@ -147,6 +150,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
         let content = row(element)
         return LiftableRow(
             title: content.title,
+            subtitle: content.subtitle,
             detail: content.detail,
             symbolName: content.symbolName,
             providerKind: content.providerKind,
@@ -229,11 +233,22 @@ public struct LiftableReorderList<Element: Hashable>: View {
         focusRestoreRevision &+= 1
     }
     #else
+    @ScaledMetric(relativeTo: .body) private var mobileRowHeight: CGFloat = 54
+
+    private func height(for item: OrderedVisibilityList.ListItem<Element>) -> CGFloat {
+        if case let .element(element) = item, row(element).subtitle != nil {
+            return mobileRowHeight * 1.5
+        }
+        return mobileRowHeight
+    }
+
     public var body: some View {
         let items = OrderedVisibilityList.listItems(for: sections)
         return List {
             ForEach(items, id: \.self) { item in
                 listRow(item)
+                    .frame(height: max(0, height(for: item) - 16))
+                    .contentShape(.dragPreview, RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .moveDisabled(item == .divider)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
@@ -255,7 +270,8 @@ public struct LiftableReorderList<Element: Hashable>: View {
         .contentMargins(.horizontal, 0, for: .scrollContent)
         .scrollDisabled(true)
         .environment(\.editMode, .constant(.active))
-        .frame(height: CGFloat(items.count) * 54)
+        .environment(\.defaultMinListRowHeight, 0)
+        .frame(height: items.reduce(0) { $0 + height(for: $1) })
     }
 
     @ViewBuilder
@@ -287,8 +303,14 @@ public struct LiftableReorderList<Element: Hashable>: View {
                         .frame(width: 30)
                         .accessibilityHidden(true)
                 }
-                content.title
-                    .foregroundStyle(isEnabled ? .primary : .secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    content.title
+                        .foregroundStyle(isEnabled ? .primary : .secondary)
+                    if let subtitle = content.subtitle {
+                        subtitle.font(.caption).plozzForeground(.secondary)
+                    }
+                }
+                .lineLimit(1)
                 if let detail = content.detail {
                     Spacer(minLength: 8)
                     detail
@@ -359,6 +381,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
 /// An always-visible reorder handle sits on the trailing edge.
 private struct LiftableRow: View {
     let title: Text
+    let subtitle: Text?
     let detail: Text?
     let symbolName: String?
     let providerKind: ProviderKind?
@@ -394,8 +417,13 @@ private struct LiftableRow: View {
                         .frame(width: 30)
                         .accessibilityHidden(true)
                 }
-                title
-                    .font(.headline.weight(.semibold))
+                VStack(alignment: .leading, spacing: 4) {
+                    title.font(.headline.weight(.semibold))
+                    if let subtitle {
+                        subtitle.font(.caption).opacity(0.7)
+                    }
+                }
+                .lineLimit(1)
                 if let detail {
                     detail
                         .font(.caption)

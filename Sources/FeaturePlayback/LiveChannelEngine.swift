@@ -25,6 +25,25 @@ public enum LiveChannelEnginePhase: Equatable, Sendable {
 
 public enum LiveChannelEngineRoute: String, Equatable, Sendable {
     case none, nativeHLS, localHLS, software, audio
+
+    var diagnosticsMode: PlaybackDiagnostics.PlaybackMode {
+        switch self {
+        case .nativeHLS: .directPlay
+        case .localHLS, .software: .plozzigen
+        case .none, .audio: .unknown
+        }
+    }
+
+    /// Playback Info's name for the route. Developer-facing, so not translated.
+    public var diagnosticName: String? { // l10n:content — engine route names
+        switch self {
+        case .none: nil
+        case .nativeHLS: "Native HLS (AVPlayer)"
+        case .localHLS: "Ingest → loopback HLS"
+        case .software: "Software decode"
+        case .audio: "Audio only"
+        }
+    }
 }
 
 public struct LiveChannelEngineSnapshot: Equatable, Sendable {

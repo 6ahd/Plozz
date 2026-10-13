@@ -132,6 +132,7 @@ final class HomeNavigationActivity {
 /// The Home screen: an optional cinematic **hero** carousel followed by
 /// Continue Watching, Latest, and library shortcuts.
 public struct HomeView: View {
+    @Environment(\.homeLiveTVSnapshot) private var liveTV
     @State private var viewModel: HomeViewModel
     private var visibility: HomeLibraryVisibilityModel
     private let spoilerSettings: SpoilerSettings
@@ -369,7 +370,9 @@ public struct HomeView: View {
     public var body: some View {
         let _ = PlozzBodyRate.tick("HomeView")
         return ContentStateView(
-            state: viewModel.state,
+            state: HomePresentationRow.displayState(
+                viewModel.state, liveTV: liveTV, visibility: visibility.visibility
+            ),
             emptyMessage: "Your libraries are empty. Add media on your media server to see it here.",
             onRetry: { Task { await viewModel.load() } },
             loadingContent: {
@@ -400,6 +403,9 @@ public struct HomeView: View {
                 loadingRows: viewModel.loadingRows,
                 failures: viewModel.rowFailures,
                 skeletonLayout: viewModel.skeletonLayout
+            )
+            let presentationRows = HomePresentationRow.resolve(
+                rows: rows, content: content, visibility: visibility.visibility, liveTV: liveTV
             )
             let heroContent = HomeHeroLaunchPolicy.content(
                 content,
@@ -607,27 +613,21 @@ public struct HomeView: View {
                                             onReload: { Task { await viewModel.load() } }
                                         )
                                     }
-                                    if content.mergeLibraries {
-                                        // Merged: the classic ordered rows (Continue Watching,
-                                        // Watchlist, Recently Added, Libraries tiles).
-                                        ForEach(rows) { row in
-                                            rowView(row, reservesLoadingFocus: !heroLayoutActive && row.id == rows.first?.id)
-                                        }
-                                    } else {
-                                        // Unmerged: global media rows first, then each library's
-                                        // opted-in rows, then the Libraries tiles (boxes) last as
-                                        // the browse entry points — so per-library rows sit with
-                                        // the global rows and the grid of tiles anchors the foot.
-                                        ForEach(rows.filter {
-                                            $0.kind != .libraries
-                                        }) { row in
-                                            rowView(row, reservesLoadingFocus: !heroLayoutActive && row.id == rows.first?.id)
-                                        }
-                                        ForEach(content.librarySections) { group in
-                                            libraryGroupView(group)
-                                        }
-                                        if let librariesRow = rows.first(where: { $0.kind == .libraries }) {
-                                            rowView(librariesRow)
+                                    ForEach(presentationRows) { presentation in
+                                        switch presentation.source {
+                                        case let .home(row):
+                                            rowView(
+                                                row,
+                                                reservesLoadingFocus: !heroLayoutActive
+                                                    && presentation.id == presentationRows.first?.id
+                                            )
+                                        case let .library(row):
+                                            libraryRowView(row)
+                                        case let .liveTV(channels):
+                                            MediaRowView(
+                                                title: Text("Live TV"), items: [], style: .landscape,
+                                                liveChannels: channels, onSelect: { _ in }
+                                            )
                                         }
                                     }
                                 }
@@ -748,7 +748,7 @@ public struct HomeView: View {
                 heroRuntime.cachedKey = HeroConfigurationKey(settings: settings)
             }
         }
-        .task(id: visibility.visibility) {
+        .task(id: visibility.visibility.intent) {
             // First appearance loads; thereafter any change to the visibility
             // snapshot — a hidden/disabled library, or the merged↔unmerged flip —
             // re-aggregates so library-scoped providers (Jellyfin) re-fetch with the
@@ -878,8 +878,26 @@ public struct HomeView: View {
     /// switched their servers off, and offering the wrong one sends them looking
     /// in the wrong place.
     private var contentNotice: HomeContentNotice? {
+        if HomePresentationRow.hasLiveTVRows(liveTV, visibility: visibility.visibility) { return nil }
         if configuredServerCount == 0 { return .noServersConfigured }
         if enabledServerCount == 0 { return .allServersSwitchedOff }
+        if visibility.visibility.rowCustomization != nil, let content = viewModel.state.value {
+            let choices = HomeRowChoice.shared
+                + content.libraries.filter { visibility.isEnabled($0.key) }.flatMap(HomeRowChoice.baseRows)
+                + content.librarySections.flatMap { group in
+                    group.sections.map { HomeRowChoice(section: $0, library: group.library) }
+                }
+            let rows = HomeRow.rows(
+                for: content, isLibraryVisible: visibility.isVisible,
+                isGlobalRowEnabled: visibility.isGlobalRowEnabled,
+                loadingRows: viewModel.loadingRows, failures: viewModel.rowFailures
+            )
+            if HomePresentationRow.resolve(
+                rows: rows, content: content, visibility: visibility.visibility, liveTV: liveTV
+            ).isEmpty, visibility.visibility.rowSections(choices: choices).enabled.isEmpty {
+                return .noHomeRows
+            }
+        }
         return nil
     }
 
@@ -1284,7 +1302,8 @@ public struct HomeView: View {
     /// view used inline before the row model existed.
     @ViewBuilder
     private func rowView(_ row: HomeRow, reservesLoadingFocus: Bool = false) -> some View {
-        if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty {
+        if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty,
+           row.kind != .continueWatching || liveTV.recentChannels.isEmpty {
             rowFailureView(title: Text(row.title), error: failure)
         } else {
             homeRowContent(row, reservesLoadingFocus: reservesLoadingFocus)
@@ -1299,7 +1318,8 @@ public struct HomeView: View {
                 title: Text(row.title), items: row.items, style: posterStyle(row.style),
                 spoilerSettings: spoilerSettings, showsSeriesArtwork: visibility.continueWatchingShowsSeriesArtwork,
                 loadingPlaceholderCount: row.loadingPlaceholderCount,
-                reservesLoadingFocus: reservesLoadingFocus, playsOnSelect: true, onSelect: onPlayItem
+                reservesLoadingFocus: reservesLoadingFocus, playsOnSelect: true,
+                liveChannels: liveTV.recentChannels, onSelect: onPlayItem
             )
             .environment(\.plozzArtworkArea, .continueWatching)
         case .watchlist:
@@ -1371,6 +1391,7 @@ public struct HomeView: View {
     private enum FocusHomeRowSource {
         case home(HomeRow)
         case section(HomeLibrarySectionGroup.Row)
+        case liveTV([HomeLiveTVChannel])
         case discover([MediaItem], isLoading: Bool)
         case notice(HomeContentNotice)
     }
@@ -1397,17 +1418,41 @@ public struct HomeView: View {
                             for: $0, showsSeriesArtwork: seriesArtwork,
                             prefersTextlessArtwork: artworkSettings.prefersTextlessArtwork(in: .continueWatching)
                         ) }
-                        : nil
+                        : nil,
+                    liveChannels: row.kind == .continueWatching ? liveTV.recentChannels : []
                 ),
                 .home(row)
             )
         }
-        var result: [(row: FocusHeroRow, source: FocusHomeRowSource)]
-        if content.mergeLibraries {
-            result = rows.map(entry)
-        } else {
-            result = rows.filter { $0.kind != .libraries }.map(entry)
-            appendLibrarySections(content: content, to: &result, libraries: rows.first { $0.kind == .libraries }, entry: entry)
+        var result: [(row: FocusHeroRow, source: FocusHomeRowSource)] = []
+        for presentation in HomePresentationRow.resolve(
+            rows: rows, content: content, visibility: visibility.visibility, liveTV: liveTV
+        ) {
+            switch presentation.source {
+            case let .home(row): result.append(entry(row))
+            case let .liveTV(channels):
+                result.append((
+                    FocusHeroRow(
+                        id: presentation.id.presentationID, itemIDs: [], leadItem: nil,
+                        liveChannels: channels
+                    ),
+                    .liveTV(channels)
+                ))
+            case let .library(row):
+                let section = row.section
+                result.append((
+                    FocusHeroRow(
+                        id: presentation.id.presentationID,
+                        itemIDs: section.items.map(\.stablePresentationID),
+                        leadItem: section.items.first, items: section.items,
+                        isPlaceholder: row.isLoading,
+                        cardArtwork: section.style == .landscape
+                            ? { PosterCardView.leadingLandscapeArtwork(for: $0, showsSeriesArtwork: false) }
+                            : nil
+                    ),
+                    .section(row)
+                ))
+            }
         }
         // First, as in the classic layout: it names the setting hiding everything
         // else, and is what keeps a Home with nothing else to focus escapable.
@@ -1429,35 +1474,6 @@ public struct HomeView: View {
             ), at: index)
         }
         return result
-    }
-
-    private func appendLibrarySections(
-        content: HomeViewModel.Content,
-        to result: inout [(row: FocusHeroRow, source: FocusHomeRowSource)],
-        libraries: HomeRow?,
-        entry: (HomeRow) -> (row: FocusHeroRow, source: FocusHomeRowSource)
-    ) {
-        for group in content.librarySections {
-            for row in group.rows {
-                let section = row.section
-                result.append((
-                    FocusHeroRow(
-                        id: "section-\(group.id)-\(section.id)",
-                        itemIDs: section.items.map(\.stablePresentationID),
-                        leadItem: section.items.first,
-                        items: section.items,
-                        isPlaceholder: row.isLoading,
-                        cardArtwork: section.style == .landscape
-                            ? { PosterCardView.leadingLandscapeArtwork(for: $0, showsSeriesArtwork: false) }
-                            : nil
-                    ),
-                    .section(row)
-                ))
-            }
-        }
-        if let libraries {
-            result.append(entry(libraries))
-        }
     }
 
     /// The Showcase layout while Continue Watching is loading: the real view,
@@ -1556,8 +1572,16 @@ public struct HomeView: View {
             if let item { reporter.focusedItem(item) }
         }
         switch source {
+        case .liveTV(let channels):
+            MediaRowView(
+                title: Text("Live TV"), items: [], style: .landscape,
+                onFocusEntered: reporter.entered,
+                liveChannels: channels, onLiveChannelFocused: reporter.focusedLiveChannel,
+                onSelect: { _ in }
+            )
         case .home(let row):
-            if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty {
+            if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty,
+               row.kind != .continueWatching || liveTV.recentChannels.isEmpty {
                 rowFailureView(title: Text(row.title), error: failure, onFocusEntered: reporter.entered)
             } else {
                 switch row.kind {
@@ -1574,6 +1598,8 @@ public struct HomeView: View {
                         loadingPlaceholderCount: row.loadingPlaceholderCount,
                         reservesLoadingFocus: reservesLoadingFocus,
                         playsOnSelect: true,
+                        liveChannels: liveTV.recentChannels,
+                        onLiveChannelFocused: reporter.focusedLiveChannel,
                         onSelect: onPlayItem
                     )
                     .environment(\.plozzArtworkArea, .continueWatching)
@@ -1703,8 +1729,7 @@ public struct HomeView: View {
     /// browse entry points into each library's full grid. Poster rows open detail
     /// on select; a landscape row plays — matching the merged rows' behaviour.
     @ViewBuilder
-    private func libraryGroupView(_ group: HomeLibrarySectionGroup) -> some View {
-        ForEach(group.rows) { row in
+    private func libraryRowView(_ row: HomeLibrarySectionGroup.Row) -> some View {
             let section = row.section
             if let failure = row.failure {
                 rowFailureView(title: section.displayName, error: failure)
@@ -1718,7 +1743,6 @@ public struct HomeView: View {
                     playsOnSelect: section.style == .landscape,
                     onSelect: section.style == .landscape ? onPlayItem : onSelectItem
                 )
-            }
         }
     }
 
