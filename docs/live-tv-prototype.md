@@ -1317,7 +1317,7 @@ complete operation. An otherwise settled capture rejected solely by the library
 export's size guard also qualifies, retaining its unavailable status and previous
 library records rather than publishing a prefix or claiming recovery. Unchanged
 oversized inputs must not be reread and reserialized on every poll. A real edit
-invalidates that receipt and retries immediately; the export size limit is unchanged.
+invalidates that receipt and retries immediately. Storage quotas remain enforced.
 Pending transfers, other unresolved changes and transient failures continue
 through normal reconciliation. Remote apply and account/profile/consent changes
 invalidate receipts. Stores without authoritative revision support retain the
@@ -1328,8 +1328,30 @@ is capped at 64 MiB, with 50,000 fingerprint/output entries across profiles; an
 unchanged collection larger than 64 MiB still qualifies. Wire formats, schedule
 agreement and polling cadence are unchanged.
 
-The journal enforces its 128 MiB serialized-storage bound before writing; the
-separate 64 MiB input bound applies to each preparation, not accumulated state.
+The journal enforces its **128 MiB serialized-storage bound** before writing.
+Each export and incoming preparation has a separate 128 MiB staging quota and
+50,000-record bound, not a 64 MiB whole-library memory limit. Encoded records
+above a **4 MiB working buffer** spill to invocation-owned, memory-mapped files.
+Journal reopening validates one wrapper at a time with the same bounded backing;
+prepared snapshot entries retain only validated identity and encoded bytes, not
+a second decoded copy of every item. The export still owns the immutable schedule
+inputs, and the existing cloud ledger/transport still owns its record dictionary;
+this is a bound on additional preparation buffers, not a 4 MiB whole-app RAM claim.
+
+Snapshot digests stream the exact existing sorted-JSON bytes one item at a time.
+Snapshot-part IDs, v1 wire records and digest values are unchanged. Deferred import
+decodes parts on the worker only when assembling a required snapshot, checks all
+parts and the complete digest, and keeps each incomplete definition pending.
+The prior schedule remains authoritative until its replacement passes ordinary
+snapshot staging and definition compare-and-swap publication.
+
+Journal commits stage record descriptors rather than another fully serialized
+collection. The worker encodes and writes one bounded wrapper at a time; exact
+serialized sizes are checked before any new records are written. Storage quota,
+record-size and record-count failures remain explicit and never authorize a
+partial schedule. Retired temporary backing is removed off-main; failed/cancelled
+operations retain no reusable authority. A fresh device can receive more than
+64 MiB of valid parts in one preparation or progressively across deliveries.
 Replacing or deleting a known library definition retires snapshot parts only
 when no remaining definition revision references that generation. Current,
 future, retained and pending revisions all count. Retirement uses explicit

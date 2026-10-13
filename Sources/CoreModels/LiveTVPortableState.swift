@@ -399,7 +399,7 @@ public enum LiveTVPortableSnapshots {
         var bytes = 0
         let encoder = JSONEncoder()
         for item in snapshot.items {
-            let size = try encoder.encode(item).count
+            let size = try autoreleasepool { try encoder.encode(item).count }
             guard size <= 128 * 1_024 else {
                 LiveTVSyncLimitDiagnostic.record(.snapshotItemBytes, observed: size, maximum: 128 * 1_024)
                 throw LiveTVPortableStateError.tooLarge
@@ -450,7 +450,23 @@ public enum LiveTVPortableSnapshots {
     private static func contentDigest(_ snapshot: LibraryChannelSnapshot) throws -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        return SHA256.hash(data: try encoder.encode(snapshot))
-            .map { String(format: "%02x", $0) }.joined()
+        var digest = SHA256()
+        func append(_ text: String) { digest.update(data: Data(text.utf8)) }
+        append("{\"createdAt\":")
+        digest.update(data: try encoder.encode(snapshot.createdAt))
+        append(",\"id\":")
+        digest.update(data: try encoder.encode(snapshot.id))
+        append(",\"ineligibleDurationCount\":")
+        digest.update(data: try encoder.encode(snapshot.ineligibleDurationCount))
+        append(",\"items\":[")
+        for (index, item) in snapshot.items.enumerated() {
+            try Task.checkCancellation()
+            if index > 0 { append(",") }
+            try autoreleasepool { digest.update(data: try encoder.encode(item)) }
+        }
+        append("],\"version\":")
+        digest.update(data: try encoder.encode(snapshot.version))
+        append("}")
+        return digest.finalize().map { String(format: "%02x", $0) }.joined()
     }
 }

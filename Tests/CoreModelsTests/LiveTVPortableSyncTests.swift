@@ -1061,6 +1061,98 @@ final class LiveTVPortableSyncTests: XCTestCase {
         XCTAssertTrue(try receiver.adapter.pending(sourceStore: receiver.sources).snapshots.isEmpty)
     }
 
+    @MainActor
+    func testLargeLibraryExportsAndImportsOnAFreshDeviceWithBoundedPreparation() async throws {
+        let sender = try makeFixture(requiresPreparedJournal: true)
+        let receiver = try makeFixture(requiresPreparedJournal: true)
+        let library = LibraryChannelLibrary(accountID: "account", libraryID: "library")
+        let title = String(repeating: "x", count: 8_000)
+        let items = try (0..<8_400).map {
+            try LibraryChannelItem(
+                item: .init(id: "item-\($0)", title: title, kind: .movie, runtime: 60),
+                library: library, serverID: "server", userID: "user"
+            )
+        }
+        let snapshots = try stride(from: 0, to: items.count, by: 4_200).map {
+            try LibraryChannelSnapshot(items: Array(items[$0..<($0 + 4_200)]),
+                                       createdAt: Date(timeIntervalSince1970: 1_700_000_000))
+        }
+        let definitions = snapshots.map {
+            LibraryChannelDefinition(profileID: profileID, revisions: [
+                .init(snapshotID: $0.id, recipe: .init(name: "Movies", libraries: [library]),
+                      epochSeconds: 1_700_000_000)
+            ])
+        }
+        let export = try await Task.detached {
+            try LiveTVPortableLibraryExport(definitions: definitions, snapshots: snapshots)
+        }.value
+        XCTAssertGreaterThan(export.encodedRecordBytes, 64 * 1_024 * 1_024)
+        XCTAssertLessThanOrEqual(export.residentRecordBytes, LiveTVPortableRecordStorage.maximumResidentBytes)
+        try await sender.adapter.prepareForOperation(preparedLibrary: export)
+        let records = try await sender.adapter.committingJournal {
+            try sender.adapter.capture(
+                sourceStore: sender.sources, libraryDefinitions: definitions, snapshots: snapshots,
+                preparedLibrary: export, fallback: [:]
+            )
+        }
+        XCTAssertGreaterThan(records.values.reduce(0) { $0 + $1.count }, 64 * 1_024 * 1_024)
+        try await receiver.adapter.prepareForOperation(records: records.mapValues(Optional.some))
+        XCTAssertLessThanOrEqual(receiver.adapter.residentPreparedRecordBytes,
+                                 LiveTVPortableRecordStorage.maximumResidentBytes)
+        let pending = try await receiver.adapter.committingJournal {
+            try receiver.adapter.apply(
+                records.mapValues(Optional.some), sourceStore: receiver.sources, includeLibrarySnapshots: false
+            )
+        }
+        let imported = await Task.detached { pending.resolvingLibrarySnapshots() }.value
+        XCTAssertEqual(Set(imported.libraryDefinitions.map(\.id)), Set(definitions.map(\.id)))
+        XCTAssertEqual(Set(imported.snapshots.map(\.id)), Set(snapshots.map(\.id)))
+        XCTAssertTrue(imported.incompleteSnapshotIDs.isEmpty)
+        for snapshot in snapshots {
+            XCTAssertEqual(imported.snapshots.first { $0.id == snapshot.id }, snapshot)
+        }
+
+        receiver.adapter.discardPreparedJournal()
+        let reopened = LiveTVPortableSyncAdapter(
+            directory: receiver.root, profileID: profileID, defaults: receiver.defaults, namespace: profileID,
+            requiresPreparedJournal: true
+        )
+        try await reopened.prepareForOperation()
+        XCTAssertLessThanOrEqual(reopened.residentPreparedRecordBytes,
+                                 LiveTVPortableRecordStorage.maximumResidentBytes)
+        XCTAssertEqual(try reopened.capture(sourceStore: receiver.sources, fallback: records), records)
+        let restoredPending = try reopened.pending(sourceStore: receiver.sources, includeLibrarySnapshots: false)
+        let restored = await Task.detached { restoredPending.resolvingLibrarySnapshots() }.value
+        XCTAssertEqual(restored.snapshots, imported.snapshots)
+
+        let incompleteReceiver = try makeFixture(requiresPreparedJournal: true)
+        let partNames = records.keys.filter { LiveTVPortableRecordKey.parse($0)?.kind == .snapshot }.sorted()
+        let withheld = try XCTUnwrap(partNames.last)
+        var incomplete = records
+        incomplete[withheld] = nil
+        try await incompleteReceiver.adapter.prepareForOperation(records: incomplete.mapValues(Optional.some))
+        let incompletePending = try await incompleteReceiver.adapter.committingJournal {
+            try incompleteReceiver.adapter.apply(
+                incomplete.mapValues(Optional.some), sourceStore: incompleteReceiver.sources,
+                includeLibrarySnapshots: false
+            )
+        }
+        let partial = await Task.detached { incompletePending.resolvingLibrarySnapshots() }.value
+        XCTAssertEqual(partial.incompleteSnapshotIDs.count, 1)
+        XCTAssertEqual(partial.libraryDefinitions.count, definitions.count - 1)
+        let last = [withheld: try XCTUnwrap(records[withheld])]
+        try await incompleteReceiver.adapter.prepareForOperation(records: last.mapValues(Optional.some))
+        let completedPending = try await incompleteReceiver.adapter.committingJournal {
+            try incompleteReceiver.adapter.apply(
+                last.mapValues(Optional.some), sourceStore: incompleteReceiver.sources, includeLibrarySnapshots: false
+            )
+        }
+        let complete = await Task.detached { completedPending.resolvingLibrarySnapshots() }.value
+        XCTAssertEqual(Set(complete.libraryDefinitions.map(\.id)), Set(definitions.map(\.id)))
+        XCTAssertEqual(complete.snapshots, imported.snapshots)
+        XCTAssertTrue(complete.incompleteSnapshotIDs.isEmpty)
+    }
+
     func testPreparedSnapshotEquivalencePreservesOriginalOptionalFieldsAndFormatting() async throws {
         let inputs = try makeSnapshotExport()
         var wire = [recordKey(.library, inputs.definition.id.uuidString).recordName:

@@ -7,7 +7,7 @@ import XCTest
 
 @MainActor
 final class LiveTVPortableLibraryImportTests: XCTestCase {
-    func testSettledOversizedExportKeepsFailureWithoutRepeatedSnapshotReadsAndRecoversAfterAnEdit() async throws {
+    func testSettledLargeExportSkipsRepeatedSnapshotReadsAndInvalidatesAfterAnEdit() async throws {
         let fixture = try fixture()
         let profileID = fixture.profiles.activeProfileID
         let library = LibraryChannelLibrary(accountID: "account", libraryID: "library")
@@ -42,21 +42,32 @@ final class LiveTVPortableLibraryImportTests: XCTestCase {
         )
         var output = await bridge.capture(fallback: [:])
         output = await bridge.capture(fallback: output)
-        XCTAssertEqual(bridge.statuses[profileID], .unavailable)
+        XCTAssertEqual(bridge.statuses[profileID], .ready)
+        XCTAssertGreaterThan(output.values.reduce(0) { $0 + $1.count }, 64 * 1_024 * 1_024)
+        let destination = try self.fixture()
+        XCTAssertEqual(destination.profiles.activeProfileID, profileID)
+        let importedDefinitions = PortableImportDefinitions()
+        let importedSnapshots = RetainingImportSnapshots()
+        let destinationBridge = destination.bridge(definitions: importedDefinitions, snapshots: importedSnapshots)
+        await destinationBridge.apply(output.mapValues(Optional.some))
+        XCTAssertEqual(destinationBridge.statuses[profileID], .ready)
+        XCTAssertEqual(Set(try importedDefinitions.load().map(\.id)), Set([definition.id, secondDefinition.id]))
+        let importedSnapshot = try await importedSnapshots.snapshot(id: snapshot.id, profileID: profileID)
+        XCTAssertEqual(importedSnapshot, snapshot, "Fresh-device activation must publish the exact complete schedule.")
         let before = await snapshots.readCount
         for _ in 0..<3 {
             let repeated = await bridge.capture(fallback: output)
-            XCTAssertEqual(repeated, output, "A rejected export must never publish a partial schedule.")
-            XCTAssertEqual(bridge.statuses[profileID], .unavailable, "Cache reuse must not claim recovery.")
+            XCTAssertEqual(repeated, output)
+            XCTAssertEqual(bridge.statuses[profileID], .ready)
         }
         let after = await snapshots.readCount
-        print("Oversized settled export: snapshot reads before=\(before) after=\(after)")
-        XCTAssertEqual(after, before, "Unchanged rejected inputs must not be decoded and encoded on every poll.")
+        print("Large settled export: snapshot reads before=\(before) after=\(after)")
+        XCTAssertEqual(after, before, "Unchanged inputs must not be decoded and encoded on every poll.")
 
         revision = UUID()
         output = await bridge.capture(fallback: output)
         let afterIdentityChange = await snapshots.readCount
-        XCTAssertGreaterThan(afterIdentityChange, after, "A changed identity revision must invalidate a failure receipt.")
+        XCTAssertGreaterThan(afterIdentityChange, after, "A changed identity revision must invalidate a capture receipt.")
         output = await bridge.capture(fallback: output)
         let consent = LiveTVPortableSyncPreferenceStore(
             defaults: fixture.defaults, profileID: profileID, namespace: fixture.profiles.activeNamespace
@@ -67,7 +78,7 @@ final class LiveTVPortableLibraryImportTests: XCTestCase {
         consent.isEnabled = true
         output = await bridge.capture(fallback: output)
         let afterConsentChange = await snapshots.readCount
-        XCTAssertGreaterThan(afterConsentChange, afterIdentityChange, "New consent must not reuse a rejected old attempt.")
+        XCTAssertGreaterThan(afterConsentChange, afterIdentityChange, "New consent must not reuse an old attempt.")
 
         let replacement = try LibraryChannelSnapshot(
             items: [items[0]], createdAt: snapshot.createdAt.addingTimeInterval(1)
