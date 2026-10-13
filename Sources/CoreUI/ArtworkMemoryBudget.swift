@@ -25,7 +25,7 @@ struct ArtworkMemoryBudget: Equatable {
         if physicalMemory >= 2_560 << 20 {
             decodedBytes = 192 << 20
             compositeBytes = 128 << 20
-            indicatorBytes = 64 << 20
+            indicatorBytes = 96 << 20
             compositeCount = 96
         } else {
             decodedBytes = 96 << 20

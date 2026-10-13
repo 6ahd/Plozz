@@ -18,6 +18,7 @@ final class ArtworkMemoryBudgetTests: XCTestCase {
             let budget = ArtworkMemoryBudget(physicalMemory: memory)
             XCTAssertGreaterThanOrEqual(budget.decodedBytes, posters * 640 * 960 * 4)
             XCTAssertGreaterThanOrEqual(budget.compositeBytes, posters * 520 * 780 * 4)
+            XCTAssertGreaterThanOrEqual(budget.indicatorBytes, posters * 520 * 780 * 4)
             XCTAssertGreaterThanOrEqual(budget.compositeCount, posters)
         }
     }
