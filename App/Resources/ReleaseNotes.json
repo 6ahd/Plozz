@@ -2,6 +2,31 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/054.1",
+      "version": "2026.10.13",
+      "marketingVersion": "2026.9.25",
+      "build": "54.1",
+      "releasedAt": "2026-10-13",
+      "sections": [
+        {
+          "category": "Updated",
+          "items": [
+            "Automatically load TV guides included in more IPTV playlists."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Sources becoming unavailable after syncing Live TV.",
+            {
+              "text": "Player X button not closing videos on iPhone and iPad.",
+              "platforms": ["iOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/054",
       "version": "2026.10.13",
       "marketingVersion": "2026.9.25",
