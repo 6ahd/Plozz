@@ -109,7 +109,7 @@ final class AdaptiveHomeDefaultsTests: XCTestCase {
         await first.setError(.serverUnreachable)
         await model.prepareServerDefaults(accounts: [a, b], now: now.addingTimeInterval(121))
         XCTAssertEqual(model.visibility.rowCustomization?.resolvedDefaults, initial)
-        XCTAssertEqual(model.serverMatchError, .serverUnreachable)
+        XCTAssertEqual(model.serverMatchFailures, ["a": .serverUnreachable])
         await first.setLayout(.init(sections: [], source: .server))
         await model.prepareServerDefaults(accounts: [a, b], now: now.addingTimeInterval(242))
         let emptyNative = model.visibility.rowCustomization?.resolvedDefaults
@@ -121,6 +121,73 @@ final class AdaptiveHomeDefaultsTests: XCTestCase {
         await model.prepareServerDefaults(accounts: [b], now: now.addingTimeInterval(364))
         XCTAssertEqual(model.visibility.rowCustomization?.resolvedDefaults?.mode, .providerFallback)
         XCTAssertTrue(model.visibility.rowCustomization?.availableServerRows.isEmpty == true)
+        XCTAssertTrue(model.serverMatchFailures.isEmpty)
+    }
+
+    func testFailuresIdentifyEachServerAndClearIndependentlyAfterRecovery() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, first) = source("a", serverID: "one")
+        let (b, second) = source("b", serverID: "two")
+        let (c, _) = source("c", serverID: "unsupported")
+        await first.setError(.serverUnreachable)
+        await second.setError(.unauthorized)
+        await model.prepareServerDefaults(accounts: [a, b, c])
+        XCTAssertEqual(model.serverMatchFailures, ["a": .serverUnreachable, "b": .unauthorized])
+
+        await first.setLayout(.init(sections: [], source: .server))
+        await model.prepareServerDefaults(accounts: [a, b, c])
+        XCTAssertEqual(model.serverMatchFailures, ["b": .unauthorized])
+
+        await second.setLayout(.init(sections: [], source: .server))
+        await model.prepareServerDefaults(accounts: [a, b, c])
+        XCTAssertTrue(model.serverMatchFailures.isEmpty)
+
+        await first.setError(.serverUnreachable)
+        await model.prepareServerDefaults(accounts: [a])
+        XCTAssertEqual(model.serverMatchFailures, ["a": .serverUnreachable])
+        model.useRowDefaults(.combined)
+        XCTAssertTrue(model.serverMatchFailures.isEmpty)
+    }
+
+    func testChangingViewerClearsPreviousFailureWhileNewRequestIsPending() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, first) = source("a", provider: .plex)
+        let (_, second) = source("a", provider: .plex)
+        await first.setError(.unauthorized)
+        await model.prepareServerDefaults(accounts: [
+            ResolvedAccount(account: a.account, provider: first, plexHomeUserID: "first")
+        ])
+        XCTAssertEqual(model.serverMatchFailures, ["a": .unauthorized])
+
+        await second.suspend()
+        let pending = Task { await model.prepareServerDefaults(accounts: [
+            ResolvedAccount(account: a.account, provider: second, plexHomeUserID: "second")
+        ]) }
+        await second.waitUntilRequested()
+        XCTAssertTrue(model.serverMatchFailures.isEmpty)
+        await second.resume()
+        await pending.value
+        XCTAssertTrue(model.serverMatchFailures.isEmpty)
+    }
+
+    func testReturningToFreshCacheClearsAnotherViewersFailureWithoutRefetching() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, first) = source("a", provider: .plex)
+        let (_, second) = source("a", provider: .plex)
+        let firstViewer = ResolvedAccount(account: a.account, provider: first, plexHomeUserID: "first")
+        let secondViewer = ResolvedAccount(account: a.account, provider: second, plexHomeUserID: "second")
+        let now = Date(timeIntervalSince1970: 1_000)
+        await model.prepareServerDefaults(accounts: [firstViewer], now: now)
+        await second.setError(.unauthorized)
+        await model.prepareServerDefaults(accounts: [secondViewer], now: now.addingTimeInterval(1))
+        XCTAssertEqual(model.serverMatchFailures, ["a": .unauthorized])
+        await model.prepareServerDefaults(accounts: [firstViewer], now: now.addingTimeInterval(2))
+        XCTAssertTrue(model.serverMatchFailures.isEmpty)
+        let calls = await first.calls
+        XCTAssertEqual(calls.layouts, 1)
     }
 
     func testPlexHomeViewerChangeInvalidatesFreshLayoutWithUnchangedAccountUser() async {
@@ -163,9 +230,11 @@ final class AdaptiveHomeDefaultsTests: XCTestCase {
                 credentialRevision: CredentialRevision()
             )
         ])
+        await old.setError(.serverUnreachable)
         await old.resume()
         await oldRequest.value
         XCTAssertEqual(model.visibility.rowCustomization?.availableServerRows.map(\.section.id), ["current"])
+        XCTAssertTrue(model.serverMatchFailures.isEmpty)
         let calls = await current.calls
         XCTAssertEqual(calls.layouts, 1)
     }
@@ -204,7 +273,7 @@ final class AdaptiveHomeDefaultsTests: XCTestCase {
             )
         ])
         XCTAssertEqual(relaunched.visibility.rowCustomization?.availableServerRows.map(\.section.id), ["known"])
-        XCTAssertEqual(relaunched.serverMatchError, .serverUnreachable)
+        XCTAssertEqual(relaunched.serverMatchFailures, ["a": .serverUnreachable])
     }
 
     func testReturningToFreshViewerCacheFencesAnotherViewersPendingRequest() async {
@@ -324,13 +393,13 @@ final class AdaptiveHomeDefaultsTests: XCTestCase {
         let original = model.visibility.rowCustomization?.resolvedDefaults
         await first.setError(.serverUnreachable)
         await model.prepareServerDefaults(accounts: [a], now: now.addingTimeInterval(121))
-        XCTAssertEqual(model.serverMatchError, .serverUnreachable)
+        XCTAssertEqual(model.serverMatchFailures, ["a": .serverUnreachable])
         XCTAssertEqual(model.visibility.rowCustomization?.resolvedDefaults, original)
         let (b, second) = source("a", userID: "another-user")
         await second.setError(.unauthorized)
         await model.prepareServerDefaults(accounts: [b], now: now.addingTimeInterval(122))
         XCTAssertNil(model.visibility.rowCustomization?.resolvedDefaults)
-        XCTAssertEqual(model.serverMatchError, .unauthorized)
+        XCTAssertEqual(model.serverMatchFailures, ["a": .unauthorized])
     }
 
     func testDerivedServerLayoutCacheCannotChangeProfileTransfer() async {

@@ -6,6 +6,7 @@ import CoreUI
 @testable import AppShelliOS
 #endif
 import FeatureSettings
+import Observation
 import SwiftUI
 import UIKit
 import Vision
@@ -93,7 +94,137 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             XCTAssertEqual(store.load(), saved)
         }
     }
+
+    func testLibraryDiscoveryRefreshesForEffectiveCredentialsAndPlexViewerChanges() async throws {
+        let suite = "HomeSettingsViewer.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(
+            store: HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        )
+        let first = HomeSettingsLibraryProvider(name: "Server", libraryTitle: "Original movies", kind: .plex)
+        let rotated = HomeSettingsLibraryProvider(name: "Server", libraryTitle: "Updated movies", kind: .plex)
+        let child = HomeSettingsLibraryProvider(name: "Server", libraryTitle: "Child movies", kind: .plex)
+        let account = Account(from: first.session)
+        let revision = CredentialRevision()
+        let updates: [(ResolvedAccount, HomeSettingsLibraryProvider, String)] = [
+            (.init(account: account, provider: first, plexHomeUserID: "owner"), first, "Original movies"),
+            (.init(account: account, provider: rotated, plexHomeUserID: "owner",
+                   credentialRevision: revision), rotated, "Updated movies"),
+            (.init(account: account, provider: child, plexHomeUserID: "child",
+                   credentialRevision: revision), child, "Child movies")
+        ]
+        let source = HomeSettingsAccountsFixture(accounts: [updates[0].0])
+        try await withWindow {
+            HomeSettingsViewerHost(source: source, visibility: visibility)
+        } inspect: { window in
+            var previousTitle: String?
+            for (resolved, provider, title) in updates {
+                source.accounts = [resolved]
+                let deadline = ContinuousClock.now + .seconds(3)
+                while await provider.libraryRequests == 0, ContinuousClock.now < deadline {
+                    try await Task.sleep(for: .milliseconds(20))
+                }
+                let requests = await provider.libraryRequests
+                XCTAssertEqual(requests, 1, title)
+                let lines = try await self.capture(window, name: "Home settings \(title)")
+                let text = lines.map(\.0).joined(separator: " ")
+                XCTAssertTrue(text.contains(title), text)
+                if let previousTitle { XCTAssertFalse(text.contains(previousTitle), text) }
+                previousTitle = title
+            }
+        }
+    }
+
+    func testLateFailureCannotRestoreLibrariesFromASupersededAccountSelection() async throws {
+        let suite = "HomeSettingsLateFailure.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(
+            store: HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        )
+        let first = HomeSettingsLibraryProvider(name: "Server", libraryTitle: "Original movies")
+        let delayed = HomeSettingsLibraryProvider(name: "Offline", isOffline: true, holdsLibraries: true)
+        let current = HomeSettingsLibraryProvider(name: "Server", libraryTitle: "Current movies")
+        defer { Task { await delayed.resumeLibraries() } }
+        let account = Account(from: first.session)
+        let source = HomeSettingsAccountsFixture(accounts: [
+            .init(account: account, provider: first),
+            .init(account: Account(from: delayed.session), provider: delayed)
+        ])
+        try await withWindow {
+            HomeSettingsViewerHost(source: source, visibility: visibility)
+        } inspect: { window in
+            let deadline = ContinuousClock.now + .seconds(3)
+            while await delayed.libraryRequests == 0, ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            let delayedRequests = await delayed.libraryRequests
+            XCTAssertEqual(delayedRequests, 1)
+            source.accounts = [.init(account: account, provider: current)]
+            let currentDeadline = ContinuousClock.now + .seconds(3)
+            while await current.libraryRequests == 0, ContinuousClock.now < currentDeadline {
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            let currentRequests = await current.libraryRequests
+            XCTAssertEqual(currentRequests, 1)
+            let before = try await self.capture(window, name: "Current account libraries")
+            XCTAssertTrue(before.map(\.0).joined(separator: " ").contains("Current movies"))
+            await delayed.resumeLibraries()
+            let after = try await self.capture(window, name: "Current libraries after stale failure")
+            let text = after.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Current movies"), text)
+            XCTAssertFalse(text.contains("Original movies"), text)
+        }
+    }
     #endif
+
+    func testMatchServerNamesEachFailedServerWithoutCallingOtherErrorsOffline() async throws {
+        let suite = "HomeRowServerFailures.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(
+            store: HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        )
+        let offline = HomeSettingsLibraryProvider(name: "Basement", homeError: .serverUnreachable)
+        let unauthorized = HomeSettingsLibraryProvider(name: "Cinema", homeError: .unauthorized)
+        let invalid = HomeSettingsLibraryProvider(name: "Loft", homeError: .invalidResponse)
+        let online = HomeSettingsLibraryProvider(name: "Available server")
+        let accounts = [offline, unauthorized, invalid, online].map {
+            ResolvedAccount(account: Account(from: $0.session), provider: $0)
+        }
+        await visibility.prepareServerDefaults(accounts: accounts)
+        XCTAssertEqual(visibility.serverMatchFailures.count, 3)
+
+        try await withWindow {
+            ScrollView {
+                HomeRowsSettingsView(libraries: [], accounts: accounts, visibility: visibility)
+                    .padding(24)
+            }
+            #if os(tvOS)
+            .frame(width: 1050)
+            #endif
+        } inspect: { window in
+            let lines = try await self.capture(window, name: "Named Home server failures")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Basement is offline."), text)
+            XCTAssertTrue(text.contains("Sign in to Cinema again."), text)
+            XCTAssertTrue(text.contains("load Home rows from Loft."), text)
+            XCTAssertFalse(text.contains("Cinema is offline"), text)
+            XCTAssertFalse(text.contains("Loft is offline"), text)
+            XCTAssertFalse(text.contains("Available server is offline"), text)
+            XCTAssertFalse(text.contains("server arrangements"), text)
+            XCTAssertFalse(text.contains("Keeping known rows"), text)
+
+            await offline.setHomeError(nil)
+            await visibility.prepareServerDefaults(accounts: accounts)
+            let recovered = try await self.capture(window, name: "Recovered Home server")
+            let recoveredText = recovered.map(\.0).joined(separator: " ")
+            XCTAssertFalse(recoveredText.contains("Basement is offline"), recoveredText)
+            XCTAssertTrue(recoveredText.contains("Sign in to Cinema again."), recoveredText)
+            XCTAssertTrue(recoveredText.contains("load Home rows from Loft."), recoveredText)
+        }
+    }
 
     func testSharedArrangerReflectsCrossLibraryOrderAndPersistsEdits() async throws {
         let suite = "HomeRowArrangement.\(UUID())"
@@ -275,27 +406,75 @@ final class HomeRowArrangementHostedTests: XCTestCase {
 }
 
 #if os(iOS)
+@MainActor @Observable
+private final class HomeSettingsAccountsFixture {
+    var accounts: [ResolvedAccount]
+    init(accounts: [ResolvedAccount]) { self.accounts = accounts }
+}
+
+@MainActor
+private struct HomeSettingsViewerHost: View {
+    let source: HomeSettingsAccountsFixture
+    let visibility: HomeLibraryVisibilityModel
+    private let hero = HeroSettingsModel(store: InMemoryHeroSettingsStore())
+    private let heroBackground = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore())
+
+    var body: some View {
+        NavigationStack {
+            PlozziOSHomeSettingsView(
+                hero: hero, heroBackground: heroBackground,
+                visibility: visibility, accounts: source.accounts
+            )
+        }
+    }
+}
+#endif
+
 private actor HomeSettingsLibraryProvider: MediaProvider {
     let session: UserSession
     let isOffline: Bool
-    let kind = ProviderKind.jellyfin
+    let kind: ProviderKind
     private(set) var libraryRequests = 0
+    private var homeError: AppError?
+    private let libraryTitle: String
+    private var holdsLibraries: Bool
+    private var libraryContinuation: CheckedContinuation<Void, Never>?
 
-    init(name: String, isOffline: Bool) {
+    init(
+        name: String, isOffline: Bool = false, homeError: AppError? = nil,
+        libraryTitle: String = "Movies", kind: ProviderKind = .jellyfin,
+        holdsLibraries: Bool = false
+    ) {
         self.isOffline = isOffline
+        self.homeError = homeError
+        self.libraryTitle = libraryTitle
+        self.kind = kind
+        self.holdsLibraries = holdsLibraries
         session = UserSession(
             server: MediaServer(
                 id: name, name: name,
-                baseURL: URL(string: "https://home-settings.example.test")!, provider: .jellyfin
+                baseURL: URL(string: "https://home-settings.example.test")!, provider: kind
             ),
             userID: "viewer", userName: "Viewer", deviceID: "fixture", accessToken: "fixture"
         )
     }
 
+    func setHomeError(_ error: AppError?) { homeError = error }
+    func resumeLibraries() {
+        holdsLibraries = false
+        libraryContinuation?.resume()
+        libraryContinuation = nil
+    }
+    func serverHomeLayout() async throws -> ServerHomeLayout? {
+        if let homeError { throw homeError }
+        return nil
+    }
+
     func libraries() async throws -> [MediaLibrary] {
         libraryRequests += 1
+        if holdsLibraries { await withCheckedContinuation { libraryContinuation = $0 } }
         if isOffline { throw AppError.serverUnreachable }
-        return [MediaLibrary(id: "movies", title: "Movies", kind: .movie)]
+        return [MediaLibrary(id: "movies", title: libraryTitle, kind: .movie)]
     }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
@@ -309,4 +488,3 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     func reportPlayback(_ progress: PlaybackProgress, event: PlaybackEvent) async throws {}
     nonisolated func imageURL(itemID: String, kind: ImageKind, maxWidth: Int?) -> URL? { nil }
 }
-#endif

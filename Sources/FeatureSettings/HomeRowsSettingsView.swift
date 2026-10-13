@@ -55,7 +55,8 @@ public struct HomeRowsSettingsView: View {
             HomeRowPresetActions(
                 selection: visibility.visibility.rowCustomization?.defaults,
                 resolved: visibility.visibility.rowCustomization?.resolvedDefaults,
-                matchFailed: visibility.serverMatchError != nil,
+                accounts: accounts.map(\.account),
+                failures: visibility.serverMatchFailures,
                 onSelect: { preset in
                     visibility.useRowDefaults(preset)
                     Task { await visibility.prepareServerDefaults(accounts: accounts) }
@@ -240,7 +241,8 @@ public struct HomeRowsSettingsView: View {
 private struct HomeRowPresetActions: View {
     let selection: HomeRowCustomization.Defaults?
     let resolved: HomeResolvedRowDefaults?
-    let matchFailed: Bool
+    let accounts: [Account]
+    let failures: [String: AppError]
     let onSelect: (HomeRowCustomization.Defaults) -> Void
     @State private var resetDefaults: HomeRowCustomization.Defaults?
 
@@ -300,7 +302,19 @@ private struct HomeRowPresetActions: View {
                 }
             }
             if selection == .matchServer {
-                matchDescription
+                VStack(alignment: .leading, spacing: 8) {
+                    let failedAccounts = accounts.filter { failures[$0.id] != nil }
+                    if failedAccounts.isEmpty {
+                        matchDescription
+                    } else {
+                        ForEach(failedAccounts) { account in
+                            if let error = failures[account.id] {
+                                failureMessage(serverName: account.server.name, error: error)
+                                    .accessibilityIdentifier("home-server-failure-\(account.id)")
+                            }
+                        }
+                    }
+                }
                     .font(.footnote)
                     .plozzForeground(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -308,12 +322,17 @@ private struct HomeRowPresetActions: View {
         }
     }
 
-    private var matchDescription: Text {
-        if matchFailed {
-            return resolved != nil
-                ? Text("Some server arrangements are unavailable. Keeping known rows and showing defaults where needed.")
-                : Text("The server arrangement isn't available yet. Default rows are shown for now.")
+    private func failureMessage(serverName: String, error: AppError) -> Text {
+        if error == .serverUnreachable {
+            return Text("\(serverName) is offline.")
         }
+        if error.requiresSignIn {
+            return Text("Sign in to \(serverName) again.")
+        }
+        return Text("Couldn't load Home rows from \(serverName).")
+    }
+
+    private var matchDescription: Text {
         switch resolved?.mode {
         case .combined:
             return Text("Common rows are combined across servers. Each server's other default rows stay visible.")

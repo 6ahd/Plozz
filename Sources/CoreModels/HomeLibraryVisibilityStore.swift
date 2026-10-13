@@ -62,7 +62,7 @@ public final class HomeLibraryVisibilityStore: HomeLibraryVisibilityStoring, @un
 @Observable
 public final class HomeLibraryVisibilityModel {
     public private(set) var visibility: HomeLibraryVisibility
-    public private(set) var serverMatchError: AppError?
+    public private(set) var serverMatchFailures: [String: AppError] = [:]
 
     private let store: HomeLibraryVisibilityStoring
     @ObservationIgnored private var cachedServerDefaults: CachedHomeRowDefaults?
@@ -96,6 +96,7 @@ public final class HomeLibraryVisibilityModel {
             serverRequest?.cancel()
             serverRequest = nil
             serverRequestID = UUID()
+            serverMatchFailures = [:]
             visibility.rowCustomization?.resolvedDefaults = cachedServerDefaults?.defaults
             return
         }
@@ -121,6 +122,7 @@ public final class HomeLibraryVisibilityModel {
         } else {
             serverRequest?.cancel()
             serverRequestID = UUID()
+            if serverRequestScope != requestScope { serverMatchFailures = [:] }
             serverRequestScope = requestScope
             request = Task { await Self.loadServerLayouts(representatives) }
             serverRequest = request
@@ -132,7 +134,7 @@ public final class HomeLibraryVisibilityModel {
         serverRequest = nil
         let previous = cachedServerDefaults?.scope == scope ? cachedServerDefaults?.defaults : nil
         var resolved = HomeResolvedRowDefaults(mode: representatives.count > 1 ? .combined : .server)
-        var failure: AppError?
+        var failures: [String: AppError] = [:]
         for source in representatives {
             switch results[source.account.id] ?? .failure(.cancelled) {
             case let .success(layout?):
@@ -149,7 +151,7 @@ public final class HomeLibraryVisibilityModel {
                 resolved.fallbackAccountIDs.insert(source.account.id)
             case let .failure(error):
                 guard error != .cancelled else { return }
-                failure = failure ?? error
+                failures[source.account.id] = error
                 let retained = previous?.serverRows.filter { $0.accountID == source.account.id } ?? []
                 resolved.serverRows += retained
                 if previous == nil || previous?.fallbackAccountIDs.contains(source.account.id) == true {
@@ -159,8 +161,8 @@ public final class HomeLibraryVisibilityModel {
                 resolved.omitsReading = resolved.omitsReading || previous?.omitsReading == true
             }
         }
-        if representatives.count == 1, let failure {
-            serverMatchError = failure
+        if representatives.count == 1, !failures.isEmpty {
+            serverMatchFailures = failures
             return
         }
         if resolved.mode == .combined {
@@ -176,8 +178,8 @@ public final class HomeLibraryVisibilityModel {
         var ordered = Set<HomeRowID>()
         resolved.order = resolved.order.filter { ordered.insert($0).inserted }
         acceptServerDefaults(resolved, scope: scope, requestScope: requestScope, now: now)
-        serverMatchError = failure
-        if failure != nil { lastServerCheck = nil }
+        serverMatchFailures = failures
+        if !failures.isEmpty { lastServerCheck = nil }
     }
 
     private nonisolated static func loadServerLayouts(
@@ -215,7 +217,7 @@ public final class HomeLibraryVisibilityModel {
     ) {
         serverRequest?.cancel()
         serverRequest = nil
-        serverMatchError = nil
+        serverMatchFailures = [:]
         lastServerCheck = now
         lastServerCheckScope = requestScope
         let snapshot = CachedHomeRowDefaults(scope: scope, defaults: defaults)
@@ -236,7 +238,7 @@ public final class HomeLibraryVisibilityModel {
         serverRequest = nil
         serverRequestID = UUID()
         visibility.rowCustomization = HomeRowCustomization(defaults: defaults)
-        serverMatchError = nil
+        serverMatchFailures = [:]
         store.save(visibility)
     }
 

@@ -2113,7 +2113,8 @@ struct PlozziOSHomeSettingsView: View {
             }
         }
         .task(id: accounts.map {
-            [$0.account.id, $0.account.credentialRevision.rawValue.uuidString, $0.provider.session.userID]
+            [$0.account.id, $0.credentialRevision.rawValue.uuidString,
+             $0.provider.session.userID, $0.plexHomeUserID ?? ""]
         }) {
             libraries = []
             await loadLibraries()
@@ -2177,7 +2178,7 @@ struct PlozziOSHomeSettingsView: View {
 
     private func loadLibraries() async {
         isLoadingLibraries = true
-        defer { isLoadingLibraries = false }
+        defer { if !Task.isCancelled { isLoadingLibraries = false } }
         var loaded: [HomeLibraryChoice] = []
         for resolved in accounts {
             let discovered: [MediaLibrary]
@@ -2187,6 +2188,7 @@ struct PlozziOSHomeSettingsView: View {
             } catch is CancellationError {
                 return
             } catch {
+                guard !Task.isCancelled else { return }
                 PlozzLog.app.error("Home settings library discovery failed")
                 loaded += libraries.filter { $0.accountID == resolved.account.id }
                 continue
@@ -2203,6 +2205,7 @@ struct PlozziOSHomeSettingsView: View {
                     }
             )
         }
+        guard !Task.isCancelled else { return }
         libraries = loaded
     }
 }

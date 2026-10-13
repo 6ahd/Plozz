@@ -39,9 +39,12 @@ fallback when the user's server has no attached trailer.
   Native Continue Watching keeps the complete feed through bounded pages, applying
   library exclusions before a presentation limit. Retained native rows immediately
   honor current library visibility while discovery is pending or offline.
-  Server connection failures belong to the affected server card in Libraries,
-  not a global warning in Customize Home or Rows on Home. Discovery failures
-  remain logged and never reset saved row choices.
+  Connection failures identify the affected server. The Home row arranger names
+  each failed server, distinguishing offline, sign-in, and Home-loading problems
+  instead of showing a blanket warning about server arrangements. Recovery clears
+  that server's status; failures never reset saved row choices.
+  Mobile library discovery follows the effective credential and Plex Home viewer,
+  and cancelled lookups cannot restore another viewer's library choices.
   The arranger enumerates optional recommendations only while open. Home omits
   unselected row-family requests and stops a recommendation family after all its
   known rows are hidden. The separate library Recommended screen and Showcase's
