@@ -1125,6 +1125,35 @@ final class LiveTVPortableSyncTests: XCTestCase {
         let restored = await Task.detached { restoredPending.resolvingLibrarySnapshots() }.value
         XCTAssertEqual(restored.snapshots, imported.snapshots)
 
+        let consent = LiveTVPortableSyncPreferenceStore(
+            defaults: receiver.defaults, profileID: profileID, namespace: profileID
+        )
+        consent.isEnabled = false
+        let tombstone = try LiveTVPortableRecord(isDeleted: true).encoded()
+        let retired = records.map { name, bytes in
+            (name, LiveTVPortableRecordKey.parse(name)?.kind == .snapshot ? tombstone : bytes)
+        }
+        let retirement = Dictionary(uniqueKeysWithValues: retired)
+        XCTAssertEqual(try reopened.capture(sourceStore: receiver.sources, fallback: retirement), retirement)
+        consent.isEnabled = true
+        try await reopened.prepareForOperation(records: retirement.mapValues(Optional.some))
+        #if DEBUG
+        let beforeReplay = reopened.mainThreadSnapshotBodyDecodes
+        #endif
+        let replayed = try await reopened.committingJournal {
+            XCTAssertTrue(Thread.isMainThread)
+            return try reopened.capture(sourceStore: receiver.sources, fallback: retirement)
+        }
+        XCTAssertEqual(replayed, retirement, "Opt-in must replay remote retirement without resurrecting old parts.")
+        #if DEBUG
+        XCTAssertEqual(reopened.mainThreadSnapshotBodyDecodes, beforeReplay,
+                       "Consent replay must not decode the previous large snapshot bodies on the UI thread.")
+        #endif
+        let retiredPending = try reopened.pending(sourceStore: receiver.sources, includeLibrarySnapshots: false)
+        let retiredReport = await Task.detached { retiredPending.resolvingLibrarySnapshots() }.value
+        XCTAssertTrue(retiredReport.libraryDefinitions.isEmpty)
+        XCTAssertEqual(retiredReport.incompleteSnapshotIDs, Set(snapshots.map(\.id)))
+
         let incompleteReceiver = try makeFixture(requiresPreparedJournal: true)
         let partNames = records.keys.filter { LiveTVPortableRecordKey.parse($0)?.kind == .snapshot }.sorted()
         let withheld = try XCTUnwrap(partNames.last)

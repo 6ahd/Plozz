@@ -328,6 +328,9 @@ public final class LiveTVPortableSyncAdapter: @unchecked Sendable {
     private var preparationID = UUID()
     private var stagedWrites: [URL: JournalWrite]?
     private var stagedDirectoryCreation = false
+    #if DEBUG
+    private(set) var mainThreadSnapshotBodyDecodes = 0
+    #endif
     private let writeFile: @Sendable (Data, URL) throws -> Void
     private static let coordinators = CoordinatorRegistry()
     private static let maximumRecords = 50_000
@@ -658,6 +661,12 @@ public final class LiveTVPortableSyncAdapter: @unchecked Sendable {
                     && previousObservation.hydratedConsentRevision != consentRevision
                     && journal.stored[name]?.appliedConsentRevision != consentRevision
                 guard retriesFailedApply || replaysOptIn else { continue }
+                if recordKey.kind == .snapshot {
+                    // Immutable parts have no local preference fields to compare.
+                    _ = try validatedRecord(previousBytes, key: recordKey)
+                    hydration[name] = value
+                    continue
+                }
                 let previous = try decodedRecord(previousBytes, key: recordKey)
                 if try localValueIsUnchanged(
                     key: recordKey, previous: previous, configuration: localConfiguration,
@@ -1425,6 +1434,9 @@ public final class LiveTVPortableSyncAdapter: @unchecked Sendable {
     ) throws -> LiveTVPortableRecord {
         let checked = try validatedRecord(bytes, key: key, allowUnpreparedSource: allowUnpreparedSource)
         if let value = checked.value { return value }
+        #if DEBUG
+        if Thread.isMainThread { mainThreadSnapshotBodyDecodes += 1 }
+        #endif
         return try LiveTVPortableRecord.decode(bytes, key: key)
     }
 

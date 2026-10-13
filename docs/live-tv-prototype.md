@@ -1352,7 +1352,10 @@ Each export and incoming preparation has a separate 128 MiB staging quota and
 above a **4 MiB working buffer** spill to invocation-owned, memory-mapped files.
 Journal reopening validates one wrapper at a time with the same bounded backing;
 prepared snapshot entries retain only validated identity and encoded bytes, not
-a second decoded copy of every item. The export still owns the immutable schedule
+a second decoded copy of every item. Opt-in replay and failed-apply hydration use
+that validated identity too; immutable snapshot parts have no local preference
+fields to compare, so replay must not decode their bodies on the main actor.
+The export still owns the immutable schedule
 inputs, and the existing cloud ledger/transport still owns its record dictionary;
 this is a bound on additional preparation buffers, not a 4 MiB whole-app RAM claim.
 
