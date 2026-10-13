@@ -213,8 +213,12 @@ public actor WatchStateReconciler {
     ///
     /// Returns `false` for stale or unauthorized intents. Guarded enqueue also
     /// rejects a failed durable save without changing unrelated pending work.
+    /// `onPersisted` acknowledges only this enqueue's successful save, never a retry.
     @discardableResult
-    public func enqueue(_ mutation: WatchMutation) async -> Bool {
+    public func enqueue(
+        _ mutation: WatchMutation,
+        onPersisted: @Sendable () -> Void = {}
+    ) async -> Bool {
         if let authorization = mutation.authorization {
             do {
                 try await authorization.require()
@@ -294,6 +298,7 @@ public actor WatchStateReconciler {
             retireIfUnreferenced(mutation)
             return false
         }
+        if saved { onPersisted() }
         return true
     }
 

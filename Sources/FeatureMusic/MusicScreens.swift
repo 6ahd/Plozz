@@ -582,6 +582,7 @@ struct ArtistDetailView: View {
         }
         .scrollClipDisabled()
         .task { await viewModel.load() }
+        .detailOpenFeedback()
     }
 }
 
@@ -608,6 +609,7 @@ struct AlbumDetailView: View {
             infoColumn
         }
         .defaultFocus($playFocused, true)
+        .detailOpenFeedback()
         .task {
             await viewModel.load()
             // Play is disabled until tracks exist, so a declarative default alone
@@ -714,6 +716,7 @@ struct PlaylistDetailView: View {
             infoColumn
         }
         .defaultFocus($playFocused, true)
+        .detailOpenFeedback()
         .task {
             await viewModel.load()
             // Play is disabled until tracks exist, so a declarative default alone

@@ -34,7 +34,7 @@ struct PlozziOSPlaybackRequest: Identifiable {
 struct PlozziOSPlayerView: View {
     @Environment(HeroTrailerController.self) private var trailerController
     @Environment(PlozziOSAppModel.self) private var appModel
-    @Environment(\.dismiss) private var dismiss
+    let orientation: PlozziOSPlayerOrientation
     /// Installed by the enclosing navigation stack. Used by the Cast card's
     /// credit posters, which leave the film for a title's own page — the same
     /// contract they have on tvOS.
@@ -62,9 +62,13 @@ struct PlozziOSPlayerView: View {
     let request: PlozziOSPlaybackRequest
     let provider: any MediaProvider
 
-    init(request: PlozziOSPlaybackRequest, provider: any MediaProvider) {
+    init(
+        request: PlozziOSPlaybackRequest, provider: any MediaProvider,
+        orientation: PlozziOSPlayerOrientation
+    ) {
         self.request = request
         self.provider = provider
+        self.orientation = orientation
         _activePlaylist = State(initialValue: request.playlist)
     }
 
@@ -107,7 +111,11 @@ struct PlozziOSPlayerView: View {
         }
         .statusBarHidden()
         .overlay(alignment: .top) {
-            TransientStatusView(presenter: playbackStatus).padding(.top, 60)
+            VStack {
+                TransientStatusView(presenter: playbackStatus)
+                TransientStatusView(presenter: orientation.status)
+            }
+            .padding(.top, 60)
         }
         .onAppear {
             suspendHeroPlayback()
@@ -247,6 +255,7 @@ struct PlozziOSPlayerView: View {
                         .frame(width: 44, height: 44)
                         .background(.ultraThinMaterial, in: Circle())
                 }
+
                 .accessibilityLabel("Close player")
             }
             Spacer()
@@ -254,6 +263,8 @@ struct PlozziOSPlayerView: View {
         .foregroundStyle(.white)
         .padding()
     }
+
+    private func dismiss() { orientation.close() }
 
     private var usesStreamingQuality: Bool {
         provider is any StreamingQualityProviding

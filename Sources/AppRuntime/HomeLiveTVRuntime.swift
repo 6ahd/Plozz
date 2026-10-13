@@ -25,7 +25,9 @@ public enum HomeLiveTVRuntime {
     /// LiveTVCatalogStorage, initializes portable sync, or touches a provider.
     public static func model(profileID: String) -> HomeLiveTVModel {
         if let model = models[profileID] { return model }
-        let model = HomeLiveTVModel(profileID: profileID, store: HomeLiveTVSnapshotStore(profileID: profileID))
+        let model = HomeLiveTVModel(profileID: profileID, store: HomeLiveTVSnapshotStore(
+            profileID: profileID, secureStore: LiveTVSourceStorage.catalogSecrets()
+        ))
         models[profileID] = model
         return model
     }

@@ -295,6 +295,7 @@ final class WatchOutboxColdStartTests: XCTestCase {
 
     func testPersistenceFailureIsSurfacedAndMutationRemainsInMemory() async {
         let failures = PersistenceFailureCounter()
+        let confirmations = PersistenceFailureCounter()
         let reconciler = WatchStateReconciler(
             store: FailingWatchMutationStore(),
             applier: FakeWatchApplier(),
@@ -305,12 +306,35 @@ final class WatchOutboxColdStartTests: XCTestCase {
             playedMutation(
                 capturedAt: Date(),
                 targets: [target("plex", "p1")]
-            )
+            ),
+            onPersisted: { confirmations.increment() }
         )
 
         XCTAssertEqual(failures.value, 1)
         let pending = await reconciler.pendingCount
         XCTAssertEqual(pending, 1)
+        XCTAssertEqual(confirmations.value, 0)
+    }
+
+    func testDurableEnqueueConfirmationExcludesStaleIntentsAndRetries() async {
+        let confirmations = PersistenceFailureCounter()
+        let applier = FakeWatchApplier()
+        applier.failingAccounts = ["plex"]
+        let reconciler = WatchStateReconciler(store: InMemoryWatchMutationStore(), applier: applier)
+        let time = Date()
+        await reconciler.enqueue(
+            playedMutation(capturedAt: time, targets: [target("plex", "p1")]),
+            onPersisted: { confirmations.increment() }
+        )
+        XCTAssertEqual(confirmations.value, 1, "Durable offline intent is accepted before network delivery")
+        await reconciler.enqueue(
+            playedMutation(capturedAt: time.addingTimeInterval(-1), targets: [target("plex", "p1")]),
+            onPersisted: { confirmations.increment() }
+        )
+        await reconciler.drain()
+        applier.failingAccounts = []
+        await reconciler.drain()
+        XCTAssertEqual(confirmations.value, 1)
     }
 
     /// A new user's very first watch must enqueue and converge end-to-end.

@@ -12,6 +12,7 @@ struct PresentationHostApp: App {
     init() {
         guard ProcessInfo.processInfo.arguments.contains("--appearance-interaction-fixture")
             || ProcessInfo.processInfo.arguments.contains("--settings-interaction-fixture")
+            || ProcessInfo.processInfo.arguments.contains("--playback-settings-fixture")
             || ProcessInfo.processInfo.arguments.contains("--navigation-interaction-fixture") else {
             interactionModel = nil
             return
@@ -27,6 +28,9 @@ struct PresentationHostApp: App {
         model.settings.theme.theme = .dark
         model.settings.theme.gradientEnabled = true
         model.settings.playback.settings = .default
+        if ProcessInfo.processInfo.arguments.contains("--silo-streaming") {
+            model.settings.playback.settings.streaming.codec = .preferHEVC
+        }
         model.settings.spoilers.settings = .default
         model.settings.detailPage.settings = .default
         model.settings.homeVisibility.useRowDefaults(.matchServer)
@@ -65,7 +69,13 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--profile-picker-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--watchlist-feedback-fixture") {
+                WatchlistFeedbackFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--touch-feedback-fixture") {
+                TouchFeedbackFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--rotation-player-fixture") {
+                PlayerRotationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--profile-picker-fixture") {
                 ProfilePickerInteractionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--downloads-interaction-fixture") {
                 DownloadsInteractionFixture()
@@ -153,6 +163,18 @@ private struct SettingsInteractionFixture: View {
                             .accessibilityIdentifier("fixture-open-settings")
                     }
                 }
+            } else if ProcessInfo.processInfo.arguments.contains("--playback-settings-fixture") {
+                NavigationStack {
+                    PlozziOSPlaybackSettingsView(
+                        model: appModel.settings.playback,
+                        audioPolicy: appModel.settings.audioPolicy,
+                        hasStreamingServer: true,
+                        streamingSupport: ProcessInfo.processInfo.arguments.contains("--silo-streaming")
+                            ? .silo : .standard
+                    )
+                }
+                .dynamicTypeSize(ProcessInfo.processInfo.arguments.contains("--large-text") ? .accessibility2 : .large)
+                .tint(ThemePalette.dark.primaryText)
             } else if ProcessInfo.processInfo.arguments.contains("--settings-interaction-fixture") {
                 PlozziOSSettingsView(appModel: appModel, onClose: {}, systemColorScheme: .dark)
             } else {

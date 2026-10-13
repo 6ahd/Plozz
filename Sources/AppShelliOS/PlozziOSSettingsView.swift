@@ -2388,12 +2388,13 @@ private struct PlozziOSDetailRatingPriorityView: View {
     }
 }
 
-private struct PlozziOSPlaybackSettingsView: View {
+struct PlozziOSPlaybackSettingsView: View {
     @Environment(\.locale) private var locale
     @Bindable var model: PlaybackSettingsModel
     @Bindable var audioPolicy: AudioPolicyModel
     let hasStreamingServer: Bool
     let streamingSupport: StreamingQualitySupport
+    @State private var showsAdvancedStreaming = false
 
     private static let policyCategories: [ContentCategory] = [.movie, .tvShow, .anime]
     private static let audioOptions: [AudioLanguagePreference] =
@@ -2426,8 +2427,19 @@ private struct PlozziOSPlaybackSettingsView: View {
         List {
             PlozziOSStreamingSettings(
                 settings: $model.settings.streaming, hasCompatibleServer: hasStreamingServer,
-                support: streamingSupport
+                support: streamingSupport,
+                onShowAdvanced: { showsAdvancedStreaming = true }
             )
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                SettingsSectionGroup {
+                    Picker("Player orientation", selection: $model.settings.orientation) {
+                        ForEach(PlaybackOrientation.allCases, id: \.self) {
+                            Text($0.title).tag($0)
+                        }
+                    }
+                    .accessibilityIdentifier("playback-orientation")
+                }
+            }
             SettingsSectionGroup("Skip intros, credits & more") {
                 if model.settings.skipModeOverrides.isEmpty {
                     Picker("Skip", selection: $model.settings.skipIntros) {
@@ -2458,13 +2470,12 @@ private struct PlozziOSPlaybackSettingsView: View {
                 Toggle(isOn: $model.settings.useCommunityMarkers) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Use community markers")
-                        Text("When your server has no intro or credits marker, Plozz looks one up on IntroDB and TheIntroDB, sending them the title’s IMDb or TMDB ID.")
+                        Text("Looks up missing markers on IntroDB and TheIntroDB using IMDb/TMDB IDs.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-            } footer: {
-                Text("Show a Skip button, or skip automatically, during intros, credits, recaps, previews and commercials.")
             }
 
             SettingsSectionGroup("Skipping") {
@@ -2486,14 +2497,7 @@ private struct PlozziOSPlaybackSettingsView: View {
             }
 
             SettingsSectionGroup("Playback") {
-                Toggle(isOn: $model.settings.backgroundAudio) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Background Audio")
-                        Text("Keep video audio playing when you lock your device or leave Plozz.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Toggle("Background Audio", isOn: $model.settings.backgroundAudio)
                 Toggle("Seek without pausing", isOn: $model.settings.seekWithoutPausing)
                 // Autoplay first: whether the next episode starts at all, then
                 // whether the card announces it. Independent switches.
@@ -2554,6 +2558,9 @@ private struct PlozziOSPlaybackSettingsView: View {
         }
         .settingsPageSurface()
         .navigationTitle("Playback")
+        .navigationDestination(isPresented: $showsAdvancedStreaming) {
+            PlozziOSAdvancedStreamingSettings(settings: $model.settings.streaming, support: streamingSupport)
+        }
     }
 
     private var audioOverridesEnabled: Binding<Bool> {

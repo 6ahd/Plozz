@@ -447,7 +447,7 @@ struct PrototypeBrowser: View {
                 returnTarget: returnTarget,
                 favorite: model.favoriteIDs.contains(channel.id),
                 playing: model.playingChannelID == channel.id,
-                toggleFavorite: { model.toggleFavorite(channel.id) },
+                toggleFavorite: { model.toggleFavoriteWithFeedback(channel.id) },
                 tune: { tune(entry.id) }, details: details, controls: openControls,
                 top: { goToTop(scrollTo: scrollTo) }, goToNow: goToNow,
                 focusChanged: confirmFocus, sources: openSources, guideTime: openGuideTime,

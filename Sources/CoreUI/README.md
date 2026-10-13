@@ -6,6 +6,20 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Native action controls** — `plozzActionButton` only selects the system
+  glass/glass-prominent styles, or bordered styles on older systems. It adds no
+  font, padding, capsule, border, focus effect or press scaling. Setup, profile/PIN,
+  source/import, retry and sync actions share this native selection rather than
+  the retired `PlozzActionButtonStyle`. Keep label sizing native; do not add wide
+  minimum widths just to manufacture a large page-action pill. Text colors belong
+  on text, not screen containers that also contain native controls.
+  iOS primary actions pair the palette's monochrome `accent` with `onAccent`:
+  native prominent buttons otherwise retain white text on a white tint. This
+  theme-color pairing does not replace native geometry, material or interaction.
+  Playback uses `PlayerControlButton` for icon-only transport actions. Multiview
+  keeps visible title-and-icon labels and uses the same `playerGlassButton`
+  treatment, including native menus. Only the existing reduced-transparency
+  playback path draws the shared frosted fallback.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than
@@ -122,10 +136,30 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Entry-gate state remains observable for episode rows; ordinary Home rows
   retain native column-aligned entry and cover/return behavior.
 - **Grouped settings interactions** — `SettingsSectionGroup` uses explicit
-  menu pickers on iOS. A visual group occupies one native List cell; automatic
+  menu pickers on iOS. Custom value menus use `SettingsMenuLabel` to show
+  the selected value with up/down chevrons, matching editable pickers rather
+  than read-only `LabeledContent`. Navigation keeps its right-facing chevron.
+  A visual group occupies one native List cell; automatic
   pickers can promote their menu to that whole cell and intercept neighboring
   navigation links or controls. Keep picker activation local without replacing
   the shared group surface, separators, or tvOS control styles.
+- **Detail-opening feedback** — `detailOpenFeedback()` provides one soft haptic
+  when a mobile media, person, downloaded-show, or music detail page first
+  appears. The page owns the one-shot state, outside loading content, so data
+  refreshes, returning from playback, and popping a nested detail do not repeat
+  it. Opening a new page emits again; tvOS and devices without haptics are silent.
+- **Touch action feedback** — `TouchFeedback` gives mobile skip actions a light
+  impact and committed scrubs / explicit reorder moves a selection tick. Native
+  List drag reordering retains system feedback without a second app vibration.
+  Watchlist actions acknowledge the press immediately with a light tap and stay
+  silent on success; an error haptic accompanies a failed save and rollback.
+  Manual watched actions retain the immediate tap and separate confirmation of
+  durable outbox acceptance, not eventual server synchronization.
+  Favorites confirm successful writes. Capture asynchronous completion haptics
+  at the user action: they are one-shot and cancelled when the app deactivates
+  or the profile changes, rather than expiring during a slow foreground save.
+  Scrolling, menu opening, automatic playback and background persistence/retry
+  events do not trigger action feedback.
 - **Async artwork** — `FallbackAsyncImage` and `ArtworkImageCache`: an
   on-disk + in-memory image cache shared with `MetadataKit`'s URL cache,
   with profile-scoped source choices in Appearance > Artwork. Recommended uses
@@ -274,6 +308,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   a second corner silhouette that can separate from the highlight. Transparent
   portrait sources receive the same dark backing as missing artwork.
   Alpha-masked landscape/square artwork remains rounded in the bitmap.
+  Native loading cards bake their neutral fill into that same artwork plane.
+  Only the spinner belongs on the nearer overlay plane; a full rounded fill
+  there scales independently and exposes the underlying image as an extra rim.
   Corner flags, count-tile backgrounds and legibility washes are composited into
   the artwork itself. Portrait count digits and floating status/library marks
   use a cached foreground on `overlayContentView`. That surface receives a nearer

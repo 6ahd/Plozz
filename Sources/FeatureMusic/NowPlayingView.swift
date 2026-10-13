@@ -839,12 +839,18 @@ public struct NowPlayingView: View {
 
             // Centre group — symmetric, so play/pause lands on the screen centre.
             HStack(spacing: 28) {
-                transportButton(icon: "backward.end.fill") { controller.previous() }
+                transportButton(icon: "backward.end.fill") {
+                    controller.previous()
+                    if controller.hasActivePlayback { TouchFeedback.shared.emit(.impact) }
+                }
                     .focused($focus, equals: .previous)
 
                 playPauseButton
 
-                transportButton(icon: "forward.end.fill") { controller.next() }
+                transportButton(icon: "forward.end.fill") {
+                    controller.next()
+                    if controller.hasActivePlayback { TouchFeedback.shared.emit(.impact) }
+                }
                     .focused($focus, equals: .next)
             }
 

@@ -863,17 +863,13 @@ struct NativePosterPlaceholder: UIViewRepresentable {
 
     typealias Container = NativeTVPoster<EmptyView>.Container
 
-    /// The corner TVUIKit gives a poster's image: the same at every size, and
-    /// matched to within a pixel of the native one.
-    static let cornerRadius: CGFloat = 21
-
     func makeCoordinator() -> NativeTVMediaCoordinator? {
         focus.map { NativeTVMediaCoordinator(focus: $0, action: {}) }
     }
 
     func makeUIView(context: Context) -> Container {
         let size = CGSize(width: fallbackWidth, height: fallbackWidth / aspectRatio)
-        let poster = NativePosterButton(image: Self.blank(size), masksFocusEffectToContents: aspectRatio >= 1)
+        let poster = NativePosterButton(image: Self.blank(size, fill: fill), masksFocusEffectToContents: aspectRatio >= 1)
         poster.contentSize = size
         poster.isEnabled = focus != nil && context.environment.isEnabled
         poster.isUserInteractionEnabled = focus != nil
@@ -901,6 +897,7 @@ struct NativePosterPlaceholder: UIViewRepresentable {
         if poster.artworkView.masksFocusEffectToContents != (aspectRatio >= 1) {
             poster.artworkView.masksFocusEffectToContents = aspectRatio >= 1
         }
+        poster.updateImage(Self.blank(poster.contentSize, fill: fill))
         poster.hostedOverlay?.configuration = configuration(in: context)
         poster.isEnabled = focus != nil && context.environment.isEnabled
         poster.isAccessibilityElement = focus != nil
@@ -911,12 +908,8 @@ struct NativePosterPlaceholder: UIViewRepresentable {
 
     private func configuration(in context: Context) -> any UIContentConfiguration {
         UIHostingConfiguration {
-            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .circular)
-                .fill(fill)
-                .shimmering()
-                .overlay {
-                    SkeletonLoadingIndicator(isVisible: showsProgress)
-                }
+            Color.clear
+                .overlay { SkeletonLoadingIndicator(isVisible: showsProgress) }
                 .environment(\.self, context.environment)
         }
         .margins(.all, 0)
@@ -929,22 +922,35 @@ struct NativePosterPlaceholder: UIViewRepresentable {
         let poster = uiView.poster
         if poster.contentSize != size {
             poster.contentSize = size
-            poster.updateImage(Self.blank(size))
+            poster.updateImage(Self.blank(size, fill: fill))
             uiView.invalidateIntrinsicContentSize()
             uiView.setNeedsLayout()
         }
         return uiView.intrinsicContentSize
     }
 
-    /// Keep the native focus mask rectangular even before real artwork arrives.
-    @MainActor private static var blanks: [String: UIImage] = [:]
+    private struct BlankKey: Hashable {
+        let width: CGFloat
+        let height: CGFloat
+        let fill: Color
+    }
+    @MainActor private static var blanks: [BlankKey: UIImage] = [:]
 
-    @MainActor private static func blank(_ size: CGSize) -> UIImage {
-        let key = "\(size.width)x\(size.height)"
+    @MainActor private static func blank(_ size: CGSize, fill: Color) -> UIImage {
+        let key = BlankKey(width: size.width, height: size.height, fill: fill)
         if let image = blanks[key] { return image }
-        let image = NativePosterArtworkBitmap.placeholder(
-            size: size, scale: 1, clipsToArtwork: size.height <= size.width
-        )
+        guard let image = NativePosterArtworkBitmap.image(
+            source: nil, size: size, scale: 1, backgroundColor: .darkGray,
+            clipsToArtwork: size.height <= size.width,
+            drawOverlay: { context in
+                context.setFillColor(UIColor(fill).cgColor)
+                context.fill(CGRect(origin: .zero, size: size))
+            }
+        ) else {
+            PlozzLog.app.error("Unable to prepare native loading artwork")
+            return NativePosterArtworkBitmap.placeholder(size: size, scale: 1, clipsToArtwork: size.height <= size.width)
+        }
+        if blanks.count >= 16 { blanks.removeAll(keepingCapacity: true) }
         blanks[key] = image
         return image
     }

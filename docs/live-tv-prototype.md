@@ -28,14 +28,27 @@ channel identities until that profile's catalog owner republishes them.
 Home performs at most 24 candidate lookups in the already indexed catalog when
 the Live TV owner publishes a snapshot. It never reads/decrypts a full lineup,
 hashes an imported playlist file, refreshes a playlist/guide/provider, starts a
-tuner, runs a preview, or introduces a polling timer. Cards retain only channel
-identity and display text, using a local broadcast glyph rather than potentially
-credential-bearing artwork URLs. Playlist sources and server-backed sources
+tuner, runs a preview, or introduces a polling timer. Cards retain channel
+identity, display text and the selected channels' logo URLs. The shared channel
+artwork pipeline fits logos without cropping, reuses prepared images, and falls
+back to the channel name. Only visible logo requests are added; no catalog work
+is needed for artwork. Snapshots containing potentially credential-bearing URLs
+are authenticated ciphertext with a profile-specific Keychain key. URL-free
+legacy snapshots remain readable; plaintext artwork URLs are rejected, and a
+missing or locked key never causes a plaintext fallback or replacement key on read.
+Home TV cards use a direct SwiftUI Button with the native card style for System
+focus, keeping artwork loading and focus in the same view hierarchy. The native
+style owns the dark surface, sheen and corner shape; only custom-focus and mobile
+cards draw the fallback surface. Fast row scrolling must retire the previous
+card's visible highlight as well as its focus state. Loading Continue Watching
+keeps the hero empty until a real card is focused or the first slot finishes
+loading, rather than seeding it from a trailing cached channel.
+Playlist sources and server-backed sources
 (including IPTV accounts) retain current profile, source-approval and server-user
 authorization fences. Persisted scope uses non-secret account credential revisions
 and profile/server-user identity, not ephemeral per-launch Plex override revisions.
 Current source approval, credentials and profile access are checked before cached
-cards are exposed. Credentials and token-derived hashes are not persisted.
+cards are exposed. No plaintext credentials or token-derived identity hashes are persisted.
 Scheduled library channels remain in the Live TV guide.
 The mobile tab shell supplies its current `ProfilesModel` to the shared Home
 scope and all tab destinations, not only the Live TV child. The shared scope
@@ -1180,6 +1193,11 @@ windows the dock scrolls rather than truncating labels. Setup's pictures reserve
 the measured header and dock heights so landscape and large-text controls cannot
 cover them. TV focus controls and the retained players' full-screen geometry are
 unchanged.
+Apple TV multiview's header and toolbar keep visible title-and-icon labels with
+the same native button treatment as normal playback, including the Layout menu.
+Their height stays transport-sized while width follows the action's title.
+Focused labels stay dark against the bright fill in native-glass and
+reduced-transparency modes. These controls do not use the larger page/form action pills.
 Watching hides controls after four seconds of inactivity. Editing, native menus,
 channel selection, preparation failures and VoiceOver keep them available.
 Native menu focus notifications do not write back into the pinned controls'

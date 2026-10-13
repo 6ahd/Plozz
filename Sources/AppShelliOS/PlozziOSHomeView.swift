@@ -346,9 +346,11 @@ struct PlozziOSHomeView: View {
         // still resolves to its next-up episode rather than being handed to the
         // player as a container.
         .plozziOSRailPlay { play($0) }
-        .fullScreenCover(item: $playbackRequest) { request in
+        .plozziOSPlayerCover(
+            item: $playbackRequest, orientation: appModel.settings.playback.settings.orientation
+        ) { request, orientation in
             if let provider = appModel.provider(for: request.item) {
-                PlozziOSPlayerView(request: request, provider: provider)
+                PlozziOSPlayerView(request: request, provider: provider, orientation: orientation)
             } else {
                 ContentUnavailableView(
                     "Server unavailable",

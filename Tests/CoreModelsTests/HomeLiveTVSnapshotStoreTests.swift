@@ -129,4 +129,91 @@ final class HomeLiveTVSnapshotStoreTests: XCTestCase {
         XCTAssertFalse(HomeLiveTVModel(profileID: profileID, store: store).snapshot.isEmpty)
         wait(for: [notification], timeout: 0.02)
     }
+
+    func testLogoURLsPersistOnlyInAuthenticatedCiphertextAndRestoreWithoutAKeyWrite() throws {
+        let directory = try directory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let secrets = HomeArtworkSecrets()
+        let original = channel("news")
+        let card = HomeLiveTVChannel(
+            route: original.route, name: original.name, sourceName: original.sourceName, number: original.number,
+            logoURL: URL(string: "https://example.test/logo.png?token=artwork-credential")
+        )
+        let snapshot = HomeLiveTVSnapshot(recentChannels: [card], channels: [card])
+        let store = HomeLiveTVSnapshotStore(profileID: "profile", directory: directory, secureStore: secrets)
+        store.save(snapshot)
+        let url = try XCTUnwrap(FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil
+        ).first)
+        let data = try Data(contentsOf: url)
+        XCTAssertLessThanOrEqual(data.count, HomeLiveTVSnapshotStore.maximumBytes)
+        for text in ["artwork-credential", "example.test", "logoURL", "news"] {
+            XCTAssertNil(data.range(of: Data(text.utf8)), "Artwork metadata must not be plaintext.")
+            XCTAssertFalse(secrets.values.values.contains { $0.contains(text) }, "Only the encryption key belongs in Keychain.")
+        }
+        XCTAssertEqual(secrets.writeCount, 1)
+        let relaunched = HomeLiveTVSnapshotStore(profileID: "profile", directory: directory, secureStore: secrets)
+        XCTAssertEqual(relaunched.load(), snapshot)
+        XCTAssertEqual(secrets.writeCount, 1, "Hydration must never create or replace a key.")
+
+        var tampered = data
+        tampered[tampered.count - 1] ^= 1
+        try tampered.write(to: url)
+        XCTAssertTrue(relaunched.load().isEmpty)
+        try data.write(to: url)
+        secrets.failRead = true
+        XCTAssertTrue(relaunched.load().isEmpty)
+        store.save(snapshot)
+        XCTAssertEqual(try Data(contentsOf: url), data, "A locked key must not cause plaintext fallback or key replacement.")
+        XCTAssertEqual(secrets.writeCount, 1)
+        secrets.failRead = false
+        XCTAssertEqual(relaunched.load(), snapshot)
+
+        let missing = HomeArtworkSecrets()
+        XCTAssertTrue(HomeLiveTVSnapshotStore(
+            profileID: "profile", directory: directory, secureStore: missing
+        ).load().isEmpty)
+        XCTAssertEqual(missing.writeCount, 0)
+        XCTAssertEqual(try Data(contentsOf: url), data)
+    }
+
+    func testPlaintextArtworkIsRejectedAndMissingSecureStorageCannotWriteIt() throws {
+        let directory = try directory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = HomeLiveTVSnapshotStore(profileID: "profile", directory: directory)
+        let original = channel("news")
+        store.save(.init(channels: [original]))
+        let url = try XCTUnwrap(FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil
+        ).first)
+        let metadata = try Data(contentsOf: url)
+        let card = HomeLiveTVChannel(
+            route: original.route, name: original.name, sourceName: original.sourceName, number: original.number,
+            logoURL: URL(string: "https://example.test/logo.png?token=artwork-credential")
+        )
+        store.save(.init(channels: [card]))
+        XCTAssertEqual(try Data(contentsOf: url), metadata)
+        XCTAssertEqual(store.load().channels, [original], "Existing URL-free metadata remains compatible.")
+        var plaintext = try XCTUnwrap(JSONSerialization.jsonObject(with: metadata) as? [String: Any])
+        plaintext["channels"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode([card]))
+        try JSONSerialization.data(withJSONObject: plaintext).write(to: url)
+        XCTAssertTrue(store.load().isEmpty, "No plaintext artifact may introduce a credential-bearing image request.")
+    }
+}
+
+private final class HomeArtworkSecrets: SecureStoring, @unchecked Sendable {
+    var values: [String: String] = [:]
+    var writeCount = 0
+    var failRead = false
+
+    func readString(for key: String) throws -> String? {
+        if failRead { throw CocoaError(.fileReadNoPermission) }
+        return values[key]
+    }
+    func string(for key: String) -> String? { values[key] }
+    func setString(_ value: String, for key: String) throws {
+        writeCount += 1
+        values[key] = value
+    }
+    func removeValue(for key: String) throws { values[key] = nil }
 }

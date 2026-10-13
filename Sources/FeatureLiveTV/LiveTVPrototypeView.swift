@@ -377,6 +377,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                             : (expanded ? layout.bounds : layout.videoFrame)
                         player(playbackInput(for: pane, prepared: prepared))
                     .environment(\.themePalette, ThemePalette.dark)
+                    .environment(\.colorScheme, .dark)
                     .frame(width: videoFrame.width, height: videoFrame.height)
                     .clipShape(RoundedRectangle(
                         cornerRadius: showingMultiview && multiview.isEditingLayout ? 10 : 0))
@@ -451,7 +452,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         }
         .environment(\.themePalette, palette)
         .tint(palette.accent)
-        .foregroundStyle(palette.primaryText)
+        .environment(\.colorScheme, palette.isLight ? .light : .dark)
         .overlay(alignment: .topTrailing) {
             if let id = playback.pendingWatchChannelID, !preview.isExpanded || playback.preparation.current == nil {
                 PrototypeWatchPreparationStatus(
@@ -495,7 +496,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             nextChannel: { changeChannel(by: 1) },
             isFavorite: model.favoriteIDs.contains(prepared.channel.id),
             canToggleFavorite: model.preferencesIssue != .loadFailed,
-            onToggleFavorite: { model.toggleFavorite(prepared.channel.id) },
+            onToggleFavorite: { model.toggleFavoriteWithFeedback(prepared.channel.id) },
             isExpanded: preview.isExpanded && !multiview.isEnabled,
             returnToGuide: {
                 guard playback.ownsPlayerPresentation(presentationID) else { return }
@@ -1663,9 +1664,9 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
 
     private func toggleMultiviewFavorite() {
         if let favorite = model.favoriteMultiviews.first(where: multiview.matches) {
-            model.removeMultiviewFavorite(favorite.id)
+            if model.removeMultiviewFavorite(favorite.id) { TouchFeedback.shared.emit(.confirmation) }
         } else if let favorite = multiview.favoriteSnapshot() {
-            model.saveMultiviewFavorite(favorite)
+            if model.saveMultiviewFavorite(favorite) { TouchFeedback.shared.emit(.confirmation) }
         } else {
             multiviewFavoriteIssue = "Wait for the channels to load before saving this Multiview."
         }

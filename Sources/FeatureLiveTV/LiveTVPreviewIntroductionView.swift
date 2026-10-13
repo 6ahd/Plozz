@@ -38,7 +38,7 @@ struct LiveTVPreviewIntroductionView: View {
         .padding(56)
         .frame(maxWidth: 1_100, alignment: .leading)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .foregroundStyle(palette.primaryText)
+        .environment(\.colorScheme, palette.isLight ? .light : .dark)
         .transaction { if reduceMotion { $0.disablesAnimations = true } }
         .onExitCommand { choose(false) }
     }
@@ -73,14 +73,14 @@ private struct LiveTVPreviewIntroductionActions: View {
         HStack(spacing: 28) {
             Button { choose(true) } label: {
                 Text("Turn on previews")
-                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .frame(maxWidth: .infinity)
             }
             .plozzActionButton(role: .secondary)
             .focused($focused, equals: true)
             .accessibilityIdentifier("live-tv-preview-enable")
             Button { choose(false) } label: {
                 Text("Keep previews off")
-                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .frame(maxWidth: .infinity)
             }
             .plozzActionButton(role: .secondary)
             .focused($focused, equals: false)

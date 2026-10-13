@@ -169,6 +169,14 @@ final class FocusHeroModel {
     @ObservationIgnored let motion = FocusHeroRowMotion()
 
     func activate(_ row: FocusHeroRow, in rows: [FocusHeroRow]) {
+        if row.isPlaceholder && row.leadItem == nil {
+            pendingShow?.cancel()
+            pendingShow = nil
+            hasFocusedTitle = false
+            subject = nil
+            details = nil
+            shownArtwork = []
+        }
         // Compared with the recorded row, not the resolved one: before anything is
         // recorded the first row stands in, and a row loading in above it must not
         // take the pin from the row that actually holds focus.
@@ -249,7 +257,12 @@ final class FocusHeroModel {
         let row = rows.first { $0.id == resolvedActiveRowID(in: rows) } ?? rows.first
         shownArtwork = row.flatMap { row in row.leadItem.map(row.shownArtwork(for:)) } ?? []
         subject = row?.leadItem.map(FocusHeroSubject.item)
-            ?? row?.liveChannels.first.map(FocusHeroSubject.liveChannel)
+            ?? (row?.isPlaceholder == false ? row?.liveChannels.first.map(FocusHeroSubject.liveChannel) : nil)
+        if subject == nil {
+            pendingShow?.cancel()
+            pendingShow = nil
+            hasFocusedTitle = false
+        }
         details = subject
     }
 
@@ -394,6 +407,7 @@ struct FocusHeroHomeView<RowContent: View>: View {
         .onChange(of: rows.map(\.itemIDs)) { _, _ in model.seed(from: rows) }
         .onChange(of: rows.map(\.items)) { _, _ in model.seed(from: rows) }
         .onChange(of: rows.map(\.liveChannels)) { _, _ in model.seed(from: rows) }
+        .onChange(of: rows.map(\.isPlaceholder)) { _, _ in model.seed(from: rows) }
         .task(id: rows.map { $0.items.map(FocusHeroMetadata.Key.init) }) {
             guard let enrich else { return }
             await metadata.prefetch(rows.map { Array($0.items.prefix(16)) }, using: enrich)
