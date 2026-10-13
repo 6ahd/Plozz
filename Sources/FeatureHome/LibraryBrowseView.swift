@@ -669,14 +669,19 @@ public struct LibraryBrowseView: View {
         // Look ahead in the direction of travel. Rows scrolled past have usually left the
         // memory cache, so scrolling back up needs the same warm-up as scrolling down.
         let tracker = artworkPrefetch
-        if tracker.forward ? index < tracker.furthest - 8 : index > tracker.furthest + 8 {
+        // Cells of one row can report in any order; only a full row behind the furthest
+        // cell counts as turning around. Each pass then warms its own way again.
+        let row = max(1, metrics.libraryPosterColumns.count)
+        if tracker.forward ? index < tracker.furthest - row : index > tracker.furthest + row {
             tracker.forward.toggle()
             tracker.furthest = index
+            if tracker.forward { tracker.seen.removeAll() } else { tracker.seenBackward.removeAll() }
         }
         tracker.furthest = tracker.forward ? max(tracker.furthest, index) : min(tracker.furthest, index)
+        let lookahead = row * 2
         let range = tracker.forward
-            ? Array(index...min(index + 10, viewModel.totalCount - 1))
-            : Array((max(0, index - 10)...index).reversed())
+            ? Array(index...min(index + lookahead, viewModel.totalCount - 1))
+            : Array((max(0, index - lookahead)...index).reversed())
         for candidateIndex in range {
             guard let candidate = viewModel.item(at: candidateIndex) else { continue }
             guard tracker.forward
@@ -870,7 +875,7 @@ private final class ArtworkPrefetchTracker {
     var seen: Set<String> = []
     /// Prefetched while scrolling back up; separate, so the way back warms rows seen going down.
     var seenBackward: Set<String> = []
-    /// Scroll direction. It flips once an appearing cell is more than 8 items behind the
+    /// Scroll direction. It flips once an appearing cell is more than a row behind the
     /// furthest one in the current direction, so a row's own cells don't flip it.
     var forward = true
     var furthest = 0
