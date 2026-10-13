@@ -699,6 +699,150 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertTrue(model.isAtLiveEdge)
     }
 
+    func testWindowSeekStacksPressesAndCommitsOnce() async throws {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        engine.liveSnapshot.seekableRange = 0...600
+        engine.liveSnapshot.position = 598
+        engine.liveSnapshot.behindLiveSeconds = 2
+        model.refreshFromEngine()
+        XCTAssertTrue(model.canSeekWindow)
+        XCTAssertEqual(model.seekWindowSeconds, 600)
+
+        model.seek(by: -10)
+        model.seek(by: -10)
+        model.seek(by: -10)
+        // The timeline follows the presses before the engine is asked.
+        XCTAssertEqual(model.behindLiveSeconds, 32, accuracy: 0.001)
+        XCTAssertFalse(model.isAtLiveEdge)
+        XCTAssertEqual(engine.genericSeekCount, 0)
+
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertEqual(engine.genericSeekCount, 1)
+        XCTAssertEqual(try XCTUnwrap(engine.lastSeekTarget), 568, accuracy: 0.001)
+        XCTAssertEqual(engine.goLiveCount, 0)
+    }
+
+    func testWindowSeekPastTheEdgeGoesLive() async throws {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        engine.liveSnapshot.seekableRange = 0...600
+        engine.liveSnapshot.position = 500
+        engine.liveSnapshot.behindLiveSeconds = 100
+        model.refreshFromEngine()
+
+        model.seek(by: 200)
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertEqual(engine.goLiveCount, 1)
+        XCTAssertEqual(engine.genericSeekCount, 0)
+    }
+
+    func testReplacementChannelDoesNotWaitForOrLoseItsSeekToThePreviousChannel() async throws {
+        let engine = LiveEngineSpy()
+        engine.liveSnapshot.seekableRange = 0...600
+        engine.liveSnapshot.position = 500
+        engine.liveSnapshot.behindLiveSeconds = 100
+        engine.suspendsSeeks = true
+        let model = makeModel(engine: engine)
+        defer { engine.resumeAllSeeks(); model.stop() }
+        await model.start()
+        model.seek(by: -10)
+        try await waitForSeekCount(1, engine: engine)
+        await model.changeSource(channelID: "replacement", streamURL: try XCTUnwrap(URL(string: "https://fixture.invalid/b.m3u8")))
+        model.seek(by: -20)
+        try await waitForSeekCount(2, engine: engine)
+        XCTAssertEqual(engine.lastSeekTarget, 480)
+        engine.resumeSeek(1)
+        await Task.yield()
+        model.seek(by: -10)
+        try await Task.sleep(for: LiveChannelPlayerModel.seekCommitDelay + .milliseconds(100))
+        XCTAssertEqual(engine.genericSeekCount, 2, "The retired seek cannot clear the new worker's ownership.")
+        engine.resumeSeek(2)
+        try await waitForSeekCount(3, engine: engine)
+        XCTAssertEqual(engine.lastSeekTarget, 470)
+    }
+
+    func testGoLiveAndRewindUseOneWorkerAndKeepTheLatestIntent() async throws {
+        for liveFirst in [false, true] {
+            let engine = LiveEngineSpy()
+            engine.liveSnapshot.seekableRange = 0...600
+            engine.liveSnapshot.position = 500
+            engine.liveSnapshot.behindLiveSeconds = 100
+            engine.suspendsSeeks = true
+            let model = makeModel(engine: engine)
+            defer { engine.resumeAllSeeks(); model.stop() }
+            await model.start()
+            let first = Task {
+                if liveFirst { await model.goLive() }
+                else { model.seek(by: -10) }
+            }
+            try await waitForSeekCount(1, engine: engine)
+            if liveFirst { model.seek(by: -20) }
+            else { await model.goLive() }
+            try await Task.sleep(for: LiveChannelPlayerModel.seekCommitDelay + .milliseconds(100))
+            XCTAssertEqual(engine.genericSeekCount + engine.goLiveCount, 1)
+            engine.resumeSeek(1)
+            try await waitForSeekCount(2, engine: engine)
+            XCTAssertEqual(engine.maximumConcurrentSeeks, 1)
+            XCTAssertEqual(engine.genericSeekCount, 1)
+            XCTAssertEqual(engine.goLiveCount, 1)
+            engine.resumeSeek(2)
+            await first.value
+        }
+    }
+
+    func testTemporaryInactivityKeepsOwnershipOfAnOutstandingSeek() async throws {
+        let engine = LiveEngineSpy()
+        engine.liveSnapshot.seekableRange = 0...600
+        engine.liveSnapshot.position = 500
+        engine.liveSnapshot.behindLiveSeconds = 100
+        engine.suspendsSeeks = true
+        let model = makeModel(engine: engine)
+        defer { engine.resumeAllSeeks(); model.stop() }
+        await model.start()
+        model.seek(by: -10)
+        try await waitForSeekCount(1, engine: engine)
+        model.handleScenePhase(.inactive)
+        model.handleScenePhase(.active)
+        model.seek(by: -20)
+        try await Task.sleep(for: LiveChannelPlayerModel.seekCommitDelay + .milliseconds(100))
+        XCTAssertEqual(engine.genericSeekCount, 1)
+        engine.resumeSeek(1)
+        try await waitForSeekCount(2, engine: engine)
+        XCTAssertEqual(engine.maximumConcurrentSeeks, 1)
+    }
+
+    private func waitForSeekCount(_ count: Int, engine: LiveEngineSpy) async throws {
+        let deadline = ContinuousClock.now + .seconds(3)
+        while engine.genericSeekCount + engine.goLiveCount < count, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertEqual(engine.genericSeekCount + engine.goLiveCount, count)
+    }
+
+    func testPlaylistHoldbackIsNotASeekWindow() async {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        model.refreshFromEngine()
+        XCTAssertFalse(model.canSeekWindow)
+        XCTAssertNil(model.seekWindowSeconds)
+        model.seek(by: -10)
+        XCTAssertTrue(model.isAtLiveEdge)
+    }
+
+    func testWindowSeekStaysClearOfTheOldestSegment() throws {
+        let window = try XCTUnwrap(LiveSeekableWindow(ranges: [(start: 1_000, duration: 600)]))
+        XCTAssertEqual(LiveChannelPlayerModel.windowSeekTarget(0, window: window), 1_006)
+        XCTAssertEqual(LiveChannelPlayerModel.windowSeekTarget(1_300, window: window), 1_300)
+        XCTAssertEqual(LiveChannelPlayerModel.windowSeekTarget(9_999, window: window), 1_600)
+    }
+
     func testPauseDuringGoLiveDoesNotResumeAtCompletion() async {
         let engine = LiveEngineSpy()
         let model = makeModel(engine: engine)
@@ -1403,6 +1547,10 @@ final class LiveEngineSpy: LiveChannelEngine {
     var stopCount = 0
     var goLiveCount = 0
     var genericSeekCount = 0
+    var suspendsSeeks = false
+    private var seekContinuations: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var concurrentSeeks = 0
+    var maximumConcurrentSeeks = 0
     var outputPolicy = LiveChannelOutputPolicy()
     var onOutputPolicy: (@MainActor (LiveChannelOutputPolicy) -> Void)?
     var supportsConcurrentPlayback: Bool { true }
@@ -1452,11 +1600,33 @@ final class LiveEngineSpy: LiveChannelEngine {
         onLoad = nil
         onGoLive = nil
     }
-    func seek(to seconds: TimeInterval) async { genericSeekCount += 1 }
+    var lastSeekTarget: TimeInterval?
+    func seek(to seconds: TimeInterval) async {
+        genericSeekCount += 1
+        lastSeekTarget = seconds
+        await waitForSeek()
+    }
     func seekToLiveEdge() async {
         goLiveCount += 1
         onGoLive?()
+        await waitForSeek()
         liveSnapshot.behindLiveSeconds = 0
+    }
+    private func waitForSeek() async {
+        concurrentSeeks += 1
+        maximumConcurrentSeeks = max(maximumConcurrentSeeks, concurrentSeeks)
+        defer { concurrentSeeks -= 1 }
+        if suspendsSeeks {
+            let id = genericSeekCount + goLiveCount
+            await withCheckedContinuation { seekContinuations[id] = $0 }
+        }
+    }
+    func resumeSeek(_ id: Int) { seekContinuations.removeValue(forKey: id)?.resume() }
+    func resumeAllSeeks() {
+        suspendsSeeks = false
+        let continuations = Array(seekContinuations.values)
+        seekContinuations.removeAll()
+        for continuation in continuations { continuation.resume() }
     }
     func selectAudioTrack(_ track: MediaTrack?) { currentAudioTrackID = track?.id }
     func selectSubtitleTrack(_ track: MediaTrack?) { selectedSubtitleID = track?.id }

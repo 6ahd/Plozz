@@ -178,6 +178,7 @@ struct PlozziOSLiveTVDestination: View {
                 onStopPlayback: playback.stopPlayback,
                 onOpenLibraryItem: playback.openLibraryItem,
                 program: playback.program,
+                earlierPrograms: playback.earlierPrograms,
                 loadOnNow: playback.onNow,
                 onTuneChannel: playback.tuneChannel,
                 guideOverlay: playback.guideOverlay

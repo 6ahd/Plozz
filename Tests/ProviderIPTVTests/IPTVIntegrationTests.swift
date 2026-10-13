@@ -877,6 +877,36 @@ final class IPTVIntegrationTests: XCTestCase {
         await proxy.stop()
     }
 
+    func testProxyKeepsSegmentAddressesStableAcrossLiveRefreshes() async throws {
+        IPTVFixture.state.handler = { _ in
+            (200, ["Content-Type": "application/vnd.apple.mpegurl"], Data("""
+            #EXTM3U
+            #EXT-X-TARGETDURATION:6
+            #EXT-X-MEDIA-SEQUENCE:100
+            #EXTINF:6,
+            https://cdn.test/100.ts
+            #EXTINF:6,
+            https://cdn.test/101.ts
+            """.utf8))
+        }
+        let proxy = try IPTVPlaybackProxy(
+            origin: XCTUnwrap(URL(string: "https://provider.test/live.m3u8")),
+            headers: [:], configuration: configuration()
+        )
+        do {
+            let url = try await proxy.start()
+            let session = URLSession(configuration: .ephemeral)
+            defer { session.invalidateAndCancel() }
+            let (first, _) = try await session.data(from: url)
+            let (second, _) = try await session.data(from: url)
+            // AVPlayer fails a live playlist whose MEDIA-SEQUENCE entries change URL between refreshes.
+            XCTAssertEqual(String(decoding: first, as: UTF8.self), String(decoding: second, as: UTF8.self))
+            let lines = String(decoding: first, as: UTF8.self).split(separator: "\n").filter { $0.hasPrefix("http") }
+            XCTAssertEqual(Set(lines).count, 2)
+        } catch { await proxy.stop(); throw error }
+        await proxy.stop()
+    }
+
     func testProxyPreservesHeadAndByteRanges() async throws {
         IPTVFixture.state.handler = { request in
             (206, ["Content-Type": "video/mp4", "Content-Range": "bytes 10-12/100", "Content-Length": "3"],

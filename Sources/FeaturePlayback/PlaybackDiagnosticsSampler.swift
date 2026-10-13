@@ -13,8 +13,8 @@ import os
 ///  * **Never blocks the main actor.** Static, one-shot track info (codec, HDR,
 ///    frame rate, natural size) is read with the async `load(_:)` APIs, which
 ///    suspend rather than block. Per-tick reads (`presentationSize`,
-///    `accessLog()`, `loadedTimeRanges`) are cheap synchronous property
-///    accesses that don't stall playback.
+///    `loadedTimeRanges`) stay on the actor; potentially blocking log getters
+///    run in one coalesced background read, never in the UI's sampling tick.
 ///  * Dynamic values are re-sampled ~1s. Original-file facts are loaded once;
 ///    converted tracks are re-read asynchronously for late/changed formats.
 ///  * The pure classification/formatting lives in `PlaybackDiagnostics`
@@ -33,6 +33,19 @@ public final class PlaybackDiagnosticsSampler {
     /// Live engine telemetry source (dropped frames / FPS / bitrate). Used to fill
     /// the per-tick metrics on engines with no `AVPlayer` access log (Plozzigen).
     private var engineTelemetry: (@MainActor () -> EngineLiveTelemetry?)?
+    /// Live channels: the engine's view of the live session, completed here
+    /// from the item's access and error logs.
+    @ObservationIgnored private var liveStream: (@MainActor () -> PlaybackDiagnostics.LiveStreamFacts?)?
+    @ObservationIgnored private var liveRoute: (@MainActor () -> LiveChannelEngineRoute)?
+    /// Codec facts from the live item's current tracks, re-read every few
+    /// seconds because a variant switch can change them.
+    @ObservationIgnored private var liveTracks = MediaSourceMetadata()
+    @ObservationIgnored private var liveTracksTask: Task<Void, Never>?
+    @ObservationIgnored private var liveTracksReadAt: Date?
+    @ObservationIgnored private var liveTracksReader: @MainActor (AVPlayerItem) async -> MediaSourceMetadata = readLiveTracks
+    @ObservationIgnored private var logReader: @Sendable (AVPlayerItem) -> PlaybackLogSnapshot = PlaybackLogSnapshot.read
+    @ObservationIgnored private var logReadTask: Task<Void, Never>?
+    @ObservationIgnored private var logSnapshot: PlaybackLogSnapshot?
     /// Engine-probed input facts, not a measurement of the display/HDMI output.
     /// The probed range corrects provider hints for original-source playback.
     private var probedFacts: (@MainActor () -> EngineProbedSourceFacts?)?
@@ -66,6 +79,15 @@ public final class PlaybackDiagnosticsSampler {
         self.streamDetailsReader = streamDetailsReader
     }
 
+    init(
+        liveTracksReader: @escaping @MainActor (AVPlayerItem) async -> MediaSourceMetadata = readLiveTracks,
+        logReader: @escaping @Sendable (AVPlayerItem) -> PlaybackLogSnapshot
+    ) {
+        streamDetailsReader = NativeStreamDetailsReader.read
+        self.liveTracksReader = liveTracksReader
+        self.logReader = logReader
+    }
+
     /// Begins sampling `player`. Idempotent — restarts cleanly if called again.
     ///
     /// - Parameters:
@@ -95,6 +117,8 @@ public final class PlaybackDiagnosticsSampler {
         streamURL: URL? = nil,
         engineTelemetry: (@MainActor () -> EngineLiveTelemetry?)? = nil,
         probedFacts: (@MainActor () -> EngineProbedSourceFacts?)? = nil,
+        liveRoute: (@MainActor () -> LiveChannelEngineRoute)? = nil,
+        liveStream: (@MainActor () -> PlaybackDiagnostics.LiveStreamFacts?)? = nil,
         includesSystemMetrics: Bool = true,
         onStreamDetails: (@MainActor (PlaybackStreamDetails) -> Void)? = nil
     ) {
@@ -102,6 +126,8 @@ public final class PlaybackDiagnosticsSampler {
         self.player = player
         self.playerProvider = playerProvider
         self.engineTelemetry = engineTelemetry
+        self.liveRoute = liveRoute
+        self.liveStream = liveStream
         self.probedFacts = probedFacts
         self.onStreamDetails = onStreamDetails
         self.includesSystemMetrics = includesSystemMetrics
@@ -126,7 +152,7 @@ public final class PlaybackDiagnosticsSampler {
         latest = staticDiagnostics
 
         // Keep sampling even before a player exists and on software-only paths.
-        if let item = player?.currentItem, mode != .transcode {
+        if let item = player?.currentItem, mode != .transcode, liveStream == nil {
             let generation = generation
             staticInfoTask = Task { await loadStaticInfo(item: item, generation: generation) }
         }
@@ -150,6 +176,14 @@ public final class PlaybackDiagnosticsSampler {
         streamInfoTask = nil
         sampledItem = nil
         streamMetadata = .init()
+        liveTracksTask?.cancel()
+        liveTracksTask = nil
+        liveTracksReadAt = nil
+        liveTracks = .init()
+        liveRoute = nil
+        liveStream = nil
+        logReadTask?.cancel()
+        logSnapshot = nil
         onStreamDetails = nil
         player = nil
         playerProvider = nil
@@ -172,12 +206,12 @@ public final class PlaybackDiagnosticsSampler {
     /// bitrate, buffered-ahead, position). A growing stall count alongside a low
     /// observed bitrate is the throughput-starvation fingerprint; stalls with
     /// healthy throughput point instead at a timeline-drift bug.
-    private func logNewStalls(event: AVPlayerItemAccessLogEvent, item: AVPlayerItem) {
-        let stalls = event.numberOfStalls
+    private func logNewStalls(event: PlaybackLogSnapshot, item: AVPlayerItem) {
+        guard let stalls = event.stalls else { return }
         guard stalls > lastLoggedStallCount else { return }
         lastLoggedStallCount = stalls
-        let observedMbps = event.observedBitrate > 0 ? event.observedBitrate / 1_000_000 : -1
-        let indicatedMbps = event.indicatedBitrate > 0 ? event.indicatedBitrate / 1_000_000 : -1
+        let observedMbps = event.observedBitrate.flatMap { $0 > 0 ? $0 / 1_000_000 : nil } ?? -1
+        let indicatedMbps = event.indicatedBitrate.flatMap { $0 > 0 ? $0 / 1_000_000 : nil } ?? -1
         let buffered = bufferedSecondsAhead(in: item) ?? -1
         let engineBuffered = engineTelemetry?()?.bufferedSecondsAhead ?? -1
         let pos = item.currentTime().seconds
@@ -204,6 +238,8 @@ public final class PlaybackDiagnosticsSampler {
 
     func sampleTick() {
         refreshPlayer()
+        let route = liveRoute?()
+        if let route { staticDiagnostics.mode = route.diagnosticsMode }
         var diagnostics = staticDiagnostics
         if diagnostics.mode == .transcode, player?.currentItem == nil {
             streamInfoTask?.cancel()
@@ -243,16 +279,17 @@ public final class PlaybackDiagnosticsSampler {
                 }
             }
 
-            if let event = item.accessLog()?.events.last {
+            updateLogs(item: item)
+            if let event = logSnapshot {
                 // Plozzigen's loopback rate is not the media server's network rate.
-                if diagnostics.mode != .plozzigen {
-                    if event.indicatedBitrate > 0 { diagnostics.indicatedBitrate = event.indicatedBitrate }
-                    if event.observedBitrate > 0 { diagnostics.observedBitrate = event.observedBitrate }
+                if diagnostics.mode != .plozzigen, route == nil || route == .nativeHLS {
+                    if let bitrate = event.indicatedBitrate, bitrate > 0 { diagnostics.indicatedBitrate = bitrate }
+                    if let bitrate = event.observedBitrate, bitrate > 0 { diagnostics.observedBitrate = bitrate }
                 }
-                if event.numberOfDroppedVideoFrames >= 0 {
-                    diagnostics.droppedVideoFrames = event.numberOfDroppedVideoFrames
+                if let frames = event.droppedFrames, frames >= 0 {
+                    diagnostics.droppedVideoFrames = frames
                 }
-                if event.numberOfStalls >= 0 { diagnostics.stallCount = event.numberOfStalls }
+                if let stalls = event.stalls, stalls >= 0 { diagnostics.stallCount = stalls }
                 logNewStalls(event: event, item: item)
             }
 
@@ -274,10 +311,29 @@ public final class PlaybackDiagnosticsSampler {
 
             diagnostics.playbackState = Self.playbackStateText(item: item, player: player)
 
+            if var live = liveStream?() {
+                logSnapshot?.apply(to: &live)
+                updateLiveTracks(item: item)
+                Self.applyLiveTracks(from: liveTracks, into: &diagnostics)
+                // HLS moves between variants, so the picture size is read
+                // every tick rather than kept from the first sample.
+                let size = item.presentationSize
+                if size.width > 0, size.height > 0 {
+                    live.variantWidth = Int(size.width.rounded())
+                    live.variantHeight = Int(size.height.rounded())
+                    diagnostics.resolution = .init(width: live.variantWidth!, height: live.variantHeight!)
+                }
+                diagnostics.liveStream = live
+            }
+
             // Fall back to the live asset URL if the transport wasn't seeded at start.
             if diagnostics.streamTransport == nil, let urlAsset = item.asset as? AVURLAsset {
                 diagnostics.streamTransport = PlaybackDiagnostics.streamTransportFacts(url: urlAsset.url)
             }
+        }
+
+        if player?.currentItem == nil, let live = liveStream?() {
+            diagnostics.liveStream = live
         }
 
         // Software decoders supply their own render metrics. An engine's encoded
@@ -300,7 +356,7 @@ public final class PlaybackDiagnosticsSampler {
 
         // Original-source probes are not evidence of a converted rendition.
         // Neither input range tells us the display's actual output mode.
-        if diagnostics.mode != .transcode, let f = probedFacts?() {
+        if diagnostics.mode != .transcode, liveStream == nil || player?.currentItem == nil, let f = probedFacts?() {
             if let range = f.range {
                 Self.applySourceRange(range, to: &diagnostics)
             }
@@ -326,11 +382,76 @@ public final class PlaybackDiagnosticsSampler {
         }
     }
 
+    /// A live item gains a new track at every seek and discontinuity, so the
+    /// newest enabled video and audio tracks are the ones playing.
+    private func updateLiveTracks(item: AVPlayerItem) {
+        guard liveTracksTask == nil,
+              liveTracksReadAt.map({ Date().timeIntervalSince($0) >= 3 }) ?? true else { return }
+        let generation = generation
+        let reader = liveTracksReader
+        liveTracksTask = Task { [weak self] in
+            let metadata = await reader(item)
+            guard let self, !Task.isCancelled, self.generation == generation, self.player?.currentItem === item else { return }
+            self.liveTracksTask = nil
+            self.liveTracksReadAt = Date()
+            self.liveTracks = metadata
+        }
+    }
+
+    static func readLiveTracks(_ item: AVPlayerItem) async -> MediaSourceMetadata {
+        guard item.status == .readyToPlay else { return .init() }
+        var metadata = MediaSourceMetadata()
+        let tracks = item.tracks.filter(\.isEnabled).compactMap(\.assetTrack)
+        if let video = tracks.last(where: { $0.mediaType == .video }),
+           let description = try? await video.load(.formatDescriptions).first {
+            metadata.video = NativeStreamDetailsReader.videoStream(description)
+            if let fps = try? await video.load(.nominalFrameRate), fps.isFinite, fps > 0 {
+                metadata.video?.frameRate = Double(fps)
+            }
+        }
+        if let audio = tracks.last(where: { $0.mediaType == .audio }),
+           let description = try? await audio.load(.formatDescriptions).first {
+            metadata.audio = NativeStreamDetailsReader.audioStream(description)
+        }
+        return metadata
+    }
+
+    static func applyLiveTracks(from metadata: MediaSourceMetadata, into diagnostics: inout PlaybackDiagnostics) {
+        let stream = PlaybackDiagnostics.base(from: metadata, mode: diagnostics.mode)
+        diagnostics.resolution = stream.resolution
+        diagnostics.videoCodec = stream.videoCodec
+        diagnostics.videoCodecTag = stream.videoCodecTag
+        diagnostics.videoBitrate = stream.videoBitrate
+        diagnostics.frameRate = stream.frameRate
+        diagnostics.hdr = stream.hdr
+        diagnostics.dolbyVisionProfile = metadata.video?.dolbyVisionProfile
+        diagnostics.videoRangeType = stream.videoRangeType
+        diagnostics.colorTransfer = stream.colorTransfer
+        diagnostics.audioCodec = stream.audioCodec
+        diagnostics.audioChannels = stream.audioChannels
+        diagnostics.audioSampleRate = stream.audioSampleRate
+        diagnostics.audioBitrate = stream.audioBitrate
+    }
+
+    private func updateLogs(item: AVPlayerItem) {
+        guard logReadTask == nil else { return }
+        let generation = generation
+        let reader = logReader
+        logReadTask = Task { [weak self] in
+            let snapshot = await Task.detached(priority: .utility) { reader(item) }.value
+            guard let self else { return }
+            self.logReadTask = nil
+            guard !Task.isCancelled, self.generation == generation, self.player?.currentItem === item else { return }
+            self.logSnapshot = snapshot
+        }
+    }
+
     private func refreshPlayer() {
         let current: AVPlayer?
         if let playerProvider { current = playerProvider() }
         else { current = player }
         guard player !== current || stallItem !== current?.currentItem else { return }
+        generation &+= 1
         player = current
         staticInfoTask?.cancel()
         staticInfoTask = nil
@@ -338,9 +459,14 @@ public final class PlaybackDiagnosticsSampler {
         streamInfoTask = nil
         sampledItem = nil
         streamMetadata = .init()
+        liveTracksTask?.cancel()
+        liveTracksTask = nil
+        liveTracksReadAt = nil
+        liveTracks = .init()
+        logSnapshot = nil
         stallItem = current?.currentItem
         lastLoggedStallCount = 0
-        if let item = current?.currentItem, staticDiagnostics.mode != .transcode {
+        if let item = current?.currentItem, staticDiagnostics.mode != .transcode, liveStream == nil {
             let generation = generation
             staticInfoTask = Task { await loadStaticInfo(item: item, generation: generation) }
         }
