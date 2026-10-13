@@ -339,7 +339,7 @@ struct PrototypeSheetContent: View {
                                 $0.id == imports.selectedSourceByChannel[program.channelID]
                             }?.source.name,
                             isFavorite: model.favoriteIDs.contains(program.channelID),
-                            toggleFavorite: { model.toggleFavorite(program.channelID) },
+                            toggleFavorite: { model.toggleFavoriteWithFeedback(program.channelID) },
                             watchTitle: channelActionTitle ?? "Watch channel",
                             openLibraryItem: channel.source == .plozz ? openLibraryItem : nil
                         ) {

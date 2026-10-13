@@ -1,29 +1,40 @@
 import UIKit
+import Vision
 import XCTest
 
 final class LiveTVSourceNavigationSmokeTests: XCTestCase {
     @MainActor
-    func testPrimarySourceActionStaysFilledWithoutFocusInBothThemes() throws {
+    func testNativeSourceActionIsReadableWithAndWithoutFocusInBothThemes() throws {
         for light in [false, true] {
             let app = launchFixture(arguments: ["--typed-settings"] + (light ? ["--light"] : []))
             defer { app.terminate() }
             guard select(app.buttons["fixture-live-tv-settings"], in: app) else { return }
             guard select(app.buttons["live-tv-add-playlist"], in: app) else { return }
             let action = app.buttons["live-tv-playlist-action"]
-            guard focus(action, in: app),
-                  focus(app.buttons["live-tv-add-guide"], in: app) else { return }
+            guard focus(action, in: app) else { return }
+            try assertReadableNativeAction(action, in: app)
+            capture(light ? "iptv-native-action-light-focused" : "iptv-native-action-dark-focused", in: app)
+            guard focus(app.buttons["live-tv-add-guide"], in: app) else { return }
             XCTAssertFalse(action.hasFocus)
-            let point = CGPoint(
-                x: action.frame.minX + action.frame.width * 0.15, y: action.frame.midY
-            )
-            let fill = try screenshotPixel(at: point, in: app)
-            for component in fill {
-                if light { XCTAssertLessThan(component, 0.2, "Light theme needs an unfocused dark primary fill") }
-                else { XCTAssertGreaterThan(component, 0.85, "Dark theme needs an unfocused bright primary fill") }
-            }
-            capture(light ? "iptv-primary-action-light-unfocused" : "iptv-primary-action-dark-unfocused", in: app)
+            try assertReadableNativeAction(action, in: app)
+            capture(light ? "iptv-native-action-light-unfocused" : "iptv-native-action-dark-unfocused", in: app)
             assertNoSourcesOrNetwork(in: app)
         }
+    }
+
+    @MainActor
+    private func assertReadableNativeAction(_ action: XCUIElement, in app: XCUIApplication) throws {
+        let image = try XCTUnwrap(app.screenshot().image.cgImage)
+        let scale = CGFloat(image.width) / app.frame.width
+        let crop = try XCTUnwrap(image.cropping(to: action.frame
+            .applying(CGAffineTransform(scaleX: scale, y: scale))))
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        try VNImageRequestHandler(cgImage: crop).perform([request])
+        let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        XCTAssertFalse(action.label.isEmpty)
+        XCTAssertTrue(text.localizedCaseInsensitiveContains(action.label),
+                      "Native action must remain visibly readable: expected \(action.label), rendered \(text)")
     }
 
     @MainActor

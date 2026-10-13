@@ -55,8 +55,6 @@ struct FirstRunProfileView: View {
                     editing = true
                 } label: {
                     Label("Edit", systemImage: "pencil")
-                        .frame(minWidth: 240)
-                        .padding(.vertical, 8)
                 }
                 .plozzActionButton(role: .secondary)
                 .focused($focus, equals: .edit)
@@ -65,7 +63,6 @@ struct FirstRunProfileView: View {
                     appState.confirmFirstRunProfile()
                 } label: {
                     Text("Looks good")
-                        .frame(minWidth: 280)
                 }
                 .plozzActionButton()
                 .focused($focus, equals: .confirm)

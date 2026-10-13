@@ -585,7 +585,7 @@ private struct LiveTVMultiviewHeader: View {
 
     var body: some View {
         HStack {
-            Text("Multiview").font(.headline)
+            Text("Multiview").font(.headline).foregroundStyle(.white)
             Spacer()
             if let watch {
                 LiveTVMultiviewAction(title: "Watch", symbol: "play.fill", action: watch, editing: editing)
@@ -594,7 +594,7 @@ private struct LiveTVMultiviewHeader: View {
             LiveTVMultiviewAction(title: "Close Multiview", symbol: "xmark", action: exit, editing: editing)
                 .accessibilityIdentifier("live-multiview-done")
         }
-        .foregroundStyle(.white)
+        .environment(\.colorScheme, .dark)
         #if os(tvOS)
         .focusSection()
         #endif
@@ -809,6 +809,9 @@ private struct LiveTVMultiviewToolbar: View {
                         LiveTVMultiviewLayoutOptions(coordinator: coordinator, setup: setup)
                     } label: {
                         Label("Layout", systemImage: "rectangle.split.2x1")
+                        #if os(tvOS)
+                            .labelStyle(.titleAndIcon)
+                        #endif
                     }
                     .focused($layoutFocused)
                     .onChange(of: layoutFocused) { _, focused in
@@ -823,8 +826,13 @@ private struct LiveTVMultiviewToolbar: View {
                         if layoutFocused { setupFocused() } else { layoutFocused = true }
                     }
                     #endif
+                    #if os(tvOS)
+                    .playerGlassButton(prominent: false)
+                    #else
                     .plozzActionButton(role: .secondary)
+                    #endif
                     .accessibilityIdentifier("live-multiview-layout")
+                    .accessibilityLabel(Text("Layout"))
                     #if !os(tvOS)
                     if coordinator.panes.count > 1 {
                         Menu {
@@ -876,7 +884,7 @@ private struct LiveTVMultiviewToolbar: View {
         }
         .scrollIndicators(.hidden)
         .fixedSize(horizontal: false, vertical: true)
-        .foregroundStyle(.white)
+        .environment(\.colorScheme, .dark)
         #if os(tvOS)
         .focusSection()
         #endif
@@ -932,11 +940,18 @@ private struct LiveTVMultiviewAction: View {
             action()
         } label: {
             Label(title, systemImage: symbol)
+            #if os(tvOS)
+                .labelStyle(.titleAndIcon)
+            #endif
         }
-            .focused($focused)
-            .onChange(of: focused) { _, focused in
-                if focused { editing() }
-            }
-            .plozzActionButton(role: .secondary)
+        #if os(tvOS)
+        .playerGlassButton(prominent: false)
+        #else
+        .plozzActionButton(role: .secondary)
+        #endif
+        .focused($focused)
+        .onChange(of: focused) { _, focused in
+            if focused { editing() }
+        }
     }
 }

@@ -102,6 +102,7 @@ struct PlaybackDiagnosticsOverlay: View {
                     audioSection(diagnostics)
                     if diagnostics.mode == .transcode { originalFileSection(diagnostics) }
                     subtitleSection(diagnostics)
+                    if let live = diagnostics.liveStream { liveSection(live) }
                     playbackSection(diagnostics)
                     systemSection(diagnostics)
                 }
@@ -165,6 +166,7 @@ struct PlaybackDiagnosticsOverlay: View {
             }
             VStack(alignment: .leading, spacing: 12) {
                 subtitleSection(d)
+                if let live = d.liveStream { liveSection(live) }
                 playbackSection(d)
                 systemSection(d)
             }
@@ -242,6 +244,27 @@ struct PlaybackDiagnosticsOverlay: View {
                 row(LocalizedStringResource("Track", comment: "Playback diagnostics label for the selected subtitle track."), d.subtitleText)
             }
         }
+    }
+
+    /// The live channel's HLS session: route, delay behind the playlist's
+    /// newest segment, rewind window, start-up cost and segment delivery.
+    @ViewBuilder
+    private func liveSection(_ live: PlaybackDiagnostics.LiveStreamFacts) -> some View {
+        section(LocalizedStringResource("LIVE", comment: "Playback diagnostics section heading for live TV stream tracking.")) {
+            optionalRow(LocalizedStringResource("Route", comment: "Playback diagnostics label for how the live engine plays the stream, such as native HLS."), live.route ?? PlaybackDiagnostics.placeholder)
+            optionalRow(LocalizedStringResource("Playlist", comment: "Playback diagnostics label for the HLS playlist type, such as LIVE or EVENT."), live.playlistType ?? PlaybackDiagnostics.placeholder)
+            optionalRow(LocalizedStringResource("Variant", comment: "Playback diagnostics label for the HLS quality level playing now: its resolution and bitrate."), live.variantText ?? PlaybackDiagnostics.placeholder)
+            optionalRow(LocalizedStringResource("Behind live", comment: "Playback diagnostics label for how far playback trails the newest live segment."), live.behindText ?? PlaybackDiagnostics.placeholder)
+            optionalRow(LocalizedStringResource("Rewind window", comment: "Playback diagnostics label for how far back a live stream can be rewound."), live.windowText ?? PlaybackDiagnostics.placeholder)
+            optionalRow(LocalizedStringResource("Stream clock", comment: "Playback diagnostics label for the wall-clock time a live stream reports at the playhead."), live.programDate.map(streamClockText) ?? PlaybackDiagnostics.placeholder)
+            optionalRow(LocalizedStringResource("Start-up", comment: "Playback diagnostics label for how long a live stream took to start."), live.startupText ?? PlaybackDiagnostics.placeholder)
+            optionalRow(LocalizedStringResource("Segments", comment: "Playback diagnostics label for HLS segment requests, data transferred and late segments."), live.segmentsText ?? PlaybackDiagnostics.placeholder)
+            optionalRow(LocalizedStringResource("Errors", comment: "Playback diagnostics label for the count of HLS errors the player logged."), live.errorsText ?? PlaybackDiagnostics.placeholder)
+        }
+    }
+
+    private func streamClockText(_ date: Date) -> String { // l10n:content — locale-formatted time
+        date.formatted(.dateTime.hour().minute().second())
     }
 
     @ViewBuilder

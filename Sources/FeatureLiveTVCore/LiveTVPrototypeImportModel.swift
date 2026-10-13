@@ -867,6 +867,10 @@ public final class LiveTVPrototypeImportModel {
         requestedGuideWindow = (channelIDs, window.range)
     }
 
+    /// How far before now the guide keeps programmes, matching the live
+    /// timeline's longest reach (`LiveChannelTimelineLayout.maximumLookback`).
+    public static let guideLookback: TimeInterval = 4 * 3_600
+
     public func loadGuideWindow(
         channelIDs: [String], range: DateInterval, into model: LiveTVPrototypeModel
     ) async {
@@ -875,6 +879,10 @@ public final class LiveTVPrototypeImportModel {
         requestedGuideWindow = (channelIDs, range)
         let windowRequest = windowRevision
         let catalogRequest = revision
+        let lookback = DateInterval(start: model.now.addingTimeInterval(-Self.guideLookback), end: model.now)
+        // Query disjoint windows separately so intervening days cannot consume
+        // the indexed result budget before the requested browsing window.
+        let ranges = [range, lookback]
         do {
             var windows: [String: [LiveTVPrototypeProgram]] = [:]
             for status in guideSources where enabledSourceIDs.contains(status.id) {
@@ -883,12 +891,20 @@ public final class LiveTVPrototypeImportModel {
                 if let inMemory = cachedGuides[status.id]?.programs, !inMemory.isEmpty {
                     let ids = Set(owned)
                     windows[status.id] = inMemory.filter {
-                        ids.contains($0.channelID) && $0.start < range.end && $0.end > range.start
+                        program in ids.contains(program.channelID) && ranges.contains {
+                            program.start < $0.end && program.end > $0.start
+                        }
                     }
                 } else {
-                    windows[status.id] = try await cache.programs(
-                        sourceID: status.id, channelIDs: owned, range: range, sourceURL: status.source.url
-                    )
+                    var programs: [LiveTVPrototypeProgram] = []
+                    var seen: Set<String> = []
+                    for window in ranges {
+                        let loaded = try await cache.programs(
+                            sourceID: status.id, channelIDs: owned, range: window, sourceURL: status.source.url
+                        )
+                        programs += loaded.filter { seen.insert($0.id).inserted }
+                    }
+                    windows[status.id] = programs
                 }
                 guard windowRequest == windowRevision, catalogRequest == revision, !Task.isCancelled,
                       ensureCatalogAuthorization(into: model) else { return }

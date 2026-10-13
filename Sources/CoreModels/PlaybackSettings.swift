@@ -36,6 +36,8 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// iOS only. Keep video audio playing on lock/app background without PiP.
     /// Opt-in so existing profiles retain pause-on-lock behavior.
     public var backgroundAudio: Bool
+    /// iPhone full-screen player preference. iPad follows system rotation.
+    public var orientation: PlaybackOrientation
     public var streaming: StreamingQualitySettings
 
     /// Whether finishing/resuming/marking a title converges your watch state on
@@ -153,6 +155,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         fadeOnDynamicRangeChange: Bool = true,
         fadeOnFrameRateChange: Bool = true,
         backgroundAudio: Bool = false,
+        orientation: PlaybackOrientation = .landscape,
         streaming: StreamingQualitySettings = .default
     ) {
         self.skipIntros = skipIntros
@@ -173,6 +176,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         self.fadeOnDynamicRangeChange = fadeOnDynamicRangeChange
         self.fadeOnFrameRateChange = fadeOnFrameRateChange
         self.backgroundAudio = backgroundAudio
+        self.orientation = orientation
         self.streaming = streaming
     }
 
@@ -200,6 +204,7 @@ public extension PlaybackSettings {
         case skipForwardInterval
         case resumeRewindInterval
         case backgroundAudio
+        case orientation
         case streaming
         case syncWatchAcrossServers
         case seekWithoutPausing
@@ -262,6 +267,8 @@ public extension PlaybackSettings {
             (try? container.decodeIfPresent(ResumeRewindInterval.self, forKey: .resumeRewindInterval))
             .flatMap { $0 } ?? defaults.resumeRewindInterval
         self.backgroundAudio = try container.decodeIfPresent(Bool.self, forKey: .backgroundAudio) ?? false
+        self.orientation = (try? container.decode(PlaybackOrientation.self, forKey: .orientation))
+            ?? defaults.orientation
         self.streaming = (try? container.decode(StreamingQualitySettings.self, forKey: .streaming)) ?? .default
         self.syncWatchAcrossServers =
             (try? container.decodeIfPresent(Bool.self, forKey: .syncWatchAcrossServers))
@@ -325,6 +332,7 @@ public extension PlaybackSettings {
         try container.encode(skipForwardInterval, forKey: .skipForwardInterval)
         try container.encode(resumeRewindInterval, forKey: .resumeRewindInterval)
         try container.encode(backgroundAudio, forKey: .backgroundAudio)
+        try container.encode(orientation, forKey: .orientation)
         try container.encode(streaming, forKey: .streaming)
         try container.encode(syncWatchAcrossServers, forKey: .syncWatchAcrossServers)
         try container.encode(seekWithoutPausing, forKey: .seekWithoutPausing)

@@ -161,7 +161,7 @@ struct LiveTVMultiviewFavoritesView: View {
                     .accessibilityIdentifier("live-multiview-saved-\(favorite.id)")
                     .contextMenu {
                         Button("Remove from Favorites", systemImage: "star.slash") {
-                            model.removeMultiviewFavorite(favorite.id)
+                            if model.removeMultiviewFavorite(favorite.id) { TouchFeedback.shared.emit(.confirmation) }
                         }
                     }
                 }

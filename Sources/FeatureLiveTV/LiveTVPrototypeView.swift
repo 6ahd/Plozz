@@ -41,6 +41,8 @@ public struct LiveTVPrototypePlayback {
     public let openLibraryItem: ((LibraryChannelItem) -> Void)?
     /// What the guide says is airing on this channel now.
     public let program: LiveChannelProgramInfo?
+    /// What aired before it, for a stream whose rewind window reaches back past its start.
+    public let earlierPrograms: [LiveChannelProgramInfo]
     /// What is airing across the lineup, for the player's On Now tab. A closure
     /// so the lineup is only walked when the tab is opened.
     public let onNow: @MainActor () -> [LiveChannelOnNowItem]
@@ -375,6 +377,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                             : (expanded ? layout.bounds : layout.videoFrame)
                         player(playbackInput(for: pane, prepared: prepared))
                     .environment(\.themePalette, ThemePalette.dark)
+                    .environment(\.colorScheme, .dark)
                     .frame(width: videoFrame.width, height: videoFrame.height)
                     .clipShape(RoundedRectangle(
                         cornerRadius: showingMultiview && multiview.isEditingLayout ? 10 : 0))
@@ -449,7 +452,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         }
         .environment(\.themePalette, palette)
         .tint(palette.accent)
-        .foregroundStyle(palette.primaryText)
+        .environment(\.colorScheme, palette.isLight ? .light : .dark)
         .overlay(alignment: .topTrailing) {
             if let id = playback.pendingWatchChannelID, !preview.isExpanded || playback.preparation.current == nil {
                 PrototypeWatchPreparationStatus(
@@ -493,7 +496,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             nextChannel: { changeChannel(by: 1) },
             isFavorite: model.favoriteIDs.contains(prepared.channel.id),
             canToggleFavorite: model.preferencesIssue != .loadFailed,
-            onToggleFavorite: { model.toggleFavorite(prepared.channel.id) },
+            onToggleFavorite: { model.toggleFavoriteWithFeedback(prepared.channel.id) },
             isExpanded: preview.isExpanded && !multiview.isEnabled,
             returnToGuide: {
                 guard playback.ownsPlayerPresentation(presentationID) else { return }
@@ -541,6 +544,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             stopPlayback: { stopPlayer(paneID: pane.id, preparedID: prepared.id) },
             openLibraryItem: onOpenTitle == nil ? nil : openLibraryItem,
             program: model.currentProgram(for: prepared.channel.id)?.playerInfo,
+            earlierPrograms: model.earlierPrograms(for: prepared.channel.id).map(\.playerInfo),
             onNow: { onNowItems(around: prepared.channel.id) },
             tuneChannel: { tune($0) },
             guideOverlay: { embedding in
@@ -753,6 +757,16 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         }
         .task(id: preview.pendingRequest) {
             await preparePendingPreview()
+        }
+        .task(id: playback.preparation.current?.channel.id) {
+            // The guide warms only what is on and ahead; the player's timeline
+            // also splits a live rewind window at what already aired.
+            guard let channelID = playback.preparation.current?.channel.id else { return }
+            await imports.reloadServerGuides(
+                channelIDs: [channelID],
+                from: model.now.addingTimeInterval(-LiveTVPrototypeImportModel.guideLookback),
+                to: model.now, into: model
+            )
         }
         .task(id: isActive) {
             while isActive && !Task.isCancelled {
@@ -1650,9 +1664,9 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
 
     private func toggleMultiviewFavorite() {
         if let favorite = model.favoriteMultiviews.first(where: multiview.matches) {
-            model.removeMultiviewFavorite(favorite.id)
+            if model.removeMultiviewFavorite(favorite.id) { TouchFeedback.shared.emit(.confirmation) }
         } else if let favorite = multiview.favoriteSnapshot() {
-            model.saveMultiviewFavorite(favorite)
+            if model.saveMultiviewFavorite(favorite) { TouchFeedback.shared.emit(.confirmation) }
         } else {
             multiviewFavoriteIssue = "Wait for the channels to load before saving this Multiview."
         }

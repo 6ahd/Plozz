@@ -1,6 +1,32 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
+#if os(iOS)
+public struct SettingsMenuLabel: View {
+    private let title: LocalizedStringResource
+    private let value: LocalizedStringResource
+
+    public init(_ title: LocalizedStringResource, value: LocalizedStringResource) {
+        self.title = title
+        self.value = value
+    }
+
+    public var body: some View {
+        LabeledContent {
+            HStack(spacing: 8) {
+                Text(value)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(.primary)
+        } label: {
+            Text(title)
+        }
+    }
+}
+#endif
+
 /// A group occupies one native List cell. On iOS, navigation beside other
 /// controls must use a Button and navigationDestination: a NavigationLink can
 /// claim the cell's primary action, including taps on a sibling picker's label.

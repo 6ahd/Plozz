@@ -165,6 +165,7 @@ public struct PersonDetailView: View {
             }
         }
         .task { await viewModel.load() }
+        .detailOpenFeedback()
         .environment(\.plozzCardCaptionView, .filmography)
     }
 

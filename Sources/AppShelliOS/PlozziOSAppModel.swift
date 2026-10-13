@@ -426,7 +426,7 @@ final class PlozziOSAppModel {
                 self.settings.playback.settings.syncWatchAcrossServers
             },
             enqueueWatchMutation: { [unowned self] mutation in
-                self.applyWatchMutation(mutation)
+                self.applyWatchMutation(mutation, confirmsUserAction: true)
             },
             universalWatchlistEnabled: { [unowned self] in
                 self.runtimeFeatureFlags.isEnabled(.universalWatchlist)
@@ -481,7 +481,9 @@ final class PlozziOSAppModel {
             },
             performDownloadAction: { [unowned self] action, item in
                 Task { await self.performDownloadMenuAction(action, on: item) }
-            }
+            },
+            makeActionConfirmation: { [unowned self] in self.makeLibraryActionFeedback() },
+            makeWatchlistFailureFeedback: { [unowned self] in self.makeLibraryActionFeedback(onCompletion: .error) }
         )
 
     /// Internal (not private) so the KeychainSync extension in another file can read
@@ -1561,6 +1563,7 @@ final class PlozziOSAppModel {
         // profile the gate exists to withhold, so everything below is conditional
         // on the switch having actually landed.
         guard profiles.activeProfileID == id else { return }
+        TouchFeedback.shared.invalidatePendingConfirmations()
         plexHomeUsers.beginExplicitProfileActivation()
         // Past both gates, so the hold has done its job. Released here rather
         // than on PIN success so that switching into another Kids Profile (which
@@ -1668,11 +1671,26 @@ final class PlozziOSAppModel {
         trackerScopedNamespace = .some(namespace)
     }
 
-    private func applyWatchMutation(_ mutation: WatchMutation) {
+    private func makeLibraryActionFeedback(
+        onCompletion event: TouchFeedback.Event = .confirmation
+    ) -> @MainActor @Sendable () -> Void {
+        let profileID = profiles.activeProfileID
+        return TouchFeedback.shared.acknowledgeAction(onCompletion: event) { [weak self] in
+            self?.profiles.activeProfileID == profileID
+        }
+    }
+
+    private func applyWatchMutation(
+        _ mutation: WatchMutation,
+        confirmsUserAction: Bool = false
+    ) {
+        let confirmation = confirmsUserAction && mutation.played != nil ? makeLibraryActionFeedback() : nil
         let mutation = mutation.bindingServerScope(accountsProviders.watchMutationServerScope)
         let reconciler = watchReconciler
         Task {
-            await reconciler.enqueue(mutation)
+            await reconciler.enqueue(mutation) {
+                if let confirmation { Task { @MainActor in confirmation() } }
+            }
             await reconciler.drain()
         }
     }

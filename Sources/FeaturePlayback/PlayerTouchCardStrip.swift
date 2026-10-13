@@ -253,8 +253,10 @@ public struct PlayerTouchScrubBar: View {
     private let segments: [MediaSegment]
     private let onScrub: (TimeInterval) -> Void
     private let onScrubbingChanged: (Bool) -> Void
+    private let feedback: TouchFeedback
 
     @State private var isTouching = false
+    @State private var scrubStartSeconds: TimeInterval = 0
 
     /// Resting and touched heights, matching `ScrubBar`'s 12 / 20.
     private static let restingHeight: CGFloat = 12
@@ -270,7 +272,8 @@ public struct PlayerTouchScrubBar: View {
         bufferedFraction: Double,
         segments: [MediaSegment] = [],
         onScrub: @escaping (TimeInterval) -> Void,
-        onScrubbingChanged: @escaping (Bool) -> Void
+        onScrubbingChanged: @escaping (Bool) -> Void,
+        feedback: TouchFeedback = .shared
     ) {
         self.currentSeconds = currentSeconds
         self.duration = duration
@@ -278,6 +281,7 @@ public struct PlayerTouchScrubBar: View {
         self.segments = segments
         self.onScrub = onScrub
         self.onScrubbingChanged = onScrubbingChanged
+        self.feedback = feedback
     }
 
     public var body: some View {
@@ -335,6 +339,7 @@ public struct PlayerTouchScrubBar: View {
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         if !isTouching {
+                            scrubStartSeconds = currentSeconds
                             isTouching = true
                             onScrubbingChanged(true)
                         }
@@ -346,6 +351,9 @@ public struct PlayerTouchScrubBar: View {
                         onScrub(duration * Double(x / width))
                         isTouching = false
                         onScrubbingChanged(false)
+                        if duration.isFinite, duration > 0, duration * Double(x / width) != scrubStartSeconds {
+                            feedback.emit(.selection)
+                        }
                     }
             )
         }
