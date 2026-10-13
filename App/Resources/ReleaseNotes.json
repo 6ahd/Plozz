@@ -2,6 +2,66 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/054",
+      "version": "2026.10.13",
+      "marketingVersion": "2026.9.25",
+      "build": 54,
+      "releasedAt": "2026-10-13",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "Reorder rows on Home.",
+            "Live TV channel rows on Home.",
+            "Rewind supported Live TV channels.",
+            {
+              "text": "Choose Landscape, Auto or Portrait for full-screen movies and episodes on iPhone in Settings > Playback.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Light haptic feedback on iPhone when opening titles or using playback and library actions.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "New profiles automatically use Home rows from your media servers.",
+            "Use Xtream links in Playlist URL setup.",
+            "Choose audio tracks on more Live TV channels.",
+            "Live TV Playback Info shows your delay behind live, rewind time and stream quality.",
+            "Home shows which server is offline or needs sign-in.",
+            {
+              "text": "Clearer buttons in Settings, playback and Music, including labeled Multiview controls.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Simpler Playback settings, with extra streaming options under Advanced.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Large Plozz Channel libraries failing to sync.",
+            "Some IPTV channels stopping unexpectedly during playback.",
+            "Some IPTV streams failing to start.",
+            "Watched indicators missing from extras.",
+            {
+              "text": "Focus getting stuck when quickly scrolling Live TV categories.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Repeated skip-forward or skip-back taps being ignored.",
+              "platforms": ["iOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/053",
       "version": "2026.10.12",
       "marketingVersion": "2026.9.25",
