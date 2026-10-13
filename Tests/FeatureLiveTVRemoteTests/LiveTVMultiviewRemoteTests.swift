@@ -1,14 +1,15 @@
 import XCTest
 import UIKit
+import Vision
 
 final class LiveTVMultiviewRemoteTests: XCTestCase {
     @MainActor
-    func testGlassPlaybackAndMultiviewIconsHaveFocusedContrastAndSharedSize() throws {
+    func testGlassPlaybackAndMultiviewControlsHaveFocusedContrastAndNativeHeight() throws {
         try assertPlaybackControlAppearance(reduceGlass: false)
     }
 
     @MainActor
-    func testReducedTransparencyPlaybackAndMultiviewIconsHaveFocusedContrastAndSharedSize() throws {
+    func testReducedTransparencyPlaybackAndMultiviewControlsHaveFocusedContrastAndNativeHeight() throws {
         try assertPlaybackControlAppearance(reduceGlass: true)
     }
 
@@ -23,16 +24,16 @@ final class LiveTVMultiviewRemoteTests: XCTestCase {
         select(app.buttons["live-channel-timeline"], in: app)
         let playback = app.buttons["live-channel-playback"]
         select(playback, in: app, activate: false)
-        try assertFocusedIcon(playback, name: "production-playback", in: app)
+        try assertFocusedControl(playback, name: "production-playback", in: app)
         select(playback, in: app)
         XCUIRemote.shared.press(.menu)
         select(playback, in: app, activate: false)
-        try assertFocusedIcon(playback, name: "production-playback-menu-return", in: app)
+        try assertFocusedControl(playback, name: "production-playback-menu-return", in: app)
         select(app.buttons["live-channel-multiview"], in: app)
         for name in ["favorite", "watch", "done", "layout"] {
             let button = app.buttons["live-multiview-\(name)"]
             select(button, in: app, activate: false)
-            try assertFocusedIcon(button, name: "production-multiview-\(name)", in: app)
+            try assertFocusedControl(button, name: "production-multiview-\(name)", showsTitle: true, in: app)
         }
     }
 
@@ -46,7 +47,7 @@ final class LiveTVMultiviewRemoteTests: XCTestCase {
         for name in ["playback", "audio", "subtitles", "multiview"] {
             let button = app.buttons["live-channel-\(name)"]
             select(button, in: app, activate: false)
-            try assertFocusedIcon(button, name: "transport-\(name)-\(reduceGlass)", in: app)
+            try assertFocusedControl(button, name: "transport-\(name)-\(reduceGlass)", in: app)
         }
         select(app.buttons["live-channel-multiview"], in: app)
         for name in ["watch", "done", "add", "layout", "replace"] {
@@ -54,10 +55,8 @@ final class LiveTVMultiviewRemoteTests: XCTestCase {
             select(button, in: app, activate: false)
             XCTAssertLessThanOrEqual(button.frame.height, reference.height * 1.2,
                                     "Multiview must use the transport button height.")
-            XCTAssertLessThanOrEqual(button.frame.width, reference.width * 1.5,
-                                    "Multiview must use compact icons, not full-width action pills.")
             XCTAssertFalse(button.label.isEmpty, "\(name) must retain its accessible title.")
-            try assertFocusedIcon(button, name: "multiview-\(name)-\(reduceGlass)", in: app)
+            try assertFocusedControl(button, name: "multiview-\(name)-\(reduceGlass)", showsTitle: true, in: app)
         }
         select(app.buttons["live-multiview-layout"], in: app)
         selectMenuItem("Corner", in: app)
@@ -66,13 +65,25 @@ final class LiveTVMultiviewRemoteTests: XCTestCase {
     }
 
     @MainActor
-    private func assertFocusedIcon(_ button: XCUIElement, name: String, in app: XCUIApplication) throws {
+    private func assertFocusedControl(
+        _ button: XCUIElement, name: String, showsTitle: Bool = false, in app: XCUIApplication
+    ) throws {
         assertNativeFocus(button, in: app)
         let image = try XCTUnwrap(capture(name, in: app).cgImage)
         let scale = CGFloat(image.width) / app.frame.width
-        let region = CGRect(x: button.frame.midX - 16, y: button.frame.midY - 16, width: 32, height: 32)
-            .applying(CGAffineTransform(scaleX: scale, y: scale))
-        let crop = try XCTUnwrap(image.cropping(to: region))
+        let region = showsTitle ? button.frame.insetBy(dx: 8, dy: 8)
+            : CGRect(x: button.frame.midX - 16, y: button.frame.midY - 16, width: 32, height: 32)
+        let crop = try XCTUnwrap(image.cropping(to: region
+            .applying(CGAffineTransform(scaleX: scale, y: scale))))
+        if showsTitle {
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            try VNImageRequestHandler(cgImage: crop).perform([request])
+            let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+                .joined(separator: " ")
+            XCTAssertTrue(text.localizedCaseInsensitiveContains(button.label),
+                          "Multiview must visibly name the action: expected \(button.label), rendered \(text)")
+        }
         var pixels = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
         try pixels.withUnsafeMutableBytes { storage in
             let context = try XCTUnwrap(CGContext(
@@ -90,7 +101,7 @@ final class LiveTVMultiviewRemoteTests: XCTestCase {
             Double($0[0]) * 0.2126 + Double($0[1]) * 0.7152 + Double($0[2]) * 0.0722 > 170
         }.count
         XCTAssertGreaterThan(Double(dark) / Double(colors.count), 0.025,
-                             "\(name) must show a dark glyph inside its focused fill.")
+                             "\(name) must show a dark label inside its focused fill.")
         XCTAssertGreaterThan(Double(bright) / Double(colors.count), 0.2,
                              "\(name) must retain its bright native focus fill.")
     }

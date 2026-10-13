@@ -848,10 +848,10 @@ path reduces first-visit and focus work while keeping the material. Both shells
 still honor the existing profile/OS transparency resolution, and older OS
 versions retain their non-glass fallback.
 
-tvOS transport badges and Live TV multiview actions share CoreUI's
-`PlayerControlButton`. Native menus use the same `playerGlassButton` modifier
-without replacing native menu behavior. The compact icon-only controls keep
-accessible titles. Do not set a blanket foreground on their containing screen:
+tvOS transport badges use CoreUI's `PlayerControlButton`. Live TV multiview
+actions retain visible title-and-icon labels with the same `playerGlassButton`
+modifier, including native menus without replacing their behavior. Transport
+icons keep accessible titles. Do not set a blanket foreground on their containing screen:
 native glass owns label contrast, focus and material. Only the existing
 reduced-transparency path uses the shared frosted fallback.
 

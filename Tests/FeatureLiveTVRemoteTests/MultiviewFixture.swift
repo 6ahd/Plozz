@@ -205,12 +205,13 @@ struct MultiviewFixture: View {
                 }
                 TimelineView(.periodic(from: .now, by: 0.2)) { _ in
                     VStack {
-                        Spacer()
                         Text(verbatim: state.metrics)
                             .font(.caption2)
                             .accessibilityIdentifier("multiview-fixture-metrics")
+                        Spacer()
                     }
-                    .padding(.bottom, 8)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 16)
                 }
                 .allowsHitTesting(false)
                 .zIndex(3)
@@ -355,12 +356,13 @@ struct LiveTVRootFixture: View {
                 .padding()
             }
         }
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: .top) {
             TimelineView(.periodic(from: .now, by: 0.2)) { _ in
                 Text(verbatim: state.metrics)
                     .font(.caption2)
                     .accessibilityIdentifier("multiview-fixture-metrics")
             }
+            .padding(.top, 16)
             .allowsHitTesting(false)
         }
         .background { MultiviewFocusDiagnostics() }

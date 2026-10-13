@@ -87,9 +87,9 @@ appearance, with screenshot attachments for visual review.
 - Actual `PrototypeBrowser` inside native `PrototypeNativeSearch`: keyboard entry,
   every row in a 30-channel guide, reverse traversal, keyboard reentry, right-to-left
   programme rows, and Back from empty and filtered searches.
-- Playback and multiview controls: actual remote focus, dark glyphs inside the
-  bright focused fill, compact transport-matched dimensions, accessible action
-  titles, and working native Layout menus in glass and reduced-transparency
+- Playback and multiview controls: actual remote focus, dark labels inside the
+  bright focused fill, transport-matched height, visible multiview action titles,
+  accessible transport titles, and working native Layout menus in glass and reduced-transparency
   modes. The fixture uses the guide's native color-scheme environment and a
   zoom-capable engine with audio/subtitle choices.
 - Existing package Search focus, dismissal, retained-state, and row-boundary tests

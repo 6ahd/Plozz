@@ -1116,11 +1116,11 @@ windows the dock scrolls rather than truncating labels. Setup's pictures reserve
 the measured header and dock heights so landscape and large-text controls cannot
 cover them. TV focus controls and the retained players' full-screen geometry are
 unchanged.
-Apple TV multiview's header and toolbar use the same compact icon-only player
-buttons as normal playback, including the native Layout menu. Accessible action
-titles remain available, and focused glyphs stay dark against the bright fill in
-both native-glass and reduced-transparency modes. These controls do not use the
-larger page/form action pills.
+Apple TV multiview's header and toolbar keep visible title-and-icon labels with
+the same native button treatment as normal playback, including the Layout menu.
+Their height stays transport-sized while width follows the action's title.
+Focused labels stay dark against the bright fill in native-glass and
+reduced-transparency modes. These controls do not use the larger page/form action pills.
 Watching hides controls after four seconds of inactivity. Editing, native menus,
 channel selection, preparation failures and VoiceOver keep them available.
 Native menu focus notifications do not write back into the pinned controls'

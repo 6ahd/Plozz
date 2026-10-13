@@ -16,9 +16,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   iOS primary actions pair the palette's monochrome `accent` with `onAccent`:
   native prominent buttons otherwise retain white text on a white tint. This
   theme-color pairing does not replace native geometry, material or interaction.
-  Playback and multiview use `PlayerControlButton` for their icon-only actions;
-  `playerGlassButton` gives native menus the same system treatment. Only the
-  existing reduced-transparency playback path draws the shared frosted fallback.
+  Playback uses `PlayerControlButton` for icon-only transport actions. Multiview
+  keeps visible title-and-icon labels and uses the same `playerGlassButton`
+  treatment, including native menus. Only the existing reduced-transparency
+  playback path draws the shared frosted fallback.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than

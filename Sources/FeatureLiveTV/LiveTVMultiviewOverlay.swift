@@ -808,10 +808,9 @@ private struct LiveTVMultiviewToolbar: View {
                     Menu {
                         LiveTVMultiviewLayoutOptions(coordinator: coordinator, setup: setup)
                     } label: {
-                        #if os(tvOS)
-                        Label("Layout", systemImage: "rectangle.split.2x1").labelStyle(.iconOnly)
-                        #else
                         Label("Layout", systemImage: "rectangle.split.2x1")
+                        #if os(tvOS)
+                            .labelStyle(.titleAndIcon)
                         #endif
                     }
                     .focused($layoutFocused)
@@ -936,22 +935,20 @@ private struct LiveTVMultiviewAction: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        Group {
+        Button {
+            editing()
+            action()
+        } label: {
+            Label(title, systemImage: symbol)
             #if os(tvOS)
-            PlayerControlButton(title, systemImage: symbol) {
-                editing()
-                action()
-            }
-            #else
-            Button {
-                editing()
-                action()
-            } label: {
-                Label(title, systemImage: symbol)
-            }
-            .plozzActionButton(role: .secondary)
+                .labelStyle(.titleAndIcon)
             #endif
         }
+        #if os(tvOS)
+        .playerGlassButton(prominent: false)
+        #else
+        .plozzActionButton(role: .secondary)
+        #endif
         .focused($focused)
         .onChange(of: focused) { _, focused in
             if focused { editing() }
