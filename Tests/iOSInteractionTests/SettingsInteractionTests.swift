@@ -634,6 +634,7 @@ final class SettingsInteractionTests: XCTestCase {
         let image = try XCTUnwrap(disclosure.screenshot().image.cgImage)
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
+        request.customWords = ["IntroDB", "TheIntroDB", "IMDb", "TMDB"]
         try VNImageRequestHandler(cgImage: image).perform([request])
         let rendered = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         // OCR confuses I/l in this font; the accessibility lookup checks the exact copy.

@@ -119785,6 +119785,7 @@
       }
     },
     "Applies only to the full-screen video player. Auto follows device rotation and the system rotation lock." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -175406,6 +175407,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "選擇來源即可開始觀看。之後可再加入更多來源。"
+          }
+        }
+      }
+    },
+    "Choose a supported codec." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اختر برنامج ترميز مدعومًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изберете поддържан кодек."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tria un còdec compatible."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyberte podporovaný kodek."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vælg et understøttet codec."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wähle einen unterstützten Codec."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Επιλέξτε έναν υποστηριζόμενο κωδικοποιητή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elige un códec compatible."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "یک کدک پشتیبانی‌شده انتخاب کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Valitse tuettu koodekki."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Choisissez un codec pris en charge."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "יש לבחור קודק נתמך."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कोई समर्थित कोडेक चुनें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odaberite podržani kodek."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Válasszon támogatott kodeket."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pilih codec yang didukung."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Scegli un codec supportato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対応しているコーデックを選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "지원되는 코덱을 선택하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pilih kodek yang disokong."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Velg en støttet kodek."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kies een ondersteunde codec."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wybierz obsługiwany kodek."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escolha um codec compatível."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alegeți un codec acceptat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Выберите поддерживаемый кодек."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyberte podporovaný kodek."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izberite podprt kodek."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izaberite podržani kodek."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Välj en kodek som stöds."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เลือกตัวแปลงสัญญาณที่รองรับ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desteklenen bir kodek seçin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Виберіть підтримуваний кодек."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chọn codec được hỗ trợ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "请选择受支持的编解码器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "請選擇支援的編解碼器。"
           }
         }
       }
@@ -283951,6 +284172,7 @@
       }
     },
     "File shares play original files and can’t convert video. Quality controls become available when you connect a compatible media server." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -294668,6 +294890,7 @@
       }
     },
     "For movies and episodes from Plex, Jellyfin, Emby, and Silo. The original plays when it fits the limit; otherwise your server converts it. Available resolutions and codecs depend on the server. Codec preferences may fall back without increasing the quality limit. Downloads, Live TV, and file shares are unchanged." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -341108,6 +341331,7 @@
       }
     },
     "Keep video audio playing when you lock your device or leave Plozz." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -374673,6 +374897,226 @@
         }
       }
     },
+    "Looks up missing markers on IntroDB and TheIntroDB using IMDb/TMDB IDs." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يبحث في IntroDB وTheIntroDB عن العلامات غير الموجودة على خادمك باستخدام معرّفات IMDb/TMDB."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Търси липсващите на сървъра ви маркери в IntroDB и TheIntroDB чрез идентификатори от IMDb/TMDB."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cerca a IntroDB i TheIntroDB els marcadors que falten al teu servidor mitjançant els identificadors d’IMDb/TMDB."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyhledává v IntroDB a TheIntroDB značky, které chybí na vašem serveru, pomocí ID IMDb/TMDB."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Søger på IntroDB og TheIntroDB efter markører, der mangler på din server, ved hjælp af IMDb/TMDB-id’er."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sucht mithilfe von IMDb-/TMDB-IDs auf IntroDB und TheIntroDB nach Markierungen, die auf deinem Server fehlen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αναζητά στο IntroDB και στο TheIntroDB δείκτες που λείπουν από τον διακομιστή σας, χρησιμοποιώντας αναγνωριστικά IMDb/TMDB."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Busca en IntroDB y TheIntroDB los marcadores que faltan en tu servidor mediante los ID de IMDb/TMDB."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "با استفاده از شناسه‌های IMDb/TMDB، نشانگرهایی را که در سرور شما موجود نیستند، در IntroDB و TheIntroDB جست‌وجو می‌کند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Etsii palvelimeltasi puuttuvia merkintöjä IntroDB:stä ja TheIntroDB:stä IMDb-/TMDB-tunnisteiden avulla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Recherche sur IntroDB et TheIntroDB les marqueurs manquants sur votre serveur à l’aide des identifiants IMDb/TMDB."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מחפש ב־IntroDB וב־TheIntroDB סמנים שחסרים בשרת שלך באמצעות מזהי IMDb/TMDB."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "IMDb/TMDB आईडी का उपयोग करके आपके सर्वर पर मौजूद न होने वाले मार्कर IntroDB और TheIntroDB पर खोजता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na servisima IntroDB i TheIntroDB traži oznake koje nedostaju na vašem poslužitelju pomoću IMDb/TMDB identifikatora."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Az IMDb/TMDB-azonosítók alapján az IntroDB és a TheIntroDB adatbázisában keresi a szerverről hiányzó jelölőket."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mencari penanda yang tidak tersedia di server Anda melalui IntroDB dan TheIntroDB menggunakan ID IMDb/TMDB."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cerca su IntroDB e TheIntroDB i marcatori mancanti sul tuo server usando gli ID IMDb/TMDB."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "IMDb/TMDB IDを使い、サーバーにないマーカーをIntroDBとTheIntroDBで検索します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "IMDb/TMDB ID를 사용하여 서버에 없는 마커를 IntroDB와 TheIntroDB에서 검색합니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mencari penanda yang tiada pada pelayan anda melalui IntroDB dan TheIntroDB menggunakan ID IMDb/TMDB."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Søker på IntroDB og TheIntroDB etter markører som mangler på serveren din, ved hjelp av IMDb/TMDB-ID-er."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zoekt met IMDb/TMDB-ID’s op IntroDB en TheIntroDB naar markeringen die op je server ontbreken."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wyszukuje w IntroDB i TheIntroDB znaczniki, których brakuje na twoim serwerze, za pomocą identyfikatorów IMDb/TMDB."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Busca no IntroDB e no TheIntroDB os marcadores que faltam no seu servidor usando os IDs do IMDb/TMDB."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Caută pe IntroDB și TheIntroDB marcajele care lipsesc de pe serverul dvs. folosind identificatorii IMDb/TMDB."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ищет в IntroDB и TheIntroDB маркеры, отсутствующие на вашем сервере, по идентификаторам IMDb/TMDB."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyhľadáva v IntroDB a TheIntroDB značky, ktoré chýbajú na vašom serveri, pomocou ID IMDb/TMDB."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z identifikatorji IMDb/TMDB v IntroDB in TheIntroDB poišče oznake, ki manjkajo na vašem strežniku."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na servisima IntroDB i TheIntroDB traži markere koji nedostaju na vašem serveru pomoću IMDb/TMDB identifikatora."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Söker på IntroDB och TheIntroDB efter markörer som saknas på din server med hjälp av IMDb/TMDB-id:n."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้ ID ของ IMDb/TMDB ค้นหาเครื่องหมายที่ไม่มีบนเซิร์ฟเวอร์ของคุณจาก IntroDB และ TheIntroDB"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "IMDb/TMDB kimliklerini kullanarak sunucunuzda eksik olan işaretçileri IntroDB ve TheIntroDB üzerinde arar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Шукає в IntroDB і TheIntroDB маркери, яких немає на вашому сервері, за ідентифікаторами IMDb/TMDB."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tra cứu các điểm đánh dấu còn thiếu trên máy chủ của bạn qua IntroDB và TheIntroDB bằng ID IMDb/TMDB."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用 IMDb/TMDB ID 在 IntroDB 和 TheIntroDB 上查找服务器中缺失的标记。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用 IMDb/TMDB ID 在 IntroDB 和 TheIntroDB 上尋找伺服器中缺少的標記。"
+          }
+        }
+      }
+    },
     "Lookups" : {
       "comment" : "Title for the metadata cache budget control on the tvOS Metadata settings page, for cached metadata-detail lookups.",
       "localizations" : {
@@ -382607,6 +383051,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "最高解析度"
+          }
+        }
+      }
+    },
+    "May change HDR and audio formats." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "قد يغيّر HDR وتنسيقات الصوت."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Може да промени HDR и аудиоформатите."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pot canviar l’HDR i els formats d’àudio."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Může změnit HDR a zvukové formáty."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan ændre HDR og lydformater."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kann HDR und Audioformate ändern."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μπορεί να αλλάξει το HDR και τις μορφές ήχου."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puede cambiar el HDR y los formatos de audio."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ممکن است HDR و قالب‌های صدا را تغییر دهد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Saattaa muuttaa HDR:ää ja äänimuotoja."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Peut modifier le HDR et les formats audio."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "עשוי לשנות את ה־HDR ואת פורמטי השמע."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HDR और ऑडियो फ़ॉर्मैट बदल सकते हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Može promijeniti HDR i formate zvuka."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Módosíthatja a HDR-t és a hangformátumokat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dapat mengubah HDR dan format audio."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Può modificare l’HDR e i formati audio."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HDRと音声形式が変わる場合があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HDR 및 오디오 형식이 변경될 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mungkin mengubah HDR dan format audio."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan endre HDR og lydformater."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan HDR en audioformaten wijzigen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Może zmienić HDR i formaty dźwięku."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pode alterar o HDR e os formatos de áudio."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poate modifica HDR și formatele audio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Может изменить HDR и аудиоформаты."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Môže zmeniť HDR a zvukové formáty."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lahko spremeni HDR in zvočne formate."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Može promeniti HDR i audio-formate."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan ändra HDR och ljudformat."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "อาจเปลี่ยน HDR และรูปแบบเสียง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HDR ve ses biçimlerini değiştirebilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Може змінити HDR та аудіоформати."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Có thể thay đổi HDR và định dạng âm thanh."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可能会改变 HDR 和音频格式。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可能會變更 HDR 和音訊格式。"
           }
         }
       }
@@ -450838,6 +451502,7 @@
       }
     },
     "Orientation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
