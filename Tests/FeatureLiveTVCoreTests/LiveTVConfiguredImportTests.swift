@@ -57,23 +57,30 @@ final class LiveTVConfiguredImportTests: XCTestCase {
         XCTAssertTrue(calls.guides.isEmpty)
     }
 
-    func testOnlySafeDeclaredGuidesAreDiscoveredAfterChannelsPublish() async throws {
+    func testDeclaredGuidesLoadAcrossOriginsWithoutExplicitConfiguration() async throws {
         let playlist = source()
-        let safe = URL(string: "https://example.test/discovered.xml")!
-        let text = m3u.replacingOccurrences(
-            of: "#EXTM3U", with: "#EXTM3U url-tvg=\"\(safe.absoluteString),https://other.test/guide.xml\""
+        let guides = [
+            URL(string: "https://example.test/discovered.xml")!,
+            URL(string: "https://guide.test/guide.xml?token=guide-only")!,
+            URL(string: "http://guide.test:8080/guide.xml")!
+        ]
+        let now = Date()
+        let loader = ConfiguredImportLoader(
+            playlists: [playlist.playlistURL: declaringGuides(guides)],
+            guides: Dictionary(uniqueKeysWithValues: guides.map { ($0, xml(title: "Schedule", now: now)) })
         )
-        let loader = ConfiguredImportLoader(playlists: [playlist.playlistURL: text], guides: [:])
         let imports = LiveTVPrototypeImportModel(
             configuration: .init(playlists: [playlist]), loader: loader
         )
-        let model = LiveTVPrototypeModel(channels: [])
+        let model = LiveTVPrototypeModel(now: now, channels: [])
         await imports.reload(into: model)
         XCTAssertEqual(model.channels.count, 1)
-        XCTAssertEqual(imports.guideSources.map(\.source.url), [safe])
-        XCTAssertEqual(imports.guideDiscoveryFailures[playlist.id], .unsafeGuideOrigin)
+        XCTAssertEqual(imports.guideSources.map(\.source.url), guides)
+        XCTAssertTrue(imports.guideSources.allSatisfy { $0.phase == .loaded && $0.failure == nil })
+        XCTAssertNil(imports.guideDiscoveryFailures[playlist.id])
+        XCTAssertEqual(model.currentProgram(for: try XCTUnwrap(model.channels.first?.id))?.title, "Schedule")
         let calls = await loader.calls
-        XCTAssertEqual(calls.guides, [safe])
+        XCTAssertEqual(calls.guides, guides)
     }
 
     func testDefaultImporterNeverSelectsOrLoadsPublicFeeds() async {

@@ -251,7 +251,7 @@ final class LiveTVPlaylistParserTests: XCTestCase {
         XCTAssertEqual(parsed.channels.first?.countries, ["US", "CA"])
     }
 
-    func testGuideDiscoveryOriginPolicyRejectsCrossOriginCredentialsAndDowngrades() throws {
+    func testSourceRedirectOriginPolicyRejectsCrossOriginCredentialsAndDowngrades() throws {
         let origin = try XCTUnwrap(URL(string: "https://example.test/source"))
         for address in [
             "https://evil.test/guide", "http://example.test/guide", "https://example.test:8443/guide",

@@ -5,6 +5,29 @@ import XCTest
 @testable import FeatureLiveTVCore
 
 final class LiveTVSourceLoaderTests: XCTestCase {
+    func testRequestsDoNotInheritSessionCookiesOrStoredCredentials() async throws {
+        let url = fixtureURL()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [LoaderProtocol.self]
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "example.test", .path: "/", .name: "session", .value: "playlist-only"
+        ]))
+        let storage = try XCTUnwrap(configuration.httpCookieStorage)
+        storage.setCookie(cookie)
+        XCTAssertTrue(storage.cookies(for: url)?.contains(cookie) == true)
+        LoaderProtocol.state.register(url, [.init(status: 200, body: playlist)])
+        defer { LoaderProtocol.state.remove(url) }
+
+        let loader = LiveTVSourceLoader(configuration: configuration)
+        XCTAssertNil(configuration.httpCookieStorage)
+        XCTAssertFalse(configuration.httpShouldSetCookies)
+        XCTAssertNil(configuration.urlCredentialStorage)
+        _ = try await loader.loadPlaylist(from: url)
+        let request = try XCTUnwrap(LoaderProtocol.state.requests(url).first)
+        XCTAssertNil(request.value(forHTTPHeaderField: "Cookie"))
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+    }
+
     func testValidEmptyEventPlaylistLoadsAndCanBecomePopulated() async throws {
         let url = fixtureURL()
         LoaderProtocol.state.register(url, [

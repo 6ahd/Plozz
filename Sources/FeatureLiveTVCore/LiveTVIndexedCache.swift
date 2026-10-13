@@ -454,7 +454,7 @@ public actor LiveTVIndexedCache {
                 for url in playlist.declaredGuideURLs where seen.insert(url).inserted {
                     guard guides.count < 32,
                           !source.guideURLs.contains(where: { LiveTVPlaylistSource.guideURLsShareIdentity($0, url) }),
-                          LiveTVSourceOriginPolicy.permits(url, from: playlist.originURL ?? source.playlistURL) else { continue }
+                          LiveTVPlaylistSource.isSupportedURL(url) else { continue }
                     let exact = identity.fingerprint(url.absoluteString)
                     let stable = try discoveredGuideStableFingerprint(url: url, identity: identity)
                     for record in records where record.fingerprint == exact || record.stableFingerprint == stable {

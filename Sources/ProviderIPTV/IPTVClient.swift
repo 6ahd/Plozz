@@ -515,8 +515,8 @@ actor IPTVClient {
         try await ensureCatalog("live")
         let guides = try catalog.records(where: "kind = ?", values: [MediaItemKind.unknown.rawValue], order: "id", limit: 32)
             .compactMap(\.streamURL)
-        guard credential.mode == .file || guides.allSatisfy({ IPTVCredential.sameOrigin(credential.address, $0) }) else {
-            throw LiveTVSourceImportError.unsafeGuideOrigin
+        guard guides.allSatisfy(LiveTVPlaylistSource.isSupportedURL) else {
+            throw LiveTVSourceImportError.invalidGuide
         }
         return guides
     }

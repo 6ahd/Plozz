@@ -38,7 +38,6 @@ public enum LiveTVSourceImportError: Error, Equatable, Sendable {
     case guideTooLarge
     case guideSourceLimitReached
     case cacheFailed
-    case unsafeGuideOrigin
     case guideWithoutPlaylist
     case authenticationRequired, temporarilyUnavailable, tooManyRequests, redirectBlocked
 
@@ -66,8 +65,6 @@ public enum LiveTVSourceImportError: Error, Equatable, Sendable {
             "Some playlist-declared guides weren't added automatically. Use up to 32 preferred guide URLs for this source; its channels are still available."
         case .cacheFailed:
             "Your saved Live TV catalog couldn't be updated. The previous catalog has been kept."
-        case .unsafeGuideOrigin:
-            "This playlist declares a guide on another origin. Add that guide address explicitly in Sources to allow it."
         case .guideWithoutPlaylist:
             "This address contains a program guide, not playable channels. Add it to an existing playlist's guide sources."
         case .authenticationRequired:

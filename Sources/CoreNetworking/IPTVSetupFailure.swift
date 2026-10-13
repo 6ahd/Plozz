@@ -15,7 +15,7 @@ public extension IPTVSetupDiagnostic.Failure {
             case .emptyPlaylist: return .init(.empty)
             case .streamManifest: return .init(.unsupported)
             case .cacheFailed: return .init(.storage)
-            case .unsafeGuideOrigin, .redirectBlocked: return .init(.redirectBlocked)
+            case .redirectBlocked: return .init(.redirectBlocked)
             case .guideWithoutPlaylist: return .init(.guideInsteadOfPlaylist)
             case .authenticationRequired: return .init(.authentication)
             case .tooManyRequests: return .init(.rateLimited)

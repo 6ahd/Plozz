@@ -33,6 +33,9 @@ public actor LiveTVSourceLoader: LiveTVIndexedSourceLoading {
         configuration.timeoutIntervalForResource = 120
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.urlCredentialStorage = nil
         session = URLSession(configuration: configuration, delegate: redirects, delegateQueue: nil)
     }
 

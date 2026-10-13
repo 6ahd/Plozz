@@ -512,18 +512,33 @@ final class IPTVIntegrationTests: XCTestCase {
         XCTAssertNil(IPTVFixture.state.requests.first?.value(forHTTPHeaderField: "X-Playlist-Key"))
     }
 
-    func testPlaylistGuideMetadataSurvivesTheStoredAccountCatalog() async throws {
+    func testDeclaredGuidesLoadFromStoredAccountAcrossOriginsWithoutForwardingPlaylistHeaders() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
+        let guides = [
+            "https://provider.test/guide.xml",
+            "https://cdn.test/guide.xml?token=guide-only",
+            "https://provider.test:8443/guide.xml",
+            "http://cdn.test:8080/guide.xml"
+        ]
         IPTVFixture.state.handler = { request in
             let body = request.url?.path == "/list" ? """
-            #EXTM3U x-tvg-url="https://provider.test/guide.xml"
+            #EXTM3U x-tvg-url="\(guides.joined(separator: ","))"
             #EXTINF:-1 tvg-id="NEWS.us" tvg-name="News" tvg-country="US",101 - News Live
             https://provider.test/live/news
             """ : "<tv/>"
             return (200, [:], Data(body.utf8))
         }
-        let credential = try IPTVCredential(mode: .playlist, address: XCTUnwrap(URL(string: "https://provider.test/list")))
+        let headers = [
+            "Authorization": "Bearer playlist-fixture",
+            "Cookie": "session=playlist-cookie",
+            "X-Playlist-Key": "playlist-key",
+            "Referer": "https://provider.test/list?token=playlist-fixture"
+        ]
+        let credential = try IPTVCredential(
+            mode: .playlist, address: XCTUnwrap(URL(string: "https://provider.test/list")),
+            headers: headers
+        )
         let session = try await IPTVProvider.signIn(
             credential: credential, name: "Guide", deviceID: "fixture",
             cacheDirectory: root, configuration: configuration()
@@ -546,7 +561,14 @@ final class IPTVIntegrationTests: XCTestCase {
                 to: Date(timeIntervalSince1970: 500)
             )
             XCTAssertEqual(IPTVFixture.state.requests.filter { $0.url?.path == "/list" }.count, 1)
-            XCTAssertEqual(IPTVFixture.state.requests.filter { $0.url?.path == "/guide.xml" }.count, 1)
+            let requests = IPTVFixture.state.requests.filter { $0.url?.path == "/guide.xml" }
+            XCTAssertEqual(requests.compactMap { $0.url?.absoluteString }, guides)
+            for request in requests {
+                let sameOrigin = IPTVCredential.sameOrigin(credential.address, try XCTUnwrap(request.url))
+                for (name, value) in headers {
+                    XCTAssertEqual(request.value(forHTTPHeaderField: name), sameOrigin ? value : nil)
+                }
+            }
         } catch { await provider.teardown(); throw error }
         await provider.teardown()
     }

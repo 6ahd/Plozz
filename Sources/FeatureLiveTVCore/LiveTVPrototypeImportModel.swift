@@ -1246,8 +1246,8 @@ public final class LiveTVPrototypeImportModel {
                 guideDiscoveryFailures[source.id] = .guideSourceLimitReached
                 continue
             }
-            guard LiveTVSourceOriginPolicy.permits(url, from: playlist.originURL ?? source.playlistURL) else {
-                guideDiscoveryFailures[source.id] = .unsafeGuideOrigin
+            guard LiveTVPlaylistSource.isSupportedURL(url) else {
+                guideDiscoveryFailures[source.id] = .invalidGuide
                 continue
             }
             let id: String
