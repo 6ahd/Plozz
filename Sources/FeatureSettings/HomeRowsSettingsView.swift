@@ -64,7 +64,7 @@ public struct HomeRowsSettingsView: View {
             .disabled(isLifting)
             VStack(alignment: .leading, spacing: 8) {
                 Text("Rows").settingsSectionHeader()
-                Text("Arrange rows from any library together. Move a row below Hidden to turn it off.")
+                Text("Tap and hold a row for options, or move it to Hidden to hide it.")
                     .font(.footnote)
                     .plozzForeground(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -251,9 +251,6 @@ private struct HomeRowPresetActions: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Presets").settingsSectionHeader()
-            Text("Use your server's Home arrangement, or combine your libraries. You can reorder or hide any row.")
-                .settingsSectionDescription()
-                .fixedSize(horizontal: false, vertical: true)
             if selection != .matchServer && selection != .combined {
                 Text("Custom arrangement")
                     .font(.subheadline.weight(.medium))
