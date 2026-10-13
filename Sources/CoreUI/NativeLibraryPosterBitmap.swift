@@ -438,21 +438,29 @@ enum NativeLibraryPosterBitmap {
     }
 
     /// Renders the SwiftUI indicator layer here, which needs the main actor, and draws the
-    /// full-size poster on a background thread. Concurrent misses for one key may both draw.
+    /// full-size poster on a background thread. Concurrent misses for one key may both draw;
+    /// a cancelled caller stores nothing.
     static func composite(source: UIImage?, key: Key, environment: EnvironmentValues) async -> UIImage? {
         if let cached = cachedImage(source: source, key: key) { return cached }
         // A cell that scrolled away cancels before its indicator layer is rendered.
         guard !Task.isCancelled,
               let overlay = indicatorLayer(source: source, key: key, environment: environment) else { return nil }
-        let size = key.size, scale = key.scale
-        let image = await Task.detached(priority: .userInitiated) {
-            NativePosterArtworkBitmap.compose(
-                source: source, overlay: overlay, size: size, scale: scale,
-                backgroundColor: .darkGray, clipsToArtwork: false
-            )
-        }.value
+        // Awaited directly rather than detached, so a cell that scrolls away cancels the draw too.
+        guard let image = await composeOffMain(source: source, overlay: overlay, size: key.size, scale: key.scale),
+              !Task.isCancelled else { return nil }
         store(image, source: source, key: key)
         return image
+    }
+
+    @concurrent
+    private nonisolated static func composeOffMain(
+        source: UIImage?, overlay: UIImage, size: CGSize, scale: CGFloat
+    ) async -> UIImage? {
+        guard !Task.isCancelled else { return nil }
+        return NativePosterArtworkBitmap.compose(
+            source: source, overlay: overlay, size: size, scale: scale,
+            backgroundColor: .darkGray, clipsToArtwork: false
+        )
     }
 
     private static func indicatorLayer(source: UIImage?, key: Key, environment: EnvironmentValues) -> UIImage? {

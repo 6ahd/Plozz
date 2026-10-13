@@ -30,6 +30,8 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
     private var compositedArtwork: NativePosterImageView?
     private var compositeKey: NativeLibraryPosterBitmap.Key?
     private weak var compositeSource: UIImage?
+    /// The item whose composite the image view shows, so another item never inherits it.
+    private var compositeItem: String?
     private var needsCompositeUpdate = true
 
     private var usesCompositedArtwork: Bool {
@@ -231,16 +233,19 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
                     compositeSource = artwork
                     compositeTask?.cancel()
                     compositeTask = nil
+                    let itemKey = item?.stablePresentationID
                     if let cached = NativeLibraryPosterBitmap.cachedImage(source: artwork, key: key) {
                         compositedArtwork.image = cached
+                        compositeItem = itemKey
                     } else {
                         // Drawing a full-size poster takes several milliseconds; keep it off the
-                        // main thread. A reused cell shows the plain tile until it is ready, and
-                        // the same item keeps its previous composite.
-                        if compositedArtwork.image == nil {
+                        // main thread. The same item keeps its previous composite meanwhile; any
+                        // other item shows the plain tile.
+                        if compositedArtwork.image == nil || compositeItem != itemKey {
                             compositedArtwork.image = NativePosterArtworkBitmap.placeholder(
                                 size: size, scale: scale, clipsToArtwork: false
                             )
+                            compositeItem = itemKey
                         }
                         let pending = artwork, environment = environment
                         compositeTask = Task { [weak self] in
@@ -250,6 +255,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
                             guard !Task.isCancelled, let self, let image,
                                   self.compositeKey == key, self.compositeSource === pending else { return }
                             self.compositedArtwork?.image = image
+                            self.compositeItem = itemKey
                         }
                     }
                 }
@@ -312,6 +318,7 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
         compositedArtwork?.updateIndicator(nil, focused: false)
         compositeKey = nil
         compositeSource = nil
+        compositeItem = nil
         needsCompositeUpdate = true
         item = nil
         isConfiguredForDisplay = false
