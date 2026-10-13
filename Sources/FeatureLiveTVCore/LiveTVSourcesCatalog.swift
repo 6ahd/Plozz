@@ -7,7 +7,10 @@ public struct LiveTVSourcesCatalogAuthority: Equatable, Sendable {
     public let authorization: LiveTVSourceAuthorization
 
     public init(configuration: LiveTVSourcesConfiguration, authorization: LiveTVSourceAuthorization) {
-        self.configuration = configuration
+        var sources = configuration
+        // Sync receipts are bookkeeping, not source settings or profile authority.
+        sources.syncCheckpoint = nil
+        self.configuration = sources
         self.authorization = authorization
     }
 }

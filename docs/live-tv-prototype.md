@@ -452,6 +452,11 @@ Catalog display state checks the current in-memory profile/account admission wit
 the secure source store. This display state is not an operation permit: catalog
 publication, scans, imports and mutations retain their fresh durable-source and
 parental-authorization checks.
+Sources admission compares actual playlist/server settings and current authorization,
+not the Cloud sync checkpoint stored alongside them. A checkpoint-only write must
+not revoke an open Sources page, discard a pending channel refresh, or stop channel
+checks. Checkpoints remain intact in secure storage; real source edits, account
+changes, profile locks and parental-approval revocations still invalidate old work.
 Earlier prototype builds did not store Favorites or Recents on disk, so there
 is no prior in-memory history to migrate on the first updated launch.
 
