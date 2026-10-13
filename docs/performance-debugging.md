@@ -547,6 +547,17 @@ transport error at teardown despite both metric tests completing; preserve that
 limitation rather than reporting whole-suite success. The measured scrolling
 windows had no active scan/listers, while some idle windows remained busy.
 
+Check the control before trusting zero. In October 2026 the same device returned
+zero `XCTHitchMetric` hitches in every phase, including the original renderer
+above, and Instruments' Animation Hitches template recorded no display data. When
+that happens, read frame pacing from the app instead: launch with
+`PLZPERF_STDOUT=1` through `devicectl device process launch --console` and keep
+the `PLZPERF ... hitch/s=... worst=...ms` lines `HomePerfSampler` prints each
+second. The sampler keeps running while a screen such as a library grid is pushed
+over Home. Faster input than XCTest can send (about four presses a second) comes
+from pyatv over one Companion connection; ten Down or Up presses a second on TV
+Shows Browse reproduce the stutter seen with fast clicking.
+
 After removing the scroll-index hierarchy polling, a same-build comparison
 still recorded `[46, 44, 57]` hitches with the original renderer and
 `[50, 50, 58]` with the candidate. Neither established acceptable frame pacing.
