@@ -821,13 +821,9 @@ struct PlayerControls: View {
     private var trackControlButtons: some View {
         HStack(spacing: 20) {
             ForEach(model.trackControlCategories, id: \.self) { category in
-                Button {
+                PlayerControlButton(category.title, systemImage: category.icon, prominent: openPanel == category) {
                     toggle(category)
-                } label: {
-                    Label(category.title, systemImage: category.icon)
-                        .labelStyle(.iconOnly)
                 }
-                .playerGlassButton(prominent: openPanel == category)
                 .accessibilityIdentifier("player-control-\(category.icon)")
                 .focused($focus, equals: .button(category))
                 .disabled(entryLocksOut(.button(category)))

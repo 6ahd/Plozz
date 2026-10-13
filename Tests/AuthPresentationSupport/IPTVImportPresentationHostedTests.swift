@@ -12,6 +12,37 @@ import XCTest
 
 @MainActor
 final class IPTVImportPresentationHostedTests: XCTestCase {
+    func testActionButtonsMatchNativeSizingAndRemainReadableAcrossThemes() async throws {
+        for (name, palette) in [("dark", ThemePalette.dark), ("light", .light), ("black", .pureBlack)] {
+            for typeSize in [DynamicTypeSize.large, .accessibility1] {
+                let measurements = NativeActionMeasurements()
+                let window = try await host(
+                    NativeActionFixture(measurements: measurements)
+                        .padding(24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(palette.backgroundBase)
+                        .environment(\.themePalette, palette)
+                        .environment(\.colorScheme, palette.isLight ? .light : .dark)
+                        .environment(\.dynamicTypeSize, typeSize)
+                        .tint(palette.accent)
+                )
+                defer { close(window) }
+                let text = try await capture(
+                    window, name: "native-actions-\(name)-\(typeSize)",
+                    recognitionRegion: { measurements.bounds }
+                )
+                for title in ["Continue", "Cancel"] {
+                    XCTAssertEqual(text.components(separatedBy: title).count - 1, 2,
+                                   "Both the shared action and native reference must be readable: \(text)")
+                    let action = try XCTUnwrap(measurements.sizes[title])
+                    let reference = try XCTUnwrap(measurements.sizes["\(title)-native"])
+                    XCTAssertEqual(action.width, reference.width, accuracy: 1)
+                    XCTAssertEqual(action.height, reference.height, accuracy: 1)
+                }
+            }
+        }
+    }
+
     func testCountRendersIntermediateValuesThenResetsAndSupportsDisabledAnimations() async throws {
         let state = ImportCountScene()
         let window = try await host(ImportCountFixture(state: state))
@@ -220,7 +251,10 @@ final class IPTVImportPresentationHostedTests: XCTestCase {
         window.windowScene?.windows.first(where: { $0 !== window })?.makeKeyAndVisible()
     }
 
-    private func capture(_ window: UIWindow, name: String) async throws -> String {
+    private func capture(
+        _ window: UIWindow, name: String,
+        recognitionRegion: (@MainActor () -> CGRect)? = nil
+    ) async throws -> String {
         try await Task.sleep(for: .milliseconds(200))
         window.layoutIfNeeded()
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
@@ -232,8 +266,59 @@ final class IPTVImportPresentationHostedTests: XCTestCase {
         add(attachment)
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
-        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        var pixels = try XCTUnwrap(image.cgImage)
+        if let region = recognitionRegion?() {
+            pixels = try XCTUnwrap(pixels.cropping(to: region.insetBy(dx: -12, dy: -12)
+                .applying(CGAffineTransform(scaleX: image.scale, y: image.scale))))
+        }
+        try VNImageRequestHandler(cgImage: pixels).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+    }
+}
+
+@MainActor @Observable
+private final class NativeActionMeasurements {
+    var sizes: [String: CGSize] = [:]
+    var bounds: CGRect = .zero
+}
+
+private struct NativeActionFixture: View {
+    let measurements: NativeActionMeasurements
+    @Environment(\.themePalette) private var palette
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Button("Continue") {}
+                .plozzActionButton()
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { measurements.sizes["Continue"] = $0 }
+            nativePrimary
+                #if os(iOS)
+                .foregroundStyle(palette.onAccent)
+                #endif
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { measurements.sizes["Continue-native"] = $0 }
+            Button("Cancel") {}
+                .plozzActionButton(role: .secondary)
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { measurements.sizes["Cancel"] = $0 }
+            nativeSecondary
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { measurements.sizes["Cancel-native"] = $0 }
+        }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { measurements.bounds = $0 }
+    }
+
+    @ViewBuilder private var nativePrimary: some View {
+        if #available(iOS 26.0, tvOS 26.0, *) {
+            Button("Continue") {}.buttonStyle(.glassProminent)
+        } else {
+            Button("Continue") {}.buttonStyle(.borderedProminent)
+        }
+    }
+
+    @ViewBuilder private var nativeSecondary: some View {
+        if #available(iOS 26.0, tvOS 26.0, *) {
+            Button("Cancel") {}.buttonStyle(.glass)
+        } else {
+            Button("Cancel") {}.buttonStyle(.bordered)
+        }
     }
 }
 

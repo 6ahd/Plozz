@@ -87,6 +87,11 @@ appearance, with screenshot attachments for visual review.
 - Actual `PrototypeBrowser` inside native `PrototypeNativeSearch`: keyboard entry,
   every row in a 30-channel guide, reverse traversal, keyboard reentry, right-to-left
   programme rows, and Back from empty and filtered searches.
+- Playback and multiview controls: actual remote focus, dark glyphs inside the
+  bright focused fill, compact transport-matched dimensions, accessible action
+  titles, and working native Layout menus in glass and reduced-transparency
+  modes. The fixture uses the guide's native color-scheme environment and a
+  zoom-capable engine with audio/subtitle choices.
 - Existing package Search focus, dismissal, retained-state, and row-boundary tests
   run in a scene-backed unit-test host.
 - Existing native fullscreen tests verify output-surface identity, pending startup,
@@ -102,8 +107,9 @@ appearance, with screenshot attachments for visual review.
   the playlist editor and returning through both pages. Form coverage measures
   native field/action bounds, adds and removes guides with the remote, and checks
   that invalid input stays on the form without persistence or network requests.
-  Screenshot-pixel checks verify that the unfocused primary source action stays
-  filled in both Dark and Light appearances.
+  Rendered-text checks verify that native source actions remain readable both
+  focused and unfocused in Dark and Light appearances without requiring the
+  retired custom style's solid fill.
 - Setup-card coverage checks matching dimensions, all three remote actions,
   stacked narrow/accessibility layouts, and right-to-left Light appearance.
   Screenshot attachments preserve each layout for visual review.

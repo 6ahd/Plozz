@@ -369,6 +369,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                             : (expanded ? layout.bounds : layout.videoFrame)
                         player(playbackInput(for: pane, prepared: prepared))
                     .environment(\.themePalette, ThemePalette.dark)
+                    .environment(\.colorScheme, .dark)
                     .frame(width: videoFrame.width, height: videoFrame.height)
                     .clipShape(RoundedRectangle(
                         cornerRadius: showingMultiview && multiview.isEditingLayout ? 10 : 0))
@@ -443,7 +444,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         }
         .environment(\.themePalette, palette)
         .tint(palette.accent)
-        .foregroundStyle(palette.primaryText)
+        .environment(\.colorScheme, palette.isLight ? .light : .dark)
         .overlay(alignment: .topTrailing) {
             if let id = playback.pendingWatchChannelID, !preview.isExpanded || playback.preparation.current == nil {
                 PrototypeWatchPreparationStatus(

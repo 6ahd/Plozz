@@ -570,11 +570,7 @@ struct LiveChannelOverlay: View {
         _ title: LocalizedStringResource, systemImage: String, control: LiveChannelControl,
         prominent: Bool = false, action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            Label { Text(title) } icon: { Image(systemName: systemImage) }
-                .labelStyle(.iconOnly)
-        }
-        .playerGlassButton(prominent: prominent)
+        PlayerControlButton(title, systemImage: systemImage, prominent: prominent, action: action)
         .focused($focus, equals: control)
         .disabled(openMenu != nil || cardOpen)
     }

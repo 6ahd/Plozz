@@ -1,4 +1,5 @@
 import CoreModels
+import CoreUI
 import FeaturePlayback
 import SwiftUI
 import UIKit
@@ -215,6 +216,10 @@ struct MultiviewFixture: View {
                 .zIndex(3)
             }
         }
+        .environment(\.colorScheme, .dark)
+        .tint(.white)
+        .environment(\.plozzReducePanelGlass,
+                     ProcessInfo.processInfo.arguments.contains("--reduce-panel-glass"))
         .task {
             _ = await state.primary.prepare(
                 state.channels[0], isAuthorized: { true }, accept: { true }
@@ -339,7 +344,7 @@ struct LiveTVRootFixture: View {
         }
         .environment(profiles)
         .overlay(alignment: .topTrailing) {
-            if isActive {
+            if isActive && !ProcessInfo.processInfo.arguments.contains("--visual-focus-fixture") {
                 HStack {
                     Button("Refresh host") { hostRevision += 1 }
                         .accessibilityIdentifier("live-root-fixture-refresh")
@@ -465,7 +470,7 @@ private struct MultiviewFocusDiagnostics: UIViewRepresentable {
 }
 
 private struct LiveTVRootFixtureSettings: LiveTVViewSettingsStoring {
-    func load() -> LiveTVViewSettings { .init(autoPreview: false) }
+    func load() -> LiveTVViewSettings { .init(autoPreview: false, hasChosenAutoPreview: true) }
     func save(_ settings: LiveTVViewSettings) {}
 }
 
@@ -514,6 +519,7 @@ private final class MultiviewFixtureEngine: LiveChannelEngine {
     var onSecondarySubtitleCues: (@MainActor ([SubtitleCue]) -> Void)?
     var onLiveSourceReset: (@MainActor () -> Void)?
     var supportsConcurrentPlayback: Bool { true }
+    var capabilities: PlayerEngineCapabilities { [.videoZoom] }
     var loads = 0
     var stops = 0
     var audible = false
@@ -525,6 +531,13 @@ private final class MultiviewFixtureEngine: LiveChannelEngine {
 
     init(number: Int) {
         self.number = number
+        if ProcessInfo.processInfo.arguments.contains("--visual-focus-fixture") {
+            audioTracks = [
+                MediaTrack(id: 1, kind: .audio, displayTitle: "English", language: "eng"),
+                MediaTrack(id: 2, kind: .audio, displayTitle: "French", language: "fra")
+            ]
+            subtitleTracks = [MediaTrack(id: 3, kind: .subtitle, displayTitle: "English", language: "eng")]
+        }
         output.backgroundColor = number == 1 ? .systemBlue : .systemTeal
         output.accessibilityIdentifier = "multiview-fixture-video-\(number)"
         label.textColor = .white
@@ -543,6 +556,7 @@ private final class MultiviewFixtureEngine: LiveChannelEngine {
         loads += 1
         status = .ready
         label.text = "Engine \(number) loads \(loads)"
+        onProgress?()
     }
     func load(request: PlaybackRequest, startPosition: TimeInterval) async {
         preconditionFailure("The live fixture must not load VOD")

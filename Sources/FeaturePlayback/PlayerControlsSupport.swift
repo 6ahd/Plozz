@@ -552,33 +552,6 @@ enum PlozzMoveCommandDirection {
     case right
 }
 
-extension View {
-    /// Applies the system Liquid Glass button style (tvOS 26+), falling back to
-    /// the bordered styles on older systems. `prominent` highlights the active
-    /// category / enabled toggle.
-    @ViewBuilder
-    func playerGlassButton(prominent: Bool) -> some View {
-        modifier(PlayerGlassButtonModifier(prominent: prominent))
-    }
-
-    @ViewBuilder
-    fileprivate func playerSystemGlassButton(prominent: Bool) -> some View {
-        if #available(iOS 26.0, tvOS 26.0, *) {
-            if prominent {
-                buttonStyle(.glassProminent)
-            } else {
-                buttonStyle(.glass)
-            }
-        } else {
-            if prominent {
-                buttonStyle(.borderedProminent)
-            } else {
-                buttonStyle(.bordered)
-            }
-        }
-    }
-}
-
 /// The floating panel's translucent backing. Native **Liquid Glass** on tvOS
 /// 26+, with the profile/accessibility choice and pre-26 fallback retained.
 ///
@@ -698,61 +671,5 @@ extension View {
         #else
         self
         #endif
-    }
-}
-
-/// The transport buttons' stand-in when live glass is too expensive.
-///
-/// A style rather than a background modifier because these use the SYSTEM
-/// `.glass` / `.glassProminent` button styles, which cannot be told to fall
-/// back — hence their staying glass while everything around them had changed,
-/// and visibly swapping material the moment a menu opened and re-rendered them.
-struct PlayerFrostedButtonStyle: ButtonStyle {
-    var prominent: Bool
-
-    @Environment(\.isFocused) private var isFocused
-
-    func makeBody(configuration: Configuration) -> some View {
-        let shape = Capsule(style: .continuous)
-        // Focus takes the same solid white the system glass style uses, so the
-        // focused state is identical either way and only the resting one differs.
-        let focusedFill = AnyShapeStyle(Color.white)
-        configuration.label
-            .font(.body.weight(.semibold))
-            .foregroundStyle(isFocused ? Color.black : Color.white)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 14)
-            .background {
-                if isFocused {
-                    shape.fill(focusedFill)
-                } else {
-                    Color.clear.plozzFrostedBackground(shape, raised: prominent)
-                }
-            }
-            // Dropped when focused, where the white fill is its own boundary and
-            // an edge on top of it reads as an outline rather than a shape.
-            .plozzFrostedBorder(shape, visible: !isFocused)
-            .contentShape(shape)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
-
-/// Chooses between the system glass button style and the frosted stand-in.
-///
-/// A modifier rather than a branch inside `playerGlassButton`, because a
-/// `View` extension cannot read the environment and the choice depends on it.
-private struct PlayerGlassButtonModifier: ViewModifier {
-    let prominent: Bool
-
-    @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
-
-    func body(content: Content) -> some View {
-        if reducePanelGlass {
-            content.buttonStyle(PlayerFrostedButtonStyle(prominent: prominent))
-        } else {
-            content.playerSystemGlassButton(prominent: prominent)
-        }
     }
 }

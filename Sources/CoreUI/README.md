@@ -6,6 +6,19 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Native action controls** — `plozzActionButton` only selects the system
+  glass/glass-prominent styles, or bordered styles on older systems. It adds no
+  font, padding, capsule, border, focus effect or press scaling. Setup, profile/PIN,
+  source/import, retry and sync actions share this native selection rather than
+  the retired `PlozzActionButtonStyle`. Keep label sizing native; do not add wide
+  minimum widths just to manufacture a large page-action pill. Text colors belong
+  on text, not screen containers that also contain native controls.
+  iOS primary actions pair the palette's monochrome `accent` with `onAccent`:
+  native prominent buttons otherwise retain white text on a white tint. This
+  theme-color pairing does not replace native geometry, material or interaction.
+  Playback and multiview use `PlayerControlButton` for their icon-only actions;
+  `playerGlassButton` gives native menus the same system treatment. Only the
+  existing reduced-transparency playback path draws the shared frosted fallback.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than

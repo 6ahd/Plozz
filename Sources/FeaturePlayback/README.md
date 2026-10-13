@@ -848,6 +848,13 @@ path reduces first-visit and focus work while keeping the material. Both shells
 still honor the existing profile/OS transparency resolution, and older OS
 versions retain their non-glass fallback.
 
+tvOS transport badges and Live TV multiview actions share CoreUI's
+`PlayerControlButton`. Native menus use the same `playerGlassButton` modifier
+without replacing native menu behavior. The compact icon-only controls keep
+accessible titles. Do not set a blanket foreground on their containing screen:
+native glass owns label contrast, focus and material. Only the existing
+reduced-transparency path uses the shared frosted fallback.
+
 The real app enters the synthetic comparison through its normal profile route;
 Settings exposes **Player marker examples** only in Debug builds after Developer
 Mode is unlocked, never in ordinary Settings or a Kids Profile. Notification
