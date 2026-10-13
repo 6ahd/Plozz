@@ -62,6 +62,7 @@ public final class LiveTVPortableSyncBridge {
     private struct CompletedCapture {
         let state: CaptureState
         let records: LiveTVPortableLibraryPreparation.CaptureRecords
+        let status: Status
         // Keep the small journal coordinator alive; endOperation releases decoded data.
         let adapter: LiveTVPortableSyncAdapter
     }
@@ -152,12 +153,14 @@ public final class LiveTVPortableSyncBridge {
                 guard mayApply(profile.id, epoch: epoch) else { continue }
                 if fallbackMatches, let initialState, let completed, completed.state == initialState {
                     result.merge(completed.records.changes, uniquingKeysWith: { _, captured in captured })
+                    statuses[profile.id] = completed.status
                     continue
                 }
                 completedCaptures[profile.id] = nil
                 stage = trace(.capture, .prepareJournal)
                 try await prepare(adapter, profileID: profile.id, epoch: epoch, records: incomingRecords)
                 var libraryIssue: Status?
+                var reusableLibrarySizeFailure = false
                 stage = trace(.capture, .libraryState)
                 let deferred = try await pendingLibraryState(adapter, profileID: profile.id, epoch: epoch)
                 guard mayApply(profile.id, epoch: epoch) else { continue }
@@ -175,6 +178,8 @@ public final class LiveTVPortableSyncBridge {
                 stage = trace(.capture, .libraryState)
                 do { libraryState = try await captureLibraryState(profileID: profile.id, epoch: epoch) }
                 catch {
+                    reusableLibrarySizeFailure = libraryIssue == nil
+                        && error as? LiveTVPortableStateError == .tooLarge
                     libraryIssue = Self.libraryStatus(for: error)
                     recordFailure(error, operation: .capture, stage: stage, profileID: profile.id)
                 }
@@ -228,6 +233,7 @@ public final class LiveTVPortableSyncBridge {
                 guard mayApply(profile.id, epoch: epoch) else { continue }
                 do { try await applyLibrary(pending, profileID: profile.id, epoch: epoch) }
                 catch {
+                    reusableLibrarySizeFailure = false
                     libraryIssue = Self.libraryStatus(for: error)
                     recordFailure(error, operation: .capture, stage: stage, profileID: profile.id)
                 }
@@ -235,13 +241,17 @@ public final class LiveTVPortableSyncBridge {
                 result.merge(captured, uniquingKeysWith: { _, new in new })
                 stage = trace(.capture, .validateRecords)
                 try await updateStatus(pending, profileID: profile.id, epoch: epoch, operation: .capture)
+                // A deterministic size rejection may reuse its checked inputs, but
+                // pending work and transient failures must continue reconciliation.
+                let canReuseSizeFailure = reusableLibrarySizeFailure && statuses[profile.id] == .ready
                 if let libraryIssue { statuses[profile.id] = libraryIssue }
                 finishDiagnostic(.capture, profileID: profile.id)
-                if statuses[profile.id] == .ready, let initialState,
+                if let status = statuses[profile.id], status == .ready || canReuseSizeFailure, let initialState,
                    try await captureState(profileID: profile.id, epoch: epoch) == initialState,
                    mayApply(profile.id, epoch: epoch) {
                     try await rememberCapture(
-                        profileID: profile.id, state: initialState, fallback: profileFallback, records: captured
+                        profileID: profile.id, state: initialState, fallback: profileFallback, records: captured,
+                        status: status
                     )
                 }
             } catch {
@@ -394,14 +404,15 @@ public final class LiveTVPortableSyncBridge {
     }
 
     private func rememberCapture(
-        profileID: String, state: CaptureState, fallback: [SyncRecordID: Data], records: [SyncRecordID: Data]
+        profileID: String, state: CaptureState, fallback: [SyncRecordID: Data], records: [SyncRecordID: Data],
+        status: Status
     ) async throws {
         guard let receipt = try await libraryPreparation.captureRecords(records, fallback: fallback),
               mayApply(profileID, epoch: state.epoch) else { return }
         captureOrder.removeAll { $0 == profileID || completedCaptures[$0] == nil }
         captureOrder.append(profileID)
         completedCaptures[profileID] = CompletedCapture(
-            state: state, records: receipt, adapter: adapter(profileID)
+            state: state, records: receipt, status: status, adapter: adapter(profileID)
         )
         while completedCaptures.values.reduce(0, { $0 + $1.records.byteCount }) > 64 * 1_024 * 1_024
             || completedCaptures.values.reduce(0, { $0 + $1.records.recordCount }) > 50_000 {

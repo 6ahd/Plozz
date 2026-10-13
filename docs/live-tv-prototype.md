@@ -1312,8 +1312,13 @@ from the server baseline. Reuse returns the previous local output. With unchange
 inputs, polling skips journal decoding,
 snapshot reads, schedule partitioning and identity/guide exports.
 
-Only successful, settled captures qualify, after their inputs remain stable
-through a complete operation. Pending transfers and unresolved changes continue
+Successful, settled captures qualify after their inputs remain stable through a
+complete operation. An otherwise settled capture rejected solely by the library
+export's size guard also qualifies, retaining its unavailable status and previous
+library records rather than publishing a prefix or claiming recovery. Unchanged
+oversized inputs must not be reread and reserialized on every poll. A real edit
+invalidates that receipt and retries immediately; the export size limit is unchanged.
+Pending transfers, other unresolved changes and transient failures continue
 through normal reconciliation. Remote apply and account/profile/consent changes
 invalidate receipts. Stores without authoritative revision support retain the
 full path. Receipts keep compact SHA-256 fingerprints of the cloud input and only
