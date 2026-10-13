@@ -19,6 +19,9 @@ fallback when the user's server has no attached trailer.
   It adapts to source changes until a manual row edit freezes a **Custom arrangement**. Choosing Match server
   again resumes adaptation. **Combined rows** starts with cross-library rows
   regardless of source count. Existing legacy arrangements remain unchanged.
+  Both presets put **Libraries** last among visible rows, after Live TV and any
+  newly discovered default rows, even when the server lists Libraries first.
+  Custom row positions and hidden Libraries choices remain unchanged.
   Global rows say **All libraries**; native server and library rows identify their
   source. All can be freely interleaved. Changing presets requires confirmation;
   selecting the already active preset does nothing.

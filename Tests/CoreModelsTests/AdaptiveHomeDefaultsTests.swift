@@ -80,10 +80,12 @@ final class AdaptiveHomeDefaultsTests: XCTestCase {
         XCTAssertEqual(model.visibility.rowSections(choices: choices).enabled, [
             .global(.continueWatching), .global(.watchlist), .global(.recentlyAdded),
             .server(accountID: "a", section: "picks"), .server(accountID: "b", section: "latest"),
-            .libraries, .liveTV
+            .liveTV, .libraries
         ])
         model.useRowDefaults(.combined)
-        XCTAssertEqual(model.visibility.rowSections(choices: choices).enabled, HomeRowChoice.shared.map(\.id))
+        XCTAssertEqual(model.visibility.rowSections(choices: choices).enabled, [
+            .global(.continueWatching), .global(.watchlist), .global(.recentlyAdded), .liveTV, .libraries
+        ])
     }
 
     func testMultipleServersRetainOfflineRowsAndFallbackOnlyForUnsupportedSources() async {

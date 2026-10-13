@@ -3,6 +3,45 @@ import CoreModels
 @testable import FeatureHomeCore
 
 final class HomePresentationRowTests: XCTestCase {
+    func testBothPresetsPutLibrariesLastInHomeAndTheArrangerWithLiveAndFallbackRows() {
+        let source = library("a")
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie)
+        let section = LibrarySection(id: "recentlyAdded", title: "Latest", items: [item])
+        let content = HomeViewModel.Content(
+            continueWatching: [item], latest: [item], watchlist: [item], libraries: [source],
+            librarySections: [.init(library: source, sections: [section])]
+        )
+        let card = HomeLiveTVChannel(
+            route: .init(
+                profileID: "profile", channelID: "news", sourceID: "source",
+                sourceAuthorizationID: "approval", serverAuthorizationID: "servers"
+            ), name: "News", sourceName: "Source", number: 1
+        )
+        let snapshot = HomeLiveTVSnapshot(recentChannels: [], channels: [card])
+        for preset: HomeRowCustomization.Defaults in [.matchServer, .combined] {
+            var customization = HomeRowCustomization(defaults: preset)
+            if preset == .matchServer {
+                customization.resolvedDefaults = .init(
+                    mode: .combined, order: HomeRowChoice.shared.map(\.id), fallbackAccountIDs: ["a"]
+                )
+            }
+            let visibility = HomeLibraryVisibility(rowCustomization: customization)
+            let home = HomeRow.rows(
+                for: content, isLibraryVisible: visibility.isEnabled,
+                isGlobalRowEnabled: visibility.isGlobalRowEnabled
+            )
+            let presented = HomePresentationRow.resolve(
+                rows: home, content: content, visibility: visibility, liveTV: snapshot
+            )
+            let arranged = visibility.rowSections(
+                choices: HomeRowChoice.shared + HomeRowChoice.baseRows(for: source)
+            ).enabled
+            XCTAssertEqual(presented.map(\.id), arranged)
+            XCTAssertEqual(presented.last?.id, .libraries)
+            XCTAssertTrue(presented.contains { $0.id == .liveTV })
+        }
+    }
+
     func testRetainedNativeRowsImmediatelyHonorDisabledLibraryAndItemVisibility() {
         let scoped = HomeServerRowDefinition(
             accountID: "a", serverName: "Server", providerKind: .plex,

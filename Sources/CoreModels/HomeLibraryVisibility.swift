@@ -230,9 +230,13 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     }
 
     public func rowSections(choices: [HomeRowChoice]) -> OrderedVisibilityList.Sections<HomeRowID> {
+        let available = choices.map(\.id)
+        let hidden = Set(choices.filter { !isHomeRowVisible($0) }.map(\.id))
+        if let rowCustomization {
+            return rowCustomization.sections(available: available, hidden: hidden)
+        }
         return OrderedVisibilityList.resolving(
-            available: choices.map(\.id), order: rowCustomization?.effectiveOrder ?? [],
-            hidden: Set(choices.filter { !isHomeRowVisible($0) }.map(\.id))
+            available: available, order: [], hidden: hidden
         )
     }
 

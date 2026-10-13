@@ -179,10 +179,26 @@ public struct HomeRowCustomization: Codable, Equatable, Sendable {
     }
 
     public func sections(choices: [HomeRowChoice]) -> OrderedVisibilityList.Sections<HomeRowID> {
-        OrderedVisibilityList.resolving(
-            available: choices.map(\.id), order: effectiveOrder,
+        sections(
+            available: choices.map(\.id),
             hidden: Set(choices.filter { !isVisible($0.id, providerDefault: $0.isProviderDefault) }.map(\.id))
         )
+    }
+
+    func sections(
+        available: [HomeRowID], hidden: Set<HomeRowID>
+    ) -> OrderedVisibilityList.Sections<HomeRowID> {
+        var result = OrderedVisibilityList.resolving(
+            available: available, order: effectiveOrder, hidden: hidden
+        )
+        // Include newly discovered/fallback rows before placing Libraries last.
+        // Older Combined arrangements with an explicit order remain customized.
+        if defaults == .matchServer || (defaults == .combined && order.isEmpty),
+           let index = result.enabled.firstIndex(of: .libraries) {
+            result.enabled.remove(at: index)
+            result.enabled.append(.libraries)
+        }
+        return result
     }
 
     public mutating func setVisible(_ visible: Bool, for id: HomeRowID) {
@@ -190,7 +206,7 @@ public struct HomeRowCustomization: Codable, Equatable, Sendable {
             let rows = availableServerRows
             let choices = HomeRowChoice.shared + rows.map(HomeRowChoice.init(serverRow:))
             let current = sections(choices: choices)
-            order = effectiveOrder.isEmpty ? current.combined : effectiveOrder
+            order = current.combined
             shown.formUnion(current.enabled)
             hidden.formUnion(current.disabled)
             serverRows = rows

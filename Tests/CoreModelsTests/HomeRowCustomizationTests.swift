@@ -11,6 +11,82 @@ final class HomeRowCustomizationTests: XCTestCase {
         )
     }
 
+    func testBothPresetsPlaceLibrariesAfterLiveTVAndDiscoveredFallbackRows() {
+        let fallback = library("a", "movies")
+        let fallbackID = HomeRowID.library(fallback.key, kind: .recentlyAdded)
+        let choices = HomeRowChoice.shared + HomeRowChoice.baseRows(for: fallback)
+        var single = HomeRowCustomization(defaults: .matchServer)
+        single.resolvedDefaults = .init(
+            mode: .server, order: [.libraries, .global(.continueWatching), .liveTV]
+        )
+        var multiple = HomeRowCustomization(defaults: .matchServer)
+        multiple.resolvedDefaults = .init(
+            mode: .combined, order: HomeRowChoice.shared.map(\.id), fallbackAccountIDs: ["a"]
+        )
+        var unsupported = HomeRowCustomization(defaults: .matchServer)
+        unsupported.resolvedDefaults = .init(mode: .providerFallback)
+        let common: [HomeRowID] = [
+            .global(.continueWatching), .global(.watchlist), .global(.recentlyAdded), .liveTV
+        ]
+        let cases: [(HomeRowCustomization, [HomeRowID])] = [
+            (.init(defaults: .combined), common + [.libraries]),
+            (single, [.global(.continueWatching), .liveTV, .libraries]),
+            (multiple, common + [fallbackID, .libraries]),
+            (unsupported, [.global(.continueWatching), .global(.watchlist), fallbackID, .libraries]),
+            (.init(defaults: .matchServer),
+             [.global(.continueWatching), .global(.watchlist), fallbackID, .libraries])
+        ]
+        for (customization, expected) in cases {
+            let visibility = HomeLibraryVisibility(rowCustomization: customization)
+            XCTAssertEqual(visibility.rowSections(choices: choices).enabled, expected)
+            XCTAssertEqual(customization.sections(choices: choices).enabled, expected)
+        }
+    }
+
+    func testLibrariesCanBeMovedOrHiddenAfterEitherPresetAndKeepThatChoice() throws {
+        for preset: HomeRowCustomization.Defaults in [.matchServer, .combined] {
+            var visibility = HomeLibraryVisibility(rowCustomization: .init(defaults: preset))
+            let choices = HomeRowChoice.shared
+            var sections = visibility.rowSections(choices: choices)
+            XCTAssertEqual(sections.enabled.last, .libraries)
+            sections.enabled.removeAll { $0 == .libraries }
+            sections.enabled.insert(.libraries, at: 0)
+            visibility.applyRows(sections, choices: choices)
+            XCTAssertEqual(visibility.rowCustomization?.defaults, .custom)
+            let restored = try JSONDecoder().decode(
+                HomeLibraryVisibility.self, from: JSONEncoder().encode(visibility)
+            )
+            XCTAssertEqual(restored.rowSections(choices: choices).enabled, sections.enabled)
+            sections.enabled.removeFirst()
+            sections.disabled.append(.libraries)
+            visibility.applyRows(sections, choices: choices)
+            XCTAssertEqual(visibility.rowSections(choices: choices), sections)
+        }
+    }
+
+    func testVisibilityEditFreezesThePresentedPresetOrderInsteadOfServerLibraryPosition() {
+        var customization = HomeRowCustomization(defaults: .matchServer)
+        customization.resolvedDefaults = .init(
+            mode: .server, order: [.libraries, .global(.continueWatching), .liveTV]
+        )
+        customization.setVisible(false, for: .global(.continueWatching))
+        XCTAssertEqual(customization.defaults, .custom)
+        XCTAssertEqual(customization.sections(choices: HomeRowChoice.shared).enabled, [.liveTV, .libraries])
+    }
+
+    func testDefaultLibraryPositionDoesNotEnableAServerHiddenLibraryRowOrRewriteOldOrders() {
+        var matched = HomeRowCustomization(defaults: .matchServer)
+        matched.resolvedDefaults = .init(mode: .server, order: [.global(.continueWatching)])
+        XCTAssertEqual(matched.sections(choices: HomeRowChoice.shared).enabled, [.global(.continueWatching)])
+        for preset: HomeRowCustomization.Defaults in [.custom, .combined, .legacy, .provider] {
+            let saved = HomeRowCustomization(
+                defaults: preset, order: [.libraries, .global(.continueWatching)],
+                shown: [.libraries, .global(.continueWatching)]
+            )
+            XCTAssertEqual(saved.sections(choices: HomeRowChoice.shared).enabled.first, .libraries)
+        }
+    }
+
     func testProviderDefaultsOfferLatestAndNextUpButNotMediaBrowserRecommendations() {
         let visibility = HomeLibraryVisibility.default
         let movies = library("a", "movies")
