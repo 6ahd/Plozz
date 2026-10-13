@@ -10,6 +10,7 @@ public final class TouchFeedback: NSObject {
         case impact
         case selection
         case confirmation
+        case error
     }
 
     public static let shared = TouchFeedback()
@@ -46,6 +47,7 @@ public final class TouchFeedback: NSObject {
             case .impact: impact.impactOccurred(intensity: 0.6)
             case .selection: selection.selectionChanged()
             case .confirmation: confirmation.notificationOccurred(.success)
+            case .error: confirmation.notificationOccurred(.error)
             }
             #endif
         }, isActive: {
@@ -66,14 +68,24 @@ public final class TouchFeedback: NSObject {
         activityGeneration &+= 1
     }
 
-    public func acknowledgeAction(isRelevant: @escaping () -> Bool = { true }) -> @MainActor @Sendable () -> Void {
-        let confirm = confirmation(isRelevant: isRelevant)
+    public func acknowledgeAction(
+        onCompletion event: Event = .confirmation,
+        isRelevant: @escaping () -> Bool = { true }
+    ) -> @MainActor @Sendable () -> Void {
+        let complete = completionFeedback(event, isRelevant: isRelevant)
         emit(.impact)
-        return confirm
+        return complete
     }
 
     /// Capture at the gesture, invoke only after success in the same foreground session.
     public func confirmation(isRelevant: @escaping () -> Bool = { true }) -> @MainActor @Sendable () -> Void {
+        completionFeedback(.confirmation, isRelevant: isRelevant)
+    }
+
+    private func completionFeedback(
+        _ event: Event,
+        isRelevant: @escaping () -> Bool
+    ) -> @MainActor @Sendable () -> Void {
         let generation = activityGeneration
         let beganWhileActive = isActive()
         var consumed = false
@@ -82,7 +94,7 @@ public final class TouchFeedback: NSObject {
             consumed = true
             guard let self, beganWhileActive,
                   self.activityGeneration == generation, isRelevant() else { return }
-            self.emit(.confirmation)
+            self.emit(event)
         }
     }
 }

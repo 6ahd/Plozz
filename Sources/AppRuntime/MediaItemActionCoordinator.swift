@@ -91,7 +91,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
     /// is dropped the moment the durable read agrees, and reverted if the write
     /// fails, so the two can never end up disagreeing silently.
     private var watchlistIntents: [String: Bool] = [:]
-    private var watchlistConfirmations: [String: @MainActor () -> Void] = [:]
+    private var watchlistFailureFeedback: [String: @MainActor () -> Void] = [:]
 
     /// Titles with a write in flight. One writer per title, so a burst of presses
     /// cannot interleave: without this, two taps race two `resolveOrCreate` +
@@ -131,6 +131,8 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
     private let downloadState: (MediaItem) -> MediaItemDownloadState??
     private let performDownloadAction: (MediaItemAction, MediaItem) -> Void
     private let makeActionConfirmation: @MainActor () -> (@MainActor () -> Void)
+    /// Acknowledge the press now; invoke the returned feedback only if saving fails.
+    private let makeWatchlistFailureFeedback: @MainActor () -> (@MainActor () -> Void)
 
     public init(
         providerResolver: @escaping (String?) -> (any MediaProvider)?,
@@ -167,10 +169,12 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
         seedLegacyUniversalWatchlist: @escaping ([MediaItem]) async -> Void = { _ in },
         downloadState: @escaping (MediaItem) -> MediaItemDownloadState?? = { _ in nil },
         performDownloadAction: @escaping (MediaItemAction, MediaItem) -> Void = { _, _ in },
-        makeActionConfirmation: @escaping @MainActor () -> (@MainActor () -> Void) = { {} }
+        makeActionConfirmation: @escaping @MainActor () -> (@MainActor () -> Void) = { {} },
+        makeWatchlistFailureFeedback: @escaping @MainActor () -> (@MainActor () -> Void) = { {} }
     ) {
         self.providerResolver = providerResolver
         self.makeActionConfirmation = makeActionConfirmation
+        self.makeWatchlistFailureFeedback = makeWatchlistFailureFeedback
         self.providerCapabilityResolver = providerCapabilityResolver
         self.additionalSources = additionalSources
         self.primaryAccountID = primaryAccountID
@@ -451,7 +455,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
     /// with the live identity index — the same source of truth the mark-watched
     /// fan-out uses — so a title only one server surfaced still saves everywhere.
     private func performWatchlist(adding: Bool, on item: MediaItem) {
-        let confirm = makeActionConfirmation()
+        let reportFailure = makeWatchlistFailureFeedback()
         if universalWatchlistEnabled() {
             let performUniversalWatchlist = self.performUniversalWatchlist
             let presentFeedback = self.presentUniversalWatchlistFeedback
@@ -473,7 +477,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
             // the press is on screen this frame instead of after the ledger write.
             let key = Self.membershipKey(item)
             watchlistIntents[key] = adding
-            watchlistConfirmations[key] = confirm
+            watchlistFailureFeedback[key] = reportFailure
             announceWatchlistIntentChanged()
 
             // One writer per title. A second press while a write is in flight only
@@ -486,7 +490,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
             Task { @MainActor in
                 defer {
                     self.watchlistWriters.remove(key)
-                    self.watchlistConfirmations[key] = nil
+                    self.watchlistFailureFeedback[key] = nil
                     self.announceWatchlistIntentChanged()
                 }
                 // Keep writing until what's on disk is what the viewer last asked
@@ -512,6 +516,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
                                 comment: "Transient message shown when saving a title to, or removing it from, the Watchlist did not succeed."
                             )
                         )
+                        self.watchlistFailureFeedback.removeValue(forKey: key)?()
                         return
                     }
                     // Patch the one title that changed; do NOT throw the memo away.
@@ -537,7 +542,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
 
                     // Pressed again while that was in flight? Write the new answer.
                     guard self.watchlistIntents[key] == desired else { continue }
-                    self.watchlistConfirmations.removeValue(forKey: key)?()
+                    self.watchlistFailureFeedback[key] = nil
                     // Hand back to the durable read once it agrees.
                     if self.watchlistMembership(item) == desired {
                         self.watchlistIntents[key] = nil
@@ -588,8 +593,7 @@ public final class MediaItemActionCoordinator: MediaItemActionHandling {
             // If every provider failed, revert the optimistic change.
             if !anySucceeded {
                 MediaItemMutation(itemIDs: [item.id], scopedItemIDs: scoped, favorite: !adding).post()
-            } else {
-                confirm()
+                reportFailure()
             }
         }
     }

@@ -137,12 +137,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 - **Touch action feedback** — `TouchFeedback` gives mobile skip actions a light
   impact and committed scrubs / explicit reorder moves a selection tick. Native
   List drag reordering retains system feedback without a second app vibration.
-  Watchlist and manual watched actions acknowledge the press immediately with
-  a light tap, then confirm successful saving separately. Watched confirmation
-  means durable outbox acceptance, not eventual server synchronization.
-  Favorites confirm successful writes. Capture asynchronous confirmations at
-  the user action: they are one-shot and cancelled when the app deactivates or
-  the profile changes, rather than expiring during a slow foreground save.
+  Watchlist actions acknowledge the press immediately with a light tap and stay
+  silent on success; an error haptic accompanies a failed save and rollback.
+  Manual watched actions retain the immediate tap and separate confirmation of
+  durable outbox acceptance, not eventual server synchronization.
+  Favorites confirm successful writes. Capture asynchronous completion haptics
+  at the user action: they are one-shot and cancelled when the app deactivates
+  or the profile changes, rather than expiring during a slow foreground save.
   Scrolling, menu opening, automatic playback and background persistence/retry
   events do not trigger action feedback.
 - **Async artwork** — `FallbackAsyncImage` and `ArtworkImageCache`: an

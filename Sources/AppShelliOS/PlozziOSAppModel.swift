@@ -482,7 +482,8 @@ final class PlozziOSAppModel {
             performDownloadAction: { [unowned self] action, item in
                 Task { await self.performDownloadMenuAction(action, on: item) }
             },
-            makeActionConfirmation: { [unowned self] in self.makeLibraryActionConfirmation() }
+            makeActionConfirmation: { [unowned self] in self.makeLibraryActionFeedback() },
+            makeWatchlistFailureFeedback: { [unowned self] in self.makeLibraryActionFeedback(onCompletion: .error) }
         )
 
     /// Internal (not private) so the KeychainSync extension in another file can read
@@ -1670,9 +1671,11 @@ final class PlozziOSAppModel {
         trackerScopedNamespace = .some(namespace)
     }
 
-    private func makeLibraryActionConfirmation() -> @MainActor @Sendable () -> Void {
+    private func makeLibraryActionFeedback(
+        onCompletion event: TouchFeedback.Event = .confirmation
+    ) -> @MainActor @Sendable () -> Void {
         let profileID = profiles.activeProfileID
-        return TouchFeedback.shared.acknowledgeAction { [weak self] in
+        return TouchFeedback.shared.acknowledgeAction(onCompletion: event) { [weak self] in
             self?.profiles.activeProfileID == profileID
         }
     }
@@ -1681,7 +1684,7 @@ final class PlozziOSAppModel {
         _ mutation: WatchMutation,
         confirmsUserAction: Bool = false
     ) {
-        let confirmation = confirmsUserAction && mutation.played != nil ? makeLibraryActionConfirmation() : nil
+        let confirmation = confirmsUserAction && mutation.played != nil ? makeLibraryActionFeedback() : nil
         let mutation = mutation.bindingServerScope(accountsProviders.watchMutationServerScope)
         let reconciler = watchReconciler
         Task {

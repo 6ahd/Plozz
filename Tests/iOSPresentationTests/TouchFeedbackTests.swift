@@ -55,6 +55,34 @@ final class TouchFeedbackTests: XCTestCase {
         XCTAssertEqual(events, [.confirmation])
     }
 
+    func testErrorFeedbackIsDistinctAndOneShotAfterAcknowledgement() {
+        var events: [TouchFeedback.Event] = []
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })
+        let reportFailure = feedback.acknowledgeAction(onCompletion: .error)
+        XCTAssertEqual(events, [.impact])
+        reportFailure()
+        reportFailure()
+        XCTAssertEqual(events, [.impact, .error])
+    }
+
+    func testErrorFeedbackIsCancelledByBackgroundingOrProfileChange() {
+        var events: [TouchFeedback.Event] = []
+        var sameProfile = true
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })
+        let backgrounded = feedback.acknowledgeAction(onCompletion: .error)
+        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
+        backgrounded()
+        let switched = feedback.acknowledgeAction(onCompletion: .error)
+        feedback.invalidatePendingConfirmations()
+        switched()
+        let stale = feedback.acknowledgeAction(onCompletion: .error, isRelevant: { sameProfile })
+        sameProfile = false
+        stale()
+        sameProfile = true
+        stale()
+        XCTAssertEqual(events, [.impact, .impact, .impact])
+    }
+
     func testBackgroundingInvalidatesSuccessEvenAfterReturningToForeground() {
         var events: [TouchFeedback.Event] = []
         let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })

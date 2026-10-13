@@ -2,7 +2,7 @@ import XCTest
 
 @MainActor
 final class TouchFeedbackInteractionTests: XCTestCase {
-    func testHeroWatchlistAcknowledgesImmediatelyAndConfirmsOnlyAfterSlowSuccess() {
+    func testHeroWatchlistAcknowledgesImmediatelyAndOnlyFailureAddsFeedback() {
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
         app.launchArguments = ["--watchlist-feedback-fixture"]
         app.launch()
@@ -12,20 +12,31 @@ final class TouchFeedbackInteractionTests: XCTestCase {
         add.tap()
         XCTAssertEqual(app.staticTexts["watchlist-taps"].label, "Taps 1")
         XCTAssertEqual(app.staticTexts["watchlist-confirmations"].label, "Confirmations 0")
+        let errors = app.staticTexts["watchlist-errors"]
+        XCTAssertEqual(errors.label, "Errors 0")
         let complete = app.buttons["Complete save"]
         XCTAssertTrue(complete.waitForExistence(timeout: 10))
         complete.tap()
         let confirmed = app.staticTexts["watchlist-confirmations"]
-        let success = expectation(for: NSPredicate(format: "label == %@", "Confirmations 1"), evaluatedWith: confirmed)
+        let success = expectation(
+            for: NSPredicate(format: "label == %@", "Saved yes"),
+            evaluatedWith: app.staticTexts["watchlist-saved"]
+        )
         wait(for: [success], timeout: 5)
+        XCTAssertEqual(confirmed.label, "Confirmations 0")
+        XCTAssertEqual(errors.label, "Errors 0")
+        XCTAssertEqual(app.staticTexts["watchlist-taps"].label, "Taps 1")
 
         app.buttons["Remove from Watchlist"].firstMatch.tap()
         XCTAssertEqual(app.staticTexts["watchlist-taps"].label, "Taps 2")
         let fail = app.buttons["Fail save"]
         XCTAssertTrue(fail.waitForExistence(timeout: 10))
         fail.tap()
+        let failure = expectation(for: NSPredicate(format: "label == %@", "Errors 1"), evaluatedWith: errors)
+        wait(for: [failure], timeout: 5)
         XCTAssertTrue(app.buttons["Remove from Watchlist"].firstMatch.waitForExistence(timeout: 5))
-        XCTAssertEqual(confirmed.label, "Confirmations 1", "Failure must not emit a second success haptic")
+        XCTAssertEqual(confirmed.label, "Confirmations 0", "Failure must not emit a success haptic")
+        XCTAssertEqual(app.staticTexts["watchlist-taps"].label, "Taps 2")
     }
 
     func testScrubGivesOneTickPerCommitAndPlaybackUpdatesStaySilent() throws {

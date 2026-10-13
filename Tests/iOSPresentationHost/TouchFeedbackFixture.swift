@@ -58,6 +58,8 @@ struct WatchlistFeedbackFixture: View {
             .id(revision)
             Text("Taps \(probe.taps)").accessibilityIdentifier("watchlist-taps")
             Text("Confirmations \(probe.confirmations)").accessibilityIdentifier("watchlist-confirmations")
+            Text("Errors \(probe.errors)").accessibilityIdentifier("watchlist-errors")
+            Text("Saved \(probe.saved ? "yes" : "no")").accessibilityIdentifier("watchlist-saved")
             if probe.canFinish {
                 Button("Complete save") { probe.complete(success: true) }
                 Button("Fail save") { probe.complete(success: false) }
@@ -77,6 +79,7 @@ struct WatchlistFeedbackFixture: View {
 private final class WatchlistFeedbackProbe {
     var taps = 0
     var confirmations = 0
+    var errors = 0
     var canFinish = false
     var saved = false
     @ObservationIgnored private var continuation: CheckedContinuation<Bool, Never>?
@@ -85,6 +88,7 @@ private final class WatchlistFeedbackProbe {
         output: { [unowned self] event in
             if event == .impact { taps += 1 }
             if event == .confirmation { confirmations += 1 }
+            if event == .error { errors += 1 }
         }, isActive: { true }
     )
     @ObservationIgnored lazy var handler = MediaItemActionCoordinator(
@@ -108,7 +112,8 @@ private final class WatchlistFeedbackProbe {
         seedLegacyUniversalWatchlist: { _ in },
         downloadState: { _ in nil },
         performDownloadAction: { _, _ in },
-        makeActionConfirmation: { [unowned self] in feedback.acknowledgeAction() }
+        makeActionConfirmation: { [unowned self] in feedback.acknowledgeAction() },
+        makeWatchlistFailureFeedback: { [unowned self] in feedback.acknowledgeAction(onCompletion: .error) }
     )
 
     private func save(adding: Bool) async -> Bool {
