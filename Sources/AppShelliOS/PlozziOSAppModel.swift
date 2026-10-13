@@ -1562,6 +1562,7 @@ final class PlozziOSAppModel {
         // profile the gate exists to withhold, so everything below is conditional
         // on the switch having actually landed.
         guard profiles.activeProfileID == id else { return }
+        TouchFeedback.shared.invalidatePendingConfirmations()
         plexHomeUsers.beginExplicitProfileActivation()
         // Past both gates, so the hold has done its job. Released here rather
         // than on PIN success so that switching into another Kids Profile (which
@@ -1671,7 +1672,7 @@ final class PlozziOSAppModel {
 
     private func makeLibraryActionConfirmation() -> @MainActor @Sendable () -> Void {
         let profileID = profiles.activeProfileID
-        return TouchFeedback.shared.confirmation { [weak self] in
+        return TouchFeedback.shared.acknowledgeAction { [weak self] in
             self?.profiles.activeProfileID == profileID
         }
     }

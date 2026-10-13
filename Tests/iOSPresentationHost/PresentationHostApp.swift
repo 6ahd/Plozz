@@ -68,7 +68,9 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--touch-feedback-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--watchlist-feedback-fixture") {
+                WatchlistFeedbackFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--touch-feedback-fixture") {
                 TouchFeedbackFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--rotation-player-fixture") {
                 PlayerRotationFixture()

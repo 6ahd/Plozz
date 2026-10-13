@@ -1,5 +1,10 @@
 import SwiftUI
+import Observation
+import AppRuntime
+import CoreModels
+import FeatureHomeCore
 import FeaturePlayback
+@testable import AppShelliOS
 @testable import CoreUI
 
 struct TouchFeedbackFixture: View {
@@ -17,7 +22,7 @@ struct TouchFeedbackFixture: View {
                 onScrubbingChanged: { if !$0 { commits += 1 } },
                 feedback: TouchFeedback(
                     output: { _ in events += 1 },
-                    isActive: { true }, now: { 0 }
+                    isActive: { true }
                 )
             )
             .accessibilityIdentifier("touch-scrubber")
@@ -29,5 +34,98 @@ struct TouchFeedbackFixture: View {
         }
         .padding(40)
         .preferredColorScheme(.dark)
+    }
+}
+
+struct WatchlistFeedbackFixture: View {
+    @State private var appModel: PlozziOSAppModel
+    @State private var probe = WatchlistFeedbackProbe()
+    @State private var revision = 0
+    private let item = MediaItem(id: "haptic-fixture", title: "Watchlist feedback", kind: .movie)
+
+    init() {
+        SyncSetupFeatureFlag().isEnabled = false
+        _appModel = State(initialValue: PlozziOSAppModel())
+    }
+
+    var body: some View {
+        VStack(spacing: 24) {
+            PlozziOSHomeHeroForeground(
+                item: item, detailItem: item, watchlistItem: item,
+                presentation: .init(item: item, artworkStyle: .compactPortrait, surface: .home),
+                style: .compactPortrait, provider: nil, onPlay: { _ in }
+            )
+            .id(revision)
+            Text("Taps \(probe.taps)").accessibilityIdentifier("watchlist-taps")
+            Text("Confirmations \(probe.confirmations)").accessibilityIdentifier("watchlist-confirmations")
+            if probe.canFinish {
+                Button("Complete save") { probe.complete(success: true) }
+                Button("Fail save") { probe.complete(success: false) }
+            }
+        }
+        .padding(40)
+        .environment(appModel)
+        .mediaItemActionHandler(probe.handler)
+        .environment(\.locale, Locale(identifier: "en_US"))
+        .environment(\.plozzMetrics, .touch(density: .standard))
+        .onReceive(NotificationCenter.default.publisher(for: .watchlistIntentDidChange)) { _ in revision += 1 }
+    }
+}
+
+@MainActor
+@Observable
+private final class WatchlistFeedbackProbe {
+    var taps = 0
+    var confirmations = 0
+    var canFinish = false
+    var saved = false
+    @ObservationIgnored private var continuation: CheckedContinuation<Bool, Never>?
+    @ObservationIgnored private var pendingDelay: Task<Void, Error>?
+    @ObservationIgnored private lazy var feedback = TouchFeedback(
+        output: { [unowned self] event in
+            if event == .impact { taps += 1 }
+            if event == .confirmation { confirmations += 1 }
+        }, isActive: { true }
+    )
+    @ObservationIgnored lazy var handler = MediaItemActionCoordinator(
+        providerResolver: { _ in nil },
+        providerCapabilityResolver: { _ in nil },
+        additionalSources: { _ in [] },
+        primaryAccountID: { nil },
+        crossServerWatchSyncEnabled: { false }, enqueueWatchMutation: { _ in },
+        universalWatchlistEnabled: { true },
+        watchlistMembership: { [unowned self] _ in saved },
+        watchlistMembershipRevision: { 0 },
+        performUniversalWatchlist: { [unowned self] adding, _ in
+            await save(adding: adding)
+        },
+        presentUniversalWatchlistFeedback: { _, _ in },
+        beginUniversalWatchlistFanOut: { _, _ in },
+        resolveDurableWatchlist: { $0 },
+        durableWatchlistPresentationReady: { true },
+        durableWatchlistLoadingTarget: { nil },
+        rehydratePersistedArtworkItems: { $0 },
+        seedLegacyUniversalWatchlist: { _ in },
+        downloadState: { _ in nil },
+        performDownloadAction: { _, _ in },
+        makeActionConfirmation: { [unowned self] in feedback.acknowledgeAction() }
+    )
+
+    private func save(adding: Bool) async -> Bool {
+        pendingDelay = Task { @MainActor [weak self] in
+            try await Task.sleep(for: .seconds(3.2))
+            self?.canFinish = true
+        }
+        let succeeded = await withCheckedContinuation { continuation = $0 }
+        if succeeded { saved = adding }
+        return succeeded
+    }
+
+    func complete(success: Bool) {
+        pendingDelay?.cancel()
+        pendingDelay = nil
+        canFinish = false
+        continuation?.resume(returning: success)
+        continuation = nil
     }
 }

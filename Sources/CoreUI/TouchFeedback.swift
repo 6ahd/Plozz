@@ -5,7 +5,7 @@ import UIKit
 #endif
 
 @MainActor
-public final class TouchFeedback {
+public final class TouchFeedback: NSObject {
     public enum Event: Equatable {
         case impact
         case selection
@@ -15,25 +15,37 @@ public final class TouchFeedback {
     public static let shared = TouchFeedback()
     private let output: (Event) -> Void
     private let isActive: () -> Bool
-    private let now: () -> TimeInterval
+    private var activityGeneration: UInt64 = 0
 
     init(
         output: @escaping (Event) -> Void,
-        isActive: @escaping () -> Bool,
-        now: @escaping () -> TimeInterval
+        isActive: @escaping () -> Bool
     ) {
         self.output = output
         self.isActive = isActive
-        self.now = now
+        super.init()
+        #if os(iOS)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(invalidatePendingConfirmations),
+            name: UIApplication.willResignActiveNotification, object: nil
+        )
+        #endif
     }
 
-    private convenience init() {
+    deinit { NotificationCenter.default.removeObserver(self) }
+
+    private override convenience init() {
+        #if os(iOS)
+        let impact = UIImpactFeedbackGenerator(style: .light)
+        let selection = UISelectionFeedbackGenerator()
+        let confirmation = UINotificationFeedbackGenerator()
+        #endif
         self.init(output: { event in
             #if os(iOS)
             switch event {
-            case .impact: UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.6)
-            case .selection: UISelectionFeedbackGenerator().selectionChanged()
-            case .confirmation: UINotificationFeedbackGenerator().notificationOccurred(.success)
+            case .impact: impact.impactOccurred(intensity: 0.6)
+            case .selection: selection.selectionChanged()
+            case .confirmation: confirmation.notificationOccurred(.success)
             }
             #endif
         }, isActive: {
@@ -42,7 +54,7 @@ public final class TouchFeedback {
             #else
             false
             #endif
-        }, now: { ProcessInfo.processInfo.systemUptime })
+        })
     }
 
     public func emit(_ event: Event) {
@@ -50,14 +62,26 @@ public final class TouchFeedback {
         output(event)
     }
 
-    /// Capture at the gesture, invoke only after success. Delayed retries stay silent.
+    @objc public func invalidatePendingConfirmations() {
+        activityGeneration &+= 1
+    }
+
+    public func acknowledgeAction(isRelevant: @escaping () -> Bool = { true }) -> @MainActor @Sendable () -> Void {
+        let confirm = confirmation(isRelevant: isRelevant)
+        emit(.impact)
+        return confirm
+    }
+
+    /// Capture at the gesture, invoke only after success in the same foreground session.
     public func confirmation(isRelevant: @escaping () -> Bool = { true }) -> @MainActor @Sendable () -> Void {
-        let deadline = now() + 3
+        let generation = activityGeneration
+        let beganWhileActive = isActive()
         var consumed = false
         return { [weak self] in
             guard !consumed else { return }
             consumed = true
-            guard let self, self.now() <= deadline, isRelevant() else { return }
+            guard let self, beganWhileActive,
+                  self.activityGeneration == generation, isRelevant() else { return }
             self.emit(.confirmation)
         }
     }

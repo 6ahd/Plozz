@@ -1,5 +1,6 @@
 #if os(iOS)
 import XCTest
+import UIKit
 @testable import CoreUI
 import CoreModels
 import FeatureLiveTVCore
@@ -10,7 +11,7 @@ final class TouchFeedbackTests: XCTestCase {
     func testImmediateActionsAreSilentWhileInactive() {
         var events: [TouchFeedback.Event] = []
         var active = true
-        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { active }, now: { 0 })
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { active })
         feedback.emit(.impact)
         feedback.emit(.selection)
         active = false
@@ -21,7 +22,7 @@ final class TouchFeedbackTests: XCTestCase {
 
     func testConfirmationIsExplicitAndOneShot() {
         var events: [TouchFeedback.Event] = []
-        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true }, now: { 0 })
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })
         let confirm = feedback.confirmation()
         XCTAssertTrue(events.isEmpty)
         confirm()
@@ -29,14 +30,21 @@ final class TouchFeedbackTests: XCTestCase {
         XCTAssertEqual(events, [.confirmation])
     }
 
-    func testDelayedAndStaleProfileConfirmationsStaySilent() {
+    func testSlowForegroundSuccessHasBothImmediateAndSavedFeedback() async throws {
         var events: [TouchFeedback.Event] = []
-        var time: TimeInterval = 0
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })
+        let confirm = feedback.acknowledgeAction()
+        XCTAssertEqual(events, [.impact])
+        try await Task.sleep(for: .seconds(3.1))
+        confirm()
+        confirm()
+        XCTAssertEqual(events, [.impact, .confirmation])
+    }
+
+    func testStaleProfileConfirmationsStaySilent() {
+        var events: [TouchFeedback.Event] = []
         var sameProfile = true
-        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true }, now: { time })
-        let delayed = feedback.confirmation()
-        time = 3.001
-        delayed()
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })
         let changedProfile = feedback.confirmation(isRelevant: { sameProfile })
         sameProfile = false
         changedProfile()
@@ -47,10 +55,30 @@ final class TouchFeedbackTests: XCTestCase {
         XCTAssertEqual(events, [.confirmation])
     }
 
+    func testBackgroundingInvalidatesSuccessEvenAfterReturningToForeground() {
+        var events: [TouchFeedback.Event] = []
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })
+        let confirm = feedback.acknowledgeAction()
+        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
+        confirm()
+        XCTAssertEqual(events, [.impact])
+        feedback.acknowledgeAction()()
+        XCTAssertEqual(events, [.impact, .impact, .confirmation])
+    }
+
+    func testExplicitProfileActivationCancelsPendingConfirmation() {
+        var events: [TouchFeedback.Event] = []
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })
+        let confirm = feedback.acknowledgeAction()
+        feedback.invalidatePendingConfirmations()
+        confirm()
+        XCTAssertEqual(events, [.impact])
+    }
+
     func testBackgroundCompletionIsConsumedWithoutReplayingOnReturn() {
         var events: [TouchFeedback.Event] = []
         var active = true
-        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { active }, now: { 0 })
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { active })
         let confirm = feedback.confirmation()
         active = false
         confirm()
@@ -61,7 +89,7 @@ final class TouchFeedbackTests: XCTestCase {
 
     func testChannelFavoriteConfirmsOnlySuccessfulUserWrites() {
         var events: [TouchFeedback.Event] = []
-        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true }, now: { 0 })
+        let feedback = TouchFeedback(output: { events.append($0) }, isActive: { true })
         let store = FavoriteStore()
         let model = LiveTVPrototypeModel(preferencesStore: store)
         model.toggleFavoriteWithFeedback("channel", feedback: feedback)
