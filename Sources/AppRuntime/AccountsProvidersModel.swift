@@ -250,7 +250,7 @@ public final class AccountsProvidersModel {
                       for: providerResolutionContext(for: account, token: token)
                   )
             else { return nil }
-            return ResolvedAccount(account: account, provider: provider)
+            return resolvedAccount(account, provider: provider)
         }
     }
 
@@ -265,7 +265,7 @@ public final class AccountsProvidersModel {
                       for: providerResolutionContext(for: account, token: token)
                   )
             else { return nil }
-            return ResolvedAccount(account: account, provider: provider)
+            return resolvedAccount(account, provider: provider)
         }
     }
 
@@ -287,7 +287,16 @@ public final class AccountsProvidersModel {
                   for: providerResolutionContext(for: account, token: token)
               )
         else { return [] }
-        return [ResolvedAccount(account: account, provider: provider)]
+        return [resolvedAccount(account, provider: provider)]
+    }
+
+    private func resolvedAccount(_ account: Account, provider: any MediaProvider) -> ResolvedAccount {
+        ResolvedAccount(
+            account: account, provider: provider,
+            plexHomeUserID: account.server.provider == .plex
+                ? profilesModel.activeProfile.homeUserBinding(forPlexAccount: account.id)?.homeUserID : nil,
+            credentialRevision: credentialRevision(account)
+        )
     }
 
     /// Resolves the provider for a specific account id — used to route a tapped

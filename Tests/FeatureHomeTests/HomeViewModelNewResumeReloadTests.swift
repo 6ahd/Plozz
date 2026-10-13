@@ -38,6 +38,63 @@ final class HomeViewModelNewResumeReloadTests: XCTestCase {
         vm.state.value?.continueWatching ?? []
     }
 
+    func testProviderStyleNextUpMovesIntoResumeAndRefreshesAfterCompletion() async throws {
+        let provider = FakeMediaProvider(allItems: [], kind: .emby)
+        provider.libraryItems = [.init(id: "shows", title: "Shows", kind: .series)]
+        provider.separatesHomeResume = true
+        let episode = MediaItem(id: "e1", title: "Episode", kind: .episode, seriesID: "show")
+        provider.nextUpItems = [episode]
+        let vm = makeViewModel(provider: provider)
+        await vm.load()
+        func nextUp() -> [MediaItem] {
+            vm.state.value?.librarySections.flatMap(\.sections)
+                .filter { $0.id == "nextUp" }.flatMap(\.items) ?? []
+        }
+        XCTAssertTrue(cw(vm).isEmpty)
+        XCTAssertEqual(nextUp().map(\.id), ["e1"])
+        XCTAssertEqual(vm.continueWatchingForDetail.map(\.id), ["e1"])
+        var started = try XCTUnwrap(nextUp().first)
+        started.resumePosition = 60
+        provider.continueWatchingItems = [started]
+        provider.nextUpItems = []
+        vm.applyWatchedState(.init(
+            itemIDs: ["e1"], scopedItemIDs: ["a:e1"], resumePosition: 60, item: started
+        ))
+        XCTAssertTrue(nextUp().isEmpty)
+        XCTAssertEqual(cw(vm).map(\.id), ["e1"])
+        await waitUntil { !vm.isRefreshing && provider.librariesCallCount >= 2 }
+        let successor = MediaItem(id: "e2", title: "Successor", kind: .episode, seriesID: "show")
+        provider.continueWatchingItems = []
+        provider.nextUpItems = [successor]
+        vm.applyWatchedState(.init(
+            itemIDs: ["e1"], scopedItemIDs: ["a:e1"], played: true, resumePosition: 0, item: started
+        ))
+        await waitUntil { nextUp().map(\.id) == ["e2"] }
+        XCTAssertTrue(cw(vm).isEmpty)
+        XCTAssertEqual(vm.continueWatchingForDetail.map(\.id), ["e2"])
+    }
+
+    func testChangingCombinedHomeToProviderRowsDoesNotCarryUnstartedEpisodesIntoResume() async {
+        let provider = FakeMediaProvider(allItems: [], kind: .jellyfin)
+        provider.libraryItems = [.init(id: "shows", title: "Shows", kind: .series)]
+        provider.separatesHomeResume = true
+        let episode = MediaItem(id: "next", title: "Next", kind: .episode, seriesID: "show")
+        provider.continueWatchingItems = [episode]
+        provider.nextUpItems = [episode]
+        var visibility = HomeLibraryVisibility(mergeLibrariesOnHome: true)
+        let account = Account(id: "a", server: provider.session.server, userID: "u", userName: "Me", deviceID: "d")
+        let vm = HomeViewModel(
+            accounts: [.init(account: account, provider: provider)],
+            layoutStore: InMemoryHomeLayoutStore(), currentVisibility: { visibility }
+        )
+        await vm.load()
+        XCTAssertEqual(cw(vm).map(\.id), ["next"])
+        visibility = .default
+        await vm.loadIfNeeded(for: visibility)
+        XCTAssertTrue(cw(vm).isEmpty)
+        XCTAssertEqual(vm.continueWatchingForDetail.map(\.id), ["next"])
+    }
+
     func testSeasonWatchRemovesOnlyThatSeasonsContinueWatchingEpisodes() async {
         let earlier = MediaItem(
             id: "e1", title: "Earlier", kind: .episode, seasonID: "s1",

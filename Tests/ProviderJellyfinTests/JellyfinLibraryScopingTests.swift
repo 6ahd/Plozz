@@ -24,6 +24,53 @@ final class JellyfinLibraryScopingTests: XCTestCase {
         }
     }
 
+    func testNativeHomeResumeDoesNotFetchNextUpAndPreservesLibraryAttribution() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/Users/u1/Items/Resume", json: """
+        {"Items":[{"Id":"resume","Name":"Resume","Type":"Movie",
+          "UserData":{"PlaybackPositionTicks":100000000}}],"TotalRecordCount":1}
+        """)
+        let provider = JellyfinProvider(session: makeSession(), http: stub)
+        let items = try await provider.homeContinueWatching(
+            limit: 20, inLibraries: ["LIB1"], separateNextUp: true
+        )
+        XCTAssertEqual(items.map(\.id), ["resume"])
+        XCTAssertEqual(items.first?.libraryID, "LIB1")
+        XCTAssertFalse(stub.sentPaths.contains { $0.hasSuffix("/Shows/NextUp") })
+    }
+
+    func testNextUpIsAnIndependentScopedFeed() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/Shows/NextUp", json: """
+        {"Items":[{"Id":"next","Name":"Next","Type":"Episode"}],"TotalRecordCount":1}
+        """)
+        let items = try await JellyfinProvider(session: makeSession(), http: stub)
+            .homeNextUp(libraryID: "shows", limit: 20)
+        XCTAssertEqual(items.map(\.id), ["next"])
+        XCTAssertEqual(parentIDs(stub, pathSuffix: "/Shows/NextUp"), ["shows"])
+        XCTAssertFalse(stub.sentPaths.contains { $0.hasSuffix("/Items/Resume") })
+    }
+
+    func testHomeRecommendationIdentitySurvivesChangedSubjectsAndCategoryIDs() async throws {
+        let stub = StubHTTPClient()
+        stub.stubSequence(pathSuffix: "/Movies/Recommendations", jsons: [
+            """
+            [{"Items":[{"Id":"one","Type":"Movie"}],"RecommendationType":"SimilarToRecentlyPlayed",
+              "BaselineItemName":"Before","CategoryId":"old"}]
+            """,
+            """
+            [{"Items":[{"Id":"two","Type":"Movie"}],"RecommendationType":"SimilarToRecentlyPlayed",
+              "BaselineItemName":"After","CategoryId":"new"}]
+            """
+        ])
+        let provider = JellyfinProvider(session: makeSession(), http: stub)
+        let before = try await provider.homeHubs(libraryID: "LIB1", kind: .movie, limit: 8, includeUnpromoted: true)
+        let after = try await provider.homeHubs(libraryID: "LIB1", kind: .movie, limit: 8, includeUnpromoted: true)
+        XCTAssertEqual(before.map(\.id), after.map(\.id))
+        XCTAssertNotEqual(before.first?.title, after.first?.title)
+        XCTAssertEqual(before.first?.isHomeDefault, false)
+    }
+
     func testMovieRecommendationsUseLibraryScopeAndMapCategoriesForJellyfinAndEmby() async throws {
         for kind: ProviderKind in [.jellyfin, .emby] {
             let categoryID = kind == .emby ? "9007199254740993" : "because-1"

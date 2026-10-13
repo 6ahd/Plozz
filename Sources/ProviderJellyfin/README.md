@@ -39,6 +39,18 @@ supported capability remains at parity.
 
 ## Library recommendations
 
+Provider-style Home separates `/Items/Resume` from each TV library's
+`/Shows/NextUp`, and starts with per-library Latest rather than five movie
+recommendation shelves per library. Resume-only Home requests do not call Next
+Up; disabled Next Up rows are not fetched. Other consumers of `continueWatching`
+retain the existing combined feed and its independent-endpoint failure handling.
+
+Home recommendations are opt-in individual rows on every platform. Their Home
+identity is the recommendation type and its occurrence within that type, not
+the changing baseline movie title or category ID. This keeps a hidden
+"More like..." slot hidden when its subject changes. The library Recommended
+screen still uses the server's own category identities and full inventory.
+
 Watched- and liked-movie similarity rows share the concise localized heading
 `More like [movie title]`. The server title remains unchanged apart from trimming
 surrounding whitespace; absent or blank titles retain `Suggested movies`.

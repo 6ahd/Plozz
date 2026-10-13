@@ -73,6 +73,8 @@ public struct MediaRowView: View {
     /// until enrichment has supplied those ids it has nothing to match on and
     /// both copies survive into the row.
     private let items: [MediaItem]
+    private let liveChannels: [HomeLiveTVChannel]
+    private let onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)?
     private let presentation: Presentation
     private let artworkPolicy: CardArtworkPolicy
     private let spoilerSettings: SpoilerSettings
@@ -208,6 +210,8 @@ public struct MediaRowView: View {
         episodeEntry: MediaRowEpisodeEntry? = nil,
         playsOnSelect: Bool = false,
         showsResumeChip: Bool = false,
+        liveChannels: [HomeLiveTVChannel] = [],
+        onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.init(
@@ -236,6 +240,8 @@ public struct MediaRowView: View {
             episodeEntry: episodeEntry,
             playsOnSelect: playsOnSelect,
             showsResumeChip: showsResumeChip,
+            liveChannels: liveChannels,
+            onLiveChannelFocused: onLiveChannelFocused,
             onSelect: onSelect
         )
     }
@@ -266,6 +272,8 @@ public struct MediaRowView: View {
         episodeEntry: MediaRowEpisodeEntry? = nil,
         playsOnSelect: Bool = false,
         showsResumeChip: Bool = false,
+        liveChannels: [HomeLiveTVChannel] = [],
+        onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.title = title
@@ -275,6 +283,8 @@ public struct MediaRowView: View {
         self.episodeEntry = episodeEntry
         let uniqueItems = Self.uniqued(items)
         self.items = uniqueItems
+        self.liveChannels = liveChannels
+        self.onLiveChannelFocused = onLiveChannelFocused
         self.presentation = presentation
         self.artworkPolicy = artworkPolicy
         self.spoilerSettings = spoilerSettings
@@ -480,7 +490,7 @@ public struct MediaRowView: View {
     }
 
     public var body: some View {
-        if !items.isEmpty || loadingPlaceholderCount > 0 || episodeEntry != nil {
+        if !items.isEmpty || !liveChannels.isEmpty || loadingPlaceholderCount > 0 || episodeEntry != nil {
             VStack(alignment: .leading, spacing: layoutMetrics.sectionTitleSpacing - titleTightening) {
                 if let title {
                     MediaRowHeader(title: title)
@@ -516,6 +526,14 @@ public struct MediaRowView: View {
                                         loadingPlaceholder
                                             .frame(width: cardSlotWidth)
                                     }
+                                }
+                            }
+                            ForEach(liveChannels) { channel in
+                                HomeLiveTVCard(channel: channel, width: cardSlotWidth) { focused in
+                                    activity.pendingReport?.cancel()
+                                    activity.pendingReport = nil
+                                    onFocusEntered?()
+                                    onLiveChannelFocused?(focused)
                                 }
                             }
                         }

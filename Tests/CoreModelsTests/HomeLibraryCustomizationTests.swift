@@ -79,9 +79,10 @@ final class HomeLibraryVisibilityTests: XCTestCase {
 
     // MARK: - Single on/off axis (the Home-only opt-out was retired)
 
-    func testDefaultsMergeOnNothingDisabled() {
+    func testDefaultsMatchServerWithoutDisablingLibraries() {
         let v = HomeLibraryVisibility.default
-        XCTAssertTrue(v.mergeLibrariesOnHome)
+        XCTAssertFalse(v.mergeLibrariesOnHome)
+        XCTAssertEqual(v.rowCustomization?.defaults, .matchServer)
         XCTAssertTrue(v.disabledKeys.isEmpty)
         XCTAssertTrue(v.isEnabled("acct:anything"))
         XCTAssertTrue(v.isVisibleOnHome("acct:anything"))
@@ -139,10 +140,10 @@ final class HomeLibraryVisibilityTests: XCTestCase {
 
     // MARK: - Global & per-library Home rows
 
-    func testGlobalRowsDefaultOnAndToggleOff() {
+    func testProviderDefaultsUsePerLibraryLatestAndSharedWatchRows() {
         var v = HomeLibraryVisibility.default
         for row in HomeGlobalRow.allCases {
-            XCTAssertTrue(v.isGlobalRowEnabled(row), "\(row) should default on")
+            XCTAssertEqual(v.isGlobalRowEnabled(row), row != .recentlyAdded)
         }
         v.setGlobalRowEnabled(false, for: .watchlist)
         XCTAssertFalse(v.isGlobalRowEnabled(.watchlist))
@@ -220,6 +221,8 @@ final class HomeLibraryVisibilityModelTests: XCTestCase {
     @MainActor
     func testSetMergePersistsAndReads() {
         let model = makeModel()
+        XCTAssertFalse(model.mergeLibrariesOnHome)
+        model.setMergeLibrariesOnHome(true)
         XCTAssertTrue(model.mergeLibrariesOnHome)
         model.setMergeLibrariesOnHome(false)
         XCTAssertFalse(model.mergeLibrariesOnHome)

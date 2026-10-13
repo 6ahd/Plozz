@@ -125,6 +125,7 @@ public struct SettingsView: View {
     private let librariesStore: DiscoveredLibrariesStore
     private let reloadLibraries: () async -> Void
     private let accounts: [Account]
+    private let homeRowAccounts: [ResolvedAccount]
     private let activeAccountID: String?
     private let profiles: [Profile]
     private let activeProfile: Profile
@@ -276,7 +277,8 @@ public struct SettingsView: View {
         onIgnorePendingServer: @escaping (String) -> Void = { _ in },
         onSetUpPendingServer: ((SyncedAccountDescriptor) -> Void)? = nil,
         metadataSettings: MetadataSettingsDependencies? = nil,
-        navigation: SettingsNavigationModel
+        navigation: SettingsNavigationModel,
+        homeRowAccounts: [ResolvedAccount] = []
     ) {
         self.subtitleBehavior = subtitleBehavior
         self.subtitleStyle = subtitleStyle
@@ -301,6 +303,7 @@ public struct SettingsView: View {
         self.librariesStore = librariesStore
         self.reloadLibraries = reloadLibraries
         self.accounts = accounts
+        self.homeRowAccounts = homeRowAccounts
         self.activeAccountID = activeAccountID
         self.profiles = profiles
         self.activeProfile = activeProfile
@@ -1049,7 +1052,8 @@ public struct SettingsView: View {
             CustomizeHomeDetailView(
                 discoveredLibraries: librariesStore.state,
                 homeVisibility: homeVisibility,
-                seerConfigured: seer.isConfigured
+                seerConfigured: seer.isConfigured,
+                accounts: homeRowAccounts
             )
         case .liveTV:
             LiveTVSettingsView(

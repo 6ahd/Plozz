@@ -25,6 +25,7 @@ final class StubHTTPClient: HTTPClient, @unchecked Sendable {
     private(set) var sentMethods: [HTTPMethod] = []
     private(set) var sentBodies: [String: Data] = [:]
     private(set) var sentQueryItems: [[URLQueryItem]] = []
+    private(set) var sentHeaders: [[String: String]] = []
 
     func stub(pathSuffix: String, json: String, status: Int = 200) {
         stub(pathSuffix: pathSuffix, requiring: [], json: json, status: status)
@@ -77,6 +78,7 @@ final class StubHTTPClient: HTTPClient, @unchecked Sendable {
         sentMethods.append(endpoint.method)
         if let body = endpoint.body { sentBodies[endpoint.path] = body }
         sentQueryItems.append(endpoint.queryItems)
+        sentHeaders.append(endpoint.headers)
         let queuedKey = queues.keys.first {
             endpoint.path.hasSuffix($0) && !(queues[$0]?.isEmpty ?? true)
         }

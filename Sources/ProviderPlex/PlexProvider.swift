@@ -527,6 +527,45 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
     /// this a hub reads as a broken, near-empty shelf.
     static let minimumHubItems = 3
 
+    public func homeHubs(
+        libraryID: String, kind: MediaItemKind, limit: Int, includeUnpromoted: Bool
+    ) async throws -> [LibrarySection] {
+        guard Self.collectionSectionID(libraryID) == nil else { return [] }
+        let promoted = try await client.promotedHubs(sectionID: libraryID, count: limit)
+        let optional = includeUnpromoted
+            ? try await client.sectionHubs(sectionID: libraryID, count: limit) : []
+        var seen = Set<String>()
+        var slots: [String: Int] = [:]
+        return (promoted.map { ($0, true) } + optional.map { ($0, false) }).compactMap { hub, isDefault in
+            guard !Self.isBaseDuplicateHub(identifier: hub.hubIdentifier, context: hub.context, title: hub.title),
+                  let rawID = [hub.hubIdentifier, hub.context].compactMap({ $0 })
+                   .first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }),
+                  let title = hub.title?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !title.isEmpty, seen.insert(rawID).inserted else { return nil }
+            let tokens = [rawID, hub.context ?? ""].joined(separator: ".").lowercased()
+            let family = ["similar", "actor", "director", "writer", "producer", "cast", "crew"]
+                .first { tokens.contains($0) }
+            let id: String
+            if let family {
+                let slot = slots[family, default: 0]
+                slots[family] = slot + 1
+                id = "recommendation:\(family):\(slot)"
+            } else {
+                id = rawID
+            }
+            let items = (hub.Metadata ?? []).filter {
+                $0.librarySectionID.map(String.init).map { $0 == libraryID } ?? true
+            }.map(map(metadata:))
+            guard !items.isEmpty else { return nil }
+            return LibrarySection(
+                id: id, title: title, items: Array(items.prefix(max(1, limit))),
+                isHomeDefault: isDefault,
+                isLegacyHomeDefault: items.count >= Self.minimumHubItems
+                    && !Self.isPersonHub(identifier: hub.hubIdentifier, context: hub.context, title: hub.title)
+            )
+        }
+    }
+
     /// Whether a hub is one of Plex's auto-generated **person** hubs — "Top Movies
     /// with <actor>", "Top Movies by <director>", writer/producer variants, etc.
     /// These are excluded because Plex itself doesn't surface them on Home (they
