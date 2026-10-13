@@ -392,6 +392,45 @@ final class LiveTVServerImportTests: XCTestCase {
         XCTAssertEqual(calls.availability, 0)
     }
 
+    func testProviderCancellationAtEveryServerBoundaryIsRequestScopedForDiagnostics() async throws {
+        for boundary in [ServerImportProvider.Boundary.availability, .channels, .guide] {
+            let server = source()
+            let provider = ServerImportProvider(channels: [channel()], programs: [program()])
+            await provider.cancelNext(boundary)
+            let context = authorized(server, provider)
+            let imports = LiveTVPrototypeImportModel(
+                configuration: LiveTVSourcesConfiguration(servers: [server]), serverProviderResolver: { _ in context }
+            )
+            let model = LiveTVPrototypeModel(now: now, channels: [])
+            PerformanceDiagnostics.shared.start()
+            defer { PerformanceDiagnostics.shared.stop() }
+
+            await imports.reload(into: model)
+            XCTAssertFalse(Task.isCancelled)
+            XCTAssertEqual(model.channels.count, boundary == .guide ? 1 : 0)
+            XCTAssertEqual(imports.programCount, 0)
+            XCTAssertNil(imports.serverSources[0].failure)
+            XCTAssertNil(imports.serverSources[0].guideFailure)
+            XCTAssertFalse(imports.isLoading)
+            let cancelled = try XCTUnwrap(PerformanceDiagnostics.shared.snapshot())
+            let firstRecords = (cancelled.recent + cancelled.slow).filter { $0.operation == .liveTVRefresh }
+            XCTAssertEqual(firstRecords.count, 1)
+            XCTAssertEqual(firstRecords.first?.outcome, .cancelled)
+            XCTAssertTrue(cancelled.active.isEmpty)
+
+            await imports.reload(into: model)
+            XCTAssertFalse(Task.isCancelled)
+            XCTAssertEqual(model.channels.count, 1)
+            XCTAssertEqual(imports.programCount, 1)
+            let recovered = try XCTUnwrap(PerformanceDiagnostics.shared.snapshot())
+            let records = (recovered.recent + recovered.slow).filter { $0.operation == .liveTVRefresh }
+            XCTAssertEqual(records.count, 2)
+            XCTAssertEqual(records.filter { $0.outcome == .cancelled }.count, 1)
+            XCTAssertEqual(records.filter { $0.outcome == .succeeded }.count, 1)
+            XCTAssertTrue(recovered.active.isEmpty)
+        }
+    }
+
     func testCancellationAtEveryServerBoundaryCannotPublishLateDataOrFakeAFailure() async {
         for boundary in [ServerImportProvider.Boundary.availability, .channels, .guide] {
             let server = source()
@@ -484,6 +523,7 @@ private actor ServerImportProvider: ServerLiveTVProviding {
     let channels: [ServerLiveTVChannel]
     var programs: [ServerLiveTVProgramme]
     var suspended: Boundary?
+    private var cancellation: Boundary?
     let started: XCTestExpectation?
     var continuation: CheckedContinuation<Void, Never>?
     private(set) var calls = (
@@ -503,16 +543,25 @@ private actor ServerImportProvider: ServerLiveTVProviding {
 
     func setAvailability(_ value: ServerLiveTVAvailability) { availability = value }
     func replaceGuide(_ value: [ServerLiveTVProgramme]) { programs = value }
+    func cancelNext(_ boundary: Boundary) { cancellation = boundary }
+
+    private func throwRequestedCancellation(_ boundary: Boundary) throws {
+        guard cancellation == boundary else { return }
+        cancellation = nil
+        throw CancellationError()
+    }
 
     func liveTVAvailability() async throws -> ServerLiveTVAvailability {
         calls.availability += 1
         await waitIfSuspended(.availability)
+        try throwRequestedCancellation(.availability)
         return availability
     }
 
     func liveTVChannels() async throws -> [ServerLiveTVChannel] {
         calls.catalogs += 1
         await waitIfSuspended(.channels)
+        try throwRequestedCancellation(.channels)
         return channels
     }
 
@@ -520,6 +569,7 @@ private actor ServerImportProvider: ServerLiveTVProviding {
         calls.guides += 1
         calls.guideChannelIDs = channelIDs
         await waitIfSuspended(.guide)
+        try throwRequestedCancellation(.guide)
         return programs
     }
 

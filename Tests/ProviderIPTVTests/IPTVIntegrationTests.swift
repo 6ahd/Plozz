@@ -82,6 +82,8 @@ final class IPTVIntegrationTests: XCTestCase {
         let client = try IPTVClient(credential: credential, directory: root, configuration: configuration())
         try await client.ensureCatalog("movies")
         let before = try await client.page(library: "movies", kind: .movie, page: .init(limit: 20))
+        PerformanceDiagnostics.shared.start()
+        defer { PerformanceDiagnostics.shared.stop() }
         IPTVFixture.state.handler = { _ in (200, [:], Data("<html>Sign in</html>".utf8)) }
         do {
             try await client.ensureCatalog("movies", force: true)
@@ -92,6 +94,11 @@ final class IPTVIntegrationTests: XCTestCase {
         let after = try await client.page(library: "movies", kind: .movie, page: .init(limit: 20))
         XCTAssertEqual(after.items.map(\.id), before.items.map(\.id))
         XCTAssertEqual(after.totalCount, 1)
+        let snapshot = try XCTUnwrap(PerformanceDiagnostics.shared.snapshot())
+        let failed = try XCTUnwrap((snapshot.recent + snapshot.slow).first { $0.operation == .playlistImport })
+        XCTAssertEqual(failed.outcome, .failed)
+        XCTAssertEqual(failed.metrics.requests, 1)
+        XCTAssertTrue(PerformanceDiagnostics.shared.snapshot()?.active.isEmpty == true)
     }
 
     func testPlaylistOutputHintAppliesOnlyToExtensionlessLiveChannels() async throws {
@@ -374,6 +381,8 @@ final class IPTVIntegrationTests: XCTestCase {
 
     func testTeardownCancelsBackgroundPlaylistRefresh() async throws {
         let client = try makeExpiredPlaylistClient()
+        PerformanceDiagnostics.shared.start()
+        defer { PerformanceDiagnostics.shared.stop() }
         let started = expectation(description: "Background refresh started")
         let gate = DispatchSemaphore(value: 0)
         defer { gate.signal() }
@@ -396,6 +405,11 @@ final class IPTVIntegrationTests: XCTestCase {
         let saved = try await client.liveChannels()
         XCTAssertEqual(saved.map(\.name), ["Saved"])
         XCTAssertEqual(IPTVFixture.state.requests.count, 1)
+        let snapshot = try XCTUnwrap(PerformanceDiagnostics.shared.snapshot())
+        let cancelled = try XCTUnwrap((snapshot.recent + snapshot.slow).first { $0.operation == .playlistImport })
+        XCTAssertEqual(cancelled.outcome, .cancelled)
+        XCTAssertEqual(cancelled.metrics.requests, 1)
+        XCTAssertTrue(PerformanceDiagnostics.shared.snapshot()?.active.isEmpty == true)
     }
 
     func testExplicitXtreamRefreshWaitsForItsOwnLibraryAfterAnotherLibraryRefresh() async throws {
@@ -641,11 +655,23 @@ final class IPTVIntegrationTests: XCTestCase {
             XCTAssertEqual(channels.map(\.id), ["live:11"])
             return [.init(id: "sports", channelID: "live:11", title: "Sports", startDate: from, endDate: to)]
         }
+        PerformanceDiagnostics.shared.start()
+        defer { PerformanceDiagnostics.shared.stop() }
         let programmes = try await provider.liveTVGuide(
             channelIDs: ["live:10", "live:11"], from: Date(timeIntervalSince1970: 100), to: Date(timeIntervalSince1970: 500)
         )
         XCTAssertEqual(programmes.map(\.title), ["News", "Sports"])
         XCTAssertEqual(IPTVFixture.state.requests.filter { $0.url?.path == "/prefix/xmltv.php" }.count, 1)
+        let diagnostics = try XCTUnwrap(PerformanceDiagnostics.shared.snapshot())
+        let batches = (diagnostics.recent + diagnostics.slow).filter { $0.operation == .guideFetch }
+        XCTAssertEqual(batches.count, 1, "The complete API/XMLTV batch owns one span, not one per channel.")
+        let batch = try XCTUnwrap(batches.first)
+        XCTAssertEqual(batch.provider, .iptv)
+        XCTAssertEqual(batch.outcome, .succeeded)
+        XCTAssertEqual(batch.metrics.items, 2)
+        XCTAssertEqual(batch.metrics.rows, 2)
+        XCTAssertEqual(batch.metrics.requests, 3, "Two channel API calls plus one XMLTV fallback.")
+        XCTAssertTrue(diagnostics.active.isEmpty)
     }
 
     func testUnavailableXtreamGuideEndpointIsNotRetriedForEveryChannel() async throws {
@@ -697,6 +723,8 @@ final class IPTVIntegrationTests: XCTestCase {
                 XCTFail("Authentication and transient failures must not trigger XMLTV")
                 return []
             }
+            PerformanceDiagnostics.shared.start()
+            defer { PerformanceDiagnostics.shared.stop() }
             do {
                 _ = try await provider.liveTVGuide(
                     channelIDs: ["live:10"], from: Date(timeIntervalSince1970: 100), to: Date(timeIntervalSince1970: 500)
@@ -714,6 +742,12 @@ final class IPTVIntegrationTests: XCTestCase {
                 }
             }
             XCTAssertFalse(IPTVFixture.state.requests.contains { $0.url?.path == "/prefix/xmltv.php" })
+            let snapshot = try XCTUnwrap(PerformanceDiagnostics.shared.snapshot())
+            let batch = try XCTUnwrap((snapshot.recent + snapshot.slow).first { $0.operation == .guideFetch })
+            XCTAssertEqual(batch.outcome, .failed)
+            XCTAssertEqual(batch.metrics.items, 1)
+            XCTAssertEqual(batch.metrics.requests, 1)
+            XCTAssertTrue(PerformanceDiagnostics.shared.snapshot()?.active.isEmpty == true)
             await provider.teardown()
         }
     }
