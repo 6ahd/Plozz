@@ -382,8 +382,11 @@ enum NativeLibraryPosterBitmap {
         MainActor.assumeIsolated {
             cache.removeAll()
             retainedBytes = 0
+            purges &+= 1
         }
     }
+    /// Memory-warning purges so far; a draw that spans one shows its result but doesn't cache it.
+    private static var purges = 0
 
     private struct Content: View {
         let presentation: Presentation
@@ -445,10 +448,12 @@ enum NativeLibraryPosterBitmap {
         // A cell that scrolled away cancels before its indicator layer is rendered.
         guard !Task.isCancelled,
               let overlay = indicatorLayer(source: source, key: key, environment: environment) else { return nil }
+        _ = memoryWarning // observe purges from the first draw on
+        let purgesBefore = purges
         // Awaited directly rather than detached, so a cell that scrolls away cancels the draw too.
         guard let image = await composeOffMain(source: source, overlay: overlay, size: key.size, scale: key.scale),
               !Task.isCancelled else { return nil }
-        store(image, source: source, key: key)
+        if purges == purgesBefore { store(image, source: source, key: key) }
         return image
     }
 

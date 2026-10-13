@@ -247,7 +247,9 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
                         // main thread. Meanwhile the decoded artwork alone stands in, so fast
                         // scrolling does not flash rows of blank tiles. Without artwork the same
                         // item keeps its previous composite, and any other item shows the tile.
-                        if let artwork, compositeItem != itemKey || !showsArtwork {
+                        if let artwork, compositeItem != itemKey || !showsArtwork,
+                           abs(artwork.size.width / artwork.size.height - size.width / size.height) < 0.03 {
+                            // Only when it already has the poster's shape: the image view scales to fill.
                             compositedArtwork.image = artwork
                             compositeItem = itemKey
                             showsArtwork = true
@@ -347,6 +349,12 @@ public final class NativeTVLibraryCell: UICollectionViewCell, DetailTransitionFo
     public func cancelArtwork() {
         imageTask?.cancel()
         imageTask = nil
+        // An off-screen cell stops drawing too; a redisplay composites again.
+        if compositeTask != nil {
+            compositeTask?.cancel()
+            compositeTask = nil
+            compositeKey = nil
+        }
         // A redisplayed cell must resume a cancelled image request.
         if artwork == nil {
             artworkReferences = []
