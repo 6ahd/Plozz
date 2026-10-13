@@ -505,10 +505,12 @@ Movies and a synthetic poster grid do not exercise the same overlay workload.
 Record the seven focused titles during calibration, then require that same path
 for every arm. Keep the existing profile and all its servers enabled.
 
-Run `testControlledAIdle` and `testControlledBTraversal` together, in that order,
-in one runner and app process. Each phase has one XCTest warm-up and three
+Run `testControlledAIdle`, `testControlledBTraversal` and `testControlledCRapidTraversal`
+together, in that order, in one runner and app process. Each phase has one XCTest warm-up and three
 recorded observations around a 24-second input loop. Scrolling sends six Down followed by six Up, one
-press every two seconds. Accessibility assertions, screenshots and JSON timing
+press every two seconds. Rapid traversal sends eighteen Down followed by eighteen Up, one press every
+0.3 seconds, so it reaches rows that have not been drawn yet and returns to rows that scrolled away;
+the slower traversal rarely hitches on a warm grid. Accessibility assertions, screenshots and JSON timing
 attachments stay outside the metric windows. Retained timing attachments include
 epoch, elapsed duration, each input's lateness and remote-call duration; do not
 depend on live stdout surviving a long asynchronous wait.
@@ -527,8 +529,9 @@ and assertions outside measurement, including the boundary-timing export.
 Start no earlier than eight minutes after an externally recorded fresh launch,
 and sixty seconds after calibration. Automated navigation also waits until
 launch + sixty seconds before using Home's library shortcuts, allowing initial
-rows to populate. The startup wait emits runner-only activity events, not app
-input or accessibility queries. Startup age alone does not establish quiescence:
+rows to populate. During the startup wait the runner steps focus Right and back
+Left every 45 seconds, ending at least 30 seconds before the idle measurement:
+minutes of unchanging picture let the TV suspend the app. Startup age alone does not establish quiescence:
 correlate the actual windows with background diagnostics. Scan/lister counters
 do not represent every Plex, Jellyfin, CloudKit or metadata request. Keep idle
 and scrolling CPU separate; do not subtract a busy idle scan from a quiet scroll.
