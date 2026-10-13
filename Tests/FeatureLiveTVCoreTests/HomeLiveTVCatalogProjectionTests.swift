@@ -17,7 +17,7 @@ final class HomeLiveTVCatalogProjectionTests: XCTestCase {
             LiveTVPrototypeChannel(
                 id: "channel-\(index)", number: index, name: "Channel \(index)",
                 category: "TV", symbol: "tv", accent: 0, source: .iptv, tagline: "",
-                logoURL: URL(string: "https://example.test/logo?token=must-not-reach-home"),
+                logoURL: URL(string: "https://example.test/logo?token=artwork-credential"),
                 streamURL: URL(string: "https://example.test/stream?password=must-not-reach-home"),
                 configuredSourceID: source.id
             )
@@ -44,7 +44,9 @@ final class HomeLiveTVCatalogProjectionTests: XCTestCase {
         XCTAssertEqual(reads, 0)
         XCTAssertEqual(imports.playlistPhase, .idle)
         XCTAssertEqual(model.recentChannelIDs, ["channel-4500"], "Home does not record viewing.")
-        XCTAssertFalse(String(reflecting: result).contains("must-not-reach-home"))
+        XCTAssertEqual(result.channels.first?.logoURL, channels[4_000].logoURL)
+        let encoded = try JSONEncoder().encode(result.channels)
+        XCTAssertFalse(String(decoding: encoded, as: UTF8.self).contains("streamURL"))
 
         let route = try XCTUnwrap(result.channels.first?.route)
         XCTAssertTrue(HomeLiveTVCatalogProjection.accepts(

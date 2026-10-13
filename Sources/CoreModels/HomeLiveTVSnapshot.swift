@@ -23,20 +23,22 @@ public struct HomeLiveTVRoute: Codable, Hashable, Sendable {
     }
 }
 
-/// Deliberately has no URL, provider item, progress, or playback input. Channel
-/// logos can themselves contain credentials; Home uses a local broadcast glyph.
+/// No stream URL, provider item, progress, or playback input. Artwork URLs may
+/// contain credentials and require encrypted persistence in the local Home cache.
 public struct HomeLiveTVChannel: Codable, Identifiable, Equatable, Sendable {
     public let route: HomeLiveTVRoute
     public let name: String
     public let sourceName: String
     public let number: Int
+    public let logoURL: URL?
     public var id: HomeLiveTVRoute { route }
 
-    public init(route: HomeLiveTVRoute, name: String, sourceName: String, number: Int) {
+    public init(route: HomeLiveTVRoute, name: String, sourceName: String, number: Int, logoURL: URL? = nil) {
         self.route = route
         self.name = String(name.prefix(160))
         self.sourceName = String(sourceName.prefix(160))
         self.number = number
+        self.logoURL = logoURL
     }
 }
 

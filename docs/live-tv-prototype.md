@@ -28,14 +28,22 @@ channel identities until that profile's catalog owner republishes them.
 Home performs at most 24 candidate lookups in the already indexed catalog when
 the Live TV owner publishes a snapshot. It never reads/decrypts a full lineup,
 hashes an imported playlist file, refreshes a playlist/guide/provider, starts a
-tuner, runs a preview, or introduces a polling timer. Cards retain only channel
-identity and display text, using a local broadcast glyph rather than potentially
-credential-bearing artwork URLs. Playlist sources and server-backed sources
+tuner, runs a preview, or introduces a polling timer. Cards retain channel
+identity, display text and the selected channels' logo URLs. The shared channel
+artwork pipeline fits logos without cropping, reuses prepared images, and falls
+back to the channel name. Only visible logo requests are added; no catalog work
+is needed for artwork. Snapshots containing potentially credential-bearing URLs
+are authenticated ciphertext with a profile-specific Keychain key. URL-free
+legacy snapshots remain readable; plaintext artwork URLs are rejected, and a
+missing or locked key never causes a plaintext fallback or replacement key on read.
+TV cards use the shared native/custom Home focus owner, preserving their dark
+surface and fixed row footprint instead of adding a white button plate.
+Playlist sources and server-backed sources
 (including IPTV accounts) retain current profile, source-approval and server-user
 authorization fences. Persisted scope uses non-secret account credential revisions
 and profile/server-user identity, not ephemeral per-launch Plex override revisions.
 Current source approval, credentials and profile access are checked before cached
-cards are exposed. Credentials and token-derived hashes are not persisted.
+cards are exposed. No plaintext credentials or token-derived identity hashes are persisted.
 Scheduled library channels remain in the Live TV guide.
 
 Selecting a card first enters the existing Live TV destination. A one-shot typed

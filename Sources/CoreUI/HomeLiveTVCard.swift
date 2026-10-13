@@ -21,15 +21,17 @@ public extension EnvironmentValues {
     }
 }
 
-/// An intentionally non-VOD card: no progress, watchlist menu, image request or
+/// An intentionally non-VOD card: a channel logo, never a playback
 /// preview. The broadcast badge makes its one-press tune behavior explicit.
 public struct HomeLiveTVCard: View {
     public let channel: HomeLiveTVChannel
     public let width: CGFloat
     private let onFocused: ((HomeLiveTVChannel) -> Void)?
     @Environment(\.themePalette) private var palette
+    @Environment(\.plozzMetrics) private var metrics
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openHomeLiveTV) private var open
-    @FocusState private var isFocused: Bool
+    @PlozzCardFocus private var isFocused: Bool
 
     public init(
         channel: HomeLiveTVChannel, width: CGFloat,
@@ -41,41 +43,77 @@ public struct HomeLiveTVCard: View {
     }
 
     public var body: some View {
-        Button { open(channel.route) } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Label("Live", systemImage: "antenna.radiowaves.left.and.right")
-                    Spacer(minLength: 0)
-                    if channel.number > 0 {
-                        Text(verbatim: String(channel.number)).monospacedDigit()
-                    }
-                }
-                .font(.caption.weight(.semibold))
+        control
+            .onChange(of: isFocused) { _, focused in
+                if focused { onFocused?(channel) }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: channel.name) + Text(", Live TV"))
+            .accessibilityHint("Watch this channel")
+            .accessibilityIdentifier("home-live-channel-\(channel.route.channelID)")
+    }
+
+    @ViewBuilder
+    private var control: some View {
+        #if os(tvOS)
+        label
+            .plozzFocusHalo(
+                cornerRadius: metrics.landscapeCardCornerRadius,
+                focusScale: reduceMotion ? 1 : PlozzTheme.Metrics.mediumFocusedCardScale,
+                isFocused: isFocused
+            )
+            .focusableCard(
+                isFocused: $isFocused, cornerRadius: metrics.landscapeCardCornerRadius,
+                action: { open(channel.route) }
+            )
+            .frame(width: width, height: width * 9 / 16)
+            .zIndex(isFocused ? 1 : 0)
+            .plozzCardFocusTransition(isFocused: isFocused, animates: !reduceMotion)
+        #else
+        Button { open(channel.route) } label: { label }
+            .buttonStyle(.plain)
+        #endif
+    }
+
+    private var label: some View {
+        VStack(alignment: .leading, spacing: width * 0.025) {
+            HStack {
+                Label("Live", systemImage: "antenna.radiowaves.left.and.right")
                 Spacer(minLength: 0)
-                Text(verbatim: channel.name)
-                    .font(.headline)
-                    .lineLimit(2)
-                Text(verbatim: channel.sourceName)
-                    .font(.caption)
-                    .lineLimit(1)
-                    .foregroundStyle(isFocused ? .black.opacity(0.7) : palette.secondaryText)
+                if channel.number > 0 {
+                    Text(verbatim: String(channel.number)).monospacedDigit()
+                }
             }
-            .padding(width * 0.055)
-            .frame(width: width, height: width * 9 / 16, alignment: .leading)
-            .foregroundStyle(isFocused ? .black : palette.primaryText)
-            .background(isFocused ? Color.white : palette.cardSurface, in: RoundedRectangle(cornerRadius: 12))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(isFocused ? Color.white : palette.cardBorder, lineWidth: isFocused ? 3 : 1)
+            .font(.caption.weight(.semibold))
+            HStack(spacing: width * 0.04) {
+                #if canImport(UIKit)
+                ChannelLogoArtwork(
+                    name: channel.name, logoURL: channel.logoURL,
+                    size: CGSize(width: width * 0.30, height: width * 0.24),
+                    cornerRadius: metrics.landscapeCardCornerRadius * 0.5
+                )
+                #endif
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: channel.name)
+                        .font(.headline)
+                        .lineLimit(2)
+                    Text(verbatim: channel.sourceName)
+                        .font(.caption)
+                        .lineLimit(1)
+                        .foregroundStyle(palette.secondaryText)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxHeight: .infinity)
         }
-        .buttonStyle(.plain)
-        .focused($isFocused)
-        .onChange(of: isFocused) { _, focused in
-            if focused { onFocused?(channel) }
+        .padding(width * 0.055)
+        .frame(width: width, height: width * 9 / 16, alignment: .leading)
+        .foregroundStyle(palette.primaryText)
+        .background(palette.cardSurface, in: RoundedRectangle(cornerRadius: metrics.landscapeCardCornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: metrics.landscapeCardCornerRadius)
+                .strokeBorder(palette.cardBorder, lineWidth: 1)
         }
-        .accessibilityLabel(Text(verbatim: channel.name) + Text(", Live TV"))
-        .accessibilityHint("Watch this channel")
     }
 }
 #endif

@@ -43,7 +43,8 @@ public enum HomeLiveTVCatalogProjection {
                     sourceAuthorizationID: authorization.identity,
                     serverAuthorizationID: serverAuthorizationID
                 ),
-                name: channel.name, sourceName: sourceName, number: channel.number
+                name: channel.name, sourceName: sourceName, number: channel.number,
+                logoURL: channel.logoURL
             )
         }
     }
