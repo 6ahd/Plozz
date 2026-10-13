@@ -666,11 +666,22 @@ public struct LibraryBrowseView: View {
     private func prefetchArtwork(aheadFrom index: Int) {
         #if canImport(UIKit)
         guard index >= 0, index < viewModel.totalCount else { return }
-        let upper = min(index + 10, viewModel.totalCount - 1)
-        guard index <= upper else { return }
-        for candidateIndex in index...upper {
+        // Look ahead in the direction of travel. Rows scrolled past have usually left the
+        // memory cache, so scrolling back up needs the same warm-up as scrolling down.
+        let tracker = artworkPrefetch
+        if tracker.forward ? index < tracker.furthest - 8 : index > tracker.furthest + 8 {
+            tracker.forward.toggle()
+            tracker.furthest = index
+        }
+        tracker.furthest = tracker.forward ? max(tracker.furthest, index) : min(tracker.furthest, index)
+        let range = tracker.forward
+            ? Array(index...min(index + 10, viewModel.totalCount - 1))
+            : Array((max(0, index - 10)...index).reversed())
+        for candidateIndex in range {
             guard let candidate = viewModel.item(at: candidateIndex) else { continue }
-            guard artworkPrefetch.seen.insert(candidate.id).inserted else { continue }
+            guard tracker.forward
+                ? tracker.seen.insert(candidate.id).inserted
+                : tracker.seenBackward.insert(candidate.id).inserted else { continue }
             for url in candidate.artworkCandidates(for: .poster).prefix(2) {
                 ArtworkImageCache.shared.prefetch(url, variant: .posterCard)
             }
@@ -857,6 +868,12 @@ private struct PosterPlaceholderView: View {
 /// flying into not-yet-loaded content.
 private final class ArtworkPrefetchTracker {
     var seen: Set<String> = []
+    /// Prefetched while scrolling back up; separate, so the way back warms rows seen going down.
+    var seenBackward: Set<String> = []
+    /// Scroll direction. It flips once an appearing cell is more than 8 items behind the
+    /// furthest one in the current direction, so a row's own cells don't flip it.
+    var forward = true
+    var furthest = 0
 }
 
 /// The alphabet rail plus its scroll-position highlight, isolated into its own
