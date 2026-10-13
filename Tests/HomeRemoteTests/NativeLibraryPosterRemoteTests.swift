@@ -218,7 +218,7 @@ final class NativeLibraryPosterRemoteTests: XCTestCase {
         case scroll
         /// Eighteen Down then eighteen Up, one press every 0.3 seconds.
         case rapid
-        /// Down held for two seconds, then Up held for four.
+        /// Down held for two seconds, then Up held for four, in five-second slots.
         case held
 
         var presses: (count: Int, interval: Double) {
@@ -226,7 +226,7 @@ final class NativeLibraryPosterRemoteTests: XCTestCase {
             case .idle: (0, 0)
             case .scroll: (12, 2)
             case .rapid: (36, 0.3)
-            case .held: (0, 0)
+            case .held: (0, 5)
             }
         }
     }
@@ -266,9 +266,16 @@ final class NativeLibraryPosterRemoteTests: XCTestCase {
                     ))
                 }
                 if phase == .held {
-                    XCUIRemote.shared.press(.down, forDuration: 2)
-                    Thread.sleep(forTimeInterval: 3)
-                    XCUIRemote.shared.press(.up, forDuration: 4)
+                    for (index, (button, duration)) in [(XCUIRemote.Button.down, 2.0), (.up, 4.0)].enumerated() {
+                        let deadline = start + Double(index) * interval
+                        Thread.sleep(forTimeInterval: max(0, deadline - ProcessInfo.processInfo.systemUptime))
+                        let sent = ProcessInfo.processInfo.systemUptime
+                        XCUIRemote.shared.press(button, forDuration: duration)
+                        inputs.append(InputTiming(
+                            index: index, relativeSeconds: sent - start, lateSeconds: sent - deadline,
+                            durationSeconds: ProcessInfo.processInfo.systemUptime - sent
+                        ))
+                    }
                 }
                 Thread.sleep(forTimeInterval: max(0, start + 24 - ProcessInfo.processInfo.systemUptime))
                 let stopCall = ProcessInfo.processInfo.systemUptime
