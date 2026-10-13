@@ -721169,6 +721169,7 @@
       }
     },
     "This playlist declares a guide on another origin. Add that guide address explicitly in Sources to allow it." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
