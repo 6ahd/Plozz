@@ -37,7 +37,9 @@ are authenticated ciphertext with a profile-specific Keychain key. URL-free
 legacy snapshots remain readable; plaintext artwork URLs are rejected, and a
 missing or locked key never causes a plaintext fallback or replacement key on read.
 TV cards use the shared native/custom Home focus owner, preserving their dark
-surface and fixed row footprint instead of adding a white button plate.
+surface and fixed row footprint instead of adding a white button plate. System
+focus leaves the surface, border and corner shape entirely to TVUIKit; only
+custom-focus and mobile cards draw the fallback surface.
 Playlist sources and server-backed sources
 (including IPTV accounts) retain current profile, source-approval and server-user
 authorization fences. Persisted scope uses non-secret account credential revisions

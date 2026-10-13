@@ -73,6 +73,7 @@ final class HomeLiveTVCardHostedTests: XCTestCase {
             let point = CGPoint(x: frame.minX + frame.width * 0.85, y: frame.minY + frame.height * 0.9)
             let pixel = try sample(image, at: point)
             XCTAssertLessThan(max(pixel[0], pixel[1], pixel[2]), 170, "Focus must not replace the dark card with white.")
+            try assertNativeSurfaceOwnsCorners(of: card)
             let attachment = XCTAttachment(image: image)
             attachment.name = "home-live-channel-native-focus-\(index)"
             attachment.lifetime = .keepAlways
@@ -81,6 +82,23 @@ final class HomeLiveTVCardHostedTests: XCTestCase {
         let last = try XCTUnwrap(cards.last)
         last.sendActions(for: .primaryActionTriggered)
         XCTAssertEqual(selected, [channels[2].route], "Select must send the original authorized tune route once.")
+    }
+
+    private func assertNativeSurfaceOwnsCorners(of card: TVCardView) throws {
+        let label = try XCTUnwrap(card.contentView.subviews.first { $0 is any UIContentView })
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let image = UIGraphicsImageRenderer(bounds: label.bounds, format: format).image { context in
+            label.layer.render(in: context.cgContext)
+        }
+        var maximumAlpha: UInt8 = 0
+        for x in [CGFloat(2), 8, 16, label.bounds.width - 16, label.bounds.width - 8, label.bounds.width - 2] {
+            for y in [CGFloat(2), 8, 16, label.bounds.height - 16, label.bounds.height - 8, label.bounds.height - 2] {
+                maximumAlpha = max(maximumAlpha, try sample(image, at: CGPoint(x: x, y: y))[3])
+            }
+        }
+        XCTAssertEqual(maximumAlpha, 0, "The hosted label must not paint a second surface or border inside TVCardView's corners.")
     }
 
     private func nativeCards(in view: UIView) -> [TVCardView] {

@@ -29,6 +29,7 @@ public struct HomeLiveTVCard: View {
     private let onFocused: ((HomeLiveTVChannel) -> Void)?
     @Environment(\.themePalette) private var palette
     @Environment(\.plozzMetrics) private var metrics
+    @Environment(\.plozzCardFocusStyle) private var focusStyle
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openHomeLiveTV) private var open
     @PlozzCardFocus private var isFocused: Bool
@@ -109,11 +110,24 @@ public struct HomeLiveTVCard: View {
         .padding(width * 0.055)
         .frame(width: width, height: width * 9 / 16, alignment: .leading)
         .foregroundStyle(palette.primaryText)
-        .background(palette.cardSurface, in: RoundedRectangle(cornerRadius: metrics.landscapeCardCornerRadius))
-        .overlay {
-            RoundedRectangle(cornerRadius: metrics.landscapeCardCornerRadius)
-                .strokeBorder(palette.cardBorder, lineWidth: 1)
+        .background {
+            #if os(tvOS)
+            if !focusStyle.usesSystemEffect {
+                fallbackSurface
+            }
+            #else
+            fallbackSurface
+            #endif
         }
+    }
+
+    private var fallbackSurface: some View {
+        RoundedRectangle(cornerRadius: metrics.landscapeCardCornerRadius)
+            .fill(palette.cardSurface)
+            .overlay {
+                RoundedRectangle(cornerRadius: metrics.landscapeCardCornerRadius)
+                    .strokeBorder(palette.cardBorder, lineWidth: 1)
+            }
     }
 }
 #endif
