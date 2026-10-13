@@ -37,6 +37,9 @@ and profile/server-user identity, not ephemeral per-launch Plex override revisio
 Current source approval, credentials and profile access are checked before cached
 cards are exposed. Credentials and token-derived hashes are not persisted.
 Scheduled library channels remain in the Live TV guide.
+The mobile tab shell supplies its current `ProfilesModel` to the shared Home
+scope and all tab destinations, not only the Live TV child. The shared scope
+requires that model even when a different tab is selected.
 
 Selecting a card first enters the existing Live TV destination. A one-shot typed
 request waits for that destination's current authorized catalog and ordinary

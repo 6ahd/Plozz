@@ -1282,6 +1282,7 @@ struct PlozziOSTabShell: View {
                 return true
             }
         )
+        .environment(appModel.profiles)
         .onChange(
             of: PlozziOSDownloadNotificationNavigation.shared.presentation?.id, initial: true
         ) { _, _ in
