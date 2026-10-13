@@ -30,6 +30,14 @@ public enum HomeLiveTVRuntime {
         return model
     }
 
+    static func applyPortableStateChange(_ notification: Notification, to model: HomeLiveTVModel) -> Bool {
+        guard notification.object as? String == model.profileID else { return false }
+        // Channel-ID migrations must be republished by this profile's catalog owner.
+        model.publish(.empty)
+        model.cancelRequest()
+        return true
+    }
+
     /// Runtime Plex override revisions are deliberately ephemeral. A durable
     /// card scope uses persisted account credential revisions instead. The
     /// source-approval identity separately fences the selected Plex Home user.
@@ -186,10 +194,8 @@ private struct HomeLiveTVScope: ViewModifier {
             .onReceive(NotificationCenter.default.publisher(for: .plozzLiveTVPortableStateDidChange)
                 .receive(on: DispatchQueue.main)) { _ in refresh() }
             .onReceive(NotificationCenter.default.publisher(for: .plozzLiveTVPortableStateDidApply)
-                .receive(on: DispatchQueue.main)) { _ in
-                    // Channel-ID migrations must be republished by the catalog owner.
-                    model.publish(.empty)
-                    model.cancelRequest()
+                .receive(on: DispatchQueue.main)) { notification in
+                    guard HomeLiveTVRuntime.applyPortableStateChange(notification, to: model) else { return }
                     refresh()
                 }
     }

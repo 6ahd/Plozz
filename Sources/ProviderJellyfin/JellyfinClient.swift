@@ -216,12 +216,29 @@ public struct JellyfinClient: Sendable {
     func nativeHomeItems(
         userID: String, sectionID: String, limit: Int, parentID: String?
     ) async throws -> [BaseItemDto] {
+        if limit == Int.max {
+            return try await exhaustiveContinueWatchingItems { startIndex, pageSize in
+                try await nativeHomeItemsPage(
+                    userID: userID, sectionID: sectionID, startIndex: startIndex,
+                    limit: pageSize, parentID: parentID
+                )
+            }
+        }
+        return try await nativeHomeItemsPage(
+            userID: userID, sectionID: sectionID, startIndex: 0, limit: limit, parentID: parentID
+        ).Items
+    }
+
+    private func nativeHomeItemsPage(
+        userID: String, sectionID: String, startIndex: Int, limit: Int, parentID: String?
+    ) async throws -> ItemsResponse {
         // A section ID is a path component, never a server-provided URL/query.
         guard !sectionID.isEmpty, !sectionID.contains("/"),
               sectionID != ".", sectionID != ".." else { throw AppError.invalidResponse }
         var query = [
             URLQueryItem(name: "Limit", value: String(limit)),
-            URLQueryItem(name: "StartIndex", value: "0"),
+            URLQueryItem(name: "StartIndex", value: String(startIndex)),
+            URLQueryItem(name: "EnableTotalRecordCount", value: "true"),
             URLQueryItem(name: "IncludeItemTypes", value: "Movie,Series,Season,Episode,Video"),
             URLQueryItem(name: "Fields", value: "Overview,OriginalTitle,PrimaryImageAspectRatio,ProviderIds")
         ]
@@ -233,7 +250,7 @@ public struct JellyfinClient: Sendable {
                 queryItems: query, headers: authHeaders
             ),
             baseURL: baseURL
-        ).Items
+        )
     }
 
     func activeHomeRecordings(userID: String, limit: Int) async throws -> [BaseItemDto] {

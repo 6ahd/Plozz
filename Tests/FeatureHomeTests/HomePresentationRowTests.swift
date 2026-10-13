@@ -3,6 +3,39 @@ import CoreModels
 @testable import FeatureHomeCore
 
 final class HomePresentationRowTests: XCTestCase {
+    func testRetainedNativeRowsImmediatelyHonorDisabledLibraryAndItemVisibility() {
+        let scoped = HomeServerRowDefinition(
+            accountID: "a", serverName: "Server", providerKind: .plex,
+            section: .init(id: "scoped", kind: .recommendations, libraryID: "disabled")
+        )
+        let unscoped = HomeServerRowDefinition(
+            accountID: "a", serverName: "Server", providerKind: .plex,
+            section: .init(id: "unscoped", kind: .recommendations)
+        )
+        let hidden = MediaItem(id: "hidden", title: "Hidden", kind: .movie)
+            .taggingSource("a").taggingLibrary("disabled")
+        let shown = MediaItem(id: "shown", title: "Shown", kind: .movie)
+            .taggingSource("a").taggingLibrary("enabled")
+        let visibility = HomeLibraryVisibility(
+            disabledKeys: ["a:disabled"],
+            rowCustomization: .init(defaults: .custom, shown: [scoped.id, unscoped.id])
+        )
+        for failure: AppError? in [nil, .serverUnreachable] {
+            let content = HomeViewModel.Content(serverRows: [
+                .init(definition: scoped, items: [hidden], isLoading: failure == nil, failure: failure),
+                .init(definition: unscoped, items: [hidden, shown], isLoading: failure == nil, failure: failure)
+            ])
+            let rows = HomePresentationRow.resolve(rows: [], content: content, visibility: visibility)
+            XCTAssertEqual(rows.map(\.id), [unscoped.id])
+            guard case let .library(row) = rows.first?.source else { return XCTFail("Missing retained row") }
+            XCTAssertEqual(row.section.items.map(\.id), ["shown"])
+            XCTAssertEqual(row.isLoading, failure == nil)
+            XCTAssertEqual(row.failure, failure)
+        }
+        let allHidden = HomeViewModel.Content(serverRows: [.init(definition: unscoped, items: [hidden])])
+        XCTAssertTrue(HomePresentationRow.resolve(rows: [], content: allHidden, visibility: visibility).isEmpty)
+    }
+
     func testLiveOnlyHomeUsesTypedRowsAndIndependentVisibility() {
         let card = HomeLiveTVChannel(
             route: .init(

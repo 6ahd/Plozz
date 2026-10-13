@@ -1501,7 +1501,7 @@ struct PlozziOSTabShell: View {
         let active = appModel.accountsProviders.activeAccountIDs
             .sorted()
             .joined(separator: ",")
-        return "\(appModel.profiles.activeProfileID)#\(credentials)#\(active)"
+        return "\(appModel.profiles.activeProfileID)#\(credentials)#\(active)#\(appModel.plexHomeUsers.plexIdentityGeneration)"
     }
 
     private func showSettings() {

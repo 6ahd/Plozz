@@ -125,7 +125,7 @@ final class PlexHomeLayoutTests: XCTestCase {
     func testContinueWatchingUsesNativeGlobalHubAndExcludesAudioHiddenAndUnattributedItems() async throws {
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/hubs/continueWatching/items", json: """
-        {"MediaContainer":{"Metadata":[
+        {"MediaContainer":{"totalSize":4,"Metadata":[
           {"ratingKey":"next","type":"episode","librarySectionID":2},
           {"ratingKey":"hidden","type":"movie","librarySectionID":1},
           {"ratingKey":"audio","type":"track","librarySectionID":3},
@@ -139,7 +139,36 @@ final class PlexHomeLayoutTests: XCTestCase {
         XCTAssertEqual(items.map(\.id), ["next"])
         XCTAssertEqual(stub.sentPaths, ["/hubs/continueWatching/items"])
         let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/hubs/continueWatching/items"))
-        XCTAssertTrue(query.contains(.init(name: "X-Plex-Container-Size", value: "10")))
+        XCTAssertTrue(query.contains(.init(name: "X-Plex-Container-Size", value: "100")))
+    }
+
+    func testNativeContinueWatchingDrainsBoundedPagesBeforeFilteringAndPresentationLimit() async throws {
+        func page(_ range: Range<Int>, library: Int) -> String {
+            let rows = range.map {
+                #"{"ratingKey":"\#($0)","type":"movie","librarySectionID":\#(library)}"#
+            }.joined(separator: ",")
+            return #"{"MediaContainer":{"totalSize":103,"offset":\#(range.lowerBound),"Metadata":[\#(rows)]}}"#
+        }
+        for (limit, excluded, expected) in [
+            (Int.max, Set<String>(), (0..<103).map(String.init)),
+            (2, Set(["1"]), ["100", "101"])
+        ] {
+            let stub = StubHTTPClient()
+            stub.stubSequence(pathSuffix: "/hubs/continueWatching/items", jsons: [
+                page(0..<100, library: 1), page(100..<103, library: 2)
+            ])
+            let items = try await PlexProvider(session: session(), http: stub).serverHomeItems(
+                section: .init(id: "plex:continueWatching", kind: .continueWatching),
+                limit: limit, excludingLibraryIDs: excluded
+            )
+            XCTAssertEqual(items.map(\.id), expected)
+            XCTAssertEqual(stub.sentQueryItems.map {
+                $0.first { $0.name == "X-Plex-Container-Start" }?.value
+            }, ["0", "100"])
+            XCTAssertTrue(stub.sentQueryItems.allSatisfy {
+                $0.contains(.init(name: "X-Plex-Container-Size", value: "100"))
+            })
+        }
     }
 
     func testHiddenLibraryAndCacheOnlyRowsDoNotStartNetworkRequests() async throws {

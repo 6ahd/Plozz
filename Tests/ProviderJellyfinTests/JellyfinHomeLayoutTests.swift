@@ -108,7 +108,7 @@ final class JellyfinHomeLayoutTests: XCTestCase {
     func testResumeAndNextUpRemainSeparateAndExcludeHiddenLibrariesAtTheServer() async throws {
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/Users/selected-user/Views", json: views)
-        stub.stub(pathSuffix: "/Items/Resume", json: #"{"Items":[{"Id":"resume","Type":"Episode"}]}"#)
+        stub.stub(pathSuffix: "/Items/Resume", json: #"{"TotalRecordCount":1,"Items":[{"Id":"resume","Type":"Episode"}]}"#)
         stub.stub(pathSuffix: "/Shows/NextUp", json: #"{"Items":[{"Id":"next","Type":"Episode"}]}"#)
         let provider = JellyfinProvider(session: session(), http: stub)
         let resume = try await provider.serverHomeItems(
@@ -144,6 +144,33 @@ final class JellyfinHomeLayoutTests: XCTestCase {
             XCTAssertTrue(items.isEmpty)
         }
         XCTAssertTrue(stub.sentPaths.isEmpty)
+    }
+
+    func testNativeContinueWatchingPreservesCompleteFeedUsingBoundedPagesOnBothServers() async throws {
+        func page(_ range: Range<Int>) -> String {
+            let rows = range.map { #"{"Id":"\#($0)","Type":"Movie"}"# }.joined(separator: ",")
+            return #"{"Items":[\#(rows)],"TotalRecordCount":103,"StartIndex":\#(range.lowerBound)}"#
+        }
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            let stub = StubHTTPClient()
+            let path = kind == .emby ? "/Sections/resume/Items" : "/Items/Resume"
+            stub.stubSequence(pathSuffix: path, jsons: [page(0..<100), page(100..<103)])
+            let items = try await JellyfinProvider(session: session(kind), http: stub).serverHomeItems(
+                section: .init(
+                    id: kind == .emby ? "emby:resume" : "web:1:resume",
+                    kind: .continueWatching, libraryID: "movies"
+                ), limit: .max, excludingLibraryIDs: ["hidden"]
+            )
+            XCTAssertEqual(items.map(\.id), (0..<103).map(String.init))
+            XCTAssertTrue(items.allSatisfy { $0.libraryID == "movies" })
+            XCTAssertEqual(stub.sentQueryItems.map {
+                $0.first { $0.name == "StartIndex" }?.value
+            }, ["0", "100"])
+            XCTAssertTrue(stub.sentQueryItems.allSatisfy {
+                $0.contains(.init(name: "Limit", value: "100"))
+                    && $0.contains(.init(name: "ParentId", value: "movies"))
+            })
+        }
     }
 
     func testActiveRecordingsUseDocumentedReadOnlyBoundedEndpoint() async throws {

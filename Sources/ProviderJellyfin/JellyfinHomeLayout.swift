@@ -96,7 +96,7 @@ extension JellyfinProvider {
     ) async throws -> [MediaItem] {
         guard limit > 0, section.kind != .libraries, section.kind != .liveTV,
               section.libraryID.map({ !excludingLibraryIDs.contains($0) }) ?? true else { return [] }
-        let boundedLimit = min(limit, 100)
+        let boundedLimit = section.kind == .continueWatching ? limit : min(limit, 100)
         if section.id.hasPrefix("emby:") {
             guard kind == .emby else { throw AppError.invalidResponse }
             let nativeID = String(section.id.dropFirst("emby:".count))

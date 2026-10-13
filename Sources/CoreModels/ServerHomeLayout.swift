@@ -108,11 +108,13 @@ public struct HomeResolvedRowDefaults: Codable, Equatable, Sendable {
     public var omitsMusic: Bool
     public var omitsReading: Bool
     public var source: ServerHomeLayout.Source?
+    /// Sources without a readable native arrangement retain their provider rows.
+    public var fallbackAccountIDs: Set<String>
 
     public init(
         mode: Mode, order: [HomeRowID] = [], serverRows: [HomeServerRowDefinition] = [],
         omitsMusic: Bool = false, omitsReading: Bool = false,
-        source: ServerHomeLayout.Source? = nil
+        source: ServerHomeLayout.Source? = nil, fallbackAccountIDs: Set<String> = []
     ) {
         self.mode = mode
         self.order = order
@@ -120,6 +122,7 @@ public struct HomeResolvedRowDefaults: Codable, Equatable, Sendable {
         self.omitsMusic = omitsMusic
         self.omitsReading = omitsReading
         self.source = source
+        self.fallbackAccountIDs = fallbackAccountIDs
     }
 }
 

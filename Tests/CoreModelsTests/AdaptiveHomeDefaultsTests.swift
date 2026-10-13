@@ -52,18 +52,178 @@ final class AdaptiveHomeDefaultsTests: XCTestCase {
         XCTAssertEqual(calls.libraries, 0)
     }
 
-    func testMultipleServersUseCombinedWithoutRequestingTheirLayouts() async {
+    func testMultipleServersCombineCommonRowsAndKeepOtherServerDefaults() async {
         let (model, suite) = model()
         defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
         let (a, first) = source("a", serverID: "one")
         let (b, second) = source("b", serverID: "two")
+        await first.setLayout(.init(sections: [
+            .init(id: "resume", kind: .continueWatching),
+            .init(id: "picks", kind: .recommendations, title: "Server picks", libraryID: "movies")
+        ], source: .promotedHubs))
+        await second.setLayout(.init(sections: [
+            .init(id: "resume", kind: .continueWatching),
+            .init(id: "latest", kind: .recentlyAdded, libraryID: "shows")
+        ], source: .webPreferences))
         await model.prepareServerDefaults(accounts: [a, b])
         XCTAssertEqual(model.visibility.rowCustomization?.defaults, .matchServer)
         XCTAssertEqual(model.visibility.rowCustomization?.resolvedDefaults?.mode, .combined)
         XCTAssertTrue(model.visibility.isGlobalRowEnabled(.recentlyAdded))
         let firstCalls = await first.calls
         let secondCalls = await second.calls
-        XCTAssertEqual(firstCalls.layouts + secondCalls.layouts, 0)
+        XCTAssertEqual(firstCalls.layouts + secondCalls.layouts, 2)
+        let native = model.visibility.rowCustomization?.availableServerRows ?? []
+        let choices = HomeRowChoice.shared + native.filter {
+            if case .server = $0.id { return true }
+            return false
+        }.map(HomeRowChoice.init(serverRow:))
+        XCTAssertEqual(model.visibility.rowSections(choices: choices).enabled, [
+            .global(.continueWatching), .global(.watchlist), .global(.recentlyAdded),
+            .server(accountID: "a", section: "picks"), .server(accountID: "b", section: "latest"),
+            .libraries, .liveTV
+        ])
+        model.useRowDefaults(.combined)
+        XCTAssertEqual(model.visibility.rowSections(choices: choices).enabled, HomeRowChoice.shared.map(\.id))
+    }
+
+    func testMultipleServersRetainOfflineRowsAndFallbackOnlyForUnsupportedSources() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, first) = source("a", serverID: "one")
+        let (b, _) = source("b", serverID: "two")
+        let now = Date(timeIntervalSince1970: 1_000)
+        await first.setLayout(.init(sections: [
+            .init(id: "picks", kind: .recommendations)
+        ], source: .server))
+        await model.prepareServerDefaults(accounts: [a, b], now: now)
+        let initial = model.visibility.rowCustomization?.resolvedDefaults
+        XCTAssertEqual(initial?.fallbackAccountIDs, ["b"])
+        XCTAssertFalse(model.visibility.rowCustomization!.isVisible(
+            .library("a:movies", kind: .recentlyAdded), providerDefault: true
+        ))
+        XCTAssertTrue(model.visibility.rowCustomization!.isVisible(
+            .library("b:movies", kind: .recentlyAdded), providerDefault: true
+        ))
+        await first.setError(.serverUnreachable)
+        await model.prepareServerDefaults(accounts: [a, b], now: now.addingTimeInterval(121))
+        XCTAssertEqual(model.visibility.rowCustomization?.resolvedDefaults, initial)
+        XCTAssertEqual(model.serverMatchError, .serverUnreachable)
+        await first.setLayout(.init(sections: [], source: .server))
+        await model.prepareServerDefaults(accounts: [a, b], now: now.addingTimeInterval(242))
+        let emptyNative = model.visibility.rowCustomization?.resolvedDefaults
+        XCTAssertEqual(emptyNative?.fallbackAccountIDs, ["b"])
+        await first.setError(.serverUnreachable)
+        await model.prepareServerDefaults(accounts: [a, b], now: now.addingTimeInterval(363))
+        XCTAssertEqual(model.visibility.rowCustomization?.resolvedDefaults, emptyNative,
+                       "An offline server's deliberately empty layout is not a missing layout.")
+        await model.prepareServerDefaults(accounts: [b], now: now.addingTimeInterval(364))
+        XCTAssertEqual(model.visibility.rowCustomization?.resolvedDefaults?.mode, .providerFallback)
+        XCTAssertTrue(model.visibility.rowCustomization?.availableServerRows.isEmpty == true)
+    }
+
+    func testPlexHomeViewerChangeInvalidatesFreshLayoutWithUnchangedAccountUser() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, backend) = source("a", provider: .plex)
+        func viewer(_ id: String) -> ResolvedAccount {
+            ResolvedAccount(account: a.account, provider: backend, plexHomeUserID: id)
+        }
+        let now = Date(timeIntervalSince1970: 1_000)
+        await backend.setLayout(.init(sections: [.init(id: "adult", kind: .recommendations)], source: .server))
+        await model.prepareServerDefaults(accounts: [viewer("adult")], now: now)
+        await backend.setLayout(.init(sections: [.init(id: "child", kind: .recommendations)], source: .server))
+        await model.prepareServerDefaults(accounts: [viewer("child")], now: now.addingTimeInterval(1))
+        XCTAssertEqual(model.visibility.rowCustomization?.availableServerRows.map(\.section.id), ["child"])
+        let calls = await backend.calls
+        XCTAssertEqual(calls.layouts, 2)
+        let cached = HomeLibraryVisibilityStore(
+            defaults: UserDefaults(suiteName: suite)!, namespace: "profile"
+        ).loadServerDefaults()
+        XCTAssertTrue(cached?.scope.contains("home:child") == true)
+        XCTAssertFalse(cached?.scope.contains(a.credentialRevision.rawValue.uuidString) == true)
+    }
+
+    func testEffectiveCredentialChangeCannotJoinOrPublishSupersededDiscovery() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, old) = source("a", provider: .plex)
+        let (_, current) = source("a", provider: .plex)
+        await old.setLayout(.init(sections: [.init(id: "old", kind: .recommendations)], source: .server))
+        await old.suspend()
+        let oldRequest = Task { await model.prepareServerDefaults(accounts: [
+            ResolvedAccount(account: a.account, provider: old, plexHomeUserID: "child")
+        ]) }
+        await old.waitUntilRequested()
+        await current.setLayout(.init(sections: [.init(id: "current", kind: .recommendations)], source: .server))
+        await model.prepareServerDefaults(accounts: [
+            ResolvedAccount(
+                account: a.account, provider: current, plexHomeUserID: "child",
+                credentialRevision: CredentialRevision()
+            )
+        ])
+        await old.resume()
+        await oldRequest.value
+        XCTAssertEqual(model.visibility.rowCustomization?.availableServerRows.map(\.section.id), ["current"])
+        let calls = await current.calls
+        XCTAssertEqual(calls.layouts, 1)
+    }
+
+    func testEffectiveCredentialRotationInvalidatesFreshLayout() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, backend) = source("a", provider: .plex)
+        await backend.setLayout(.init(sections: [.init(id: "old", kind: .recommendations)], source: .server))
+        await model.prepareServerDefaults(accounts: [a])
+        await backend.setLayout(.init(sections: [.init(id: "current", kind: .recommendations)], source: .server))
+        await model.prepareServerDefaults(accounts: [
+            ResolvedAccount(account: a.account, provider: backend, credentialRevision: CredentialRevision())
+        ])
+        XCTAssertEqual(model.visibility.rowCustomization?.availableServerRows.map(\.section.id), ["current"])
+        let calls = await backend.calls
+        XCTAssertEqual(calls.layouts, 2)
+    }
+
+    func testSameViewerCacheSurvivesRelaunchAndEphemeralCredentialRevision() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, backend) = source("a", provider: .plex)
+        await backend.setLayout(.init(sections: [.init(id: "known", kind: .recommendations)], source: .server))
+        await model.prepareServerDefaults(accounts: [
+            ResolvedAccount(account: a.account, provider: backend, plexHomeUserID: "child")
+        ])
+        let relaunched = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(
+            defaults: UserDefaults(suiteName: suite)!, namespace: "profile"
+        ))
+        await backend.setError(.serverUnreachable)
+        await relaunched.prepareServerDefaults(accounts: [
+            ResolvedAccount(
+                account: a.account, provider: backend, plexHomeUserID: "child",
+                credentialRevision: CredentialRevision()
+            )
+        ])
+        XCTAssertEqual(relaunched.visibility.rowCustomization?.availableServerRows.map(\.section.id), ["known"])
+        XCTAssertEqual(relaunched.serverMatchError, .serverUnreachable)
+    }
+
+    func testReturningToFreshViewerCacheFencesAnotherViewersPendingRequest() async {
+        let (model, suite) = model()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let (a, first) = source("a", provider: .plex)
+        let (_, second) = source("a", provider: .plex)
+        let firstViewer = ResolvedAccount(account: a.account, provider: first, plexHomeUserID: "first")
+        let secondViewer = ResolvedAccount(account: a.account, provider: second, plexHomeUserID: "second")
+        await first.setLayout(.init(sections: [.init(id: "first", kind: .recommendations)], source: .server))
+        await model.prepareServerDefaults(accounts: [firstViewer])
+        await second.setLayout(.init(sections: [.init(id: "second", kind: .recommendations)], source: .server))
+        await second.suspend()
+        let pending = Task { await model.prepareServerDefaults(accounts: [secondViewer]) }
+        await second.waitUntilRequested()
+        await model.prepareServerDefaults(accounts: [firstViewer])
+        await second.resume()
+        await pending.value
+        XCTAssertEqual(model.visibility.rowCustomization?.availableServerRows.map(\.section.id), ["first"])
+        let calls = await first.calls
+        XCTAssertEqual(calls.layouts, 1)
     }
 
     func testTwoAccountsForSameServerUserStillMatchOneServer() async {
@@ -204,12 +364,28 @@ private actor AdaptiveHomeProvider: MediaProvider {
     var calls = (layouts: 0, libraries: 0)
     private var layout: ServerHomeLayout?
     private var error: AppError?
+    private var suspended = false
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var requested: CheckedContinuation<Void, Never>?
 
     init(session: UserSession) { self.session = session }
     func setLayout(_ layout: ServerHomeLayout) { self.layout = layout; error = nil }
     func setError(_ error: AppError) { self.error = error }
+    func suspend() { suspended = true }
+    func waitUntilRequested() async {
+        if continuation != nil { return }
+        await withCheckedContinuation { requested = $0 }
+    }
+    func resume() { continuation?.resume(); continuation = nil; suspended = false }
     func serverHomeLayout() async throws -> ServerHomeLayout? {
         calls.layouts += 1
+        if suspended {
+            await withCheckedContinuation {
+                continuation = $0
+                requested?.resume()
+                requested = nil
+            }
+        }
         if let error { throw error }
         return layout
     }

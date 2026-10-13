@@ -7,6 +7,35 @@ import XCTest
 
 @MainActor
 final class HomeLiveTVPersistenceTests: XCTestCase {
+    func testPortableApplyForAnotherProfilePreservesDisplayedSnapshotPendingRouteAndDiskCache() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = HomeLiveTVSnapshotStore(profileID: "active", directory: directory)
+        let model = HomeLiveTVModel(profileID: "active", store: store)
+        let channel = HomeLiveTVChannel(
+            route: .init(
+                profileID: "active", channelID: "news", sourceID: "source",
+                sourceAuthorizationID: "approval", serverAuthorizationID: "servers"
+            ), name: "News", sourceName: "Source", number: 1
+        )
+        let snapshot = HomeLiveTVSnapshot(recentChannels: [channel], channels: [channel])
+        model.publish(snapshot)
+        XCTAssertTrue(model.request(channel.route, in: snapshot))
+        let request = model.pendingRequest
+        XCTAssertFalse(HomeLiveTVRuntime.applyPortableStateChange(
+            Notification(name: .plozzLiveTVPortableStateDidApply, object: "another"), to: model
+        ))
+        XCTAssertEqual(model.snapshot, snapshot)
+        XCTAssertEqual(model.pendingRequest, request)
+        XCTAssertEqual(store.load(), snapshot)
+        XCTAssertTrue(HomeLiveTVRuntime.applyPortableStateChange(
+            Notification(name: .plozzLiveTVPortableStateDidApply, object: "active"), to: model
+        ))
+        XCTAssertTrue(model.snapshot.isEmpty)
+        XCTAssertNil(model.pendingRequest)
+        XCTAssertTrue(store.load().isEmpty)
+    }
+
     private func account(kind: ProviderKind = .plex) -> Account {
         Account(
             id: "account",

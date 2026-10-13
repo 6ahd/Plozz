@@ -157,7 +157,12 @@ public struct HomeRowCustomization: Codable, Equatable, Sendable {
             guard let resolvedDefaults else { return providerDefault }
             switch resolvedDefaults.mode {
             case .server: return resolvedDefaults.order.contains(id)
-            case .combined: return Self.isCombinedRow(id)
+            case .combined:
+                if Self.isCombinedRow(id) || resolvedDefaults.order.contains(id) { return true }
+                guard let key = id.libraryKey else { return false }
+                return providerDefault && resolvedDefaults.fallbackAccountIDs.contains {
+                    key.hasPrefix($0 + ":")
+                }
             case .providerFallback: return providerDefault
             }
         case .provider, .legacy: return providerDefault

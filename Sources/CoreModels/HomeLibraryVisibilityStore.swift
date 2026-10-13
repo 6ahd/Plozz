@@ -67,8 +67,10 @@ public final class HomeLibraryVisibilityModel {
     private let store: HomeLibraryVisibilityStoring
     @ObservationIgnored private var cachedServerDefaults: CachedHomeRowDefaults?
     @ObservationIgnored private var lastServerCheck: Date?
+    @ObservationIgnored private var lastServerCheckScope: [String] = []
     @ObservationIgnored private var serverRequestScope: [String] = []
-    @ObservationIgnored private var serverRequest: Task<Result<ServerHomeLayout?, AppError>, Never>?
+    @ObservationIgnored private var serverRequestID = UUID()
+    @ObservationIgnored private var serverRequest: Task<[String: Result<ServerHomeLayout?, AppError>], Never>?
 
     public init(store: HomeLibraryVisibilityStoring = HomeLibraryVisibilityStore()) {
         self.store = store
@@ -80,78 +82,142 @@ public final class HomeLibraryVisibilityModel {
     public func prepareServerDefaults(accounts: [ResolvedAccount], now: Date = Date()) async {
         guard visibility.rowCustomization?.defaults == .matchServer else { return }
         let sources = accounts.sorted { $0.account.id < $1.account.id }
-        let scope = sources.flatMap {
+        let scope = ["server-home-v2"] + sources.flatMap {
             [$0.account.id, $0.account.server.provider.rawValue,
-             $0.account.server.identityKey, $0.provider.session.userID]
+             $0.account.server.identityKey, $0.provider.session.userID,
+             $0.plexHomeUserID.map { "home:\($0)" } ?? "owner"]
         }
+        // Effective revisions fence live work, but are not persisted: Plex Home
+        // overrides get new revisions after a relaunch for the same viewer.
+        let requestScope = scope + sources.map { $0.credentialRevision.rawValue.uuidString }
         if scope == cachedServerDefaults?.scope,
+           requestScope == lastServerCheckScope,
            let lastServerCheck, now.timeIntervalSince(lastServerCheck) < 120 {
+            serverRequest?.cancel()
+            serverRequest = nil
+            serverRequestID = UUID()
             visibility.rowCustomization?.resolvedDefaults = cachedServerDefaults?.defaults
             return
         }
-        let servers = Set(sources.map {
-            $0.account.server.provider.rawValue + ":" + $0.account.server.identityKey
-        })
-        let users = Set(sources.map(\.provider.session.userID))
-        if servers.count > 1 || users.count > 1 {
-            acceptServerDefaults(.init(mode: .combined), scope: scope, now: now)
-            return
+        var seen = Set<[String]>()
+        let representatives = sources.filter {
+            seen.insert([
+                $0.account.server.provider.rawValue, $0.account.server.identityKey,
+                $0.provider.session.userID, $0.plexHomeUserID.map { "home:\($0)" } ?? "owner"
+            ]).inserted
         }
-        guard let source = sources.first else {
-            acceptServerDefaults(.init(mode: .providerFallback), scope: scope, now: now)
+        guard !representatives.isEmpty else {
+            serverRequestID = UUID()
+            acceptServerDefaults(
+                .init(mode: .providerFallback), scope: scope, requestScope: requestScope, now: now
+            )
             return
         }
         visibility.rowCustomization?.resolvedDefaults =
             cachedServerDefaults?.scope == scope ? cachedServerDefaults?.defaults : nil
-        let request: Task<Result<ServerHomeLayout?, AppError>, Never>
-        if serverRequestScope == scope, let pending = serverRequest {
+        let request: Task<[String: Result<ServerHomeLayout?, AppError>], Never>
+        if serverRequestScope == requestScope, let pending = serverRequest {
             request = pending
         } else {
             serverRequest?.cancel()
-            serverRequestScope = scope
-            request = Task {
-                do {
-                    return .success(try await source.provider.serverHomeLayout())
-                } catch is CancellationError {
-                    return .failure(.cancelled)
-                } catch {
-                    return .failure((error as? AppError) ?? .unknown(""))
-                }
-            }
+            serverRequestID = UUID()
+            serverRequestScope = requestScope
+            request = Task { await Self.loadServerLayouts(representatives) }
             serverRequest = request
         }
-        let result = await request.value
-        guard !Task.isCancelled, serverRequestScope == scope,
+        let requestID = serverRequestID
+        let results = await request.value
+        guard !Task.isCancelled, serverRequestID == requestID,
               visibility.rowCustomization?.defaults == .matchServer else { return }
         serverRequest = nil
-        switch result {
-        case let .success(layout?):
-            let rows = layout.sections.map {
-                HomeServerRowDefinition(
-                    accountID: source.account.id, serverName: source.account.server.name,
-                    providerKind: source.account.server.provider, section: $0
-                )
+        let previous = cachedServerDefaults?.scope == scope ? cachedServerDefaults?.defaults : nil
+        var resolved = HomeResolvedRowDefaults(mode: representatives.count > 1 ? .combined : .server)
+        var failure: AppError?
+        for source in representatives {
+            switch results[source.account.id] ?? .failure(.cancelled) {
+            case let .success(layout?):
+                resolved.serverRows += layout.sections.map {
+                    HomeServerRowDefinition(
+                        accountID: source.account.id, serverName: source.account.server.name,
+                        providerKind: source.account.server.provider, section: $0
+                    )
+                }
+                resolved.omitsMusic = resolved.omitsMusic || layout.omitsMusic
+                resolved.omitsReading = resolved.omitsReading || layout.omitsReading
+                if representatives.count == 1 { resolved.source = layout.source }
+            case .success(nil):
+                resolved.fallbackAccountIDs.insert(source.account.id)
+            case let .failure(error):
+                guard error != .cancelled else { return }
+                failure = failure ?? error
+                let retained = previous?.serverRows.filter { $0.accountID == source.account.id } ?? []
+                resolved.serverRows += retained
+                if previous == nil || previous?.fallbackAccountIDs.contains(source.account.id) == true {
+                    resolved.fallbackAccountIDs.insert(source.account.id)
+                }
+                resolved.omitsMusic = resolved.omitsMusic || previous?.omitsMusic == true
+                resolved.omitsReading = resolved.omitsReading || previous?.omitsReading == true
             }
-            acceptServerDefaults(.init(
-                mode: .server, order: rows.map(\.id), serverRows: rows,
-                omitsMusic: layout.omitsMusic, omitsReading: layout.omitsReading,
-                source: layout.source
-            ), scope: scope, now: now)
-        case .success(nil):
-            acceptServerDefaults(.init(mode: .providerFallback), scope: scope, now: now)
-        case let .failure(error):
-            if error != .cancelled { serverMatchError = error }
+        }
+        if representatives.count == 1, let failure {
+            serverMatchError = failure
+            return
+        }
+        if resolved.mode == .combined {
+            let shared = HomeRowChoice.shared.map(\.id)
+            let native = resolved.serverRows.map(\.id).filter { !shared.contains($0) }
+            resolved.order = shared.filter { $0 != .libraries && $0 != .liveTV }
+                + native + [.libraries, .liveTV]
+        } else if !resolved.fallbackAccountIDs.isEmpty {
+            resolved.mode = .providerFallback
+        } else {
+            resolved.order = resolved.serverRows.map(\.id)
+        }
+        var ordered = Set<HomeRowID>()
+        resolved.order = resolved.order.filter { ordered.insert($0).inserted }
+        acceptServerDefaults(resolved, scope: scope, requestScope: requestScope, now: now)
+        serverMatchError = failure
+        if failure != nil { lastServerCheck = nil }
+    }
+
+    private nonisolated static func loadServerLayouts(
+        _ sources: [ResolvedAccount]
+    ) async -> [String: Result<ServerHomeLayout?, AppError>] {
+        await withTaskGroup(of: (String, Result<ServerHomeLayout?, AppError>).self) { group in
+            var next = 0
+            func enqueue() {
+                guard next < sources.count, !Task.isCancelled else { return }
+                let source = sources[next]
+                next += 1
+                group.addTask {
+                    do {
+                        try Task.checkCancellation()
+                        return (source.account.id, .success(try await source.provider.serverHomeLayout()))
+                    } catch is CancellationError {
+                        return (source.account.id, .failure(.cancelled))
+                    } catch {
+                        return (source.account.id, .failure((error as? AppError) ?? .invalidResponse))
+                    }
+                }
+            }
+            for _ in 0..<min(3, sources.count) { enqueue() }
+            var results: [String: Result<ServerHomeLayout?, AppError>] = [:]
+            while let (id, result) = await group.next() {
+                results[id] = result
+                enqueue()
+            }
+            return results
         }
     }
 
     private func acceptServerDefaults(
-        _ defaults: HomeResolvedRowDefaults, scope: [String], now: Date
+        _ defaults: HomeResolvedRowDefaults, scope: [String], requestScope: [String], now: Date
     ) {
         serverRequest?.cancel()
         serverRequest = nil
-        serverRequestScope = scope
         serverMatchError = nil
         lastServerCheck = now
+        lastServerCheckScope = requestScope
         let snapshot = CachedHomeRowDefaults(scope: scope, defaults: defaults)
         if cachedServerDefaults != snapshot { store.saveServerDefaults(snapshot) }
         cachedServerDefaults = snapshot
@@ -166,6 +232,9 @@ public final class HomeLibraryVisibilityModel {
     }
 
     public func useRowDefaults(_ defaults: HomeRowCustomization.Defaults) {
+        serverRequest?.cancel()
+        serverRequest = nil
+        serverRequestID = UUID()
         visibility.rowCustomization = HomeRowCustomization(defaults: defaults)
         serverMatchError = nil
         store.save(visibility)

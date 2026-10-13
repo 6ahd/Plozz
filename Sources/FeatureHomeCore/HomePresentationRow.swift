@@ -80,7 +80,10 @@ public struct HomePresentationRow: Identifiable, Equatable, Sendable {
                     }
                 }
             }
-            for row in content.serverRows {
+            for var row in content.serverRows {
+                if let libraryID = row.definition.section.libraryID,
+                   !visibility.isEnabled("\(row.definition.accountID):\(libraryID)") { continue }
+                row.items = row.items.filter { $0.isVisibleOnHome(isLibraryVisible: visibility.isEnabled) }
                 guard !row.items.isEmpty || row.isLoading || row.failure != nil else { continue }
                 available.append(Self(
                     choice: HomeRowChoice(serverRow: row.definition), source: .library(row.row)

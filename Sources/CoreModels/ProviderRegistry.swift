@@ -241,9 +241,16 @@ public final class ProviderRegistry: ProviderResolving, @unchecked Sendable {
 public struct ResolvedAccount: Sendable {
     public let account: Account
     public let provider: any MediaProvider
+    public let plexHomeUserID: String?
+    public let credentialRevision: CredentialRevision
 
-    public init(account: Account, provider: any MediaProvider) {
+    public init(
+        account: Account, provider: any MediaProvider,
+        plexHomeUserID: String? = nil, credentialRevision: CredentialRevision? = nil
+    ) {
         self.account = account
         self.provider = provider
+        self.plexHomeUserID = plexHomeUserID
+        self.credentialRevision = credentialRevision ?? account.credentialRevision
     }
 }

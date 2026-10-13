@@ -665,6 +665,8 @@ public struct HomeAggregator: Sendable {
                         items = try await provider.homeContinueWatching(
                             limit: continueWatchingLimit, inLibraries: libraryIDs,
                             separateNextUp: visibility.separatesNextUp
+                                || visibility.rowCustomization?.resolvedDefaults?
+                                    .fallbackAccountIDs.contains(resolved.account.id) == true
                         )
                     }
                     try Task.checkCancellation()

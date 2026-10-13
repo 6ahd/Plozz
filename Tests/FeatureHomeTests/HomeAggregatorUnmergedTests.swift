@@ -212,6 +212,38 @@ final class HomeAggregatorUnmergedTests: XCTestCase {
         XCTAssertEqual(content.serverRows.flatMap(\.items).map(\.libraryID), ["L1", "L1", "L2"])
     }
 
+    func testAdaptiveCombinedLayoutFetchesBothServersNativeDefaultsAlongsideCommonRows() async {
+        let definitions = ["a", "b"].map { account in
+            HomeServerRowDefinition(
+                accountID: account, serverName: account, providerKind: .jellyfin,
+                section: .init(id: "picks", kind: .recommendations, libraryID: "L1")
+            )
+        }
+        let a = UnmergedStub(
+            libraries: [lib("L1", "Movies", .movie)], continueWatching: [cw("resume-a", library: "L1")],
+            nativeItems: ["picks": [item("pick-a")]]
+        )
+        let b = UnmergedStub(
+            libraries: [lib("L1", "Movies", .movie)], continueWatching: [cw("resume-b", library: "L1")],
+            nativeItems: ["picks": [item("pick-b")]]
+        )
+        var customization = HomeRowCustomization(defaults: .matchServer)
+        customization.resolvedDefaults = .init(
+            mode: .combined, order: HomeRowChoice.shared.map(\.id) + definitions.map(\.id),
+            serverRows: definitions
+        )
+        let visibility = HomeLibraryVisibility(rowCustomization: customization)
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("a", provider: a), resolved("b", provider: b)], visibility: visibility
+        )
+        XCTAssertEqual(Set(content.continueWatching.map(\.id)), ["resume-a", "resume-b"])
+        XCTAssertEqual(content.serverRows.map(\.definition.id), definitions.map(\.id))
+        XCTAssertEqual(content.serverRows.flatMap(\.items).map(\.id), ["pick-a", "pick-b"])
+        XCTAssertEqual(a.nativeRequests, ["picks"])
+        XCTAssertEqual(b.nativeRequests, ["picks"])
+        XCTAssertFalse(a.itemsRequested || b.itemsRequested, "Do not fetch additional unselected provider rows.")
+    }
+
     func testNativeSectionFailureIsNotASuccessfulEmptyRow() async {
         let definition = HomeServerRowDefinition(
             accountID: "acct", serverName: "Server", providerKind: .jellyfin,

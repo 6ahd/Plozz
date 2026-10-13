@@ -111,15 +111,15 @@ public struct HomeRowsSettingsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: RequestID(
             accounts: accounts.map(\.account.id),
-            credentials: accounts.map(\.account.credentialRevision),
-            users: accounts.map(\.provider.session.userID),
+            credentials: accounts.map(\.credentialRevision),
+            users: accounts.map(\.provider.session.userID), plexHomeUsers: accounts.map(\.plexHomeUserID),
             libraries: availableLibraries.map(\.key),
             scope: ObjectIdentifier(visibility), revision: reloadRevision
         )) {
             let identity = RequestID(
                 accounts: accounts.map(\.account.id),
-                credentials: accounts.map(\.account.credentialRevision),
-                users: accounts.map(\.provider.session.userID),
+                credentials: accounts.map(\.credentialRevision),
+                users: accounts.map(\.provider.session.userID), plexHomeUsers: accounts.map(\.plexHomeUserID),
                 libraries: availableLibraries.map(\.key),
                 scope: ObjectIdentifier(visibility), revision: 0
             )
@@ -139,6 +139,7 @@ public struct HomeRowsSettingsView: View {
         let accounts: [String]
         let credentials: [CredentialRevision]
         let users: [String]
+        let plexHomeUsers: [String?]
         let libraries: [String]
         let scope: ObjectIdentifier
         let revision: Int
@@ -146,7 +147,7 @@ public struct HomeRowsSettingsView: View {
 
     private func loadServerRows() async {
         if visibility.visibility.rowCustomization?.defaults == .matchServer,
-           visibility.visibility.rowCustomization?.resolvedDefaults?.mode == .server {
+           visibility.visibility.rowCustomization?.resolvedDefaults != nil {
             serverRows = visibility.visibility.rowCustomization?.availableServerRows ?? []
             return
         }
@@ -294,7 +295,7 @@ private struct HomeRowPresetActions: View {
                         Button("Cancel", role: .cancel) { resetDefaults = nil }
                     } message: {
                         if preset == .matchServer {
-                            Text("Follow one server's Home arrangement, or use combined rows with multiple servers. This adapts when your sources change, until you customize a row.")
+                            Text("Follow your servers' Home arrangements. With multiple servers, common rows are combined and the other server rows stay visible. This adapts until you customize a row.")
                         } else {
                             Text("Start with rows across all libraries. You can also add individual library or server rows, then arrange everything together.")
                         }
@@ -312,13 +313,13 @@ private struct HomeRowPresetActions: View {
 
     private var matchDescription: Text {
         if matchFailed {
-            return resolved?.mode == .server
-                ? Text("Using the last known server arrangement.")
+            return resolved != nil
+                ? Text("Some server arrangements are unavailable. Keeping known rows and showing defaults where needed.")
                 : Text("The server arrangement isn't available yet. Default rows are shown for now.")
         }
         switch resolved?.mode {
         case .combined:
-            return Text("Combining rows from your active sources.")
+            return Text("Common rows are combined across servers. Each server's other default rows stay visible.")
         case .providerFallback:
             return Text("This source doesn't share a saved Home arrangement. Using its default rows.")
         case .server where resolved?.source == .promotedHubs:
@@ -326,7 +327,7 @@ private struct HomeRowPresetActions: View {
         case .server:
             return Text("Following your server's Home rows. Music and reading are not included.")
         case nil:
-            return Text("One server follows its Home arrangement. Multiple servers use combined rows.")
+            return Text("Follow your servers' Home rows, combining common rows when you have multiple servers.")
         }
     }
 }

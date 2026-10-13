@@ -21,6 +21,9 @@ device-local cache file (at most 64 KiB, three recent cards and eight row cards)
 Cold launches hydrate only that file; opening Home does not warm the lineup.
 Absent, corrupt, oversized or unsupported cache files are treated as cache misses.
 There is no portable-state initialization or sync registration for this cache.
+Portable state applied to another profile must not clear the displayed profile's
+snapshot, pending selection, or persisted cache. A same-profile apply invalidates
+channel identities until that profile's catalog owner republishes them.
 
 Home performs at most 24 candidate lookups in the already indexed catalog when
 the Live TV owner publishes a snapshot. It never reads/decrypts a full lineup,

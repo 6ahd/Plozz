@@ -14,8 +14,9 @@ fallback when the user's server has no attached trailer.
   `HomePresentationRow` resolves the one list consumed by standard, carousel,
   Showcase and mobile Home. Hiding every row retains an escapable TV notice.
   Fresh profiles select **Match server**: one server follows its available Home
-  arrangement; multiple servers use combined rows. It adapts to source changes
-  until a manual row edit freezes a **Custom arrangement**. Choosing Match server
+  arrangement; multiple servers combine common rows while retaining their other
+  native default rows. Unsupported sources keep their provider-style library rows.
+  It adapts to source changes until a manual row edit freezes a **Custom arrangement**. Choosing Match server
   again resumes adaptation. **Combined rows** starts with cross-library rows
   regardless of source count. Existing legacy arrangements remain unchanged.
   Global rows say **All libraries**; native server and library rows identify their
@@ -25,11 +26,16 @@ fallback when the user's server has no attached trailer.
   with an older-server fallback, and Plex its promoted hubs—not another client's
   private sidebar pins. Unsupported providers retain their normal default rows.
   Matching excludes music and reading. Derived layouts are cached locally by
-  account/server/user, separate from profile-synced arrangement intent. A real
+  account/server/viewer (including the selected Plex Home user), separate from
+  profile-synced arrangement intent. Effective credentials fence in-flight discovery
+  without putting ephemeral revisions or tokens in the durable cache. A real
   refresh or opening the arranger can refresh them; there is no polling timer.
   Native content requests batch by account and library so several Plex rows
   reuse one promoted-hub response. Sharing lasts only for that refresh; it never
   leaves Next Up stale behind a cross-refresh item cache.
+  Native Continue Watching keeps the complete feed through bounded pages, applying
+  library exclusions before a presentation limit. Retained native rows immediately
+  honor current library visibility while discovery is pending or offline.
   Server connection failures belong to the affected server card in Libraries,
   not a global warning in Customize Home or Rows on Home. Discovery failures
   remain logged and never reset saved row choices.
