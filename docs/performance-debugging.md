@@ -505,12 +505,14 @@ Movies and a synthetic poster grid do not exercise the same overlay workload.
 Record the seven focused titles during calibration, then require that same path
 for every arm. Keep the existing profile and all its servers enabled.
 
-Run `testControlledAIdle`, `testControlledBTraversal` and `testControlledCRapidTraversal`
-together, in that order, in one runner and app process. Each phase has one XCTest warm-up and three
+Run `testControlledAIdle`, `testControlledBTraversal`, `testControlledCRapidTraversal` and
+`testControlledDHeldTraversal` together, in that order, in one runner and app process. Each phase has one XCTest warm-up and three
 recorded observations around a 24-second input loop. Scrolling sends six Down followed by six Up, one
 press every two seconds. Rapid traversal sends eighteen Down followed by eighteen Up, one press every
 0.3 seconds, so it reaches rows that have not been drawn yet and returns to rows that scrolled away;
-the slower traversal rarely hitches on a warm grid. Accessibility assertions, screenshots and JSON timing
+the slower traversal rarely hitches on a warm grid. Held traversal holds Down for two seconds, which
+the focus engine repeats and accelerates across about twenty rows, then holds Up for four seconds,
+which always stops on the first row. Accessibility assertions, screenshots and JSON timing
 attachments stay outside the metric windows. Retained timing attachments include
 epoch, elapsed duration, each input's lateness and remote-call duration; do not
 depend on live stdout surviving a long asynchronous wait.

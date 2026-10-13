@@ -167,6 +167,17 @@ final class NativeLibraryPosterRemoteTests: XCTestCase {
         try measureControlled(app, arm: arm, path: Self.controlledPath, phase: .rapid)
     }
 
+    /// Holding a direction lets the focus engine repeat and accelerate, crossing about
+    /// twenty rows in two seconds. Holding Up for longer always stops on the first row.
+    func testControlledDHeldTraversal() throws {
+        guard #available(tvOS 26.0, *) else { throw XCTSkip("Native hitch metrics require tvOS 26.") }
+        let app = try existingApp(activate: false)
+        let arm = try XCTUnwrap(Self.controlledArm, "The matched idle test must finish in the same runner first.")
+        addTeardownBlock { @MainActor in self.capture(app, name: "controlled-\(arm)-held") }
+        Thread.sleep(forTimeInterval: 10)
+        try measureControlled(app, arm: arm, path: Self.controlledPath, phase: .held)
+    }
+
     func testProfileRealLibraryTraversal() throws {
         let app = try existingApp()
         let arm = try XCTUnwrap(ProcessInfo.processInfo.environment["PLOZZ_LIBRARY_POSTER_ARM"])
@@ -207,12 +218,15 @@ final class NativeLibraryPosterRemoteTests: XCTestCase {
         case scroll
         /// Eighteen Down then eighteen Up, one press every 0.3 seconds.
         case rapid
+        /// Down held for two seconds, then Up held for four.
+        case held
 
         var presses: (count: Int, interval: Double) {
             switch self {
             case .idle: (0, 0)
             case .scroll: (12, 2)
             case .rapid: (36, 0.3)
+            case .held: (0, 0)
             }
         }
     }
@@ -250,6 +264,11 @@ final class NativeLibraryPosterRemoteTests: XCTestCase {
                         index: index, relativeSeconds: sent - start, lateSeconds: sent - deadline,
                         durationSeconds: completed - sent
                     ))
+                }
+                if phase == .held {
+                    XCUIRemote.shared.press(.down, forDuration: 2)
+                    Thread.sleep(forTimeInterval: 3)
+                    XCUIRemote.shared.press(.up, forDuration: 4)
                 }
                 Thread.sleep(forTimeInterval: max(0, start + 24 - ProcessInfo.processInfo.systemUptime))
                 let stopCall = ProcessInfo.processInfo.systemUptime
