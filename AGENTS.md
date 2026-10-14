@@ -75,6 +75,10 @@ before the required checks finish.
 
 ## Hand off clearly
 
+Before committing issue-related work, follow the
+[commit issue-reference requirements](.github/CONTRIBUTING.md#commit-issue-references):
+the fixing commit itself must reference the issue, not a separate issue comment.
+
 Follow the issue and pull-request workflow in CONTRIBUTING. Explain the behavior
 changed, relevant tradeoffs, checks actually run, and remaining limitations.
 Distinguish simulator evidence from physical-device results, uploads from tester

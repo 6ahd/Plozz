@@ -32,9 +32,23 @@ limits](../docs/discord-bridge.md); ordinary chat channels are not mirrored.
 ## Development pipeline
 
 The habit here: when a **real** bug turns up — a genuine defect, not a flaky
-test — file a bug-report issue first, then fix it and reference the issue in your
-commit or PR (e.g. `Fixes #123`). That keeps a searchable trail of what broke and
-why. Keep it lightweight, but do file the issue.
+test — file a bug-report issue first, then fix it. Keep it lightweight, but do
+file the issue.
+
+### Commit issue references
+
+When work addresses a GitHub issue, include its reference in the fixing commit's
+subject or body before committing. Use `Refs #123` for an issue in the same
+repository, or `Refs owner/repo#123` when the fix lives in another repository.
+Plain text such as `issue 123` is not a GitHub issue reference.
+
+The pushed commit should create GitHub's built-in "added a commit that references
+this issue" timeline entry. A PR reference alone is not a substitute. Do not post
+a separate issue comment just to link the commit.
+
+Use `Fixes #123` (or the fully qualified equivalent) only when the commit fully
+resolves the issue and automatic closure on landing in the default branch is
+intended. Otherwise use the non-closing `Refs` form.
 
 ## Building & running
 
