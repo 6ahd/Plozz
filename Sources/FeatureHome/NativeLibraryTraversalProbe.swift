@@ -18,7 +18,7 @@ final class NativeLibraryTraversalProbe: UIView {
 
     required init?(coder: NSCoder) { nil }
 
-    override var accessibilityValue: String? {
+    override var accessibilityValue: String? { // l10n:content — opt-in JSON diagnostic payload
         get {
             guard let snapshot = snapshot?() else { return nil }
             do {
