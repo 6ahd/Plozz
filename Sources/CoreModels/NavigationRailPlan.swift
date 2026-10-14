@@ -112,6 +112,10 @@ public enum NavigationDestinationDefaults {
             NavigationLibraryLayout.searchKey,
         ]
     }
+
+    /// The profile button opens Settings; its optional tab must not force a
+    /// sixth default destination into More.
+    public static let iOSAutomaticallyHiddenKeys: Set<String> = [NavigationLibraryLayout.settingsKey]
 }
 
 public enum NavigationRailPlan {

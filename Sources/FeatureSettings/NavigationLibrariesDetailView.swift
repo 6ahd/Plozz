@@ -70,19 +70,19 @@ public struct NavigationLibrariesDetailView: View {
         let visible = all.filter { scope.homeVisibility.isEnabled($0.key) }
         #if os(iOS)
         let keys = NavigationDestinationDefaults.iOS
-        let automaticallyHiddenLibraries: Set<String> = []
+        let automaticallyHiddenDestinations = NavigationDestinationDefaults.iOSAutomaticallyHiddenKeys
         #else
         let keys = NavigationRailPlan.customizableKeys(
             visibleLibraries: includesIndividualLibraries ? visible : [], style: navigation.style
         )
-        let automaticallyHiddenLibraries = NavigationRailPlan.automaticallyHiddenLibraryKeys(
+        let automaticallyHiddenDestinations = NavigationRailPlan.automaticallyHiddenLibraryKeys(
             visibleLibraries: visible, style: navigation.style
         )
         #endif
         let available = keys.filter { !excludedKeys.contains($0) }
         let titles = Self.rowsByKey(visible: visible)
         let sections = navigation.librarySections(
-            available: available, automaticallyHiddenKeys: automaticallyHiddenLibraries
+            available: available, automaticallyHiddenKeys: automaticallyHiddenDestinations
         )
         #if os(iOS)
         let overflow = UIDevice.current.userInterfaceIdiom == .phone || horizontalSizeClass == .compact
@@ -107,7 +107,7 @@ public struct NavigationLibrariesDetailView: View {
                 },
                 onChange: {
                     navigation.applyLibrarySections(
-                        $0, available: available, automaticallyHiddenKeys: automaticallyHiddenLibraries
+                        $0, available: available, automaticallyHiddenKeys: automaticallyHiddenDestinations
                     )
                 }
             )
