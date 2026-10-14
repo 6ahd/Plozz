@@ -1050,6 +1050,7 @@ public struct JellyfinClient: Sendable {
         }
         let enableDirectPlay: Bool?
         let enableDirectStream: Bool?
+        let allowStreamCopy: Bool?
         // Target a specific version when one was chosen; otherwise the server
         // returns every source and picks its default.
         if let mediaSourceID {
@@ -1060,6 +1061,7 @@ public struct JellyfinClient: Sendable {
             // Let the server pick: DirectPlay > DirectStream > transcode.
             enableDirectPlay = nil
             enableDirectStream = nil
+            allowStreamCopy = nil
         case .remux:
             // Disable direct play but keep direct stream: the server remuxes the
             // container to seekable fMP4 HLS while **copying** the video/audio
@@ -1069,13 +1071,19 @@ public struct JellyfinClient: Sendable {
             queryItems.append(URLQueryItem(name: "EnableDirectStream", value: "true"))
             enableDirectPlay = false
             enableDirectStream = true
+            allowStreamCopy = nil
         case .transcode:
             // Force a full transcode: neither direct play nor direct stream. Used
             // as the player's fallback when a direct stream fails to load.
             queryItems.append(URLQueryItem(name: "EnableDirectPlay", value: "false"))
             queryItems.append(URLQueryItem(name: "EnableDirectStream", value: "false"))
+            // HLS can still copy codecs with DirectStream disabled. A failed
+            // bitstream must not be reused by the full-transcode fallback.
+            queryItems.append(URLQueryItem(name: "AllowVideoStreamCopy", value: "false"))
+            queryItems.append(URLQueryItem(name: "AllowAudioStreamCopy", value: "false"))
             enableDirectPlay = false
             enableDirectStream = false
+            allowStreamCopy = false
             capabilityProfile = capabilityProfile.applyingTranscodingRange(for: providerKind)
         }
         var endpoint = Endpoint(
@@ -1092,7 +1100,9 @@ public struct JellyfinClient: Sendable {
             EnableDirectPlay: enableDirectPlay,
             EnableDirectStream: enableDirectStream,
             EnableTranscoding: true,
-            DeviceProfile: capabilityProfile
+            DeviceProfile: capabilityProfile,
+            AllowVideoStreamCopy: allowStreamCopy,
+            AllowAudioStreamCopy: allowStreamCopy
         ))
         guard streaming != nil else {
             return try await http.decode(PlaybackInfoResponse.self, from: endpoint, baseURL: baseURL)

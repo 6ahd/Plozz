@@ -385,6 +385,11 @@ public extension StreamingQualityProviding {
     var streamingQualitySupport: StreamingQualitySupport { .standard }
 }
 
+/// Opt-in maintenance of an already-started server rendition, including while paused.
+public protocol StreamingSessionMaintaining: MediaProvider {
+    func maintainStreamingSession(_ request: PlaybackRequest) async throws
+}
+
 public enum StreamingQualityError: Error, Equatable, Sendable {
     case invalidQuality(StreamingQualityValidationError)
     case unavailable, unsupported

@@ -410,7 +410,7 @@ public final class NativeVideoEngine: VideoEngine {
         installTimeObserver(on: player)
         status = .ready
         isPaused = false
-        player.playImmediately(atRate: Float(currentPlaybackRate))
+        startPlayback(player)
 
         // The model owns selection; the suppressed native output supplies cues.
         // Resolve the group off the startup path and retain only a selection
@@ -671,8 +671,18 @@ public final class NativeVideoEngine: VideoEngine {
 
     public func play() {
         guard let player else { return }
-        player.playImmediately(atRate: Float(currentPlaybackRate))
+        startPlayback(player)
         isPaused = false
+    }
+
+    private func startPlayback(_ player: AVPlayer) {
+        if request?.isTranscoding == true, request?.isManifestStream == true {
+            // A cold server encoder may not have the next segment ready yet.
+            // Normal rate-based playback honors AVPlayer's automatic buffering.
+            player.rate = Float(currentPlaybackRate)
+        } else {
+            player.playImmediately(atRate: Float(currentPlaybackRate))
+        }
     }
 
     public func pause() {

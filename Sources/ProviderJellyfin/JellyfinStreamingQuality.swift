@@ -19,13 +19,17 @@ extension JellyfinProvider: StreamingQualityProviding {
     }
 
     func releaseStreamingEncoding(_ id: String, origin: String = #function) async {
-        do {
-            try await client.stopActiveEncoding(playSessionID: id, origin: origin)
-            HandoffDiagnostics.emit("streaming RELEASE_ACK provider=\(kind.rawValue)")
-        } catch {
-            HandoffDiagnostics.emit("streaming RELEASE_FAILED provider=\(kind.rawValue)")
-            PlozzLog.playback.error("Unable to release the previous streaming rendition.")
-        }
+        // Cleanup must reach the server even when the negotiation's caller was
+        // cancelled. Await the independently cancellable task; do not fire-and-forget.
+        await Task { [client, kind] in
+            do {
+                try await client.stopActiveEncoding(playSessionID: id, origin: origin)
+                HandoffDiagnostics.emit("streaming RELEASE_ACK provider=\(kind.rawValue)")
+            } catch {
+                HandoffDiagnostics.emit("streaming RELEASE_FAILED provider=\(kind.rawValue)")
+                PlozzLog.playback.error("Unable to release the previous streaming rendition.")
+            }
+        }.value
     }
 }
 
@@ -205,8 +209,12 @@ extension MediaSourceInfo {
                 throw StreamingQualityError.codecUnavailable(.hevc)
             }
             set("VideoCodec", "hevc")
-        } else if !supportsHEVC || options.codec == .preferH264 || !["h264", "hevc"].contains(videoCodec?.lowercased() ?? "") {
+        } else if !supportsHEVC || options.codec == .preferH264 {
             set("VideoCodec", "h264")
+        } else if let codec = offeredCodecs.first(where: { $0 == "h264" || $0 == "hevc" }) {
+            set("VideoCodec", codec)
+        } else {
+            throw StreamingQualityError.noCompatibleStream
         }
         let selectedCodec = query.first { $0.name.caseInsensitiveCompare("VideoCodec") == .orderedSame }?.value?.lowercased()
         if selectedCodec == "hevc" {

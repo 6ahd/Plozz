@@ -144,8 +144,9 @@ validates the same profile through `/decision` before opening `start.m3u8` and
 rejects an incompatible returned container or video codec.
 
 WebVTT is a separate subtitle rendition, not a subtitle muxed into ordinary
-MP4. Text tracks use automatic delivery instead of forced burn-in; bitmap
-tracks still require burn-in for a server transcode, and Off remains explicit.
+MP4: the profile declares an explicit HLS `subtitleProfile` target alongside
+the video target. Text tracks use automatic delivery instead of forced burn-in;
+bitmap tracks still require burn-in for a server transcode, and Off remains explicit.
 Existing fetchable text sidecars retain their original format and authenticated
 delivery source for Plozz's styled overlay. Embedded HLS text is extracted from
 the native player's legible rendition into that same overlay. Selecting a different
@@ -157,6 +158,38 @@ Player track identities remain container indexes. Only the outbound transcode
 options translate selected audio/subtitle indexes to Plex's database stream
 IDs, using the selected media version's stream inventory. Decision and playback
 requests must carry identical selections and limits.
+
+Bounded video encoding reserves the quality policy's audio budget. Plex receives
+the documented `audioChannelCount` parameter and a `videoAudioCodec` /
+`audio.bitrate` profile limitation, rather than relying on `audioChannels` or
+an audio-bitrate query alone. Bitmap burn-in disables audio copy for bounded
+renditions: copying a 640 kbps soundtrack beside video encoded against a 128 kbps
+audio reservation would exceed the selected total. Original quality can retain
+compatible audio, and an already-under-limit remux is not forced to downmix.
+
+Stopping a streaming rendition runs outside its caller's cancellation state and
+is awaited, so canceling negotiation or replacement does not cancel the cleanup
+request too. Decision, materialized start, and stop retain the owned session ID;
+credential-free locators still omit the session query fields restored at playback.
+`StreamingSessionMaintaining` sends an authenticated, cancellation-aware
+`/video/:/transcode/universal/ping` for that exact streaming session. Direct files
+are not pinged. Every server rendition carries its owned session ID, including
+ordinary compatibility conversion and forced fallback without quality options.
+The playback owner controls the maintenance lifetime and drains
+it before releasing the session; the provider creates no timer. This follows
+[Plex's own paused-transcoder maintenance](https://github.com/plexinc/plex-home-theater-public/blob/f2f1d63f2d48ad0d2935f7002ee1168ebcd5bb3d/plex/Client/PlexTimelineManager.cpp#L232-L259)
+and [session-scoped ping endpoint](https://github.com/plexinc/plex-home-theater-public/blob/f2f1d63f2d48ad0d2935f7002ee1168ebcd5bb3d/plex/Client/PlexMediaServerClient.cpp#L267-L272);
+neither establishes a universal server-expiry timeout.
+VOD retains the full-title HLS timeline and in-band seeking; no offset prewarming
+or speculative buffering constants are added.
+
+Protocol references: [Plex's official API and profile augmentations](https://developer.plex.tv/pms/),
+the [revision-pinned profile grammar](https://github.com/LukasParke/plex-api-spec/blob/0a34b2513263f433756d98b5c6d12f984c7efa33/description.md#profile-augmentations),
+and [Plezy's independent HLS targets](https://github.com/edde746/plezy/blob/8ef7c2cd9a35fd208403d0577d063d4143375fd9/lib/services/plex_client.dart#L95-L165).
+Its [offset-prewarming regression](https://github.com/edde746/plezy/commit/3a704a2b9b37a177959cdd06027c326502a30541)
+is a reason to test player-specific seek behavior, not assume that extra requests
+improve startup. [Apple's HLS specification](https://developer.apple.com/documentation/http-live-streaming/hls-authoring-specification-for-apple-devices)
+requires fMP4 for HEVC and separate WebVTT text files.
 
 Tests: `PlexStreamingQualityTests` and `StreamingPlaybackTests`.
 

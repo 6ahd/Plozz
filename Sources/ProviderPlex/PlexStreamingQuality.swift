@@ -93,6 +93,13 @@ struct PlexStreamingDecision: Decodable {
     }
 }
 
+extension PlexProvider: StreamingSessionMaintaining {
+    public func maintainStreamingSession(_ request: PlaybackRequest) async throws {
+        guard request.isTranscoding, let id = request.streamingSessionID, !id.isEmpty else { return }
+        try await client.pingStreamingTranscode(sessionID: id)
+    }
+}
+
 extension PlexProvider: StreamingQualityProviding {
     public func playbackInfo(
         for itemID: String, mediaSourceID: String?, forceTranscode: Bool,

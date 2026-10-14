@@ -26,6 +26,8 @@ final class PlexStreamingQualityTests: XCTestCase {
             for items in [query, decisionQuery] {
                 XCTAssertEqual(items.first { $0.name == "maxVideoBitrate" }?.value, "1872")
                 XCTAssertEqual(items.first { $0.name == "audioBitrate" }?.value, "128")
+                XCTAssertEqual(items.first { $0.name == "audioChannelCount" }?.value, "2")
+                XCTAssertNil(items.first { $0.name == "audioChannels" })
                 XCTAssertEqual(items.first { $0.name == "videoResolution" }?.value, "1920x1080")
                 XCTAssertEqual(items.first { $0.name == "directPlay" }?.value, "0")
                 XCTAssertEqual(items.first { $0.name == "directStream" }?.value, "0")
@@ -33,6 +35,7 @@ final class PlexStreamingQualityTests: XCTestCase {
                 XCTAssertTrue(profile.contains("type=upperBound&name=video.width&value=1920&"))
                 XCTAssertTrue(profile.contains("type=upperBound&name=video.height&value=1080&"))
                 XCTAssertTrue(profile.contains("type=upperBound&name=video.bitrate&value=1872&"))
+                XCTAssertTrue(profile.contains("scope=videoAudioCodec&scopeName=*&type=upperBound&name=audio.bitrate&value=128&"))
                 let codecs = codec.codecs(supportsHEVC: supportsHEVC).joined(separator: "%2C")
                 XCTAssertTrue(profile.contains("videoCodec=\(codecs)&"))
             }
@@ -133,7 +136,8 @@ final class PlexStreamingQualityTests: XCTestCase {
         bitrate: Int? = 30_000, width: Int = 3840, height: Int = 2160,
         decision: String? = nil, status: Int = 200, http: StubHTTPClient = StubHTTPClient(),
         container: String = "mp4", videoCodec: String = "h264", audioCodec: String = "aac",
-        streams: String = #"{"id":2,"streamType":2,"codec":"aac","languageCode":"eng","default":true}"#
+        streams: String = #"{"id":2,"streamType":2,"codec":"aac","languageCode":"eng","default":true}"#,
+        transport: (any HTTPClient)? = nil
     ) -> PlexProvider {
         http.stub(pathSuffix: "/video/:/transcode/universal/decision", json: decision ?? """
         {"MediaContainer":{"generalDecisionCode":1001,"transcodeDecisionCode":1001,
@@ -149,7 +153,7 @@ final class PlexStreamingQualityTests: XCTestCase {
         return PlexProvider(session: .init(
             server: .init(id: "plex", name: "Plex", baseURL: URL(string: "https://plex.example.test")!, provider: .plex),
             userID: "user", userName: "User", deviceID: "device", accessToken: "fixture"
-        ), http: http)
+        ), http: transport ?? http)
     }
 
     private func locator(_ request: PlaybackRequest) throws -> AuthenticatedHTTPPlaybackLocator {
@@ -186,6 +190,15 @@ final class PlexStreamingQualityTests: XCTestCase {
                 let negotiated = try XCTUnwrap(http.queryItems(forPathSuffix: "/decision"))
                 XCTAssertEqual(query.first { $0.name == "directStream" }?.value, "1")
                 XCTAssertEqual(query.first { $0.name == "directStreamAudio" }?.value, audioDecision == "copy" ? "1" : "0")
+                let profile = try XCTUnwrap(query.first { $0.name == "X-Plex-Client-Profile-Extra" }?.value)
+                if audioDecision == "copy" {
+                    XCTAssertNil(query.first { $0.name == "audioChannelCount" },
+                                 "An already-under-limit copy must not be downmixed")
+                    XCTAssertFalse(profile.contains("name=audio.bitrate"))
+                } else if quality != .original {
+                    XCTAssertEqual(query.first { $0.name == "audioChannelCount" }?.value, "2")
+                    XCTAssertTrue(profile.contains("name=audio.bitrate&value=128&"))
+                }
                 for name in ["directStream", "directStreamAudio", "maxVideoBitrate", "videoResolution"] {
                     XCTAssertEqual(query.first { $0.name == name }?.value,
                                    negotiated.first { $0.name == name }?.value)
@@ -218,6 +231,47 @@ final class PlexStreamingQualityTests: XCTestCase {
             let query = try locator(request).resource.queryItems
             XCTAssertEqual(query.first { $0.name == "directStream" }?.value, "0")
             XCTAssertEqual(query.first { $0.name == "directStreamAudio" }?.value, "0")
+        }
+    }
+
+    func testBitmapBurnInReservesBoundedAudioInsteadOfCopyingBeyondTheTotalBudget() async throws {
+        for quality in [StreamingQuality.original, .hd720] {
+            let http = StubHTTPClient()
+            let bounded = quality != .original
+            let decision = """
+            {"MediaContainer":{"transcodeDecisionCode":1001,"Metadata":[{"Media":[{
+              "container":"mp4","videoCodec":"h264","audioCodec":"\(bounded ? "aac" : "eac3")",
+              "Part":[{"Stream":[
+                {"streamType":1,"codec":"h264","decision":"transcode"},
+                {"streamType":2,"codec":"\(bounded ? "aac" : "eac3")","decision":"\(bounded ? "transcode" : "copy")"}
+              ]}]
+            }]}]}}
+            """
+            let request = try await fixture(
+                bitrate: 1_500, width: 1280, height: 720, decision: decision, http: http,
+                container: "avi", audioCodec: "eac3", streams: """
+                {"id":101,"index":1,"streamType":2,"codec":"eac3","bitrate":640,"channels":6,"default":true},
+                {"id":103,"index":3,"streamType":3,"codec":"pgs","default":true}
+                """
+            ).playbackInfo(
+                for: "movie", mediaSourceID: "7", forceTranscode: false,
+                streaming: .init(quality: quality, codec: .preferH264)
+            )
+            let playback = try locator(request).resource.queryItems.map {
+                URLQueryItem(name: $0.name, value: $0.value)
+            }
+            let decisionQuery = try XCTUnwrap(http.queryItems(forPathSuffix: "/decision"))
+            for query in [playback, decisionQuery] {
+                XCTAssertEqual(query.first { $0.name == "directStream" }?.value, "0")
+                XCTAssertEqual(query.first { $0.name == "directStreamAudio" }?.value, bounded ? "0" : "1")
+                XCTAssertEqual(query.first { $0.name == "audioChannelCount" }?.value, bounded ? "2" : nil)
+                XCTAssertEqual(query.first { $0.name == "subtitles" }?.value, "burn")
+                let profile = try XCTUnwrap(query.first { $0.name == "X-Plex-Client-Profile-Extra" }?.value)
+                XCTAssertEqual(profile.contains("name=audio.bitrate&value=128&"), bounded)
+            }
+            XCTAssertEqual(request.streamingOptions?.quality, quality)
+            XCTAssertEqual(request.streamingOptions?.subtitleTrack?.id, 3)
+            XCTAssertEqual(request.deliveryMode, .transcode)
         }
     }
 
@@ -353,6 +407,179 @@ final class PlexStreamingQualityTests: XCTestCase {
         }
     }
 
+    func testCanceledDecisionReleasesItsOwnedSessionBeforeReturning() async {
+        let http = StubHTTPClient()
+        let provider = fixture(
+            http: http,
+            transport: CancellationCheckingHTTPClient(stub: http, cancelAfterDecision: true)
+        )
+        let attempt = Task {
+            try await provider.playbackInfo(
+                for: "movie", mediaSourceID: "7", forceTranscode: false,
+                streaming: .init(quality: .hd720)
+            )
+        }
+        do {
+            _ = try await attempt.value
+            XCTFail("Cancellation must not publish a rendition")
+        } catch {
+            XCTAssertTrue(error is CancellationError)
+        }
+        let decisionID = http.queryItems(forPathSuffix: "/decision")?.first { $0.name == "session" }?.value
+        XCTAssertNotNil(decisionID)
+        XCTAssertEqual(http.queryItems(forPathSuffix: "/stop")?.first { $0.name == "session" }?.value, decisionID)
+        XCTAssertEqual(http.sentPaths.filter { $0.hasSuffix("/stop") }.count, 1)
+    }
+
+    func testMaintenancePingsEachExactRenditionWithAuthenticatedClientIdentity() async throws {
+        let http = StubHTTPClient()
+        http.stub(pathSuffix: "/video/:/transcode/universal/ping", json: "{}")
+        let provider = fixture(http: http)
+        let first = try await provider.playbackInfo(
+            for: "movie", mediaSourceID: "7", forceTranscode: false,
+            streaming: .init(quality: .hd720)
+        )
+        let second = try await provider.playbackInfo(
+            for: "movie", mediaSourceID: "7", forceTranscode: false,
+            streaming: .init(quality: .hd720)
+        )
+        XCTAssertNotEqual(first.streamingSessionID, second.streamingSessionID)
+        for request in [first, second] {
+            try await provider.maintainStreamingSession(request)
+            let session = try XCTUnwrap(request.streamingSessionID)
+            XCTAssertEqual(http.queryItems(forPathSuffix: "/ping"), [.init(name: "session", value: session)])
+            XCTAssertEqual(http.method(forPathSuffix: "/ping"), .get)
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Session-Identifier"], session)
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Token"], "fixture")
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Client-Identifier"], "device")
+            XCTAssertEqual(http.sentHeaders.last?["Cache-Control"], "no-store")
+            XCTAssertEqual(http.baseURL(forPathSuffix: "/ping"), URL(string: "https://plex.example.test"))
+        }
+    }
+
+    func testOrdinaryConversionAndForcedFallbackOwnSessionsWithoutQualityOptions() async throws {
+        for (container, forceTranscode) in [("avi", false), ("mp4", true)] {
+            let http = StubHTTPClient()
+            http.stub(pathSuffix: "/video/:/transcode/universal/ping", json: "{}")
+            let provider = fixture(http: http, container: container)
+            let request = try await provider.playbackInfo(
+                for: "movie", mediaSourceID: "7", forceTranscode: forceTranscode
+            )
+            XCTAssertNil(request.streamingOptions)
+            XCTAssertTrue(request.isTranscoding)
+            let session = try XCTUnwrap(request.streamingSessionID)
+            let source = try locator(request)
+            XCTAssertEqual(source.playSessionID, session)
+            XCTAssertEqual(source.deliveryMode, .serverTranscode)
+            XCTAssertEqual(source.resource.path, "/video/:/transcode/universal/start.m3u8")
+
+            try await provider.maintainStreamingSession(request)
+            XCTAssertEqual(http.queryItems(forPathSuffix: "/ping"), [.init(name: "session", value: session)])
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Session-Identifier"], session)
+            await provider.releaseStreamingSession(request)
+            XCTAssertEqual(http.queryItems(forPathSuffix: "/stop"), [.init(name: "session", value: session)])
+            XCTAssertEqual(http.sentPaths.filter { $0.hasSuffix("/ping") }.count, 1)
+            XCTAssertEqual(http.sentPaths.filter { $0.hasSuffix("/stop") }.count, 1)
+        }
+    }
+
+    func testOriginalFileWithoutQualityOptionsHasNoSessionToMaintainOrRelease() async throws {
+        let http = StubHTTPClient()
+        let provider = fixture(bitrate: 1_000, width: 640, height: 360, http: http)
+        let request = try await provider.playbackInfo(
+            for: "movie", mediaSourceID: "7", forceTranscode: false
+        )
+        XCTAssertNil(request.streamingOptions)
+        XCTAssertNil(request.streamingSessionID)
+        XCTAssertFalse(request.isTranscoding)
+        XCTAssertEqual(try locator(request).deliveryMode, .directFile)
+        try await provider.maintainStreamingSession(request)
+        await provider.releaseStreamingSession(request)
+        XCTAssertFalse(http.sentPaths.contains { $0.hasSuffix("/ping") || $0.hasSuffix("/stop") })
+    }
+
+    func testMaintenanceDoesNotPingOriginalFilesOrMissingSessions() async throws {
+        let http = StubHTTPClient()
+        let provider = fixture(bitrate: 1_000, width: 640, height: 360, http: http)
+        var request = try await provider.playbackInfo(
+            for: "movie", mediaSourceID: "7", forceTranscode: false,
+            streaming: .init(quality: .original)
+        )
+        XCTAssertFalse(request.isTranscoding)
+        try await provider.maintainStreamingSession(request)
+        request.streamingSessionID = "stale-session"
+        try await provider.maintainStreamingSession(request)
+        request.isTranscoding = true
+        let missingIDs: [String?] = [nil, ""]
+        for id in missingIDs {
+            request.streamingSessionID = id
+            try await provider.maintainStreamingSession(request)
+        }
+        XCTAssertFalse(http.sentPaths.contains { $0.hasSuffix("/ping") })
+    }
+
+    func testMaintenanceHonorsCancellationBeforeAndAfterItsRequest() async throws {
+        for cancelBeforeSend in [true, false] {
+            let http = StubHTTPClient()
+            http.stub(pathSuffix: "/video/:/transcode/universal/ping", json: "{}")
+            let provider = fixture(
+                http: http,
+                transport: CancellationCheckingHTTPClient(stub: http, cancelAfterPing: !cancelBeforeSend)
+            )
+            let request = try await provider.playbackInfo(
+                for: "movie", mediaSourceID: "7", forceTranscode: false,
+                streaming: .init(quality: .hd720)
+            )
+            let maintenance = Task {
+                if cancelBeforeSend { withUnsafeCurrentTask { $0?.cancel() } }
+                try await provider.maintainStreamingSession(request)
+            }
+            do {
+                try await maintenance.value
+                XCTFail("Session maintenance must not survive cancellation")
+            } catch {
+                XCTAssertTrue(error is CancellationError)
+            }
+            XCTAssertEqual(http.sentPaths.filter { $0.hasSuffix("/ping") }.count, cancelBeforeSend ? 0 : 1)
+            XCTAssertFalse(http.sentPaths.contains { $0.hasSuffix("/stop") })
+        }
+    }
+
+    func testMaintenancePropagatesFailureWithoutStoppingOrReplacingTheRendition() async throws {
+        let http = StubHTTPClient()
+        http.stub(pathSuffix: "/video/:/transcode/universal/ping", json: "", status: 500)
+        let provider = fixture(http: http)
+        let request = try await provider.playbackInfo(
+            for: "movie", mediaSourceID: "7", forceTranscode: false,
+            streaming: .init(quality: .hd720)
+        )
+        do {
+            try await provider.maintainStreamingSession(request)
+            XCTFail("A failed ping must be reported to the session owner")
+        } catch {
+            XCTAssertEqual(error as? AppError, .invalidResponse)
+        }
+        XCTAssertEqual(http.sentPaths.filter { $0.hasSuffix("/decision") }.count, 1)
+        XCTAssertFalse(http.sentPaths.contains { $0.hasSuffix("/stop") })
+    }
+
+    func testAlreadyCanceledReleaseStillAwaitsItsOwnedSessionStop() async throws {
+        let http = StubHTTPClient()
+        let provider = fixture(http: http, transport: CancellationCheckingHTTPClient(stub: http))
+        let request = try await provider.playbackInfo(
+            for: "movie", mediaSourceID: "7", forceTranscode: false,
+            streaming: .init(quality: .hd720)
+        )
+        let release = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            await provider.releaseStreamingSession(request)
+        }
+        await release.value
+        XCTAssertEqual(http.queryItems(forPathSuffix: "/stop")?.first { $0.name == "session" }?.value,
+                       request.streamingSessionID)
+        XCTAssertEqual(http.sentPaths.filter { $0.hasSuffix("/stop") }.count, 1)
+    }
+
     func testOriginalPlaybackDoesNotNegotiateATranscode() async throws {
         for preference in StreamingCodecPreference.allCases {
             let http = StubHTTPClient()
@@ -402,6 +629,7 @@ final class PlexStreamingQualityTests: XCTestCase {
                 XCTAssertTrue(profile.contains("videoCodec=\(capable ? capableCodecs : "h264")&"), profile)
                 XCTAssertTrue(profile.contains("protocol=hls&container=mp4&"))
                 XCTAssertTrue(profile.contains("audioCodec=aac&subtitleCodec=webvtt&replace=true)"))
+                XCTAssertTrue(profile.contains("add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt&replace=true)"))
                 XCTAssertFalse(profile.contains("mpegts"))
                 XCTAssertEqual(query.first { $0.name == "maxVideoBitrate" }?.value, "1872")
                 XCTAssertEqual(query.first { $0.name == "videoResolution" }?.value, "1280x720")
@@ -424,7 +652,8 @@ final class PlexStreamingQualityTests: XCTestCase {
             XCTAssertEqual(query.first { $0.name == "directStream" }?.value, "1")
             XCTAssertEqual(query.first { $0.name == "X-Plex-Client-Profile-Name" }?.value, "Generic")
             XCTAssertEqual(query.first { $0.name == "X-Plex-Client-Profile-Extra" }?.value,
-                           "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mp4&videoCodec=h264&audioCodec=aac&subtitleCodec=webvtt&replace=true)")
+                           "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mp4&videoCodec=h264&audioCodec=aac&subtitleCodec=webvtt&replace=true)"
+                           + "+add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt&replace=true)")
             XCTAssertFalse(query.contains { $0.name == "maxVideoBitrate" || $0.name == "videoResolution" })
         }
 
@@ -460,6 +689,7 @@ final class PlexStreamingQualityTests: XCTestCase {
                     XCTAssertEqual(playback.first { $0.name == "videoResolution" }?.value, "1280x720")
                     let profile = try XCTUnwrap(playback.first { $0.name == "X-Plex-Client-Profile-Extra" }?.value)
                     XCTAssertTrue(profile.contains("container=mp4&videoCodec=h264&audioCodec=aac&subtitleCodec=webvtt&replace=true)"))
+                    XCTAssertTrue(profile.contains("type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt&replace=true)"))
                     XCTAssertEqual(request.streamingOptions?.audioTrack?.id, 2)
                     XCTAssertEqual(request.streamingOptions?.subtitleTrack?.id, 4)
                     let subtitle = try XCTUnwrap(request.subtitleTracks.first { $0.id == 4 })
@@ -524,4 +754,28 @@ final class PlexStreamingQualityTests: XCTestCase {
                 XCTAssertEqual(http.queryItems(forPathSuffix: "/stop")?.first { $0.name == "session" }?.value, session)
             }
         }
+}
+
+private struct CancellationCheckingHTTPClient: HTTPClient {
+    let stub: StubHTTPClient
+    var cancelAfterDecision = false
+    var cancelAfterPing = false
+
+    func send(_ endpoint: Endpoint, baseURL: URL) async throws -> (Data, HTTPURLResponse) {
+        try Task.checkCancellation()
+        let result = try await stub.send(endpoint, baseURL: baseURL)
+        if cancelAfterPing, endpoint.path.hasSuffix("/ping") {
+            withUnsafeCurrentTask { $0?.cancel() }
+        }
+        return result
+    }
+
+    func sendRaw(_ endpoint: Endpoint, baseURL: URL) async throws -> (Data, HTTPURLResponse) {
+        try Task.checkCancellation()
+        let result = try await stub.sendRaw(endpoint, baseURL: baseURL)
+        if cancelAfterDecision, endpoint.path.hasSuffix("/decision") {
+            withUnsafeCurrentTask { $0?.cancel() }
+        }
+        return result
+    }
 }

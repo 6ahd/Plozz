@@ -1804,6 +1804,7 @@ public struct PlexClient: Sendable {
         // The profile has its own query grammar inside the outer URL query.
         let codecList = codecs.joined(separator: "%2C")
         var profile = "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mp4&videoCodec=\(codecList)&audioCodec=aac&subtitleCodec=webvtt&replace=true)"
+        profile += "+add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt&replace=true)"
         query.append(.init(name: "X-Plex-Client-Profile-Name", value: "Generic"))
         if let streaming {
             func set(_ name: String, _ value: String) {
@@ -1812,8 +1813,12 @@ public struct PlexClient: Sendable {
             }
             let copiesVideo = allowsStreamCopy
                 && (streaming.subtitlesOff || streaming.subtitleTrack?.isBitmapSubtitle != true)
+            // A bounded video encode reserves only the configured audio budget.
+            // Burning subtitles must not add an uncapped copied audio stream.
+            let copiesAudio = allowsStreamCopy && allowsAudioStreamCopy
+                && (streaming.quality == .original || copiesVideo)
             set("directStream", copiesVideo ? "1" : "0")
-            set("directStreamAudio", allowsStreamCopy && allowsAudioStreamCopy ? "1" : "0")
+            set("directStreamAudio", copiesAudio ? "1" : "0")
             set("hasMDE", "1")
             set("context", "streaming")
             set("transcodeSessionId", sessionID)
@@ -1823,7 +1828,10 @@ public struct PlexClient: Sendable {
                 set("maxVideoBitrate", String(bitrate / 1_000))
                 set("videoResolution", "\(width)x\(height)")
                 set("audioBitrate", String(streaming.quality.audioBitrate / 1_000))
-                set("audioChannels", "2")
+                if !copiesAudio {
+                    set("audioChannelCount", "2")
+                    profile += "+add-limitation(scope=videoAudioCodec&scopeName=*&type=upperBound&name=audio.bitrate&value=\(streaming.quality.audioBitrate / 1_000)&replace=true)"
+                }
                 profile += "+add-limitation(scope=videoCodec&scopeName=*&type=upperBound&name=video.width&value=\(width)&replace=true)"
                 profile += "+add-limitation(scope=videoCodec&scopeName=*&type=upperBound&name=video.height&value=\(height)&replace=true)"
                 profile += "+add-limitation(scope=videoCodec&scopeName=*&type=upperBound&name=video.bitrate&value=\(bitrate / 1_000)&replace=true)"
@@ -1877,12 +1885,30 @@ public struct PlexClient: Sendable {
         return (codec, decision.deliveryMode)
     }
 
-    func stopStreamingTranscode(sessionID: String) async throws {
+    func pingStreamingTranscode(sessionID: String) async throws {
+        try Task.checkCancellation()
+        var pingHeaders = headers
+        pingHeaders["X-Plex-Session-Identifier"] = sessionID
+        pingHeaders["Cache-Control"] = "no-store"
         _ = try await send(Endpoint(
-            path: "/video/:/transcode/universal/stop",
+            path: "/video/:/transcode/universal/ping",
             queryItems: [.init(name: "session", value: sessionID)],
-            headers: headers
+            headers: pingHeaders,
+            redirectPolicy: .sameOrigin
         ))
+        try Task.checkCancellation()
+    }
+
+    func stopStreamingTranscode(sessionID: String) async throws {
+        // The caller commonly owns the canceled negotiation. Finish its bounded
+        // cleanup independently, but await it before allowing a replacement.
+        try await Task.detached { [self] in
+            _ = try await send(Endpoint(
+                path: "/video/:/transcode/universal/stop",
+                queryItems: [.init(name: "session", value: sessionID)],
+                headers: headers
+            ))
+        }.value
     }
 
     /// Builds an absolute, token-bearing image URL for a server-relative art

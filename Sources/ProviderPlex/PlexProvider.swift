@@ -1185,9 +1185,9 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
                 ?? PlaybackRequest.sourceFileName(from: part.key)
         )
         request.scrubStillSource = originalFileSource
+        request.streamingSessionID = resolved.isTranscoding ? transcodeSessionID : nil
         if let streaming {
             request.streamingOptions = streaming
-            request.streamingSessionID = resolved.isTranscoding ? transcodeSessionID : nil
             request.negotiatedStreamingVideoCodec = negotiatedCodec
             if resolved.isTranscoding {
                 request.localRemuxSource = nil
