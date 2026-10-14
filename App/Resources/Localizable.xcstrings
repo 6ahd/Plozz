@@ -242096,6 +242096,226 @@
         }
       }
     },
+    "Dolby Atmos from TrueHD" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos من TrueHD"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos от TrueHD"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos a partir de TrueHD"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos z TrueHD"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos fra TrueHD"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos aus TrueHD"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos από TrueHD"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos a partir de TrueHD"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos از TrueHD"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos TrueHD-äänestä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos à partir de TrueHD"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos מ־TrueHD"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHD से Dolby Atmos"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos iz formata TrueHD"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos TrueHD-ből"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos dari TrueHD"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos da TrueHD"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHDからのDolby Atmos"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHD의 Dolby Atmos"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos daripada TrueHD"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos fra TrueHD"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos uit TrueHD"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos z TrueHD"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos a partir de TrueHD"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos din TrueHD"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos из TrueHD"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos z TrueHD"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos iz TrueHD"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos iz formata TrueHD"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos från TrueHD"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos จาก TrueHD"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHD'den Dolby Atmos"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos із TrueHD"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Atmos từ TrueHD"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "来自 TrueHD 的 Dolby Atmos"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "來自 TrueHD 的 Dolby Atmos"
+          }
+        }
+      }
+    },
     "Don't turn subtitles on automatically." : {
       "comment" : "Explanation shown beneath the subtitle mode option in Settings > Playback.",
       "localizations" : {
@@ -312448,6 +312668,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "良好"
+          }
+        }
+      }
+    },
+    "Hear overhead sound from supported TrueHD Atmos tracks on compatible equipment, using lossy conversion. If playback stutters or seeking is slow, try turning this off. Those tracks will still play, but without Atmos height positioning. Dolby Digital Plus Atmos is unaffected. Applies to new playback sessions." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استمتع بصوت من الأعلى عند تشغيل مسارات TrueHD Atmos المدعومة على أجهزة متوافقة، باستخدام تحويل مع فقدان بعض بيانات الصوت. إذا كان التشغيل متقطعًا أو كان الانتقال إلى موضع آخر في المقطع بطيئًا، فجرّب إيقاف هذا الخيار. سيستمر تشغيل هذه المسارات، ولكن من دون تحديد مواضع الصوت رأسيًا بتقنية Atmos. لن يتأثر Dolby Digital Plus Atmos. يسري على جلسات التشغيل الجديدة فقط."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чуйте звук, идващ отгоре, при възпроизвеждане на поддържани аудиописти TrueHD Atmos на съвместимо оборудване чрез преобразуване със загуба на качество. Ако възпроизвеждането накъсва или превъртането до друг момент в записа е бавно, опитайте да изключите тази настройка. Тези писти ще продължат да се възпроизвеждат, но без позициониране на звука по височина с Atmos. Dolby Digital Plus Atmos не се влияе. Прилага се само за нови сесии на възпроизвеждане."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escolta so provinent de dalt amb les pistes TrueHD Atmos admeses en equips compatibles, mitjançant una conversió amb pèrdua de qualitat. Si la reproducció va a batzegades o saltar a un altre punt de la reproducció és lent, prova de desactivar aquesta opció. Aquestes pistes continuaran sonant, però sense el posicionament en alçada del so d’Atmos. Dolby Digital Plus Atmos no es veu afectat. S’aplica només a les sessions de reproducció noves."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poslouchejte zvuk shora z podporovaných stop TrueHD Atmos na kompatibilním vybavení díky ztrátovému převodu. Pokud se přehrávání zadrhává nebo je posouvání v záznamu pomalé, zkuste tuto volbu vypnout. Tyto stopy se budou přehrávat i nadále, ale bez výškového umístění zvuku pomocí Atmos. Dolby Digital Plus Atmos zůstává beze změny. Platí pouze pro nové relace přehrávání."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hør understøttede TrueHD Atmos-lydspor med lyd ovenfra på kompatibelt udstyr via konvertering med kvalitetstab. Hvis afspilningen hakker, eller det går langsomt at spole, kan du prøve at slå denne indstilling fra. Lydsporene afspilles stadig, men uden Atmos-lydplacering i højden. Dolby Digital Plus Atmos påvirkes ikke. Gælder kun for nye afspilningssessioner."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Höre Klang von oben aus unterstützten TrueHD Atmos-Tonspuren auf kompatiblen Geräten per verlustbehafteter Umwandlung. Wenn die Wiedergabe ruckelt oder das Springen zu anderen Stellen langsam ist, versuche, diese Option auszuschalten. Die Tonspuren werden weiterhin abgespielt, jedoch ohne die Höhenpositionierung von Atmos. Dolby Digital Plus Atmos ist davon nicht betroffen. Gilt nur für neue Wiedergabesitzungen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ακούστε ήχο από ψηλά με υποστηριζόμενα κομμάτια ήχου TrueHD Atmos σε συμβατό εξοπλισμό, μέσω απωλεστικής μετατροπής. Αν η αναπαραγωγή παρουσιάζει διακοπές ή η μετακίνηση σε άλλο σημείο της αναπαραγωγής είναι αργή, δοκιμάστε να απενεργοποιήσετε αυτή την επιλογή. Αυτά τα κομμάτια ήχου θα συνεχίσουν να αναπαράγονται, αλλά χωρίς την τοποθέτηση των ήχων καθ’ ύψος από το Atmos. Το Dolby Digital Plus Atmos δεν επηρεάζεται. Ισχύει μόνο για νέες συνεδρίες αναπαραγωγής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escucha sonidos por encima de ti con pistas TrueHD Atmos admitidas en equipos compatibles, mediante una conversión con pérdida. Si la reproducción se entrecorta o el desplazamiento por la línea de tiempo es lento, prueba a desactivar esta opción. Esas pistas seguirán reproduciéndose, pero sin el posicionamiento en altura de Atmos. Dolby Digital Plus Atmos no se ve afectado. Solo se aplica a las nuevas sesiones de reproducción."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صدای بالای سر را از ترک‌های پشتیبانی‌شدهٔ TrueHD Atmos روی تجهیزات سازگار و به کمک تبدیل با اتلاف داده بشنوید. اگر پخش قطع و وصل می‌شود یا جلو و عقب بردن پخش کند است، غیرفعال کردن این گزینه را امتحان کنید. این ترک‌ها همچنان پخش می‌شوند، اما بدون موقعیت‌دهی صدا در ارتفاع با Atmos. این گزینه بر Dolby Digital Plus Atmos تأثیری ندارد. این تنظیم فقط در پخش‌های جدید اعمال می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kuule yläpuoleltasi tuleva ääni tuetuilta TrueHD Atmos -ääniraidoilta yhteensopivilla laitteilla häviöllisen muunnoksen avulla. Jos toisto pätkii tai siirtyminen aikajanalla on hidasta, kokeile poistaa tämä asetus käytöstä. Ääniraidat toistuvat edelleen, mutta ilman Atmos-äänen korkeussuuntaista sijoittelua. Tämä ei vaikuta Dolby Digital Plus Atmos -ääneen. Koskee vain uusia toistoistuntoja."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Profitez d’un son venant d’en haut avec les pistes TrueHD Atmos prises en charge et un équipement compatible, grâce à une conversion avec perte. Si la lecture est saccadée ou s’il faut du temps pour avancer ou reculer, essayez de désactiver cette option. Ces pistes seront toujours lues, mais sans le positionnement vertical du son Atmos. Dolby Digital Plus Atmos n’est pas affecté. S’applique uniquement aux nouvelles sessions de lecture."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ניתן לשמוע צלילים מעל הראש מרצועות TrueHD Atmos נתמכות בציוד תואם, באמצעות המרה עם אובדן נתונים. אם ההפעלה מקוטעת או שהמעבר לנקודה אחרת בציר הזמן איטי, כדאי לנסות לכבות אפשרות זו. הרצועות האלה ימשיכו להתנגן, אך ללא מיקום הצלילים בממד הגובה של Atmos. Dolby Digital Plus Atmos לא יושפע. השינוי יחול רק בעת התחלת ניגון חדש."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "हानिपूर्ण रूपांतरण के ज़रिए, संगत उपकरण पर समर्थित TrueHD Atmos ट्रैक की ऊपर से आती ध्वनि सुनें। अगर प्लेबैक अटकता है या वीडियो में आगे-पीछे जाने में समय लगता है, तो इसे बंद करके देखें। ये ट्रैक फिर भी चलेंगे, लेकिन Atmos की ध्वनि को अलग-अलग ऊँचाइयों पर स्थित करने की सुविधा नहीं मिलेगी। Dolby Digital Plus Atmos पर कोई असर नहीं पड़ेगा। यह केवल नए प्लेबैक सत्रों पर लागू होता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slušajte zvuk iznad sebe iz podržanih zapisa TrueHD Atmos na kompatibilnoj opremi, uz pretvorbu s gubitkom kvalitete. Ako reprodukcija zastajkuje ili je premotavanje sporo, pokušajte isključiti ovu opciju. Ti će se zapisi i dalje reproducirati, ali bez Atmos pozicioniranja zvuka po visini. To ne utječe na Dolby Digital Plus Atmos. Primjenjuje se samo na nove sesije reprodukcije."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kompatibilis berendezésen hallhatja a támogatott TrueHD Atmos-hangsávok felülről érkező hangjait, veszteséges átalakítással. Ha a lejátszás akadozik vagy a lejátszási pozíció váltása lassú, próbálja kikapcsolni ezt a beállítást. Ezek a hangsávok továbbra is lejátszhatók, de az Atmos magassági hangpozicionálása nélkül. A Dolby Digital Plus Atmos működését nem érinti. Csak az új lejátszási munkamenetekre vonatkozik."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dengarkan suara dari atas pada trek TrueHD Atmos yang didukung dengan peralatan yang kompatibel, melalui konversi lossy. Jika pemutaran tersendat atau perpindahan posisi pemutaran lambat, coba nonaktifkan opsi ini. Trek tersebut tetap dapat diputar, tetapi tanpa pemosisian suara Atmos dalam dimensi ketinggian. Dolby Digital Plus Atmos tidak terpengaruh. Hanya berlaku untuk sesi pemutaran baru."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ascolta i suoni provenienti dall’alto con le tracce TrueHD Atmos supportate e apparecchiature compatibili, tramite conversione con perdita di qualità. Se la riproduzione procede a scatti o il passaggio a un altro punto della riproduzione è lento, prova a disattivare questa opzione. Le tracce continueranno a essere riprodotte, ma senza il posizionamento in altezza del suono Atmos. Non influisce su Dolby Digital Plus Atmos. Si applica solo alle nuove sessioni di riproduzione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対応するTrueHD Atmosトラックを非可逆変換し、対応機器で頭上からの音を楽しめます。再生が途切れたり、シークに時間がかかったりする場合は、この設定をオフにしてみてください。その場合も音声は再生されますが、Atmosによる高さ方向の音の定位はなくなります。Dolby Digital Plus Atmosには影響しません。新しい再生セッションにのみ適用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "호환 기기에서 지원되는 TrueHD Atmos 트랙을 손실 변환해 머리 위에서 들리는 소리를 재생합니다. 재생이 끊기거나 재생 위치 이동이 느리면 이 설정을 꺼 보세요. 해당 트랙의 오디오는 계속 재생되지만, Atmos의 높이 방향 음향 배치는 적용되지 않습니다. Dolby Digital Plus Atmos에는 영향을 주지 않습니다. 새 재생 세션부터 적용됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dengar bunyi dari atas kepala daripada trek TrueHD Atmos yang disokong pada peralatan yang serasi, melalui penukaran audio dengan kehilangan data. Jika main balik tersekat-sekat atau lambat beralih ke kedudukan main balik yang lain, cuba matikan tetapan ini. Audio trek tersebut masih dimainkan, tetapi tanpa penempatan bunyi menegak Atmos. Dolby Digital Plus Atmos tidak terjejas. Berkuat kuasa untuk sesi main balik baharu."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hør lyd over hodet fra støttede TrueHD Atmos-spor på kompatibelt utstyr ved hjelp av konvertering med kvalitetstap. Hvis avspillingen hakker eller spoling går tregt, kan du prøve å slå dette av. Lyden fra disse sporene spilles fortsatt av, men uten Atmos-posisjonering i høyden. Dolby Digital Plus Atmos påvirkes ikke. Gjelder nye avspillingsøkter."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hoor geluid van boven uit ondersteunde TrueHD Atmos-tracks op compatibele apparatuur, via conversie met kwaliteitsverlies. Als het afspelen hapert of vooruit- en terugspoelen traag gaat, probeer dit dan uit te schakelen. Het geluid van deze tracks wordt nog steeds afgespeeld, maar zonder de hoogtepositionering van Atmos. Dolby Digital Plus Atmos wordt niet beïnvloed. Geldt voor nieuwe afspeelsessies."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usłysz dźwięk znad głowy z obsługiwanych ścieżek TrueHD Atmos na zgodnym sprzęcie dzięki konwersji stratnej. Jeśli odtwarzanie się zacina lub przewijanie jest wolne, spróbuj wyłączyć tę opcję. Dźwięk z tych ścieżek nadal będzie odtwarzany, ale bez pozycjonowania dźwięku Atmos w pionie. Nie ma to wpływu na Dolby Digital Plus Atmos. Dotyczy nowych sesji odtwarzania."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Em equipamentos compatíveis, ouça sons vindos de cima com faixas TrueHD Atmos suportadas, usando conversão com perdas. Se a reprodução engasgar ou demorar para avançar ou retroceder, experimente desativar esta opção. O áudio dessas faixas continuará sendo reproduzido, mas sem o posicionamento vertical do Atmos. O Dolby Digital Plus Atmos não é afetado. Aplica-se a novas sessões de reprodução."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ascultați sunet de deasupra capului din piste TrueHD Atmos acceptate pe echipamente compatibile, prin conversie cu pierderi. Dacă redarea sacadează sau derularea este lentă, încercați să dezactivați această opțiune. Pistele respective se vor reda în continuare, dar fără poziționarea sunetului pe înălțime oferită de Atmos. Dolby Digital Plus Atmos nu este afectat. Se aplică doar sesiunilor noi de redare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Слушайте звук над головой при воспроизведении поддерживаемых дорожек TrueHD Atmos на совместимом оборудовании. Для этого используется преобразование с потерями. Если воспроизведение идёт рывками или перемотка работает медленно, попробуйте отключить эту настройку. Дорожки по-прежнему будут воспроизводиться, но без позиционирования звука по высоте в Atmos. На Dolby Digital Plus Atmos это не влияет. Применяется только к новым сеансам воспроизведения."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Počúvajte zvuk nad hlavou z podporovaných stôp TrueHD Atmos na kompatibilnom vybavení pomocou stratovej konverzie. Ak sa prehrávanie zasekáva alebo je posúvanie v zázname pomalé, skúste túto možnosť vypnúť. Tieto stopy sa budú prehrávať aj naďalej, ale bez výškového umiestnenia zvuku Atmos. Na Dolby Digital Plus Atmos to nemá vplyv. Platí len pre nové relácie prehrávania."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poslušajte zvok nad glavo iz podprtih zvočnih stez TrueHD Atmos na združljivi opremi s pretvorbo z izgubami. Če se predvajanje zatika ali je premikanje po posnetku počasno, poskusite to možnost izklopiti. Te steze se bodo še naprej predvajale, vendar brez višinskega umeščanja zvoka Atmos. To ne vpliva na Dolby Digital Plus Atmos. Velja le za nove seje predvajanja."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Čujte zvuk iznad glave iz podržanih audio-zapisa TrueHD Atmos na kompatibilnoj opremi, uz konverziju sa gubicima. Ako se reprodukcija secka ili je premotavanje sporo, pokušajte da isključite ovu opciju. Ti zapisi će se i dalje reprodukovati, ali bez pozicioniranja zvuka po visini koje pruža Atmos. To ne utiče na Dolby Digital Plus Atmos. Primenjuje se samo na nove sesije reprodukcije."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hör ljud ovanför dig från TrueHD Atmos-spår som stöds på kompatibel utrustning, genom konvertering med kvalitetsförlust. Om uppspelningen hackar eller det går långsamt att spola, prova att stänga av den här inställningen. Spåren spelas fortfarande upp, men utan Atmos-positionering i höjdled. Dolby Digital Plus Atmos påverkas inte. Gäller endast nya uppspelningssessioner."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ฟังเสียงเหนือศีรษะจากแทร็กเสียง TrueHD Atmos ที่รองรับบนอุปกรณ์ที่เข้ากันได้ โดยใช้การแปลงแบบสูญเสียข้อมูล หากการเล่นสะดุดหรือการเลื่อนไปยังตำแหน่งอื่นช้า ให้ลองปิดตัวเลือกนี้ แทร็กเหล่านั้นจะยังคงเล่นได้ แต่จะไม่มีการวางตำแหน่งเสียงตามความสูงของ Atmos Dolby Digital Plus Atmos จะไม่ได้รับผลกระทบ มีผลเฉพาะการเล่นที่เริ่มใหม่เท่านั้น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desteklenen TrueHD Atmos ses parçalarındaki yukarıdan gelen sesleri, kayıplı dönüştürme kullanarak uyumlu ekipmanlarda duyun. Oynatma takılıyorsa veya oynatma sırasında başka bir konuma geçiş yavaşsa bu seçeneği kapatmayı deneyin. Bu ses parçaları Atmos'un yükseklik konumlandırması olmadan çalmaya devam eder. Dolby Digital Plus Atmos etkilenmez. Yalnızca yeni oynatma oturumları için geçerlidir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Слухайте звук над головою з підтримуваних доріжок TrueHD Atmos на сумісному обладнанні завдяки перетворенню із втратами. Якщо відтворення затинається або перехід до іншого моменту відбувається повільно, спробуйте вимкнути цю опцію. Звук цих доріжок і далі відтворюватиметься, але без позиціювання звуку за висотою в Atmos. Це не впливає на Dolby Digital Plus Atmos. Застосовується лише до нових сеансів відтворення."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nghe âm thanh từ phía trên qua các rãnh âm thanh TrueHD Atmos được hỗ trợ trên thiết bị tương thích, bằng cách chuyển đổi có suy hao. Nếu quá trình phát bị giật hoặc thao tác tua phản hồi chậm, hãy thử tắt tùy chọn này. Các rãnh đó vẫn phát âm thanh, nhưng không có định vị âm thanh theo chiều cao của Atmos. Dolby Digital Plus Atmos không bị ảnh hưởng. Chỉ áp dụng cho các phiên phát mới."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "通过有损转换，在兼容设备上聆听受支持的 TrueHD Atmos 音轨带来的头顶音效。如果播放卡顿或跳转到其他播放位置时反应缓慢，请尝试关闭此选项。这些音轨仍会播放声音，但不再具有 Atmos 的高度定位效果。Dolby Digital Plus Atmos 不受影响。仅对新开始的播放生效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "透過有損轉換，在相容設備上聆聽支援的 TrueHD Atmos 音軌所呈現的頭頂音效。若播放卡頓或跳轉到其他播放位置時反應緩慢，請嘗試關閉此選項。這些音軌仍會播放聲音，但不再具有 Atmos 的高度定位效果。Dolby Digital Plus Atmos 不受影響。僅對新開始的播放生效。"
           }
         }
       }
@@ -821434,12 +821874,6 @@
       "comment" : "Shown when a stream provider explicitly blocks access, without rejecting the saved password.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "The provider has blocked access. Check your subscription or contact the provider."
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -821480,6 +821914,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Ο πάροχος έχει αποκλείσει την πρόσβαση. Ελέγξτε τη συνδρομή σας ή επικοινωνήστε με τον πάροχο."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The provider has blocked access. Check your subscription or contact the provider."
           }
         },
         "es" : {

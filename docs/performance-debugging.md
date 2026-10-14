@@ -64,6 +64,37 @@ Numeric SDK memory measurements and its low-memory flag survive redaction;
 device names, installation IDs and arbitrary contexts do not.
 The `PLZLTVSYNC` local log uses the same non-secret vocabulary.
 
+Opted-in reports also carry a bounded, in-memory performance snapshot. It records
+coarse operation/provider categories, elapsed time, start-thread identity,
+overlapping work, and available item/row/credit/account/request/byte counts.
+Home fetching, merging and state publication are distinguished from HTTP
+transport/JSON decoding, share scans, playlist imports, guide batches and
+automatic-channel work. Active operations remain visible if a hang prevents
+their completion. Slow completed operations are retained separately from recent
+work so a burst of fast requests cannot immediately erase them.
+Terminal outcomes include failures in requested individual Home rows and earlier
+guide batches, even when global feeds or later batches succeed. These outcomes
+do not replace the existing per-row or per-window UI status.
+The `performance_operations` context holds at most 32 active operations, 16
+recent fast completions and 16 slow completions (at least 250 ms), plus bounded
+drop/overlap counters. Home's optional credit count is omitted above 2,048 media
+entries; item/row counts remain available without walking the larger metadata feed.
+
+This adds no automatic tracing, timer, polling task, file logging, or additional
+Sentry events. Serialization happens only when an existing report is captured.
+Opting out clears the buffer and invalidates old spans, including across a later
+opt-in. The final scrub accepts only the typed schema and bounded numeric values;
+URLs, request paths, server/profile names, credentials, media identities/titles,
+and response bodies are never part of the snapshot.
+
+Elapsed time is not CPU time: a request can be waiting on a server, and a task
+that starts on the main thread can suspend without blocking it. Streaming
+playlist import includes overlapping transport, parsing and staging; it is not
+an isolated parser or socket benchmark. Correlate active operations and slow
+records with the hang stack and screen history rather than assigning the whole
+hang to the last operation. Missing records can reflect disabled reporting or
+the bounded buffer; inspect its drop/retention counters before drawing conclusions.
+
 Playlist import limit warnings contain only a closed limit category and numeric
 observed/maximum counts. Header size, received bytes, parser input, header-line
 size and entry count are distinguishable without uploading an address, channel
