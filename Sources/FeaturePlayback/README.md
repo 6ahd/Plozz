@@ -80,6 +80,36 @@ selections and enabled forced transcoding show brief contextual notices.
 The community-marker row retains a short disclosure of the services and title
 IDs used for lookups; changing this layout does not change playback preferences.
 
+Quality selection observes `NWPath.usesInterfaceType`, including the physical
+interfaces reported beneath a tunnel. Available interfaces and `isExpensive`
+are not substitutes for that route evidence: an available cellular interface
+does not mean Wi-Fi playback uses it, and Personal Hotspot can be expensive.
+An offline transition retains the current session's selection rather than
+restarting playback with the cellular limit. A usable new route immediately
+re-evaluates the saved settings and server locality. An initially unresolved
+or explicitly cellular path retains the existing conservative cellular policy;
+no VPN is disabled or bypassed. Diagnostic path records include interface
+booleans, not network names, addresses, or credentials.
+
+Jellyfin/Emby compatibility renditions retain the server's stream-copy decisions
+when the source fits the selected quality and conversion is not forced. Codec
+preferences do not turn compatible copied video into a new encode. Oversized,
+unknown-size capped sources, forced conversion, and bitmap burn-in still
+prevent video-copy escape. Plex likewise permits compatible native video copy
+and validates the decision before starting the same owned server session.
+Unsupported audio remains server-converted; only an explicit video-and-audio
+copy decision earns the lossless server-remux label. A codec fallback forces
+encoding for that retry, so it cannot copy the same failed bitstream again;
+the saved quality, codec, and force-conversion preferences remain unchanged.
+
+The native AVPlayer engine supports the same iOS Picture in Picture contract
+as Plozzigen, including server renditions. Its inline layer is retained across
+player replacements, and the controller is notified when the player changes
+even if the layer does not. PiP continuation and background-audio preferences
+remain independent. Native captions switch drawing ownership for external
+presentation and revert to the shared overlay afterward; stop clears the
+presentation state and detaches the old player.
+
 ## Invariants
 
 - **Engine-agnostic.** All transport chrome drives engines through the

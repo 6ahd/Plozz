@@ -1444,7 +1444,11 @@ public final class PlayerViewModel {
             }
             await self.nextEpisodeCoordinator.releaseOrphanedPrefetchIfNeeded()
             guard !Task.isCancelled, !self.didStop, generation == self.streamingLoadGeneration else { return }
-            await self.startPlayback(forceTranscode: false, resumeOverride: position)
+            // A codec retry must encode the replacement, not stream-copy the
+            // same compatible-looking bitstream that just failed.
+            await self.startPlayback(
+                forceTranscode: self.streamingQuality.fallbackCodec != nil, resumeOverride: position
+            )
         }
     }
 

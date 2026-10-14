@@ -181,6 +181,7 @@ final class StreamingPlaybackTests: XCTestCase {
         let calls = await provider.calls
         XCTAssertEqual(calls.map { $0.options.quality }, [quality, quality])
         XCTAssertEqual(calls.map { $0.options.codec }, [.preferHEVC, .preferH264])
+        XCTAssertEqual(calls.map(\.forceTranscode), [false, true])
         XCTAssertEqual(calls.map(\.source), ["version", "version"])
         XCTAssertEqual(engine.positions.last, 76)
         XCTAssertTrue(engine.isPaused)
@@ -203,6 +204,25 @@ final class StreamingPlaybackTests: XCTestCase {
         XCTAssertTrue(calls.isEmpty)
         XCTAssertEqual(ordinaryCalls, 0)
         XCTAssertTrue(engine.loadedQualities.isEmpty)
+        await model.stop()
+    }
+
+    func testFailedOriginalQualityRemuxIsEncodedOnRetryWithoutSavingAForcePreference() async {
+        let provider = QualityPlaybackProvider()
+        await provider.setCompatibilityRendition()
+        await provider.setNegotiatedCodec(.hevc)
+        let (model, engine, _) = make(
+            options: .init(quality: .original), provider: provider, capabilities: .init(supportsHEVC: true)
+        )
+        await model.load()
+        engine.onFailure?(.invalidResponse)
+        await wait { engine.positions.count == 2 && model.phase == .ready }
+        let calls = await provider.calls
+        XCTAssertEqual(calls.map(\.forceTranscode), [false, true])
+        XCTAssertEqual(calls.map { $0.options.quality }, [.original, .original])
+        XCTAssertEqual(calls.map { $0.options.codec }, [.automatic, .preferH264])
+        XCTAssertEqual(model.streamingOptions?.forceTranscoding, false)
+        XCTAssertEqual(model.streamingOptions?.codec, .automatic)
         await model.stop()
     }
 
@@ -776,7 +796,12 @@ private actor QualityDecisionGate {
 }
 
 private actor QualityPlaybackProvider: StreamingQualityProviding {
-    struct Call: Sendable { let item: String; let source: String?; let options: StreamingPlaybackOptions }
+    struct Call: Sendable {
+        let item: String
+        let source: String?
+        let options: StreamingPlaybackOptions
+        let forceTranscode: Bool
+    }
     struct Report: Sendable { let progress: PlaybackProgress; let event: PlaybackEvent }
     nonisolated let kind: ProviderKind = .plex
     nonisolated let session = UserSession(
@@ -793,6 +818,7 @@ private actor QualityPlaybackProvider: StreamingQualityProviding {
     private var sourceRange: String?
     private var plexSubtitleRenditions = false
     private var burnedSubtitle = false
+    private var compatibilityRendition = false
     private var scrubStillSource: PlaybackSource?
     private var gate: QualityDecisionGate?
     init(gate: QualityDecisionGate? = nil) { self.gate = gate }
@@ -803,19 +829,20 @@ private actor QualityPlaybackProvider: StreamingQualityProviding {
     func setSourceRange(_ range: String) { sourceRange = range }
     func setPlexSubtitleRenditions() { plexSubtitleRenditions = true }
     func setBurnedSubtitle() { burnedSubtitle = true }
+    func setCompatibilityRendition() { compatibilityRendition = true }
     func setScrubStillSource(_ source: PlaybackSource) { scrubStillSource = source }
     func playbackInfo(for itemID: String) async throws -> PlaybackRequest {
         ordinaryCalls += 1
         return baseRequest()
     }
     func playbackInfo(for itemID: String, mediaSourceID: String?, forceTranscode: Bool, streaming: StreamingPlaybackOptions) async throws -> PlaybackRequest {
-        calls.append(.init(item: itemID, source: mediaSourceID, options: streaming))
+        calls.append(.init(item: itemID, source: mediaSourceID, options: streaming, forceTranscode: forceTranscode))
         let sequence = calls.count
         if let gate { self.gate = nil; await gate.suspend() }
         if refusesQuality { throw StreamingQualityError.unavailable }
         if streaming.codec == .preferHEVC, let hevcFailure { throw hevcFailure }
         var request = baseRequest()
-        request.isTranscoding = streaming.requiresConversionPolicy
+        request.isTranscoding = streaming.requiresConversionPolicy || compatibilityRendition || forceTranscode
         request.deliveryMode = request.isTranscoding ? .transcode : .directPlay
         request.streamingOptions = streaming
         request.streamingSessionID = "quality-\(sequence)"

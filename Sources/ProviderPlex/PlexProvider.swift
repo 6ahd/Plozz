@@ -1088,9 +1088,12 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
             throw AppError.notFound
         }
         var negotiatedCodec: DirectPlayVideoCodec?
+        var deliveryMode: PlaybackDiagnostics.PlaybackMode = resolved.isTranscoding ? .transcode : .directPlay
         if let streaming, resolved.isTranscoding {
             do {
-                negotiatedCodec = try await client.validateStreamingTranscode(url: resolved.url, options: streaming)
+                let decision = try await client.validateStreamingTranscode(url: resolved.url, options: streaming)
+                negotiatedCodec = decision.codec
+                deliveryMode = decision.delivery
                 try Task.checkCancellation()
             } catch {
                 do { try await client.stopStreamingTranscode(sessionID: transcodeSessionID) }
@@ -1119,7 +1122,8 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
             itemID: itemID,
             mediaSourceID: selectedMediaSourceID,
             url: resolved.url,
-            deliveryMode: resolved.isTranscoding ? .serverTranscode : .directFile,
+            deliveryMode: deliveryMode == .remux ? .serverRemux
+                : resolved.isTranscoding ? .serverTranscode : .directFile,
             purpose: .mediaStream,
             playSessionID: resolved.isTranscoding ? transcodeSessionID : nil,
             formatHint: media.container ?? part.container
@@ -1160,7 +1164,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
             subtitleTracks: subs,
             startPosition: mappedItem.resumePosition ?? 0,
             isTranscoding: resolved.isTranscoding,
-            deliveryMode: resolved.isTranscoding ? .transcode : .directPlay,
+            deliveryMode: deliveryMode,
             sourceMetadata: Self.sourceMetadata(
                 container: media.container ?? part.container,
                 streams: streams,

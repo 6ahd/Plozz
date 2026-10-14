@@ -138,7 +138,9 @@ extension MediaSourceInfo {
     }
 
     /// Apply bounds to the server-issued rendition, never to an original-file URL.
-    func boundedTranscodingURL(_ options: StreamingPlaybackOptions, supportsHEVC: Bool) throws -> String {
+    func boundedTranscodingURL(
+        _ options: StreamingPlaybackOptions, supportsHEVC: Bool, forceVideoTranscode: Bool = false
+    ) throws -> String {
         try options.quality.validate()
         guard let TranscodingUrl, var url = URLComponents(string: TranscodingUrl) else {
             throw StreamingQualityError.unavailable
@@ -148,17 +150,25 @@ extension MediaSourceInfo {
             query.removeAll { $0.name.caseInsensitiveCompare(name) == .orderedSame }
             query.append(.init(name: name, value: value))
         }
+        let requiresConversion = forceVideoTranscode || options.forceTranscoding || !fits(options.quality)
+        let burnsSubtitles = !options.subtitlesOff && options.subtitleTrack?.isBitmapSubtitle == true
         if let total = options.quality.maximumBitrate, let bitrate = options.quality.videoBitrate,
            let height = options.quality.maximumHeight, let width = options.quality.maximumWidth {
-            set("VideoBitrate", String(bitrate))
-            set("AudioBitrate", String(options.quality.audioBitrate))
+            if requiresConversion || burnsSubtitles {
+                set("VideoBitrate", String(bitrate))
+                set("AudioBitrate", String(options.quality.audioBitrate))
+                set("MaxAudioChannels", "2")
+            }
             set("MaxStreamingBitrate", String(total))
             set("MaxHeight", String(height))
             set("MaxWidth", String(width))
-            set("MaxAudioChannels", "2")
         }
-        set("AllowVideoStreamCopy", "false")
-        set("AllowAudioStreamCopy", "false")
+        if requiresConversion || burnsSubtitles {
+            set("AllowVideoStreamCopy", "false")
+        }
+        if requiresConversion {
+            set("AllowAudioStreamCopy", "false")
+        }
         if let audio = options.audioTrack { set("AudioStreamIndex", String(audio.id)) }
         if !options.subtitlesOff, let subtitle = options.subtitleTrack, subtitle.isBitmapSubtitle {
             set("SubtitleStreamIndex", String(subtitle.id))
@@ -179,7 +189,17 @@ extension MediaSourceInfo {
         let videoCodec = query.first { $0.name.caseInsensitiveCompare("VideoCodec") == .orderedSame }?.value
         let offeredCodecs = (videoCodec ?? "").lowercased().split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespaces) }
-        if options.codec == .preferHEVC, supportsHEVC {
+        let sourceCodec = MediaStreams?.first { $0.Type == "Video" }?.Codec?.lowercased()
+        let permitsVideoCopy = !requiresConversion && !burnsSubtitles
+            && query.first { $0.name.caseInsensitiveCompare("AllowVideoStreamCopy") == .orderedSame }?
+                .value?.lowercased() != "false"
+        if permitsVideoCopy, let sourceCodec,
+           (sourceCodec == "h264" || (sourceCodec == "hevc" && supportsHEVC)),
+           offeredCodecs.contains(sourceCodec) || offeredCodecs.contains("copy") {
+            // A codec preference describes an encode, not a reason to encode
+            // an already compatible bitstream during container/audio conversion.
+            set("VideoCodec", sourceCodec)
+        } else if options.codec == .preferHEVC, supportsHEVC {
             guard offeredCodecs.contains("hevc") else {
                 PlozzLog.playback.info("The server did not provide the requested HEVC rendition.")
                 throw StreamingQualityError.codecUnavailable(.hevc)
@@ -201,7 +221,9 @@ extension MediaSourceInfo {
             set("MaxVideoBitDepth", depth)
             set("h264-videobitdepth", depth)
         }
-        set("AudioCodec", "aac")
+        if requiresConversion {
+            set("AudioCodec", "aac")
+        }
         url.queryItems = query
         guard let value = url.string else { throw StreamingQualityError.unavailable }
         return value

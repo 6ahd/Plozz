@@ -273,7 +273,9 @@ struct PlozziOSPlayerView: View {
 
     private func resolvedStreamingConnection() -> StreamingConnection {
         let locality = provider.connectionLocality
-        let connection = StreamingConnection.resolve(network: streamingNetwork, locality: locality)
+        let connection = StreamingConnection.resolve(
+            network: streamingNetwork, locality: locality, previousConnection: streamingConnection
+        )
         let settings = appModel.settings.playback.settings.streaming
         HandoffDiagnostics.emit(
             "streaming DEFAULTS network=\(streamingNetwork) locality=\(locality) connection=\(connection.rawValue) "

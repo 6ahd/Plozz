@@ -260,8 +260,13 @@ public enum StreamingNetwork: Sendable, Equatable {
 
 public enum StreamingConnection: String, Sendable, Equatable {
     case local, remote, cellular
-    public static func resolve(network: StreamingNetwork, locality: SourceLocality) -> Self {
-        // Unknown/tunneled paths use the conservative mobile policy until proven otherwise.
+    public static func resolve(
+        network: StreamingNetwork, locality: SourceLocality, previousConnection: Self? = nil
+    ) -> Self {
+        // Losing a route is not a transition to cellular. Keep the current
+        // session's selection until iOS reports a usable path again.
+        if network == .offline, let previousConnection { return previousConnection }
+        // An unresolved initial path still keeps the existing conservative limit.
         if network == .cellular || network == .unknown || network == .offline { return .cellular }
         return locality == .local ? .local : .remote
     }

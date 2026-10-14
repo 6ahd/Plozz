@@ -1273,7 +1273,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         }
         if let streaming, source.TranscodingUrl != nil {
             do {
-                source.TranscodingUrl = try source.boundedTranscodingURL(streaming, supportsHEVC: client.canRequestHEVC)
+                source.TranscodingUrl = try source.boundedTranscodingURL(
+                    streaming, supportsHEVC: client.canRequestHEVC, forceVideoTranscode: mustConvert
+                )
             }
             catch {
                 if let id = info.PlaySessionId { await releaseStreamingEncoding(id) }
@@ -1343,7 +1345,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         if !didRemux {
             do {
                 try source.requestSDRForH264Transcode(
-                    provider: kind, forceVideoTranscode: forceTranscode || streaming != nil
+                    provider: kind, forceVideoTranscode: forceTranscode || mustConvert
                 )
             } catch {
                 if let id = info.PlaySessionId { await releaseStreamingEncoding(id) }

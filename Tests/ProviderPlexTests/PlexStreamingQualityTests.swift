@@ -132,6 +132,7 @@ final class PlexStreamingQualityTests: XCTestCase {
     private func fixture(
         bitrate: Int? = 30_000, width: Int = 3840, height: Int = 2160,
         decision: String? = nil, status: Int = 200, http: StubHTTPClient = StubHTTPClient(),
+        container: String = "mp4", videoCodec: String = "h264", audioCodec: String = "aac",
         streams: String = #"{"id":2,"streamType":2,"codec":"aac","languageCode":"eng","default":true}"#
     ) -> PlexProvider {
         http.stub(pathSuffix: "/video/:/transcode/universal/decision", json: decision ?? """
@@ -141,7 +142,7 @@ final class PlexStreamingQualityTests: XCTestCase {
         http.stub(pathSuffix: "/video/:/transcode/universal/stop", json: "{}")
         http.stub(pathSuffix: "/library/metadata/movie", json: """
         {"MediaContainer":{"Metadata":[{"ratingKey":"movie","title":"Movie","type":"movie","Media":[
-          {"id":7,"container":"mp4","videoCodec":"h264","audioCodec":"aac",
+          {"id":7,"container":"\(container)","videoCodec":"\(videoCodec)","audioCodec":"\(audioCodec)",
            "bitrate":\(bitrate.map(String.init) ?? "null"),"width":\(width),"height":\(height),
            "Part":[{"id":8,"key":"/library/parts/8/file.mp4","Stream":[\(streams)]}]}]}]}}
         """)
@@ -157,6 +158,96 @@ final class PlexStreamingQualityTests: XCTestCase {
             throw AppError.invalidResponse
         }
         return locator
+    }
+
+    func testCompatibilityDeliveryAllowsCopyWithoutRelaxingQualityOrChangingTheSession() async throws {
+        for quality in [StreamingQuality.original, .hd720] {
+            for audioDecision in ["copy", "transcode"] {
+                let http = StubHTTPClient()
+                let decision = """
+                {"MediaContainer":{"transcodeDecisionCode":1001,"Metadata":[{"Media":[{
+                  "container":"mp4","videoCodec":"h264","audioCodec":"aac",
+                  "Part":[{"Stream":[
+                    {"streamType":1,"codec":"h264","decision":"copy"},
+                    {"streamType":2,"codec":"aac","decision":"\(audioDecision)"}
+                  ]}]
+                }]}]}}
+                """
+                let request = try await fixture(
+                    bitrate: 1_500, width: 1280, height: 720, decision: decision, http: http,
+                    container: "avi", audioCodec: audioDecision == "copy" ? "aac" : "dts",
+                    streams: #"{"id":2,"streamType":2,"codec":"\#(audioDecision == "copy" ? "aac" : "dts")","default":true}"#
+                ).playbackInfo(
+                    for: "movie", mediaSourceID: "7", forceTranscode: false,
+                    streaming: .init(quality: quality, codec: .preferHEVC)
+                )
+                let source = try locator(request)
+                let query = source.resource.queryItems
+                let negotiated = try XCTUnwrap(http.queryItems(forPathSuffix: "/decision"))
+                XCTAssertEqual(query.first { $0.name == "directStream" }?.value, "1")
+                XCTAssertEqual(query.first { $0.name == "directStreamAudio" }?.value, audioDecision == "copy" ? "1" : "0")
+                for name in ["directStream", "directStreamAudio", "maxVideoBitrate", "videoResolution"] {
+                    XCTAssertEqual(query.first { $0.name == name }?.value,
+                                   negotiated.first { $0.name == name }?.value)
+                }
+                XCTAssertEqual(source.playSessionID, negotiated.first { $0.name == "session" }?.value)
+                XCTAssertEqual(source.playSessionID, request.streamingSessionID)
+                XCTAssertEqual(request.deliveryMode, audioDecision == "copy" ? .remux : .transcode)
+                XCTAssertEqual(source.deliveryMode, audioDecision == "copy" ? .serverRemux : .serverTranscode)
+                XCTAssertEqual(request.negotiatedStreamingVideoCodec, .h264,
+                               "Transcoding codec preference must not reject compatible copied video")
+                XCTAssertEqual(request.streamingOptions?.quality, quality)
+                XCTAssertTrue(request.isTranscoding, "Server HLS still uses the native engine")
+                XCTAssertNil(request.originalFileSource, "Do not introduce an uncapped playback fallback")
+                XCTAssertNotNil(request.streamingSessionID)
+            }
+        }
+    }
+
+    func testForcedOrOversizedCompatibilityDeliveryStillDisablesStreamCopy() async throws {
+        for (quality, forced, bitrate) in [
+            (StreamingQuality.original, true, 1_500),
+            (.hd720, false, 30_000)
+        ] {
+            let request = try await fixture(
+                bitrate: bitrate, width: 1280, height: 720, container: "avi"
+            ).playbackInfo(
+                for: "movie", mediaSourceID: "7", forceTranscode: forced,
+                streaming: .init(quality: quality)
+            )
+            let query = try locator(request).resource.queryItems
+            XCTAssertEqual(query.first { $0.name == "directStream" }?.value, "0")
+            XCTAssertEqual(query.first { $0.name == "directStreamAudio" }?.value, "0")
+        }
+    }
+
+    func testCopiedDecisionCannotEscapeALimitOrSendUnsupportedNativeAudio() throws {
+        for audioCodec in ["aac", "dts", "truehd"] {
+            let response = """
+            {"MediaContainer":{"transcodeDecisionCode":1001,"Metadata":[{"Media":[{
+              "container":"mp4","videoCodec":"h264","Part":[{"Stream":[
+                {"streamType":1,"decision":"copy"},
+                {"streamType":2,"codec":"\(audioCodec)","decision":"copy"}
+              ]}]
+            }]}]}}
+            """
+            let decision = try JSONDecoder().decode(PlexStreamingDecisionResponse.self, from: Data(response.utf8)).MediaContainer
+            XCTAssertThrowsError(try decision.validate(options: .init(quality: .hd720), supportsHEVC: true))
+            XCTAssertThrowsError(try decision.validate(
+                options: .init(quality: .hd720), supportsHEVC: true, allowsStreamCopy: true
+            ), "Copied audio must not evade the requested audio conversion")
+            if audioCodec == "aac" {
+                XCTAssertEqual(try decision.validate(
+                    options: .init(quality: .original), supportsHEVC: true,
+                    allowsStreamCopy: true, allowsAudioStreamCopy: true
+                ), .h264)
+            } else {
+                XCTAssertThrowsError(try decision.validate(
+                    options: .init(quality: .original), supportsHEVC: true,
+                    allowsStreamCopy: true, allowsAudioStreamCopy: true
+                ))
+            }
+        }
     }
 
     func testCellularRequestConstrainsBitrateResolutionAndPreventsOriginalFallback() async throws {
