@@ -74,8 +74,10 @@ fallback when the user's server has no attached trailer.
   even before the identity index is warm. All sampled selections participate in
   filtering and freshness ranking before the candidate cap, which counts distinct
   title groups without dropping their alternate artwork. Bounded artwork checks
-  choose the first usable copy per group, preserving its provider routing; final
-  source mixing still shows each title once. Short pages
+  choose the first usable copy per group, preserving its provider routing and
+  artwork while carrying the group's identity aliases and per-copy watch history.
+  Cached slides therefore recognize later account-scoped watch mutations without
+  a warm identity index, and final source mixing still shows each title once. Short pages
   follow the reported total, while duplicate/non-progressing pages fail the
   whole load. Cancellation and fetch failures are distinct from a confirmed
   empty collection. Selection changes invalidate the cached lineup; account

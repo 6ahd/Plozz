@@ -351,11 +351,7 @@ public struct HeroCurator: Sendable {
                 return HeroDedupe.groups(reconciled).flatMap { copies -> [MediaItem] in
                     let hasBeenPlayed = copies.contains(where: \.hasBeenPlayed)
                     guard !settings.hideWatched || !hasBeenPlayed else { return [] }
-                    return copies.map { copy in
-                        var copy = copy
-                        copy.hasBeenPlayed = hasBeenPlayed
-                        return copy
-                    }
+                    return copies
                 }
             }
             guard settings.hideWatched else { return reconciled }
@@ -442,7 +438,21 @@ enum HeroArtworkEligibility {
                     candidate.heroBackdropURL = resolvedURL
                     usable = await validate(heroArtworkURLs(for: candidate))
                 }
-                if usable { return (index, candidate) }
+                if usable {
+                    if groups[index].count > 1 {
+                        let evidence = MediaItemMerger.mergeGroup(groups[index])
+                        candidate.providerIDs = evidence.providerIDs
+                        let primaryID = candidate.sourceAccountID.map { "\($0):\(candidate.id)" }
+                        candidate.sources = evidence.sources.filter { $0.id == primaryID }
+                            + evidence.sources.filter { $0.id != primaryID }
+                        candidate.additionalSourceAccountIDs = Set(candidate.sources.map(\.accountID))
+                            .filter { $0 != candidate.sourceAccountID }.sorted()
+                        candidate.hasBeenPlayed = evidence.hasBeenPlayed
+                        candidate.isMergedTitle = true
+                        candidate.editionOpeningSource = nil
+                    }
+                    return (index, candidate)
+                }
             }
             return (index, nil)
         }

@@ -207,6 +207,61 @@ final class HeroCollectionTests: XCTestCase {
         XCTAssertEqual(result.items.map(\.id), ["first"])
     }
 
+    func testCollectionAlternateEvidenceSurvivesCachingAndRefreshOnlyMutations() async throws {
+        for kind in [MediaItemKind.movie, .series] {
+            var first = item("first", kind: kind)
+            first.providerIDs["Tmdb"] = "42"
+            var alternate = item("alternate", kind: kind)
+            alternate.providerIDs["tmdb"] = "42"
+            let result = await curateCollections([[first], [alternate]])
+            let cached = try JSONDecoder().decode(
+                [MediaItem].self, from: JSONEncoder().encode(result.durableItems)
+            )
+            let curator = HeroCurator()
+            let watched = MediaItemMutation(
+                itemIDs: ["alternate"], scopedItemIDs: ["account-1:alternate"], played: true
+            )
+            XCTAssertTrue(curator.reconcile(cached, settings: settings, watchMutations: [watched]).isEmpty)
+            let unrelated = MediaItemMutation(
+                itemIDs: ["alternate"], scopedItemIDs: ["another-account:alternate"], played: true
+            )
+            XCTAssertEqual(
+                curator.reconcile(cached, settings: settings, watchMutations: [unrelated]).map(\.id), ["first"]
+            )
+
+            alternate.hasBeenPlayed = true
+            let shown = await curateCollections([[first], [alternate]], hideWatched: false)
+            let selected = try XCTUnwrap(shown.items.first)
+            XCTAssertEqual(selected.sources.first?.id, "account-0:first")
+            XCTAssertEqual(selected.sources.first?.hasBeenPlayed, false)
+            XCTAssertEqual(selected.sources.first { $0.id == "account-1:alternate" }?.hasBeenPlayed, true)
+            let unwatched = MediaItemMutation(
+                itemIDs: ["alternate"], scopedItemIDs: ["account-1:alternate"], played: false
+            )
+            let restored = curator.reconcile(shown.items, settings: settings, watchMutations: [unwatched])
+            XCTAssertEqual(restored.map(\.id), ["first"])
+            XCTAssertEqual(restored.first?.hasBeenPlayed, false)
+        }
+    }
+
+    func testCollectionAlternateAliasesDeduplicateAgainstOtherHeroSources() async {
+        var first = item("first")
+        first.providerIDs["Imdb"] = "tt42"
+        var bridge = item("bridge")
+        bridge.providerIDs = ["Imdb": "tt42", "Tmdb": "42"]
+        var watchlist = item("watchlist").taggingSource("watchlist-account")
+        watchlist.providerIDs["Tmdb"] = "42"
+        for sources: [HeroSourceKind] in [[.collection, .watchlist], [.watchlist, .collection]] {
+            let result = await curateCollections(
+                [[first, item("other")], [bridge]], maxItems: 3,
+                sources: sources, watchlist: [watchlist]
+            )
+            XCTAssertEqual(result.items.count, 2)
+            XCTAssertEqual(result.items.first?.id, sources.first == .collection ? "first" : "watchlist")
+            XCTAssertEqual(result.items.last?.id, "other")
+        }
+    }
+
     func testTransitiveCollectionWatchEvidenceAndKindBoundaries() async {
         var first = item("first")
         first.providerIDs["Imdb"] = "tt42"
@@ -224,11 +279,14 @@ final class HeroCollectionTests: XCTestCase {
     private func curateCollections(
         _ buckets: [[MediaItem]], maxItems: Int = 1, hideWatched: Bool = true,
         mutations: [MediaItemMutation] = [],
+        sources: [HeroSourceKind] = [.collection],
+        watchlist: [MediaItem] = [],
         validate: @escaping HeroArtworkValidating = HeroArtworkValidator.presence
     ) async -> HeroCurationResult {
         var configured = settings
         configured.maxItems = maxItems
         configured.hideWatched = hideWatched
+        configured.sources = sources
         configured.collections = buckets.indices.map {
             .init(accountID: "account-\($0)", collectionID: "\($0)", title: "Collection \($0)")
         }
@@ -236,7 +294,7 @@ final class HeroCollectionTests: XCTestCase {
             (String(index), items.map { $0.taggingSource("account-\(index)") })
         })
         return await HeroCurator().curateResult(
-            settings: configured, continueWatching: [], watchlist: [],
+            settings: configured, continueWatching: [], watchlist: watchlist,
             watchMutations: mutations,
             collectionProvider: { selection, _ in
                 let items = try XCTUnwrap(pages[selection.collectionID])
