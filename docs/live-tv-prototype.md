@@ -77,9 +77,9 @@ navigation. Apple TV supports the top tabs, native sidebar and custom
 navigation rail variations; iPhone/iPad expose the same destination in their
 tab shell. Device installation must be authorized; a build alone does not
 install anything.
-tvOS navigation marks the destination **Experimental**: the pinned rail uses a
-subtitle within the existing row height, and native tabs/sidebar qualify the
-title. The pinned row also announces that status to accessibility.
+Navigation uses the plain **Live TV** label in every style. The source-setup
+introduction carries a small, secondary **Experimental** note on both platforms,
+without a warning dialog or an extra confirmation step.
 
 For isolated physical-TV iteration, build a branded Debug app using the existing
 per-branch build configuration. It has its own bundle ID, preferences and data;

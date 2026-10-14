@@ -2,6 +2,29 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/055.6",
+      "version": "2026.10.14",
+      "marketingVersion": "2026.9.25",
+      "build": "55.6",
+      "releasedAt": "2026-10-14",
+      "sections": [
+        {
+          "category": "Updated",
+          "items": [
+            "Home follows your Silo server's rows and video selections when using Match Server.",
+            "Clearer Silo connection errors and privacy-safe troubleshooting when crash reporting is enabled."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Silo sign-in failing when its public address differs from the address you entered.",
+            "Silo approval showing an outdated confirmation phrase or expiring before the server's extended deadline."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/055.5",
       "version": "2026.10.14",
       "marketingVersion": "2026.9.25",

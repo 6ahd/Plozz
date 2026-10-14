@@ -183,8 +183,7 @@ struct AppearanceDetailView: View {
                 ) {
                     NavigationLibrariesDetailView(
                         scope: librariesScope,
-                        navigation: navigation,
-                        includesIndividualLibraries: navigation.style != .tabBar
+                        navigation: navigation
                     )
                 }
             }
