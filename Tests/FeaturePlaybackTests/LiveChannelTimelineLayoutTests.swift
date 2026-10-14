@@ -72,3 +72,41 @@ final class LiveChannelTimelineLayoutTests: XCTestCase {
     }
 }
 #endif
+
+#if DEBUG
+final class LiveChannelTimelineScrubTests: XCTestCase {
+    func testHorizontalSwipePreviewsAndCommitsOnLift() throws {
+        var scrub = LiveChannelTimelineScrub()
+        scrub.begin(behindLive: 0)
+        // Below the axis lock: nothing previews yet.
+        scrub.change(translationX: -10, translationY: 0, speed: 100, windowSeconds: 3_600)
+        XCTAssertNil(scrub.behindLive)
+        // Left swipe: back into the window.
+        scrub.change(translationX: -40, translationY: 2, speed: 100, windowSeconds: 3_600)
+        scrub.change(translationX: -240, translationY: 4, speed: 100, windowSeconds: 3_600)
+        let preview = try XCTUnwrap(scrub.behindLive)
+        XCTAssertGreaterThan(preview, 0)
+        XCTAssertEqual(scrub.end(), preview)
+        XCTAssertNil(scrub.behindLive)
+    }
+
+    func testVerticalSwipeNeverScrubs() {
+        var scrub = LiveChannelTimelineScrub()
+        scrub.begin(behindLive: 30)
+        scrub.change(translationX: 5, translationY: 60, speed: 100, windowSeconds: 3_600)
+        scrub.change(translationX: 200, translationY: 80, speed: 100, windowSeconds: 3_600)
+        XCTAssertNil(scrub.behindLive)
+        XCTAssertNil(scrub.end())
+    }
+
+    func testScrubStaysInsideTheWindow() throws {
+        var scrub = LiveChannelTimelineScrub()
+        scrub.begin(behindLive: 50)
+        scrub.change(translationX: -30, translationY: 0, speed: 5_000, windowSeconds: 60)
+        scrub.change(translationX: -3_000, translationY: 0, speed: 5_000, windowSeconds: 60)
+        XCTAssertEqual(try XCTUnwrap(scrub.behindLive), 60)
+        scrub.change(translationX: 6_000, translationY: 0, speed: 5_000, windowSeconds: 60)
+        XCTAssertEqual(try XCTUnwrap(scrub.behindLive), 0)
+    }
+}
+#endif

@@ -1682,6 +1682,18 @@ final class LiveChannelPlayerModel {
         stageSeek(to: (pendingSeekTarget ?? lastPosition) + delta, window: seekableWindow)
     }
 
+    /// Whether scrubbing shows a preview box: the native HLS route can fetch one.
+    var offersScrubThumbnails: Bool {
+        canSeekWindow && engine.liveSnapshot.route == .nativeHLS
+    }
+
+    /// A scrub preview for the frame `seconds` behind the live edge.
+    func scrubThumbnail(behindLive seconds: TimeInterval, maxWidth: Int) async -> CGImage? {
+        guard canSeekWindow, let seekableWindow else { return nil }
+        let offset = seekableWindow.upperBound - max(0, seconds) - seekableWindow.lowerBound
+        return await engine.liveScrubThumbnail(secondsIntoWindow: max(0, offset), maxWidth: maxWidth)
+    }
+
     /// Land `seconds` behind the live edge.
     func seek(behindLive seconds: TimeInterval) {
         guard canSeekWindow, let seekableWindow else { return }
