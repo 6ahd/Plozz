@@ -91,10 +91,36 @@ E-AC-3 JOC stream copies advertise object audio in the HLS master, including
 untagged tracks. FFmpegBuild **3.7.x** fixes dependent-substream Atmos signaling;
 LibDovi remains **2.1.x** and LibTrueHD **2.2.x** is newly linked into the engine.
 
-TrueHD object-audio rendering (`LoadOptions.objectAudioRendering`) stays `.off`,
-and progressive segment delivery stays disabled. The new APAC performance gains
-only apply when object-audio rendering is enabled; this update does not enable
-it or change Plozz's routing/track preferences. Both apps bundle the unmodified
+On **tvOS 26 and later**, ordinary on-demand playback automatically requests
+TrueHD Atmos object rendering with `LoadOptions.objectAudioRendering = .apac(.l714)`.
+The 7.1.4 layout is an **intermediate spatial bed**, not a detected physical speaker
+configuration. tvOS and the receiver handle final output; there is no Plozz setup
+prompt or opt-in. HDMI channel counts and the current rendering mode are not used
+as Atmos capability gates: neither reliably describes the room's speakers.
+
+Aether only converts **48 kHz TrueHD Atmos** on its native/HLS VOD path. It decodes
+the objects into the spatial bed and encodes Apple Positional Audio (APAC), which
+tvOS can deliver as Dolby MAT to compatible equipment. This is **lossy conversion**,
+not TrueHD bitstream passthrough or preservation of the original dynamic object
+stream. It adds decoding/encoding work during eligible playback, not library
+scanning or idle sync. Shared live players and muted previews stay off to avoid
+additional spatial encoding in those background/concurrent paths.
+
+Live stream loading, iOS/iPadOS and older tvOS keep object rendering off. Plain
+TrueHD, DTS/DTS-HD MA (including DTS:X), ineligible sources and APAC initialization
+failures retain the existing bridge: FLAC for source layouts above six channels,
+otherwise the E-AC-3 compatibility bridge. Software-video playback does not use
+this conversion. E-AC-3/JOC Atmos remains stream-copied. Explicit track selections
+and language preferences are still passed to Aether; its automatic selection can
+prefer TrueHD Atmos within the same language/dub when rendering is enabled.
+
+Progressive segment delivery remains disabled. The upstream Apple TV reports in
+[AetherEngine #731](https://github.com/superuser404notfound/AetherEngine/issues/731)
+support this output path, but are not verification of every receiver/speaker
+configuration. An Atmos receiver label alone does not prove discrete height
+mapping, particularly with tvOS Continuous Audio.
+
+Both apps bundle the unmodified
 MIT license, Apache-2.0 license and NOTICE from
 [LibTrueHD 2.2.0](https://github.com/superuser404notfound/LibTrueHD/tree/2.2.0)
 as `LibTrueHDLicense.txt`, `LibTrueHDApacheLicense.txt` and `LibTrueHDNotices.txt`,
@@ -331,8 +357,9 @@ Plozzigen accepts content when ALL of these are true:
 
 - **Container:** MKV / Matroska
 - **Video codec:** HEVC, H.264, VP9, or AV1
-- **Audio codec:** Any (fMP4-legal codecs are stream-copied; incompatible ones
-  like TrueHD/DTS are bridged to lossless FLAC internally)
+- **Audio codec:** Any (fMP4-legal codecs are stream-copied; eligible TrueHD Atmos
+  is spatially rendered on tvOS 26+; other incompatible audio uses the existing
+  FLAC/E-AC-3 bridge)
 - **Byte-range readable:** HTTP range requests or local file access
 - **NOT Dolby Vision Profile 7** (dual-layer BL+EL+RPU — unsupported everywhere)
 
@@ -362,12 +389,12 @@ Native handles content the server has already prepared:
 | Feature | Plozzigen | Native |
 |---------|-----------|--------|
 | Dolby Vision | ✅ (Profile 5/8) | ✅ (if server delivers DV) |
-| Dolby Atmos | ✅ (passthrough) | ✅ (if stream has E-AC3 JOC) |
+| Dolby Atmos | ✅ (E-AC-3 JOC stream-copy; TrueHD Atmos converted to APAC on tvOS 26+ VOD) | ✅ (if stream has E-AC3 JOC) |
 | HDR10 / HLG | ✅ | ✅ |
 | Full-timeline seek | ✅ | ✅ (if not live transcode) |
 | PGS subtitles | ❌ | ❌ |
-| DTS bitstream | ❌ (bridged to FLAC) | ❌ |
-| TrueHD bitstream | ❌ (bridged to FLAC) | ❌ |
+| DTS bitstream / DTS:X heights | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
+| TrueHD bitstream | ❌ (eligible Atmos uses APAC; otherwise FLAC/E-AC-3 bridge) | ❌ |
 
 ## AirPlay 2 / HomePod Audio Recovery
 

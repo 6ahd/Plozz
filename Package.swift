@@ -234,7 +234,8 @@ let package = Package(
         // LibDovi and LibTrueHD's Rust unwind personalities must stay separate
         // from the host's Objective-C/C++ stack. FFmpegBuild moves to 3.7.x,
         // LibDovi stays at 2.1.x and LibTrueHD 2.2.x supplies TrueHD object decoding.
-        // Object-audio rendering and progressive segment delivery remain off.
+        // Plozz opts tvOS 26+ on-demand playback into TrueHD Atmos rendering.
+        // Progressive segment delivery remains off.
         // Both apps embed the engine framework and the new dependency notices.
         //
         // SMB enters AetherEngine only through Plozz's protocol-neutral custom-source
