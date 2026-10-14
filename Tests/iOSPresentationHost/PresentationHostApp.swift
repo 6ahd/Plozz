@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import CoreModels
 import CoreUI
 import FeatureAuth
@@ -7,6 +8,7 @@ import FeatureHomeCore
 
 @main
 struct PresentationHostApp: App {
+    @UIApplicationDelegateAdaptor(PresentationOrientationDelegate.self) private var orientationDelegate
     private let interactionModel: PlozziOSAppModel?
 
     init() {
@@ -65,6 +67,14 @@ struct PresentationHostApp: App {
             )
         }
         interactionModel = model
+    }
+
+    private final class PresentationOrientationDelegate: NSObject, UIApplicationDelegate {
+        func application(
+            _ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?
+        ) -> UIInterfaceOrientationMask {
+            PlozziOSWindowOrientation.supportedOrientations(for: window)
+        }
     }
 
     var body: some Scene {

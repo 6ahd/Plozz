@@ -1077,6 +1077,7 @@ struct PlozziOSTabShell: View {
                 isActive: effectiveSelectedDestination == .liveTV && !isShowingMorePage,
                 profileID: appModel.profiles.activeProfileID,
                 preferencesNamespace: appModel.profiles.activeNamespace,
+                playbackOrientation: appModel.settings.playback.settings.orientation,
                 accountsProviders: appModel.accountsProviders,
                 authenticatedHTTPResolver: appModel.authenticatedHTTPResolver,
                 connectServer: onAddServer,

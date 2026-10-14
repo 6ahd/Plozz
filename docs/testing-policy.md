@@ -403,6 +403,12 @@ without an application scene, `drawHierarchy` returns an empty image.
 `PlayerOrientationTests` checks the UIKit player owner's close path without
 another update from the hidden SwiftUI presenter, including disappearance
 cleanup, closing during presentation, reopening, and stale close callbacks.
+Its in-place Live TV fixture checks real scene rotation for Landscape/Portrait,
+Auto and preference changes, restoration on collapse, per-window ownership,
+stale-owner teardown, and retained content lifecycle across expansion. The
+mobile Guide rendering check compares its actual header bounds with the
+standalone grid and checks the current-program surface pixels with normal and
+reduced transparency at phone/tablet widths and larger text.
 `PlayerRotationInteractionTests` verifies actual X taps and return to a hittable
 presenting screen across rotation preferences and nested navigation. Its
 synthetic Emby-quality fixture serves local HTTP video so quality changes are

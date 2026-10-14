@@ -40,6 +40,7 @@ struct PrototypeBrowser: View {
     var loadLibraryGuide: ((Set<String>, DateInterval) -> Void)?
     var openLibraryItem: ((LibraryChannelItem) -> Void)?
     var leadingExit: (() -> Void)?
+    var isEmbeddedInPlayer = false
     @State private var scrollID: LiveTVGuideRowID?
     @State private var pendingFocus: PrototypeBrowseFocus?
     @State private var restorationFallback: PrototypeBrowseFocus?
@@ -260,7 +261,12 @@ struct PrototypeBrowser: View {
                 timeline.offset = value
             }
         }
-        .padding([.leading, .top], PrototypeLayout.guideInset)
+        .padding(.leading, PrototypeLayout.guideInset)
+        #if os(iOS)
+        .padding(.top, isEmbeddedInPlayer ? 0 : PrototypeLayout.guideInset)
+        #else
+        .padding(.top, PrototypeLayout.guideInset)
+        #endif
         .padding(.trailing, PrototypeLayout.guideTrailingInset)
         .background { PrototypeGuideSurface() }
         .clipShape(PrototypeLayout.guideShape)
