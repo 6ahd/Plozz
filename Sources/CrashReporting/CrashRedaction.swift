@@ -53,6 +53,23 @@ enum CrashRedaction {
             }
             if !counts.isEmpty { context["playlist_import"] = counts }
         }
+        if event.tags?["report.kind"] == "silo-setup" {
+            guard let raw = event.context?["silo_setup"],
+                  let bytes = try? JSONSerialization.data(withJSONObject: raw),
+                  let diagnostic = try? JSONDecoder().decode(SiloSetupDiagnostic.self, from: bytes),
+                  diagnostic.isValid else { return nil }
+            context["silo_setup"] = SentryCrashReporter.siloSetupData(diagnostic)
+            event.message = SentryMessage(formatted: "Silo setup failed")
+            event.fingerprint = [
+                "silo_setup", diagnostic.stage.rawValue, diagnostic.reason.rawValue,
+                diagnostic.httpStatus.map(String.init) ?? "none", diagnostic.response.rawValue
+            ]
+            var tags = coarseSetupTags(event.tags ?? [:])
+            tags["report.kind"] = "silo-setup"
+            tags["setup.stage"] = diagnostic.stage.rawValue
+            tags["setup.failure"] = diagnostic.reason.rawValue
+            event.tags = tags
+        }
         if event.tags?["report.kind"] == "iptv-setup" {
             guard let raw = event.context?["iptv_setup"], let data = setupData(raw),
                   data["outcome"] as? String == "failed",

@@ -293,6 +293,25 @@ final class StreamingQualityTests: XCTestCase {
         ), .offline)
     }
 
+    func testOfflineTransitionDoesNotStartACellularConversionButRecoveryUsesTheNewRoute() {
+        for previous in [StreamingConnection.local, .remote, .cellular] {
+            XCTAssertEqual(StreamingConnection.resolve(
+                network: .offline, locality: .unknown, previousConnection: previous
+            ), previous)
+            XCTAssertEqual(StreamingConnection.resolve(
+                network: .cellular, locality: .local, previousConnection: previous
+            ), .cellular)
+            XCTAssertEqual(StreamingConnection.resolve(
+                network: .wifi, locality: .remote, previousConnection: previous
+            ), .remote)
+            XCTAssertEqual(StreamingConnection.resolve(
+                network: .unknown, locality: .local, previousConnection: previous
+            ), .cellular, "An opaque usable path must not inherit an unbounded Wi-Fi selection")
+        }
+        XCTAssertEqual(StreamingConnection.resolve(network: .offline, locality: .local), .cellular,
+                       "A new session does not inherit another session's network selection")
+    }
+
     @MainActor
     func testSavedLocalDefaultSurvivesModelRecreationAndProfileSwitching() throws {
         let name = "streaming-local-default-\(UUID().uuidString)"

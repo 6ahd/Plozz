@@ -98,6 +98,10 @@ public final class SentryCrashReporter: CrashReporter {
 
         isActive = true
         PerformanceDiagnostics.shared.start()
+        SiloSetupDiagnostics.shared.start { diagnostic in
+            guard SentrySDK.isEnabled, let event = Self.siloSetupEvent(diagnostic) else { return }
+            SentrySDK.capture(event: event)
+        }
         configureSetupDiagnostics(context)
     }
 
@@ -121,6 +125,7 @@ public final class SentryCrashReporter: CrashReporter {
     public func stop() {
         guard isActive else { return }
         PerformanceDiagnostics.shared.stop()
+        SiloSetupDiagnostics.shared.stop()
         for observer in diagnosticObservers { NotificationCenter.default.removeObserver(observer) }
         diagnosticObservers.removeAll()
         playlistDiagnosticGate.reset()
@@ -244,6 +249,22 @@ public final class SentryCrashReporter: CrashReporter {
         if let value = diagnostic.code { data["code"] = value }
         if let value = diagnostic.httpStatus { data["httpStatus"] = value }
         return data
+    }
+
+    nonisolated static func siloSetupData(_ diagnostic: SiloSetupDiagnostic) -> [String: Any] {
+        var data: [String: Any] = [
+            "stage": diagnostic.stage.rawValue, "reason": diagnostic.reason.rawValue,
+            "response": diagnostic.response.rawValue
+        ]
+        data["httpStatus"] = diagnostic.httpStatus
+        return data
+    }
+
+    nonisolated static func siloSetupEvent(_ diagnostic: SiloSetupDiagnostic) -> Event? {
+        let event = Event(level: .warning)
+        event.tags = ["report.kind": "silo-setup"]
+        event.context = ["silo_setup": siloSetupData(diagnostic)]
+        return CrashRedaction.scrub(event)
     }
 
     nonisolated static func playbackFingerprint(_ diagnostic: PlaybackFailureDiagnostic) -> [String] {

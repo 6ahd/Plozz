@@ -1108,7 +1108,9 @@ public struct PlexClient: Sendable {
     // MARK: Playback
 
     /// `GET /:/timeline` — report progress so Plex keeps resume points in sync.
-    func reportTimeline(ratingKey: String, state: String, timeMs: Int, durationMs: Int?) async throws {
+    func reportTimeline(
+        ratingKey: String, playSessionID: String?, state: String, timeMs: Int, durationMs: Int?
+    ) async throws {
         var query = [
             URLQueryItem(name: "ratingKey", value: ratingKey),
             URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"),
@@ -1119,7 +1121,11 @@ public struct PlexClient: Sendable {
         if let durationMs {
             query.append(URLQueryItem(name: "duration", value: String(durationMs)))
         }
-        let endpoint = Endpoint(path: "/:/timeline", queryItems: query, headers: headers)
+        var requestHeaders = headers
+        if let playSessionID, !playSessionID.isEmpty {
+            requestHeaders["X-Plex-Session-Identifier"] = playSessionID
+        }
+        let endpoint = Endpoint(path: "/:/timeline", queryItems: query, headers: requestHeaders)
         _ = try await send(endpoint)
     }
 
@@ -1724,7 +1730,12 @@ public struct PlexClient: Sendable {
                let direct = streamURL(forPartKey: key) { return (direct, false) }
             return transcodeURL(
                 ratingKey: ratingKey, sessionID: sessionID, mediaIndex: mediaIndex,
-                partIndex: partIndex, streaming: streaming
+                partIndex: partIndex, streaming: streaming,
+                allowsStreamCopy: fits && !forceTranscode && !streaming.forceTranscoding
+                    && canDirectStreamVideo(media: media, part: part),
+                allowsAudioStreamCopy: Self.canDirectStreamAudio(
+                    codec: streaming.audioTrack?.codec ?? media.audioCodec ?? ""
+                )
             ).map { ($0, true) }
         }
         // Forcing a transcode (player fallback after a failed direct play): skip
@@ -1769,7 +1780,9 @@ public struct PlexClient: Sendable {
         sessionID: String,
         mediaIndex: Int = 0,
         partIndex: Int = 0,
-        streaming: StreamingPlaybackOptions? = nil
+        streaming: StreamingPlaybackOptions? = nil,
+        allowsStreamCopy: Bool = false,
+        allowsAudioStreamCopy: Bool = false
     ) -> URL? {
         guard streaming?.quality.validationError == nil else { return nil }
         var query: [URLQueryItem] = [
@@ -1797,14 +1810,21 @@ public struct PlexClient: Sendable {
         // The profile has its own query grammar inside the outer URL query.
         let codecList = codecs.joined(separator: "%2C")
         var profile = "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mp4&videoCodec=\(codecList)&audioCodec=aac&subtitleCodec=webvtt&replace=true)"
+        profile += "+add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt&replace=true)"
         query.append(.init(name: "X-Plex-Client-Profile-Name", value: "Generic"))
         if let streaming {
             func set(_ name: String, _ value: String) {
                 query.removeAll { $0.name.caseInsensitiveCompare(name) == .orderedSame }
                 query.append(.init(name: name, value: value))
             }
-            set("directStream", "0")
-            set("directStreamAudio", "0")
+            let copiesVideo = allowsStreamCopy
+                && (streaming.subtitlesOff || streaming.subtitleTrack?.isBitmapSubtitle != true)
+            // A bounded video encode reserves only the configured audio budget.
+            // Burning subtitles must not add an uncapped copied audio stream.
+            let copiesAudio = allowsStreamCopy && allowsAudioStreamCopy
+                && (streaming.quality == .original || copiesVideo)
+            set("directStream", copiesVideo ? "1" : "0")
+            set("directStreamAudio", copiesAudio ? "1" : "0")
             set("hasMDE", "1")
             set("context", "streaming")
             set("transcodeSessionId", sessionID)
@@ -1814,7 +1834,10 @@ public struct PlexClient: Sendable {
                 set("maxVideoBitrate", String(bitrate / 1_000))
                 set("videoResolution", "\(width)x\(height)")
                 set("audioBitrate", String(streaming.quality.audioBitrate / 1_000))
-                set("audioChannels", "2")
+                if !copiesAudio {
+                    set("audioChannelCount", "2")
+                    profile += "+add-limitation(scope=videoAudioCodec&scopeName=*&type=upperBound&name=audio.bitrate&value=\(streaming.quality.audioBitrate / 1_000)&replace=true)"
+                }
                 profile += "+add-limitation(scope=videoCodec&scopeName=*&type=upperBound&name=video.width&value=\(width)&replace=true)"
                 profile += "+add-limitation(scope=videoCodec&scopeName=*&type=upperBound&name=video.height&value=\(height)&replace=true)"
                 profile += "+add-limitation(scope=videoCodec&scopeName=*&type=upperBound&name=video.bitrate&value=\(bitrate / 1_000)&replace=true)"
@@ -1832,7 +1855,9 @@ public struct PlexClient: Sendable {
         return absoluteURL(serverPath: "/video/:/transcode/universal/start.m3u8", extraQuery: query)
     }
 
-    func validateStreamingTranscode(url: URL, options: StreamingPlaybackOptions) async throws -> DirectPlayVideoCodec {
+    func validateStreamingTranscode(
+        url: URL, options: StreamingPlaybackOptions
+    ) async throws -> (codec: DirectPlayVideoCodec, delivery: PlaybackDiagnostics.PlaybackMode) {
         try options.quality.validate()
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             throw StreamingQualityError.malformedResponse
@@ -1858,17 +1883,38 @@ public struct PlexClient: Sendable {
             PlozzLog.playback.error("Unable to decode the Plex streaming decision.")
             throw StreamingQualityError.malformedResponse
         }
-        return try decision.validate(
-            options: options, supportsHEVC: capabilities.allowedDirectPlayVideoCodecs.contains(.hevc)
+        let codec = try decision.validate(
+            options: options, supportsHEVC: capabilities.allowedDirectPlayVideoCodecs.contains(.hevc),
+            allowsStreamCopy: components.queryItems?.first { $0.name == "directStream" }?.value == "1",
+            allowsAudioStreamCopy: components.queryItems?.first { $0.name == "directStreamAudio" }?.value == "1"
         )
+        return (codec, decision.deliveryMode)
+    }
+
+    func pingStreamingTranscode(sessionID: String) async throws {
+        try Task.checkCancellation()
+        var pingHeaders = headers
+        pingHeaders["X-Plex-Session-Identifier"] = sessionID
+        pingHeaders["Cache-Control"] = "no-store"
+        _ = try await send(Endpoint(
+            path: "/video/:/transcode/universal/ping",
+            queryItems: [.init(name: "session", value: sessionID)],
+            headers: pingHeaders,
+            redirectPolicy: .sameOrigin
+        ))
+        try Task.checkCancellation()
     }
 
     func stopStreamingTranscode(sessionID: String) async throws {
-        _ = try await send(Endpoint(
-            path: "/video/:/transcode/universal/stop",
-            queryItems: [.init(name: "session", value: sessionID)],
-            headers: headers
-        ))
+        // The caller commonly owns the canceled negotiation. Finish its bounded
+        // cleanup independently, but await it before allowing a replacement.
+        try await Task.detached { [self] in
+            _ = try await send(Endpoint(
+                path: "/video/:/transcode/universal/stop",
+                queryItems: [.init(name: "session", value: sessionID)],
+                headers: headers
+            ))
+        }.value
     }
 
     /// Builds an absolute, token-bearing image URL for a server-relative art
@@ -1937,6 +1983,20 @@ public struct PlexClient: Sendable {
     /// direct-playable. FLAC is lossless but AVFoundation has decoded it natively
     /// since tvOS 11, so it also belongs here.
     private static let alwaysDecodableAudioCodecs: Set<String> = ["aac", "mp3", "alac", "flac"]
+
+    static func canDirectStreamAudio(codec: String) -> Bool {
+        let codec = codec.lowercased()
+        return alwaysDecodableAudioCodecs.contains(codec) || ["ac3", "eac3", "ec3"].contains(codec)
+    }
+
+    private func canDirectStreamVideo(media: PlexMedia, part: PlexPart) -> Bool {
+        let stream = part.Stream?.first { $0.streamType == 1 }
+        guard let codec = Self.directPlayVideoCodec(forPlexCodec: (media.videoCodec ?? stream?.codec ?? "").lowercased()),
+              codec == .h264 || codec == .hevc,
+              capabilities.allowedDirectPlayVideoCodecs.contains(codec),
+              !Self.isInterlaced(stream) else { return false }
+        return canDirectPlayVideoRange(part: part)
+    }
 
     /// True only when we can prove the original file plays natively in AVPlayer
     /// on **this** device + display/audio route. Unknown/missing container or

@@ -17,7 +17,10 @@ enum PlozziOSStreamingNetwork {
                     usesEthernet: path.usesInterfaceType(.wiredEthernet)
                 )
                 HandoffDiagnostics.emit(
-                    "streaming PATH network=\(network) expensive=\(path.isExpensive) constrained=\(path.isConstrained)"
+                    "streaming PATH network=\(network) status=\(path.status) "
+                        + "wifi=\(path.usesInterfaceType(.wifi)) cellular=\(path.usesInterfaceType(.cellular)) "
+                        + "wired=\(path.usesInterfaceType(.wiredEthernet)) other=\(path.usesInterfaceType(.other)) "
+                        + "expensive=\(path.isExpensive) constrained=\(path.isConstrained)"
                 )
                 continuation.yield(network)
             }
