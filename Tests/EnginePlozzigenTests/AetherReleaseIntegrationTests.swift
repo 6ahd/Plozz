@@ -58,6 +58,18 @@ final class AetherReleaseIntegrationTests: XCTestCase {
         }
     }
 
+    func testDisablingTrueHDAtmosKeepsTheExistingChannelBridge() {
+        for channels in [0, 2, 6, 8] {
+            let options = PlozzigenVideoEngine.onDemandLoadOptions(
+                audioChannels: channels, trueHDAtmosEnabled: false
+            )
+            XCTAssertEqual(options.objectAudioRendering, .off)
+            XCTAssertEqual(options.audioBridgeMode, channels > 6 ? .lossless : .surroundCompat)
+            XCTAssertTrue(options.matchContentEnabled)
+            XCTAssertFalse(options.isLive)
+        }
+    }
+
     func testTrueHDLegalCreditIncludesSourceAndBothLicenses() throws {
         let credit = try XCTUnwrap(PlozzAttributions.entries.first { $0.title == "LibTrueHD" })
         XCTAssertTrue(credit.detail.contains(

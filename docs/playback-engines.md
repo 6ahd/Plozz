@@ -94,8 +94,12 @@ LibDovi remains **2.1.x** and LibTrueHD **2.2.x** is newly linked into the engin
 On **tvOS 26 and later**, ordinary on-demand playback automatically requests
 TrueHD Atmos object rendering with `LoadOptions.objectAudioRendering = .apac(.l714)`.
 The 7.1.4 layout is an **intermediate spatial bed**, not a detected physical speaker
-configuration. tvOS and the receiver handle final output; there is no Plozz setup
-prompt or opt-in. HDMI channel counts and the current rendering mode are not used
+configuration. tvOS and the receiver handle final output; there is no speaker
+setup prompt or mandatory opt-in. **Settings > Playback > Dolby Atmos from TrueHD**
+provides an on-by-default switch on supported Apple TVs. It is saved per profile,
+including profile settings transfer, and applies when the next playback session
+starts. Turning it off retains the ordinary channel bridge described below.
+Older saved profiles default to on. HDMI channel counts and the current rendering mode are not used
 as Atmos capability gates: neither reliably describes the room's speakers.
 
 Aether only converts **48 kHz TrueHD Atmos** on its native/HLS VOD path. It decodes

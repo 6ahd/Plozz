@@ -1642,6 +1642,8 @@ public final class PlayerViewModel {
         engineKind: PlaybackEngineKind,
         startPosition: TimeInterval
     ) async {
+        var request = request
+        request.trueHDAtmosEnabled = playbackSettings.trueHDAtmosEnabled
         dynamicRangeLoadGeneration &+= 1
         let rangeLoadGeneration = dynamicRangeLoadGeneration
         inheritedPreservedDynamicRange =

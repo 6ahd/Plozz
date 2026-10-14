@@ -422,7 +422,11 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
         let channels = request.localRemuxSource?.sourceMetadata.audio?.channels
             ?? request.sourceMetadata?.audio?.channels ?? 0
-        var options = Self.onDemandLoadOptions(audioChannels: channels, outputPolicy: outputPolicy)
+        var options = Self.onDemandLoadOptions(
+            audioChannels: channels,
+            trueHDAtmosEnabled: request.trueHDAtmosEnabled,
+            outputPolicy: outputPolicy
+        )
         // Build the native WebVTT renditions so subtitles can travel into a
         // Picture in Picture window, where our own overlay cannot follow: it is a
         // view in this app's hierarchy and the window only carries what is in the
@@ -695,7 +699,9 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     nonisolated static func onDemandLoadOptions(
-        audioChannels: Int, outputPolicy: LiveChannelOutputPolicy = .init()
+        audioChannels: Int,
+        trueHDAtmosEnabled: Bool = PlaybackSettings.default.trueHDAtmosEnabled,
+        outputPolicy: LiveChannelOutputPolicy = .init()
     ) -> LoadOptions {
         // Keep the full 7.1 fallback: the compatibility EAC3 bridge caps at 5.1.
         var options = LoadOptions(
@@ -703,7 +709,8 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
             audioBridgeMode: audioChannels > 6 ? .lossless : .surroundCompat
         )
         #if os(tvOS)
-        if #available(tvOS 26.0, *), outputPolicy.isAudible, !outputPolicy.sharesAudioSession {
+        if #available(tvOS 26.0, *), trueHDAtmosEnabled,
+           outputPolicy.isAudible, !outputPolicy.sharesAudioSession {
             // This is an intermediate spatial bed, not a detected speaker inventory.
             // Aether gates TrueHD Atmos/48 kHz/native VOD and retains the bridge fallback.
             // Shared live players and muted previews must not add spatial encoding work.

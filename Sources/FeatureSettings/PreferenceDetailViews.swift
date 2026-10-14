@@ -606,7 +606,7 @@ struct PlaybackDetailView: View {
     }
 
     private var audioRows: [SettingsSplitRow] {
-        [
+        var rows = [
             SettingsSplitRow(
                 id: "audio-defaults",
                 title: "Audio defaults",
@@ -643,6 +643,18 @@ struct PlaybackDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         ]
+        #if os(tvOS)
+        if #available(tvOS 26.0, *) {
+            rows.append(SettingsSplitRow(
+                id: "truehd-atmos",
+                title: "Dolby Atmos from TrueHD",
+                description: "Convert TrueHD Atmos tracks to spatial audio for height effects on compatible equipment. Conversion is lossy. Turn off to use standard channel audio. Applies the next time playback starts."
+            ) {
+                Toggle("Dolby Atmos from TrueHD", isOn: $playback.settings.trueHDAtmosEnabled)
+            })
+        }
+        #endif
+        return rows
     }
 
     private var skipIntroRows: [SettingsSplitRow] {
