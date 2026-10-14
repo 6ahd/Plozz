@@ -4,7 +4,7 @@ import CoreUI
 import SwiftUI
 
 public struct HeroCollectionPickerView: View {
-    @Binding private var selection: HeroCollectionSelection?
+    @Binding private var selections: [HeroCollectionSelection]
     private let libraries: [AggregatedLibrary]
     private let accounts: [ResolvedAccount]
     @State private var sourceID: HeroCollectionPickerSource.ID?
@@ -13,28 +13,37 @@ public struct HeroCollectionPickerView: View {
     @Environment(SettingsDetailNavigation.self) private var detailNavigation: SettingsDetailNavigation?
 
     public init(
-        selection: Binding<HeroCollectionSelection?>,
+        selections: Binding<[HeroCollectionSelection]>,
         libraries: [AggregatedLibrary],
         accounts: [ResolvedAccount]
     ) {
-        _selection = selection
+        _selections = selections
         self.libraries = libraries
         self.accounts = accounts
     }
 
     public var body: some View {
         let sources = HeroCollectionPickerSource.available(libraries: libraries, accounts: accounts)
-        let preferred = sourceID ?? selection.map {
+        let preferred = sourceID ?? selections.first.map {
             HeroCollectionPickerSource.ID(accountID: $0.accountID, libraryID: $0.libraryID)
         }
         let source = sources.first(where: { $0.id == preferred }) ?? sources.first
         ViewCustomizationList(
-            title: "Choose a collection", initialRowID: source?.id.focusID ?? "hero-collection-done"
+            title: "Choose collections", initialRowID: source?.id.focusID ?? "hero-collection-done"
         ) {
-            if let selection {
-                HeroCollectionSection(title: "Selected collection") {
-                    Text(verbatim: selection.title)
-                    Button("Clear selection") { self.selection = nil }
+            if !selections.isEmpty {
+                HeroCollectionSection(title: "Selected collections") {
+                    ForEach(selections) { selection in
+                        let selectedSource = sources.first {
+                            $0.id.accountID == selection.accountID && $0.id.libraryID == selection.libraryID
+                                && accounts.contains(where: selection.matches)
+                        }
+                        HeroCollectionChoice(
+                            selections: $selections, choice: selection,
+                            source: selectedSource, isSummary: true
+                        )
+                    }
+                    Button("Clear selection") { selections = [] }
                         .modifier(ViewCustomizationRowFocus(id: "hero-collection-clear"))
                 }
             }
@@ -45,7 +54,7 @@ public struct HeroCollectionPickerView: View {
                 )
                 if let account = accounts.first(where: { $0.account.id == source.id.accountID }) {
                     HeroCollectionListView(
-                        selection: $selection, source: source.id, provider: account.provider,
+                        selections: $selections, source: source, provider: account.provider,
                         serverUserID: account.plexHomeUserID ?? account.provider.session.userID
                     )
                     .id([
@@ -65,6 +74,7 @@ public struct HeroCollectionPickerView: View {
                 .modifier(ViewCustomizationRowFocus(id: "hero-collection-done"))
             }
         }
+        .onAppear { if sourceID == nil { sourceID = source?.id } }
     }
 }
 
@@ -110,30 +120,33 @@ private struct HeroCollectionSources: View {
 }
 
 private struct HeroCollectionListView: View {
-    @Binding var selection: HeroCollectionSelection?
-    let source: HeroCollectionPickerSource.ID
+    @Binding var selections: [HeroCollectionSelection]
+    let source: HeroCollectionPickerSource
     let serverUserID: String
     @State private var model: HeroCollectionListModel
     @State private var request = 0
 
     init(
-        selection: Binding<HeroCollectionSelection?>,
-        source: HeroCollectionPickerSource.ID,
+        selections: Binding<[HeroCollectionSelection]>,
+        source: HeroCollectionPickerSource,
         provider: any MediaProvider,
         serverUserID: String
     ) {
-        _selection = selection
+        _selections = selections
         self.source = source
         self.serverUserID = serverUserID
-        _model = State(initialValue: HeroCollectionListModel(provider: provider, libraryID: source.libraryID))
+        _model = State(initialValue: HeroCollectionListModel(provider: provider, libraryID: source.id.libraryID))
     }
 
     var body: some View {
         HeroCollectionSection(title: "Collections") {
             ForEach(model.items) { collection in
                 HeroCollectionChoice(
-                    selection: $selection, accountID: source.accountID, libraryID: source.libraryID,
-                    serverUserID: serverUserID, collectionID: collection.id, title: collection.title
+                    selections: $selections,
+                    choice: HeroCollectionSelection(
+                        accountID: source.id.accountID, libraryID: source.id.libraryID,
+                        collectionID: collection.id, title: collection.title, serverUserID: serverUserID
+                    )
                 )
             }
             if model.isLoading {
@@ -154,24 +167,32 @@ private struct HeroCollectionListView: View {
 }
 
 private struct HeroCollectionChoice: View {
-    @Binding var selection: HeroCollectionSelection?
-    let accountID: String
-    let libraryID: String?
-    let serverUserID: String
-    let collectionID: String
-    let title: String // l10n:content — collection name from the server
+    @Binding var selections: [HeroCollectionSelection]
+    let choice: HeroCollectionSelection
+    var source: HeroCollectionPickerSource? = nil
+    var isSummary = false
 
     var body: some View {
-        let choice = HeroCollectionSelection(
-            accountID: accountID, libraryID: libraryID,
-            collectionID: collectionID, title: title, serverUserID: serverUserID
-        )
-        let selected = selection?.accountID == accountID && selection?.libraryID == libraryID
-            && selection?.serverUserID == serverUserID && selection?.collectionID == collectionID
-        Button { selection = choice } label: {
+        let selected = HeroCollectionPickerSelection.contains(choice, in: selections)
+        let focusID = choice.pickerFocusID(isSummary: isSummary)
+        Button { HeroCollectionPickerSelection.toggle(choice, in: &selections) } label: {
             HStack {
-                Text(verbatim: title)
-                    .multilineTextAlignment(.leading)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: choice.title).multilineTextAlignment(.leading)
+                    if isSummary {
+                        if let source {
+                            if let libraryTitle = source.libraryTitle {
+                                Text(verbatim: "\(libraryTitle) / \(source.serverName) / \(source.accountName)")
+                                    .font(.caption)
+                            } else {
+                                Text("Personal collections").font(.caption)
+                                Text(verbatim: "\(source.serverName) / \(source.accountName)").font(.caption)
+                            }
+                        } else {
+                            Text("Unavailable source").font(.caption)
+                        }
+                    }
+                }
                 Spacer()
                 if selected { Image(systemName: "checkmark") }
             }
@@ -186,8 +207,8 @@ private struct HeroCollectionChoice: View {
         #else
         .buttonStyle(.plain)
         #endif
-        .accessibilityIdentifier("hero-collection-choice-\(collectionID)")
-        .modifier(ViewCustomizationRowFocus(id: "hero-collection-choice-\(collectionID)"))
+        .accessibilityIdentifier(focusID)
+        .modifier(ViewCustomizationRowFocus(id: focusID))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

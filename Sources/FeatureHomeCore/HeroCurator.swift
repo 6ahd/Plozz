@@ -176,7 +176,8 @@ public struct HeroCurator: Sendable {
                 settings: settings,
                 mutations: watchMutations
             )
-            return freshness.ranked(filtered, source: settings.sources[index], settings: settings)
+            let ranked = freshness.ranked(filtered, source: settings.sources[index], settings: settings)
+            return settings.sources[index] == .collection ? Array(ranked.prefix(discoveryLimit)) : ranked
         }
 
         let eligible = await HeroArtworkEligibility.resolve(
@@ -221,13 +222,21 @@ public struct HeroCurator: Sendable {
     private static func loadCollection(
         settings: HeroSettings, limit: Int, provider: HeroCollectionContentProviding
     ) async -> LoadState<[MediaItem]> {
-        guard settings.isEnabled(.collection), let collection = settings.collection else { return .empty }
+        guard settings.isEnabled(.collection), !settings.collections.isEmpty else { return .empty }
         do {
-            let page = try await provider(collection, limit)
-            try Task.checkCancellation()
-            return page.totalCount == 0 ? .empty : .loaded(page.items.filter {
-                $0.kind == .movie || $0.kind == .series
-            })
+            var buckets: [[MediaItem]] = []
+            var hasMembers = false
+            for collection in HeroCollectionSelection.normalized(settings.collections) {
+                try Task.checkCancellation()
+                let page = try await provider(collection, min(limit, HeroFreshnessSnapshot.rawDiscoveryLimit))
+                try Task.checkCancellation()
+                hasMembers = hasMembers || page.totalCount > 0
+                buckets.append(page.items.filter { $0.kind == .movie || $0.kind == .series })
+            }
+            // Rank all sampled collections before capping the combined pool, so
+            // later selections are not permanently excluded by earlier ones.
+            let items = InterleaveHeroStrategy().compose(buckets, limit: buckets.reduce(0) { $0 + $1.count })
+            return hasMembers ? .loaded(items) : .empty
         } catch is CancellationError {
             return .idle
         } catch {

@@ -17,7 +17,7 @@ public enum HeroSourceKind: String, CaseIterable, Identifiable, Codable, Sendabl
     case randomFromLibrary
     /// Titles you've saved to your watchlist.
     case watchlist
-    /// Movies and shows from a collection selected for this profile.
+    /// Movies and shows from collections selected for this profile.
     case collection
 
     public var id: String { rawValue }
@@ -56,7 +56,7 @@ public enum HeroSourceKind: String, CaseIterable, Identifiable, Codable, Sendabl
                 comment: "Home hero content-source option in Settings."
             )
         case .collection:
-            return LocalizedStringResource("Collection", comment: "Home hero content-source option in Settings.")
+            return LocalizedStringResource("Collections", comment: "Home hero content-source option in Settings.")
         }
     }
 
@@ -90,8 +90,8 @@ public enum HeroSourceKind: String, CaseIterable, Identifiable, Codable, Sendabl
             )
         case .collection:
             return LocalizedStringResource(
-                "Movies and shows from a collection you choose.",
-                comment: "Explanation of the Collection hero source."
+                "Movies and shows from your selected collections, across libraries.",
+                comment: "Explanation of the Collections hero source."
             )
         }
     }

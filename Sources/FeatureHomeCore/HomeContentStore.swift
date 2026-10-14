@@ -125,7 +125,7 @@ public struct HeroConfigurationKey: Codable, Hashable, Sendable {
     /// for different titles — unlike the *resolved* library list, which changes
     /// whenever a server finishes loading and must not retire anything.
     public var randomLibraryKeys: Set<String>
-    public var collection: HeroCollectionSelection?
+    public var collections: [HeroCollectionSelection]
 
     public init(settings: HeroSettings?) {
         guard let settings, settings.isActive else {
@@ -136,7 +136,7 @@ public struct HeroConfigurationKey: Codable, Hashable, Sendable {
             discoverySources = []
             discoveryContentVersion = 0
             randomLibraryKeys = []
-            collection = nil
+            collections = []
             return
         }
         sources = settings.sources
@@ -149,14 +149,17 @@ public struct HeroConfigurationKey: Codable, Hashable, Sendable {
         randomLibraryKeys = settings.isEnabled(.randomFromLibrary)
             ? settings.randomLibraryKeys
             : []
-        collection = settings.isEnabled(.collection) ? settings.collection : nil
+        collections = settings.isEnabled(.collection)
+            ? HeroCollectionSelection.normalized(settings.collections) : []
     }
 
     private enum CodingKeys: String, CodingKey {
         case sources, maxItems, hideWatched, randomLibraryKeys, watchlistDiscoveryEnabled, discoverySources
         case discoveryContentVersion
-        case collection
+        case collections
     }
+
+    private enum LegacyCodingKeys: String, CodingKey { case collection }
 
     /// Lenient, like ``HeroSettings``: a persisted key written before a field
     /// existed reads as that field's default rather than failing the whole decode
@@ -182,8 +185,19 @@ public struct HeroConfigurationKey: Codable, Hashable, Sendable {
                 Set<String>.self,
                 forKey: .randomLibraryKeys
             )) ?? nil) ?? []
-        collection = sources.contains(.collection)
-            ? try container.decodeIfPresent(HeroCollectionSelection.self, forKey: .collection) : nil
+        if sources.contains(.collection) {
+            if container.contains(.collections) {
+                collections = HeroCollectionSelection.normalized(
+                    try container.decodeIfPresent([HeroCollectionSelection].self, forKey: .collections) ?? []
+                )
+            } else {
+                let legacy = try decoder.container(keyedBy: LegacyCodingKeys.self)
+                collections = try legacy.decodeIfPresent(HeroCollectionSelection.self, forKey: .collection)
+                    .map { [$0] } ?? []
+            }
+        } else {
+            collections = []
+        }
     }
 }
 

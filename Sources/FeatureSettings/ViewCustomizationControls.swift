@@ -161,7 +161,7 @@ struct ViewCustomizationList<Content: View>: View {
                 VerticalEdgeFadeMask(
                     topFade: topFadeHeight, bottomFade: help == nil ? 0 : 40, horizontalOverhang: 20
                 )
-                .ignoresSafeArea(.container, edges: .top)
+                .ignoresSafeArea(.container, edges: help == nil ? .vertical : .top)
             }
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 min(40, max(0, geometry.contentOffset.y + geometry.contentInsets.top))

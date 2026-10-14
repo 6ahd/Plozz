@@ -81,10 +81,10 @@ final class HeroLoadKeyTests: XCTestCase {
     func testCollectionSelectionAndHistoryRevisionRestartCuration() {
         var settings = featured
         settings.sources = [.collection]
-        settings.collection = .init(accountID: "a", libraryID: "l", collectionID: "c", title: "Collection")
+        settings.collections = [.init(accountID: "a", libraryID: "l", collectionID: "c", title: "Collection")]
         let initial = curation(settings, revision: 0)
         XCTAssertNotEqual(initial, curation(settings, revision: 1))
-        settings.collection = .init(accountID: "a", libraryID: "l", collectionID: "other", title: "Collection")
+        settings.collections.append(.init(accountID: "a", libraryID: "l", collectionID: "other", title: "Collection"))
         XCTAssertNotEqual(initial, curation(settings, revision: 0))
         settings.hideWatched = false
         XCTAssertEqual(curation(settings, revision: 0), curation(settings, revision: 1))

@@ -1677,10 +1677,16 @@ public final class HomeViewModel {
                 isEligible: { source, item in
                     guard source != .featured else { return true }
                     if source == .collection {
-                        guard let selection = settings.collection,
-                              accounts.contains(where: selection.matches),
-                              selection.libraryKey.map(visibility.isEnabled) != false,
-                              item.sourceAccountID == selection.accountID else { return false }
+                        // The cached bucket has no per-collection membership. If
+                        // any selection loses access, require a fresh sample.
+                        guard !settings.collections.isEmpty,
+                              settings.collections.allSatisfy({ selection in
+                                  accounts.contains(where: selection.matches)
+                                      && selection.libraryKey.map(visibility.isEnabled) != false
+                              }),
+                              settings.collections.contains(where: {
+                                  item.sourceAccountID == $0.accountID
+                              }) else { return false }
                     }
                     return item.isVisibleOnHome { key in
                         guard visibility.isEnabled(key) else { return false }

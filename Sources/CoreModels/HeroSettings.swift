@@ -50,7 +50,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
     /// means "all currently-visible libraries"** (the sensible default), so a
     /// fresh profile needs no configuration.
     public var randomLibraryKeys: Set<String>
-    public var collection: HeroCollectionSelection?
+    public var collections: [HeroCollectionSelection]
 
     /// Whether the carousel auto-advances on a timer.
     public var autoAdvance: Bool
@@ -106,7 +106,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         style: HeroStyle = .carousel,
         showsCardCaptions: Bool = false,
         showsDiscoverRow: Bool = false,
-        collection: HeroCollectionSelection? = nil
+        collections: [HeroCollectionSelection] = []
     ) {
         self.isEnabled = isEnabled
         // De-duplicate while preserving order so the picker can't persist a
@@ -122,7 +122,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         self.showsRatings = showsRatings
         self.ratingPreferences = ratingPreferences
         self.randomLibraryKeys = randomLibraryKeys
-        self.collection = collection
+        self.collections = HeroCollectionSelection.normalized(collections)
         self.autoAdvance = autoAdvance
         self.autoAdvanceSeconds = autoAdvanceSeconds.clamped(to: HeroSettings.autoAdvanceRange)
         self.style = style
@@ -138,7 +138,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         case randomLibraryKeys, autoAdvance, autoAdvanceSeconds
         case style, showsCardCaptions, showsDiscoverRow
         case offeredSourcesVersion
-        case collection
+        case collections, collection
     }
 
     public init(from decoder: Decoder) throws {
@@ -177,7 +177,9 @@ public struct HeroSettings: Codable, Equatable, Sendable {
             style: value(HeroStyle.self, .style, d.style),
             showsCardCaptions: value(Bool.self, .showsCardCaptions, d.showsCardCaptions),
             showsDiscoverRow: value(Bool.self, .showsDiscoverRow, d.showsDiscoverRow),
-            collection: value(HeroCollectionSelection?.self, .collection, nil)
+            collections: c.contains(.collections)
+                ? value([HeroCollectionSelection].self, .collections, [])
+                : value(HeroCollectionSelection?.self, .collection, nil).map { [$0] } ?? []
         )
     }
 
@@ -232,7 +234,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         try c.encode(showsRatings, forKey: .showsRatings)
         try c.encode(ratingPreferences, forKey: .ratingPreferences)
         try c.encode(randomLibraryKeys, forKey: .randomLibraryKeys)
-        try c.encodeIfPresent(collection, forKey: .collection)
+        try c.encode(HeroCollectionSelection.normalized(collections), forKey: .collections)
         try c.encode(autoAdvance, forKey: .autoAdvance)
         try c.encode(autoAdvanceSeconds, forKey: .autoAdvanceSeconds)
         try c.encode(style, forKey: .style)

@@ -228,14 +228,16 @@ struct CustomizeHomeDetailView: View {
             }
 
             if hero.settings.isEnabled(.collection) {
-                SettingsDetailGroup(title: "Collection", description: "Rotate through movies and shows from one collection.") {
+                SettingsDetailGroup(title: "Collections", description: "Mix movies and shows from your selected collections, without duplicate titles.") {
                     SettingsDetailLink {
                         collectionPicker
                     } label: {
-                        if let selection = hero.settings.collection {
+                        if hero.settings.collections.count == 1, let selection = hero.settings.collections.first {
                             Text(verbatim: selection.title)
+                        } else if !hero.settings.collections.isEmpty {
+                            Text("\(hero.settings.collections.count) collections selected")
                         } else {
-                            Text("Choose a collection")
+                            Text("Choose collections")
                         }
                     }
                 }
@@ -306,7 +308,7 @@ struct CustomizeHomeDetailView: View {
     private var collectionPicker: some View {
         @Bindable var hero = hero
         return HeroCollectionPickerView(
-            selection: $hero.settings.collection,
+            selections: $hero.settings.collections,
             libraries: homeVisibleLibraries, accounts: accounts
         )
         .id(ObjectIdentifier(hero))

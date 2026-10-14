@@ -44,7 +44,7 @@ public enum HeroEmptyCuration {
             case .randomFromLibrary:
                 if !randomLibraries.isEmpty { return false }
             case .collection:
-                if settings.collection != nil, collectionState != .empty { return false }
+                if !settings.collections.isEmpty, collectionState != .empty { return false }
             case .featured:
                 // An enabled external feed may be empty or temporarily failing.
                 // Only an explicitly empty feed selection grants authority.

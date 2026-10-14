@@ -3,6 +3,34 @@ import CoreNetworking
 import Foundation
 import Observation
 
+enum HeroCollectionPickerSelection {
+    static func contains(_ choice: HeroCollectionSelection, in selections: [HeroCollectionSelection]) -> Bool {
+        selections.contains { matches($0, choice) }
+    }
+
+    static func toggle(_ choice: HeroCollectionSelection, in selections: inout [HeroCollectionSelection]) {
+        if contains(choice, in: selections) {
+            selections.removeAll { matches($0, choice) }
+        } else {
+            selections.append(choice)
+        }
+    }
+
+    private static func matches(_ stored: HeroCollectionSelection, _ choice: HeroCollectionSelection) -> Bool {
+        stored.accountID == choice.accountID && stored.libraryID == choice.libraryID
+            && stored.collectionID == choice.collectionID
+            && (stored.serverUserID == nil || stored.serverUserID == choice.serverUserID)
+    }
+}
+
+extension HeroCollectionSelection {
+    func pickerFocusID(isSummary: Bool) -> String {
+        let parts = [accountID, libraryID, serverUserID, collectionID]
+            .map { $0.map { Data($0.utf8).base64EncodedString() } ?? "-" }
+        return "hero-collection-\(isSummary ? "selected" : "choice"):\(parts.joined(separator: ":"))"
+    }
+}
+
 struct HeroCollectionPickerSource: Identifiable, Hashable {
     struct ID: Hashable {
         let accountID: String

@@ -4,6 +4,39 @@ import XCTest
 @testable import FeatureSettings
 
 final class HeroCollectionPickerTests: XCTestCase {
+    func testLegacyViewerUnqualifiedChoiceRemainsCheckedAndCanBeRemoved() {
+        var selected = [HeroCollectionSelection(accountID: "a", libraryID: "movies", collectionID: "c", title: "Favorites")]
+        let current = HeroCollectionSelection(
+            accountID: "a", libraryID: "movies", collectionID: "c", title: "Favorites", serverUserID: "viewer"
+        )
+        XCTAssertTrue(HeroCollectionPickerSelection.contains(current, in: selected))
+        HeroCollectionPickerSelection.toggle(current, in: &selected)
+        XCTAssertTrue(selected.isEmpty)
+    }
+
+    func testSelectionsAccumulateAcrossLibrariesAccountsAndViewersAndToggleIndependently() {
+        let choices: [HeroCollectionSelection] = [
+            .init(accountID: "a", libraryID: "movies", collectionID: "same-id", title: "Favorites", serverUserID: "viewer"),
+            .init(accountID: "a", libraryID: "shows", collectionID: "same-id", title: "Favorites", serverUserID: "viewer"),
+            .init(accountID: "b", libraryID: "movies", collectionID: "same-id", title: "Favorites", serverUserID: "viewer"),
+            .init(accountID: "a", collectionID: "same-id", title: "Favorites", serverUserID: "viewer"),
+            .init(accountID: "a", libraryID: "movies", collectionID: "same-id", title: "Favorites", serverUserID: "child")
+        ]
+        var selected: [HeroCollectionSelection] = []
+        for choice in choices { HeroCollectionPickerSelection.toggle(choice, in: &selected) }
+        XCTAssertEqual(selected, choices)
+        HeroCollectionPickerSelection.toggle(choices[1], in: &selected)
+        XCTAssertEqual(selected, [choices[0]] + Array(choices.dropFirst(2)))
+        XCTAssertEqual(Set(choices.map { $0.pickerFocusID(isSummary: false) }).count, choices.count)
+        XCTAssertTrue(Set(choices.map { $0.pickerFocusID(isSummary: false) }).isDisjoint(
+            with: choices.map { $0.pickerFocusID(isSummary: true) }
+        ))
+        HeroCollectionPickerSelection.toggle(.init(
+            accountID: "a", libraryID: "movies", collectionID: "same-id", title: "Renamed", serverUserID: "viewer"
+        ), in: &selected)
+        XCTAssertFalse(selected.contains { $0.id == choices[0].id })
+    }
+
     func testPersonalSourceDoesNotRequirePublicationInALibrary() {
         let provider = PickerProvider()
         let account = ResolvedAccount(account: Account(id: "a", from: provider.session), provider: provider)

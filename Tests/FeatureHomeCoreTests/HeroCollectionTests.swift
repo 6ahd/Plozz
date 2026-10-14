@@ -18,20 +18,22 @@ final class HeroCollectionTests: XCTestCase {
     private var settings: HeroSettings {
         var settings = HeroSettings.default
         settings.sources = [.collection]
-        settings.collection = selection
+        settings.collections = [selection]
         return settings
     }
 
     func testSelectionIsPartOfConfigurationOnlyWhileSourceIsEnabled() throws {
         var changed = settings
-        changed.collection = .init(accountID: "other", libraryID: "library", collectionID: "collection", title: "Favorites")
+        changed.collections = [.init(accountID: "other", libraryID: "library", collectionID: "collection", title: "Favorites")]
         XCTAssertNotEqual(HeroConfigurationKey(settings: settings), HeroConfigurationKey(settings: changed))
         changed = settings
-        changed.collection = .init(accountID: "account", libraryID: "library", collectionID: "different", title: "Favorites")
+        changed.collections = [.init(accountID: "account", libraryID: "library", collectionID: "different", title: "Favorites")]
+        XCTAssertNotEqual(HeroConfigurationKey(settings: settings), HeroConfigurationKey(settings: changed))
+        changed.collections = settings.collections + changed.collections
         XCTAssertNotEqual(HeroConfigurationKey(settings: settings), HeroConfigurationKey(settings: changed))
         changed.sources = [.watchlist]
         var disabled = changed
-        disabled.collection = nil
+        disabled.collections = []
         XCTAssertEqual(HeroConfigurationKey(settings: changed), HeroConfigurationKey(settings: disabled))
         let key = HeroConfigurationKey(settings: settings)
         XCTAssertEqual(try JSONDecoder().decode(HeroConfigurationKey.self, from: JSONEncoder().encode(key)), key)
@@ -46,6 +48,120 @@ final class HeroCollectionTests: XCTestCase {
         let requests = await provider.requests
         XCTAssertEqual(requests.map(\.startIndex), [0, 2, 4])
         XCTAssertEqual(requests.map(\.limit), [5, 3, 1])
+    }
+
+    func testLegacyConfigurationKeyMigratesAndExplicitEmptyWins() throws {
+        let legacy = #"{"sources":["collection"],"maxItems":8,"hideWatched":true,"collection":{"accountID":"account","libraryID":"library","collectionID":"collection","title":"Favorites"}}"#
+        XCTAssertEqual(
+            try JSONDecoder().decode(HeroConfigurationKey.self, from: Data(legacy.utf8)),
+            HeroConfigurationKey(settings: settings)
+        )
+        let cleared = legacy.dropLast() + #","collections":[]}"#
+        XCTAssertTrue(try JSONDecoder().decode(HeroConfigurationKey.self, from: Data(cleared.utf8)).collections.isEmpty)
+    }
+
+    func testMultipleCollectionsMixAndDeduplicateAcrossLibrariesAndAccounts() async {
+        var configured = settings
+        configured.collections += [
+            .init(accountID: "account", libraryID: "shows", collectionID: "shows", title: "Shows"),
+            .init(accountID: "other-account", collectionID: "personal", title: "Personal")
+        ]
+        let selections = configured.collections
+        var film = item("film").taggingSource("account")
+        film.providerIDs["Tmdb"] = "123"
+        let show = item("show", kind: .series).taggingSource("account")
+        let second = item("second-film").taggingSource("account")
+        var duplicate = item("different-provider-id").taggingSource("other-account")
+        duplicate.title = film.title
+        duplicate.providerIDs["tmdb"] = "123"
+        let other = item("other-film").taggingSource("other-account")
+        let members = [[film, second], [show, film], [duplicate, other]]
+        let requests = CollectionRequests()
+        let result = await HeroCurator().curateResult(
+            settings: configured, continueWatching: [], watchlist: [],
+            collectionProvider: { selection, limit in
+                await requests.record(selection)
+                XCTAssertLessThanOrEqual(limit, HeroFreshnessSnapshot.rawDiscoveryLimit)
+                let index = try XCTUnwrap(selections.firstIndex { $0.id == selection.id })
+                return .init(items: members[index], startIndex: 0, totalCount: members[index].count)
+            }
+        )
+        XCTAssertEqual(result.items.map(\.id), ["film", "show", "second-film", "other-film"])
+        XCTAssertEqual(Set(result.items.compactMap(\.sourceAccountID)), ["account", "other-account"])
+        let fetched = await requests.selections
+        XCTAssertEqual(fetched, selections)
+    }
+
+    func testMultipleCollectionsRespectDisplayLimitAndDoNotTreatFailureAsPartialSuccess() async {
+        var configured = settings
+        configured.maxItems = 2
+        configured.collections.append(.init(accountID: "account", libraryID: "shows", collectionID: "shows", title: "Shows"))
+        let first = selection
+        let members = [item("one"), item("two"), item("three")]
+        let limited = await HeroCurator().curateResult(
+            settings: configured, continueWatching: [], watchlist: [],
+            collectionProvider: { selected, _ in
+                let values = selected.id == first.id ? members : Array(members.reversed())
+                return .init(items: values, startIndex: 0, totalCount: values.count)
+            }
+        )
+        XCTAssertEqual(limited.items.map(\.id), ["one", "three"])
+        let failed = await HeroCurator().curateResult(
+            settings: configured, continueWatching: [], watchlist: [],
+            collectionProvider: { selected, _ in
+                if selected.id != first.id { throw AppError.serverUnreachable }
+                return .init(items: members, startIndex: 0, totalCount: members.count)
+            }
+        )
+        XCTAssertEqual(failed.collectionState, .failed(.serverUnreachable))
+        XCTAssertTrue(failed.items.isEmpty)
+        let cancelled = await HeroCurator().curateResult(
+            settings: configured, continueWatching: [], watchlist: [],
+            collectionProvider: { selected, _ in
+                if selected.id != first.id { throw CancellationError() }
+                return .init(items: members, startIndex: 0, totalCount: members.count)
+            }
+        )
+        XCTAssertEqual(cancelled.collectionState, .idle)
+        XCTAssertTrue(cancelled.items.isEmpty)
+    }
+
+    func testLaterCollectionsParticipateBeforeTheCombinedCandidateLimit() async throws {
+        let members = (0...HeroFreshnessSnapshot.rawDiscoveryLimit).map { item("film-\($0)") }
+        var configured = settings
+        configured.maxItems = 1
+        configured.collections = members.map {
+            .init(accountID: "account", libraryID: "library", collectionID: $0.id, title: $0.title)
+        }
+        var history = HeroExposureHistory()
+        for member in members.dropLast() { history.record(member) }
+        let result = await HeroCurator().curateResult(
+            settings: configured, continueWatching: [], watchlist: [],
+            freshness: HeroFreshnessSnapshot(history: history, sessionSeed: 1),
+            collectionProvider: { selection, _ in
+                let member = try XCTUnwrap(members.first { $0.id == selection.collectionID })
+                return .init(items: [member], startIndex: 0, totalCount: 1)
+            }
+        )
+        XCTAssertEqual(result.items.map(\.id), [try XCTUnwrap(members.last).id])
+    }
+
+    @MainActor
+    func testCachedMixedMembershipRequiresEverySelectedViewerToRemainAccessible() {
+        let provider = CollectionProvider(items: [])
+        let account = ResolvedAccount(account: Account(id: "account", from: provider.session), provider: provider)
+        var configured = settings
+        configured.collections.append(.init(
+            accountID: "account", libraryID: "shows", collectionID: "other",
+            title: "Other viewer", serverUserID: "parent"
+        ))
+        let store = InMemoryHomeContentStore()
+        store.saveHeroCandidatePool(
+            .init(buckets: [.init(source: .collection, items: [item("private").taggingSource("account")])]),
+            for: HeroConfigurationKey(settings: configured)
+        )
+        let model = HomeViewModel(accounts: [account], layoutStore: InMemoryHomeLayoutStore(), contentStore: store)
+        XCTAssertNil(model.cachedHeroItems(for: configured))
     }
 
     func testLargeCollectionsCanSampleBeyondTheFirstWindow() async throws {
@@ -97,7 +213,7 @@ final class HeroCollectionTests: XCTestCase {
         XCTAssertEqual(page.items.compactMap(\.libraryID), ["movies", "shows"])
         XCTAssertTrue(page.items.allSatisfy { $0.sourceAccountID == "account" })
         var changed = settings
-        changed.collection = personal
+        changed.collections = [personal]
         XCTAssertNotEqual(HeroConfigurationKey(settings: settings), HeroConfigurationKey(settings: changed))
     }
 
@@ -144,11 +260,11 @@ final class HeroCollectionTests: XCTestCase {
             provider: provider, plexHomeUserID: "child"
         )
         var configured = settings
-        configured.collection = .init(
+        configured.collections = [.init(
             accountID: "account", libraryID: "library", collectionID: "collection",
             title: "Favorites", serverUserID: "parent"
-        )
-        let selection = try XCTUnwrap(configured.collection)
+        )]
+        let selection = try XCTUnwrap(configured.collections.first)
         let store = InMemoryHomeContentStore()
         store.saveHeroCandidatePool(
             .init(buckets: [.init(source: .collection, items: [item("movie").taggingSource("account")])]),
@@ -176,7 +292,7 @@ final class HeroCollectionTests: XCTestCase {
     func testDisabledOrUnselectedSourceDoesNotFetch() async {
         for configured in [HeroSettings.default, {
             var value = settings
-            value.collection = nil
+            value.collections = []
             return value
         }()] {
             _ = await HeroCurator().curateResult(
@@ -215,6 +331,11 @@ final class HeroCollectionTests: XCTestCase {
             randomLibraries: [], seerConnected: false, collectionState: result.collectionState
         )
     }
+}
+
+private actor CollectionRequests {
+    private(set) var selections: [HeroCollectionSelection] = []
+    func record(_ selection: HeroCollectionSelection) { selections.append(selection) }
 }
 
 private actor CollectionProvider: MediaProvider {

@@ -9,6 +9,83 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
+    func testMultipleSelectionsShowTheirLibrariesAndClearingDoesNotSwitchTheBrowsedSource() async throws {
+        let provider = HeroPickerHostedProvider(empty: false)
+        let account = ResolvedAccount(account: Account(id: "a", from: provider.session), provider: provider)
+        let libraries = ["movies", "shows"].map {
+            AggregatedLibrary(
+                accountID: "a", accountName: "Viewer", serverName: "Server", providerKind: .silo,
+                library: MediaLibrary(id: $0, title: $0 == "movies" ? "Movies" : "Shows", kind: $0 == "movies" ? .movie : .series)
+            )
+        }
+        var settings = HeroSettings.default
+        settings.collections = libraries.map {
+            .init(accountID: "a", libraryID: $0.library.id, collectionID: "\($0.library.id)-collection",
+                  title: "\($0.library.id) picks", serverUserID: "viewer")
+        }
+        let model = HeroSettingsModel(store: InMemoryHeroSettingsStore(settings))
+        try await withScreen(content: HeroCollectionPickerView(
+            selections: Binding(get: { model.settings.collections }, set: { model.settings.collections = $0 }),
+            libraries: libraries, accounts: [account]
+        ).frame(width: 1100)) { window in
+            let before = try await self.capture(window, name: "hero-multiple-selected-libraries", includeMaster: true)
+            XCTAssertTrue(before.contains("Selected collections"), before)
+            XCTAssertTrue(before.contains("movies picks"), before)
+            XCTAssertTrue(before.contains("shows picks"), before)
+            XCTAssertTrue(before.contains("Movies / Server / Viewer"), before)
+            XCTAssertTrue(before.contains("Shows / Server / Viewer"), before)
+            model.settings.collections = []
+            let cleared = try await self.capture(window, name: "hero-cleared-same-library", includeMaster: true)
+            XCTAssertFalse(cleared.contains("Selected collections"), cleared)
+            XCTAssertTrue(cleared.contains("movies picks"), cleared)
+            XCTAssertFalse(cleared.contains("Funny movies"), "Clearing choices must not reset the browsed source: \(cleared)")
+        }
+    }
+
+    func testCollectionPickerScrollsThroughBottomSafeAreaToScreenEdge() async throws {
+        let provider = HeroPickerHostedProvider(empty: false, collectionCount: 20)
+        let account = ResolvedAccount(account: Account(id: "a", from: provider.session), provider: provider)
+        let navigation = SettingsDetailNavigation()
+        navigation.push(animated: false)
+        try await withScreen(
+            content: SettingsDetailPages(navigation: navigation) {
+                Color.clear
+            } detail: {
+                HeroCollectionPickerView(selections: .constant([]), libraries: [], accounts: [account])
+            }.frame(width: 1100),
+            bottomSafeArea: 120
+        ) { window in
+            var pending = [try XCTUnwrap(window.rootViewController?.view)]
+            var scrolls: [UIScrollView] = []
+            while let view = pending.popLast() {
+                if let scroll = view as? UIScrollView, scroll.contentSize.height > scroll.bounds.height {
+                    scrolls.append(scroll)
+                }
+                pending.append(contentsOf: view.subviews)
+            }
+            let scroll = try XCTUnwrap(scrolls.max { $0.bounds.width < $1.bounds.width })
+            scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: 500), animated: false)
+            try await Task.sleep(for: .milliseconds(250))
+            let innerBottom = window.bounds.maxY - (window.rootViewController?.view.safeAreaInsets.bottom ?? 0)
+            let before = try self.collectionLabelFrames(in: window)
+            let row = try XCTUnwrap(before.last {
+                $0.text.hasPrefix("Collection ") && $0.frame.maxY < innerBottom - 40
+            }, "\(before)")
+            let baselineOffset = scroll.contentOffset.y
+            for targetY in [innerBottom + 30, window.bounds.maxY - 60] {
+                let newOffset = baselineOffset + row.frame.minY - targetY
+                XCTAssertGreaterThan(newOffset, -scroll.adjustedContentInset.top)
+                scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: newOffset), animated: false)
+                let text = try await self.capture(window, name: "collections-bottom-\(Int(targetY))", includeMaster: true)
+                XCTAssertTrue(text.contains(row.text), "A row below the safe-area edge must remain readable: \(text)")
+                let visible = try XCTUnwrap(self.collectionLabelFrames(in: window).first { $0.text == row.text })
+                XCTAssertGreaterThan(visible.frame.minY, innerBottom + 15)
+                XCTAssertLessThan(visible.frame.maxY, window.bounds.maxY)
+                XCTAssertGreaterThan(visible.frame.height, row.frame.height * 0.85)
+            }
+        }
+    }
+
     func testCustomizationBackAndTitleScrollThroughTheTopSafeAreaWithoutClipping() async throws {
         try await withScreen(
             content: CardCaptionCustomizationContent(settings: .constant(.init(preference: .show)))
@@ -80,7 +157,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         let provider = HeroPickerHostedProvider(empty: false)
         let account = ResolvedAccount(account: Account(id: "a", from: provider.session), provider: provider)
         let navigation = SettingsDetailNavigation()
-        let picker = HeroCollectionPickerView(selection: .constant(nil), libraries: [], accounts: [account])
+        let picker = HeroCollectionPickerView(selections: .constant([]), libraries: [], accounts: [account])
         try await withScreen(content: NavigationStack {
             HStack(spacing: 0) {
                 Text("Customize Home").frame(width: 768)
@@ -110,11 +187,11 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             let sourceLabel = try XCTUnwrap(labels.first { $0.text == "Personal collections" })
             XCTAssertTrue(focused.contains(CGPoint(x: sourceLabel.frame.midX, y: sourceLabel.frame.midY)),
                           "Entry must reach the real source row, not Back: \(focused), label: \(sourceLabel.frame)")
-            let heading = try XCTUnwrap(labels.first { $0.text == "Choose a collection" })
+            let heading = try XCTUnwrap(labels.first { $0.text == "Choose collections" })
             XCTAssertGreaterThan(heading.frame.minX, 800)
             XCTAssertLessThan(heading.frame.height, 60, "Use the pane heading, not full-page navigation chrome.")
             let text = try await self.capture(window, name: "hero-personal-collection-pane", includeMaster: true)
-            XCTAssertTrue(text.contains("Choose a collection"), text)
+            XCTAssertTrue(text.contains("Choose collections"), text)
             XCTAssertTrue(text.contains("Back"), "The pane's Back label must remain legible: \(text)")
             XCTAssertTrue(text.contains("Funny movies from year 2000"), text)
             XCTAssertTrue(text.contains("Personal collections"), text)
@@ -147,7 +224,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         try await withScreen(content: NavigationStack {
             HStack(spacing: 0) {
                 Text("Customize Home").frame(width: 768)
-                HeroCollectionPickerView(selection: .constant(nil), libraries: [library], accounts: [account])
+                HeroCollectionPickerView(selections: .constant([]), libraries: [library], accounts: [account])
             }
             .ignoresSafeArea()
         }) { window in
@@ -702,6 +779,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
     private func withScreen(
         content: some View,
         topSafeArea: CGFloat = 0,
+        bottomSafeArea: CGFloat = 0,
         inspect: (UIWindow) async throws -> Void
     ) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
@@ -722,6 +800,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 .environment(\.locale, Locale(identifier: "en_US"))
         )
         host.additionalSafeAreaInsets.top = topSafeArea
+        host.additionalSafeAreaInsets.bottom = bottomSafeArea
         window.rootViewController = host
         window.makeKeyAndVisible()
         defer {
@@ -773,17 +852,28 @@ private protocol ArtworkFocusRequesting: AnyObject {
 
 private struct HeroPickerHostedProvider: MediaProvider, CapabilityReporting {
     let empty: Bool
+    var collectionCount = 1
     let kind: ProviderKind = .silo
     let session = UserSession(
         server: MediaServer(id: "server", name: "Server", baseURL: URL(string: "https://example.com")!, provider: .silo),
         userID: "viewer", userName: "Viewer", deviceID: "device", accessToken: "fixture"
     )
     var capabilities: ProviderCapability { [.personalCollections, .libraryCollections] }
+    func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
+        .init(items: empty ? [] : [
+            .init(id: "\(libraryID)-collection", title: "\(libraryID) picks", kind: .collection)
+        ], startIndex: 0, totalCount: empty ? 0 : 1)
+    }
     func personalCollections(page: PageRequest) async throws -> MediaPage {
-        let items: [MediaItem] = empty ? [] : [
-            .init(id: "personal", title: "Funny movies from year 2000+", kind: .collection)
-        ]
-        return .init(items: items, startIndex: 0, totalCount: items.count)
+        let items: [MediaItem] = empty ? [] : (0..<collectionCount).map {
+            .init(
+                id: $0 == 0 ? "personal" : "personal-\($0)",
+                title: $0 == 0 ? "Funny movies from year 2000+" : "Collection \($0 + 1)",
+                kind: .collection
+            )
+        }
+        return .init(items: Array(items.dropFirst(page.startIndex).prefix(page.limit)),
+                     startIndex: page.startIndex, totalCount: items.count)
     }
     func libraries() async throws -> [MediaLibrary] { [] }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
