@@ -283,7 +283,7 @@ series as requested; failed requests remain visible for attention in Seerr.
 
 ## Comparing Apple TV media players
 
-Looking for an **Infuse alternative** for your own movies and TV shows?
+Looking for a **free Infuse alternative** for your own movies and TV shows?
 Plozz is a **completely free Apple TV media player**, with native apps for
 iPhone and iPad too. There is no Plozz subscription, paid feature unlock, or
 advertising. The source code is available under the [GPL-3.0 license](LICENSE),
@@ -294,6 +294,10 @@ If you're choosing between Apple TV media apps, here's where Plozz fits:
 - **Coming from Infuse or VLC?** Play from your NAS or network shares over
   SMB, NFS, WebDAV, SFTP, or FTP, with artwork and library browsing. You don't
   need to run a media server.
+- **Considering VidHub?** Plozz also organizes your own files and server
+  libraries, with all features free and the source available to inspect.
+- **Coming from MrMC?** Keep your Plex, Emby, or network-share sources and
+  try a native Apple TV interface, with iPhone and iPad apps too.
 - **Using the Plex or Emby app?** Keep your existing server and use Plozz as
   an alternative client. Connect multiple servers and browse them together,
   including libraries from other supported providers.
