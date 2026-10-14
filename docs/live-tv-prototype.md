@@ -315,6 +315,11 @@ after a successful account import. Upstream authentication/access refusals are
 reported as provider permission failures rather than missing profile membership;
 local account/profile authorization checks are unchanged.
 
+The mounted Live TV destination suspends catalogue loading while profile
+authorization is unavailable and resumes it when setup or unlocking completes.
+New account enrollment and saved channels recover without reopening the tab,
+while genuine profile, parental-approval, and server-permission checks remain.
+
 The shared live-channel publication path normalizes each matching name once,
 rather than during every sort comparison, and collects language/country facets
 from distinct metadata values. It avoids full-lineup copies for absent overrides

@@ -164,6 +164,7 @@ struct NativeLibraryGrid<Header: View>: UIViewControllerRepresentable {
     let header: Header
     let onSelect: (MediaItem, Int) -> Void
     let onLoaded: (Int) -> Void
+    let onScroll: (CGFloat) -> Void
 
     func makeUIViewController(context: Context) -> NativeLibraryGridController {
         let controller = NativeLibraryGridController()
@@ -180,7 +181,7 @@ struct NativeLibraryGrid<Header: View>: UIViewControllerRepresentable {
             environment: context.environment, leadingInset: leadingInset, trailingInset: trailingInset,
             header: AnyView(header.environment(\.self, context.environment)),
             hidesScrollIndicator: hidesScrollIndicator,
-            onSelect: onSelect, onLoaded: onLoaded
+            onSelect: onSelect, onLoaded: onLoaded, onScroll: onScroll
         )
     }
 
@@ -204,6 +205,7 @@ final class NativeLibraryGridController: UIViewController, UICollectionViewDataS
     private var trailingInset: CGFloat = 0
     private var onSelect: ((MediaItem, Int) -> Void)?
     private var onLoaded: ((Int) -> Void)?
+    private var onScroll: ((CGFloat) -> Void)?
     private var bindings: [ObjectIdentifier: CellBinding] = [:]
     private var pendingNavigation: MediaItem?
     private var lastFocusedIndex: IndexPath?
@@ -211,6 +213,8 @@ final class NativeLibraryGridController: UIViewController, UICollectionViewDataS
     private var measuredHeaderHeight: CGFloat = 0
     private var hidesScrollIndicator = false
     private var viewportReport: Task<Void, Never>?
+    private var traversalRecorder: LibraryTraversalRecorder? =
+        ProcessInfo.processInfo.environment["PLOZZ_LIBRARY_TRAVERSAL_RECORDING"] == "1" ? .init() : nil
 
     override var preferredFocusEnvironments: [any UIFocusEnvironment] {
         requestedFocusIndex == nil ? super.preferredFocusEnvironments : [collection]
@@ -238,6 +242,7 @@ final class NativeLibraryGridController: UIViewController, UICollectionViewDataS
             withReuseIdentifier: "header")
         layout.sectionHeadersPinToVisibleBounds = false
         view.addSubview(collection)
+        if traversalRecorder != nil { enableTraversalRecording() }
         addChild(headerHost)
         headerHost.safeAreaRegions = []
         headerHost.view.backgroundColor = .clear
@@ -248,10 +253,16 @@ final class NativeLibraryGridController: UIViewController, UICollectionViewDataS
         model: LibraryBrowseViewModel, total: Int, generation: Int, spoilerSettings: SpoilerSettings,
         environment: EnvironmentValues, leadingInset: CGFloat, trailingInset: CGFloat,
         header: AnyView, hidesScrollIndicator: Bool,
-        onSelect: @escaping (MediaItem, Int) -> Void, onLoaded: @escaping (Int) -> Void
+        onSelect: @escaping (MediaItem, Int) -> Void, onLoaded: @escaping (Int) -> Void,
+        onScroll: @escaping (CGFloat) -> Void = { _ in }
     ) {
         let reset = self.model !== model || self.generation != generation
         let previousCount = self.total
+        let previousColumns = self.environment.plozzMetrics.libraryPosterColumns.count
+        if traversalRecorder != nil,
+           reset || previousCount != total || previousColumns != environment.plozzMetrics.libraryPosterColumns.count {
+            traversalRecorder = LibraryTraversalRecorder()
+        }
         if !reset, previousCount != total {
             collection.layoutIfNeeded()
         }
@@ -265,6 +276,7 @@ final class NativeLibraryGridController: UIViewController, UICollectionViewDataS
         self.trailingInset = trailingInset
         self.onSelect = onSelect
         self.onLoaded = onLoaded
+        self.onScroll = onScroll
         self.hidesScrollIndicator = hidesScrollIndicator
         headerHost.rootView = AnyView(
             header.fixedSize(horizontal: false, vertical: true)
@@ -369,7 +381,9 @@ final class NativeLibraryGridController: UIViewController, UICollectionViewDataS
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        scrollTarget?.moveHeader(with: scrollView.contentOffset.y + scrollView.adjustedContentInset.top)
+        let offset = scrollView.contentOffset.y + scrollView.adjustedContentInset.top
+        scrollTarget?.moveHeader(with: offset)
+        onScroll?(offset)
         scheduleViewportReport()
     }
 
@@ -529,7 +543,30 @@ final class NativeLibraryGridController: UIViewController, UICollectionViewDataS
         _ collectionView: UICollectionView, didUpdateFocusIn context: UICollectionViewFocusUpdateContext,
         with coordinator: UIFocusAnimationCoordinator
     ) {
+        let next = context.nextFocusedIndexPath?.item
+        traversalRecorder?.record(
+            from: context.previouslyFocusedIndexPath?.item, to: next,
+            loaded: next.flatMap { model?.item(at: $0) } != nil,
+            uptime: ProcessInfo.processInfo.systemUptime
+        )
         if let path = context.nextFocusedIndexPath { lastFocusedIndex = path }
+    }
+
+    var traversalSnapshot: LibraryTraversalSnapshot? {
+        traversalRecorder?.snapshot(
+            generation: generation, columns: max(1, environment.plozzMetrics.libraryPosterColumns.count),
+            total: total
+        )
+    }
+
+    func enableTraversalRecording() {
+        if traversalRecorder == nil { traversalRecorder = LibraryTraversalRecorder() }
+        loadViewIfNeeded()
+        guard !view.subviews.contains(where: { $0 is NativeLibraryTraversalProbe }) else { return }
+        let probe = NativeLibraryTraversalProbe()
+        probe.frame = CGRect(x: 1, y: 1, width: 1, height: 1)
+        probe.snapshot = { [weak self] in self?.traversalSnapshot }
+        view.addSubview(probe)
     }
 
     func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {

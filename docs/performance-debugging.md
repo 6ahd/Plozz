@@ -533,15 +533,31 @@ target confirmation, optimized-app confirmation and renderer arm are explicit
 Use an actual populated TV Shows Browse grid with **All** watch states and
 **Name** sorting, including visible episode counts and progress. Unwatched-only
 Movies and a synthetic poster grid do not exercise the same overlay workload.
-Record the seven focused titles during calibration, then require that same path
-for every arm. Keep the existing profile and all its servers enabled.
+Record the nineteen focused titles during calibration, then require that same
+eighteen-row path for every arm (`PLOZZ_LIBRARY_EXPECTED_PATH`). Keep the existing
+profile and all its servers enabled. Calibration warms that route; these are
+matched return-traversal measurements, not cold-first-open evidence.
 
-Run `testControlledAIdle` and `testControlledBTraversal` together, in that order,
-in one runner and app process. Each phase has one XCTest warm-up and three
+Launch the **app** with `PLOZZ_LIBRARY_TRAVERSAL_RECORDING=1`. This enables a
+controller-local, 512-event native-focus journal and a nonfocusable diagnostic
+accessibility element. The focus callback only records indices, metadata readiness
+and uptime. The runner reads/encodes snapshots outside measurement, then validates
+events inside each measured interval. Missing history, overflow, changed grid,
+unloaded destinations, excursions and incomplete traversals invalidate a window.
+
+Run `testControlledAIdle`, `testControlledBTraversal`, `testControlledCRapidTraversal` and
+`testControlledDHeldTraversal` together, in that order, in one runner and app process. Each phase has one XCTest warm-up and three
 recorded observations around a 24-second input loop. Scrolling sends six Down followed by six Up, one
-press every two seconds. Accessibility assertions, screenshots and JSON timing
+press every two seconds. Rapid traversal sends eighteen Down followed by eighteen Up, one press every
+0.3 seconds; native-focus evidence must match all 36 transitions on the calibrated path.
+Held traversal holds Down for two seconds, then Up for four seconds. Declare
+`TEST_RUNNER_PLOZZ_LIBRARY_HELD_MINIMUM_ROWS` before comparing arms (default 18);
+the journal must prove at least that depth and return to the starting item.
+Repeat throughput may legitimately differ between arms and is retained as evidence,
+not assumed to be twenty rows. Accessibility assertions, screenshots and JSON timing
 attachments stay outside the metric windows. Retained timing attachments include
-epoch, elapsed duration, each input's lateness and remote-call duration; do not
+epoch, elapsed duration, each input's lateness and remote-call duration, and both
+focus snapshots; do not
 depend on live stdout surviving a long asynchronous wait.
 
 Collect `XCTClockMetric` alongside the application metrics, and retain runner-only
@@ -558,8 +574,9 @@ and assertions outside measurement, including the boundary-timing export.
 Start no earlier than eight minutes after an externally recorded fresh launch,
 and sixty seconds after calibration. Automated navigation also waits until
 launch + sixty seconds before using Home's library shortcuts, allowing initial
-rows to populate. The startup wait emits runner-only activity events, not app
-input or accessibility queries. Startup age alone does not establish quiescence:
+rows to populate. During the startup wait the runner steps focus Right and back
+Left every 45 seconds, ending at least 30 seconds before the idle measurement:
+minutes of unchanging picture let the TV suspend the app. Startup age alone does not establish quiescence:
 correlate the actual windows with background diagnostics. Scan/lister counters
 do not represent every Plex, Jellyfin, CloudKit or metadata request. Keep idle
 and scrolling CPU separate; do not subtract a busy idle scan from a quiet scroll.
@@ -572,6 +589,19 @@ during this investigation: preserving geometry did not establish better frame pa
 transport error at teardown despite both metric tests completing; preserve that
 limitation rather than reporting whole-suite success. The measured scrolling
 windows had no active scan/listers, while some idle windows remained busy.
+
+Check the control before trusting zero. In October 2026 the same device returned
+zero `XCTHitchMetric` hitches in every phase, including the original renderer
+above, and Instruments' Animation Hitches template recorded no display data. When
+that happens, read frame pacing from the app instead: launch with
+`PLZPERF_STDOUT=1` through `devicectl device process launch --console` and keep
+the `PLZPERF ... hitch/s=... worst=...ms` lines `HomePerfSampler` prints each
+second. These are display-link callback gaps, not proof of presented-frame hitches.
+The sampler keeps running while a screen such as a library grid is pushed
+over Home, and releases its display link and observers when its owner is destroyed.
+Faster input than XCTest can send (about four presses a second) comes
+from pyatv over one Companion connection; ten Down or Up presses a second on TV
+Shows Browse reproduce the stutter seen with fast clicking.
 
 After removing the scroll-index hierarchy polling, a same-build comparison
 still recorded `[46, 44, 57]` hitches with the original renderer and
