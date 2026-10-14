@@ -136,7 +136,14 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Entry-gate state remains observable for episode rows; ordinary Home rows
   retain native column-aligned entry and cover/return behavior.
 - **Grouped settings interactions** — `SettingsSectionGroup` uses explicit
-  menu pickers on iOS. Custom value menus use `SettingsMenuLabel` to show
+  native switch toggles and menu pickers on iOS/iPadOS. Standalone mobile
+  settings/Live TV controls and the shared `SettingsSwitchToggleStyle` also
+  use the system switch; do not draw a replacement track or knob, wrap the
+  toggle in a button, or override its native animation/accessibility.
+  The switch alone clears inherited tint so monochrome page accents do not
+  hide its thumb against the enabled track; neighboring controls keep their tint.
+  tvOS keeps its directional-focus control and ten-foot sizing.
+  Custom value menus use `SettingsMenuLabel` to show
   the selected value with up/down chevrons, matching editable pickers rather
   than read-only `LabeledContent`. Navigation keeps its right-facing chevron.
   A visual group occupies one native List cell; automatic

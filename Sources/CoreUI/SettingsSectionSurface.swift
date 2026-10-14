@@ -125,7 +125,7 @@ public struct SettingsSectionGroup<Content: View, Footer: View>: View {
             #if os(tvOS)
             .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
             #else
-            .toggleStyle(SettingsTouchSwitchToggleStyle())
+            .toggleStyle(SettingsSwitchToggleStyle())
             // A group is one List cell. Automatic pickers can claim the whole
             // cell's primary action, stealing taps from sibling controls.
             .pickerStyle(.menu)
