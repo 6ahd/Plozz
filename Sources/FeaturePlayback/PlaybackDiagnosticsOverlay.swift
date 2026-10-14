@@ -255,10 +255,10 @@ struct PlaybackDiagnosticsOverlay: View {
                             systemOutputText(d.audioOutput))
             } else {
                 optionalRow(LocalizedStringResource("System output", comment: "Playback diagnostics: the current audio rendering mode reported by the operating system, not a detected physical speaker layout."),
-                            d.audioOutput?.renderingMode)
+                            d.audioOutput?.renderingMode.map(audioOutputText))
                 if let connections = d.audioOutput?.connections, let first = connections.first {
                     row(LocalizedStringResource("Connection", comment: "Playback diagnostics: the audio output connection type, such as HDMI, Bluetooth, or AirPlay."),
-                        connections.dropFirst().reduce(Text(first)) { $0 + Text(verbatim: " · ") + Text($1) })
+                        connections.dropFirst().reduce(audioOutputText(first)) { $0 + Text(verbatim: " · ") + audioOutputText($1) })
                 }
             }
         }
@@ -532,7 +532,14 @@ struct PlaybackDiagnosticsOverlay: View {
         guard let output else { return nil }
         let parts = [output.renderingMode].compactMap { $0 } + output.connections
         guard let first = parts.first else { return nil }
-        return parts.dropFirst().reduce(Text(first)) { $0 + Text(verbatim: " · ") + Text($1) }
+        return parts.dropFirst().reduce(audioOutputText(first)) { $0 + Text(verbatim: " · ") + audioOutputText($1) }
+    }
+
+    private func audioOutputText(_ label: PlaybackDiagnostics.AudioOutput.Label) -> Text {
+        switch label {
+        case .localized(let resource): Text(resource)
+        case .format(let value): Text(verbatim: value)
+        }
     }
 
     private func compactBufferText(_ d: PlaybackDiagnostics) -> Text {

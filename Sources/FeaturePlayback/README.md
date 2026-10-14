@@ -153,6 +153,8 @@ playback decisions. **System output** reads `AVAudioSession.renderingMode`, and
 Both refresh while diagnostics is open, on every playback engine. Unreported
 values are omitted, never inferred from the source, channel count, settings, or
 an older sample. No personal device names or route identifiers are collected.
+Descriptive output labels are localized; format and connection brands such as
+Dolby Atmos and AirPlay remain verbatim in both layouts.
 APAC's 7.1.4 is an intermediate processing layout; the system's rendering mode
 is stronger evidence of delivery, but neither detects the physical speaker layout.
 

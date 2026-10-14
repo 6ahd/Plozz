@@ -43,6 +43,34 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         }
     }
 
+    func testAudioOutputLocalizesDescriptionsButPreservesConnectionFormats() throws {
+        var diagnostics = fixture(mode: .plozzigen)
+        diagnostics.audioOutput = .init(
+            renderingMode: .localized("Surround"),
+            connections: [.localized("Headphones"), .format("AirPlay")]
+        )
+        let bundleURL = try XCTUnwrap(Bundle.main.url(forResource: "cs", withExtension: "lproj"))
+        let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+        for presentation in [PlaybackDiagnosticsOverlay.Presentation.mobile, .television] {
+            let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics, presentation: presentation)
+            let text: String
+            if presentation == .mobile {
+                text = try renderedText(
+                    panel.mobileContent(width: 844).frame(width: 844).fixedSize(horizontal: false, vertical: true),
+                    locale: "cs"
+                )
+            } else {
+                text = try renderedText(panel.televisionPanel(width: 1280), locale: "cs")
+            }
+            for key in ["Surround", "Headphones"] {
+                let translated = bundle.localizedString(forKey: key, value: nil, table: "Localizable")
+                XCTAssertNotEqual(translated, key)
+                XCTAssertTrue(normalized(text).contains(normalized(translated)), text)
+            }
+            XCTAssertTrue(text.contains("AirPlay"), text)
+        }
+    }
+
     func testOneRowRespondsToTheEnvironmentLanguageWithoutTranslatingItsValue() throws {
         let row = PlaybackDiagnosticsOverlay.MobileDiagnosticsRow(
             label: Text(LocalizedStringResource("File")),
@@ -107,7 +135,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
 
     func testCompactDiagnosticsKeepPartialMeasurementsIndependent() throws {
         var diagnostics = fixture(mode: .plozzigen)
-        diagnostics.audioOutput = .init(connections: ["AirPlay"])
+        diagnostics.audioOutput = .init(connections: [.format("AirPlay")])
         diagnostics.audioPipelineDescription = "TRUEHD → FLAC bridge"
         diagnostics.frameRate = nil
         diagnostics.observedFps = 23
@@ -153,7 +181,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
     }
 
     private func assertMediaContent(in text: String) {
-        for content in ["Fixture Server", "Fixture.mkv", "AVPlayer", "HLS", "h264", "HDR10", "HDR", "hvc1"] {
+        for content in ["Fixture Server", "Fixture.mkv", "AVPlayer", "HLS", "h264", "HDR10", "HDR", "hvc1", "Dolby Atmos", "HDMI"] {
             XCTAssertTrue(normalized(text).contains(normalized(content)), "Missing verbatim content \(content): \(text)")
         }
     }
@@ -177,7 +205,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         value.audioSampleRate = 48_000
         value.audioBitrate = 128_000
         value.audioOutputDescription = "Stereo"
-        value.audioOutput = .init(renderingMode: "Dolby Atmos", connections: ["HDMI"])
+        value.audioOutput = .init(renderingMode: .format("Dolby Atmos"), connections: [.format("HDMI")])
         value.subtitleDescription = "SubRip"
         value.positionSeconds = 30
         value.durationSeconds = 300
@@ -217,9 +245,9 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         // the rendered font size and complete words in both presentations.
         var lines: [String] = []
         for y in stride(from: 0, to: image.height, by: 1000) {
-            for x in stride(from: 0, to: image.width, by: 1200) {
+            for x in stride(from: 0, to: image.width, by: 600) {
                 let tile = try XCTUnwrap(image.cropping(to: CGRect(
-                    x: x, y: y, width: min(1800, image.width - x), height: min(1200, image.height - y)
+                    x: x, y: y, width: min(1200, image.width - x), height: min(1200, image.height - y)
                 )))
                 let request = VNRecognizeTextRequest()
                 request.recognitionLevel = .accurate

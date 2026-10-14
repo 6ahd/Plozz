@@ -7,14 +7,14 @@ import XCTest
 @MainActor
 final class PlaybackAudioOutputTests: XCTestCase {
     func testRenderingModesComeOnlyFromTheSystemAndNotFromChannelCounts() {
-        let cases: [(AVAudioSession.RenderingMode, LocalizedStringResource?)] = [
-            (.notApplicable, nil), (.monoStereo, "Mono / Stereo"), (.surround, "Surround"),
-            (.spatialAudio, "Spatial Audio"), (.dolbyAudio, "Dolby Audio"), (.dolbyAtmos, "Dolby Atmos")
+        let cases: [(AVAudioSession.RenderingMode, PlaybackDiagnostics.AudioOutput.Label?)] = [
+            (.notApplicable, nil), (.monoStereo, .localized("Mono / Stereo")), (.surround, .localized("Surround")),
+            (.spatialAudio, .localized("Spatial Audio")), (.dolbyAudio, .format("Dolby Audio")), (.dolbyAtmos, .format("Dolby Atmos"))
         ]
         for (mode, expected) in cases {
             let facts = PlaybackAudioOutputReader.facts(renderingMode: mode, ports: [.HDMI])
             XCTAssertEqual(facts?.renderingMode, expected)
-            XCTAssertEqual(facts?.connections, ["HDMI"])
+            XCTAssertEqual(facts?.connections, [.format("HDMI")])
         }
         XCTAssertNil(PlaybackAudioOutputReader.facts(renderingMode: .dolbyAtmos, ports: []))
         XCTAssertNil(PlaybackAudioOutputReader.facts(
@@ -25,16 +25,20 @@ final class PlaybackAudioOutputTests: XCTestCase {
     func testConnectionsAreFixedLabelsWithNoDeviceNamesOrDuplicateBluetoothRows() {
         let facts = PlaybackAudioOutputReader.facts(renderingMode: .spatialAudio, ports: [
             .bluetoothA2DP, .bluetoothHFP, .bluetoothLE, .airPlay, .usbAudio, .headphones,
-            .builtInSpeaker, .builtInReceiver, .lineOut, .init(rawValue: "private-device-name")
+            .builtInSpeaker, .builtInReceiver, .lineOut, .carAudio, .displayPort, .thunderbolt,
+            .fireWire, .AVB, .PCI, .virtual, .init(rawValue: "private-device-name")
         ])
         XCTAssertEqual(facts?.connections, [
-            "Bluetooth", "AirPlay", "USB", "Headphones", "Built-in speakers", "Built-in receiver", "Line out"
+            .format("Bluetooth"), .format("AirPlay"), .format("USB"), .localized("Headphones"),
+            .localized("Built-in speakers"), .localized("Built-in receiver"), .localized("Line out"),
+            .localized("Car audio"), .format("DisplayPort"), .format("Thunderbolt"), .format("FireWire"),
+            .format("AVB"), .format("PCI"), .localized("Virtual audio")
         ])
     }
 
     func testSystemOutputRefreshesAndClearsForEveryPlaybackMode() {
         for mode: PlaybackDiagnostics.PlaybackMode in [.plozzigen, .directPlay, .remux, .transcode] {
-            var output: PlaybackDiagnostics.AudioOutput? = .init(renderingMode: "Dolby Atmos", connections: ["HDMI"])
+            var output: PlaybackDiagnostics.AudioOutput? = .init(renderingMode: .format("Dolby Atmos"), connections: [.format("HDMI")])
             let sampler = PlaybackDiagnosticsSampler(audioOutputReader: { output })
             defer { sampler.stop() }
             sampler.start(player: nil, mode: mode, metadata: .init(
@@ -42,13 +46,13 @@ final class PlaybackAudioOutputTests: XCTestCase {
             ))
             sampler.sampleTick()
             XCTAssertEqual(sampler.latest?.audioOutput, output)
-            output = .init(renderingMode: "Mono / Stereo", connections: ["Bluetooth"])
+            output = .init(renderingMode: .localized("Mono / Stereo"), connections: [.format("Bluetooth")])
             sampler.sampleTick()
             XCTAssertEqual(sampler.latest?.audioOutput, output, "A route change must replace the old Atmos output")
-            output = .init(connections: ["AirPlay"])
+            output = .init(connections: [.format("AirPlay")])
             sampler.sampleTick()
             XCTAssertNil(sampler.latest?.audioOutput?.renderingMode)
-            XCTAssertEqual(sampler.latest?.audioOutput?.connections, ["AirPlay"])
+            XCTAssertEqual(sampler.latest?.audioOutput?.connections, [.format("AirPlay")])
             output = nil
             sampler.sampleTick()
             XCTAssertNil(sampler.latest?.audioOutput, "No measurement must not fall back to source Atmos")
@@ -59,7 +63,7 @@ final class PlaybackAudioOutputTests: XCTestCase {
         var reads = 0
         let sampler = PlaybackDiagnosticsSampler(audioOutputReader: {
             reads += 1
-            return .init(renderingMode: "Dolby Atmos", connections: ["HDMI"])
+            return .init(renderingMode: .format("Dolby Atmos"), connections: [.format("HDMI")])
         })
         sampler.start(player: nil, mode: .plozzigen, includesSystemMetrics: false)
         sampler.sampleTick()

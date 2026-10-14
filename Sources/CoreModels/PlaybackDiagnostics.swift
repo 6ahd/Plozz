@@ -127,10 +127,15 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
 
     /// Current system audio-session facts, not a detected physical speaker layout.
     public struct AudioOutput: Equatable, Sendable {
-        public var renderingMode: LocalizedStringResource?
-        public var connections: [LocalizedStringResource]
+        public enum Label: Equatable, Sendable {
+            case localized(LocalizedStringResource)
+            case format(String)
+        }
 
-        public init(renderingMode: LocalizedStringResource? = nil, connections: [LocalizedStringResource] = []) {
+        public var renderingMode: Label?
+        public var connections: [Label]
+
+        public init(renderingMode: Label? = nil, connections: [Label] = []) {
             self.renderingMode = renderingMode
             self.connections = connections
         }

@@ -165,7 +165,7 @@ final class PlaybackDiagnosticsHostedTests: XCTestCase {
             videoCodec: "HEVC", videoBitrate: 29_000_000,
             audioCodec: "Dolby Atmos", audioChannels: 8, audioSampleRate: 48_000, audioBitrate: 4_200_000,
             audioPipelineDescription: "TRUEHD Atmos → APAC 7.1.4",
-            audioOutput: .init(renderingMode: "Dolby Atmos", connections: ["HDMI"]),
+            audioOutput: .init(renderingMode: .format("Dolby Atmos"), connections: [.format("HDMI")]),
             subtitleDescription: "SubRip · English", container: "mkv", mode: .plozzigen,
             hdr: .dolbyVision, engineName: "Plozzigen", bufferedSecondsAhead: 10, engineBufferedSecondsAhead: 45,
             stallCount: 0, droppedVideoFrames: 0, frameRate: 24, observedFps: 23,
