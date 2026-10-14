@@ -27,7 +27,8 @@ struct TelevisionDiagnosticsPlacement<Content: View>: View {
     }
 
     static func availableRect(in bounds: CGRect, avoiding controls: [CGRect]) -> CGRect {
-        let inset = bounds.insetBy(dx: min(48, bounds.width / 4), dy: min(32, bounds.height / 4))
+        var inset = bounds.insetBy(dx: min(48, bounds.width / 4), dy: min(32, bounds.height / 4))
+        inset.size.width = min(inset.width, 1280)
         let top = controls
             .filter { !$0.isNull && !$0.isEmpty && $0.minY.isFinite && $0.intersects(inset) }
             .map(\.minY).min()

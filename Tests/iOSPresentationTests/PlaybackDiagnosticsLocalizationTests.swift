@@ -33,11 +33,14 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
     func testTelevisionDiagnosticsUseTheSameLocalizedLabels() throws {
         let panel = PlaybackDiagnosticsOverlay(diagnostics: fixture(mode: .transcode), presentation: .television)
         let text = try renderedText(
-            panel.televisionPanel(width: 1824),
+            panel.televisionPanel(width: 1280),
             locale: "cs"
         )
-        try assertLabels(in: text, mode: .transcode, wrapped: true)
+        try assertLabels(in: text, mode: .transcode, wrapped: true, compact: true)
         assertMediaContent(in: text)
+        for value in ["720", "300", "24.00", "Stereo", "48", "128", "HDMI", "628", "8.0"] {
+            XCTAssertTrue(text.contains(value), "Combining rows must preserve their measurements: \(text)")
+        }
     }
 
     func testOneRowRespondsToTheEnvironmentLanguageWithoutTranslatingItsValue() throws {
@@ -69,14 +72,15 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
             }
             let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics, presentation: .television)
             let text = try renderedText(
-                panel.televisionPanel(width: 1824), locale: "en"
+                panel.televisionPanel(width: 1280), locale: "en"
             )
-            assertAudioProcessing(in: text, pipeline: pipeline)
+            assertAudioProcessing(in: text, pipeline: pipeline, compact: true)
         }
     }
 
-    private func assertAudioProcessing(in text: String, pipeline: String) {
-        for token in ["Processing", "System output", "Dolby Atmos", "Connection", "HDMI", "TRUEHD"] {
+    private func assertAudioProcessing(in text: String, pipeline: String, compact: Bool = false) {
+        let tokens = ["Processing", "System output", "Dolby Atmos", "HDMI", "TRUEHD"] + (compact ? [] : ["Connection"])
+        for token in tokens {
             XCTAssertTrue(normalized(text).contains(normalized(token)), text)
         }
         let format = pipeline.contains("APAC") ? "APAC" : (pipeline.contains("FLAC") ? "FLAC" : "EAC3")
@@ -101,8 +105,36 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         }
     }
 
-    private func assertLabels(in text: String, mode: PlaybackDiagnostics.PlaybackMode, wrapped: Bool = false) throws {
+    func testCompactDiagnosticsKeepPartialMeasurementsIndependent() throws {
+        var diagnostics = fixture(mode: .plozzigen)
+        diagnostics.audioOutput = .init(connections: ["AirPlay"])
+        diagnostics.audioPipelineDescription = "TRUEHD → FLAC bridge"
+        diagnostics.frameRate = nil
+        diagnostics.observedFps = 23
+        diagnostics.bufferedSecondsAhead = nil
+        diagnostics.engineBufferedSecondsAhead = 45
+        diagnostics.videoBitDepth = 10
+        diagnostics.hdr = .dolbyVision
+        diagnostics.dolbyVisionProfile = 8
+        diagnostics.colorTransfer = "arib-std-b67"
+        diagnostics.videoRangeType = "DOVIWITHHLG"
+        let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics)
+        let text = try renderedText(panel.televisionPanel(width: 1280), locale: "en")
+        for token in ["AirPlay", "FLAC", "23 fps live", "Player", "Engine", "45.0", "P8", "10-bit", "DOVIWITHHLG"] {
+            XCTAssertTrue(normalized(text).contains(normalized(token)), text)
+        }
+        for absent in ["Dolby Atmos", "HDR10", "Healthy", "24.00", "10.0s"] {
+            XCTAssertFalse(normalized(text).contains(normalized(absent)), text)
+        }
+    }
+
+    private func assertLabels(
+        in text: String, mode: PlaybackDiagnostics.PlaybackMode, wrapped: Bool = false, compact: Bool = false
+    ) throws {
         var labels = commonLabelKeys
+        if compact {
+            labels.removeAll { ["Codec", "Resolution", "Frame Rate", "Channels", "Sample Rate", "Connection", "Engine buffer"].contains($0) }
+        }
         labels += mode == .plozzigen ? ["AVPlayer time", "AVPlayer window"] : ["Position", "Seekable"]
         labels += mode == .transcode ? ["Estimated bitrate", "Video", "Audio", "Container"] : ["Container"]
         let bundleURL = try XCTUnwrap(Bundle.main.url(forResource: "cs", withExtension: "lproj"))

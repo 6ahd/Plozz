@@ -154,35 +154,29 @@ struct PlaybackDiagnosticsOverlay: View {
 
     @ViewBuilder
     private func sectionsGrid(for d: PlaybackDiagnostics, width: CGFloat) -> some View {
-        let wide = width >= 1400
-        let columnCount: CGFloat = wide ? 4 : 3
-        let columnWidth = max(0, (width - 48 - 24 * (columnCount - 1)) / columnCount)
+        let columnWidth = max(0, (width - 96) / 3)
         HStack(alignment: .top, spacing: 24) {
             VStack(alignment: .leading, spacing: 12) {
                 sourceSection(d)
-                subtitleSection(d)
-                if d.mode == .transcode { originalFileSection(d) }
+                if let live = d.liveStream {
+                    liveSection(live)
+                } else {
+                    systemSection(d)
+                }
             }
             .frame(width: columnWidth, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 12) {
                 videoSection(d)
-                if !wide { audioSection(d) }
+                audioSection(d)
+                subtitleSection(d)
             }
             .frame(width: columnWidth, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
-            if wide {
-                VStack(alignment: .leading, spacing: 12) {
-                    audioSection(d)
-                    systemSection(d)
-                }
-                .frame(width: columnWidth, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-            }
             VStack(alignment: .leading, spacing: 12) {
                 playbackSection(d)
-                if let live = d.liveStream { liveSection(live) }
-                if !wide { systemSection(d) }
+                if d.mode == .transcode { originalFileSection(d) }
+                if d.liveStream != nil { systemSection(d) }
             }
             .frame(width: columnWidth, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
@@ -194,10 +188,12 @@ struct PlaybackDiagnosticsOverlay: View {
         section("SOURCE") {
             optionalRow("File", d.sourceFileNameText, lineLimit: presentation == .television ? 2 : nil)
             optionalRow("Size", d.sourceFileSizeText)
-            row(LocalizedStringResource("Delivery", comment: "Playback diagnostics label for how media is delivered: direct play, remuxing, or server transcoding."), d.mode.displayName)
+            row(LocalizedStringResource("Delivery", comment: "Playback diagnostics label for how media is delivered: direct play, remuxing, or server transcoding."),
+                presentation == .television && d.mode == .plozzigen && d.engineName != nil
+                    ? PlaybackDiagnostics.PlaybackMode.directPlay.displayName : d.mode.displayName)
             optionalRow(LocalizedStringResource("Stream", comment: "Playback diagnostics label for the current stream host and transport format."), streamTransportText(d.streamTransport))
             if d.mode != .transcode {
-                optionalRow(LocalizedStringResource("Container", comment: "Playback diagnostics label for the media container format, such as MKV or MP4."), d.containerText)
+                optionalRow(LocalizedStringResource("Container", comment: "Playback diagnostics label for the media container format, such as MKV or MP4."), containerText(d))
             }
         }
     }
@@ -205,15 +201,18 @@ struct PlaybackDiagnosticsOverlay: View {
     @ViewBuilder
     private func videoSection(_ d: PlaybackDiagnostics) -> some View {
         section(d.mode == .transcode ? "CURRENT VIDEO" : "VIDEO") {
-            if d.mode == .transcode {
+            if presentation == .television {
+                summaryValue(compactParts([d.videoCodecText, d.resolutionWithQualityText, compactFrameRate(d)]))
+            } else if d.mode == .transcode {
                 row(LocalizedStringResource("Codec", comment: "Playback diagnostics label for the video or audio encoding format."), d.videoCodecText)
                 row("Resolution", d.resolutionWithQualityText)
             } else {
                 optionalRow(LocalizedStringResource("Codec", comment: "Playback diagnostics label for the video or audio encoding format."), d.videoCodecText)
                 optionalRow("Resolution", d.resolutionWithQualityText)
             }
-            // Nominal frame rate + live observed FPS folded into one row.
-            optionalRow(LocalizedStringResource("Frame Rate", comment: "Playback diagnostics label for video frames per second."), frameRateCombined(d))
+            if presentation == .mobile {
+                optionalRow(LocalizedStringResource("Frame Rate", comment: "Playback diagnostics label for video frames per second."), frameRateCombined(d))
+            }
             if d.mode == .transcode {
                 if let bitrate = d.videoBitrate {
                     row(LocalizedStringResource("Estimated bitrate", comment: "Playback diagnostics label for the estimated bitrate of the current transcoded video."), PlaybackDiagnostics.formatBitrate(bitrate))
@@ -221,9 +220,12 @@ struct PlaybackDiagnosticsOverlay: View {
             } else {
                 optionalRow("Bitrate", PlaybackDiagnostics.formatBitrate(d.videoBitrate))
             }
-            // HDR format + Dolby Vision profile folded into a single HDR row.
-            optionalRow(Text(verbatim: "HDR"), hdrCombined(d))
-            optionalRow("Color", d.colorText)
+            if presentation == .television {
+                optionalRow(Text(verbatim: "HDR / ") + Text("Color"), compactHDR(d))
+            } else {
+                optionalRow(Text(verbatim: "HDR"), hdrCombined(d))
+                optionalRow("Color", d.colorText)
+            }
             optionalRow(LocalizedStringResource("Codec Tag", comment: "Playback diagnostics label for the technical codec identifier stored in the media container."), d.videoCodecTagText)
         }
     }
@@ -231,24 +233,33 @@ struct PlaybackDiagnosticsOverlay: View {
     @ViewBuilder
     private func audioSection(_ d: PlaybackDiagnostics) -> some View {
         section(d.mode == .transcode ? "CURRENT AUDIO" : "AUDIO") {
-            if d.mode == .transcode {
+            if presentation == .television {
+                summaryValue(d.audioLineText)
+            } else if d.mode == .transcode {
                 row(LocalizedStringResource("Codec", comment: "Playback diagnostics label for the video or audio encoding format."), d.audioCodecText)
                 row("Channels", d.audioChannelsText)
             } else {
                 optionalRow(LocalizedStringResource("Codec", comment: "Playback diagnostics label for the video or audio encoding format."), d.audioCodecText)
                 optionalRow("Channels", d.audioChannelsText)
             }
-            optionalRow(LocalizedStringResource("Sample Rate", comment: "Playback diagnostics label for the audio sampling frequency."), d.audioSampleRateText)
-            optionalRow("Bitrate", d.audioBitrateText)
+            if presentation == .mobile {
+                optionalRow(LocalizedStringResource("Sample Rate", comment: "Playback diagnostics label for the audio sampling frequency."), d.audioSampleRateText)
+                optionalRow("Bitrate", d.audioBitrateText)
+            }
             if d.mode == .plozzigen {
                 row(LocalizedStringResource("Processing", comment: "Playback diagnostics label for the engine's actual audio conversion or stream-copy pipeline."),
                     d.audioPipelineDescription ?? PlaybackDiagnostics.placeholder)
             }
-            optionalRow(LocalizedStringResource("System output", comment: "Playback diagnostics: the current audio rendering mode reported by the operating system, not a detected physical speaker layout."),
-                        d.audioOutput?.renderingMode)
-            if let connections = d.audioOutput?.connections, let first = connections.first {
-                row(LocalizedStringResource("Connection", comment: "Playback diagnostics: the audio output connection type, such as HDMI, Bluetooth, or AirPlay."),
-                    connections.dropFirst().reduce(Text(first)) { $0 + Text(verbatim: " · ") + Text($1) })
+            if presentation == .television {
+                optionalRow(LocalizedStringResource("System output", comment: "Playback diagnostics: the current audio rendering mode reported by the operating system, not a detected physical speaker layout."),
+                            systemOutputText(d.audioOutput))
+            } else {
+                optionalRow(LocalizedStringResource("System output", comment: "Playback diagnostics: the current audio rendering mode reported by the operating system, not a detected physical speaker layout."),
+                            d.audioOutput?.renderingMode)
+                if let connections = d.audioOutput?.connections, let first = connections.first {
+                    row(LocalizedStringResource("Connection", comment: "Playback diagnostics: the audio output connection type, such as HDMI, Bluetooth, or AirPlay."),
+                        connections.dropFirst().reduce(Text(first)) { $0 + Text(verbatim: " · ") + Text($1) })
+                }
             }
         }
     }
@@ -256,7 +267,7 @@ struct PlaybackDiagnosticsOverlay: View {
     private func originalFileSection(_ d: PlaybackDiagnostics) -> some View {
         let source = PlaybackDiagnostics.base(from: d.originalSource, mode: .directPlay)
         return section("ORIGINAL FILE") {
-            optionalRow(LocalizedStringResource("Container", comment: "Playback diagnostics label for the media container format, such as MKV or MP4."), source.containerText)
+            optionalRow(LocalizedStringResource("Container", comment: "Playback diagnostics label for the media container format, such as MKV or MP4."), containerText(source))
             optionalRow(LocalizedStringResource("Video", comment: "Playback diagnostics label for the original file's video format and quality."), source.videoLineText)
             optionalRow("Audio", source.audioLineText)
         }
@@ -303,8 +314,12 @@ struct PlaybackDiagnosticsOverlay: View {
                 ? .init("AVPlayer window", comment: "Playback diagnostics label for the internal AVPlayer seekable time range. Keep AVPlayer unchanged.")
                 : .init("Seekable", comment: "Playback diagnostics label for the time range available for seeking."), seekWindowText(d.seekWindowFacts))
             optionalRow(LocalizedStringResource("State", comment: "Playback diagnostics label for the current player state."), d.playbackStateText)
-            row(LocalizedStringResource("Buffer", comment: "Playback diagnostics label for the player's buffered media and buffer health."), bufferStatusText(d.bufferStatusFacts))
-            optionalRow(LocalizedStringResource("Engine buffer", comment: "Playback diagnostics label for media buffered ahead by the playback engine."), PlaybackDiagnostics.formatBuffer(d.engineBufferedSecondsAhead))
+            if presentation == .television {
+                row(LocalizedStringResource("Buffer", comment: "Playback diagnostics label for the player's buffered media and buffer health."), compactBufferText(d))
+            } else {
+                row(LocalizedStringResource("Buffer", comment: "Playback diagnostics label for the player's buffered media and buffer health."), bufferStatusText(d.bufferStatusFacts))
+                optionalRow(LocalizedStringResource("Engine buffer", comment: "Playback diagnostics label for media buffered ahead by the playback engine."), PlaybackDiagnostics.formatBuffer(d.engineBufferedSecondsAhead))
+            }
             optionalRow(LocalizedStringResource("Stalls", comment: "Playback diagnostics label for the count of playback stalls."), d.stallCount.map(String.init) ?? PlaybackDiagnostics.placeholder)
             row(LocalizedStringResource("Dropped", comment: "Playback diagnostics label for dropped video frames."), "\(d.droppedFramesText) frames")
             optionalRow("Declared stream bitrate", d.indicatedBitrateText)
@@ -342,6 +357,14 @@ struct PlaybackDiagnosticsOverlay: View {
     }
 
     // MARK: - Rows
+
+    private func summaryValue(_ value: String) -> some View { // l10n:content — combined measured media format
+        Text(verbatim: value)
+            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+            .foregroundStyle(palette.primaryText)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
 
     @ViewBuilder
     private func optionalRow(_ label: LocalizedStringResource, _ value: String, lineLimit: Int? = nil) -> some View {   // l10n:content — diagnostic value
@@ -481,6 +504,47 @@ struct PlaybackDiagnosticsOverlay: View {
     }
 
     // MARK: - Helpers
+
+    private func compactParts(_ values: [String]) -> String {
+        let parts = values.filter { $0 != PlaybackDiagnostics.placeholder && !$0.isEmpty }
+        return parts.isEmpty ? PlaybackDiagnostics.placeholder : parts.joined(separator: " · ")
+    }
+
+    private func containerText(_ d: PlaybackDiagnostics) -> String {
+        guard presentation == .television, let container = d.container?.trimmingCharacters(in: .whitespaces),
+              !container.isEmpty else { return d.containerText }
+        return container.uppercased()
+    }
+
+    private func compactHDR(_ d: PlaybackDiagnostics) -> String {
+        let profile = d.dolbyVisionProfile.map { "P\($0)" } ?? PlaybackDiagnostics.placeholder
+        // Keep the reported range token: profile 8 alone does not establish
+        // whether the source's compatible base layer is HDR10, HLG, or SDR.
+        return compactParts([d.hdr.shortName ?? PlaybackDiagnostics.placeholder, profile, d.colorText])
+    }
+
+    private func compactFrameRate(_ d: PlaybackDiagnostics) -> String { // l10n:content — nominal and measured FPS
+        let observed = d.observedFpsText
+        return compactParts([d.frameRateText, observed == PlaybackDiagnostics.placeholder ? observed : "\(observed) live"])
+    }
+
+    private func systemOutputText(_ output: PlaybackDiagnostics.AudioOutput?) -> Text? {
+        guard let output else { return nil }
+        let parts = [output.renderingMode].compactMap { $0 } + output.connections
+        guard let first = parts.first else { return nil }
+        return parts.dropFirst().reduce(Text(first)) { $0 + Text(verbatim: " · ") + Text($1) }
+    }
+
+    private func compactBufferText(_ d: PlaybackDiagnostics) -> Text {
+        let player = d.bufferStatusFacts
+        var text = Text("Player") + Text(verbatim: " ") + Text(verbatim: player.secondsAhead ?? PlaybackDiagnostics.placeholder)
+        if let status = player.status { text = text + Text(verbatim: " (") + Text(status) + Text(verbatim: ")") }
+        let engine = PlaybackDiagnostics.formatBuffer(d.engineBufferedSecondsAhead)
+        if engine != PlaybackDiagnostics.placeholder {
+            text = text + Text(verbatim: " · ") + Text("Engine") + Text(verbatim: " ") + Text(verbatim: engine)
+        }
+        return text
+    }
 
     /// Leading numeric token of a formatted value ("24 fps" → "24",
     /// "11.9 Mbps" → "11.9"), or `nil` for the placeholder. Lets a live/observed

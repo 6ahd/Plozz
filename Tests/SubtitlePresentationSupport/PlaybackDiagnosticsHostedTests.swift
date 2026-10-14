@@ -22,11 +22,45 @@ final class PlaybackDiagnosticsHostedTests: XCTestCase {
         let unobstructed = TelevisionDiagnosticsPlacement<EmptyView>.availableRect(
             in: bounds, avoiding: [.null, CGRect(x: 3000, y: 0, width: 100, height: 100)]
         )
-        XCTAssertEqual(unobstructed, bounds.insetBy(dx: 48, dy: 32))
+        XCTAssertEqual(unobstructed, CGRect(x: 88, y: 62, width: 1280, height: 1016))
+        let rightMenu = CGRect(x: 1450, y: 100, width: 450, height: 800)
+        XCTAssertEqual(
+            TelevisionDiagnosticsPlacement<EmptyView>.availableRect(in: bounds, avoiding: [rightMenu]),
+            unobstructed, "A menu outside the narrower panel must not hide diagnostics"
+        )
+        let smallBounds = CGRect(x: 0, y: 0, width: 1280, height: 720)
+        XCTAssertEqual(
+            TelevisionDiagnosticsPlacement<EmptyView>.availableRect(in: smallBounds, avoiding: []).width,
+            1184
+        )
     }
 
     #if os(tvOS)
     func testFullDiagnosticsClearRealTransportAndInfoCardWithoutShrinkingText() async throws {
+        try await assertControlClearance(diagnostics: fixture, expectedTokens: [
+            "APAC", "7.1.4", "HDMI", "Thermal", "engines 2", "Stalls", "Dropped",
+            "33.2", "82.0", "45.0", "10.0", "24.00", "23 fps live", "P8", "10-bit", "DOVIWITHHDR10"
+        ])
+    }
+
+    func testLiveDiagnosticsRetainAllSectionsWithinTheCompactPanel() async throws {
+        var diagnostics = fixture
+        diagnostics.liveStream = .init(
+            route: "Native HLS", playlistType: "LIVE", behindLiveSeconds: 12, windowSeconds: 300,
+            programDate: Date(timeIntervalSince1970: 1_790_000_000), startupSeconds: 1.5,
+            tuneToFirstFrameSeconds: 2, variantSwitches: 3, segmentRequests: 123,
+            bytesTransferred: 45_000_000, overdueSegments: 2, errorCount: 1, lastErrorStatus: 503
+        )
+        diagnostics.liveStream?.variantWidth = 1920
+        diagnostics.liveStream?.variantHeight = 1080
+        diagnostics.liveStream?.variantBitrate = 8_000_000
+        try await assertControlClearance(diagnostics: diagnostics, expectedTokens: [
+            "Native HLS", "Rewind", "Segments", "123 req", "503", "1080", "HDMI",
+            "Thermal", "engines 2", "Stalls", "Dropped", "82.0"
+        ])
+    }
+
+    private func assertControlClearance(diagnostics: PlaybackDiagnostics, expectedTokens: [String]) async throws {
         let scene = try await activeScene()
         let previous = scene.windows.first(where: \.isKeyWindow)
         let model = PlayerControlsModel()
@@ -44,7 +78,7 @@ final class PlaybackDiagnosticsHostedTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
-        let diagnostics = PlaybackDiagnosticsOverlay(diagnostics: fixture)
+        let diagnostics = PlaybackDiagnosticsOverlay(diagnostics: diagnostics)
         let panel = UIHostingController(rootView:
             TelevisionDiagnosticsPlacement(controlsLayout: model.subtitleLayout) { width in
                 diagnostics.televisionPanel(width: width)
@@ -78,16 +112,15 @@ final class PlaybackDiagnosticsHostedTests: XCTestCase {
                 }
             }
             let frame = try XCTUnwrap(measurement.frame)
-            XCTAssertGreaterThan(frame.width, 1400, "Use the TV width instead of the old narrow, tall panel")
+            XCTAssertEqual(frame.width, 1280, accuracy: 1, "The panel must use at most two-thirds of a 1920-point viewport")
             XCTAssertLessThan(frame.height, 580, "All sections should fit above the Info card")
-            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 3
+            let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
                 XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
             }
-            let request = VNRecognizeTextRequest()
-            request.recognitionLevel = .accurate
-            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-            let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-            for token in ["APAC", "7.1.4", "HDMI", "Thermal", "engines 2"] {
+            let text = try recognizedPanelText(image, frame: frame)
+            for token in expectedTokens {
                 XCTAssertTrue(text.contains(token), "The complete panel must be visible, including its last row: \(text)")
             }
             let attachment = XCTAttachment(image: image)
@@ -105,20 +138,43 @@ final class PlaybackDiagnosticsHostedTests: XCTestCase {
         try await waitUntil { measurement.frame != nil }
     }
 
+    private func recognizedPanelText(_ image: UIImage, frame: CGRect) throws -> String {
+        let cgImage = try XCTUnwrap(image.cgImage)
+        let panel = try XCTUnwrap(cgImage.cropping(to: CGRect(
+            x: frame.minX * image.scale, y: frame.minY * image.scale,
+            width: frame.width * image.scale, height: frame.height * image.scale
+        )))
+        var lines: [String] = []
+        for y in stride(from: 0, to: panel.height, by: 1000) {
+            for x in stride(from: 0, to: panel.width, by: 1200) {
+                let tile = try XCTUnwrap(panel.cropping(to: CGRect(
+                    x: x, y: y, width: min(1800, panel.width - x), height: min(1200, panel.height - y)
+                )))
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                try VNImageRequestHandler(cgImage: tile).perform([request])
+                lines += (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+            }
+        }
+        return lines.joined(separator: " ").split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
     private var fixture: PlaybackDiagnostics {
         var value = PlaybackDiagnostics(
-            resolution: .init(width: 3840, height: 2160), videoCodec: "HEVC", videoBitrate: 29_000_000,
+            resolution: .init(width: 3840, height: 2160), indicatedBitrate: 33_200_000, observedBitrate: 82_000_000,
+            videoCodec: "HEVC", videoBitrate: 29_000_000,
             audioCodec: "Dolby Atmos", audioChannels: 8, audioSampleRate: 48_000, audioBitrate: 4_200_000,
             audioPipelineDescription: "TRUEHD Atmos → APAC 7.1.4",
             audioOutput: .init(renderingMode: "Dolby Atmos", connections: ["HDMI"]),
             subtitleDescription: "SubRip · English", container: "mkv", mode: .plozzigen,
             hdr: .dolbyVision, engineName: "Plozzigen", bufferedSecondsAhead: 10, engineBufferedSecondsAhead: 45,
-            stallCount: 0, droppedVideoFrames: 0, frameRate: 24,
+            stallCount: 0, droppedVideoFrames: 0, frameRate: 24, observedFps: 23,
             deviceModel: "Apple TV 4K (2nd gen)", deviceMemoryBytes: 3_000_000_000,
             freeDiskBytes: 600_000_000, totalDiskBytes: 32_000_000_000,
             memoryFootprintBytes: 950_000_000, thermalState: .nominal, liveViewModels: 1, liveNativeEngines: 2,
             sourceFileName: String(repeating: "A long media filename [2160p][Dolby Vision][TrueHD Atmos 7.1] ", count: 5) + ".mkv",
-            sourceFileSizeBytes: 28_000_000_000, dolbyVisionProfile: 8, colorTransfer: "smpte2084",
+            sourceFileSizeBytes: 28_000_000_000, videoCodecTag: "hvc1", videoBitDepth: 10,
+            dolbyVisionProfile: 8, colorTransfer: "smpte2084",
             videoRangeType: "DOVIWITHHDR10", durationSeconds: 7488, positionSeconds: 87,
             seekableStartSeconds: 0, seekableEndSeconds: 7488, playbackState: "Ready · Playing"
         )

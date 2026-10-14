@@ -108,8 +108,15 @@ an older sample. No personal device names or route identifiers are collected.
 APAC's 7.1.4 is an intermediate processing layout; the system's rendering mode
 is stronger evidence of delivery, but neither detects the physical speaker layout.
 
-The TV diagnostics use a wide, column-based panel above the measured visible
-playback controls, including the Info/Cast tabs and cards. Long filenames are
+The TV diagnostics use three columns capped at 1280 points (two-thirds of a
+1920-point TV viewport), above the measured visible playback controls, including
+the Info/Cast tabs and cards. Format summaries combine related video/audio facts;
+system output includes the connection, while Processing remains separate.
+The buffer row labels player and engine measurements independently. HDR keeps
+the Dolby Vision profile and reported color/range facts rather than inferring
+compatibility from a profile number. Playback-health metrics, including zero
+stalls/drops, memory, thermal state, and seeking, remain visible. Mobile retains
+its expanded, scrollable rows. Long filenames are
 limited to two lines on TV (the mobile sheet keeps the complete value). If a
 tall menu leaves no room for the complete panel, diagnostics temporarily yield
 to the controls instead of overlapping them, clipping rows, or shrinking text.
