@@ -174,10 +174,14 @@ public struct HeroCurator: Sendable {
             let filtered = HeroWatchEligibility.filter(
                 items.filter { sourceEligibility.allows($0, from: settings.sources[index]) },
                 settings: settings,
-                mutations: watchMutations
+                mutations: watchMutations,
+                combinesDuplicateWatchState: settings.sources[index] == .collection
             )
             let ranked = freshness.ranked(filtered, source: settings.sources[index], settings: settings)
-            return settings.sources[index] == .collection ? Array(ranked.prefix(discoveryLimit)) : ranked
+            if settings.sources[index] == .collection {
+                return HeroDedupe.groups(ranked).prefix(discoveryLimit).flatMap { $0 }
+            }
+            return ranked
         }
 
         let eligible = await HeroArtworkEligibility.resolve(
@@ -187,6 +191,7 @@ public struct HeroCurator: Sendable {
                 freshness.ranksDiscovery($0, settings: settings)
                     ? HeroFreshnessSnapshot.candidateLimit(for: limit) : limit
             },
+            groupAlternatesForSources: Set(settings.sources.indices.filter { settings.sources[$0] == .collection }),
             artworkProvider: artworkProvider,
             validate: artworkValidator
         )
@@ -233,9 +238,11 @@ public struct HeroCurator: Sendable {
                 hasMembers = hasMembers || page.totalCount > 0
                 buckets.append(page.items.filter { $0.kind == .movie || $0.kind == .series })
             }
-            // Rank all sampled collections before capping the combined pool, so
-            // later selections are not permanently excluded by earlier ones.
-            let items = InterleaveHeroStrategy().compose(buckets, limit: buckets.reduce(0) { $0 + $1.count })
+            // Keep every copy until watch evidence and usable artwork have been
+            // considered. Interleaving here must not discard alternate records.
+            let items = (0..<(buckets.map(\.count).max() ?? 0)).flatMap { offset in
+                buckets.compactMap { offset < $0.count ? $0[offset] : nil }
+            }
             return hasMembers ? .loaded(items) : .empty
         } catch is CancellationError {
             return .idle
@@ -316,32 +323,9 @@ public struct HeroCurator: Sendable {
     /// that were distinct during initial curation may therefore become the same
     /// title after enrichment.
     public func deduplicating(_ items: [MediaItem]) -> [MediaItem] {
-        var groups: [(tokens: Set<String>, items: [MediaItem])] = []
-        for item in items {
-            let tokens = HeroDedupe.tokens(for: item)
-            let matches = groups.indices.filter {
-                !tokens.isDisjoint(with: groups[$0].tokens)
-            }
-            guard let destination = matches.first else {
-                groups.append((tokens, [item]))
-                continue
-            }
-
-            var mergedTokens = tokens
-            var mergedItems: [MediaItem] = []
-            for index in matches {
-                mergedTokens.formUnion(groups[index].tokens)
-                mergedItems.append(contentsOf: groups[index].items)
-            }
-            mergedItems.append(item)
-            for index in matches.dropFirst().reversed() {
-                groups.remove(at: index)
-            }
-            groups[destination] = (mergedTokens, mergedItems)
-        }
-        return groups.map { group in
-            var merged = MediaItemMerger.mergeGroup(group.items)
-            for donor in group.items {
+        HeroDedupe.groups(items).map { group in
+            var merged = MediaItemMerger.mergeGroup(group)
+            for donor in group {
                 merged.fillingMissingPresentation(from: donor)
             }
             return merged
@@ -352,7 +336,8 @@ public struct HeroCurator: Sendable {
         static func filter(
             _ items: [MediaItem],
             settings: HeroSettings,
-            mutations: [MediaItemMutation]
+            mutations: [MediaItemMutation],
+            combinesDuplicateWatchState: Bool = false
         ) -> [MediaItem] {
             // Apply every mutation to each item in a single pass. (A reduce that
             // `map`ped per mutation reallocated the whole array once per mutation;
@@ -362,6 +347,17 @@ public struct HeroCurator: Sendable {
                 mutations.reduce(item) { current, mutation in mutation.applied(to: current) }
             }
 
+            if combinesDuplicateWatchState {
+                return HeroDedupe.groups(reconciled).flatMap { copies -> [MediaItem] in
+                    let hasBeenPlayed = copies.contains(where: \.hasBeenPlayed)
+                    guard !settings.hideWatched || !hasBeenPlayed else { return [] }
+                    return copies.map { copy in
+                        var copy = copy
+                        copy.hasBeenPlayed = hasBeenPlayed
+                        return copy
+                    }
+                }
+            }
             guard settings.hideWatched else { return reconciled }
             return reconciled.filter { item in
                 switch item.kind {
@@ -395,6 +391,7 @@ enum HeroArtworkEligibility {
         _ perSource: [[MediaItem]],
         limitPerSource: Int,
         limitsPerSource: [Int]? = nil,
+        groupAlternatesForSources: Set<Int> = [],
         artworkProvider: @escaping HeroArtworkProviding,
         validate: @escaping HeroArtworkValidating = HeroArtworkValidator.presence
     ) async -> [[MediaItem]] {
@@ -405,7 +402,8 @@ enum HeroArtworkEligibility {
             for (sourceIndex, items) in perSource.enumerated() {
                 group.addTask {
                     let eligible = await eligible(
-                        in: items,
+                        in: groupAlternatesForSources.contains(sourceIndex)
+                            ? HeroDedupe.groups(items) : items.map { [$0] },
                         limitPerSource: limitsPerSource?[sourceIndex] ?? limitPerSource,
                         artworkProvider: artworkProvider,
                         validate: validate
@@ -427,28 +425,30 @@ enum HeroArtworkEligibility {
     /// original order — so dedup (only across *accepted* items) and the `limit` cap
     /// match a purely serial pass exactly; concurrency only hides the check latency.
     private static func eligible(
-        in items: [MediaItem],
+        in groups: [[MediaItem]],
         limitPerSource: Int,
         artworkProvider: @escaping HeroArtworkProviding,
         validate: @escaping HeroArtworkValidating
     ) async -> [MediaItem] {
-        guard !items.isEmpty else { return [] }
+        guard !groups.isEmpty else { return [] }
 
-        // Determine one candidate's usability independently: its own art first,
-        // then the async provider (TMDb) as a fallback, dropping it when neither
-        // yields a usable full-bleed image.
-        @Sendable func determine(_ index: Int) async -> (Int, MediaItem, Bool) {
-            var candidate = items[index]
-            var usable = await validate(heroArtworkURLs(for: candidate))
-            if !usable, let resolvedURL = await artworkProvider(candidate) {
-                candidate.heroBackdropURL = resolvedURL
-                usable = await validate(heroArtworkURLs(for: candidate))
+        // Try each copy's artwork before retiring the title. Keep the usable
+        // copy's provider identity rather than grafting another server's URLs.
+        @Sendable func determine(_ index: Int) async -> (Int, MediaItem?) {
+            for var candidate in groups[index] {
+                guard !Task.isCancelled else { return (index, nil) }
+                var usable = await validate(heroArtworkURLs(for: candidate))
+                if !usable, let resolvedURL = await artworkProvider(candidate) {
+                    candidate.heroBackdropURL = resolvedURL
+                    usable = await validate(heroArtworkURLs(for: candidate))
+                }
+                if usable { return (index, candidate) }
             }
-            return (index, candidate, usable)
+            return (index, nil)
         }
 
         var eligible: [MediaItem] = []
-        eligible.reserveCapacity(min(items.count, limitPerSource))
+        eligible.reserveCapacity(min(groups.count, limitPerSource))
         var accepted = Set<String>()
 
         // Walk the source in bounded, index-ordered chunks: each chunk's art checks
@@ -456,25 +456,27 @@ enum HeroArtworkEligibility {
         // items only) and the cap match a serial pass. Stopping at the first chunk
         // that fills the hero bounds the over-check to at most one window.
         var index = 0
-        while index < items.count, eligible.count < limitPerSource, !Task.isCancelled {
-            let end = min(index + maxConcurrentValidations, items.count)
+        while index < groups.count, eligible.count < limitPerSource, !Task.isCancelled {
+            let end = min(index + maxConcurrentValidations, groups.count)
             let chunk = await withTaskGroup(
-                of: (Int, MediaItem, Bool).self,
-                returning: [(Int, MediaItem, Bool)].self
+                of: (Int, MediaItem?).self,
+                returning: [(Int, MediaItem?)].self
             ) { group in
                 for candidateIndex in index..<end {
                     group.addTask { await determine(candidateIndex) }
                 }
-                var results: [(Int, MediaItem, Bool)] = []
+                var results: [(Int, MediaItem?)] = []
                 for await result in group { results.append(result) }
                 return results.sorted { $0.0 < $1.0 }
             }
 
-            for (_, candidate, usable) in chunk {
-                guard usable else { continue }
+            for (groupIndex, candidate) in chunk {
+                guard let candidate else { continue }
                 let tokens = HeroDedupe.tokens(for: candidate)
                 guard !tokens.contains(where: accepted.contains) else { continue }
-                accepted.formUnion(tokens)
+                for copy in groups[groupIndex] {
+                    accepted.formUnion(HeroDedupe.tokens(for: copy))
+                }
                 eligible.append(candidate)
                 if eligible.count == limitPerSource { break }
             }
@@ -538,6 +540,32 @@ public struct InterleaveHeroStrategy: HeroRankingStrategy {
 /// identity definition (``MediaItemIdentity``) so the same title appearing in,
 /// say, both Continue Watching and Watchlist collapses to a single hero slide.
 enum HeroDedupe {
+    static func groups(_ items: [MediaItem]) -> [[MediaItem]] {
+        var groups: [(tokens: Set<String>, items: [MediaItem])] = []
+        for item in items {
+            let tokens = tokens(for: item)
+            let matches = groups.indices.filter {
+                !tokens.isDisjoint(with: groups[$0].tokens)
+            }
+            guard let destination = matches.first else {
+                groups.append((tokens, [item]))
+                continue
+            }
+            var mergedTokens = tokens
+            var mergedItems: [MediaItem] = []
+            for index in matches {
+                mergedTokens.formUnion(groups[index].tokens)
+                mergedItems.append(contentsOf: groups[index].items)
+            }
+            mergedItems.append(item)
+            for index in matches.dropFirst().reversed() {
+                groups.remove(at: index)
+            }
+            groups[destination] = (mergedTokens, mergedItems)
+        }
+        return groups.map(\.items)
+    }
+
     /// Identity tokens for `item`: its strong external / title identities plus a
     /// raw-id fallback (so items with no resolvable identity still de-dupe with
     /// an exact same-server twin). Two items are "the same" when any token

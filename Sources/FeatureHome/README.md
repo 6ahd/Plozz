@@ -68,10 +68,14 @@ fallback when the user's server has no attached trailer.
   watched-title, artwork, freshness and source-mixing rules. A session-seeded,
   bounded window per collection gives large collections coverage beyond their first page
   without enumerating entire collections on Home. Loads are serial within this
-  source, each sampling at most 48 members; round-robin composition removes
-  overlapping titles with the shared hero identity rules. All sampled selections
-  participate in watch filtering and freshness ranking before the combined pool
-  is capped, so later selections are not permanently crowded out. Short pages
+  source, each sampling at most 48 members. Round-robin sampling retains alternate
+  copies through eligibility checks. After applying current watch mutations,
+  Hide Watched excludes a title if any matching selected copy has been watched,
+  even before the identity index is warm. All sampled selections participate in
+  filtering and freshness ranking before the candidate cap, which counts distinct
+  title groups without dropping their alternate artwork. Bounded artwork checks
+  choose the first usable copy per group, preserving its provider routing; final
+  source mixing still shows each title once. Short pages
   follow the reported total, while duplicate/non-progressing pages fail the
   whole load. Cancellation and fetch failures are distinct from a confirmed
   empty collection. Selection changes invalidate the cached lineup; account

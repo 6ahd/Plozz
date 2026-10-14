@@ -146,6 +146,106 @@ final class HeroCollectionTests: XCTestCase {
         XCTAssertEqual(result.items.map(\.id), [try XCTUnwrap(members.last).id])
     }
 
+    func testAlternateCollectionArtworkSurvivesMissingOrBrokenFirstCopyAndCandidateCap() async {
+        for kind in [MediaItemKind.movie, .series] {
+            for missingArtwork in [true, false] {
+                var first = item("first", kind: kind)
+                first.providerIDs["Tmdb"] = "42"
+                if missingArtwork { first.backdropURL = nil }
+                var alternate = item("alternate", kind: kind)
+                alternate.providerIDs["tmdb"] = "42"
+                let usableURL = alternate.backdropURL
+                let result = await curateCollections(
+                    [[first], [alternate]],
+                    validate: { $0.contains { $0 == usableURL } }
+                )
+                XCTAssertEqual(result.items.map(\.id), ["alternate"])
+                XCTAssertEqual(result.items.first?.sourceAccountID, "account-1")
+                XCTAssertEqual(result.candidatePool.buckets.first?.items.map(\.id), ["alternate"])
+                XCTAssertEqual(result.durableItems.map(\.id), ["alternate"])
+            }
+        }
+    }
+
+    func testWatchedEvidenceFromAnyCollectionCopyHonorsHideWatchedAndLatestMutations() async {
+        for kind in [MediaItemKind.movie, .series] {
+            var first = item("first", kind: kind)
+            first.providerIDs["Tmdb"] = "42"
+            var alternate = item("alternate", kind: kind, watched: true)
+            alternate.providerIDs["tmdb"] = "42"
+            let hidden = await curateCollections([[first], [alternate]])
+            XCTAssertTrue(hidden.items.isEmpty, "A cold identity index must not hide fetched watch evidence.")
+            let shown = await curateCollections([[first], [alternate]], hideWatched: false)
+            XCTAssertEqual(shown.items.map(\.id), ["first"])
+            XCTAssertEqual(shown.items.first?.hasBeenPlayed, true)
+            let markedUnwatched = await curateCollections(
+                [[first], [alternate]],
+                mutations: [.init(itemIDs: ["alternate"], scopedItemIDs: ["account-1:alternate"], played: false)]
+            )
+            XCTAssertEqual(markedUnwatched.items.map(\.id), ["first"])
+            XCTAssertEqual(markedUnwatched.items.first?.hasBeenPlayed, false)
+        }
+    }
+
+    func testAlternateCopiesDoNotConsumeOtherTitlesCandidateSlots() async {
+        var first = item("first")
+        first.providerIDs["Tmdb"] = "42"
+        var alternate = item("alternate")
+        alternate.providerIDs["tmdb"] = "42"
+        let result = await curateCollections([[first, item("other")], [alternate]], maxItems: 2)
+        XCTAssertEqual(result.items.map(\.id), ["first", "other"])
+    }
+
+    func testAlternateArtworkGroupingKeepsTransitiveAliasesInOneSlide() async {
+        var first = item("first")
+        first.providerIDs["Imdb"] = "tt42"
+        var bridge = item("bridge")
+        bridge.providerIDs = ["Imdb": "tt42", "Tmdb": "42"]
+        var alternate = item("alternate")
+        alternate.providerIDs["Tmdb"] = "42"
+        let result = await curateCollections([[first], [bridge], [alternate]], maxItems: 3)
+        XCTAssertEqual(result.items.map(\.id), ["first"])
+    }
+
+    func testTransitiveCollectionWatchEvidenceAndKindBoundaries() async {
+        var first = item("first")
+        first.providerIDs["Imdb"] = "tt42"
+        var bridge = item("bridge")
+        bridge.providerIDs = ["Imdb": "tt42", "Tmdb": "42"]
+        var alternate = item("alternate", watched: true)
+        alternate.providerIDs["Tmdb"] = "42"
+        let hidden = await curateCollections([[first], [bridge], [alternate]])
+        XCTAssertTrue(hidden.items.isEmpty)
+        alternate.kind = .series
+        let separateKind = await curateCollections([[first], [bridge], [alternate]])
+        XCTAssertEqual(separateKind.items.map(\.id), ["first"])
+    }
+
+    private func curateCollections(
+        _ buckets: [[MediaItem]], maxItems: Int = 1, hideWatched: Bool = true,
+        mutations: [MediaItemMutation] = [],
+        validate: @escaping HeroArtworkValidating = HeroArtworkValidator.presence
+    ) async -> HeroCurationResult {
+        var configured = settings
+        configured.maxItems = maxItems
+        configured.hideWatched = hideWatched
+        configured.collections = buckets.indices.map {
+            .init(accountID: "account-\($0)", collectionID: "\($0)", title: "Collection \($0)")
+        }
+        let pages = Dictionary(uniqueKeysWithValues: buckets.enumerated().map { index, items in
+            (String(index), items.map { $0.taggingSource("account-\(index)") })
+        })
+        return await HeroCurator().curateResult(
+            settings: configured, continueWatching: [], watchlist: [],
+            watchMutations: mutations,
+            collectionProvider: { selection, _ in
+                let items = try XCTUnwrap(pages[selection.collectionID])
+                return .init(items: items, startIndex: 0, totalCount: items.count)
+            },
+            artworkValidator: validate
+        )
+    }
+
     @MainActor
     func testCachedMixedMembershipRequiresEverySelectedViewerToRemainAccessible() {
         let provider = CollectionProvider(items: [])
