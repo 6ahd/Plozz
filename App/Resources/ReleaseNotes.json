@@ -2,6 +2,38 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/055.5",
+      "version": "2026.10.14",
+      "marketingVersion": "2026.9.25",
+      "build": "55.5",
+      "releasedAt": "2026-10-14",
+      "sections": [
+        {
+          "category": "Updated",
+          "items": [
+            {
+              "text": "Smoother Browse scrolling while posters load.",
+              "platforms": ["tvOS"]
+            },
+            "Less repeated artwork loading on devices with more memory.",
+            "Fewer blank posters when scrolling back through Browse."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Some videos losing audio through HomePod or other AirPlay speakers.",
+            "Seeking causing stuttering or leaving videos paused when using AirPlay speakers.",
+            "Live TV channels not loading after setup or unlocking a profile.",
+            {
+              "text": "Profile button appearing too wide or missing its picture when using the iPad app on Mac.",
+              "platforms": ["iOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/055",
       "version": "2026.10.13",
       "marketingVersion": "2026.9.25",
