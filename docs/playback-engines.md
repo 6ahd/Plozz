@@ -98,9 +98,15 @@ configuration. tvOS and the receiver handle final output; there is no speaker
 setup prompt or mandatory opt-in. **Settings > Playback > Dolby Atmos from TrueHD**
 provides an on-by-default switch on supported Apple TVs. It is saved per profile,
 including profile settings transfer, and applies when the next playback session
-starts. Turning it off retains the ordinary channel bridge described below.
-Older saved profiles default to on. HDMI channel counts and the current rendering mode are not used
-as Atmos capability gates: neither reliably describes the room's speakers.
+starts. Keep it on for overhead sound from eligible TrueHD Atmos tracks on
+compatible equipment. Turning it off retains the ordinary channel bridge
+described below: the TrueHD channel presentation still plays, but does not carry
+the original Atmos height positioning. Avoiding the extra spatial conversion may
+help when those tracks stutter or seek slowly; it is not a guaranteed remedy for
+unrelated playback problems. This is not a global Atmos switch: Dolby Digital Plus
+(E-AC-3/JOC) Atmos remains unaffected.
+Older saved profiles default to on. HDMI channel counts and the current rendering
+mode are not used as Atmos capability gates: neither reliably describes the room's speakers.
 
 Aether only converts **48 kHz TrueHD Atmos** on its native/HLS VOD path. It decodes
 the objects into the spatial bed and encodes Apple Positional Audio (APAC), which
