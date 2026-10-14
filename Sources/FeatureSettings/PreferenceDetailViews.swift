@@ -646,10 +646,10 @@ struct PlaybackDetailView: View {
         if #available(tvOS 26.0, *) {
             rows.append(SettingsSplitRow(
                 id: "truehd-atmos",
-                title: "Dolby Atmos from TrueHD",
-                description: "Hear overhead sound from supported TrueHD Atmos tracks on compatible equipment, using lossy conversion. If playback stutters or seeking is slow, try turning this off. Those tracks will still play, but without Atmos height positioning. Dolby Digital Plus Atmos is unaffected. Applies to new playback sessions."
+                title: "TrueHD Atmos and DTS:X",
+                description: "Hear overhead sound from supported TrueHD Atmos and DTS:X tracks on compatible equipment, using lossy conversion. If playback stutters or seeking is slow, try turning this off. Those tracks will still play, but without height positioning. Dolby Digital Plus Atmos is unaffected. Applies to new playback sessions."
             ) {
-                Toggle("Dolby Atmos from TrueHD", isOn: $playback.settings.trueHDAtmosEnabled)
+                Toggle("TrueHD Atmos and DTS:X", isOn: $playback.settings.trueHDAtmosEnabled)
             })
         }
         #endif

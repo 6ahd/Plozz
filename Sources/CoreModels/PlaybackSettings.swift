@@ -110,8 +110,9 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// `.original`, `false` → `.device`), migrated in the decoder below.
     public var audioLanguagePreference: AudioLanguagePreference
 
-    /// Request TrueHD Atmos spatial rendering on tvOS 26+. Off retains the
-    /// ordinary channel bridge. Applied when a new playback session starts.
+    /// Request TrueHD Atmos and DTS:X spatial rendering on tvOS 26+. Off retains
+    /// the ordinary channel bridge. Applied when a new playback session starts.
+    /// Keep the original property/key so existing profile preferences and transfers survive.
     public var trueHDAtmosEnabled: Bool
 
     /// Remember the chosen **audio language** per series: switching audio on any

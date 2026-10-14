@@ -230,11 +230,12 @@ let package = Package(
         // a decoded end nor a source duration are not given a synthetic five-second
         // life.
         //
-        // 7.34.1 retains that correction and exports the engine dynamically:
+        // 7.36.0 retains that correction and exports the engine dynamically:
         // LibDovi and LibTrueHD's Rust unwind personalities must stay separate
         // from the host's Objective-C/C++ stack. FFmpegBuild moves to 3.7.x,
-        // LibDovi stays at 2.1.x and LibTrueHD 2.2.x supplies TrueHD object decoding.
-        // Plozz opts tvOS 26+ on-demand playback into TrueHD Atmos rendering.
+        // LibDovi stays at 2.1.x, LibTrueHD 2.3.x supplies TrueHD object decoding,
+        // and LibDTSX 1.0.1 adds DTS:X height/object reconstruction.
+        // Plozz opts tvOS 26+ on-demand playback into TrueHD Atmos and DTS:X rendering.
         // Progressive segment delivery remains off.
         // Both apps embed the engine framework and the new dependency notices.
         //
@@ -244,9 +245,9 @@ let package = Package(
         //
         // SMB enters AetherEngine only through Plozz's protocol-neutral custom-source
         // bridge; the engine's legacy SMB URL product is not linked.
-        .package(url: "https://github.com/brandomoore/AetherEngine", revision: "af350b9bf35be106e3f97ecd521e1ab32be0bdd3"),
+        .package(url: "https://github.com/brandomoore/AetherEngine", revision: "299a3d9ea767e2382158c2a3d137c4b1d302ab4a"),
         // NOTE: FFmpegBuild (FFmpeg n8.1.x decode-only), LibDovi (Dolby Vision
-        // RPU parser) and LibTrueHD are transitive dependencies — AetherEngine
+        // RPU parser), LibTrueHD and LibDTSX are transitive dependencies — AetherEngine
         // declares and consumes them. The retired hybrid-engine target needed
         // direct FFmpegBuild/LibDovi declarations; current Plozz targets do not
         // consume those products. AetherEngine owns their version alignment.
