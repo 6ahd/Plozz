@@ -486,6 +486,7 @@ targets:
         BGTaskSchedulerPermittedIdentifiers:
           - "$(PRODUCT_BUNDLE_IDENTIFIER).downloads.*"
         UIBackgroundModes:
+          - audio
           - processing
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

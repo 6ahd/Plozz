@@ -412,6 +412,7 @@ public final class PlayerViewModel {
         }
     }
     @ObservationIgnored private var nowPlaying: VideoNowPlayingCoordinator?
+    @ObservationIgnored var streamingSessionMaintenance = StreamingSessionMaintenance()
     @ObservationIgnored private var systemResumeTask: Task<Void, Never>?
     @ObservationIgnored private var isInBackground = false
     /// Owns manual + automatic remote-subtitle acquisition (search / download /
@@ -1394,6 +1395,8 @@ public final class PlayerViewModel {
 
     private func restartStreamingRendition(
         tracks: SubtitleTrackController.StreamSnapshot? = nil,
+        forceTranscode: Bool = false,
+        resumeOverride: TimeInterval? = nil,
         origin: String = #function
     ) {
         HandoffDiagnostics.emit(
@@ -1403,6 +1406,7 @@ public final class PlayerViewModel {
         streamingLoadGeneration += 1
         dynamicRangeLoadGeneration &+= 1
         let generation = streamingLoadGeneration
+        let maintenance = streamingSessionMaintenance.cancel()
         let previous = streamingSwitchTask
         previous?.cancel()
         let initialLoad = streamingInitialLoad
@@ -1411,7 +1415,7 @@ public final class PlayerViewModel {
             streamingResumePosition = max(0, controls.pendingSeekTarget ?? currentResumePosition())
             streamingTrackSnapshot = tracks ?? subtitleController.streamSnapshot()
         }
-        let position = streamingResumePosition ?? startPositionOverride ?? controls.currentSeconds
+        let position = resumeOverride ?? streamingResumePosition ?? startPositionOverride ?? controls.currentSeconds
         let outgoing = request
         request = nil
         streamingQuality.currentStream = .init()
@@ -1424,9 +1428,9 @@ public final class PlayerViewModel {
         subtitleOverlay.cancelAll()
         // Stop the old byte stream immediately, especially when leaving Wi-Fi.
         engine.stop()
-        streamingSwitchTask = Task { @MainActor [weak self] in
+        streamingSwitchTask = Task { @MainActor [self] in
+            await maintenance?.value
             await previous?.value
-            guard let self else { return }
             await initialLoad?.value
             await self.engine.drainTransport()
             if let outgoing {
@@ -1444,7 +1448,11 @@ public final class PlayerViewModel {
             }
             await self.nextEpisodeCoordinator.releaseOrphanedPrefetchIfNeeded()
             guard !Task.isCancelled, !self.didStop, generation == self.streamingLoadGeneration else { return }
-            await self.startPlayback(forceTranscode: false, resumeOverride: position)
+            // A codec retry must encode the replacement, not stream-copy the
+            // same compatible-looking bitstream that just failed.
+            await self.startPlayback(
+                forceTranscode: forceTranscode || self.streamingQuality.fallbackCodec != nil, resumeOverride: position
+            )
         }
     }
 
@@ -1466,6 +1474,7 @@ public final class PlayerViewModel {
     private func releaseStreamingSession(_ request: PlaybackRequest, origin: String = #function) async {
         guard let sessionID = request.streamingSessionID,
               let provider = provider as? any StreamingQualityProviding else { return }
+        await streamingSessionMaintenance.cancel(sessionID: sessionID)?.value
         if let cleanup = streamingSessionCleanups[sessionID] {
             HandoffDiagnostics.emit("session RELEASE_JOIN vm=\(instanceID) origin=\(origin) session=\(HandoffDiagnostics.correlationID(sessionID))")
             await cleanup.value
@@ -1736,6 +1745,7 @@ public final class PlayerViewModel {
         // resumed a position learned from another server, this converges the chosen
         // server to that unified furthest-progress point on entry.
         let startWasPaused = !intendsPlayback
+        streamingSessionMaintenance.start(request: request, provider: provider)
         await progressReporter.reportStart(
             isPaused: startWasPaused,
             positionOverride: startPosition > 0 ? startPosition : nil
@@ -2147,6 +2157,7 @@ public final class PlayerViewModel {
         // shows happening on iOS.
         PlaybackTrace.note("stop() teardown curr=\(String(format: "%.2f", engine.currentTime)) shouldDismiss=\(shouldDismiss) pendingNext=\(pendingNextEpisode != nil) isSeeking=\(controls.isSeeking)")
         didStop = true
+        let maintenance = streamingSessionMaintenance.cancel()
         episodeBrowser?.stop()
         playlistAdvanceTask?.cancel()
         playlistAdvanceTask = nil
@@ -2189,6 +2200,7 @@ public final class PlayerViewModel {
         // the source only when the engine deinitializes; a quick second playback
         // can race that asynchronous cleanup and fail until the app restarts.
         await engine.drainTransport()
+        await maintenance?.value
         // Release any prefetched next-episode session that was never adopted, and
         // an adopted-but-never-committed session (a hand-off torn down before the
         // incoming player took ownership), so a Jellyfin session isn't orphaned.
@@ -2706,10 +2718,22 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
     }
 
     func handoffStartPlayback(forceTranscode: Bool, resumeOverride: TimeInterval?) async {
+        guard !Task.isCancelled, !didStop else { return }
+        if forceTranscode, request != nil {
+            restartStreamingRendition(forceTranscode: true, resumeOverride: resumeOverride)
+            return
+        }
         await startPlayback(forceTranscode: forceTranscode, resumeOverride: resumeOverride)
     }
 
     func handoffSetPhase(_ phase: PlayerViewModel.Phase) {
+        if case .failed = phase {
+            dynamicRangeLoadGeneration &+= 1
+            streamingSessionMaintenance.cancel()
+            if let request, request.streamingSessionID != nil {
+                Task { @MainActor [self] in await releaseStreamingSession(request) }
+            }
+        }
         if case .failed(let error) = phase, streamingOptions != nil {
             if streamingQuality.error == nil {
                 streamingQuality.error = Self.streamingFailure(error, evidence: engine.streamingFailure)
@@ -2725,9 +2749,6 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
             seekCoordinator.cancelAll()
             subtitleOverlay.cancelAll()
             engine.stop()
-            if let request {
-                Task { @MainActor [weak self] in await self?.releaseStreamingSession(request) }
-            }
         }
         self.phase = phase
     }

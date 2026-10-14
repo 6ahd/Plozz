@@ -717,7 +717,10 @@ final class NativeSubtitlePresentationTests: XCTestCase {
         let outputs = item.outputs.compactMap { $0 as? AVPlayerItemLegibleOutput }
         XCTAssertEqual(outputs.count, 1)
         XCTAssertEqual(outputs.first?.suppressesPlayerRendering, true)
-        XCTAssertNil(item.textStyleRules, "Owned captions must not bake Apple's final styling into the source cues")
+        XCTAssertTrue(
+            item.textStyleRules?.isEmpty ?? true,
+            "Owned captions must not bake Apple's final styling into the source cues"
+        )
     }
 
     private func captionFrames(in view: UIView, relativeTo window: UIWindow) -> [CGRect] {
