@@ -685,6 +685,61 @@ final class StreamingPlaybackTests: XCTestCase {
         XCTAssertEqual(PlayerViewModel.streamingFailure(.invalidResponse), .playback(.init(kind: .unknown)))
         XCTAssertEqual(PlayerViewModel.streamingFailure(.invalidResponse, streamWasSupplied: false), .negotiationFailed)
     }
+
+    func testCompatibilityFallbackStopsTheOutgoingReportingSessionBeforeReplacement() async {
+        let (model, engine, provider) = make(options: .init(quality: .original))
+        await model.load()
+        XCTAssertFalse(model.isTranscoding)
+        engine.currentTime = 123
+        model.setPaused(true)
+        model.setPlaybackSpeed(1.5)
+        engine.onFailure?(.invalidResponse)
+        await wait { engine.positions.count == 2 && model.phase == .ready }
+        let reports = await provider.playbackReports
+        let stopped = reports.firstIndex {
+            $0.event == .stop && $0.progress.playSessionID == "report-1"
+        }
+        let started = reports.firstIndex {
+            $0.event == .start && $0.progress.playSessionID == "report-2"
+        }
+        XCTAssertNotNil(stopped)
+        XCTAssertNotNil(started)
+        if let stopped, let started {
+            XCTAssertLessThan(stopped, started)
+            XCTAssertEqual(reports[stopped].progress.positionSeconds, 123)
+        }
+        XCTAssertTrue(model.isTranscoding)
+        XCTAssertEqual(engine.positions.last, 123)
+        XCTAssertTrue(engine.isPaused)
+        XCTAssertEqual(model.controls.playbackSpeed, 1.5)
+        let calls = await provider.calls
+        XCTAssertEqual(calls.map(\.forceTranscode), [false, true])
+        await model.stop()
+        let finalReports = await provider.playbackReports
+        XCTAssertEqual(finalReports.filter { $0.event == .stop }.map(\.progress.playSessionID),
+                       ["report-1", "report-2"])
+    }
+
+    func testDismissedCompatibilityFallbackCannotRestartOrStopTheOldSessionTwice() async {
+        let (model, engine, provider) = make(options: .init(quality: .original))
+        await model.load()
+        engine.currentTime = 123
+        let gate = QualityDecisionGate()
+        await provider.installGate(gate)
+        engine.onFailure?(.invalidResponse)
+        await gate.waitUntilEntered()
+        let stop = Task { await model.stop() }
+        await Task.yield()
+        await gate.release()
+        await stop.value
+        let reports = await provider.playbackReports
+        XCTAssertEqual(reports.filter { $0.event == .start }.map(\.progress.playSessionID), ["report-1"])
+        XCTAssertEqual(reports.filter { $0.event == .stop }.map(\.progress.playSessionID), ["report-1"])
+        XCTAssertEqual(engine.positions.count, 1)
+        let released = await provider.released
+        XCTAssertTrue(released.contains("quality-2"))
+    }
+
     private func make(
         options: StreamingPlaybackOptions? = .init(quality: .hd720),
         provider: QualityPlaybackProvider = QualityPlaybackProvider(),
@@ -1008,6 +1063,7 @@ private actor QualityPlaybackProvider: StreamingQualityProviding, StreamingSessi
         request.isTranscoding = streaming.requiresConversionPolicy || compatibilityRendition || forceTranscode
         request.deliveryMode = request.isTranscoding ? .transcode : .directPlay
         request.streamingOptions = streaming
+        request.playSessionID = "report-\(sequence)"
         request.streamingSessionID = "quality-\(sequence)"
         request.negotiatedStreamingVideoCodec = negotiatedCodec
         if burnedSubtitle, calls.count > 1 || ordinaryCalls > 0 {

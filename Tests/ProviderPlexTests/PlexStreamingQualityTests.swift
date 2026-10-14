@@ -205,6 +205,7 @@ final class PlexStreamingQualityTests: XCTestCase {
                 }
                 XCTAssertEqual(source.playSessionID, negotiated.first { $0.name == "session" }?.value)
                 XCTAssertEqual(source.playSessionID, request.streamingSessionID)
+                XCTAssertEqual(request.playSessionID, source.playSessionID)
                 XCTAssertEqual(request.deliveryMode, audioDecision == "copy" ? .remux : .transcode)
                 XCTAssertEqual(source.deliveryMode, audioDecision == "copy" ? .serverRemux : .serverTranscode)
                 XCTAssertEqual(request.negotiatedStreamingVideoCodec, .h264,
@@ -457,10 +458,68 @@ final class PlexStreamingQualityTests: XCTestCase {
         }
     }
 
+    func testTimelineReportsRetainEachRenditionIdentityAcrossReplacementAndStop() async throws {
+        let http = StubHTTPClient()
+        http.stub(pathSuffix: "/:/timeline", json: "{}")
+        let provider = fixture(http: http)
+        var requests: [PlaybackRequest] = []
+        // Two identical requests still own different sessions; changing quality
+        // also creates a new rendition without retargeting older reports.
+        for quality in [StreamingQuality.sd480, .sd480, .hd720] {
+            let request = try await provider.playbackInfo(
+                for: "movie", mediaSourceID: "7", forceTranscode: false,
+                streaming: .init(quality: quality)
+            )
+            let sessionID = try XCTUnwrap(request.playSessionID)
+            let decision = try XCTUnwrap(http.queryItems(forPathSuffix: "/decision"))
+            XCTAssertEqual(decision.first { $0.name == "session" }?.value, sessionID)
+            XCTAssertEqual(decision.first { $0.name == "X-Plex-Session-Identifier" }?.value, sessionID)
+            XCTAssertEqual(try locator(request).playSessionID, sessionID)
+            XCTAssertEqual(request.streamingSessionID, sessionID)
+            XCTAssertEqual(request.item.id, "movie")
+            XCTAssertNotEqual(sessionID, request.item.id)
+            requests.append(request)
+        }
+        XCTAssertEqual(Set(requests.compactMap(\.playSessionID)).count, requests.count)
+
+        let events: [(Int, PlaybackEvent, String)] = [
+            (0, .start, "playing"), (1, .start, "playing"),
+            (2, .start, "playing"), (0, .pause, "paused"),
+            (1, .progress, "playing"), (0, .stop, "stopped"),
+            (2, .unpause, "playing"), (1, .stop, "stopped"),
+            (2, .progress, "playing"), (2, .stop, "stopped")
+        ]
+        for (index, event, state) in events {
+            let request = requests[index]
+            try await provider.reportPlayback(.init(
+                itemID: request.item.id, playSessionID: request.playSessionID,
+                positionSeconds: 1_224, isPaused: event == .pause
+            ), event: event)
+            let query = try XCTUnwrap(http.queryItems(forPathSuffix: "/:/timeline"))
+            XCTAssertEqual(query.first { $0.name == "ratingKey" }?.value, "movie")
+            XCTAssertEqual(query.first { $0.name == "key" }?.value, "/library/metadata/movie")
+            XCTAssertEqual(query.first { $0.name == "state" }?.value, state)
+            XCTAssertEqual(query.first { $0.name == "time" }?.value, "1224000")
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Session-Identifier"], request.playSessionID)
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Client-Identifier"], "device")
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Token"], "fixture")
+            if event == .stop {
+                await provider.releaseStreamingSession(request)
+                XCTAssertEqual(
+                    http.queryItems(forPathSuffix: "/stop")?.first { $0.name == "session" }?.value,
+                    request.playSessionID
+                )
+            }
+        }
+        XCTAssertEqual(http.sentPaths.filter { $0 == "/:/timeline" }.count, events.count)
+        XCTAssertEqual(http.sentPaths.filter { $0.hasSuffix("/stop") }.count, requests.count)
+    }
+
     func testOrdinaryConversionAndForcedFallbackOwnSessionsWithoutQualityOptions() async throws {
         for (container, forceTranscode) in [("avi", false), ("mp4", true)] {
             let http = StubHTTPClient()
             http.stub(pathSuffix: "/video/:/transcode/universal/ping", json: "{}")
+            http.stub(pathSuffix: "/:/timeline", json: "{}")
             let provider = fixture(http: http, container: container)
             let request = try await provider.playbackInfo(
                 for: "movie", mediaSourceID: "7", forceTranscode: forceTranscode
@@ -469,12 +528,18 @@ final class PlexStreamingQualityTests: XCTestCase {
             XCTAssertTrue(request.isTranscoding)
             let session = try XCTUnwrap(request.streamingSessionID)
             let source = try locator(request)
+            XCTAssertEqual(request.playSessionID, session)
             XCTAssertEqual(source.playSessionID, session)
             XCTAssertEqual(source.deliveryMode, .serverTranscode)
             XCTAssertEqual(source.resource.path, "/video/:/transcode/universal/start.m3u8")
 
             try await provider.maintainStreamingSession(request)
             XCTAssertEqual(http.queryItems(forPathSuffix: "/ping"), [.init(name: "session", value: session)])
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Session-Identifier"], session)
+            try await provider.reportPlayback(.init(
+                itemID: request.item.id, playSessionID: request.playSessionID,
+                positionSeconds: 30, isPaused: false
+            ), event: .stop)
             XCTAssertEqual(http.sentHeaders.last?["X-Plex-Session-Identifier"], session)
             await provider.releaseStreamingSession(request)
             XCTAssertEqual(http.queryItems(forPathSuffix: "/stop"), [.init(name: "session", value: session)])
@@ -485,6 +550,7 @@ final class PlexStreamingQualityTests: XCTestCase {
 
     func testOriginalFileWithoutQualityOptionsHasNoSessionToMaintainOrRelease() async throws {
         let http = StubHTTPClient()
+        http.stub(pathSuffix: "/:/timeline", json: "{}")
         let provider = fixture(bitrate: 1_000, width: 640, height: 360, http: http)
         let request = try await provider.playbackInfo(
             for: "movie", mediaSourceID: "7", forceTranscode: false
@@ -493,8 +559,27 @@ final class PlexStreamingQualityTests: XCTestCase {
         XCTAssertNil(request.streamingSessionID)
         XCTAssertFalse(request.isTranscoding)
         XCTAssertEqual(try locator(request).deliveryMode, .directFile)
-        try await provider.maintainStreamingSession(request)
-        await provider.releaseStreamingSession(request)
+        XCTAssertNil(try locator(request).playSessionID, "A direct file is not a transcoder session")
+        let sessionID = try XCTUnwrap(request.playSessionID)
+        XCTAssertNotEqual(sessionID, request.item.id)
+        let replacement = try await provider.playbackInfo(
+            for: "movie", mediaSourceID: "7", forceTranscode: false
+        )
+        XCTAssertNotNil(replacement.playSessionID)
+        XCTAssertNotEqual(replacement.playSessionID, sessionID)
+        for direct in [request, replacement] {
+            try await provider.reportPlayback(.init(
+                itemID: direct.item.id, playSessionID: direct.playSessionID,
+                positionSeconds: 30, isPaused: false
+            ), event: .stop)
+            XCTAssertEqual(http.sentHeaders.last?["X-Plex-Session-Identifier"], direct.playSessionID)
+            XCTAssertEqual(
+                http.queryItems(forPathSuffix: "/:/timeline")?.first { $0.name == "ratingKey" }?.value,
+                "movie"
+            )
+            try await provider.maintainStreamingSession(direct)
+            await provider.releaseStreamingSession(direct)
+        }
         XCTAssertFalse(http.sentPaths.contains { $0.hasSuffix("/ping") || $0.hasSuffix("/stop") })
     }
 

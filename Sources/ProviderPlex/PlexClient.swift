@@ -1108,7 +1108,9 @@ public struct PlexClient: Sendable {
     // MARK: Playback
 
     /// `GET /:/timeline` — report progress so Plex keeps resume points in sync.
-    func reportTimeline(ratingKey: String, state: String, timeMs: Int, durationMs: Int?) async throws {
+    func reportTimeline(
+        ratingKey: String, playSessionID: String?, state: String, timeMs: Int, durationMs: Int?
+    ) async throws {
         var query = [
             URLQueryItem(name: "ratingKey", value: ratingKey),
             URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"),
@@ -1119,7 +1121,11 @@ public struct PlexClient: Sendable {
         if let durationMs {
             query.append(URLQueryItem(name: "duration", value: String(durationMs)))
         }
-        let endpoint = Endpoint(path: "/:/timeline", queryItems: query, headers: headers)
+        var requestHeaders = headers
+        if let playSessionID, !playSessionID.isEmpty {
+            requestHeaders["X-Plex-Session-Identifier"] = playSessionID
+        }
+        let endpoint = Endpoint(path: "/:/timeline", queryItems: query, headers: requestHeaders)
         _ = try await send(endpoint)
     }
 

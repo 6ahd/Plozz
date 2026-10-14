@@ -1395,6 +1395,8 @@ public final class PlayerViewModel {
 
     private func restartStreamingRendition(
         tracks: SubtitleTrackController.StreamSnapshot? = nil,
+        forceTranscode: Bool = false,
+        resumeOverride: TimeInterval? = nil,
         origin: String = #function
     ) {
         HandoffDiagnostics.emit(
@@ -1413,7 +1415,7 @@ public final class PlayerViewModel {
             streamingResumePosition = max(0, controls.pendingSeekTarget ?? currentResumePosition())
             streamingTrackSnapshot = tracks ?? subtitleController.streamSnapshot()
         }
-        let position = streamingResumePosition ?? startPositionOverride ?? controls.currentSeconds
+        let position = resumeOverride ?? streamingResumePosition ?? startPositionOverride ?? controls.currentSeconds
         let outgoing = request
         request = nil
         streamingQuality.currentStream = .init()
@@ -1449,7 +1451,7 @@ public final class PlayerViewModel {
             // A codec retry must encode the replacement, not stream-copy the
             // same compatible-looking bitstream that just failed.
             await self.startPlayback(
-                forceTranscode: self.streamingQuality.fallbackCodec != nil, resumeOverride: position
+                forceTranscode: forceTranscode || self.streamingQuality.fallbackCodec != nil, resumeOverride: position
             )
         }
     }
@@ -2716,6 +2718,11 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
     }
 
     func handoffStartPlayback(forceTranscode: Bool, resumeOverride: TimeInterval?) async {
+        guard !Task.isCancelled, !didStop else { return }
+        if forceTranscode, request != nil {
+            restartStreamingRendition(forceTranscode: true, resumeOverride: resumeOverride)
+            return
+        }
         await startPlayback(forceTranscode: forceTranscode, resumeOverride: resumeOverride)
     }
 

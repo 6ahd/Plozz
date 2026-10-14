@@ -193,6 +193,30 @@ requires fMP4 for HEVC and separate WebVTT text files.
 
 Tests: `PlexStreamingQualityTests` and `StreamingPlaybackTests`.
 
+## Playback session reporting
+
+Each VOD playback request owns a unique `playSessionID`, even for repeated plays
+of the same library item. For server renditions, it is the same identity used by
+the universal decision, materialized stream, ping, and stop. Every timeline event,
+including the outgoing rendition's stopped report during replacement, forwards
+that request's identity as `X-Plex-Session-Identifier`. `ratingKey` and `key`
+continue to identify the library item for watch state, not the playback session.
+There is no provider-wide "current session" lookup.
+
+Direct files also own a reporting identity but do not acquire a transcoder
+session or receive transcoder ping/stop calls. Callers without a playback identity,
+including the current music reporter, still omit the optional header rather than
+inventing or borrowing one. Live TV retains its separate lease-owned reporting.
+
+The [PMS timeline specification](https://github.com/LukasParke/plex-api-spec/blob/0a34b2513263f433756d98b5c6d12f984c7efa33/plex-api-spec.yaml#L1204-L1208)
+defines the header as unique per client playback session.
+[Plezy's progress implementation](https://github.com/edde746/plezy/blob/8ef7c2cd9a35fd208403d0577d063d4143375fd9/lib/services/plex_client.dart#L2152-L2180)
+also forwards the stream's session identifier to associate dashboard reports with
+the actual stream decision. This correlation does not prove delivered resolution
+or explain a player stall; those require separate stream and playback evidence.
+
+Tests: `PlexStreamingQualityTests` and `PlexProviderMappingTests`.
+
 ## Where to look first
 
 - `PlexProvider.swift` / `PlexClient.swift` — the `MediaProvider` entry.
