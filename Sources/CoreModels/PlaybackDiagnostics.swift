@@ -125,6 +125,17 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
         }
     }
 
+    /// Current system audio-session facts, not a detected physical speaker layout.
+    public struct AudioOutput: Equatable, Sendable {
+        public var renderingMode: LocalizedStringResource?
+        public var connections: [LocalizedStringResource]
+
+        public init(renderingMode: LocalizedStringResource? = nil, connections: [LocalizedStringResource] = []) {
+            self.renderingMode = renderingMode
+            self.connections = connections
+        }
+    }
+
     public var resolution: VideoResolution?
     /// Kept separate when primary VIDEO/AUDIO fields describe a converted stream.
     public var originalSource: MediaSourceMetadata?
@@ -152,6 +163,7 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
     public var audioOutputDescription: LocalizedStringResource?
     /// Actual engine processing, independent of source metadata and output hardware.
     public var audioPipelineDescription: String?
+    public var audioOutput: AudioOutput?
     /// One-line subtitle description, e.g. `SubRip · English`.
     public var subtitleDescription: String?
     public var container: String?
@@ -249,6 +261,7 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
         audioBitrate: Double? = nil,
         audioOutputDescription: LocalizedStringResource? = nil,
         audioPipelineDescription: String? = nil,
+        audioOutput: AudioOutput? = nil,
         subtitleDescription: String? = nil,
         container: String? = nil,
         mode: PlaybackMode = .unknown,
@@ -297,6 +310,7 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
         self.audioBitrate = audioBitrate
         self.audioOutputDescription = audioOutputDescription
         self.audioPipelineDescription = audioPipelineDescription
+        self.audioOutput = audioOutput
         self.subtitleDescription = subtitleDescription
         self.container = container
         self.mode = mode

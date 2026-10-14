@@ -16,6 +16,7 @@ struct PlaybackDiagnosticsOverlay: View {
     let diagnostics: PlaybackDiagnostics?
     var presentation: Presentation = .television
     var streamingError: StreamingQualityError?
+    var televisionControlsLayout: SubtitleControlsLayout?
 
     @Environment(\.themePalette) private var palette
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -33,17 +34,19 @@ struct PlaybackDiagnosticsOverlay: View {
             }
             .background(palette.backgroundBase)
         } else {
-            televisionPanel
+            TelevisionDiagnosticsPlacement(controlsLayout: televisionControlsLayout) { width in
+                televisionPanel(width: width)
+            }
         }
     }
 
-    private var televisionPanel: some View {
+    func televisionPanel(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header with provider logo
             header
 
             if let diagnostics {
-                sectionsGrid(for: diagnostics)
+                sectionsGrid(for: diagnostics, width: width)
             } else {
                 Text("Gathering metrics…")
                     .font(.system(size: 15, design: .monospaced))
@@ -51,17 +54,14 @@ struct PlaybackDiagnosticsOverlay: View {
                     .padding(.top, 8)
             }
         }
-        .padding(40)
-        .frame(maxWidth: 820, alignment: .leading)
+        .padding(24)
+        .frame(width: width, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
         .plozzGlassPanel(
             cornerRadius: PlozzTheme.Metrics.playerPanelCornerRadius,
             scrimOpacity: 0.45,
             refractEdgesOnly: true
         )
-        // Pinned to the player's top-left corner (the overlay host ignores the
-        // safe area so this hugs the corner, not the wider tvOS overscan inset).
-        .padding(.leading, 48)
-        .padding(.top, 32)
     }
 
     func mobileContent(width: CGFloat) -> some View {
@@ -153,30 +153,46 @@ struct PlaybackDiagnosticsOverlay: View {
     // MARK: - Sections
 
     @ViewBuilder
-    private func sectionsGrid(for d: PlaybackDiagnostics) -> some View {
-        // Two columns so the HUD reads at a glance instead of running nearly the
-        // full screen height: content facts on the left (source/video/audio),
-        // session + device health on the right (subtitles/playback/system).
-        HStack(alignment: .top, spacing: 40) {
+    private func sectionsGrid(for d: PlaybackDiagnostics, width: CGFloat) -> some View {
+        let wide = width >= 1400
+        let columnCount: CGFloat = wide ? 4 : 3
+        let columnWidth = max(0, (width - 48 - 24 * (columnCount - 1)) / columnCount)
+        HStack(alignment: .top, spacing: 24) {
             VStack(alignment: .leading, spacing: 12) {
                 sourceSection(d)
-                videoSection(d)
-                audioSection(d)
+                subtitleSection(d)
                 if d.mode == .transcode { originalFileSection(d) }
             }
+            .frame(width: columnWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 12) {
-                subtitleSection(d)
-                if let live = d.liveStream { liveSection(live) }
-                playbackSection(d)
-                systemSection(d)
+                videoSection(d)
+                if !wide { audioSection(d) }
             }
+            .frame(width: columnWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            if wide {
+                VStack(alignment: .leading, spacing: 12) {
+                    audioSection(d)
+                    systemSection(d)
+                }
+                .frame(width: columnWidth, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: 12) {
+                playbackSection(d)
+                if let live = d.liveStream { liveSection(live) }
+                if !wide { systemSection(d) }
+            }
+            .frame(width: columnWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     @ViewBuilder
     private func sourceSection(_ d: PlaybackDiagnostics) -> some View {
         section("SOURCE") {
-            optionalRow("File", d.sourceFileNameText)
+            optionalRow("File", d.sourceFileNameText, lineLimit: presentation == .television ? 2 : nil)
             optionalRow("Size", d.sourceFileSizeText)
             row(LocalizedStringResource("Delivery", comment: "Playback diagnostics label for how media is delivered: direct play, remuxing, or server transcoding."), d.mode.displayName)
             optionalRow(LocalizedStringResource("Stream", comment: "Playback diagnostics label for the current stream host and transport format."), streamTransportText(d.streamTransport))
@@ -227,10 +243,12 @@ struct PlaybackDiagnosticsOverlay: View {
             if d.mode == .plozzigen {
                 row(LocalizedStringResource("Processing", comment: "Playback diagnostics label for the engine's actual audio conversion or stream-copy pipeline."),
                     d.audioPipelineDescription ?? PlaybackDiagnostics.placeholder)
-                row(LocalizedStringResource("Output", comment: "Playback diagnostics label for the active audio output route and format."),
-                    LocalizedStringResource("Not verified by the app", comment: "Audio diagnostics caveat: the running audio pipeline does not prove the receiver or speakers' actual output format."))
-            } else {
-                optionalRow(LocalizedStringResource("Output", comment: "Playback diagnostics label for the active audio output route and format."), d.audioOutputDescription)
+            }
+            optionalRow(LocalizedStringResource("System output", comment: "Playback diagnostics: the current audio rendering mode reported by the operating system, not a detected physical speaker layout."),
+                        d.audioOutput?.renderingMode)
+            if let connections = d.audioOutput?.connections, let first = connections.first {
+                row(LocalizedStringResource("Connection", comment: "Playback diagnostics: the audio output connection type, such as HDMI, Bluetooth, or AirPlay."),
+                    connections.dropFirst().reduce(Text(first)) { $0 + Text(verbatim: " · ") + Text($1) })
             }
         }
     }
@@ -318,7 +336,7 @@ struct PlaybackDiagnosticsOverlay: View {
                 VStack(alignment: .leading, spacing: 12) { rows() }
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 3) { rows() }
+                VStack(alignment: .leading, spacing: 3) { rows() }
             }
         }
     }
@@ -326,8 +344,10 @@ struct PlaybackDiagnosticsOverlay: View {
     // MARK: - Rows
 
     @ViewBuilder
-    private func optionalRow(_ label: LocalizedStringResource, _ value: String) -> some View {   // l10n:content — diagnostic value
-        optionalRow(Text(label), value)
+    private func optionalRow(_ label: LocalizedStringResource, _ value: String, lineLimit: Int? = nil) -> some View {   // l10n:content — diagnostic value
+        if value != PlaybackDiagnostics.placeholder {
+            row(Text(label), Text(verbatim: value), lineLimit: lineLimit)
+        }
     }
 
     @ViewBuilder
@@ -368,22 +388,22 @@ struct PlaybackDiagnosticsOverlay: View {
     }
 
     @ViewBuilder
-    private func row(_ label: Text, _ value: Text) -> some View {
+    private func row(_ label: Text, _ value: Text, lineLimit: Int? = nil) -> some View {
         if presentation == .mobile {
             MobileDiagnosticsRow(label: label, value: value)
         } else {
-            GridRow {
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
                 label
                     .font(.system(size: 14, design: .monospaced))
                     .foregroundStyle(palette.secondaryText)
-                    .frame(width: 150, alignment: .leading)
+                    .frame(width: 120, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-                    .gridColumnAlignment(.leading)
                 value
                     .font(.system(size: 14, design: .monospaced).weight(.semibold))
                     .foregroundStyle(palette.primaryText)
+                    .lineLimit(lineLimit)
                     .fixedSize(horizontal: false, vertical: true)
-                    .gridColumnAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

@@ -58,6 +58,8 @@ public final class PlaybackDiagnosticsSampler {
     private var onStreamDetails: (@MainActor (PlaybackStreamDetails) -> Void)?
     private var streamDetailsReader: @MainActor (AVPlayerItem) async -> MediaSourceMetadata
     private var includesSystemMetrics = true
+    @ObservationIgnored private var audioOutputReader: @MainActor () -> PlaybackDiagnostics.AudioOutput? =
+        PlaybackAudioOutputReader.read
 
     /// Last AVPlayer access-log stall count we logged, so a `remux-stall:` marker
     /// is emitted once per NEW stall (the direct stutter signal correlated, in the
@@ -73,6 +75,11 @@ public final class PlaybackDiagnosticsSampler {
 
     public init() {
         streamDetailsReader = NativeStreamDetailsReader.read
+    }
+
+    init(audioOutputReader: @escaping @MainActor () -> PlaybackDiagnostics.AudioOutput?) {
+        streamDetailsReader = NativeStreamDetailsReader.read
+        self.audioOutputReader = audioOutputReader
     }
 
     init(streamDetailsReader: @escaping @MainActor (AVPlayerItem) async -> MediaSourceMetadata) {
@@ -191,6 +198,7 @@ public final class PlaybackDiagnosticsSampler {
         engineTelemetry = nil
         probedFacts = nil
         latest?.audioPipelineDescription = nil
+        latest?.audioOutput = nil
     }
 
     var isSampling: Bool { timerTask != nil }
@@ -379,7 +387,10 @@ public final class PlaybackDiagnosticsSampler {
 
         // System metrics refresh on every engine so a leak is visible on the
         // Plozzigen (HDR/DoVi) path too.
-        if includesSystemMetrics { Self.fillSystemMetrics(into: &diagnostics) }
+        if includesSystemMetrics {
+            Self.fillSystemMetrics(into: &diagnostics)
+            if isSampling { diagnostics.audioOutput = audioOutputReader() }
+        }
         latest = diagnostics
         if diagnostics.mode == .transcode {
             onStreamDetails?(.init(metadata: streamMetadata, declaredBitrate: diagnostics.indicatedBitrate))

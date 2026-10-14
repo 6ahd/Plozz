@@ -11,7 +11,7 @@ import XCTest
 final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
     private let commonLabelKeys = [
         "File", "Size", "Delivery", "Stream", "Codec", "Resolution", "Frame Rate",
-        "Color", "Codec Tag", "Channels", "Sample Rate", "Bitrate", "Output", "Track",
+        "Color", "Codec Tag", "Channels", "Sample Rate", "Bitrate", "System output", "Connection", "Track",
         "State", "Buffer", "Engine buffer", "Stalls", "Dropped",
         "Declared stream bitrate", "Network throughput", "Disk", "Memory", "Thermal", "Instances"
     ]
@@ -33,7 +33,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
     func testTelevisionDiagnosticsUseTheSameLocalizedLabels() throws {
         let panel = PlaybackDiagnosticsOverlay(diagnostics: fixture(mode: .transcode), presentation: .television)
         let text = try renderedText(
-            panel.frame(width: 1100).fixedSize(horizontal: false, vertical: true),
+            panel.televisionPanel(width: 1824),
             locale: "cs"
         )
         try assertLabels(in: text, mode: .transcode, wrapped: true)
@@ -69,20 +69,36 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
             }
             let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics, presentation: .television)
             let text = try renderedText(
-                panel.frame(width: 1100).fixedSize(horizontal: false, vertical: true), locale: "en"
+                panel.televisionPanel(width: 1824), locale: "en"
             )
             assertAudioProcessing(in: text, pipeline: pipeline)
         }
     }
 
     private func assertAudioProcessing(in text: String, pipeline: String) {
-        for token in ["Processing", "Output", "Not verified by the app", "TRUEHD"] {
+        for token in ["Processing", "System output", "Dolby Atmos", "Connection", "HDMI", "TRUEHD"] {
             XCTAssertTrue(normalized(text).contains(normalized(token)), text)
         }
         let format = pipeline.contains("APAC") ? "APAC" : (pipeline.contains("FLAC") ? "FLAC" : "EAC3")
         XCTAssertTrue(text.contains(format), text)
         XCTAssertFalse(text.contains("Bridged on-device"), text)
+        XCTAssertFalse(normalized(text).contains("not verified"), text)
+        XCTAssertFalse(normalized(text).contains("managed by"), text)
         if format == "APAC" { XCTAssertTrue(text.contains("7.1.4"), text) }
+    }
+
+    func testUnreportedSystemOutputIsOmittedInsteadOfReplacingItWithAnExpectation() throws {
+        var diagnostics = fixture(mode: .plozzigen)
+        diagnostics.audioOutput = nil
+        diagnostics.audioOutputDescription = "Atmos passthrough expected"
+        let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics, presentation: .mobile)
+        let text = try renderedText(
+            panel.mobileContent(width: 844).frame(width: 844).fixedSize(horizontal: false, vertical: true),
+            locale: "en"
+        )
+        for missing in ["System output", "Connection", "expected", "not verified", "managed by"] {
+            XCTAssertFalse(normalized(text).contains(normalized(missing)), text)
+        }
     }
 
     private func assertLabels(in text: String, mode: PlaybackDiagnostics.PlaybackMode, wrapped: Bool = false) throws {
@@ -129,6 +145,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         value.audioSampleRate = 48_000
         value.audioBitrate = 128_000
         value.audioOutputDescription = "Stereo"
+        value.audioOutput = .init(renderingMode: "Dolby Atmos", connections: ["HDMI"])
         value.subtitleDescription = "SubRip"
         value.positionSeconds = 30
         value.durationSeconds = 300
@@ -164,19 +181,21 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         attachment.name = "Diagnostics \(locale)"
         attachment.lifetime = .keepAlways
         add(attachment)
-        // Vision downsamples tall panels, obscuring otherwise readable caption text.
-        // Overlapping strips retain the rendered font size and complete text lines.
+        // Vision downsamples tall or TV-wide panels. Overlapping tiles retain
+        // the rendered font size and complete words in both presentations.
         var lines: [String] = []
         for y in stride(from: 0, to: image.height, by: 1000) {
-            let strip = try XCTUnwrap(image.cropping(to: CGRect(
-                x: 0, y: y, width: image.width, height: min(1200, image.height - y)
-            )))
-            let request = VNRecognizeTextRequest()
-            request.recognitionLevel = .accurate
-            let supported = try request.supportedRecognitionLanguages()
-            request.recognitionLanguages = locale == "cs" && supported.contains("cs-CZ") ? ["cs-CZ", "en-US"] : ["en-US"]
-            try VNImageRequestHandler(cgImage: strip).perform([request])
-            lines += (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+            for x in stride(from: 0, to: image.width, by: 1200) {
+                let tile = try XCTUnwrap(image.cropping(to: CGRect(
+                    x: x, y: y, width: min(1800, image.width - x), height: min(1200, image.height - y)
+                )))
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                let supported = try request.supportedRecognitionLanguages()
+                request.recognitionLanguages = locale == "cs" && supported.contains("cs-CZ") ? ["cs-CZ", "en-US"] : ["en-US"]
+                try VNImageRequestHandler(cgImage: tile).perform([request])
+                lines += (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+            }
         }
         return lines.joined(separator: " ")
     }
