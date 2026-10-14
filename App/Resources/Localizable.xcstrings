@@ -358525,6 +358525,7 @@
       }
     },
     "Live TV (Experimental)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
