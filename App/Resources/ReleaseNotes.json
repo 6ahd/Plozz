@@ -2,6 +2,39 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/055",
+      "version": "2026.10.13",
+      "marketingVersion": "2026.9.25",
+      "build": 55,
+      "releasedAt": "2026-10-13",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            {
+              "text": "TrueHD Atmos overhead audio on compatible equipment with tvOS 26 or later, enabled by default in Settings > Playback.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Clearer messages when an IPTV provider blocks access.",
+            "More useful diagnostics for investigating slow Home loading and Live TV sync, when crash reporting is enabled."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "IPTV accounts showing \"Ready to load\" in Live TV settings after channels were already imported.",
+            "Duplicate and lingering IPTV connections that could prevent channels from playing.",
+            "Live TV provider access errors being mistaken for a profile permission problem."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/054.1",
       "version": "2026.10.13",
       "marketingVersion": "2026.9.25",

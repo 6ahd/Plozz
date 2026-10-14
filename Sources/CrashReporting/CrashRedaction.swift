@@ -34,6 +34,10 @@ enum CrashRedaction {
             }
             if !safe.isEmpty { context[category] = safe }
         }
+        if let raw = event.context?[CrashPerformanceContext.key],
+           let safe = CrashPerformanceContext.scrub(raw) {
+            context[CrashPerformanceContext.key] = safe
+        }
         if event.tags?["report.kind"] == "playlist-import-limit",
            let limit = event.tags?["import.limit"],
            LiveTVPlaylistLimitDiagnostic.Limit(rawValue: limit) != nil {

@@ -108,6 +108,10 @@ extension LiveTVPrototypeImportModel {
     }
 
     public func reloadServers(into model: LiveTVPrototypeModel, forceRefresh: Bool = true) async {
+        _ = await reloadServersResult(into: model, forceRefresh: forceRefresh)
+    }
+
+    func reloadServersResult(into model: LiveTVPrototypeModel, forceRefresh: Bool) async -> ReloadResult {
         serverRevision &+= 1
         cancelServerGuideRequests()
         let request = serverRevision
@@ -118,15 +122,16 @@ extension LiveTVPrototypeImportModel {
                 serverSources[index].failure = .invalidCatalog
                 serverSources[index].guidePhase = .idle
             }
-            return
+            return .completed
         }
         for index in serverSources.indices {
             if serverSources[index].phase == .loading { serverSources[index].phase = .idle }
             if serverSources[index].guidePhase == .loading { serverSources[index].guidePhase = .idle }
         }
         let sources = serverSources.map(\.source).filter(\.isEnabled)
+        var result = ReloadResult.completed
         for source in sources {
-            guard request == serverRevision, !Task.isCancelled else { return }
+            guard request == serverRevision, !Task.isCancelled else { return .cancelled }
             let sourceRevision = serverSourceRevisions[source.id, default: 0]
             guard configuration.servers.contains(where: {
                 $0.id == source.id && $0.accountID == source.accountID && $0.isEnabled
@@ -228,17 +233,18 @@ extension LiveTVPrototypeImportModel {
                 guard availability.supportsGuide, !channels.isEmpty else { continue }
                 let warmup = context.kind == .plex
                     ? Array(catalog.channels.prefix(Self.serverGuideWarmupChannelLimit)) : catalog.channels
-                await reloadServerGuides(
+                let guideResult = await reloadServerGuidesResult(
                     channelIDs: warmup.map(\.id), from: model.now, to: model.now.addingTimeInterval(21_600),
                     into: model, force: true
                 )
+                result = result.merging(guideResult)
             } catch {
                 guard currentServerRequest(source, request: request, sourceRevision: sourceRevision) else {
                     continue
                 }
                 if isCancellation(error) {
                     updateServerStatus(source.id) { $0.phase = .idle; $0.guidePhase = .idle }
-                    return
+                    return .cancelled
                 }
                 guard acceptServerResult(
                     source, context: context, request: request, sourceRevision: sourceRevision, into: model
@@ -256,6 +262,7 @@ extension LiveTVPrototypeImportModel {
                 }
             }
         }
+        return result
     }
 
     func applyServerConfiguration(_ sources: [LiveTVServerSource]) {
