@@ -821430,6 +821430,234 @@
         }
       }
     },
+    "error.accessRestricted" : {
+      "comment" : "Shown when a stream provider explicitly blocks access, without rejecting the saved password.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The provider has blocked access. Check your subscription or contact the provider."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "حظر مزوّد الخدمة الوصول. تحقّق من اشتراكك أو تواصل مع مزوّد الخدمة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът е блокирал достъпа. Проверете абонамента си или се свържете с доставчика."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor ha bloquejat l'accés. Comprova la teva subscripció o contacta amb el proveïdor."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel zablokoval přístup. Zkontrolujte své předplatné nebo kontaktujte poskytovatele."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen har blokeret adgangen. Kontrollér dit abonnement, eller kontakt udbyderen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat den Zugriff gesperrt. Prüfe dein Abonnement oder kontaktiere den Anbieter."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος έχει αποκλείσει την πρόσβαση. Ελέγξτε τη συνδρομή σας ή επικοινωνήστε με τον πάροχο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor ha bloqueado el acceso. Comprueba tu suscripción o contacta con el proveedor."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده دسترسی را مسدود کرده است. اشتراک خود را بررسی کنید یا با ارائه‌دهنده تماس بگیرید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja on estänyt pääsyn. Tarkista tilauksesi tai ota yhteyttä palveluntarjoajaan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur a bloqué l’accès. Vérifiez votre abonnement ou contactez le fournisseur."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק חסם את הגישה. יש לבדוק את המינוי או לפנות לספק."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सेवा प्रदाता ने पहुँच रोक दी है। अपनी सदस्यता जाँचें या सेवा प्रदाता से संपर्क करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj usluge blokirao je pristup. Provjerite svoju pretplatu ili se obratite pružatelju usluge."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató letiltotta a hozzáférést. Ellenőrizze az előfizetését, vagy lépjen kapcsolatba a szolgáltatóval."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia telah memblokir akses. Periksa langganan Anda atau hubungi penyedia."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore ha bloccato l'accesso. Controlla il tuo abbonamento o contatta il fornitore."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーによってアクセスがブロックされました。契約状況を確認するか、プロバイダーにお問い合わせください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "서비스 제공업체가 접근을 차단했습니다. 구독 상태를 확인하거나 서비스 제공업체에 문의하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia telah menyekat akses. Semak langganan anda atau hubungi penyedia."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren har blokkert tilgangen. Sjekk abonnementet ditt eller kontakt leverandøren."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De aanbieder heeft de toegang geblokkeerd. Controleer je abonnement of neem contact op met de aanbieder."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca zablokował dostęp. Sprawdź swoją subskrypcję lub skontaktuj się z dostawcą."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor bloqueou o acesso. Verifique sua assinatura ou entre em contato com o provedor."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul a blocat accesul. Verifică-ți abonamentul sau contactează furnizorul."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Поставщик услуги заблокировал доступ. Проверьте свою подписку или свяжитесь с поставщиком услуги."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ zablokoval prístup. Skontrolujte svoje predplatné alebo kontaktujte poskytovateľa."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik je blokiral dostop. Preverite svojo naročnino ali se obrnite na ponudnika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružalac usluge je blokirao pristup. Proverite svoju pretplatu ili se obratite pružaocu usluge."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören har blockerat åtkomsten. Kontrollera din prenumeration eller kontakta leverantören."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการได้บล็อกการเข้าถึง โปรดตรวจสอบการสมัครใช้บริการของคุณหรือติดต่อผู้ให้บริการ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı erişimi engelledi. Aboneliğinizi kontrol edin veya sağlayıcıyla iletişime geçin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постачальник послуги заблокував доступ. Перевірте свою передплату або зверніться до постачальника послуги."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp đã chặn quyền truy cập. Hãy kiểm tra gói đăng ký của bạn hoặc liên hệ với nhà cung cấp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "服务提供商已阻止访问。请检查您的订阅或联系服务提供商。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "服務供應商已封鎖存取。請檢查您的訂閱或聯絡服務供應商。"
+          }
+        }
+      }
+    },
     "error.cancelled" : {
       "comment" : "Shown when the user cancelled the operation.",
       "localizations" : {
