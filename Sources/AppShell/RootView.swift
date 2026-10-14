@@ -1558,7 +1558,6 @@ private struct PlexPINEntryView: View {
     let onCancel: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var isSubmitting: Bool = false
 
     var body: some View {
         // Track the request directly so a successful switch (which clears
@@ -1571,13 +1570,11 @@ private struct PlexPINEntryView: View {
             title: "Enter your Plex PIN",
             name: Text(verbatim: userName),
             errorMessage: appState.plexHomeUsers.plexPINError,
-            isSubmitting: isSubmitting,
+            isSubmitting: appState.plexHomeUsers.isSubmittingPlexPIN,
             sequenceStep: sequenceStep,
             onSubmit: { pin in
-                // Flip isSubmitting so the user sees a spinner rather than "four
-                // dots and nothing happens" while the network round-trip runs.
+                guard appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest else { return }
                 PlozzLog.auth.debug("PIN auto-submit at 4 digits")
-                isSubmitting = true
                 onSubmit(pin)
             },
             onCancel: onCancel
@@ -1598,11 +1595,7 @@ private struct PlexPINEntryView: View {
             }
             .frame(width: PINLayout.badgeSize, height: PINLayout.badgeSize)
         }
-        .onChange(of: appState.plexHomeUsers.plexPINError) { _, newValue in
-            // Wrong-PIN response: drop the submitting state so the user can retry
-            // (the scaffold clears the entered digits off the same signal).
-            if newValue != nil { isSubmitting = false }
-        }
+        .id([pendingRequest?.id, pendingRequest?.accountID, pendingRequest?.homeUserID])
         .onChange(of: pendingRequest?.id) { _, newValue in
             // The cover's outer Binding tracking has been flaky on tvOS — call
             // dismiss() directly from inside the cover when AppState clears the

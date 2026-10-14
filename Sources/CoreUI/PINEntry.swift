@@ -1,4 +1,5 @@
 import CoreModels
+import Observation
 import SwiftUI
 
 /// Platform metrics for the PIN screen. A 10-foot remote-driven UI and a phone
@@ -137,10 +138,7 @@ public struct PINEntryScaffold<Badge: View>: View {
     @ViewBuilder public let badge: () -> Badge
 
     @Environment(\.themePalette) private var palette
-    @State private var pin: String = ""
-    /// The last digit has landed and the pad is holding still long enough for
-    /// the fourth dot to actually appear on screen. See ``appendDigit(_:)``.
-    @State private var isCommitting = false
+    @State private var entry = PINEntryState()
 
     public init(
         title: LocalizedStringResource,
@@ -218,7 +216,7 @@ public struct PINEntryScaffold<Badge: View>: View {
                             .frame(width: 360, alignment: .leading)
                         VStack(spacing: 24) {
                             padColumn
-                            Button("Cancel", action: onCancel)
+                            Button("Cancel", action: cancelEntry)
                                 .plozzActionButton(role: .secondary)
                         }
                     }
@@ -233,7 +231,7 @@ public struct PINEntryScaffold<Badge: View>: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                         padColumn
                         Spacer(minLength: 0)
-                        Button("Cancel", action: onCancel)
+                        Button("Cancel", action: cancelEntry)
                             .plozzActionButton(role: .secondary)
                             .padding(.bottom, 24)
                     }
@@ -246,10 +244,11 @@ public struct PINEntryScaffold<Badge: View>: View {
         #if os(tvOS)
         // Menu on the Siri remote backs out. iOS has no equivalent command, so
         // the Cancel button is the way out there.
-        .onExitCommand(perform: onCancel)
+        .onExitCommand(perform: cancelEntry)
         #endif
+        .onDisappear(perform: entry.reset)
         .onChange(of: errorMessage) { _, newValue in
-            if newValue != nil { pin = "" }
+            if newValue != nil { entry.reset() }
         }
     }
 
@@ -329,13 +328,13 @@ public struct PINEntryScaffold<Badge: View>: View {
     private var padColumn: some View {
         VStack(spacing: 28) {
             HStack(spacing: 18) {
-                PINProgressDots(filledCount: pin.count)
+                PINProgressDots(filledCount: entry.pin.count)
                 if isSubmitting {
                     ProgressView().controlSize(.large)
                 }
             }
             PINDialPad(onDigit: appendDigit, onDelete: deleteDigit)
-                .disabled(isSubmitting || isCommitting)
+                .disabled(isSubmitting || entry.isCommitting)
                 .opacity(isSubmitting ? 0.5 : 1.0)
         }
         #if os(tvOS)
@@ -348,43 +347,59 @@ public struct PINEntryScaffold<Badge: View>: View {
     // MARK: Entry
 
     private func appendDigit(_ d: String) {
-        guard !isSubmitting, !isCommitting else { return }
+        guard !isSubmitting else { return }
+        entry.appendDigit(d, onSubmit: onSubmit)
+    }
+
+    private func cancelEntry() {
+        entry.reset()
+        onCancel()
+    }
+
+    private func deleteDigit() {
+        guard !isSubmitting else { return }
+        entry.deleteDigit()
+    }
+}
+
+@MainActor @Observable
+final class PINEntryState {
+    private(set) var pin = ""
+    private(set) var isCommitting = false
+    @ObservationIgnored private var commitTask: Task<Void, Never>?
+
+    func appendDigit(_ d: String, onSubmit: @escaping @MainActor (String) -> Void) {
+        guard !isCommitting else { return }
         guard d.count == 1, d.first?.isNumber == true else { return }
         guard pin.count < ProfileLock.pinLength else { return }
         pin.append(d)
         if pin.count == ProfileLock.pinLength {
             let entered = pin
-            // Hold the completed PIN on screen for a beat before submitting.
-            //
-            // Appending the fourth digit and clearing the field used to happen in
-            // the SAME update, so SwiftUI only ever rendered the result: the
-            // fourth dot never appeared. A local profile PIN then verifies
-            // synchronously and the screen is torn down in that same frame, so
-            // the last press looked like it had been ignored — the entry read as
-            // incomplete right at the moment it succeeded. A Plex PIN hid this
-            // only because its caller raises a spinner while the network answers.
-            //
-            // The pad is inert during the hold, so the pause cannot swallow a
-            // fifth press or a delete.
+            // Show the fourth dot before synchronous verification can remove the view.
             isCommitting = true
-            Task { @MainActor in
+            commitTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .milliseconds(140))
-                // Cleared BEFORE submitting, deliberately. A caller that reports
-                // the same error twice running (two wrong PINs, same message)
-                // produces no change for `onChange` to see, which would strand
-                // four filled dots above a pad that ignores every press.
-                pin = ""
-                isCommitting = false
+                guard !Task.isCancelled, let self else { return }
+                // Reset before submitting so repeated identical errors also allow retry.
+                self.pin = ""
+                self.isCommitting = false
+                self.commitTask = nil
                 onSubmit(entered)
             }
         }
     }
 
-    private func deleteDigit() {
-        guard !isSubmitting, !isCommitting else { return }
-        if !pin.isEmpty { pin.removeLast() }
+    func reset() {
+        commitTask?.cancel()
+        commitTask = nil
+        pin = ""
+        isCommitting = false
     }
 
+    func deleteDigit() {
+        guard !isCommitting else { return }
+        if !pin.isEmpty { pin.removeLast() }
+    }
 }
 
 /// Quiet progress for a chained profile-PIN then Plex-PIN gate.

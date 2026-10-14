@@ -60,6 +60,7 @@ final class AutomaticSignInTests: XCTestCase {
             automaticSignInStore: startup ?? household.startup,
             switchProfile: { _ in }
         )
+        plex.plexHomeUsersFetch = { _, _ in throw URLError(.notConnectedToInternet) }
         plex.plexHomeUserSwitch = { user, pin, _, _ in
             guard pin == "2468" else { throw AppError.unauthorized }
             return "discover-\(user)"
