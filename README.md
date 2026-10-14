@@ -283,12 +283,28 @@ series as requested; failed requests remain visible for attention in Seerr.
 
 ## Comparing Apple TV media players
 
-[Infuse](https://firecore.com/infuse) has a free tier and paid Pro features;
-Plozz keeps every feature free. Like [VLC](https://www.videolan.org/vlc/download-appletv.html),
-Plozz is open source. [Swiftfin](https://github.com/jellyfin/Swiftfin) focuses
-on Jellyfin, while Plozz brings Jellyfin, Plex, Emby, Silo, and network shares
-into one library. If you're looking for a free Infuse alternative on Apple TV,
-Plozz is worth a look. It's still in public beta, and feature support differs.
+Looking for an **Infuse alternative** for your own movies and TV shows?
+Plozz is a **completely free Apple TV media player**, with native apps for
+iPhone and iPad too. There is no Plozz subscription, paid feature unlock, or
+advertising. The source code is available under the [GPL-3.0 license](LICENSE),
+so you can inspect it, build it yourself, and contribute.
+
+If you're choosing between Apple TV media apps, here's where Plozz fits:
+
+- **Coming from Infuse or VLC?** Play from your NAS or network shares over
+  SMB, NFS, WebDAV, SFTP, or FTP, with artwork and library browsing. You don't
+  need to run a media server.
+- **Using the Plex or Emby app?** Keep your existing server and use Plozz as
+  an alternative client. Connect multiple servers and browse them together,
+  including libraries from other supported providers.
+- **Using Swiftfin for Jellyfin?** Plozz is another open-source Jellyfin client
+  for Apple TV, with Plex, Emby, Silo, and network shares available in the same
+  app.
+
+Plozz is an independent project, not affiliated with these apps. It's still
+in [public beta](#getting-started), not a promise of feature-for-feature parity.
+You bring your own media; server-side permissions and any provider subscription
+requirements still apply. Plozz replaces the player, not your media server.
 
 ## Getting started
 
