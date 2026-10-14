@@ -75,14 +75,26 @@ ships the upstream and transitive-library notices. Preserve all upstream license
 headers when updating the vendored sources, and update sources, public headers,
 binary checksums, and bundled notices together.
 
-Plozz pins the subtitle-corrected
-[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/4b7552a06c4cf646bb94eb7eb273946f8b916a70)
-at commit `4b7552a06c4cf646bb94eb7eb273946f8b916a70`, based on upstream
+Plozz pins the playback-corrected
+[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/af350b9bf35be106e3f97ecd521e1ab32be0bdd3)
+at commit `af350b9bf35be106e3f97ecd521e1ab32be0bdd3`, based on upstream
 release **7.34.1** (`cc070bf8d7bd7004547283cf1dc0c70ccd00d616`).
 ASS/SSA packets with neither a decoded end nor a packet duration are now discarded
 instead of lingering for a fabricated five seconds. This also applies to sidecars;
 other subtitle codecs retain their established fallback. Upstream 7.34.1 does not
 include this correction; the fork retains it and its regression tests.
+
+The fork also corrects accumulating AAC-LC audio drift in indexed MP4 VOD
+([#89](https://github.com/brandomoore/Plozz/issues/89)). When the existing audio
+sample index demonstrates a different clock from the decoded samples, the native
+HLS path selectively enables timestamp-aware resampling through its audio bridge.
+Ordinary AAC and nonaccumulating timing jitter still stream-copy. Stereo uses
+FLAC without an extra lossy encoding generation; surround retains the configured
+bridge mode. Compensation resets on restart and drains at EOF. The correction
+applies independently of provider or transport on tvOS and iOS/iPadOS; it does
+not modify SMB reads, video timestamps or Match Frame Rate. Synthetic regressions
+cover both drift directions, late-onset drift, 44.1/48 kHz, restart/resume and
+decoded HLS timing. The original reporter's media has not been supplied.
 
 The fork exports **AetherEngine as a dynamic framework**. LibDovi and LibTrueHD
 each bring a Rust exception personality; statically combining both with Plozz's
