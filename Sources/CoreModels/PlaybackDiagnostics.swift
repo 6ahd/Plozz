@@ -150,6 +150,8 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
     /// Expected output handling for the current audio route, e.g. Atmos passthrough
     /// vs. a route that may collapse to channel-bed audio.
     public var audioOutputDescription: LocalizedStringResource?
+    /// Actual engine processing, independent of source metadata and output hardware.
+    public var audioPipelineDescription: String?
     /// One-line subtitle description, e.g. `SubRip · English`.
     public var subtitleDescription: String?
     public var container: String?
@@ -246,6 +248,7 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
         audioSampleRate: Int? = nil,
         audioBitrate: Double? = nil,
         audioOutputDescription: LocalizedStringResource? = nil,
+        audioPipelineDescription: String? = nil,
         subtitleDescription: String? = nil,
         container: String? = nil,
         mode: PlaybackMode = .unknown,
@@ -293,6 +296,7 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
         self.audioSampleRate = audioSampleRate
         self.audioBitrate = audioBitrate
         self.audioOutputDescription = audioOutputDescription
+        self.audioPipelineDescription = audioPipelineDescription
         self.subtitleDescription = subtitleDescription
         self.container = container
         self.mode = mode
@@ -478,21 +482,12 @@ public extension PlaybackDiagnostics {
         capabilities: MediaCapabilities,
         mode: PlaybackMode = .unknown
     ) -> LocalizedStringResource? {
+        // Source codec/channel counts cannot identify APAC, the selected bridge,
+        // or an encoder fallback. Plozzigen reports its running pipeline instead.
+        guard mode != .plozzigen else { return nil }
         let token = (codec ?? "").lowercased().replacingOccurrences(of: "_", with: "-")
         let profileText = (profile ?? "").lowercased()
         let isAtmos = profileText.contains("atmos")
-        // Plozzigen (AetherEngine) bridges codecs AVPlayer can't decode to a
-        // lossless FLAC (>6ch) or EAC3 5.1 stream on-device, so DTS/TrueHD play
-        // without passthrough. Reflect that instead of the AVPlayer caveat.
-        if mode == .plozzigen {
-            switch token {
-            case "dts", "dca", "dts-hd", "dtshd", "dca-ma", "truehd", "mlp":
-                let bridged = (channels ?? 0) > 6 ? "lossless FLAC" : "EAC3 5.1"
-                return "Bridged on-device (\(bridged))"
-            default:
-                break
-            }
-        }
         switch token {
         case "eac3", "ec3", "ec-3", "e-ac-3":
             if isAtmos {

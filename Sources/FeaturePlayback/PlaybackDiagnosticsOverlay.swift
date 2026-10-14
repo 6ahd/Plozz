@@ -224,7 +224,14 @@ struct PlaybackDiagnosticsOverlay: View {
             }
             optionalRow(LocalizedStringResource("Sample Rate", comment: "Playback diagnostics label for the audio sampling frequency."), d.audioSampleRateText)
             optionalRow("Bitrate", d.audioBitrateText)
-            optionalRow(LocalizedStringResource("Output", comment: "Playback diagnostics label for the active audio output route and format."), d.audioOutputDescription)
+            if d.mode == .plozzigen {
+                row(LocalizedStringResource("Processing", comment: "Playback diagnostics label for the engine's actual audio conversion or stream-copy pipeline."),
+                    d.audioPipelineDescription ?? PlaybackDiagnostics.placeholder)
+                row(LocalizedStringResource("Output", comment: "Playback diagnostics label for the active audio output route and format."),
+                    LocalizedStringResource("Not verified by the app", comment: "Audio diagnostics caveat: the running audio pipeline does not prove the receiver or speakers' actual output format."))
+            } else {
+                optionalRow(LocalizedStringResource("Output", comment: "Playback diagnostics label for the active audio output route and format."), d.audioOutputDescription)
+            }
         }
     }
 

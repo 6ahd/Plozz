@@ -54,6 +54,37 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         XCTAssertTrue(normalized(czech).contains("file"), "Provider content must remain verbatim: \(czech)")
     }
 
+    func testAudioProcessingShowsActualPipelineWithoutClaimingReceiverOutput() throws {
+        for pipeline in ["TRUEHD Atmos → APAC 7.1.4", "TRUEHD → FLAC bridge", "TRUEHD → EAC3 bridge"] {
+            var diagnostics = fixture(mode: .plozzigen)
+            diagnostics.audioPipelineDescription = pipeline
+            for width in [390.0, 844.0] {
+                let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics, presentation: .mobile)
+                let text = try renderedText(
+                    panel.mobileContent(width: width).frame(width: width)
+                        .fixedSize(horizontal: false, vertical: true),
+                    locale: "en"
+                )
+                assertAudioProcessing(in: text, pipeline: pipeline)
+            }
+            let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics, presentation: .television)
+            let text = try renderedText(
+                panel.frame(width: 1100).fixedSize(horizontal: false, vertical: true), locale: "en"
+            )
+            assertAudioProcessing(in: text, pipeline: pipeline)
+        }
+    }
+
+    private func assertAudioProcessing(in text: String, pipeline: String) {
+        for token in ["Processing", "Output", "Not verified by the app", "TRUEHD"] {
+            XCTAssertTrue(normalized(text).contains(normalized(token)), text)
+        }
+        let format = pipeline.contains("APAC") ? "APAC" : (pipeline.contains("FLAC") ? "FLAC" : "EAC3")
+        XCTAssertTrue(text.contains(format), text)
+        XCTAssertFalse(text.contains("Bridged on-device"), text)
+        if format == "APAC" { XCTAssertTrue(text.contains("7.1.4"), text) }
+    }
+
     private func assertLabels(in text: String, mode: PlaybackDiagnostics.PlaybackMode, wrapped: Bool = false) throws {
         var labels = commonLabelKeys
         labels += mode == .plozzigen ? ["AVPlayer time", "AVPlayer window"] : ["Position", "Seekable"]

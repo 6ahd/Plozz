@@ -190,6 +190,7 @@ public final class PlaybackDiagnosticsSampler {
         stallItem = nil
         engineTelemetry = nil
         probedFacts = nil
+        latest?.audioPipelineDescription = nil
     }
 
     var isSampling: Bool { timerTask != nil }
@@ -339,6 +340,9 @@ public final class PlaybackDiagnosticsSampler {
         // Software decoders supply their own render metrics. An engine's encoded
         // bitrate is deliberately not used as a network-throughput fallback.
         if let t = engineTelemetry?() {
+            if diagnostics.mode == .plozzigen {
+                diagnostics.audioPipelineDescription = t.audioPipelineDescription
+            }
             if let drops = t.droppedFrameCount, diagnostics.droppedVideoFrames == nil {
                 diagnostics.droppedVideoFrames = drops
             }

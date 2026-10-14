@@ -92,6 +92,17 @@ IDs used for lookups; changing this layout does not change playback preferences.
 - **No secrets in URLs logged.** Stream URLs frequently embed tokens —
   `PlayerViewModel` redacts before logging.
 
+Plozzigen's Audio **Processing** row samples Aether's active audio pipeline
+label, independently of source-video probe availability. `TRUEHD Atmos → APAC
+7.1.4` means the engine created the spatial-conversion pipeline; `TRUEHD → FLAC
+bridge` or `TRUEHD → EAC3 bridge` identifies ordinary channel processing instead.
+Stream-copy and software-decoding routes retain the engine's own labels.
+The row is unknown until the engine publishes a pipeline and follows track
+changes, fallbacks, and teardown. Do not infer it from the Atmos source badge,
+the setting, channel count, or requested bridge mode, or parse the label to make
+playback decisions. **Output** remains explicitly unverified: APAC's 7.1.4 is
+an intermediate processing layout, not detected speakers or proof of HDMI Atmos.
+
 Native asset diagnostics identify `original-url`, `provider-manifest`,
 `provider-initialization-repair`, `subtitle-wrapper`, or `trailer-composition`
 without recording the URL or tokens.
