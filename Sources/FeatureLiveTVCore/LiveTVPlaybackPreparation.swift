@@ -209,13 +209,15 @@ public final class LiveTVPlaybackPreparation {
     /// The closure is retained while current: capture the needed models weakly
     /// and profile identity by value, not the owning view or this owner.
     ///
-    /// `accept` commits preview/watch intent synchronously after resolution. A
-    /// rejection never changes the current stream. There are no automatic retries.
+    /// `accept` checks intent before disturbing the current stream; rejection
+    /// preserves it. `commit` rechecks and applies presentation changes after
+    /// cleanup, without suspending before publication. There are no automatic retries.
     @discardableResult
     public func prepare(
         _ channel: LiveTVPrototypeChannel,
         serverReference: LiveTVServerChannelReference? = nil,
         isAuthorized: @escaping @MainActor @Sendable () -> Bool,
+        commit: @MainActor () -> Bool = { true },
         accept: @MainActor () -> Bool
     ) async -> Bool {
         guard !Task.isCancelled else { return false }
@@ -230,7 +232,7 @@ public final class LiveTVPlaybackPreparation {
         return await withTaskCancellationHandler {
             await prepareCandidate(
                 channel, serverReference: serverReference, requestID: requestID,
-                isAuthorized: isAuthorized, accept: accept
+                isAuthorized: isAuthorized, commit: commit, accept: accept
             )
         } onCancel: { [weak self] in
             Task { @MainActor [weak self] in
@@ -244,6 +246,7 @@ public final class LiveTVPlaybackPreparation {
         serverReference: LiveTVServerChannelReference?,
         requestID: UUID,
         isAuthorized: @escaping @MainActor @Sendable () -> Bool,
+        commit: @MainActor () -> Bool,
         accept: @MainActor () -> Bool
     ) async -> Bool {
         guard generation == requestID, !Task.isCancelled else { return false }
@@ -261,6 +264,12 @@ public final class LiveTVPlaybackPreparation {
             preparingBinding = binding
             if let existing = current, canReuse(existing, binding: binding) {
                 guard accept() else {
+                    finishPreparation(requestID)
+                    discardUnauthorizedCurrent()
+                    return false
+                }
+                try requireCurrent(requestID, binding: binding)
+                guard commit() else {
                     finishPreparation(requestID)
                     discardUnauthorizedCurrent()
                     return false
@@ -330,6 +339,14 @@ public final class LiveTVPlaybackPreparation {
                 for cleanup in pending { await cleanup.value }
                 try requireCurrent(requestID, binding: binding)
             }
+            guard commit() else {
+                finishPreparation(requestID)
+                pendingLeases.removeValue(forKey: requestID)
+                if let candidate { await release(candidate).value }
+                discardUnauthorizedCurrent()
+                return false
+            }
+            try requireCurrent(requestID, binding: binding)
             let previous = currentLease
             pendingLeases.removeValue(forKey: requestID)
             currentLease = candidate

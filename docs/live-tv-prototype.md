@@ -349,6 +349,13 @@ independent. An IPTV channel replacement waits for prior owned lease cleanup
 before publishing its URL to the player; intentional multiview panes keep their
 separate ownership.
 
+Preview/Watch admission is separate from its presentation commit. Admission
+rejects stale intent before stopping an existing stream; after cleanup, current
+intent and authority are rechecked, then the UI commit and replacement
+publication run without an intervening suspension. In particular, clearing a
+preview's `pendingRequest` must not cancel its SwiftUI task during cleanup or
+let an old-player teardown erase the replacement's selected channel.
+
 Upstream HTTP failures retain their status with an empty, sanitized response.
 Authentication, access-block, and rate-limit refusals are latched for that proxy
 so native retries cannot repeatedly contact a rejecting provider. HTTP 451 is
