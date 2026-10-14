@@ -3,9 +3,9 @@ import SwiftUI
 
 // MARK: - Switch-style Toggle (shared)
 
-/// A tvOS switch-style `ToggleStyle` used across the app — the Settings detail
+/// A platform-aware `ToggleStyle` used across the app — the Settings detail
 /// pane AND the onboarding library picker — so every real on/off control looks
-/// identical instead of drifting from a private copy.
+/// consistent. iOS/iPadOS use the native switch without custom geometry or colors.
 ///
 /// tvOS has no native sliding switch — a default `Toggle` renders as a text
 /// "On/Off" pill, which reads almost identically to a navigation row. This draws
@@ -28,71 +28,15 @@ public struct SettingsSwitchToggleStyle: ToggleStyle {
     }
 
     public func makeBody(configuration: Configuration) -> some View {
+        #if os(iOS)
+        Toggle(configuration)
+            .toggleStyle(.switch)
+            .tint(nil)
+        #else
         SettingsSwitchToggleBody(configuration: configuration, flushLeading: flushLeading)
+        #endif
     }
 }
-
-#if os(iOS)
-/// A touch-sized switch that uses the same monochrome state colors as the
-/// ten-foot tvOS control without carrying over its larger geometry or state word.
-public struct SettingsTouchSwitchToggleStyle: ToggleStyle {
-    public init() {}
-
-    public func makeBody(configuration: Configuration) -> some View {
-        Button {
-            configuration.isOn.toggle()
-        } label: {
-            HStack {
-                configuration.label
-                Spacer(minLength: 16)
-                SettingsTouchSwitchIndicator(isOn: configuration.isOn)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct SettingsTouchSwitchIndicator: View {
-    let isOn: Bool
-    @Environment(\.themePalette) private var palette
-
-    private let trackWidth: CGFloat = 51
-    private let trackHeight: CGFloat = 31
-    private let knobSize: CGFloat = 27
-
-    private var ink: Color { palette.isLight ? .black : .white }
-    private var paper: Color { palette.isLight ? .white : .black }
-    private var trackColor: Color { isOn ? ink : ink.opacity(0.22) }
-    private var knobColor: Color { isOn ? paper : .white }
-    private var travel: CGFloat { (trackWidth - knobSize) / 2 - 2 }
-
-    var body: some View {
-        ZStack {
-            Capsule(style: .continuous)
-                .fill(trackColor)
-            Circle()
-                .fill(knobColor)
-                .frame(width: knobSize, height: knobSize)
-                .shadow(color: .black.opacity(0.22), radius: 1.5, y: 1)
-                .offset(x: isOn ? travel : -travel)
-        }
-        .frame(width: trackWidth, height: trackHeight)
-        .animation(.easeOut(duration: 0.18), value: isOn)
-        // Animate the KNOB, not the switch's place in the world.
-        //
-        // `.animation(_:value:)` animates every change this view makes in the
-        // same transaction — including its own position. Flipping a server on
-        // inserts rows and moves the card, so the switch interpolated from where
-        // it used to be while the label beside it moved instantly: the switch
-        // alone appeared to fly up and settle back down. `geometryGroup` makes
-        // the indicator take its position from its parent's layout in one step,
-        // leaving the knob and track free to animate inside it.
-        .geometryGroup()
-    }
-}
-#endif
 
 private struct SettingsSwitchToggleBody: View {
     let configuration: ToggleStyleConfiguration
@@ -284,8 +228,7 @@ private struct SettingsSwitchIndicator: View {
             }
             .frame(width: trackWidth, height: trackHeight)
             .animation(.easeOut(duration: 0.18), value: isOn)
-            // See the touch indicator above: keeps the switch from animating its
-            // own position when the row it lives in moves.
+            // Keep the switch from animating its own position when its row moves.
             .geometryGroup()
         }
     }

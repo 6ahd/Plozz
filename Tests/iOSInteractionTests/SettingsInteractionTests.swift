@@ -172,7 +172,7 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(appearance.staticTexts["Light"].exists)
         let gradient = app.switches["Gradient Backgrounds"]
         let before = gradient.value as? String
-        gradient.tap()
+        tapNativeSwitch(gradient)
         XCTAssertNotEqual(gradient.value as? String, before)
         XCTAssertTrue(appearance.staticTexts["Light"].exists)
         let glass = button("Liquid Glass")
@@ -566,13 +566,13 @@ final class SettingsInteractionTests: XCTestCase {
         app.buttons["Prefer H.264"].tap()
         XCTAssertEqual(codec.value as? String, "Prefer H.264")
         let force = app.switches["streaming-force-transcoding"]
-        force.tap()
+        tapNativeSwitch(force)
         XCTAssertEqual(force.value as? String, "1")
         XCTAssertTrue(app.staticTexts["May change HDR and audio formats."].waitForExistence(timeout: 3))
         capture("playback-advanced-warning")
-        force.tap()
+        tapNativeSwitch(force)
         XCTAssertTrue(app.staticTexts["May change HDR and audio formats."].waitForNonExistence(timeout: 3))
-        force.tap()
+        tapNativeSwitch(force)
         app.navigationBars.buttons["BackButton"].tap()
         XCTAssertTrue(advanced.waitForExistence(timeout: 5))
         XCTAssertEqual(local.value as? String, "1080p · 8 Mbps")
@@ -652,12 +652,12 @@ final class SettingsInteractionTests: XCTestCase {
     }
 
     func testSpoilerSwitchesAndMenuRemainIndependent() {
-        openSettingsPage("Spoilers")
+        openSettingsPage("Spoilers", verifyTitleLayout: false)
         let protection = app.switches["Protect unwatched episodes"]
         let ratings = app.switches["Hide ratings until watched"]
         let treatment = button("Thumbnail treatment")
         XCTAssertFalse(treatment.isEnabled)
-        protection.tap()
+        tapNativeSwitch(protection)
         XCTAssertTrue(treatment.isEnabled)
         treatment.tap()
         XCTAssertTrue(app.buttons["Placeholder Art"].waitForExistence(timeout: 3))
@@ -665,23 +665,23 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(treatment.staticTexts["Placeholder Art"].exists)
         XCTAssertEqual(protection.value as? String, "1")
         XCTAssertEqual(ratings.value as? String, "0")
-        ratings.tap()
+        tapNativeSwitch(ratings)
         XCTAssertEqual(ratings.value as? String, "1")
         XCTAssertTrue(treatment.staticTexts["Placeholder Art"].exists)
-        protection.tap()
+        tapNativeSwitch(protection)
         XCTAssertFalse(treatment.isEnabled)
         XCTAssertEqual(ratings.value as? String, "1")
     }
 
     func testSubtitleToggleInsertsOnlyItsOwnNavigationRow() {
-        openSettingsPage("Subtitles")
+        openSettingsPage("Subtitles", verifyTitleLayout: false)
         let liveStyle = app.switches["Use a separate style for Live TV"]
         XCTAssertEqual(liveStyle.value as? String, "0")
-        liveStyle.tap()
+        tapNativeSwitch(liveStyle)
         let liveLink = button("Customize Live TV subtitles")
         XCTAssertTrue(liveLink.waitForExistence(timeout: 3), app.debugDescription)
         XCTAssertTrue(button("Customize subtitle style").exists)
-        liveStyle.tap()
+        tapNativeSwitch(liveStyle)
         XCTAssertFalse(liveLink.exists)
         let hearing = button("Hearing impaired")
         reveal(hearing)
@@ -696,8 +696,8 @@ final class SettingsInteractionTests: XCTestCase {
     }
 
     func testCircadianPictureMenusAndPreviewKeepSeparateActions() {
-        openSettingsPage("Circadian Mode")
-        app.switches["Circadian Mode"].tap()
+        openSettingsPage("Circadian Mode", verifyTitleLayout: false)
+        tapNativeSwitch(app.switches["Circadian Mode"])
         button("Schedule").tap()
         app.buttons["Always On"].tap()
         let warmth = button("Warmth")
@@ -719,7 +719,7 @@ final class SettingsInteractionTests: XCTestCase {
     }
 
     func testLiveTVSegmentedPickerAndSwitchesRemainIndependent() {
-        openSettingsPage("Live TV")
+        openSettingsPage("Live TV", verifyTitleLayout: false)
         let sort = app.segmentedControls.firstMatch
         XCTAssertTrue(sort.waitForExistence(timeout: 3))
         sort.buttons["Name"].tap()
@@ -728,7 +728,8 @@ final class SettingsInteractionTests: XCTestCase {
         let recent = app.switches["Recently watched"]
         let recentBefore = recent.value as? String
         let previewBefore = preview.value as? String
-        preview.tap()
+        capture("live-tv-native-switches")
+        tapNativeSwitch(preview)
         XCTAssertNotEqual(preview.value as? String, previewBefore)
         XCTAssertEqual(recent.value as? String, recentBefore)
         XCTAssertTrue(sort.buttons["Name"].isSelected)
@@ -887,6 +888,12 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertEqual(heading.frame.midX, titleRegion.midX, accuracy: 4, app.debugDescription)
         XCTAssertLessThanOrEqual(bar.frame.height, 64, "Subpages must not reserve a large-title block.")
         XCTAssertLessThanOrEqual(heading.frame.height, 32, "Subpages must use the native inline title font.")
+    }
+
+    private func tapNativeSwitch(_ row: XCUIElement) {
+        let control = row.switches.firstMatch
+        XCTAssertTrue(control.waitForExistence(timeout: 3), "Expected the native switch inside its labeled row.")
+        control.tap()
     }
 
     private func button(_ title: String) -> XCUIElement {

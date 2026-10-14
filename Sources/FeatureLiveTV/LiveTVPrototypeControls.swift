@@ -449,7 +449,7 @@ private struct PrototypeFilterForm: View {
         #if os(tvOS)
         .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
         #elseif os(iOS)
-        .toggleStyle(SettingsTouchSwitchToggleStyle())
+        .toggleStyle(SettingsSwitchToggleStyle())
         #endif
     }
 }

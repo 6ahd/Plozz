@@ -148,7 +148,7 @@ public struct LiveTVSourcesView: View {
         #if os(tvOS)
         .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
         #elseif os(iOS)
-        .toggleStyle(SettingsTouchSwitchToggleStyle())
+        .toggleStyle(SettingsSwitchToggleStyle())
         // The embedded pane is one List row; its child groups cannot clear
         // that row's system background or its extra insets.
         .listRowBackground(Color.clear)

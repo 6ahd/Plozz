@@ -2381,7 +2381,7 @@ private struct PlozziOSDetailRatingPriorityView: View {
                 Text("Enable as many sources as you want, then tap Edit to set their priority. Not every title has every score. The header shows the first available enabled sources, up to your chosen maximum. AniList is used only for anime.")
             }
         }
-        .toggleStyle(SettingsTouchSwitchToggleStyle())
+        .toggleStyle(SettingsSwitchToggleStyle())
         .settingsPageSurface()
         .navigationTitle("Rating sources & order")
         .toolbar { EditButton() }
