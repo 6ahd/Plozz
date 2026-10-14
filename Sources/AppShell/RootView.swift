@@ -365,7 +365,7 @@ public struct RootView: View {
                     onSetUpFromAnotherDevice: canReturnToApp ? nil : { showSyncReceive = true },
                     onAppearanceSelected: completeAppearanceIntroductions
                 )
-                .fullScreenCover(isPresented: $showSyncReceive) {
+                .plozzFullScreenCover(isPresented: $showSyncReceive) {
                     SyncSetupReceiveView(appState: appState) { showSyncReceive = false }
                 }
 
@@ -640,7 +640,7 @@ public struct RootView: View {
         // profile PIN to Home, then presented the Plex PIN — flashing Home as if
         // access had been granted. This cover stays opaque and switches its
         // content in place.
-        .fullScreenCover(isPresented: Binding(
+        .plozzFullScreenCover(isPresented: Binding(
             get: {
                 appState.profileFlow.pendingLockedProfile != nil
                     || appState.profileFlow.pendingParentalSwitch != nil
@@ -660,7 +660,7 @@ public struct RootView: View {
         // who does this profile watch as there? Without it the watchlist reads
         // that server as the account owner and quietly shows their list in, say,
         // a child's profile. Backing out declines rather than consenting.
-        .fullScreenCover(item: Binding(
+        .plozzFullScreenCover(item: Binding(
             get: { appState.profileFlow.pendingIdentityAccountID.map(PendingIdentityAccount.init(id:)) },
             set: { if $0 == nil { appState.profileFlow.declineIdentityPrompt(for: appState.profileFlow.pendingIdentityAccountID ?? "") } }
         )) { pending in
@@ -678,7 +678,7 @@ public struct RootView: View {
         // Last onboarding step stays full-screen. An alert here exposed Home
         // underneath an unrelated setup question, making the flow feel finished
         // before it actually was.
-        .fullScreenCover(
+        .plozzFullScreenCover(
             item: Binding(
                 get: { appState.profileFlow.pendingLockOfferProfile },
                 set: { if $0 == nil { appState.profileFlow.dismissLockOffer() } }
@@ -705,7 +705,7 @@ public struct RootView: View {
                 pendingFeatureIntroduction = nextFeatureIntroduction
             }
         }
-        .fullScreenCover(
+        .plozzFullScreenCover(
             item: $pendingFeatureIntroduction,
             onDismiss: { isDismissingFeatureIntroduction = false }
         ) { introduction in
@@ -733,7 +733,7 @@ public struct RootView: View {
                 releaseNotes.prepareForStartup()
             }
         }
-        .fullScreenCover(
+        .plozzFullScreenCover(
             isPresented: Binding(
                 get: { releaseNotes.hasPendingStartupNotes },
                 set: { presented in
@@ -748,7 +748,7 @@ public struct RootView: View {
         }
         // One-time appearance flow for a profile just created in-app. The app has
         // already switched profiles, so all choices write to its namespace.
-        .fullScreenCover(
+        .plozzFullScreenCover(
             isPresented: Binding(
                 get: { appState.profileFlow.isPickingAppearanceForNewProfile },
                 set: { newValue in
@@ -766,10 +766,10 @@ public struct RootView: View {
                 }
             )
         }
-        .fullScreenCover(isPresented: $showSyncSend) {
+        .plozzFullScreenCover(isPresented: $showSyncSend) {
             SyncSetupSendView(appState: appState) { showSyncSend = false }
         }
-        .fullScreenCover(isPresented: $showSyncReceiveFromSettings) {
+        .plozzFullScreenCover(isPresented: $showSyncReceiveFromSettings) {
             SyncSetupReceiveView(appState: appState) {
                 showSyncReceiveFromSettings = false
                 appState.refreshPendingSyncedServers()

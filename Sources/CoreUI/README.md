@@ -79,7 +79,7 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   5%-white wash in Dark and Black, or a 5%-black wash in Light, so they remain
   distinct without replacing the gradient's colour. SwiftUI surfaces keep their
   shadow and a matching hairline edge. Gradient Off or Reduce Transparency restores the original solid
-  surface and border; unrelated raised cards and dialogs remain unchanged.
+  surface and border; unrelated raised cards remain unchanged.
   PIN keys retain their existing focus, press, and hover treatment. Their resting
   gradient fill and edge also apply on systems before Liquid Glass.
   The detail information band retains its darker 40%-opaque surface.
@@ -95,6 +95,18 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   clipping and text remain TVUIKit-owned.
   Text stays opaque and native focus geometry is unchanged. Gradient Off or
   Reduce Transparency restores both the solid band and solid card fills.
+- **App-owned dialogs** — `plozzSheet` owns one opaque, theme-aware surface:
+  the native presentation background on iPhone/iPad, and the existing rounded
+  overlay card over `PlozzDialogBackdrop` on tvOS. TV uses a clear native
+  full-screen presentation because its glass sheet leaves refracted edge strips
+  around custom backgrounds. The shared surface honors Gradient Backgrounds in
+  Dark, Black, and Light without adding blur, including with Reduce Transparency.
+  `AppBackground` and `SettingsPageBackground` defer to that surface inside a
+  dialog rather than repainting smaller rectangles over it. Use `.floatingCard`
+  only for content already owning its dimmer and `.overlay` card.
+  `plozzFullScreenCover` resets background ownership for nested page flows;
+  bindings, dismissal callbacks, and explicit preferred color schemes remain
+  caller-owned. Native alerts and confirmation dialogs remain system-styled.
 - **Focusable building blocks** — focus-aware buttons, cards, tab bars,
   parallax containers, brand QR code rendering, code-font numerals.
   Native card focus observation is separate from explicit focus requests.

@@ -9,10 +9,9 @@ struct LiveTVPreviewIntroductionPresentation: ViewModifier {
     func body(content: Content) -> some View {
         #if os(tvOS)
         // Only an explicit action records a choice, not a scene-driven dismissal.
-        content.sheet(isPresented: .constant(isPresented), onDismiss: onDismiss) {
+        content.plozzSheet(isPresented: .constant(isPresented), onDismiss: onDismiss) {
             LiveTVPreviewIntroductionView(choose: choose)
                 .interactiveDismissDisabled()
-                .presentationBackground(.clear)
         }
         #else
         content

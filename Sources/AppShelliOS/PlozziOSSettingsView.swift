@@ -81,7 +81,7 @@ struct PlozziOSSettingsView: View {
         .environment(\.themePalette, palette)
         .environment(\.colorScheme, palette.isLight ? .light : .dark)
         .tint(palette.primaryText)
-        .sheet(
+        .plozzSheet(
             isPresented: $showingAddServer,
             onDismiss: {
                 appModel.finishManagedServerPresentation()
@@ -99,21 +99,21 @@ struct PlozziOSSettingsView: View {
                 .preferredColorScheme(addServerPresentationColorScheme)
                 .presentationSizing(.page)
         }
-        .sheet(item: plexUserSelectionBinding) { selection in
+        .plozzSheet(item: plexUserSelectionBinding) { selection in
             PlozziOSPlexUserSelectionView(
                 selection: selection,
                 onSelect: appModel.selectPlexUserDuringOnboarding
             )
             .preferredColorScheme(addServerPresentationColorScheme)
         }
-        .sheet(item: plexPINBinding) { request in
+        .plozzSheet(item: plexPINBinding) { request in
             PlozziOSPlexPINView(
                 model: appModel.plexHomeUsers,
                 request: request
             )
             .preferredColorScheme(addServerPresentationColorScheme)
         }
-        .sheet(item: librarySelectionBinding) { selection in
+        .plozzSheet(item: librarySelectionBinding) { selection in
             PlozziOSLibrarySelectionView(
                 accounts: appModel.accountsProviders.resolvedAccounts(
                     withIDs: selection.accountIDs
@@ -1436,7 +1436,7 @@ private struct PlozziOSProfilesView: View {
                 profileID: route.profileID
             )
         }
-        .sheet(isPresented: $showingAddProfile) {
+        .plozzSheet(isPresented: $showingAddProfile) {
             NavigationStack {
                 PlozziOSProfileEditorHost(
                     appModel: appModel,
@@ -1445,7 +1445,7 @@ private struct PlozziOSProfilesView: View {
             }
             .preferredColorScheme(palette.isLight ? .light : .dark)
         }
-        .sheet(item: $editingProfile) { profile in
+        .plozzSheet(item: $editingProfile) { profile in
             NavigationStack {
                 PlozziOSProfileEditorHost(
                     appModel: appModel,
@@ -1471,7 +1471,7 @@ private struct PlozziOSProfilesView: View {
         // a new one up on every step, and SwiftUI drops a presentation requested
         // while another is still dismissing — which is exactly how the theme step
         // went missing before.
-        .fullScreenCover(isPresented: Binding(
+        .plozzFullScreenCover(isPresented: Binding(
             get: { appModel.isPresentingProfileOnboarding(from: .settings) },
             set: { if !$0 { appModel.cancelProfileOnboarding() } }
         )) {

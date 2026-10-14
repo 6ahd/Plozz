@@ -188,7 +188,7 @@ public struct PlayerView: View {
             if case .failed = phase, !viewModel.controls.diagnosticsEnabled { diagnosticsSampler.stop() }
         }
         #if os(iOS)
-        .sheet(isPresented: Binding(
+        .plozzSheet(isPresented: Binding(
             get: { viewModel.controls.diagnosticsEnabled },
             set: { viewModel.controls.diagnosticsEnabled = $0 }
         )) {

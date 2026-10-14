@@ -103,7 +103,7 @@ struct LiveTVSetupWelcome: View {
             .scrollIndicators(.hidden)
         }
         #if os(tvOS)
-        .background(palette.settingsBackground)
+        .background { SettingsPageBackground() }
         #endif
         .foregroundStyle(palette.primaryText)
         .accessibilityIdentifier("live-tv-source-welcome")

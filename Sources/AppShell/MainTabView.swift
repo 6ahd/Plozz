@@ -1807,7 +1807,7 @@ struct MainTabView: View {
         // presents reliably on the first trigger under both tab styles. Hosting it
         // inside the Music tab's navigation stack made it present a beat late under
         // the sidebar style (only appearing after a stray Back press).
-        .fullScreenCover(isPresented: $showNowPlaying) {
+        .plozzFullScreenCover(isPresented: $showNowPlaying) {
             NowPlayingView(
                 controller: audioController,
                 appTheme: themeModel.theme,

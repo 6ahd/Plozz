@@ -754,7 +754,7 @@ private struct LiveTVMultiviewFailure: View {
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: hasCurrentPicture ? nil : .infinity)
         .background(.black.opacity(0.78))
-        .sheet(isPresented: $showsDetails) {
+        .plozzSheet(isPresented: $showsDetails) {
             if let report { LiveTVDiagnosticDetailsSheet(report: report) }
         }
     }

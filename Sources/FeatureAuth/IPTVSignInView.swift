@@ -334,7 +334,7 @@ private struct IPTVConnectionStatus: View {
             .disabled(!model.canConnect)
             .accessibilityIdentifier("iptv-connect")
         }
-        .sheet(isPresented: $showsDetails) {
+        .plozzSheet(isPresented: $showsDetails) {
             if let report = model.failureReport {
                 LiveTVDiagnosticDetailsSheet(report: report)
             }

@@ -524,6 +524,7 @@ targets:
       - path: Tests/PerformancePresentationSupport
       - path: Tests/ProviderIPTVTests/IPTVTestHTTPServer.swift
       - path: Tests/AppearancePresentationSupport
+      - path: Tests/CoreUITests/DialogSurfaceTests.swift
       - path: Tests/AuthPresentationSupport
       - path: Tests/SubtitlePresentationSupport
         excludes: ["Fixtures"]
@@ -578,6 +579,7 @@ targets:
       - path: Tests/ProviderIPTVTests/IPTVTestHTTPServer.swift
       - path: Tests/FeatureLiveTVTests/LiveTVGuideFocusTests.swift
       - path: Tests/AppearancePresentationSupport
+      - path: Tests/CoreUITests/DialogSurfaceTests.swift
       - path: Tests/AuthPresentationSupport
       - path: Tests/SubtitlePresentationSupport
         excludes: ["Fixtures"]

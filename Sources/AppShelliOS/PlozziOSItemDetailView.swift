@@ -390,7 +390,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $presentsSeriesDownloads) {
+        .plozzSheet(isPresented: $presentsSeriesDownloads) {
             if let detail = viewModel.state.value {
                 PlozziOSSeriesDownloadPicker(
                     series: detail.item,

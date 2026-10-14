@@ -1289,7 +1289,7 @@ fileprivate struct IOSProfileAvatarPicker: View {
             case .photo: photoRow
             }
         }
-        .sheet(isPresented: $showingFullPicker) { fullPickerSheet }
+        .plozzSheet(isPresented: $showingFullPicker) { fullPickerSheet }
     }
 
     private var symbolRow: some View {
@@ -1648,7 +1648,7 @@ fileprivate struct IOSProfileColorSection: View {
             }
             .iOSProfileMeasureWidth($rowWidth)
         }
-        .sheet(isPresented: $showingAllColors) {
+        .plozzSheet(isPresented: $showingAllColors) {
             IOSProfilePickerSheet(title: "Color") {
                 LazyVGrid(columns: columns, spacing: 12) {
                     if emojiMode {

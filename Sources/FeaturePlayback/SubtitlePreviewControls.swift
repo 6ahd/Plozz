@@ -58,7 +58,7 @@ struct SubtitlePreviewControls: View {
                 expanded = focus != nil
             }
         }
-        .fullScreenCover(isPresented: $fullscreenPresented, onDismiss: {
+        .plozzFullScreenCover(isPresented: $fullscreenPresented, onDismiss: {
             options.finishFullscreenPresentation()
             focus = .header
         }) {

@@ -173,7 +173,7 @@ struct LiveChannelOverlay: View {
         }
         .onDisappear { onTracksPresentationChange(false) }
         #if os(iOS)
-        .sheet(isPresented: $showsCustomZoom) {
+        .plozzSheet(isPresented: $showsCustomZoom) {
             PlayerZoomSettingsSheet(model: tracks.videoZoom)
         }
         #endif

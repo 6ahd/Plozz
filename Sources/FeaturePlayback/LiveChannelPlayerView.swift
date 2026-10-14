@@ -515,7 +515,7 @@ public struct LiveChannelPlayerView: View {
                 playerSurface
             }
         }
-        .fullScreenCover(isPresented: $fullscreenPresented, onDismiss: fullscreenDidDismiss) {
+        .plozzFullScreenCover(isPresented: $fullscreenPresented, onDismiss: fullscreenDidDismiss) {
             playerSurface
                 .ignoresSafeArea()
         }
@@ -557,7 +557,7 @@ public struct LiveChannelPlayerView: View {
         .onDisappear(perform: releaseGlassSuspension)
         .onChange(of: reportingID) { _, _ in updateDiagnosticsSampling(diagnosticsEnabled) }
         #if os(iOS)
-        .sheet(isPresented: $diagnosticsEnabled) {
+        .plozzSheet(isPresented: $diagnosticsEnabled) {
             NavigationStack {
                 PlaybackDiagnosticsOverlay(diagnostics: diagnosticsSampler.latest, presentation: .mobile)
                     .navigationTitle("Playback Diagnostics")

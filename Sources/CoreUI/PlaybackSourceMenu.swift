@@ -90,7 +90,7 @@ public struct PlaybackSourceMenuButton<Label: View>: View {
             } action: { frame in
                 triggerFrame = frame
             }
-            .fullScreenCover(isPresented: $isPresented, onDismiss: onDismiss) {
+            .plozzFullScreenCover(isPresented: $isPresented, onDismiss: onDismiss) {
                 #if os(tvOS)
                 tvOSPresentation
                 #else

@@ -35,7 +35,7 @@ struct ProfileDetailView: View {
             .padding(.vertical, 24)
         }
         .scrollClipDisabled()
-        .sheet(isPresented: $showingNewProfile) {
+        .plozzSheet(isPresented: $showingNewProfile) {
             ProfileEditorView(
                 canDelete: false,
                 photoSourceAccounts: context.accounts,

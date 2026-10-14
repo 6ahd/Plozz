@@ -31,7 +31,7 @@ struct PlaybackDiagnosticsOverlay: View {
                 }
                 .accessibilityIdentifier("playback-diagnostics-scroll")
             }
-            .background(palette.backgroundBase)
+            .background { AppBackground(palette: palette) }
         } else {
             televisionPanel
         }
