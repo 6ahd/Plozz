@@ -135,14 +135,27 @@ The report excludes addresses, headers, credentials, account/channel names and
 arbitrary error descriptions. Unknown causes remain unknown rather than implying
 a subscription, regional restriction or unsupported codec.
 
-The player captures engine evidence before stopping and passes the typed failure
-through the guide and multiview callbacks. Prepared-stream identity still rejects
+The live decoder wrapper forwards evidence only while it owns a source. The
+player captures that evidence before stopping on failure or end-of-stream and
+passes the typed report through the guide and multiview callbacks. An end without
+underlying evidence does not invent an engine cause. Prepared-stream identity still rejects
 late failures from replaced channels. Only terminal upstream refusals are retained
 as delivery failures; a recoverable 404 or 503 must not poison native fallback.
 Starting another setup attempt clears its preceding local report. Local capture
 does not enable uploads, bypass telemetry budgets or replay into later consent
 generations, and introduces no probes, rescans or background polling. Failed
 server enrollment stays visible on the empty setup screen with an explicit retry.
+
+For live HLS, the proxy retains the root playlist's successfully resolved delivery
+URL for subsequent refreshes and HEAD probes. Reopening a provider's original
+entrypoint can create a different session and change segment URLs at the same
+media sequence, even when the proxy's local URL encoding is deterministic.
+Redirected delivery URLs remain private, and account headers are scoped against
+the actual request origin on every refresh. A 401, 403, 404, or 410 from a retained
+redirect triggers one renewal through the original entrypoint; an actual refusal
+there remains terminal. Other failures do not trigger a renewal loop. This state
+is playback-session-local, does not alter raw transport streams or on-demand
+requests, and is discarded when the proxy stops.
 
 Only explicit URL, file, and Xtream account setup and legacy source check/save
 attempts establish the task-local context. Ordinary catalogue refresh, guide

@@ -359,6 +359,33 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertFalse(model.showsActivityIndicator)
     }
 
+    func testWrappedFailureAndEndCaptureEvidenceBeforeStoppingTheDecoder() async throws {
+        for ended in [false, true] {
+            let decoder = LiveEngineSpy()
+            let wrapper = LibraryLiveChannelEngine(engine: decoder)
+            let model = LiveChannelPlayerModel(
+                engine: wrapper, streamURL: URL(string: "https://example.invalid/live.m3u8")!
+            )
+            defer { model.stop() }
+            var reports: [LiveChannelFailureReport] = []
+            model.setSessionReporting(.init(id: UUID(), update: { _ in }, failed: { reports.append($0) }))
+            await model.start()
+            let attempt = try XCTUnwrap(PlaybackFailureDiagnostics().begin(
+                layer: .liveEngine, content: .live, captureForPresentation: true
+            ))
+            attempt.fail(stage: .load, reason: .authentication, engineFailure: .sourceRefused, httpStatus: 403)
+            decoder.livePlaybackFailureDiagnostic = attempt.diagnostic
+            let finish = ended ? decoder.onEnded : { decoder.onFailure?(.unauthorized) }
+            finish?()
+            finish?()
+            XCTAssertNil(decoder.livePlaybackFailureDiagnostic)
+            XCTAssertEqual(reports.count, 1)
+            XCTAssertEqual(reports.first?.failure, ended ? .ended : .engine(.unauthorized))
+            XCTAssertEqual(reports.first?.diagnostic?.httpStatus, 403)
+            await wrapper.drainTransport()
+        }
+    }
+
     func testPlaylistHeadersSurviveLiveLoadRetryAndSourceReset() async {
         let engine = LiveEngineSpy()
         let headers = ["User-Agent": "IPTV test", "Referer": "https://example.invalid/"]

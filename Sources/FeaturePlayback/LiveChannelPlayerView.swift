@@ -2435,9 +2435,10 @@ final class LiveChannelPlayerModel {
         cancelRecovery()
         foregroundTask?.cancel()
         foregroundTask = nil
+        let report = LiveChannelFailureReport(failure: .ended, diagnostic: engine.livePlaybackFailureDiagnostic)
         engine.stop()
         idleSleepGuard.allowSleep()
-        reportSessionFailure(.init(failure: .ended))
+        reportSessionFailure(report)
     }
 }
 
