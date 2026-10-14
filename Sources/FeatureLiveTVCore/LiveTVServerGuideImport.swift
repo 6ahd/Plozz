@@ -26,9 +26,10 @@ extension LiveTVPrototypeImportModel {
             for id in Set(requestedIDs.compactMap { serverChannelReferences[$0]?.sourceID }) {
                 updateServerStatus(id) { $0.guidePhase = .failed; $0.guideFailure = .invalidGuide }
             }
-            return .completed
+            return .failed
         }
         let request = serverRevision
+        var result = ReloadResult.completed
         for source in configuration.servers where source.isEnabled {
             guard request == serverRevision, !Task.isCancelled else { return .cancelled }
             let globalIDs = requestedIDs.filter {
@@ -55,7 +56,7 @@ extension LiveTVPrototypeImportModel {
                 let end = min(to, start.addingTimeInterval(Self.maximumServerGuideRequestDuration))
                 guard end > start else {
                     updateServerStatus(source.id) { $0.guidePhase = .failed; $0.guideFailure = .invalidGuide }
-                    return .completed
+                    return .failed
                 }
                 let chunkStart = start
                 start = end
@@ -130,6 +131,7 @@ extension LiveTVPrototypeImportModel {
                             source, context: context, request: request, sourceRevision: sourceRevision, into: model
                         ) else { return .cancelled }
                         let failure = LiveTVServerImportError.sanitized(error, fallback: .serviceUnavailable)
+                        result = .failed
                         if failure == .permissionDenied {
                             cachedServerCatalogs[source.id]?.programs = []
                             try? publishPlaylists(into: model)
@@ -141,12 +143,12 @@ extension LiveTVPrototypeImportModel {
                         updateServerStatus(source.id) {
                             $0.programCount = cachedServerCatalogs[source.id]?.programs.count ?? 0
                         }
-                        if failure == .permissionDenied { return .completed }
+                        if failure == .permissionDenied { return .failed }
                     }
                 }
             }
         }
-        return .completed
+        return result
     }
 
     /// Loaded empty coverage is distinct from a channel/window which has never been requested.

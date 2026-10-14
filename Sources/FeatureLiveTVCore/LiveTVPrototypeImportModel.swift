@@ -450,7 +450,13 @@ public final class LiveTVPrototypeImportModel {
     }
 
     enum ReloadResult: Equatable {
-        case completed, cancelled
+        case completed, failed, cancelled
+
+        func merging(_ other: Self) -> Self {
+            if self == .cancelled || other == .cancelled { return .cancelled }
+            if self == .failed || other == .failed { return .failed }
+            return .completed
+        }
     }
 
     public func reload(into model: LiveTVPrototypeModel, forceServerRefresh: Bool = true) async {
@@ -473,8 +479,9 @@ public final class LiveTVPrototypeImportModel {
         guard request == reloadGeneration, !Task.isCancelled, ensureCatalogAuthorization(into: model) else { return }
         let serverResult = await reloadServersResult(into: model, forceRefresh: forceServerRefresh)
         guard request == reloadGeneration, !Task.isCancelled else { return }
-        guard playlistResult != .cancelled, serverResult != .cancelled else { return }
-        outcome = playlistFailure != nil || guideFailure != nil
+        let result = playlistResult.merging(serverResult)
+        guard result != .cancelled else { return }
+        outcome = result == .failed || playlistFailure != nil || guideFailure != nil
             || serverSources.contains { $0.failure != nil || $0.guideFailure != nil } ? .failed : .succeeded
     }
 

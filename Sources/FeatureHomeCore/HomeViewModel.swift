@@ -911,6 +911,13 @@ public final class HomeViewModel {
         // is what kept a switched-off server's library on screen. With no sources
         // the emptiness IS the answer, so fall through and let it stand (which
         // also republishes the Top Shelf, rather than leaving it on the old rows).
+        if diagnostic != nil {
+            let failures = Array(loadFailures.values)
+                + content.librarySections.flatMap { $0.failures.values }
+                + content.serverRows.compactMap(\.failure)
+            diagnosticOutcome = failures.isEmpty ? .succeeded
+                : failures.allSatisfy { $0 == .cancelled } ? .cancelled : .failed
+        }
         content.serverRows = retainingServerRowContent(
             content.serverRows, previous: previousContent?.serverRows ?? []
         )
@@ -928,7 +935,7 @@ public final class HomeViewModel {
             let publication = PerformanceDiagnostics.shared.begin(.homePublish)
             state = .loaded(previousContent)
             publication?.finish(.succeeded)
-            diagnosticOutcome = .failed
+            if diagnosticOutcome == .succeeded { diagnosticOutcome = .failed }
             hasReceivedLiveContent = hadLiveContent
             isShowingCachedSnapshot = false
             return
@@ -941,7 +948,6 @@ public final class HomeViewModel {
             ? .empty
             : .loaded(content)
         publication?.finish(.succeeded)
-        diagnosticOutcome = loadFailures.isEmpty ? .succeeded : .failed
         if diagnostic != nil { diagnosticMetrics = Self.performanceMetrics(content) }
         // Record what this content was aggregated for so a later reappearance with
         // an unchanged visibility snapshot is recognised as a no-op (see

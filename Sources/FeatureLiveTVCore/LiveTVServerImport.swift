@@ -171,7 +171,7 @@ extension LiveTVPrototypeImportModel {
                     channelIDs: warmup.map(\.id), from: model.now, to: model.now.addingTimeInterval(21_600),
                     into: model, force: true
                 )
-                if guideResult == .cancelled { result = .cancelled }
+                result = result.merging(guideResult)
             } catch {
                 guard currentServerRequest(source, request: request, sourceRevision: sourceRevision) else {
                     continue

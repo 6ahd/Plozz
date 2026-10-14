@@ -72,6 +72,9 @@ transport/JSON decoding, share scans, playlist imports, guide batches and
 automatic-channel work. Active operations remain visible if a hang prevents
 their completion. Slow completed operations are retained separately from recent
 work so a burst of fast requests cannot immediately erase them.
+Terminal outcomes include failures in requested individual Home rows and earlier
+guide batches, even when global feeds or later batches succeed. These outcomes
+do not replace the existing per-row or per-window UI status.
 The `performance_operations` context holds at most 32 active operations, 16
 recent fast completions and 16 slow completions (at least 250 ms), plus bounded
 drop/overlap counters. Home's optional credit count is omitted above 2,048 media
