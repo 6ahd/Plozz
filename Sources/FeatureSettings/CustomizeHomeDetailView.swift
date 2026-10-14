@@ -161,6 +161,7 @@ struct CustomizeHomeDetailView: View {
                 id: "hero",
                 title: "Hero",
                 description: "A cinematic, rotating spotlight at the top of Home, with a Continue Watching row tucked under its lower edge.",
+                subpage: SettingsDetailSubpage { collectionPicker }
             ) {
                 heroForm
             }
@@ -226,6 +227,20 @@ struct CustomizeHomeDetailView: View {
                 }
             }
 
+            if hero.settings.isEnabled(.collection) {
+                SettingsDetailGroup(title: "Collection", description: "Rotate through movies and shows from one collection.") {
+                    SettingsDetailLink {
+                        collectionPicker
+                    } label: {
+                        if let selection = hero.settings.collection {
+                            Text(verbatim: selection.title)
+                        } else {
+                            Text("Choose a collection")
+                        }
+                    }
+                }
+            }
+
             if hero.settings.isEnabled(.watchlist) {
                 SettingsDetailGroup(
                     title: "Watchlist picks",
@@ -287,6 +302,15 @@ struct CustomizeHomeDetailView: View {
     }
 
     // MARK: - Hero helpers (unchanged from the old Home Display page)
+
+    private var collectionPicker: some View {
+        @Bindable var hero = hero
+        return HeroCollectionPickerView(
+            selection: $hero.settings.collection,
+            libraries: homeVisibleLibraries, accounts: accounts
+        )
+        .id(ObjectIdentifier(hero))
+    }
 
     private var randomEligibleLibraries: [AggregatedLibrary] {
         (discoveredLibraries.value ?? [])

@@ -26,6 +26,13 @@ and the single place caption customization lives.
   Home-customization preferences. Subtitle *behaviour* (mode, language,
   auto-download) lives here; the subtitle *look* is now adjusted in the
   player while watching.
+- `HeroCollectionPickerView` — Customize Home's opt-in **Collection** hero source
+  chooses one collection from an enabled movie or TV library. The native picker
+  is shared by TV, iPhone and iPad, scopes requests to the active account and
+  server viewer, and loads collection pages only while open. Errors retain
+  loaded rows and expose Retry. The account/library/collection selection stays
+  in the profile's `HeroSettings` blob and travels with existing profile
+  transfer/sync; unavailable libraries do not silently erase the saved choice.
 - `SettingsAboutSection` — app identity / version / release notes.
 - `SettingsCommunityLinks` — separate Discord-first and GitHub cards shared by
   About and mobile Settings. Apple TV shows them below the app identity.

@@ -1676,6 +1676,12 @@ public final class HomeViewModel {
                 freshness: heroFreshnessSnapshot(),
                 isEligible: { source, item in
                     guard source != .featured else { return true }
+                    if source == .collection {
+                        guard let selection = settings.collection,
+                              accounts.contains(where: selection.matches),
+                              visibility.isEnabled(selection.libraryKey),
+                              item.sourceAccountID == selection.accountID else { return false }
+                    }
                     return item.isVisibleOnHome { key in
                         guard visibility.isEnabled(key) else { return false }
                         if source == .watchlist { return true }
@@ -1729,6 +1735,47 @@ public final class HomeViewModel {
             scoped = scoped.selectingSource(first)
         }
         return scoped
+    }
+
+    public func heroCollectionContent(
+        _ selection: HeroCollectionSelection, limit: Int, hideWatched: Bool
+    ) async throws -> MediaPage {
+        guard let account = accounts.first(where: selection.matches) else {
+            return MediaPage(items: [], startIndex: 0, totalCount: 0)
+        }
+        let visibility = currentVisibility()
+        var result = try await HeroCollectionLoader.load(
+            selection: selection, limit: limit, provider: account.provider, visibility: visibility,
+            seed: heroFreshnessSnapshot().sessionSeed
+        )
+        let providers = Dictionary(accounts.map { ($0.account.id, $0.provider) }, uniquingKeysWith: { first, _ in first })
+        let identitySources = identitySources
+        result.items = await HeroCandidateWatchStateEnricher.enrich(
+            result.items, enabled: hideWatched,
+            sourceRefs: { item in
+                identitySources(item).filter { source in
+                    providers[source.accountID] != nil
+                        && (source.accountID != item.sourceAccountID || source.itemID != item.id)
+                        && source.libraryID.map { visibility.isEnabled("\(source.accountID):\($0)") } != false
+                }
+            },
+            fetch: { source in
+                guard let provider = providers[source.accountID] else { return nil }
+                do {
+                    return try await provider.item(id: source.itemID).taggingSource(source.accountID)
+                } catch is CancellationError {
+                    return nil
+                } catch {
+                    if !Task.isCancelled, (error as? AppError) != .cancelled {
+                        PlozzLog.app.debug("Hero collection alternate watch state could not be loaded")
+                    }
+                    return nil
+                }
+            }
+        )
+        try Task.checkCancellation()
+        guard currentVisibility() == visibility else { throw CancellationError() }
+        return result
     }
 
     public func heroFreshnessSnapshot() -> HeroFreshnessSnapshot {

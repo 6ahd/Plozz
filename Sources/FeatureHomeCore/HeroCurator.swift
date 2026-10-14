@@ -1,5 +1,6 @@
 import Foundation
 import CoreModels
+import CoreNetworking
 
 public typealias HeroArtworkProviding = @Sendable (MediaItem) async -> URL?
 public typealias HeroFeaturedStatusProviding = @Sendable ([MediaItem]) async -> [MediaItem]
@@ -33,17 +34,20 @@ public struct HeroCurationResult: Sendable, Equatable {
     /// its way to being persisted.
     public var durableItems: [MediaItem]
     public var candidatePool: HeroFreshnessCandidatePool
+    public var collectionState: LoadState<[MediaItem]>
 
     public init(
         items: [MediaItem],
         featuredItems: [MediaItem],
         durableItems: [MediaItem] = [],
-        candidatePool: HeroFreshnessCandidatePool = .empty
+        candidatePool: HeroFreshnessCandidatePool = .empty,
+        collectionState: LoadState<[MediaItem]> = .idle
     ) {
         self.items = items
         self.featuredItems = featuredItems
         self.durableItems = durableItems
         self.candidatePool = candidatePool
+        self.collectionState = collectionState
     }
 
     public static let empty = HeroCurationResult(
@@ -93,6 +97,7 @@ public struct HeroCurator: Sendable {
         sourceEligibility: HeroSourceEligibility = .unrestricted,
         featuredProvider: FeaturedContentProviding = HeroFeaturedProvider.none,
         randomProvider: RandomLibraryContentProviding = HeroRandomProvider.none,
+        collectionProvider: HeroCollectionContentProviding = HeroCollectionProvider.none,
         artworkProvider: @escaping HeroArtworkProviding = HeroArtworkProvider.none,
         artworkValidator: @escaping HeroArtworkValidating = HeroArtworkValidator.presence
     ) async -> [MediaItem] {
@@ -107,6 +112,7 @@ public struct HeroCurator: Sendable {
             sourceEligibility: sourceEligibility,
             featuredProvider: featuredProvider,
             randomProvider: randomProvider,
+            collectionProvider: collectionProvider,
             artworkProvider: artworkProvider,
             artworkValidator: artworkValidator
         ).items
@@ -126,6 +132,7 @@ public struct HeroCurator: Sendable {
         sourceEligibility: HeroSourceEligibility = .unrestricted,
         featuredProvider: FeaturedContentProviding = HeroFeaturedProvider.none,
         randomProvider: RandomLibraryContentProviding = HeroRandomProvider.none,
+        collectionProvider: HeroCollectionContentProviding = HeroCollectionProvider.none,
         artworkProvider: @escaping HeroArtworkProviding = HeroArtworkProvider.none,
         artworkValidator: @escaping HeroArtworkValidating = HeroArtworkValidator.presence
     ) async -> HeroCurationResult {
@@ -140,9 +147,13 @@ public struct HeroCurator: Sendable {
             ? featuredProvider(discoveryLimit) : []
         async let randomItems: [MediaItem] = settings.isEnabled(.randomFromLibrary)
             ? randomProvider(randomLibraries, discoveryLimit) : []
+        async let collectionResult = Self.loadCollection(
+            settings: settings, limit: discoveryLimit, provider: collectionProvider
+        )
 
         let fetchedFeatured = await featuredItems
         let fetchedRandom = await randomItems
+        let collectionState = await collectionResult
         let featured = freshness.isEnabled
             ? Array(fetchedFeatured.prefix(discoveryLimit)) : fetchedFeatured
         let random = freshness.isEnabled
@@ -157,6 +168,7 @@ public struct HeroCurator: Sendable {
             case .recentlyAdded: return recentlyAdded
             case .randomFromLibrary: return random
             case .watchlist: return watchlist
+            case .collection: return collectionState.value ?? []
             }
         }.enumerated().map { index, items in
             let filtered = HeroWatchEligibility.filter(
@@ -201,8 +213,28 @@ public struct HeroCurator: Sendable {
             ),
             candidatePool: HeroFreshnessCandidatePool(buckets: zip(settings.sources, eligible).map {
                 HeroFreshnessCandidatePool.Bucket(source: $0.0, items: $0.1)
-            })
+            }),
+            collectionState: collectionState
         )
+    }
+
+    private static func loadCollection(
+        settings: HeroSettings, limit: Int, provider: HeroCollectionContentProviding
+    ) async -> LoadState<[MediaItem]> {
+        guard settings.isEnabled(.collection), let collection = settings.collection else { return .empty }
+        do {
+            let page = try await provider(collection, limit)
+            try Task.checkCancellation()
+            return page.totalCount == 0 ? .empty : .loaded(page.items.filter {
+                $0.kind == .movie || $0.kind == .series
+            })
+        } catch is CancellationError {
+            return .idle
+        } catch {
+            guard !Task.isCancelled, (error as? AppError) != .cancelled else { return .idle }
+            PlozzLog.app.error("Hero collection could not be loaded")
+            return .failed((error as? AppError) ?? .unknown(""))
+        }
     }
 
     /// A **synchronous** seed built from already-loaded Home rows plus an optional
@@ -228,7 +260,7 @@ public struct HeroCurator: Sendable {
         let perSource: [[MediaItem]] = settings.sources.map { source in
             switch source {
             case .featured: return featured
-            case .randomFromLibrary: return []
+            case .randomFromLibrary, .collection: return []
             case .continueWatching: return continueWatching
             // Already aggregated for the Recently Added rail, so unlike Featured and
             // Random this source needs no fetch and can join the instant seed —

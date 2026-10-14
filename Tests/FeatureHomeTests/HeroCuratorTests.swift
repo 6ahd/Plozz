@@ -1417,6 +1417,7 @@ final class HomeHeroDisplayResolverTests: XCTestCase {
                 case .recentlyAdded: return "recent"
                 case .randomFromLibrary: return "random"
                 case .watchlist: return "watchlist"
+                case .collection: return nil
                 }
             }
             runtime.items = expectedLive.map { item($0) }

@@ -62,6 +62,17 @@ fallback when the user's server has no attached trailer.
   Both platforms recheck hero Watchlist membership immediately, but memoize
   supporting-source identity tokens by the full current row values. No
   supporting index is built without exclusions; source-scope changes clear it.
+- **Collection hero source** — an opt-in source rotates individual movies and
+  shows from one account-qualified collection, not the collection card. TV and
+  mobile use the same `MediaProvider.collectionMembers` loader and existing
+  watched-title, artwork, freshness and source-mixing rules. A session-seeded,
+  bounded window gives large collections coverage beyond their first page
+  without enumerating the entire collection on Home; provider ordering within
+  that window is preserved before normal hero freshness ranking. Short pages
+  follow the reported total, while duplicate/non-progressing pages fail the
+  whole load. Cancellation and fetch failures are distinct from a confirmed
+  empty collection. Selection changes invalidate the cached lineup; account
+  and library availability are rechecked for live and persisted candidates.
 - **Multi-account aggregation** — `HomeAggregator` fans out across the
   active account set (`[ResolvedAccount]`) so Home is a merged view
   across multiple servers / profiles. Uses the `MediaProvider`
