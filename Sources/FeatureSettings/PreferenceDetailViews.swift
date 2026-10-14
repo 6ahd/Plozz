@@ -648,7 +648,7 @@ struct PlaybackDetailView: View {
             rows.append(SettingsSplitRow(
                 id: "truehd-atmos",
                 title: "Dolby Atmos from TrueHD",
-                description: "Hear overhead sound from TrueHD Atmos tracks on compatible equipment. This uses lossy audio conversion. Turn off if these tracks stutter or seek slowly; they will play without Atmos height positioning. Dolby Digital Plus Atmos is unaffected. Applies to new playback sessions."
+                description: "Hear overhead sound from supported TrueHD Atmos tracks on compatible equipment, using lossy conversion. If playback stutters or seeking is slow, try turning this off. Those tracks will still play, but without Atmos height positioning. Dolby Digital Plus Atmos is unaffected. Applies to new playback sessions."
             ) {
                 Toggle("Dolby Atmos from TrueHD", isOn: $playback.settings.trueHDAtmosEnabled)
             })
