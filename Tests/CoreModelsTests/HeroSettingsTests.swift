@@ -1,4 +1,5 @@
 import XCTest
+import Observation
 @testable import CoreModels
 
 /// Locks down `HeroSettings` value semantics (clamping, de-dup, lenient decode)
@@ -18,6 +19,73 @@ final class HeroSettingsTests: XCTestCase {
         defaults = nil
         suiteName = nil
         super.tearDown()
+    }
+
+    @MainActor
+    func testKidsPolicyAppliesWithoutPINAndPreservesSavedDiscoveryPreferences() throws {
+        let profiles = ProfilesModel(store: ProfileStore(defaults: defaults))
+        let store = HeroSettingsStore(defaults: defaults)
+        var saved = HeroSettings.default
+        saved.showsDiscoverRow = true
+        saved.showsDiscoverySources = true
+        saved.discoverySources = [.anilist, .tmdb]
+        store.save(saved)
+        let model = HeroSettingsModel(store: store)
+        model.setDiscoveryPolicy { !profiles.activeProfile.isKids }
+        XCTAssertEqual(model.effectiveSettings, saved)
+
+        var profile = profiles.activeProfile
+        profile.isKids = true
+        profiles.update(profile)
+        XCTAssertFalse(model.allowsDiscovery)
+        XCTAssertFalse(model.effectiveSettings.isEnabled(.featured))
+        XCTAssertTrue(model.effectiveSettings.discoverySources.isEmpty)
+        XCTAssertFalse(model.effectiveSettings.showsDiscoverRow)
+        XCTAssertFalse(model.effectiveSettings.showsDiscoverySources)
+        XCTAssertTrue(model.effectiveSettings.isEnabled(.continueWatching))
+        XCTAssertEqual(store.load(), saved)
+
+        model.settings.maxItems = 10
+        model.settings.sources = [.featured, .watchlist]
+        model.settings.showsDiscoverRow = true
+        XCTAssertEqual(model.effectiveSettings.sources, [.watchlist])
+        XCTAssertFalse(model.effectiveSettings.showsDiscoverRow)
+        XCTAssertEqual(store.load().discoverySources, saved.discoverySources)
+
+        profile.isKids = false
+        profiles.update(profile)
+        XCTAssertTrue(model.allowsDiscovery)
+        XCTAssertEqual(model.effectiveSettings, store.load())
+        XCTAssertEqual(model.effectiveSettings.maxItems, 10)
+        XCTAssertTrue(model.effectiveSettings.showsDiscoverRow)
+        XCTAssertTrue(model.effectiveSettings.showsDiscoverySources)
+    }
+
+    func testRuntimeDiscoveryPolicyIsNotDecodedFromSyncedPreferences() throws {
+        let input = Data(#"{"sources":["featured"],"allowsDiscovery":false,"showsDiscoverRow":true}"#.utf8)
+        let decoded = try JSONDecoder().decode(HeroSettings.self, from: input)
+        XCTAssertTrue(decoded.allowsDiscovery)
+        let encoded = try JSONEncoder().encode(decoded.applyingDiscoveryPolicy(allowed: false))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        XCTAssertNil(object["allowsDiscovery"])
+    }
+
+    @MainActor
+    func testProfileUpdatesInvalidateEffectiveSettingsObservationWithoutRebuildingTheModel() async {
+        let profiles = ProfilesModel(store: ProfileStore(defaults: defaults))
+        let model = HeroSettingsModel(store: InMemoryHeroSettingsStore())
+        model.setDiscoveryPolicy { !profiles.activeProfile.isKids }
+        let changed = expectation(description: "Profile policy invalidates visible Home and settings")
+        withObservationTracking {
+            _ = model.effectiveSettings
+        } onChange: {
+            changed.fulfill()
+        }
+        var profile = profiles.activeProfile
+        profile.isKids = true
+        profiles.update(profile)
+        await fulfillment(of: [changed], timeout: 1)
+        XCTAssertFalse(model.effectiveSettings.allowsDiscovery)
     }
 
     func testDefaultIsActiveWithoutOptInCollection() {

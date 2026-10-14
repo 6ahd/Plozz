@@ -143,7 +143,7 @@ public struct HeroCurator: Sendable {
 
         // Fetch the async sources up front (concurrently), guarded on being
         // enabled so we never pay for a source the user turned off.
-        async let featuredItems: [MediaItem] = settings.isEnabled(.featured)
+        async let featuredItems: [MediaItem] = settings.allowsDiscovery && settings.isEnabled(.featured)
             ? featuredProvider(discoveryLimit) : []
         async let randomItems: [MediaItem] = settings.isEnabled(.randomFromLibrary)
             ? randomProvider(randomLibraries, discoveryLimit) : []
@@ -163,7 +163,7 @@ public struct HeroCurator: Sendable {
         // router/cache/network work finding a full-bleed backdrop.
         let perSource: [[MediaItem]] = settings.sources.map { source in
             switch source {
-            case .featured: return featured
+            case .featured: return settings.allowsDiscovery ? featured : []
             case .continueWatching: return continueWatching
             case .recentlyAdded: return recentlyAdded
             case .randomFromLibrary: return random
@@ -275,7 +275,7 @@ public struct HeroCurator: Sendable {
         guard settings.isActive else { return [] }
         let perSource: [[MediaItem]] = settings.sources.map { source in
             switch source {
-            case .featured: return featured
+            case .featured: return settings.allowsDiscovery ? featured : []
             case .randomFromLibrary, .collection: return []
             case .continueWatching: return continueWatching
             // Already aggregated for the Recently Added rail, so unlike Featured and
@@ -343,7 +343,8 @@ public struct HeroCurator: Sendable {
             // `map`ped per mutation reallocated the whole array once per mutation;
             // this folds them in one allocation so a growing session overlay can't
             // inflate the cost of a reconcile that runs during view updates.)
-            let reconciled = mutations.isEmpty ? items : items.map { item in
+            let permitted = settings.allowsDiscovery ? items : items.filter { $0.discoverySources.isEmpty }
+            let reconciled = mutations.isEmpty ? permitted : permitted.map { item in
                 mutations.reduce(item) { current, mutation in mutation.applied(to: current) }
             }
 

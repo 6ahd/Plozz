@@ -101,9 +101,13 @@ func makeHeroDiscoveryProvider(
     accounts: [ResolvedAccount],
     hideWatched: Bool,
     visibility: HomeLibraryVisibilityModel,
+    heroSettings: HeroSettingsModel,
     identitySources: @escaping @Sendable (MediaItem) -> [MediaSourceRef]
 ) -> HeroDiscoveryContentProviding {
-    let runtime = HeroDiscoveryRuntime(accounts: accounts, identitySources: identitySources)
+    let runtime = HeroDiscoveryRuntime(
+        accounts: accounts, identitySources: identitySources,
+        allowsDiscovery: { await heroSettings.allowsDiscovery }
+    )
     return { request, sources in
         let currentVisibility = await visibility.visibility
         return await runtime.candidates(

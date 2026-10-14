@@ -136,14 +136,15 @@ struct ViewCustomizationList<Content: View>: View {
                         Label("Back", systemImage: "chevron.left")
                     }
                     .accessibilityIdentifier("view-customization-back")
-                    .disabled(!hasEnteredList)
+                    .disabled(!hasEnteredList && initialRowID != "view-customization-back")
+                    .modifier(ViewCustomizationRowFocus(id: "view-customization-back"))
                     Text(title).settingsFeatureTitle()
                     VStack(alignment: .leading, spacing: 8, content: content)
                 }
                 .environment(\.viewCustomizationFocus, $focusedRow)
                 .focusScope(focusScope)
                 .defaultFocus($focusedRow, initialRowID)
-                .task { focusedRow = initialRowID }
+                .task(id: initialRowID) { focusedRow = initialRowID }
                 .onChange(of: focusedRow) { _, row in
                     if row != nil {
                         hasEnteredList = true

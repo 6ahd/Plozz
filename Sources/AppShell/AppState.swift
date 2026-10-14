@@ -1182,6 +1182,7 @@ public final class AppState {
         let ns = (profilesModel ?? self.profilesModel).activeNamespace
         self.profileSettings = ProfileSettingsModel(
             namespace: ns,
+            allowsDiscovery: { !resolvedProfilesModel.activeProfile.isKids },
             subtitleBehaviorModel: subtitleBehaviorModel,
             subtitleStyleModel: subtitleStyleModel,
             spoilerModel: spoilerModel,

@@ -658,7 +658,8 @@ final class PlozziOSAppModel {
         self.crashReportingController = CrashReportingController()
         self.requiresLaunchProfileSelection = requiresLaunchProfileSelection
         let initialSettings = PlozziOSSettingsModel(
-            namespace: profiles.activeNamespace
+            namespace: profiles.activeNamespace,
+            allowsDiscovery: { !profiles.activeProfile.isKids }
         )
         self.settings = initialSettings
         self.seriesTrackStore = SeriesTrackPreferenceStore(
@@ -1586,7 +1587,10 @@ final class PlozziOSAppModel {
             await Task.yield()
             resumeProfileOnboardingIfNeeded()
         }
-        settings = PlozziOSSettingsModel(namespace: profiles.activeNamespace)
+        settings = PlozziOSSettingsModel(
+            namespace: profiles.activeNamespace,
+            allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
+        )
         seriesTrackStore = SeriesTrackPreferenceStore(
             namespace: profiles.activeNamespace
         )
@@ -2370,7 +2374,10 @@ final class PlozziOSAppModel {
                 reloadAccountsAndCrashContext()
                 return
             }
-            settings = PlozziOSSettingsModel(namespace: profiles.activeNamespace)
+            settings = PlozziOSSettingsModel(
+                namespace: profiles.activeNamespace,
+                allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
+            )
             seriesTrackStore = SeriesTrackPreferenceStore(
                 namespace: profiles.activeNamespace
             )

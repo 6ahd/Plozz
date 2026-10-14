@@ -114,6 +114,7 @@ public actor HomeContentPrewarmer {
 /// excluded: changing them does not change which titles can appear, and must not
 /// throw away a good carousel.
 public struct HeroConfigurationKey: Codable, Hashable, Sendable {
+    public var allowsDiscovery: Bool
     public var sources: [HeroSourceKind]
     public var maxItems: Int
     public var hideWatched: Bool
@@ -128,6 +129,7 @@ public struct HeroConfigurationKey: Codable, Hashable, Sendable {
     public var collections: [HeroCollectionSelection]
 
     public init(settings: HeroSettings?) {
+        allowsDiscovery = settings?.allowsDiscovery ?? true
         guard let settings, settings.isActive else {
             sources = []
             maxItems = 0
@@ -157,6 +159,7 @@ public struct HeroConfigurationKey: Codable, Hashable, Sendable {
         case sources, maxItems, hideWatched, randomLibraryKeys, watchlistDiscoveryEnabled, discoverySources
         case discoveryContentVersion
         case collections
+        case allowsDiscovery
     }
 
     private enum LegacyCodingKeys: String, CodingKey { case collection }
@@ -166,6 +169,7 @@ public struct HeroConfigurationKey: Codable, Hashable, Sendable {
     /// and discarding an otherwise usable seed.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        allowsDiscovery = try container.decodeIfPresent(Bool.self, forKey: .allowsDiscovery) ?? true
         sources = try container.decode([HeroSourceKind].self, forKey: .sources)
         maxItems = try container.decode(Int.self, forKey: .maxItems)
         hideWatched = try container.decode(Bool.self, forKey: .hideWatched)

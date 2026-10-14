@@ -9,6 +9,192 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
+    func testHeroPagesKeepACompactRootAndReturnNativeFocusToTheChosenLink() async throws {
+        let namespace = "HeroHierarchyHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        let navigation = SettingsDetailNavigation()
+        try await withScreen(content: SettingsDetailPages(navigation: navigation) {
+            VStack(spacing: 24) {
+                HeroSettingsControls(libraries: [], accounts: [])
+            }
+            .padding(48)
+            .buttonStyle(SettingsFocusButtonStyle())
+        } detail: {
+            HeroSettingsDestination(libraries: [], accounts: [])
+        }
+        .frame(width: 1100)
+        .environment(models.heroSettingsModel)
+        .environment(models.heroBackgroundModel)) { window in
+            let root = try await self.capture(window, name: "hero-four-pages", includeMaster: true)
+            for title in ["Content", "Appearance", "Rotation", "Trailers"] {
+                XCTAssertTrue(root.contains(title), root)
+            }
+            XCTAssertFalse(root.contains("TMDB"), root)
+            XCTAssertFalse(root.contains("Show provider labels"), root)
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            for (page, expected) in [
+                (HeroSettingsPage.content, "Hide watched titles"),
+                (.appearance, "Show ratings"),
+                (.rotation, "Rotate automatically"),
+                (.trailers, "Play trailer behind the hero")
+            ] {
+                let openingLabel = try XCTUnwrap(self.collectionLabelFrames(in: window).first {
+                    $0.text == String(localized: page.title)
+                })
+                let center = CGPoint(x: openingLabel.frame.midX, y: openingLabel.frame.midY)
+                let originatingLink = try XCTUnwrap(self.focusItems(in: window).first {
+                    (try? self.nativeFrame($0, in: window).contains(center)) == true
+                })
+                let host = try XCTUnwrap(window.rootViewController as? ArtworkFocusRequesting)
+                host.artworkFocusTarget = originatingLink
+                system.requestFocusUpdate(to: try XCTUnwrap(window.rootViewController))
+                system.updateFocusIfNeeded()
+                host.artworkFocusTarget = nil
+                XCTAssertTrue(system.focusedItem === originatingLink)
+                navigation.push(pageID: page.rawValue, animated: false)
+                let shown = try await self.capture(window, name: "hero-\(page.rawValue)", includeMaster: true)
+                XCTAssertTrue(shown.contains(expected), shown)
+                XCTAssertFalse(navigation.awaitingFocus, "The page must receive native focus, not trap the master pane.")
+                navigation.pop(animated: false)
+                _ = try await self.capture(window, name: "hero-return-\(page.rawValue)", includeMaster: true)
+                let label = try XCTUnwrap(self.collectionLabelFrames(in: window).first {
+                    $0.text == String(localized: page.title)
+                })
+                let frame = try self.nativeFrame(try XCTUnwrap(system.focusedItem), in: window)
+                XCTAssertTrue(frame.contains(CGPoint(x: label.frame.midX, y: label.frame.midY)),
+                              "Return must focus \(page.rawValue), not a competing link. Focus: \(frame), label: \(label.frame)")
+            }
+        }
+    }
+
+    func testNestedDiscoveryReturnsToContentWithoutPoppingTheHeroPage() async throws {
+        let namespace = "HeroNestedHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        let parent = SettingsDetailNavigation()
+        let child = SettingsDetailNavigation()
+        parent.push(pageID: HeroSettingsPage.content.rawValue, animated: false)
+        try await withScreen(content: HeroSettingsScreen(
+            page: .content, libraries: [], accounts: [], childNavigation: child
+        )
+        .frame(width: 1100)
+        .environment(parent)
+        .environment(models.heroSettingsModel)
+        .environment(models.heroBackgroundModel)) { window in
+            var pending = [try XCTUnwrap(window.rootViewController?.view)]
+            var scrolls: [UIScrollView] = []
+            while let view = pending.popLast() {
+                if let scroll = view as? UIScrollView, scroll.contentSize.height > scroll.bounds.height {
+                    scrolls.append(scroll)
+                }
+                pending.append(contentsOf: view.subviews)
+            }
+            let scroll = try XCTUnwrap(scrolls.max { $0.bounds.width < $1.bounds.width })
+            scroll.setContentOffset(CGPoint(
+                x: scroll.contentOffset.x,
+                y: scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom
+            ), animated: false)
+            _ = try await self.capture(window, name: "hero-content-options", includeMaster: true)
+            let label = try XCTUnwrap(self.collectionLabelFrames(in: window)
+                .filter { $0.text == "Discovery" }.max { $0.frame.minY < $1.frame.minY })
+            let center = CGPoint(x: label.frame.midX, y: label.frame.midY)
+            let target = try XCTUnwrap(self.focusItems(in: window).first {
+                (try? self.nativeFrame($0, in: window).contains(center)) == true
+            })
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            let host = try XCTUnwrap(window.rootViewController as? ArtworkFocusRequesting)
+            host.artworkFocusTarget = target
+            system.requestFocusUpdate(to: try XCTUnwrap(window.rootViewController))
+            system.updateFocusIfNeeded()
+            host.artworkFocusTarget = nil
+            XCTAssertTrue(system.focusedItem === target)
+            child.push(pageID: HeroSettingsPage.discovery.rawValue, animated: false)
+            let opened = try await self.capture(window, name: "hero-nested-discovery", includeMaster: true)
+            XCTAssertTrue(opened.contains("Show provider labels"), opened)
+            XCTAssertFalse(child.awaitingFocus)
+            child.pop(animated: false)
+            _ = try await self.capture(window, name: "hero-nested-content-return", includeMaster: true)
+            XCTAssertTrue(parent.isPresented, "Returning from Discovery must not leave the Content page.")
+            let returnedLabel = try XCTUnwrap(self.collectionLabelFrames(in: window)
+                .filter { $0.text == "Discovery" }.max { $0.frame.minY < $1.frame.minY })
+            let frame = try self.nativeFrame(try XCTUnwrap(system.focusedItem), in: window)
+            XCTAssertTrue(frame.contains(CGPoint(x: returnedLabel.frame.midX, y: returnedLabel.frame.midY)),
+                          "Nested return should retain the source-option link: \(frame), \(returnedLabel.frame)")
+        }
+    }
+
+    func testOpenDiscoveryPageRemovesProvidersWhenProfileBecomesKids() async throws {
+        let namespace = "HeroKidsHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        let navigation = SettingsDetailNavigation()
+        navigation.push(pageID: HeroSettingsPage.discovery.rawValue, animated: false)
+        try await withScreen(content: SettingsDetailPages(navigation: navigation) {
+            HeroSettingsControls(libraries: [], accounts: [])
+        } detail: {
+            HeroSettingsDestination(libraries: [], accounts: [])
+        }
+        .frame(width: 1100)
+        .environment(models.heroSettingsModel)
+        .environment(models.heroBackgroundModel)) { window in
+            let adult = try await self.capture(window, name: "hero-discovery-providers", includeMaster: true)
+            XCTAssertTrue(adult.contains("Show provider labels"), adult)
+            XCTAssertTrue(adult.contains("TMDB"), adult)
+            models.heroSettingsModel.setDiscoveryPolicy { false }
+            let kids = try await self.capture(window, name: "hero-discovery-kids", includeMaster: true)
+            XCTAssertTrue(kids.contains("Discovery is unavailable in Kids profiles"), kids)
+            XCTAssertFalse(kids.contains("TMDB"), kids)
+            XCTAssertFalse(kids.contains("Show provider labels"), kids)
+            XCTAssertEqual(try self.collectionLabelFrames(in: window).filter {
+                $0.text.trimmingCharacters(in: .letters.inverted) == "Back"
+            }.count, 1)
+            XCTAssertNotNil(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+        }
+    }
+
+    func testEmptyHeroPagesEnterTheirSingleBackControl() async throws {
+        let hero = HeroSettingsModel(store: InMemoryHeroSettingsStore())
+        hero.setDiscoveryPolicy { false }
+        let background = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore())
+        for page in [HeroSettingsPage.discovery, .libraries] {
+            let navigation = SettingsDetailNavigation()
+            navigation.push(pageID: page.rawValue, animated: false)
+            try await withScreen(content: SettingsDetailPages(navigation: navigation) {
+                HeroSettingsControls(libraries: [], accounts: [])
+            } detail: {
+                HeroSettingsDestination(libraries: [], accounts: [])
+            }
+                .frame(width: 1100)
+                .environment(hero)
+                .environment(background)) { window in
+                _ = try await self.capture(window, name: "hero-empty-\(page.rawValue)", includeMaster: true)
+                let labels = try self.collectionLabelFrames(in: window).filter {
+                    $0.text.trimmingCharacters(in: .letters.inverted) == "Back"
+                }
+                XCTAssertEqual(labels.count, 1)
+                let label = try XCTUnwrap(labels.first)
+                let focused = try XCTUnwrap(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+                XCTAssertTrue(try self.nativeFrame(focused, in: window).contains(
+                    CGPoint(x: label.frame.midX, y: label.frame.midY)
+                ))
+                XCTAssertFalse(navigation.awaitingFocus)
+            }
+        }
+    }
+
     func testMultipleSelectionsShowTheirLibrariesAndClearingDoesNotSwitchTheBrowsedSource() async throws {
         let provider = HeroPickerHostedProvider(empty: false)
         let account = ResolvedAccount(account: Account(id: "a", from: provider.session), provider: provider)

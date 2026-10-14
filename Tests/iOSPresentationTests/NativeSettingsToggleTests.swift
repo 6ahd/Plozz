@@ -1,5 +1,7 @@
 #if os(iOS)
+import CoreModels
 import CoreUI
+@testable import FeatureSettings
 import Observation
 import SwiftUI
 import UIKit
@@ -27,6 +29,54 @@ final class NativeSettingsToggleTests: XCTestCase {
 
     func testSharedSettingsStyleUsesNativeSwitchesOnMobile() async throws {
         try await verifyNativeSwitch(grouped: false)
+    }
+
+    func testHeroSubpagesUseNativeSwitchesAndLiveKidsPolicyAtPhoneAndTabletWidths() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        for width: CGFloat in [390, 834] {
+            let hero = HeroSettingsModel(store: InMemoryHeroSettingsStore())
+            let background = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore())
+            window.frame = CGRect(x: 0, y: 0, width: width, height: 1200)
+            window.rootViewController = UIHostingController(rootView: NavigationStack {
+                HeroSettingsScreen(page: .discovery, libraries: [], accounts: [])
+            }
+            .environment(hero)
+            .environment(background)
+            .environment(\.colorScheme, .dark))
+            window.makeKeyAndVisible()
+            try await settle(window)
+            XCTAssertEqual(listedSwitches(in: window).count, 5, "Attribution plus four providers use native switches.")
+            let labels = try XCTUnwrap(listedSwitches(in: window).min {
+                $0.convert($0.bounds, to: window).minY < $1.convert($1.bounds, to: window).minY
+            })
+            labels.setOn(true, animated: false)
+            labels.sendActions(for: .valueChanged)
+            try await settle(window)
+            XCTAssertTrue(hero.settings.showsDiscoverySources)
+            XCTAssertEqual(hero.settings.discoverySources, HeroDiscoverySource.defaultSelection)
+            hero.setDiscoveryPolicy { false }
+            let deadline = ContinuousClock.now + .seconds(2)
+            repeat {
+                try await settle(window)
+            } while !listedSwitches(in: window).isEmpty && ContinuousClock.now < deadline
+            let attachment = XCTAttachment(image: UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            })
+            attachment.name = "kids-discovery-mobile-\(Int(width))"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            XCTAssertTrue(listedSwitches(in: window).isEmpty, "An open Discovery page must lose its controls in Kids mode.")
+            XCTAssertTrue(hero.settings.showsDiscoverySources, "Restricting Discovery must not erase saved preferences.")
+            XCTAssertFalse(hero.effectiveSettings.showsDiscoverySources)
+        }
     }
 
     private func verifyNativeSwitch(grouped: Bool) async throws {
@@ -119,6 +169,14 @@ final class NativeSettingsToggleTests: XCTestCase {
 
     private func switches(in view: UIView) -> [UISwitch] {
         (view as? UISwitch).map { [$0] } ?? view.subviews.flatMap { switches(in: $0) }
+    }
+
+    private func listedSwitches(in view: UIView) -> [UISwitch] {
+        if let list = view as? UICollectionView {
+            // List retains deleted rows in its reuse pool, outside the presented cells.
+            return list.visibleCells.flatMap { switches(in: $0) }
+        }
+        return view.subviews.flatMap { listedSwitches(in: $0) }
     }
 }
 #endif

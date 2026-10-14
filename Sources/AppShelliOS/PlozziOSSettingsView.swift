@@ -1992,129 +1992,14 @@ struct PlozziOSHomeSettingsView: View {
             }
 
             SettingsSectionGroup("Hero") {
-                Toggle("Show hero", isOn: $hero.settings.isEnabled)
-                if hero.settings.isEnabled {
-                    Toggle("Hide watched titles", isOn: $hero.settings.hideWatched)
-                    Toggle("Show ratings", isOn: $hero.settings.showsRatings)
-                    if hero.settings.showsRatings {
-                        Toggle("Show Common Sense age", isOn: $hero.settings.ratingPreferences.showsHeaderFamilyGuidance)
-                        HeaderReviewScoreCountPicker(settings: $hero.settings.ratingPreferences)
-                    }
-                    Toggle(isOn: $hero.settings.showsDiscoverySources) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Show discovery sources")
-                            Text("Show the catalogs behind each title.")
-                                .font(.footnote)
-                                .plozzForeground(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    Toggle("Auto-advance", isOn: $hero.settings.autoAdvance)
-                    Toggle(
-                        "Play trailer behind the hero",
-                        isOn: $heroBackground.settings.homeTrailerEnabled
-                    )
-                    if heroBackground.settings.homeTrailerEnabled {
-                        Toggle(
-                            "Start muted",
-                            isOn: $heroBackground.settings.homeTrailerMuted
-                        )
-                    }
-                }
-            }
-
-            if hero.settings.isEnabled {
-                SettingsSectionGroup("Hero sources") {
-                    ForEach(orderedHeroSources, id: \.self) { source in
-                        Toggle(
-                            source.displayName,
-                            isOn: Binding(
-                                get: { hero.settings.sources.contains(source) },
-                                set: { _ in toggleSource(source) }
-                            )
-                        )
-                    }
-                }
-
-                if hero.settings.isEnabled(.featured) {
-                    PlozziOSFeaturedDiscoverySettings(sources: $hero.settings.discoverySources)
-                }
-
-                if hero.settings.isEnabled(.randomFromLibrary) {
-                    SettingsSectionGroup("Random libraries") {
-                        if randomEligibleLibraries.isEmpty {
-                            Text("No movie or TV libraries are enabled on Home.")
-                                .plozzForeground(.secondary)
-                        } else {
-                            ForEach(randomEligibleLibraries) { library in
-                                Toggle(
-                                    library.title,
-                                    isOn: Binding(
-                                        get: {
-                                            isRandomLibraryEnabled(library.key)
-                                        },
-                                        set: { _ in
-                                            toggleRandomLibrary(library.key)
-                                        }
-                                    )
-                                )
-                            }
-                        }
-                    } footer: {
-                        Text("Leave every library selected to include all enabled libraries.")
-                    }
-                }
-                if hero.settings.isEnabled(.collection) {
-                    SettingsSectionGroup("Collections") {
-                        NavigationLink {
-                            HeroCollectionPickerView(
-                                selections: $hero.settings.collections,
-                                libraries: aggregatedHomeLibraries.filter { visibility.isVisibleOnHome($0.key) },
-                                accounts: accounts
-                            )
-                            .id(ObjectIdentifier(hero))
-                        } label: {
-                            if hero.settings.collections.count == 1, let selection = hero.settings.collections.first {
-                                Text(verbatim: selection.title)
-                            } else if !hero.settings.collections.isEmpty {
-                                Text("\(hero.settings.collections.count) collections selected")
-                            } else {
-                                Text("Choose collections")
-                            }
-                        }
-                    } footer: {
-                        Text("Mix movies and shows from your selected collections, without duplicate titles.")
-                    }
-                }
-            }
-
-            if hero.settings.isEnabled {
-                if hero.settings.isEnabled(.watchlist) {
-                    SettingsSectionGroup("Watchlist picks") {
-                        Toggle(
-                            "Discovery rotation",
-                            isOn: $hero.settings.watchlistDiscoveryEnabled
-                        )
-                    } footer: {
-                        Text("Prefer titles you haven't seen in the hero recently. Turn off to keep your watchlist order.")
-                    }
-                }
-                SettingsSectionGroup("Rotation") {
-                    Stepper(
-                        "Items: \(hero.settings.maxItems)",
-                        value: $hero.settings.maxItems,
-                        in: HeroSettings.maxItemsRange
-                    )
-                    if hero.settings.autoAdvance {
-                        Stepper(
-                            "Every \(hero.settings.autoAdvanceSeconds) seconds",
-                            value: $hero.settings.autoAdvanceSeconds,
-                            in: HeroSettings.autoAdvanceRange
-                        )
-                    }
-                }
+                HeroSettingsControls(
+                    libraries: aggregatedHomeLibraries.filter { visibility.isVisibleOnHome($0.key) },
+                    accounts: accounts
+                )
             }
         }
+        .environment(hero)
+        .environment(heroBackground)
         .settingsPageSurface()
         .navigationTitle("Customize Home")
         .navigationDestination(isPresented: $showHomeRows) {
@@ -2158,46 +2043,6 @@ struct PlozziOSHomeSettingsView: View {
         }
     }
 
-    private var orderedHeroSources: [HeroSourceKind] {
-        HeroSourceKind.allCases.filter { $0 != .featured } + [.featured]
-    }
-
-    private var randomEligibleLibraries: [HomeLibraryChoice] {
-        libraries.filter {
-            ($0.library.kind == .movie || $0.library.kind == .series)
-                && visibility.isVisibleOnHome($0.key)
-        }
-    }
-
-    private func toggleSource(_ source: HeroSourceKind) {
-        var enabled = Set(hero.settings.sources)
-        if enabled.contains(source) {
-            enabled.remove(source)
-        } else {
-            enabled.insert(source)
-        }
-        hero.settings.sources = HeroSourceKind.allCases.filter(enabled.contains)
-    }
-
-    private func isRandomLibraryEnabled(_ key: String) -> Bool {
-        let selected = hero.settings.randomLibraryKeys
-        return selected.isEmpty || selected.contains(key)
-    }
-
-    private func toggleRandomLibrary(_ key: String) {
-        let allKeys = Set(randomEligibleLibraries.map(\.key))
-        var selected = hero.settings.randomLibraryKeys.isEmpty
-            ? allKeys
-            : hero.settings.randomLibraryKeys
-        if selected.contains(key) {
-            selected.remove(key)
-        } else {
-            selected.insert(key)
-        }
-        selected.formIntersection(allKeys)
-        hero.settings.randomLibraryKeys = selected == allKeys ? [] : selected
-    }
-
     private func loadLibraries() async {
         isLoadingLibraries = true
         defer { if !Task.isCancelled { isLoadingLibraries = false } }
@@ -2229,54 +2074,6 @@ struct PlozziOSHomeSettingsView: View {
         }
         guard !Task.isCancelled else { return }
         libraries = loaded
-    }
-}
-
-private struct PlozziOSFeaturedDiscoverySettings: View {
-    @Binding var sources: [HeroDiscoverySource]
-
-    var body: some View {
-        SettingsSectionGroup("Featured discovery") {
-            ForEach(HeroDiscoverySource.allCases) { source in
-                let isSelected = sources.contains(source)
-                Button {
-                    toggleSource(source)
-                } label: {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(verbatim: source.displayName)
-                            Text(source.detail)
-                                .font(.footnote)
-                                .plozzForeground(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer(minLength: 12)
-                        SettingsCheckmark(isChecked: isSelected, prominence: .secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-            }
-        } footer: {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Choose the catalogs used for Featured. Titles may not be in your libraries. Seerr is only needed to request titles.")
-                if sources.isEmpty {
-                    Text("No sources selected. Featured won't add discovery titles.")
-                }
-            }
-        }
-    }
-
-    private func toggleSource(_ source: HeroDiscoverySource) {
-        var selected = Set(sources)
-        if selected.contains(source) {
-            selected.remove(source)
-        } else {
-            selected.insert(source)
-        }
-        sources = HeroDiscoverySource.allCases.filter(selected.contains)
     }
 }
 

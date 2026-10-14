@@ -16,7 +16,7 @@ import SwiftUI
 ///
 /// Every row **opens something** and carries a chevron to say so. Kids Profile is
 /// deliberately not an inline switch: it has a real consequence and an honest
-/// caveat (it restricts settings, not content), and a switch you can nudge past
+/// caveat (library content still follows the server user's access), and a switch you can nudge past
 /// while scrolling is the wrong affordance for that.
 ///
 /// Notably there is no intermediate "Profile Lock" page. Selecting the lock row
@@ -224,7 +224,7 @@ public struct ProfileActionsList: View {
                 showingKidsOptions = true
             }
 
-            // A Kids Profile with no household Parental PIN restricts nothing —
+            // Without a household Parental PIN, settings and profile switching remain open —
             // say so here rather than let the "On" above imply otherwise. This
             // replaced a nudge to lock your own profile, which was the
             // workaround for not having a Parental PIN.

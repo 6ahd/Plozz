@@ -152,9 +152,9 @@ public struct Profile: Codable, Hashable, Identifiable, Sendable {
     /// can't be switched off from inside. Synced, for the same reason the lock
     /// is: a restriction that applied on one device wouldn't be a restriction.
     ///
-    /// NOTE: this restricts *settings*, not *content* — Plozz has no maturity
-    /// filtering yet, so a Kids Profile still sees everything its libraries
-    /// contain. Named for what it will grow into, but don't oversell it in copy.
+    /// External Home Discovery is always disabled, independently of the Parental
+    /// PIN. Library content still follows the selected server user's access;
+    /// this flag is not an app-wide maturity-rating filter.
     ///
     /// Optional purely for migration: profiles encoded before this field existed
     /// decode as `nil`, and the synthesized encoder omits `nil` rather than

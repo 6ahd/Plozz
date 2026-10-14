@@ -5,6 +5,19 @@ and the single place caption customization lives.
 
 ## Responsibility
 
+- `HeroSettingsControls` — Hero has four pages: **Content**, **Appearance**,
+  **Rotation**, and **Trailers**, shared by TV and mobile. **Discovery** consistently
+  means external recommendations; its providers and **Show provider labels**
+  attribution toggle live together under Content → Discovery. Watchlist variety
+  is a separate preference, not another Discovery feature. Collections and random
+  libraries have their own source-option pages. TV uses retained detail panes
+  with a separate nested navigation owner and returns focus to the originating link;
+  mobile uses native grouped lists and navigation links.
+- **Kids profiles** always disable external Home Discovery, including Showcase's
+  Discovery row, independently of whether a Parental PIN exists. Preferences stay
+  saved for later use outside Kids mode; this restriction is not synced as an
+  editable setting. Connected server-user restrictions still govern library
+  content—Plozz does not infer maturity from incomplete external catalog ratings.
 - `CardAppearanceControls` — the independent **Show unwatched episode count**
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing
