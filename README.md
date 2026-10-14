@@ -5,7 +5,7 @@
 <h1 align="center">Plozz</h1>
 
 <p align="center">
-  A free, open source media player for <b>Jellyfin</b>, <b>Plex</b>, <b>Emby</b>, and <b>Silo</b> —
+  A completely free, open-source media player for <b>Jellyfin</b>, <b>Plex</b>, <b>Emby</b>, and <b>Silo</b> —
   native on Apple TV, iPhone, and iPad.
   <br />
   It also plays straight from network shares, so a folder of files works too.
@@ -67,6 +67,31 @@ It talks to Jellyfin, Plex, Emby, and Silo, and it can read a plain network shar
 directly if you don't run a server at all. Connect more than one and Plozz
 can bring them together in one library, while keeping individual libraries
 available when you want them.
+
+## A free, open-source Infuse alternative for Apple TV
+
+Looking for an **Infuse alternative** for your own movies and TV shows?
+Plozz is a **completely free Apple TV media player**, with native apps for
+iPhone and iPad too. There is no Plozz subscription, paid feature unlock, or
+advertising. The source code is available under the [GPL-3.0 license](LICENSE),
+so you can inspect it, build it yourself, and contribute.
+
+If you're choosing between Apple TV media apps, here's where Plozz fits:
+
+- **Coming from Infuse or VLC?** Play from your NAS or network shares over
+  SMB, NFS, WebDAV, SFTP, or FTP, with artwork and library browsing. You don't
+  need to run a media server.
+- **Using the Plex or Emby app?** Keep your existing server and use Plozz as
+  an alternative client. Connect multiple servers and browse them together,
+  including libraries from other supported providers.
+- **Using Swiftfin for Jellyfin?** Plozz is another open-source Jellyfin client
+  for Apple TV, with Plex, Emby, Silo, and network shares available in the same
+  app.
+
+Plozz is an independent project, not affiliated with these apps. It's still
+in [public beta](#getting-started), not a promise of feature-for-feature parity.
+You bring your own media; server-side permissions and any provider subscription
+requirements still apply. Plozz replaces the player, not your media server.
 
 ## Features
 
