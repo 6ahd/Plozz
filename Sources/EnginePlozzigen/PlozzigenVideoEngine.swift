@@ -171,12 +171,14 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         let position = engine.currentTime
         let bufferAhead: TimeInterval? = engine.isSessionReady && buffered.isFinite && position.isFinite
             ? max(0, buffered - position) : nil
-        guard t != nil || bufferAhead != nil else { return nil }
+        let audioPipeline = engine.activeAudioDecoder
+        guard t != nil || bufferAhead != nil || audioPipeline != nil else { return nil }
         return EngineLiveTelemetry(
             droppedFrameCount: t?.droppedFrameCount,
             observedFps: t?.observedFps,
             observedBitrate: t?.instantBitrateMbps.map { $0 * 1_000_000 },
-            bufferedSecondsAhead: bufferAhead
+            bufferedSecondsAhead: bufferAhead,
+            audioPipelineDescription: audioPipeline
         )
     }
 

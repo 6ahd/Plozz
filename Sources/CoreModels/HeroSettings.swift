@@ -50,6 +50,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
     /// means "all currently-visible libraries"** (the sensible default), so a
     /// fresh profile needs no configuration.
     public var randomLibraryKeys: Set<String>
+    public var collections: [HeroCollectionSelection]
 
     /// Whether the carousel auto-advances on a timer.
     public var autoAdvance: Bool
@@ -74,7 +75,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
     /// Feed defaults are defined by ``HeroDiscoverySource/defaultSelection``.
     public static let `default` = HeroSettings(
         isEnabled: true,
-        sources: HeroSourceKind.allCases,
+        sources: HeroSourceKind.allCases.filter { $0 != .collection },
         maxItems: 8,
         trailersEnabled: false,
         hideWatched: true,
@@ -104,7 +105,8 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         autoAdvanceSeconds: Int,
         style: HeroStyle = .carousel,
         showsCardCaptions: Bool = false,
-        showsDiscoverRow: Bool = false
+        showsDiscoverRow: Bool = false,
+        collections: [HeroCollectionSelection] = []
     ) {
         self.isEnabled = isEnabled
         // De-duplicate while preserving order so the picker can't persist a
@@ -120,6 +122,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         self.showsRatings = showsRatings
         self.ratingPreferences = ratingPreferences
         self.randomLibraryKeys = randomLibraryKeys
+        self.collections = HeroCollectionSelection.normalized(collections)
         self.autoAdvance = autoAdvance
         self.autoAdvanceSeconds = autoAdvanceSeconds.clamped(to: HeroSettings.autoAdvanceRange)
         self.style = style
@@ -135,6 +138,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         case randomLibraryKeys, autoAdvance, autoAdvanceSeconds
         case style, showsCardCaptions, showsDiscoverRow
         case offeredSourcesVersion
+        case collections, collection
     }
 
     public init(from decoder: Decoder) throws {
@@ -172,7 +176,10 @@ public struct HeroSettings: Codable, Equatable, Sendable {
             autoAdvanceSeconds: value(Int.self, .autoAdvanceSeconds, d.autoAdvanceSeconds),
             style: value(HeroStyle.self, .style, d.style),
             showsCardCaptions: value(Bool.self, .showsCardCaptions, d.showsCardCaptions),
-            showsDiscoverRow: value(Bool.self, .showsDiscoverRow, d.showsDiscoverRow)
+            showsDiscoverRow: value(Bool.self, .showsDiscoverRow, d.showsDiscoverRow),
+            collections: c.contains(.collections)
+                ? value([HeroCollectionSelection].self, .collections, [])
+                : value(HeroCollectionSelection?.self, .collection, nil).map { [$0] } ?? []
         )
     }
 
@@ -227,6 +234,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
         try c.encode(showsRatings, forKey: .showsRatings)
         try c.encode(ratingPreferences, forKey: .ratingPreferences)
         try c.encode(randomLibraryKeys, forKey: .randomLibraryKeys)
+        try c.encode(HeroCollectionSelection.normalized(collections), forKey: .collections)
         try c.encode(autoAdvance, forKey: .autoAdvance)
         try c.encode(autoAdvanceSeconds, forKey: .autoAdvanceSeconds)
         try c.encode(style, forKey: .style)
@@ -274,7 +282,7 @@ public struct HeroSettings: Codable, Equatable, Sendable {
     /// the hero's `externalRefreshRevision` bump.
     public var requiresExternalWatchHistory: Bool {
         isActive && hideWatched
-            && (isEnabled(.featured) || isEnabled(.randomFromLibrary))
+            && (isEnabled(.featured) || isEnabled(.randomFromLibrary) || isEnabled(.collection))
     }
 }
 

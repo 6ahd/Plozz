@@ -140,6 +140,37 @@ presentation state and detaches the old player.
 - **No secrets in URLs logged.** Stream URLs frequently embed tokens —
   `PlayerViewModel` redacts before logging.
 
+Plozzigen's Audio **Processing** row samples Aether's active audio pipeline
+label, independently of source-video probe availability. `TRUEHD Atmos → APAC
+7.1.4` means the engine created the spatial-conversion pipeline; `TRUEHD → FLAC
+bridge` or `TRUEHD → EAC3 bridge` identifies ordinary channel processing instead.
+Stream-copy and software-decoding routes retain the engine's own labels.
+The row is unknown until the engine publishes a pipeline and follows track
+changes, fallbacks, and teardown. Do not infer it from the Atmos source badge,
+the setting, channel count, or requested bridge mode, or parse the label to make
+playback decisions. **System output** reads `AVAudioSession.renderingMode`, and
+**Connection** reads fixed output-port types (HDMI, AirPlay, Bluetooth, etc.).
+Both refresh while diagnostics is open, on every playback engine. Unreported
+values are omitted, never inferred from the source, channel count, settings, or
+an older sample. No personal device names or route identifiers are collected.
+Descriptive output labels are localized; format and connection brands such as
+Dolby Atmos and AirPlay remain verbatim in both layouts.
+APAC's 7.1.4 is an intermediate processing layout; the system's rendering mode
+is stronger evidence of delivery, but neither detects the physical speaker layout.
+
+The TV diagnostics use three columns capped at 1280 points (two-thirds of a
+1920-point TV viewport), above the measured visible playback controls, including
+the Info/Cast tabs and cards. Format summaries combine related video/audio facts;
+system output includes the connection, while Processing remains separate.
+The buffer row labels player and engine measurements independently. HDR keeps
+the Dolby Vision profile and reported color/range facts rather than inferring
+compatibility from a profile number. Playback-health metrics, including zero
+stalls/drops, memory, thermal state, and seeking, remain visible. Mobile retains
+its expanded, scrollable rows. Long filenames are
+limited to two lines on TV (the mobile sheet keeps the complete value). If a
+tall menu leaves no room for the complete panel, diagnostics temporarily yield
+to the controls instead of overlapping them, clipping rows, or shrinking text.
+
 Native asset diagnostics identify `original-url`, `provider-manifest`,
 `provider-initialization-repair`, `subtitle-wrapper`, or `trailer-composition`
 without recording the URL or tokens.
