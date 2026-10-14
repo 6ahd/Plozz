@@ -50,7 +50,7 @@ actor IPTVPlaybackProxy {
         let parameters = NWParameters.tcp
         parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: .any)
         listener = try NWListener(using: parameters)
-        diagnostic = diagnostics.begin(layer: .iptvProxy, content: content)
+        diagnostic = diagnostics.begin(layer: .iptvProxy, content: content, captureForPresentation: true)
     }
 
     func start() async throws -> URL {
@@ -321,7 +321,7 @@ actor IPTVPlaybackProxy {
             if !Task.isCancelled, !(error is CancellationError), let diagnosticStage {
                 let failure = (error as? IPTVError)?.setupFailure ?? .sanitized(error)
                 let evidence = responseEvidence.snapshot
-                diagnostic?.fail(
+                let failureDiagnostic = diagnostic?.fail(
                     stage: diagnosticStage, reason: failure.reason,
                     domain: failure.networkCode == nil ? .none : .url, code: failure.networkCode,
                     httpStatus: evidence.status, format: evidence.format
@@ -337,7 +337,7 @@ actor IPTVPlaybackProxy {
                     case 451: appError = .accessRestricted
                     default: appError = .invalidResponse
                     }
-                    deliveryFailure?.record(appError)
+                    deliveryFailure?.record(appError, diagnostic: failureDiagnostic)
                     refusal = (status, retryAfter)
                 }
             }

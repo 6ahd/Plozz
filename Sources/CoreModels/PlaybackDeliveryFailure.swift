@@ -11,14 +11,20 @@ public final class PlaybackDeliveryFailure: @unchecked Sendable {
     private static let registry = Registry()
     private let lock = NSLock()
     private var failure: AppError?
+    private var failureDiagnostic: PlaybackFailureDiagnostic?
 
     private init() {}
 
     public var error: AppError? { lock.withLock { failure } }
+    public var diagnostic: PlaybackFailureDiagnostic? { lock.withLock { failureDiagnostic } }
 
-    public func record(_ error: AppError) {
+    public func record(_ error: AppError, diagnostic: PlaybackFailureDiagnostic? = nil) {
         guard error != .cancelled else { return }
-        lock.withLock { if failure == nil { failure = error } }
+        lock.withLock {
+            guard failure == nil else { return }
+            failure = error
+            failureDiagnostic = diagnostic
+        }
     }
 
     public static func register(loopbackURL: URL) -> PlaybackDeliveryFailure {

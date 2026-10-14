@@ -783,9 +783,15 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     private var liveFailureDiagnostic: PlaybackFailureAttempt?
     private var liveDeliveryFailure: PlaybackDeliveryFailure?
 
+    public var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic? {
+        liveDeliveryFailure?.diagnostic ?? liveFailureDiagnostic?.diagnostic
+    }
+
     private func beginLiveAttempt() -> UInt64 {
         let generation = liveAttemptGate.begin()
-        liveFailureDiagnostic = PlaybackFailureDiagnostics.shared.begin(layer: .liveEngine, content: .live)
+        liveFailureDiagnostic = PlaybackFailureDiagnostics.shared.begin(
+            layer: .liveEngine, content: .live, captureForPresentation: true
+        )
         liveSourceResetCancellable?.cancel()
         liveSourceResetCancellable = engine.liveSourceReset
             .receive(on: DispatchQueue.main)

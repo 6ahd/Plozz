@@ -3,6 +3,43 @@ import Foundation
 import XCTest
 
 final class PlaybackFailureDiagnosticTests: XCTestCase {
+    func testLocalPlaybackEvidenceDoesNotEnableRemoteReporting() throws {
+        let diagnostics = PlaybackFailureDiagnostics()
+        let attempt = try XCTUnwrap(diagnostics.begin(
+            layer: .liveEngine, content: .live, captureForPresentation: true
+        ))
+        let buffer = PlaybackFailureBuffer()
+        diagnostics.start { buffer.append($0) }
+        attempt.fail(stage: .load, reason: .network, domain: .url, code: -1001)
+        XCTAssertTrue(buffer.values.isEmpty)
+        XCTAssertEqual(attempt.diagnostic?.code, -1001)
+        let report = LiveChannelFailureReport(failure: .engine(.serverUnreachable), diagnostic: attempt.diagnostic)
+        XCTAssertTrue(String(localized: report.message).contains("did not respond in time"))
+        XCTAssertFalse(LiveTVDiagnosticReport.playback(report).supportText.contains("http_status"))
+    }
+
+    func testSupportReportNeverExportsUnknownErrorDescriptions() {
+        let privateDescription = "https://private.invalid/live/user/password?token=private-secret"
+        let report = LiveChannelFailureReport(failure: .engine(.unknown(privateDescription)))
+        XCTAssertEqual(LiveTVDiagnosticReport.playback(report).supportText,
+                       "format=plozz-live-tv-1\noperation=playback\nfailure=unknown")
+        XCTAssertFalse(String(localized: report.message).contains("private"))
+    }
+
+    func testTerminalDeliveryReportKeepsMatchingStatusAfterAnEarlierRecoverableFailure() throws {
+        let attempt = try XCTUnwrap(PlaybackFailureDiagnostics().begin(
+            layer: .iptvProxy, content: .live, captureForPresentation: true
+        ))
+        attempt.fail(stage: .response, reason: .notFound, httpStatus: 404)
+        let refusal = attempt.fail(stage: .response, reason: .authentication, httpStatus: 403)
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:12345/fixture"))
+        let delivery = PlaybackDeliveryFailure.register(loopbackURL: url)
+        defer { PlaybackDeliveryFailure.unregister(loopbackURL: url) }
+        delivery.record(.unauthorized, diagnostic: refusal)
+        XCTAssertEqual(delivery.diagnostic?.httpStatus, 403)
+        XCTAssertEqual(attempt.diagnostic?.httpStatus, 404, "Remote diagnostics still record only the first failure.")
+    }
+
     func testConsentRevocationDiscardsRetainedAttemptsEvenAfterReenabling() throws {
         let diagnostics = PlaybackFailureDiagnostics()
         let buffer = PlaybackFailureBuffer()

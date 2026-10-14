@@ -312,6 +312,8 @@ struct PrototypeSheetContent: View {
         NavigationStack {
             Group {
                 switch destination {
+                case .diagnostics(let report):
+                    LiveTVDiagnosticDetailsView(report: report)
                 case .multiviewFavorites:
                     LiveTVMultiviewFavoritesView(model: model, open: openMultiview)
                 case .filters:

@@ -103,7 +103,7 @@ crash-reporting consent and limited to one warning per category per reporter
 lifecycle. These measurements diagnose an unavailable input; a screenshot of the
 generic import error alone cannot establish which limit was reached.
 
-IPTV setup diagnostics are enabled for **all TestFlight builds**, including
+Automatic IPTV setup reports are enabled for **all TestFlight builds**, including
 hotfixes, and local Debug verification, never App Store builds. There is no
 build-number allowlist or automatic build-based expiry; retire the investigation
 explicitly once the setup issues are resolved. This is not a remote configuration
@@ -124,6 +124,25 @@ reports. Success, cancellation and downstream client disconnects do not report
 proxy failures. Opting out invalidates retained attempts even if reporting is
 later re-enabled. These reports diagnose playback separately from catalogue
 imports; they do not establish that two users have the same underlying failure.
+
+Local **Details** are separate from automatic reporting. Failed IPTV sign-in/import
+forms and terminal Live TV playback errors retain a small in-memory support report
+even without crash-reporting consent, including in App Store builds. Where known,
+it shows the failed stage, HTTP status, response type, numeric network/engine/storage
+codes, aggregate import counts and timings, and app/OS versions. iPhone and iPad
+can share the report through the system share sheet; Apple TV displays it locally.
+The report excludes addresses, headers, credentials, account/channel names and
+arbitrary error descriptions. Unknown causes remain unknown rather than implying
+a subscription, regional restriction or unsupported codec.
+
+The player captures engine evidence before stopping and passes the typed failure
+through the guide and multiview callbacks. Prepared-stream identity still rejects
+late failures from replaced channels. Only terminal upstream refusals are retained
+as delivery failures; a recoverable 404 or 503 must not poison native fallback.
+Starting another setup attempt clears its preceding local report. Local capture
+does not enable uploads, bypass telemetry budgets or replay into later consent
+generations, and introduces no probes, rescans or background polling. Failed
+server enrollment stays visible on the empty setup screen with an explicit retry.
 
 Only explicit URL, file, and Xtream account setup and legacy source check/save
 attempts establish the task-local context. Ordinary catalogue refresh, guide
