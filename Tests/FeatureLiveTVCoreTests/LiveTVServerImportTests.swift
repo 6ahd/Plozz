@@ -355,6 +355,69 @@ final class LiveTVServerImportTests: XCTestCase {
         XCTAssertEqual(calls.catalogs, 1)
     }
 
+    func testUpstreamRefusalsAreNotReportedAsMissingProfileMembership() {
+        for error: AppError in [.unauthorized, .invalidCredentials, .accessRestricted] {
+            XCTAssertEqual(LiveTVServerImportError.sanitized(error, fallback: .invalidCatalog), .permissionDenied)
+        }
+        XCTAssertEqual(
+            LiveTVServerImportError.sanitized(LiveTVServerImportError.accountUnavailable, fallback: .invalidCatalog),
+            .accountUnavailable
+        )
+    }
+
+    func testCacheRestoreDoesNotInvalidateAnAlreadyLoadingGuide() async throws {
+        let server = source()
+        let started = expectation(description: "Guide pending")
+        let provider = ServerImportProvider(
+            channels: [channel()], programs: [program()], suspended: .guide, started: started
+        )
+        let context = authorized(server, provider)
+        let imports = LiveTVPrototypeImportModel(
+            configuration: .init(servers: [server]), serverProviderResolver: { _ in context }
+        )
+        let model = LiveTVPrototypeModel(now: now, channels: [])
+        let reload = Task { await imports.reloadServers(into: model) }
+        await fulfillment(of: [started], timeout: 2)
+        await imports.restoreCachedServerCatalogs(into: model)
+        await provider.resume()
+        await reload.value
+        XCTAssertEqual(imports.programCount, 1)
+        XCTAssertEqual(imports.serverSources.first?.guidePhase, .loaded)
+    }
+
+    func testLateCachedChannelsCannotRestoreAfterProfileChangeRemovalOrCancellation() async throws {
+        for boundary in ["profile", "removal", "cancellation"] {
+            let server = source()
+            let started = expectation(description: "Saved catalogue pending")
+            let provider = ServerImportProvider(channels: [channel()], suspended: .cache, started: started)
+            let authorization = ServerAuthorizationFixture()
+            authorization.contexts[server.accountID] = authorized(server, provider, authorizationID: "profile-one")
+            let imports = LiveTVPrototypeImportModel(
+                configuration: .init(servers: [server]),
+                serverProviderResolver: { authorization.resolve($0) }
+            )
+            let model = LiveTVPrototypeModel(now: now, channels: [])
+            let restore = Task { await imports.restoreCachedServerCatalogs(into: model) }
+            await fulfillment(of: [started], timeout: 2)
+            switch boundary {
+            case "profile":
+                authorization.contexts[server.accountID] = authorized(
+                    server, provider, authorizationID: "profile-two"
+                )
+            case "removal":
+                try imports.applyConfiguration(.empty, into: model)
+            default:
+                restore.cancel()
+            }
+            await provider.resume()
+            await restore.value
+            XCTAssertTrue(model.channels.isEmpty)
+            XCTAssertTrue(imports.serverChannelReferences.isEmpty)
+            let calls = await provider.calls
+            XCTAssertEqual(calls.availability + calls.catalogs + calls.guides + calls.opens, 0)
+        }
+    }
+
     func testProfileIdentityChangeDuringAwaitRejectsOldResultsEvenWithoutReplacingResolver() async throws {
         let server = source()
         let started = expectation(description: "Old profile catalog suspended")
@@ -518,7 +581,7 @@ private actor ServerMixPlaylistLoader: LiveTVSourceLoading {
 }
 
 private actor ServerImportProvider: ServerLiveTVProviding {
-    enum Boundary: Equatable { case availability, channels, guide }
+    enum Boundary: Equatable { case availability, channels, guide, cache }
     var availability: ServerLiveTVAvailability
     let channels: [ServerLiveTVChannel]
     var programs: [ServerLiveTVProgramme]
@@ -563,6 +626,11 @@ private actor ServerImportProvider: ServerLiveTVProviding {
         await waitIfSuspended(.channels)
         try throwRequestedCancellation(.channels)
         return channels
+    }
+
+    func cachedLiveTVCatalog() async throws -> ServerLiveTVCatalogSnapshot? {
+        await waitIfSuspended(.cache)
+        return .init(channels: channels, supportsGuide: availability.supportsGuide)
     }
 
     func liveTVGuide(channelIDs: [String], from: Date, to: Date) async throws -> [ServerLiveTVProgramme] {

@@ -13,6 +13,14 @@ extra probe connection. This keeps declared MPEG-TS on the ingest/remux path
 instead of the HLS-only native bypass. Explicit stream extensions take
 precedence; the hint never applies to movies, episodes, or HLS child resources.
 
+Authenticated IPTV relay refusals are retained by exact loopback URL for the
+current live attempt. This preserves HTTP 451 access restrictions, authentication
+rejections, and rate limits when native playback reports only a generic load
+failure. Teardown removes the registry entry; the current engine can retain its
+evidence until that attempt ends. Recoverable request failures are not latched
+as terminal engine errors. The relay does not automatically retry a provider
+refusal or substitute an unadvertised stream format.
+
 Raw live transport streams (`ts`, `m2ts`, `mts`) use Aether's supported `fastZap`
 join profile. Unlike HLS, these sources have no existing playlist window to
 fetch: the standard full-holdback gate can wait longer than AVPlayer's initial

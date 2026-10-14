@@ -483,8 +483,23 @@ actor IPTVClient {
 
     func liveChannels() async throws -> [ServerLiveTVChannel] {
         try await ensureCatalog("live")
+        return try committedLiveChannels()
+    }
+
+    func cachedLiveTVCatalog() throws -> ServerLiveTVCatalogSnapshot? {
+        let scope = credential.mode == .xtream ? "live" : Self.playlistCatalogScope
+        let committed = credential.mode == .file
+            ? try catalog.state("playlist") != nil : try catalogCommittedAt(scope) != nil
+        guard committed else { return nil }
+        let supportsGuide = try credential.mode == .xtream || !credential.explicitGuideURLs.isEmpty
+            || catalog.count(where: "kind = ?", values: [MediaItemKind.unknown.rawValue]) > 0
+        return try ServerLiveTVCatalogSnapshot(channels: committedLiveChannels(), supportsGuide: supportsGuide)
+    }
+
+    private func committedLiveChannels() throws -> [ServerLiveTVChannel] {
         var result: [ServerLiveTVChannel] = []
         while true {
+            try Task.checkCancellation()
             let page = try catalog.records(where: "live = 1", values: [], start: result.count, limit: 1_000)
             for record in page {
                 result.append(ServerLiveTVChannel(
