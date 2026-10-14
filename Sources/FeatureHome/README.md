@@ -73,6 +73,9 @@ fallback when the user's server has no attached trailer.
   whole load. Cancellation and fetch failures are distinct from a confirmed
   empty collection. Selection changes invalidate the cached lineup; account
   and library availability are rechecked for live and persisted candidates.
+  Personal collections are account/server-viewer scoped with no invented library;
+  mixed movie/show members retain their own known library attribution and the
+  existing Home visibility rules. Legacy library-qualified selections still decode.
 - **Multi-account aggregation** — `HomeAggregator` fans out across the
   active account set (`[ResolvedAccount]`) so Home is a merged view
   across multiple servers / profiles. Uses the `MediaProvider`

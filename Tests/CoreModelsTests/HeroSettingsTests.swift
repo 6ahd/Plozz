@@ -51,6 +51,21 @@ final class HeroSettingsTests: XCTestCase {
         XCTAssertFalse(settings.sources.contains(.collection))
     }
 
+    func testPersonalCollectionSelectionRoundTripsWithoutInventingALibrary() throws {
+        var settings = HeroSettings.default
+        settings.sources = [.collection]
+        settings.collection = .init(accountID: "a", collectionID: "personal", title: "Favorites", serverUserID: "viewer")
+        HeroSettingsStore(defaults: defaults, namespace: "one").save(settings)
+        let snapshot = ProfileSettingsTransfer.capture(namespace: "one", defaults: defaults)
+        ProfileSettingsTransfer.apply(snapshot, namespace: "two", defaults: defaults)
+        XCTAssertEqual(HeroSettingsStore(defaults: defaults, namespace: "two").load(), settings)
+        XCTAssertNil(settings.collection?.libraryKey)
+        let legacy = try JSONDecoder().decode(HeroCollectionSelection.self, from: Data(
+            #"{"accountID":"a","libraryID":"movies","collectionID":"c","title":"Favorites"}"#.utf8
+        ))
+        XCTAssertEqual(legacy.libraryKey, "a:movies")
+    }
+
     func testMaxItemsIsClamped() {
         let low = HeroSettings(isEnabled: true, sources: [.continueWatching], maxItems: 0, trailersEnabled: false, randomLibraryKeys: [], autoAdvance: true, autoAdvanceSeconds: 10)
         XCTAssertEqual(low.maxItems, HeroSettings.maxItemsRange.lowerBound)

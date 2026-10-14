@@ -1679,7 +1679,7 @@ public final class HomeViewModel {
                     if source == .collection {
                         guard let selection = settings.collection,
                               accounts.contains(where: selection.matches),
-                              visibility.isEnabled(selection.libraryKey),
+                              selection.libraryKey.map(visibility.isEnabled) != false,
                               item.sourceAccountID == selection.accountID else { return false }
                     }
                     return item.isVisibleOnHome { key in

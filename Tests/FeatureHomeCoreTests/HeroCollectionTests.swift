@@ -61,7 +61,7 @@ final class HeroCollectionTests: XCTestCase {
     func testDisabledCollectionLibraryDoesNotFetch() async throws {
         let provider = CollectionProvider(items: [item("movie")])
         var visibility = HomeLibraryVisibility.default
-        visibility.disabledKeys = [selection.libraryKey]
+        visibility.disabledKeys = [try XCTUnwrap(selection.libraryKey)]
         let result = try await HeroCollectionLoader.load(selection: selection, limit: 8, provider: provider, visibility: visibility)
         XCTAssertTrue(result.items.isEmpty)
         XCTAssertEqual(result.totalCount, 0)
@@ -78,6 +78,27 @@ final class HeroCollectionTests: XCTestCase {
         let result = try await HeroCollectionLoader.load(selection: selection, limit: 8, provider: provider, visibility: visibility)
         XCTAssertEqual(result.items.map(\.id), ["visible"])
         XCTAssertEqual(result.items.first?.libraryID, "visible")
+    }
+
+    func testPersonalCollectionKeepsMixedMembersAndKnownLibraryVisibility() async throws {
+        let personal = HeroCollectionSelection(
+            accountID: "account", collectionID: "personal", title: "Personal", serverUserID: "viewer"
+        )
+        let provider = CollectionProvider(items: [
+            item("movie").taggingLibrary("movies"), item("series", kind: .series).taggingLibrary("shows"),
+            item("hidden").taggingLibrary("hidden")
+        ])
+        var visibility = HomeLibraryVisibility.default
+        visibility.disabledKeys = ["account:hidden"]
+        let page = try await HeroCollectionLoader.load(
+            selection: personal, limit: 8, provider: provider, visibility: visibility
+        )
+        XCTAssertEqual(page.items.map(\.id), ["movie", "series"])
+        XCTAssertEqual(page.items.compactMap(\.libraryID), ["movies", "shows"])
+        XCTAssertTrue(page.items.allSatisfy { $0.sourceAccountID == "account" })
+        var changed = settings
+        changed.collection = personal
+        XCTAssertNotEqual(HeroConfigurationKey(settings: settings), HeroConfigurationKey(settings: changed))
     }
 
     func testRepeatedOrFailedPagesAreNotPartialSuccess() async {

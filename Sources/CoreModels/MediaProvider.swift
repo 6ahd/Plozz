@@ -104,6 +104,10 @@ public protocol MediaProvider: Sendable {
     /// Unsupported providers throw `.notFound`, never a misleading empty page.
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage
 
+    /// Collections owned by or shared with the current server viewer, including
+    /// ones not published in a library. Advertise `.personalCollections`.
+    func personalCollections(page: PageRequest) async throws -> MediaPage
+
     /// Members of a server-defined collection, not a library's collection list.
     /// Preserve the server's collection order (including smart/custom ordering);
     /// `page.sort` is deliberately ignored. Do not filter members to collections.
@@ -443,6 +447,10 @@ public extension MediaProvider {
     var catalogIdentityRequiresEnrichment: Bool { false }
 
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
+        throw AppError.notFound
+    }
+
+    func personalCollections(page: PageRequest) async throws -> MediaPage {
         throw AppError.notFound
     }
 

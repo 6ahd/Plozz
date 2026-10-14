@@ -117,6 +117,7 @@ struct ViewCustomizationList<Content: View>: View {
     @Environment(\.themePalette) private var palette
     @FocusState private var focusedRow: String?
     @State private var hasEnteredList = false
+    @State private var topFadeHeight: CGFloat = 0
     @Namespace private var focusScope
 
     var body: some View {
@@ -155,7 +156,18 @@ struct ViewCustomizationList<Content: View>: View {
                 .padding(.horizontal, 48)
             }
             .contentMargins(.bottom, help == nil ? 0 : 40, for: .scrollContent)
-            .verticalEdgeFadeMask(topFade: 0, bottomFade: help == nil ? 0 : 40, horizontalOverhang: 20)
+            .scrollClipDisabled()
+            .mask {
+                VerticalEdgeFadeMask(
+                    topFade: topFadeHeight, bottomFade: help == nil ? 0 : 40, horizontalOverhang: 20
+                )
+                .ignoresSafeArea(.container, edges: .top)
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                min(40, max(0, geometry.contentOffset.y + geometry.contentInsets.top))
+            } action: { _, height in
+                topFadeHeight = height
+            }
             .accessibilityIdentifier("view-customization-scroll")
             if let help {
                 ViewCustomizationHelpCard(help: help)
@@ -163,6 +175,7 @@ struct ViewCustomizationList<Content: View>: View {
                     .padding(.bottom, 24)
             }
         }
+        .buttonStyle(SettingsFocusButtonStyle())
         .navigationTitle(Text(verbatim: ""))
         #else
         List {
@@ -310,7 +323,7 @@ private extension EnvironmentValues {
     }
 }
 
-private struct ViewCustomizationRowFocus: ViewModifier {
+struct ViewCustomizationRowFocus: ViewModifier {
     let id: String
     @Environment(\.viewCustomizationFocus) private var focus
 

@@ -10,10 +10,10 @@ public enum HeroCollectionLoader {
         visibility: HomeLibraryVisibility,
         seed: UInt64 = 0
     ) async throws -> MediaPage {
-        guard !selection.collectionID.isEmpty, !selection.libraryID.isEmpty, limit > 0 else {
+        guard !selection.collectionID.isEmpty, selection.libraryID?.isEmpty != true, limit > 0 else {
             throw AppError.invalidResponse
         }
-        guard visibility.isEnabled(selection.libraryKey) else {
+        guard selection.libraryKey.map(visibility.isEnabled) != false else {
             return MediaPage(items: [], startIndex: 0, totalCount: 0)
         }
         let budget = min(limit, HeroFreshnessSnapshot.rawDiscoveryLimit)

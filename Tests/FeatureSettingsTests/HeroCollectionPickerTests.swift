@@ -4,6 +4,33 @@ import XCTest
 @testable import FeatureSettings
 
 final class HeroCollectionPickerTests: XCTestCase {
+    func testPersonalSourceDoesNotRequirePublicationInALibrary() {
+        let provider = PickerProvider()
+        let account = ResolvedAccount(account: Account(id: "a", from: provider.session), provider: provider)
+        let library = AggregatedLibrary(
+            accountID: "a", accountName: "Viewer", serverName: "Server", providerKind: .silo,
+            library: MediaLibrary(id: "movies", title: "Movies", kind: .movie)
+        )
+        XCTAssertEqual(
+            HeroCollectionPickerSource.available(libraries: [], accounts: [account]).map(\.id),
+            [.init(accountID: "a", libraryID: nil)]
+        )
+        XCTAssertEqual(
+            HeroCollectionPickerSource.available(libraries: [library], accounts: [account]).map(\.id),
+            [.init(accountID: "a", libraryID: nil), .init(accountID: "a", libraryID: "movies")]
+        )
+        XCTAssertTrue(HeroCollectionPickerSource.available(libraries: [library], accounts: []).isEmpty)
+    }
+
+    @MainActor
+    func testPersonalSourceUsesNativePersonalList() async {
+        let model = HeroCollectionListModel(provider: PickerProvider(), libraryID: nil)
+        await model.loadNextPage()
+        XCTAssertEqual(model.items.map(\.id), ["personal"])
+        XCTAssertFalse(model.hasMore)
+        XCTAssertNil(model.error)
+    }
+
     @MainActor
     func testPaginatesAndReportsRetryableErrorsWithoutLosingRows() async {
         let provider = PickerProvider()
@@ -35,14 +62,19 @@ final class HeroCollectionPickerTests: XCTestCase {
     }
 }
 
-private actor PickerProvider: MediaProvider {
+private actor PickerProvider: MediaProvider, CapabilityReporting {
     nonisolated let kind: ProviderKind = .plex
     nonisolated let session = UserSession(
         server: MediaServer(id: "server", name: "Server", baseURL: URL(string: "https://example.com")!, provider: .plex),
         userID: "user", userName: "Viewer", deviceID: "device", accessToken: "test-token"
     )
     private var fails = true
+    nonisolated var capabilities: ProviderCapability { [.libraryCollections, .personalCollections] }
     func setFailure(_ value: Bool) { fails = value }
+
+    func personalCollections(page: PageRequest) async throws -> MediaPage {
+        .init(items: [.init(id: "personal", title: "Personal", kind: .collection)], startIndex: 0, totalCount: 1)
+    }
 
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
         if fails, page.startIndex == 2 { throw AppError.serverUnreachable }

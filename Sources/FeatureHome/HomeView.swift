@@ -1855,7 +1855,11 @@ struct HeroRecomputeKey: Equatable {
             ? randomLibraries
             : []
         self.collectionLibraries = activeSources.contains(.collection)
-            ? content.libraries.filter { $0.key == settings?.collection?.libraryKey } : []
+            ? content.libraries.filter { library in
+                guard let collection = settings?.collection else { return false }
+                return library.accountID == collection.accountID
+                    && (collection.libraryID == nil || library.library.id == collection.libraryID)
+            } : []
         self.externalRefreshRevision = settings?.requiresExternalWatchHistory == true
             ? externalRefreshRevision : 0
         self.freshnessRevision = activeSources.isEmpty ? 0 : freshnessRevision
