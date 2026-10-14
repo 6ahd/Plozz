@@ -26,7 +26,7 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
         capabilitiesSnapshot = capabilities
     }
 
-    public var capabilities: ProviderCapability { [.video, .libraryCollections, .remoteSubtitles] }
+    public var capabilities: ProviderCapability { [.video, .libraryCollections, .personalCollections, .remoteSubtitles] }
     public var catalogIdentityRequiresEnrichment: Bool { true }
 
     public func libraries() async throws -> [MediaLibrary] {
@@ -54,7 +54,12 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
 
     public func item(id: String) async throws -> MediaItem {
         if let collection = Self.collectionIdentity(id) {
-            let page = try await collections(in: collection.libraryID, page: .init(limit: Int.max))
+            let page: MediaPage
+            if let libraryID = collection.libraryID {
+                page = try await collections(in: libraryID, page: .init(limit: Int.max))
+            } else {
+                page = try await personalCollections(page: .init(limit: Int.max))
+            }
             guard let item = page.items.first(where: { $0.id == id }) else { throw AppError.notFound }
             return item
         }

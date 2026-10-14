@@ -1116,6 +1116,9 @@ public struct HomeView: View {
                         await retainedRandomProvider(libraries, limit)
                     }
                 },
+                collectionProvider: { selection, limit in
+                    try await viewModel.heroCollectionContent(selection, limit: limit, hideWatched: settings.hideWatched)
+                },
                 artworkProvider: heroArtworkProvider,
                 artworkValidator: heroArtworkValidator
             )
@@ -1134,7 +1137,8 @@ public struct HomeView: View {
             randomLibraries: randomLibraries,
             seerConnected: heroSeerConnected,
             featuredDiscoveryEnabled: heroDiscoveryProvider == nil
-                ? nil : !settings.discoverySources.isEmpty
+                ? nil : !settings.discoverySources.isEmpty,
+            collectionState: result.collectionState
         )
         let fallbackEligibility = heroSourceEligibility(
             content: content, randomLibraries: randomLibraries,
@@ -1801,6 +1805,7 @@ struct HeroRecomputeKey: Equatable {
     let watchlist: [HeroCandidateSignature]
     let recentlyAdded: [HeroCandidateSignature]
     let randomLibraries: [HeroRandomLibrary]
+    let collectionLibraries: [AggregatedLibrary]
     let sources: [HeroSourceKind]
     let maxItems: Int
     let hideWatched: Bool
@@ -1849,6 +1854,13 @@ struct HeroRecomputeKey: Equatable {
         self.randomLibraries = activeSources.contains(.randomFromLibrary)
             ? randomLibraries
             : []
+        self.collectionLibraries = activeSources.contains(.collection)
+            ? content.libraries.filter { library in
+                settings?.collections.contains { collection in
+                    library.accountID == collection.accountID
+                        && (collection.libraryID == nil || library.library.id == collection.libraryID)
+                } == true
+            } : []
         self.externalRefreshRevision = settings?.requiresExternalWatchHistory == true
             ? externalRefreshRevision : 0
         self.freshnessRevision = activeSources.isEmpty ? 0 : freshnessRevision
@@ -1868,6 +1880,7 @@ struct HeroRecomputeKey: Equatable {
             && watchlist == other.watchlist
             && recentlyAdded == other.recentlyAdded
             && randomLibraries == other.randomLibraries
+            && collectionLibraries == other.collectionLibraries
             && sources == other.sources
             && maxItems == other.maxItems
             && hideWatched == other.hideWatched

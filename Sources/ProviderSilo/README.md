@@ -126,6 +126,25 @@ These Home and device-login contracts were checked at upstream revision
 - Watched state and the native Silo watchlist write back to Silo. Batched resume
   synchronization checks each result, not only HTTP success.
 
+## Collections
+
+Library collections and personal collections have separate native contracts.
+`collections(in:page:)` retains `/library/{id}/collections` and
+`source=library_collection`. `personalCollections(page:)` reads `/collections`,
+including the acting viewer's own collections and collections shared with them,
+even when they are not published in a library's Collections tab. It slices the
+native unpaginated list without discarding the server's viewer order.
+
+Personal IDs use a distinct provider-local namespace. Item lookup, children and
+paged members route consistently to that namespace, with members fetched through
+`/catalog?source=user_collection&collection_id=...`; no arbitrary library or sort
+is imposed. Server profile authorization applies to every request. Missing
+artwork is valid; unsupported endpoints and revoked credentials remain errors.
+Personal catalog cards do not declare library ownership, so the provider leaves
+it unknown rather than mislabeling the whole collection as one library.
+These contracts were checked against native v2 revision
+`bbef279723ddc17cd3798b22decf58e5791765c7`.
+
 ## Detail ratings
 
 Native v2 detail ratings use the server-selected `ratings` list, preserving its

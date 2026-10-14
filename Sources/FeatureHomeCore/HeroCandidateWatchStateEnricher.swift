@@ -23,7 +23,7 @@ public enum HeroCandidatePool {
 /// multi-server setups to flood networking.
 ///
 /// Pure domain logic: it takes injected `sourceRefs`/`fetch` closures and touches
-/// no provider or app-shell types, so it lives beside `HeroCurator` in FeatureHome
+/// no provider or app-shell types, so it lives beside `HeroCurator` in FeatureHomeCore
 /// rather than in the composition root.
 public enum HeroCandidateWatchStateEnricher {
     private struct Job: Sendable {

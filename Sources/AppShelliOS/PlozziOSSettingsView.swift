@@ -2064,6 +2064,28 @@ struct PlozziOSHomeSettingsView: View {
                         Text("Leave every library selected to include all enabled libraries.")
                     }
                 }
+                if hero.settings.isEnabled(.collection) {
+                    SettingsSectionGroup("Collections") {
+                        NavigationLink {
+                            HeroCollectionPickerView(
+                                selections: $hero.settings.collections,
+                                libraries: aggregatedHomeLibraries.filter { visibility.isVisibleOnHome($0.key) },
+                                accounts: accounts
+                            )
+                            .id(ObjectIdentifier(hero))
+                        } label: {
+                            if hero.settings.collections.count == 1, let selection = hero.settings.collections.first {
+                                Text(verbatim: selection.title)
+                            } else if !hero.settings.collections.isEmpty {
+                                Text("\(hero.settings.collections.count) collections selected")
+                            } else {
+                                Text("Choose collections")
+                            }
+                        }
+                    } footer: {
+                        Text("Mix movies and shows from your selected collections, without duplicate titles.")
+                    }
+                }
             }
 
             if hero.settings.isEnabled {
