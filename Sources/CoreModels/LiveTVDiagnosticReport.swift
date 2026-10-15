@@ -78,7 +78,7 @@ public enum LiveTVDiagnosticReport: Equatable, Sendable {
         case 451:
             return AppError.accessRestricted.userMessage
         case .some(let status) where (500...599).contains(status):
-            return "The provider returned a server error (HTTP \(status)). Try again later."
+            return "The provider returned a server error (HTTP \(String(status))). Try again later."
         default: break
         }
         switch networkCode {
