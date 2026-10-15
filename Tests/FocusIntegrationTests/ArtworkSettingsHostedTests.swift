@@ -14,13 +14,17 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         let state = SettingsScaleFixtureState()
         state.selection = .detailed
         try await withScreen(content: SettingsScaleFixture(state: state).frame(width: 1000)) { window in
-            let labels = try self.collectionLabelFrames(in: window, attachmentName: "settings-shared-control-scale")
+            let labels = try self.collectionLabelFrames(
+                in: window, attachmentName: "settings-shared-control-scale", matchingText: "Balanced"
+            )
             let matching = labels.filter { $0.text.contains("Balanced") }.sorted { $0.frame.minY < $1.frame.minY }
             XCTAssertEqual(matching.count, 6, "\(labels)")
             let titles = Array(matching.prefix(4))
-            let reference = try XCTUnwrap(titles.first)
+            let image = self.renderWindow(window)
+            let reference = try self.textInkBounds(in: image, frame: XCTUnwrap(titles.first).frame)
             for title in titles {
-                XCTAssertEqual(title.frame.height, reference.frame.height, accuracy: 3, title.text)
+                XCTAssertEqual(try self.textInkBounds(in: image, frame: title.frame).height,
+                               reference.height, accuracy: 1, title.text)
             }
             let items = self.focusItems(in: window)
             let frames = try titles.map { title in
@@ -35,9 +39,8 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             XCTAssertEqual(frames[2].height, rowHeight, accuracy: 1)
             let descriptions = Array(matching.dropFirst(4))
             XCTAssertEqual(descriptions.count, 2)
-            let image = self.renderWindow(window)
-            let controlHeight = try self.lightTextInkHeight(in: image, frame: XCTUnwrap(titles.last).frame)
-            let descriptionHeights = try descriptions.map { try self.lightTextInkHeight(in: image, frame: $0.frame) }
+            let controlHeight = reference.height
+            let descriptionHeights = try descriptions.map { try self.textInkBounds(in: image, frame: $0.frame).height }
             for height in descriptionHeights {
                 XCTAssertLessThan(height, controlHeight)
                 XCTAssertEqual(height, try XCTUnwrap(descriptionHeights.first), accuracy: 1)
@@ -46,40 +49,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
     }
 
     func testNavigationReorderIconsUseTheCompactControlScale() async throws {
-        let namespace = "NavigationScaleHosted.\(UUID())"
-        let models = ProfileSettingsModel(namespace: namespace)
-        defer {
-            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
-                UserDefaults.standard.removeObject(forKey: key)
-            }
-        }
-        models.navigationStyleModel.style = .sidebar
-        let libraries = [
-            AggregatedLibrary(
-                accountID: "plex", accountName: "Viewer", serverName: "Plex", providerKind: .plex,
-                library: MediaLibrary(id: "movies", title: "Movies", kind: .movie)
-            ),
-            AggregatedLibrary(
-                accountID: "jellyfin", accountName: "Viewer", serverName: "Jellyfin", providerKind: .jellyfin,
-                library: MediaLibrary(id: "shows", title: "TV Shows", kind: .series)
-            )
-        ]
-        let scope = ProfileLibrariesScope(
-            accounts: [], activeProfile: .init(id: namespace, name: "Viewer"),
-            discoveredLibraries: .loaded(libraries), refreshingLibraryAccountIDs: [],
-            unreachableLibraryAccountIDs: [], reloadLibraries: {},
-            homeVisibility: models.homeLibraryVisibilityModel,
-            isAccountIncludedInActiveProfile: { _ in true },
-            onSetAccountIncluded: { _, _ in }, onAddAccount: {},
-            plexHomeUsersFetcher: { _ in [] }, onSelectPlexHomeUser: { _, _ in }
-        )
-        try await withScreen(content: ScrollView {
-            VStack(alignment: .leading, spacing: SettingsRowMetrics.formSectionSpacing) {
-                Text("Navigation").settingsFeatureTitle()
-                NavigationLibrariesDetailView(scope: scope, navigation: models.navigationStyleModel)
-            }
-            .padding(48)
-        }.frame(width: 1100)) { window in
+        try await withNavigationReorderScreen { window in
             let text = try await self.capture(window, name: "settings-navigation-reorder-icons", includeMaster: true)
             for title in ["Home", "Watchlist", "Live TV", "Search", "Music", "Movies", "TV Shows", "Settings"] {
                 XCTAssertTrue(text.contains(title), text)
@@ -98,7 +68,68 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         }
     }
 
-    func testSegmentFocusOnlyPreviewsAndSelectionKeepsAllSegmentBounds() async throws {
+    func testSettingsChoiceFamiliesUseTheSameRenderedTitleFont() async throws {
+        try await withScreen(content: VStack(alignment: .leading, spacing: 28) {
+            Button("Balanced") {}.buttonStyle(SettingsFormButtonStyle())
+            SettingsCheckableRow(title: Text("Balanced"), isChecked: false, action: {})
+            SettingsOptionPicker(
+                options: SettingsScaleFixtureState.Option.allCases, selection: .constant(.detailed),
+                title: { $0.title }
+            )
+            SettingsStepper(
+                options: [SettingsScaleFixtureState.Option.balanced], selection: .constant(.balanced),
+                title: { $0.title }
+            )
+            Button {} label: {
+                SettingsRowLabel(icon: nil, title: "Balanced")
+            }
+            .buttonStyle(SettingsFocusButtonStyle())
+        }.padding(40).frame(width: 1000)) { window in
+            let labels = try self.collectionLabelFrames(
+                in: window, attachmentName: "settings-shared-choice-scale", matchingText: "Balanced"
+            )
+            let titles = labels.filter { $0.text.contains("Balanced") }.sorted { $0.frame.minY < $1.frame.minY }
+            XCTAssertEqual(titles.count, 5, "\(labels)")
+            let image = self.renderWindow(window)
+            let reference = try self.textInkBounds(in: image, frame: XCTUnwrap(titles.first).frame)
+            for title in titles {
+                XCTAssertEqual(try self.textInkBounds(in: image, frame: title.frame).height,
+                               reference.height, accuracy: 1, title.text)
+            }
+        }
+    }
+
+    func testNavigationReorderKeepsColumnsAlignedAcrossTwoDigitRanks() async throws {
+        let names = [
+            "Movies", "TV Shows", "Documentaries", "Concerts", "Family", "Animation",
+            "Comedy", "Drama", "Action", "Sci-Fi", "Horror", "Classics", "Short Films",
+            "Stand-Up", "Sports", "Travel", "Music Videos"
+        ]
+        try await withNavigationReorderScreen(libraryNames: names) { window in
+            let first = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: "Home").first)
+            let firstInk = try self.textInkBounds(in: self.renderWindow(window), frame: first.frame)
+            let scroll = try self.verticalScroll(in: window)
+            let rowStride = SettingsRowMetrics.minHeight(.primary)
+                + 2 * SettingsRowMetrics.verticalPadding(.primary) + SettingsRowMetrics.formRowSpacing
+            for (rank, preceding, following) in [(9, "Documentaries", "Concerts"), (19, "Short Films", "Stand-Up")] {
+                scroll.setContentOffset(CGPoint(x: 0, y: CGFloat(rank - 3) * rowStride), animated: false)
+                let text = try await self.capture(
+                    window, name: "settings-navigation-ranks-\(rank)-\(rank + 1)", includeMaster: true
+                )
+                XCTAssertTrue(text.contains(preceding), text)
+                XCTAssertTrue(text.contains(following), text)
+                let image = self.renderWindow(window)
+                for title in [preceding, following] {
+                    let label = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: title).first)
+                    let ink = try self.textInkBounds(in: image, frame: label.frame)
+                    XCTAssertEqual(ink.minX, firstInk.minX, accuracy: 2,
+                                   "Ranks 1–24 must reserve the same number and icon columns: \(title).")
+                }
+            }
+        }
+    }
+
+    func testSegmentFocusOnlyPreviewsAndOnlySelectionUsesCheckmarkSpace() async throws {
         let state = SettingsScaleFixtureState()
         try await withScreen(content: SettingsScaleFixture(state: state).frame(width: 1000)) { window in
             let labels = try self.collectionLabelFrames(in: window)
@@ -120,16 +151,21 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             let before = try self.focusItems(in: window).map { try self.nativeFrame($0, in: window) }
                 .filter { abs($0.midY - focusedFrame.midY) < 1 }.sorted { $0.minX < $1.minX }
             XCTAssertEqual(before.count, 3)
-            state.selection = .detailed
+            state.selection = .compact
             _ = try await self.capture(window, name: "settings-segment-selection", includeMaster: true)
             let after = try self.focusItems(in: window).map { try self.nativeFrame($0, in: window) }
                 .filter { abs($0.midY - focusedFrame.midY) < 1 }.sorted { $0.minX < $1.minX }
             XCTAssertEqual(after.count, before.count)
+            guard before.count == 3, after.count == 3 else { return }
             for (old, new) in zip(before, after) {
-                XCTAssertEqual(old.minX, new.minX, accuracy: 1)
-                XCTAssertEqual(old.width, new.width, accuracy: 1)
                 XCTAssertEqual(old.height, new.height, accuracy: 1)
             }
+            XCTAssertGreaterThan(before[0].width - after[0].width, 8, "Unselected options must not reserve a checkmark slot.")
+            XCTAssertGreaterThan(after[1].width - before[1].width, 8, "Only the selected option expands for the checkmark.")
+            XCTAssertEqual(before[0].width - after[0].width, after[1].width - before[1].width, accuracy: 1)
+            XCTAssertEqual(before[2].width, after[2].width, accuracy: 1)
+            XCTAssertEqual(before[0].minX, after[0].minX, accuracy: 1)
+            XCTAssertEqual(before[2].maxX, after[2].maxX, accuracy: 1)
             XCTAssertTrue(system.focusedItem === target)
         }
     }
@@ -682,7 +718,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
     }
 
     private func collectionLabelFrames(
-        in window: UIWindow, attachmentName: String? = nil
+        in window: UIWindow, attachmentName: String? = nil, matchingText: String? = nil
     ) throws -> [(text: String, frame: CGRect)] {
         window.layoutIfNeeded()
         let image = renderWindow(window)
@@ -696,9 +732,17 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-        return (request.results ?? []).compactMap { result in
-            guard let text = result.topCandidates(1).first?.string else { return nil }
-            let bounds = result.boundingBox
+        return try (request.results ?? []).compactMap { result in
+            guard let candidate = result.topCandidates(1).first else { return nil }
+            let text = candidate.string
+            let bounds: CGRect
+            if let matchingText {
+                guard let range = text.range(of: matchingText),
+                      let box = try candidate.boundingBox(for: range) else { return nil }
+                bounds = box.boundingBox
+            } else {
+                bounds = result.boundingBox
+            }
             return (text, CGRect(
                 x: bounds.minX * window.bounds.width, y: (1 - bounds.maxY) * window.bounds.height,
                 width: bounds.width * window.bounds.width, height: bounds.height * window.bounds.height
@@ -722,8 +766,9 @@ final class ArtworkSettingsHostedTests: XCTestCase {
     }
 
     /// OCR locates the label; actual ink avoids contrast-dependent OCR box padding.
-    private func lightTextInkHeight(in image: UIImage, frame: CGRect) throws -> CGFloat {
-        let crop = try XCTUnwrap(image.cgImage?.cropping(to: frame.insetBy(dx: -4, dy: -4).integral))
+    private func textInkBounds(in image: UIImage, frame: CGRect) throws -> CGRect {
+        let bounds = frame.insetBy(dx: -4, dy: -4).integral
+        let crop = try XCTUnwrap(image.cgImage?.cropping(to: bounds))
         var pixels = [UInt8](repeating: 0, count: crop.width * crop.height)
         try pixels.withUnsafeMutableBytes { bytes in
             let context = try XCTUnwrap(CGContext(
@@ -733,11 +778,20 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             ))
             context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
         }
-        let threshold = try XCTUnwrap(pixels.max()) / 2
-        let rows = (0..<crop.height).filter { y in
-            pixels[(y * crop.width)..<((y + 1) * crop.width)].contains { $0 > threshold }
+        let threshold = try UInt8((Int(XCTUnwrap(pixels.min())) + Int(XCTUnwrap(pixels.max()))) / 2)
+        let darkText = try XCTUnwrap(pixels.first) > threshold
+        let foreground = pixels.indices.filter {
+            darkText ? pixels[$0] < threshold : pixels[$0] > threshold
         }
-        return CGFloat(try XCTUnwrap(rows.last) - XCTUnwrap(rows.first) + 1)
+        let columns = foreground.map { $0 % crop.width }
+        let rows = foreground.map { $0 / crop.width }
+        let minX = try XCTUnwrap(columns.min())
+        let minY = try XCTUnwrap(rows.min())
+        return CGRect(
+            x: bounds.minX + CGFloat(minX), y: bounds.minY + CGFloat(minY),
+            width: CGFloat(try XCTUnwrap(columns.max()) - minX + 1),
+            height: CGFloat(try XCTUnwrap(rows.max()) - minY + 1)
+        )
     }
 
     private func assertConcentricGroup(in window: UIWindow, focusFrame: CGRect) throws {
@@ -1220,6 +1274,11 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 host.artworkFocusTarget = nil
                 let text = try await self.capture(window, name: "artwork-preset-focus-\(index)")
                 XCTAssertTrue(system.focusedItem === target, "Inline help must retain native focus.")
+                if index == 0 {
+                    let title = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: "Recommended").first)
+                    XCTAssertEqual(title.frame.height, try self.controlInkHeight("Recommended"), accuracy: 3,
+                                   "Artwork presets must use the same body-sized font as other settings controls.")
+                }
                 for (snippetIndex, snippet) in snippets.enumerated() {
                     XCTAssertEqual(text.contains(snippet), index == snippetIndex, text)
                 }
@@ -1266,6 +1325,44 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             captionStore: CardCaptionSettingsStore(defaults: defaults),
             artworkStore: ArtworkSettingsStore(defaults: defaults)
         )
+    }
+
+    private func withNavigationReorderScreen(
+        libraryNames: [String] = ["Movies", "TV Shows"],
+        inspect: (UIWindow) async throws -> Void
+    ) async throws {
+        let namespace = "NavigationScaleHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        models.navigationStyleModel.style = .sidebar
+        let libraries = libraryNames.enumerated().map { index, name in
+            AggregatedLibrary(
+                accountID: index.isMultiple(of: 2) ? "plex" : "jellyfin",
+                accountName: "Viewer", serverName: index.isMultiple(of: 2) ? "Plex" : "Jellyfin",
+                providerKind: index.isMultiple(of: 2) ? .plex : .jellyfin,
+                library: MediaLibrary(id: "library-\(index)", title: name, kind: index == 1 ? .series : .movie)
+            )
+        }
+        let scope = ProfileLibrariesScope(
+            accounts: [], activeProfile: .init(id: namespace, name: "Viewer"),
+            discoveredLibraries: .loaded(libraries), refreshingLibraryAccountIDs: [],
+            unreachableLibraryAccountIDs: [], reloadLibraries: {},
+            homeVisibility: models.homeLibraryVisibilityModel,
+            isAccountIncludedInActiveProfile: { _ in true },
+            onSetAccountIncluded: { _, _ in }, onAddAccount: {},
+            plexHomeUsersFetcher: { _ in [] }, onSelectPlexHomeUser: { _, _ in }
+        )
+        try await withScreen(content: ScrollView {
+            VStack(alignment: .leading, spacing: SettingsRowMetrics.formSectionSpacing) {
+                Text("Navigation").settingsFeatureTitle()
+                NavigationLibrariesDetailView(scope: scope, navigation: models.navigationStyleModel)
+            }
+            .padding(48)
+        }.frame(width: 1100), inspect: inspect)
     }
 
     private func withScreen(

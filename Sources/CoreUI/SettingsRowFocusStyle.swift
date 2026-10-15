@@ -412,7 +412,11 @@ public struct SettingsCheckmark: View {
     }
 
     private var glyphFont: Font {
+        #if os(tvOS)
+        SettingsRowMetrics.descriptionFont.weight(.semibold)
+        #else
         prominence == .primary ? .headline.weight(.bold) : .callout.weight(.bold)
+        #endif
     }
 
     public var body: some View {

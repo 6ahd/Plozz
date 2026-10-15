@@ -410,7 +410,6 @@ private struct LiftableRow: View {
                         mediaShareTransport: mediaShareTransport
                     )
                     .frame(width: 30)
-                    .frame(width: 30)
                     .accessibilityHidden(true)
                 } else if let symbolName {
                     Image(systemName: symbolName)

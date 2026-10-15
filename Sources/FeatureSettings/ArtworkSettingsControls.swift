@@ -17,8 +17,7 @@ public struct ArtworkSettingsControls: View {
         #if os(tvOS)
         VStack(alignment: .leading, spacing: 28) {
             Text("Choose the posters, backgrounds, and logos you see.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .settingsHelperText()
             ArtworkPresetPicker(settings: $cards.artwork)
             customizationLink
         }

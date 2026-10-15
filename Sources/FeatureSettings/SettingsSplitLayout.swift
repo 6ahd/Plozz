@@ -461,7 +461,7 @@ private struct SettingsMasterRowLabel: View {
                     .frame(width: 26)
             }
             row.title
-                .font(.callout.weight(.medium))
+                .font(SettingsRowMetrics.titleFont)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 12)

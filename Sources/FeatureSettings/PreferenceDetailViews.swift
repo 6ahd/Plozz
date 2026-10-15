@@ -96,8 +96,7 @@ struct AppearanceDetailView: View {
                                 }
                                 .accessibilityIdentifier("artwork-metadata-providers")
                                 Text("Shared by all profiles.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
+                                    .settingsHelperText()
                             }
                         }
                     }
@@ -735,8 +734,7 @@ struct PlaybackDetailView: View {
                         verbatimTitle: { $0.title(locale: locale) }
                     )
                     Text(playback.settings.resumeRewindInterval.effectDescription)
-                        .font(.callout)
-                        .plozzForeground(.secondary)
+                        .settingsHelperText()
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -800,8 +798,7 @@ struct PlaybackDetailView: View {
                     Text(playback.settings.autoPlayNextEpisode
                          ? "The next episode starts when one finishes."
                          : "The player closes when an episode finishes.")
-                        .font(.callout)
-                        .plozzForeground(.secondary)
+                        .settingsHelperText()
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             },
@@ -901,8 +898,7 @@ private struct SkipModeControl: View {
             VStack(alignment: .leading, spacing: 12) {
                 Toggle("Use community markers", isOn: $useCommunityMarkers)
                 Text("When your server has no intro or credits marker, Plozz looks one up on IntroDB and TheIntroDB, sending them the title’s IMDb or TMDB ID.")
-                    .font(.callout)
-                    .plozzForeground(.secondary)
+                    .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -986,19 +982,17 @@ private struct SeparateSettingRow<Option: Hashable>: View {
             case .above:
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text(title)
-                        .font(.headline.weight(.semibold))
+                        .font(SettingsRowMetrics.titleFont)
                     if let hint {
                         Text(hint)
-                            .font(.callout)
-                            .plozzForeground(.secondary)
+                            .settingsHelperText()
                     }
                 }
                 picker
             }
             if let focusedOption {
                 Text(detail(focusedOption))
-                    .font(.callout)
-                    .plozzForeground(.secondary)
+                    .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // Under the picker, not the name.

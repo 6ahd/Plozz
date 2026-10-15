@@ -96,7 +96,13 @@ public struct SettingsStepper<Value: Hashable>: View {
     private var glyphSize: CGFloat { compact ? 16 : 26 }
     private var rowSpacing: CGFloat { compact ? 12 : 24 }
     private var valueMinWidth: CGFloat { compact ? 52 : 96 }
-    private var valueFont: Font { compact ? .body : .headline.weight(.semibold) }
+    private var valueFont: Font {
+        #if os(tvOS)
+        SettingsRowMetrics.titleFont
+        #else
+        compact ? .body : .headline.weight(.semibold)
+        #endif
+    }
 
     public var body: some View {
         HStack(spacing: rowSpacing) {

@@ -43,7 +43,11 @@ struct SettingsCheckableRow: View {
     private var iconSize: CGFloat { prominence == .primary ? 24 : 20 }
     private var iconFrame: CGFloat { prominence == .primary ? 34 : 30 }
     private var titleFont: Font {
+        #if os(tvOS)
+        SettingsRowMetrics.titleFont
+        #else
         prominence == .primary ? .headline.weight(.semibold) : .callout.weight(.medium)
+        #endif
     }
     private var minRowHeight: CGFloat { SettingsRowMetrics.minHeight(prominence) }
     private var verticalPadding: CGFloat { SettingsRowMetrics.verticalPadding(prominence) }
@@ -63,7 +67,7 @@ struct SettingsCheckableRow: View {
                         .lineLimit(titleLineLimit)
                     if let subtitle {
                         subtitle
-                            .font(.footnote)
+                            .font(SettingsRowMetrics.descriptionFont)
                             .settingsRowSecondary()
                             .lineLimit(subtitleLineLimit)
                     }

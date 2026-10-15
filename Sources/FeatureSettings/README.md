@@ -105,9 +105,15 @@ and the single place caption customization lives.
 - **Shared TV control scale.** Tri-state segments, reorder labels, compact preview-card
   captions, and form controls use `SettingsRowMetrics.titleFont`. Feature and group
   descriptions share the smaller `descriptionFont`. Segmented tracks and single-line
-  reorder rows match the shared primary control height; selection marks reserve their
-  space so choosing an option does not resize the track. Focus still only previews an
-  option: Select commits it. Reorder lift/drop behavior and mobile sizing are unchanged.
+  reorder rows match the shared primary control height. Only the selected segment
+  makes room for a checkmark; that space animates between options without padding
+  unselected labels. Focus still only previews an option: Select commits it.
+  Reorder lift/drop behavior and mobile sizing are unchanged.
+  Checkable choices (including Artwork presets), option chips, stepper values, and
+  navigation labels consume the same title token; inline explanations use the
+  description token. Checklists and segments share `SettingsCheckmark`, rather than
+  styling separate oversized selection indicators. Rank columns reserve the largest
+  enabled number using monospaced digits, including lists with 20 or more items.
 - **Artwork and label presets.** Choosing any preset, including reselecting the
   previous one, replaces the whole configuration through `applyPreset`. Editing
   a view switches to Custom: no preset is selected, and a single badge appears on

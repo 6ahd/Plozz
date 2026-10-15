@@ -137,7 +137,7 @@ private struct CircadianDetail: View {
                 Text(model.previewProgress == nil ? "Preview a day" : model.previewClockText)
                     .monospacedDigit()
             }
-            .font(.headline)
+            .font(SettingsRowMetrics.titleFont)
             .padding(.horizontal, 4)
         }
         .buttonStyle(PlozzSeasonTabStyle(isSelected: false))
@@ -277,7 +277,7 @@ private struct NightShiftScheduleControl: View {
                 Text(model.region.name)
                 Image(systemName: "chevron.up.chevron.down").font(.caption.weight(.semibold))
             }
-            .font(.headline)
+            .font(SettingsRowMetrics.titleFont)
             .padding(.horizontal, 4)
         }
         .buttonStyle(PlozzSeasonTabStyle(isSelected: false))

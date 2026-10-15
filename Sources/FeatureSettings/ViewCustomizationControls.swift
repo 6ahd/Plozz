@@ -104,9 +104,7 @@ private struct ViewCustomizationLinkLabel: View {
             #endif
         }
         #if os(tvOS)
-        .frame(minHeight: 44)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .settingsFormRowLayout()
         #endif
     }
 }
@@ -366,8 +364,7 @@ private struct ViewCustomizationRowLabel: View {
         }
         .frame(minHeight: 44)
         #if os(tvOS)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .settingsFormRowLayout()
         #endif
         .contentShape(Rectangle())
     }
@@ -383,7 +380,11 @@ private struct ViewCustomizationRowLabel: View {
 
     private var titleText: some View {
         Text(title)
+            #if os(tvOS)
+            .font(SettingsRowMetrics.titleFont)
+            #else
             .font(.body.weight(.medium))
+            #endif
             .multilineTextAlignment(.leading)
     }
 

@@ -25,9 +25,8 @@ import CoreUI
 ///   as every other Settings row (WHITE thumb + black text in dark themes, BLACK
 ///   thumb + white text in light themes), without enlarging the control.
 /// * **Selection** — the chosen segment carries a trailing checkmark (matching
-///   ``SettingsOptionPicker``), with no colour. The checkmark
-///   slot is always reserved, so committing a choice never resizes the track or
-///   disturbs focus geometry.
+///   other settings choices), with no colour. Only the selected segment makes
+///   room for the mark; selection animates that space between segments.
 ///
 /// Best for 2–5 short options. For long labels or many options prefer a menu or
 /// a vertical list instead.
@@ -43,6 +42,7 @@ struct SettingsSegmentedPicker<Option: Hashable>: View {
 
     @FocusState private var focusedOption: Option?
     @Environment(\.themePalette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -70,6 +70,7 @@ struct SettingsSegmentedPicker<Option: Hashable>: View {
                 Capsule(style: .continuous)
                     .strokeBorder(palette.cardBorder.opacity(0.8), lineWidth: 1)
             )
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: selection)
         }
         .scrollClipDisabled()
         // English fits without scrolling; longer translations scroll the focused
@@ -82,7 +83,6 @@ struct SettingsSegmentedPicker<Option: Hashable>: View {
         }
     }
 
-    /// Reserve the selection mark so committing a choice never moves its neighbors.
     private struct SegmentLabel: View {
         let text: LocalizedStringResource
         let isSelected: Bool
@@ -92,10 +92,10 @@ struct SettingsSegmentedPicker<Option: Hashable>: View {
                 Text(text)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
-                Image(systemName: "checkmark")
-                    .font(SettingsRowMetrics.descriptionFont.weight(.semibold))
-                    .opacity(isSelected ? 1 : 0)
-                    .accessibilityHidden(true)
+                if isSelected {
+                    SettingsCheckmark(isChecked: true)
+                        .transition(.opacity)
+                }
             }
         }
     }
