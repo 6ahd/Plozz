@@ -2,6 +2,64 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/056.3",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.3",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "See a grouped breakdown of sync data counts, sizes, and pending changes in Troubleshooting."
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Open iCloud Sync troubleshooting even when sync is turned off.",
+            "Erase Plozz sync data from Troubleshooting, with clear warnings and two-step confirmation."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            {
+              "text": "Home freezes while preparing poster artwork.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Home slowdowns while browsing and updating media information.",
+              "platforms": ["iOS"]
+            },
+            "Delays opening menus for titles with multiple video versions.",
+            "Some WebDAV videos failing to start, including files served through a separate download server."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release/056.2",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.2",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Updated",
+          "items": [
+            "More detailed IPTV playback error reports to help diagnose stream failures."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Plex sign-in getting stuck at the PIN screen because of outdated Plex Home information."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/056.1",
       "version": "2026.10.15",
       "marketingVersion": "2026.9.25",

@@ -5,11 +5,11 @@ import MediaTransportHTTP
 
 /// A random-access byte source over WebDAV/HTTP `Range` reads.
 ///
-/// Every read is a bounded `Range` `GET` gated on the exact strong `ETag`
-/// established by the `openSource` probe (`If-Match`), so the moment the
-/// remote file changes underneath playback the read fails closed with
-/// `.sourceChanged` rather than silently returning bytes from a different
-/// representation. Reads are stateless (no server-side cursor/handle), so —
+/// Every read is a bounded `Range` GET gated on the probe's strong ETag
+/// (`If-Match`) or Last-Modified (`If-Unmodified-Since`). Changed or missing
+/// validators fail closed; date-based detection has one-second precision.
+/// The delivery URL and validator remain fixed for this lease, even on expiry.
+/// Reads are stateless (no server-side cursor/handle), so —
 /// unlike SMB's channel-per-cursor source — no per-cursor isolation is needed:
 /// a cancelled read cancels only its own `URLSessionTask`, and the owning
 /// ``WebDAVMediaTransportSession`` drains the shared ephemeral session on

@@ -74,6 +74,19 @@ final class ShareProviderLocatorTests: XCTestCase {
         }
     }
 
+    func testLocatorUsesOpeningMetadataWithoutChangingOrdinaryStat() async throws {
+        let listed = try RemoteFileEntry(relativePath: "movie.mkv", kind: .file, size: 4096)
+        let opening = try RemoteFileEntry(
+            relativePath: "movie.mkv", kind: .file, size: 4096, strongETag: "\"get-validator\""
+        )
+        let fileSystem = LocatorFakeFileSystem(statEntry: listed, openingEntry: opening)
+        let provider = makeProvider(stat: listed, fileSystem: fileSystem)
+        let locator = try await provider.networkFileLocator(for: "movie.mkv")
+        XCTAssertEqual(locator.representation.identity.value, "\"get-validator\"")
+        let ordinary = try await fileSystem.stat(relativePath: "movie.mkv")
+        XCTAssertNil(ordinary.strongETag)
+    }
+
     func testSupplementalProbeIsCachedAndPropagatesAtmosIntoPlayback() async throws {
         let entry = try RemoteFileEntry(
             relativePath: "movie.mkv",
@@ -293,9 +306,11 @@ private final class LocatorFakeSession: MediaTransportSession, @unchecked Sendab
 
 private actor LocatorFakeFileSystem: MediaTransportFileSystem {
     private var statEntry: RemoteFileEntry
+    private let openingEntry: RemoteFileEntry?
 
-    init(statEntry: RemoteFileEntry) {
+    init(statEntry: RemoteFileEntry, openingEntry: RemoteFileEntry? = nil) {
         self.statEntry = statEntry
+        self.openingEntry = openingEntry
     }
 
     func replaceStat(_ entry: RemoteFileEntry) { statEntry = entry }
@@ -318,6 +333,8 @@ private actor LocatorFakeFileSystem: MediaTransportFileSystem {
     func list(relativePath: String) async throws -> [RemoteFileEntry] { [] }
 
     func stat(relativePath: String) async throws -> RemoteFileEntry { statEntry }
+
+    func statForOpening(relativePath: String) async throws -> RemoteFileEntry { openingEntry ?? statEntry }
 
     func readSmallFile(relativePath: String, maximumBytes: Int) async throws -> Data { Data() }
 

@@ -1524,7 +1524,8 @@ explicit, not interpreted as an absence of native errors. A replaced or stopped
 playback cannot publish a late capture into its successor.
 
 The authenticated IPTV proxy keeps a bounded, playback-local delivery history:
-the latest root GET, first failed upstream attempt, and eight recent attempts,
+the latest completed root GET (or the current attempt until one completes),
+first failed upstream attempt, and eight recent attempts,
 including successful responses. Facts include root/child role, GET/HEAD, relative
 timing, HTTP status, observed format, redirects/cross-origin delivery, range
 presence/validity, expected/received bytes, and network error codes. HLS facts
