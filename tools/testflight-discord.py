@@ -153,7 +153,7 @@ def inspect_channel(discord):
     channel = discord.call("GET", f"/channels/{CHANNEL}")
     if channel.get("id") != CHANNEL or channel.get("guild_id") != BRIDGE.GUILD or channel.get("type") not in (0, 5):
         raise Error("The announcement channel is unavailable, has the wrong type, or belongs to another server.")
-    member = discord.call("GET", f"/guilds/{BRIDGE.GUILD}/members/@me")
+    member = discord.call("GET", f"/guilds/{BRIDGE.GUILD}/members/{BRIDGE.BOT}")
     role_ids = {BRIDGE.GUILD, *member["roles"]}
     roles = discord.call("GET", f"/guilds/{BRIDGE.GUILD}/roles")
     permissions = 0

@@ -78,7 +78,7 @@ class Discord:
                 return {"id": BRIDGE.BOT, "bot": True}
             if path == f"/channels/{APP.CHANNEL}":
                 return copy.deepcopy(self.channel)
-            if path.endswith("/members/@me"):
+            if path == f"/guilds/{BRIDGE.GUILD}/members/{BRIDGE.BOT}":
                 return {"roles": ["100"]}
             if path.endswith("/roles"):
                 return [{"id": BRIDGE.GUILD, "permissions": str(self.permissions)}]
