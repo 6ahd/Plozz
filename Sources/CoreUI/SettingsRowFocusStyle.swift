@@ -32,9 +32,17 @@ public enum SettingsRowProminence {
 /// keeps a switch row and a primary checkmark row exactly the same height (and a
 /// secondary checkmark row the same height as a secondary selector row).
 public enum SettingsRowMetrics {
-    /// Minimum content height (before vertical padding). A switch indicator is
-    /// sized to this too, so a toggle row matches a checkable row of the same
-    /// prominence.
+    /// Control labels share the navigation-row size; headings use separate styles.
+    public static let titleFont: Font = .body
+
+    public static let formRowSpacing: CGFloat = 8
+    public static let formSectionSpacing: CGFloat = 24
+    public static let formGroupInset: CGFloat = 10
+    public static var formRowCornerRadius: CGFloat {
+        PlozzTheme.Metrics.Radius.card - formGroupInset
+    }
+
+    /// Minimum content height before vertical padding.
     public static func minHeight(_ p: SettingsRowProminence) -> CGFloat {
         p == .primary ? 46 : 40
     }
@@ -108,16 +116,27 @@ private struct SettingsFormButtonBody: View {
     var body: some View {
         SettingsFocusRow(isFocused: isFocused, isPressed: configuration.isPressed, size: .contained) {
             configuration.label
-                #if os(tvOS)
-                .frame(
-                    maxWidth: .infinity,
-                    minHeight: SettingsRowMetrics.minHeight(.primary),
-                    alignment: .leading
-                )
-                .padding(.horizontal, SettingsRowMetrics.horizontalPadding)
-                .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
-                #endif
+                .settingsFormRowLayout()
         }
+    }
+}
+
+public extension View {
+    /// Shared content bounds for form buttons, On/Off rows, and inline controls.
+    @ViewBuilder
+    func settingsFormRowLayout() -> some View {
+        #if os(tvOS)
+        self
+            .frame(
+                maxWidth: .infinity,
+                minHeight: SettingsRowMetrics.minHeight(.primary),
+                alignment: .leading
+            )
+            .padding(.horizontal, SettingsRowMetrics.horizontalPadding)
+            .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
+        #else
+        self
+        #endif
     }
 }
 
@@ -208,7 +227,8 @@ public struct SettingsFocusRow<Content: View>: View {
     private var corner: CGFloat {
         switch size {
         case .standard: 16
-        case .prominent, .contained: 18
+        case .prominent: 18
+        case .contained: SettingsRowMetrics.formRowCornerRadius
         }
     }
 
@@ -237,6 +257,7 @@ public struct SettingsFocusRow<Content: View>: View {
 
     public var body: some View {
         content
+            .font(SettingsRowMetrics.titleFont)
             // Inject the focused state + the "what color should focused
             // content be?" into the environment so descendants (subtitle,
             // chevron, icon, green chip…) can adapt without each row

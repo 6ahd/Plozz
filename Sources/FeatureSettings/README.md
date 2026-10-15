@@ -5,14 +5,26 @@ and the single place caption customization lives.
 
 ## Responsibility
 
-- `HeroSettingsControls` — Hero has four pages: **Content**, **Appearance**,
-  **Rotation**, and **Trailers**, shared by TV and mobile. **Discovery** consistently
-  means external recommendations; its providers and **Show provider labels**
-  attribution toggle live together under Content → Discovery. Watchlist variety
-  is a separate preference, not another Discovery feature. Collections and random
-  libraries have their own source-option pages. TV uses retained detail panes
-  with a separate nested navigation owner and returns focus to the originating link;
-  mobile uses native grouped lists and navigation links.
+- `HeroSettingsControls` — Hero keeps title selection, watched filtering, title
+  count, and automatic changes together, shared by TV and mobile. **Ratings** and
+  **Trailers** each show their current On/Off state and open their detailed
+  controls; neither is hidden behind a generic Appearance label.
+  The shared rating-count picker is visibly labeled **Maximum ratings shown**:
+  it caps available scores rather than promising every title has that many.
+  **Titles shown in hero** is the source-selection page; its link summarizes the
+  currently permitted selections. Library, collection, Watchlist variety, and
+  Discovery options use the shared `ViewPreferenceChoiceGroup` with the source
+  they configure, so a source toggle and its links form one visual group.
+  TV forms share row/section spacing and contained, concentric focus geometry;
+  inline steppers use the same row height and align to the trailing value column.
+  Mobile source groups use separate native Section rows; grouped-page links
+  use independent buttons with native navigation destinations so no link can
+  claim a sibling switch's cell action.
+  **Discovery** consistently means external recommendations; its
+  provider selections and **Show provider labels** attribution toggle live together.
+  Ratings, trailers, and the longer source/provider/library/collection lists use subpages. TV uses
+  retained detail panes with a separate nested navigation owner and returns focus
+  to the originating link; mobile keeps system switches and native navigation.
 - **Kids profiles** always disable external Home Discovery, including Showcase's
   Discovery row, independently of whether a Parental PIN exists. Preferences stay
   saved for later use outside Kids mode; this restriction is not synced as an

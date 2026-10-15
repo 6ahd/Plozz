@@ -1991,12 +1991,10 @@ struct PlozziOSHomeSettingsView: View {
                 Text("Choose which libraries and library-specific rows appear on Home.")
             }
 
-            SettingsSectionGroup("Hero") {
-                HeroSettingsControls(
-                    libraries: aggregatedHomeLibraries.filter { visibility.isVisibleOnHome($0.key) },
-                    accounts: accounts
-                )
-            }
+            HeroSettingsControls(
+                libraries: aggregatedHomeLibraries.filter { visibility.isVisibleOnHome($0.key) },
+                accounts: accounts
+            )
         }
         .environment(hero)
         .environment(heroBackground)

@@ -6,6 +6,17 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Settings row typography** — `SettingsRowMetrics.titleFont` is the shared
+  body-size label for navigation rows, TV switch variants, and labeled controls.
+  Keep headings separate; do not give toggles a larger headline font or add
+  per-screen compensating font overrides. Native iOS/iPadOS switches retain
+  system sizing.
+- **Settings form geometry** — `settingsFormRowLayout()` gives links, On/Off
+  rows, and compact inline steppers the same content padding and minimum height.
+  Form groups use 8pt row spacing, 24pt section spacing, and a uniform 10pt
+  focus inset. The contained focus radius is the group's radius minus that
+  inset, so the corners remain concentric. Existing checkmark groups keep
+  their separate focus-bleed geometry.
 - **Native action controls** — `plozzActionButton` only selects the system
   glass/glass-prominent styles, or bordered styles on older systems. It adds no
   font, padding, capsule, border, focus effect or press scaling. Setup, profile/PIN,
@@ -142,7 +153,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   toggle in a button, or override its native animation/accessibility.
   The switch alone clears inherited tint so monochrome page accents do not
   hide its thumb against the enabled track; neighboring controls keep their tint.
-  tvOS keeps its directional-focus control and ten-foot sizing.
+  tvOS uses native On/Off toggles with shared settings row typography, not drawn
+  switch tracks. Focus-gated and side-effectful action rows retain their owned
+  buttons and show the same On/Off text.
   Custom value menus use `SettingsMenuLabel` to show
   the selected value with up/down chevrons, matching editable pickers rather
   than read-only `LabeledContent`. Navigation keeps its right-facing chevron.

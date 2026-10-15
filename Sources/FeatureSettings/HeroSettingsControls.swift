@@ -4,13 +4,12 @@ import CoreUI
 import SwiftUI
 
 enum HeroSettingsPage: String, CaseIterable {
-    case content, appearance, rotation, trailers, discovery, libraries, collections
+    case titles, ratings, trailers, discovery, libraries, collections
 
     var title: LocalizedStringResource {
         switch self {
-        case .content: "Content"
-        case .appearance: "Appearance"
-        case .rotation: "Rotation"
+        case .titles: "Titles shown in hero"
+        case .ratings: "Ratings"
         case .trailers: "Trailers"
         case .discovery: "Discovery"
         case .libraries: "Random libraries"
@@ -18,11 +17,19 @@ enum HeroSettingsPage: String, CaseIterable {
         }
     }
 
+    var linkTitle: LocalizedStringResource {
+        switch self {
+        case .titles, .ratings, .trailers: title
+        case .discovery: "Discovery providers"
+        case .libraries: "Choose libraries"
+        case .collections: "Choose collections"
+        }
+    }
+
     var initialRowID: String {
         switch self {
-        case .content: "hero-hide-watched"
-        case .appearance: "hero-ratings"
-        case .rotation: "hero-item-count"
+        case .titles: "hero-source-continueWatching"
+        case .ratings: "hero-ratings"
         case .trailers: "hero-trailers"
         case .discovery: "hero-provider-labels"
         case .libraries: "hero-all-libraries"
@@ -44,11 +51,109 @@ public struct HeroSettingsControls: View {
 
     public var body: some View {
         @Bindable var hero = hero
-        Toggle("Show hero", isOn: $hero.settings.isEnabled)
-            .toggleStyle(SettingsSwitchToggleStyle())
+        HeroSettingsGroup {
+            Toggle("Show hero", isOn: $hero.settings.isEnabled)
+                .accessibilityIdentifier("hero-enabled")
+        }
         if hero.settings.isEnabled {
-            ForEach([HeroSettingsPage.content, .appearance, .rotation, .trailers], id: \.self) { page in
-                HeroSettingsLink(page: page, libraries: libraries, accounts: accounts)
+            HeroTitleControls(libraries: libraries, accounts: accounts)
+            HeroAutomaticChangeControls()
+            HeroSettingsGroup {
+                HeroSettingsLink(page: .ratings, libraries: libraries, accounts: accounts)
+                HeroSettingsLink(page: .trailers, libraries: libraries, accounts: accounts)
+            }
+        }
+    }
+}
+
+private struct HeroTitleControls: View {
+    let libraries: [AggregatedLibrary]
+    let accounts: [ResolvedAccount]
+    @Environment(HeroSettingsModel.self) private var hero
+
+    var body: some View {
+        @Bindable var hero = hero
+        HeroSettingsGroup(title: "Titles") {
+            HeroSettingsLink(page: .titles, libraries: libraries, accounts: accounts)
+            Toggle("Hide watched titles", isOn: $hero.settings.hideWatched)
+                .accessibilityIdentifier("hero-hide-watched")
+            #if os(tvOS)
+            LabeledSettingRow("Number of titles", trailingAlignment: .trailing) {
+                SettingsStepper(
+                    options: Array(HeroSettings.maxItemsRange), selection: $hero.settings.maxItems,
+                    compact: true, title: { "\($0)" }
+                )
+            }
+            .settingsFormRowLayout()
+            #else
+            Stepper("Number of titles: \(hero.settings.maxItems)",
+                    value: $hero.settings.maxItems, in: HeroSettings.maxItemsRange)
+            #endif
+        }
+    }
+}
+
+private struct HeroAutomaticChangeControls: View {
+    @Environment(HeroSettingsModel.self) private var hero
+
+    var body: some View {
+        @Bindable var hero = hero
+        HeroSettingsGroup(title: "Automatic changes") {
+            Toggle("Change titles automatically", isOn: $hero.settings.autoAdvance)
+                .accessibilityIdentifier("hero-auto-advance")
+            if hero.settings.autoAdvance {
+                #if os(tvOS)
+                LabeledSettingRow("Seconds per title", trailingAlignment: .trailing) {
+                    SettingsStepper(
+                        options: Array(HeroSettings.autoAdvanceRange), selection: $hero.settings.autoAdvanceSeconds,
+                        compact: true,
+                        verbatimTitle: { Duration.seconds($0).formatted(.units(allowed: [.seconds], width: .narrow)) }
+                    )
+                }
+                .settingsFormRowLayout()
+                #else
+                Stepper("Seconds per title: \(hero.settings.autoAdvanceSeconds)",
+                        value: $hero.settings.autoAdvanceSeconds, in: HeroSettings.autoAdvanceRange)
+                #endif
+            }
+        }
+    }
+}
+
+private struct HeroRatingControls: View {
+    @Environment(HeroSettingsModel.self) private var hero
+
+    var body: some View {
+        @Bindable var hero = hero
+        HeroSettingsGroup {
+            Toggle("Show ratings", isOn: $hero.settings.showsRatings)
+                .accessibilityIdentifier("hero-ratings")
+                .modifier(ViewCustomizationRowFocus(id: "hero-ratings"))
+            if hero.settings.showsRatings {
+                Toggle("Show Common Sense age", isOn: $hero.settings.ratingPreferences.showsHeaderFamilyGuidance)
+                    .accessibilityIdentifier("hero-common-sense-age")
+                HeaderReviewScoreCountPicker(settings: $hero.settings.ratingPreferences)
+                    #if os(tvOS)
+                    .padding(.horizontal, SettingsRowMetrics.horizontalPadding)
+                    .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
+                    #endif
+            }
+        }
+    }
+}
+
+private struct HeroTrailerControls: View {
+    @Environment(HeroBackgroundSettingsModel.self) private var background
+
+    var body: some View {
+        @Bindable var background = background
+        HeroSettingsGroup {
+            Toggle("Play trailer behind the hero", isOn: $background.settings.homeTrailerEnabled)
+                .accessibilityIdentifier("hero-trailers")
+                .modifier(ViewCustomizationRowFocus(id: "hero-trailers"))
+            if background.settings.homeTrailerEnabled {
+                Toggle("Start muted", isOn: $background.settings.homeTrailerMuted)
+                    .accessibilityIdentifier("hero-trailers-muted")
             }
         }
     }
@@ -58,21 +163,86 @@ struct HeroSettingsLink: View {
     let page: HeroSettingsPage
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
+    @Environment(HeroSettingsModel.self) private var hero
+    @Environment(HeroBackgroundSettingsModel.self) private var background
+    #if os(iOS)
+    @State private var isPresented = false
+    #endif
 
     var body: some View {
-        SettingsDetailLink(pageID: page.rawValue) {
-            HeroSettingsScreen(page: page, libraries: libraries, accounts: accounts)
-        } label: {
-            HStack {
-                Text(page.title)
-                Spacer(minLength: 16)
-                #if os(tvOS)
-                Image(systemName: "chevron.forward")
-                #endif
+        Group {
+            #if os(iOS)
+            Button {
+                isPresented = true
+            } label: {
+                label
             }
+            .buttonStyle(.plain)
+            .navigationDestination(isPresented: $isPresented) {
+                HeroSettingsScreen(page: page, libraries: libraries, accounts: accounts)
+            }
+            #else
+            SettingsDetailLink(pageID: page.rawValue) {
+                HeroSettingsScreen(page: page, libraries: libraries, accounts: accounts)
+            } label: {
+                label
+            }
+            #endif
         }
         .accessibilityIdentifier("hero-settings-\(page.rawValue)")
         .modifier(ViewCustomizationRowFocus(id: "hero-settings-\(page.rawValue)"))
+    }
+
+    private var label: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(page.linkTitle)
+                    .font(SettingsRowMetrics.titleFont)
+                if page == .titles {
+                    HeroTitleSourceSummary(sources: hero.effectiveSettings.sources)
+                        .font(.footnote)
+                        .settingsRowSecondary()
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .multilineTextAlignment(.leading)
+            Spacer(minLength: 16)
+            if let enabledState {
+                Group {
+                    if enabledState { Text("On") }
+                    else { Text("Off") }
+                }
+                .settingsRowSecondary()
+            }
+            Image(systemName: "chevron.forward")
+                .accessibilityHidden(true)
+        }
+        .contentShape(Rectangle())
+    }
+
+    private var enabledState: Bool? {
+        switch page {
+        case .ratings: hero.settings.showsRatings
+        case .trailers: background.settings.homeTrailerEnabled
+        default: nil
+        }
+    }
+}
+
+private struct HeroTitleSourceSummary: View {
+    let sources: [HeroSourceKind]
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        if sources.isEmpty {
+            Text("No title sources selected")
+        } else {
+            Text(sources.map { source in
+                var title = source.displayName
+                title.locale = locale
+                return String(localized: title)
+            }, format: .list(type: .and).locale(locale))
+        }
     }
 }
 
@@ -93,7 +263,6 @@ struct HeroSettingsScreen: View {
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
     @Environment(HeroSettingsModel.self) private var hero
-    @Environment(HeroBackgroundSettingsModel.self) private var background
     @Environment(SettingsDetailNavigation.self) private var parentNavigation: SettingsDetailNavigation?
     @State var childNavigation = SettingsDetailNavigation()
 
@@ -104,7 +273,10 @@ struct HeroSettingsScreen: View {
         } else {
             #if os(tvOS)
             SettingsDetailPages(navigation: childNavigation) {
-                ViewCustomizationList(title: page.title, initialRowID: initialRowID) {
+                ViewCustomizationList(
+                    title: page.title, initialRowID: initialRowID,
+                    sectionSpacing: SettingsRowMetrics.formSectionSpacing
+                ) {
                     form
                         .environment(childNavigation)
                         .toggleStyle(SettingsSwitchToggleStyle())
@@ -129,100 +301,12 @@ struct HeroSettingsScreen: View {
 
     @ViewBuilder private var form: some View {
         switch page {
-        case .content: content
-        case .appearance: appearance
-        case .rotation: rotation
-        case .trailers: trailers
+        case .titles: HeroTitleSources(libraries: libraries, accounts: accounts)
+        case .ratings: HeroRatingControls()
+        case .trailers: HeroTrailerControls()
         case .discovery: discovery
         case .libraries: randomLibraries
         case .collections: EmptyView()
-        }
-    }
-
-    private var content: some View {
-        @Bindable var hero = hero
-        return Group {
-            HeroSettingsGroup {
-                Toggle("Hide watched titles", isOn: $hero.settings.hideWatched)
-                    .modifier(ViewCustomizationRowFocus(id: "hero-hide-watched"))
-            }
-            HeroSettingsGroup(title: "Content sources") {
-                ForEach(HeroSourceKind.allCases.filter { $0 != .featured }, id: \.self) { source in
-                    Toggle(source.displayName, isOn: sourceBinding(source))
-                }
-                if hero.allowsDiscovery {
-                    Toggle(HeroSourceKind.featured.displayName, isOn: sourceBinding(.featured))
-                }
-            }
-            if !hero.allowsDiscovery {
-                kidsExplanation
-            }
-            if hero.settings.sources.contains(where: {
-                $0 == .randomFromLibrary || $0 == .collection || $0 == .watchlist
-                    || ($0 == .featured && hero.allowsDiscovery)
-            }) {
-                HeroSettingsGroup(title: "Source options") {
-                    if hero.allowsDiscovery, hero.settings.isEnabled(.featured) {
-                        link(.discovery)
-                    }
-                    if hero.settings.isEnabled(.randomFromLibrary) { link(.libraries) }
-                    if hero.settings.isEnabled(.collection) { link(.collections) }
-                    if hero.settings.isEnabled(.watchlist) {
-                        Toggle("Prefer less recently shown Watchlist titles", isOn: $hero.settings.watchlistDiscoveryEnabled)
-                    }
-                }
-            }
-        }
-    }
-
-    private var appearance: some View {
-        @Bindable var hero = hero
-        return HeroSettingsGroup(title: "Ratings") {
-            Toggle("Show ratings", isOn: $hero.settings.showsRatings)
-                .modifier(ViewCustomizationRowFocus(id: "hero-ratings"))
-            if hero.settings.showsRatings {
-                Toggle("Show Common Sense age", isOn: $hero.settings.ratingPreferences.showsHeaderFamilyGuidance)
-                HeaderReviewScoreCountPicker(settings: $hero.settings.ratingPreferences)
-            }
-        }
-    }
-
-    private var rotation: some View {
-        @Bindable var hero = hero
-        return HeroSettingsGroup {
-            #if os(tvOS)
-            LabeledSettingRow("Items in rotation") {
-                SettingsStepper(options: Array(HeroSettings.maxItemsRange), selection: $hero.settings.maxItems, title: { "\($0)" })
-            }
-            .modifier(ViewCustomizationRowFocus(id: "hero-item-count"))
-            #else
-            Stepper("Items: \(hero.settings.maxItems)", value: $hero.settings.maxItems, in: HeroSettings.maxItemsRange)
-            #endif
-            Toggle("Rotate automatically", isOn: $hero.settings.autoAdvance)
-            if hero.settings.autoAdvance {
-                #if os(tvOS)
-                LabeledSettingRow("Seconds per title") {
-                    SettingsStepper(
-                        options: Array(HeroSettings.autoAdvanceRange), selection: $hero.settings.autoAdvanceSeconds,
-                        verbatimTitle: { Duration.seconds($0).formatted(.units(allowed: [.seconds], width: .narrow)) }
-                    )
-                }
-                #else
-                Stepper("Every \(hero.settings.autoAdvanceSeconds) seconds",
-                        value: $hero.settings.autoAdvanceSeconds, in: HeroSettings.autoAdvanceRange)
-                #endif
-            }
-        }
-    }
-
-    private var trailers: some View {
-        @Bindable var background = background
-        return HeroSettingsGroup {
-            Toggle("Play trailer behind the hero", isOn: $background.settings.homeTrailerEnabled)
-                .modifier(ViewCustomizationRowFocus(id: "hero-trailers"))
-            if background.settings.homeTrailerEnabled {
-                Toggle("Start muted", isOn: $background.settings.homeTrailerMuted)
-            }
         }
     }
 
@@ -306,22 +390,6 @@ struct HeroSettingsScreen: View {
         }
     }
 
-    private func link(_ page: HeroSettingsPage) -> some View {
-        HeroSettingsLink(page: page, libraries: libraries, accounts: accounts)
-    }
-
-    private func sourceBinding(_ source: HeroSourceKind) -> Binding<Bool> {
-        Binding(
-            get: { hero.settings.sources.contains(source) },
-            set: { selected in
-                guard source != .featured || hero.allowsDiscovery else { return }
-                var sources = Set(hero.settings.sources)
-                if selected { sources.insert(source) } else { sources.remove(source) }
-                hero.settings.sources = HeroSourceKind.allCases.filter(sources.contains)
-            }
-        )
-    }
-
     private func discoveryBinding(_ source: HeroDiscoverySource) -> Binding<Bool> {
         Binding(
             get: { hero.settings.discoverySources.contains(source) },
@@ -335,6 +403,58 @@ struct HeroSettingsScreen: View {
     }
 }
 
+private struct HeroTitleSources: View {
+    let libraries: [AggregatedLibrary]
+    let accounts: [ResolvedAccount]
+    @Environment(HeroSettingsModel.self) private var hero
+
+    var body: some View {
+        @Bindable var hero = hero
+        ForEach(HeroSourceKind.allCases.filter { $0 != .featured } + (hero.allowsDiscovery ? [.featured] : [])) { source in
+            ViewPreferenceChoiceGroup(rowSize: .contained) {
+                Toggle(source.displayName, isOn: sourceBinding(source))
+                    .modifier(ViewCustomizationRowFocus(id: "hero-source-\(source.rawValue)"))
+                if hero.settings.isEnabled(source) {
+                    switch source {
+                    case .featured:
+                        HeroSettingsLink(page: .discovery, libraries: libraries, accounts: accounts)
+                    case .randomFromLibrary:
+                        HeroSettingsLink(page: .libraries, libraries: libraries, accounts: accounts)
+                    case .collection:
+                        HeroSettingsLink(page: .collections, libraries: libraries, accounts: accounts)
+                    case .watchlist:
+                        Toggle("Prefer less recently shown Watchlist titles", isOn: $hero.settings.watchlistDiscoveryEnabled)
+                    case .continueWatching, .recentlyAdded:
+                        EmptyView()
+                    }
+                }
+            }
+            #if os(tvOS)
+            .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
+            .buttonStyle(SettingsFormButtonStyle())
+            #endif
+        }
+        if !hero.allowsDiscovery {
+            Text("Discovery is unavailable in Kids profiles. Library content follows the connected server user's restrictions.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func sourceBinding(_ source: HeroSourceKind) -> Binding<Bool> {
+        Binding(
+            get: { hero.settings.sources.contains(source) },
+            set: { selected in
+                guard source != .featured || hero.allowsDiscovery else { return }
+                var sources = Set(hero.settings.sources)
+                if selected { sources.insert(source) } else { sources.remove(source) }
+                hero.settings.sources = HeroSourceKind.allCases.filter(sources.contains)
+            }
+        )
+    }
+}
+
 private struct HeroSettingsGroup<Content: View>: View {
     var title: LocalizedStringResource? = nil
     var detail: LocalizedStringResource? = nil
@@ -342,18 +462,21 @@ private struct HeroSettingsGroup<Content: View>: View {
 
     var body: some View {
         #if os(tvOS)
-        VStack(alignment: .leading, spacing: 24) {
-            if let title { Text(title).settingsSectionHeader() }
-            content()
-            if let detail { Text(detail).settingsHelperText().fixedSize(horizontal: false, vertical: true) }
+        VStack(alignment: .leading, spacing: 12) {
+            if let title {
+                Text(title).settingsSectionHeader()
+                    .padding(.horizontal, SettingsRowMetrics.formGroupInset + SettingsRowMetrics.horizontalPadding)
+            }
+            ViewPreferenceChoiceGroup(rowSize: .contained, content: content)
+                .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
+                .buttonStyle(SettingsFormButtonStyle())
+            if let detail {
+                Text(detail).settingsHelperText().fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, SettingsRowMetrics.formGroupInset + SettingsRowMetrics.horizontalPadding)
+            }
         }
-        .padding(.bottom, 20)
         #else
-        Section {
-            content()
-        } header: {
-            if let title { Text(title) }
-        } footer: {
+        SettingsSectionGroup(title, content: content) {
             if let detail { Text(detail) }
         }
         #endif

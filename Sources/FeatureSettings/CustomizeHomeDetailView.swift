@@ -120,12 +120,12 @@ struct CustomizeHomeDetailView: View {
             SettingsSplitRow(
                 id: "hero",
                 title: "Hero",
-                description: "A rotating spotlight at the top of Home.",
+                description: "Choose the titles and details shown at the top of Home.",
                 subpage: SettingsDetailSubpage {
                     HeroSettingsDestination(libraries: homeVisibleLibraries, accounts: accounts)
                 }
             ) {
-                VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
+                VStack(alignment: .leading, spacing: SettingsRowMetrics.formSectionSpacing) {
                     HeroSettingsControls(libraries: homeVisibleLibraries, accounts: accounts)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
