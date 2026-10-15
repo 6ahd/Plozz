@@ -53,6 +53,20 @@ final class IPTVSetupDiagnosticTests: XCTestCase {
         XCTAssertTrue(report.supportText.contains("sqlite_code=13"))
     }
 
+    func testHTTPStatusRemainsAnIdentifierAcrossLocales() throws {
+        let attempt = try XCTUnwrap(IPTVSetupDiagnostics().begin(
+            source: .playlistURL, authentication: .url, entry: .addAccount, captureForPresentation: true
+        ))
+        attempt.received(status: 503, response: .html)
+        attempt.finish(.init(.network))
+        let report = LiveTVDiagnosticReport.setup(try XCTUnwrap(attempt.diagnostic))
+        for identifier in ["en", "ar", "fa"] {
+            var message = try XCTUnwrap(report.message)
+            message.locale = Locale(identifier: identifier)
+            XCTAssertTrue(String(localized: message).contains("HTTP 503"), identifier)
+        }
+    }
+
     func testSQLiteCodesAreBoundedAndApplyOnlyToStorageFailures() {
         XCTAssertEqual(IPTVSetupDiagnostic.Failure(.storage, sqliteCode: 13).sqliteCode, 13)
         XCTAssertEqual(IPTVSetupDiagnostic.Failure(.storage, sqliteCode: 1811).sqliteCode, 1811)

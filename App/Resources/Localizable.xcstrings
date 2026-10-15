@@ -51735,45 +51735,9 @@
     },
     "%lld collections selected" : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld collection selected"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld collections selected"
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "variations" : {
             "plural" : {
-              "zero" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "لم تُحدَّد أي مجموعة (%lld)"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "تم تحديد مجموعة واحدة (%lld)"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "تم تحديد مجموعتين (%lld)"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -51786,10 +51750,28 @@
                   "value" : "تم تحديد %lld مجموعة"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "تم تحديد مجموعة واحدة (%lld)"
+                }
+              },
               "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "تم تحديد %lld مجموعة"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "تم تحديد مجموعتين (%lld)"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "لم تُحدَّد أي مجموعة (%lld)"
                 }
               }
             }
@@ -51816,16 +51798,16 @@
         "ca" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S'ha seleccionat %lld col·lecció"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S'han seleccionat %lld col·leccions"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S'ha seleccionat %lld col·lecció"
                 }
               },
               "other" : {
@@ -51840,12 +51822,6 @@
         "cs" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Vybrána %lld kolekce"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -51856,6 +51832,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "Vybráno %lld kolekce"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Vybrána %lld kolekce"
                 }
               },
               "other" : {
@@ -51921,19 +51903,37 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "variations" : {
             "plural" : {
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
-                  "value" : "%lld colección seleccionada"
+                  "value" : "%lld collection selected"
                 }
               },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld collections selected"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld colecciones seleccionadas"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld colección seleccionada"
                 }
               },
               "other" : {
@@ -51984,16 +51984,16 @@
         "fr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld collection sélectionnée"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld collections sélectionnées"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld collection sélectionnée"
                 }
               },
               "other" : {
@@ -52014,13 +52014,13 @@
                   "value" : "אוספים שנבחרו: %lld"
                 }
               },
-              "two" : {
+              "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "אוספים שנבחרו: %lld"
                 }
               },
-              "other" : {
+              "two" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "אוספים שנבחרו: %lld"
@@ -52050,16 +52050,16 @@
         "hr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Odabrana je %lld zbirka"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "Odabrane su %lld zbirke"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Odabrana je %lld zbirka"
                 }
               },
               "other" : {
@@ -52104,16 +52104,16 @@
         "it" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld raccolta selezionata"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld raccolte selezionate"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld raccolta selezionata"
                 }
               },
               "other" : {
@@ -52200,12 +52200,6 @@
         "pl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Wybrano %lld kolekcję"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -52216,6 +52210,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "Wybrano %lld kolekcji"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Wybrano %lld kolekcję"
                 }
               },
               "other" : {
@@ -52230,16 +52230,16 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld coleção selecionada"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld coleções selecionadas"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld coleção selecionada"
                 }
               },
               "other" : {
@@ -52254,16 +52254,16 @@
         "ro" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld colecție selectată"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld colecții selectate"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld colecție selectată"
                 }
               },
               "other" : {
@@ -52278,12 +52278,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Выбрана %lld коллекция"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -52294,6 +52288,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "Выбрано %lld коллекций"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Выбрана %lld коллекция"
                 }
               },
               "other" : {
@@ -52308,12 +52308,6 @@
         "sk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld vybraná kolekcia"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -52324,6 +52318,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld vybranej kolekcie"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld vybraná kolekcia"
                 }
               },
               "other" : {
@@ -52338,28 +52338,28 @@
         "sl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld izbrana zbirka"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld izbrani zbirki"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld izbrane zbirke"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld izbrana zbirka"
+                }
+              },
               "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld izbranih zbirk"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld izbrani zbirki"
                 }
               }
             }
@@ -52368,16 +52368,16 @@
         "sr-Latn" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld izabrana kolekcija"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld izabrane kolekcije"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld izabrana kolekcija"
                 }
               },
               "other" : {
@@ -52440,12 +52440,6 @@
         "uk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Вибрано %lld колекцію"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -52456,6 +52450,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "Вибрано %lld колекцій"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Вибрано %lld колекцію"
                 }
               },
               "other" : {
@@ -92094,6 +92094,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "輪播呈現媒體庫中的作品焦點。"
+          }
+        }
+      }
+    },
+    "A secure connection to the provider could not be established. Check your device's date and contact your provider." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر إنشاء اتصال آمن بمزوّد الخدمة. تحقّق من تاريخ جهازك واتصل بمزوّد الخدمة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не можа да се установи защитена връзка с доставчика. Проверете датата на устройството си и се свържете с доставчика."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No s’ha pogut establir una connexió segura amb el proveïdor. Comprova la data del dispositiu i contacta amb el proveïdor."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nepodařilo se navázat zabezpečené připojení k poskytovateli. Zkontrolujte datum na zařízení a kontaktujte poskytovatele."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der kunne ikke oprettes en sikker forbindelse til udbyderen. Kontrollér datoen på din enhed, og kontakt udbyderen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Es konnte keine sichere Verbindung zum Anbieter hergestellt werden. Prüfe das Datum deines Geräts und wende dich an deinen Anbieter."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν ήταν δυνατή η ασφαλής σύνδεση με τον πάροχο. Ελέγξτε την ημερομηνία στη συσκευή σας και επικοινωνήστε με τον πάροχό σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se pudo establecer una conexión segura con el proveedor. Comprueba la fecha de tu dispositivo y contacta con tu proveedor."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اتصال امن به ارائه‌دهنده برقرار نشد. تاریخ دستگاهتان را بررسی کنید و با ارائه‌دهنده تماس بگیرید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suojattua yhteyttä palveluntarjoajaan ei voitu muodostaa. Tarkista laitteesi päivämäärä ja ota yhteyttä palveluntarjoajaasi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible d’établir une connexion sécurisée avec le fournisseur. Vérifiez la date de votre appareil et contactez votre fournisseur."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן היה ליצור חיבור מאובטח לספק. יש לבדוק את התאריך במכשיר וליצור קשר עם הספק."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता से सुरक्षित कनेक्शन स्थापित नहीं हो सका। अपने डिवाइस की तारीख जाँचें और अपने प्रदाता से संपर्क करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije bilo moguće uspostaviti sigurnu vezu s pružateljem usluge. Provjerite datum na uređaju i obratite se pružatelju usluge."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nem sikerült biztonságos kapcsolatot létesíteni a szolgáltatóval. Ellenőrizze az eszköz dátumbeállítását, és lépjen kapcsolatba a szolgáltatóval."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koneksi aman ke penyedia tidak dapat dibuat. Periksa tanggal perangkat Anda dan hubungi penyedia Anda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Non è stato possibile stabilire una connessione sicura con il fornitore. Controlla la data del dispositivo e contatta il fornitore."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーとの安全な接続を確立できませんでした。デバイスの日付を確認し、プロバイダーにお問い合わせください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자와 보안 연결을 설정할 수 없습니다. 기기의 날짜를 확인하고 제공자에게 문의하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sambungan selamat kepada penyedia tidak dapat diwujudkan. Semak tarikh pada peranti anda dan hubungi penyedia anda."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunne ikke opprette en sikker tilkobling til leverandøren. Kontroller datoen på enheten og kontakt leverandøren."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Er kon geen beveiligde verbinding met de provider worden gemaakt. Controleer de datum op je apparaat en neem contact op met je provider."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie udało się nawiązać bezpiecznego połączenia z dostawcą. Sprawdź datę na urządzeniu i skontaktuj się z dostawcą."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível estabelecer uma conexão segura com o provedor. Verifique a data do dispositivo e entre em contato com o provedor."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nu s-a putut stabili o conexiune securizată cu furnizorul. Verifică data dispozitivului și contactează furnizorul."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось установить защищённое соединение с провайдером. Проверьте дату на устройстве и свяжитесь с провайдером."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nepodarilo sa nadviazať zabezpečené pripojenie k poskytovateľovi. Skontrolujte dátum v zariadení a kontaktujte poskytovateľa."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Varne povezave s ponudnikom ni bilo mogoče vzpostaviti. Preverite datum v napravi in se obrnite na ponudnika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije bilo moguće uspostaviti bezbednu vezu sa provajderom. Proverite datum na uređaju i obratite se provajderu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det gick inte att upprätta en säker anslutning till leverantören. Kontrollera datumet på din enhet och kontakta din leverantör."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่สามารถสร้างการเชื่อมต่อที่ปลอดภัยกับผู้ให้บริการได้ ตรวจสอบวันที่ของอุปกรณ์และติดต่อผู้ให้บริการ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcıyla güvenli bağlantı kurulamadı. Cihazınızın tarihini kontrol edin ve sağlayıcınızla iletişime geçin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не вдалося встановити захищене з’єднання з провайдером. Перевірте дату на пристрої та зверніться до провайдера."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không thể thiết lập kết nối bảo mật với nhà cung cấp. Kiểm tra ngày trên thiết bị và liên hệ với nhà cung cấp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法与提供商建立安全连接。请检查设备日期，并联系提供商。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法與供應商建立安全連線。請檢查裝置日期，並聯絡供應商。"
           }
         }
       }
@@ -617761,6 +617981,226 @@
         }
       }
     },
+    "Share details" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مشاركة التفاصيل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Споделяне на подробности"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Comparteix els detalls"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sdílet podrobnosti"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Del oplysninger"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Details teilen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Κοινοποίηση λεπτομερειών"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Compartir detalles"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اشتراک‌گذاری جزئیات"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jaa tiedot"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Partager les détails"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שיתוף פרטים"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "विवरण साझा करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podijeli detalje"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Részletek megosztása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bagikan detail"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Condividi dettagli"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "詳細を共有"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "세부 정보 공유"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kongsi butiran"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Del detaljer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Details delen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udostępnij szczegóły"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Compartilhar detalhes"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Distribuie detaliile"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Поделиться подробностями"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zdieľať podrobnosti"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deli podrobnosti"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podeli detalje"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dela detaljer"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แชร์รายละเอียด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ayrıntıları paylaş"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Поділитися подробицями"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chia sẻ chi tiết"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "分享详细信息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "分享詳細資訊"
+          }
+        }
+      }
+    },
     "Share name" : {
       "comment" : "Text field label for entering the SMB share name manually when adding a network share.",
       "localizations" : {
@@ -619746,6 +620186,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "共享項目"
+          }
+        }
+      }
+    },
+    "Sharing this report is optional. It contains no addresses, credentials, account names, or channel names." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مشاركة هذا التقرير اختيارية. لا يتضمن أي عناوين URL أو بيانات تسجيل دخول أو أسماء حسابات أو أسماء قنوات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Споделянето на този отчет не е задължително. Той не съдържа URL адреси, данни за удостоверяване, имена на акаунти или имена на канали."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Compartir aquest informe és opcional. No conté adreces URL, credencials, noms de compte ni noms de canal."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sdílení této zprávy je volitelné. Neobsahuje žádné adresy URL, přihlašovací údaje, názvy účtů ani názvy kanálů."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det er valgfrit at dele denne rapport. Den indeholder ingen URL-adresser, loginoplysninger, kontonavne eller kanalnavne."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Das Teilen dieses Berichts ist freiwillig. Er enthält keine URLs, Zugangsdaten, Kontonamen oder Sendernamen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η κοινοποίηση αυτής της αναφοράς είναι προαιρετική. Δεν περιέχει διευθύνσεις URL, στοιχεία σύνδεσης, ονόματα λογαριασμών ή ονόματα καναλιών."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Compartir este informe es opcional. No contiene direcciones URL, credenciales, nombres de cuentas ni nombres de canales."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اشتراک‌گذاری این گزارش اختیاری است. این گزارش شامل هیچ نشانی اینترنتی، اطلاعات ورود، نام حساب یا نام کانالی نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tämän raportin jakaminen on vapaaehtoista. Se ei sisällä verkko-osoitteita, kirjautumistietoja, tilien nimiä eikä kanavien nimiä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le partage de ce rapport est facultatif. Il ne contient ni adresses URL, ni identifiants de connexion, ni noms de comptes, ni noms de chaînes."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שיתוף הדוח נתון לבחירתך. הוא אינו מכיל כתובות URL, פרטי התחברות, שמות חשבונות או שמות ערוצים."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "इस रिपोर्ट को साझा करना वैकल्पिक है। इसमें सर्वर या सेवाओं के पते, प्रमाणीकरण विवरण, खातों के नाम या चैनलों के नाम शामिल नहीं हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dijeljenje ovog izvješća nije obavezno. Ono ne sadrži adrese poslužitelja ili usluga, podatke za prijavu, nazive računa ni nazive kanala."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A jelentés megosztása nem kötelező. Nem tartalmaz szolgáltatás- vagy szervercímeket, hitelesítési adatokat, fiókneveket vagy csatornaneveket."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Membagikan laporan ini bersifat opsional. Laporan ini tidak memuat alamat layanan atau server, kredensial, nama akun, atau nama saluran."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La condivisione di questo report è facoltativa. Non contiene indirizzi di servizi o server, credenziali, nomi di account o nomi di canali."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このレポートの共有は任意です。サービスやサーバーのアドレス、認証情報、アカウント名、チャンネル名は含まれていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 보고서의 공유는 선택 사항입니다. 보고서에는 서비스 주소, 인증 정보, 계정 이름 또는 채널 이름이 포함되지 않습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Perkongsian laporan ini adalah pilihan. Laporan ini tidak mengandungi alamat perkhidmatan, maklumat pengesahan, nama akaun atau nama saluran."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det er valgfritt å dele denne rapporten. Den inneholder ingen tjenesteadresser, påloggingsopplysninger, kontonavn eller kanalnavn."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Het delen van dit rapport is optioneel. Het bevat geen webadressen, inloggegevens, accountnamen of zendernamen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udostępnienie tego raportu jest opcjonalne. Nie zawiera on adresów usług, danych uwierzytelniających, nazw kont ani nazw kanałów."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Compartilhar este relatório é opcional. Ele não contém endereços de serviços, credenciais, nomes de contas ou nomes de canais."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Distribuirea acestui raport este opțională. Nu conține adrese URL, date de autentificare, nume de conturi sau nume de canale."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отправка этого отчёта необязательна. Он не содержит URL-адресов, данных для входа, имён учётных записей или названий каналов."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zdieľanie tohto hlásenia je voliteľné. Neobsahuje adresy URL, prihlasovacie údaje, názvy účtov ani názvy kanálov."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deljenje tega poročila ni obvezno. Ne vsebuje naslovov URL, podatkov za prijavo, imen računov ali imen kanalov."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deljenje ovog izveštaja nije obavezno. Ne sadrži URL adrese, podatke za prijavu, nazive naloga ni nazive kanala."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det är frivilligt att dela den här rapporten. Den innehåller inga URL-adresser, inloggningsuppgifter, kontonamn eller kanalnamn."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "คุณเลือกได้ว่าจะแชร์รายงานนี้หรือไม่ รายงานไม่มีที่อยู่ ข้อมูลเข้าสู่ระบบ ชื่อบัญชี หรือชื่อช่อง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu raporu paylaşmak isteğe bağlıdır. Raporda adresler, kimlik doğrulama bilgileri, hesap adları veya kanal adları bulunmaz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ділитися цим звітом необов’язково. Він не містить адрес, облікових даних, назв облікових записів або каналів."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bạn có thể chọn chia sẻ hoặc không chia sẻ báo cáo này. Báo cáo không chứa địa chỉ, thông tin xác thực, tên tài khoản hay tên kênh."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "您可以自行选择是否分享此报告。报告不包含地址、凭据、账户名称或频道名称。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "您可以自行選擇是否分享此報告。報告不包含位址、登入認證、帳號名稱或頻道名稱。"
           }
         }
       }
@@ -691712,7 +692372,228 @@
         }
       }
     },
+    "The channel provider refused access to this stream. Check your account details or contact your provider." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "رفض مزوّد القنوات السماح بالوصول إلى هذا البث. تحقّق من بيانات حسابك أو اتصل بمزوّد الخدمة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът на канала отказа достъп до този поток. Проверете данните за акаунта си или се свържете с доставчика."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor del canal ha denegat l’accés a aquest flux. Comprova les dades del compte o contacta amb el proveïdor."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel kanálu odmítl přístup k tomuto datovému proudu. Zkontrolujte údaje o účtu nebo kontaktujte poskytovatele."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanaludbyderen afviste adgang til denne mediestrøm. Kontrollér dine kontooplysninger, eller kontakt udbyderen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter des Senders hat den Zugriff auf diesen Datenstrom verweigert. Prüfe deine Kontodaten oder wende dich an deinen Anbieter."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος του καναλιού αρνήθηκε την πρόσβαση σε αυτή τη ροή. Ελέγξτε τα στοιχεία του λογαριασμού σας ή επικοινωνήστε με τον πάροχό σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor del canal denegó el acceso a esta transmisión. Comprueba los datos de tu cuenta o contacta con tu proveedor."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهندهٔ کانال دسترسی به این جریان پخش را رد کرد. اطلاعات حسابتان را بررسی کنید یا با ارائه‌دهنده تماس بگیرید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanavan palveluntarjoaja esti pääsyn tähän mediavirtaan. Tarkista tilisi tiedot tai ota yhteyttä palveluntarjoajaasi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur de la chaîne a refusé l’accès à ce flux. Vérifiez les informations de votre compte ou contactez votre fournisseur."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ספק הערוץ סירב לאפשר גישה לזרם המדיה הזה. יש לבדוק את פרטי החשבון או ליצור קשר עם הספק."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "चैनल प्रदाता ने इस स्ट्रीम तक पहुँच देने से इनकार कर दिया। अपने खाते की जानकारी जाँचें या अपने प्रदाता से संपर्क करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj kanala odbio je pristup ovom prijenosu. Provjerite podatke svojeg računa ili se obratite pružatelju usluge."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A csatorna szolgáltatója megtagadta a hozzáférést ehhez a streamhez. Ellenőrizze fiókadatait, vagy lépjen kapcsolatba a szolgáltatóval."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia saluran menolak akses ke stream ini. Periksa detail akun Anda atau hubungi penyedia Anda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore del canale ha negato l'accesso a questo flusso. Controlla i dati del tuo account o contatta il fornitore."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "チャンネルのプロバイダーがこのストリームへのアクセスを拒否しました。アカウント情報を確認するか、プロバイダーにお問い合わせください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "채널 제공자가 이 스트림에 대한 접근을 거부했습니다. 계정 정보를 확인하거나 제공자에게 문의하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia saluran menolak akses kepada strim ini. Semak butiran akaun anda atau hubungi penyedia anda."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanalleverandøren nektet tilgang til denne mediestrømmen. Kontroller kontoopplysningene dine eller kontakt leverandøren."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De zenderprovider heeft toegang tot deze stream geweigerd. Controleer je accountgegevens of neem contact op met je provider."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca kanału odmówił dostępu do tego strumienia. Sprawdź dane konta lub skontaktuj się z dostawcą."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor do canal recusou o acesso a este fluxo de mídia. Verifique os dados da sua conta ou entre em contato com o provedor."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul canalului a refuzat accesul la acest flux media. Verifică datele contului sau contactează furnizorul."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер канала отказал в доступе к этому потоку. Проверьте данные учётной записи или свяжитесь с провайдером."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ kanála odmietol prístup k tomuto dátovému prúdu. Skontrolujte údaje účtu alebo kontaktujte poskytovateľa."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik kanala je zavrnil dostop do tega toka. Preverite podatke računa ali se obrnite na ponudnika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder kanala je odbio pristup ovom medijskom toku. Proverite podatke naloga ili se obratite provajderu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanalleverantören nekade åtkomst till den här strömmen. Kontrollera dina kontouppgifter eller kontakta din leverantör."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการช่องปฏิเสธการเข้าถึงสตรีมนี้ ตรวจสอบข้อมูลบัญชีหรือติดต่อผู้ให้บริการ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanal sağlayıcısı bu yayına erişimi reddetti. Hesap bilgilerinizi kontrol edin veya sağlayıcınızla iletişime geçin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер каналу відмовив у доступі до цього потоку. Перевірте дані облікового запису або зверніться до провайдера."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp kênh từ chối quyền truy cập luồng phát này. Kiểm tra thông tin tài khoản hoặc liên hệ với nhà cung cấp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "频道提供商拒绝访问此媒体流。请检查账户信息或联系提供商。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "頻道供應商拒絕存取此串流。請檢查帳號資料或聯絡供應商。"
+          }
+        }
+      }
+    },
     "The channel provider refused access to this stream. It may require authorization or be unavailable in your region." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -699645,6 +700526,226 @@
         }
       }
     },
+    "The player could not be started. Close playback and try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر تشغيل المشغّل. أغلق المشغّل وحاول مجددًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Плейърът не можа да се стартира. Затворете плейъра и опитайте отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No s’ha pogut iniciar el reproductor. Tanca el reproductor i torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Přehrávač se nepodařilo spustit. Zavřete přehrávač a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afspilleren kunne ikke startes. Luk afspilleren, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Player konnte nicht gestartet werden. Schließe den Player und versuche es erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν ήταν δυνατή η εκκίνηση του αναπαραγωγέα. Κλείστε την οθόνη αναπαραγωγής και δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se pudo iniciar el reproductor. Cierra el reproductor e inténtalo de nuevo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پخش‌کننده راه‌اندازی نشد. از پخش خارج شوید و دوباره تلاش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Soitinta ei voitu käynnistää. Sulje toisto ja yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible de démarrer le lecteur. Quittez la lecture, puis réessayez."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן היה להפעיל את הנגן. יש לסגור את הנגן ולנסות שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्लेयर शुरू नहीं हो सका। प्लेबैक बंद करें और फिर से कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije bilo moguće pokrenuti reproduktor. Izađite iz reprodukcije i pokušajte ponovno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nem sikerült elindítani a lejátszót. Lépjen ki a lejátszásból, és próbálja újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pemutar tidak dapat dimulai. Tutup layar pemutaran dan coba lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Non è stato possibile avviare il lettore. Esci dalla riproduzione e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プレーヤーを起動できませんでした。再生画面を閉じて、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "플레이어를 시작할 수 없습니다. 재생 화면을 닫고 다시 시도하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pemain tidak dapat dimulakan. Keluar daripada main balik dan cuba lagi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunne ikke starte avspilleren. Avslutt avspillingen og prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De speler kon niet worden gestart. Sluit de speler en probeer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie udało się uruchomić odtwarzacza. Zamknij odtwarzacz i spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível iniciar o reprodutor. Encerre a reprodução e tente novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Playerul nu a putut fi pornit. Închide ecranul de redare și încearcă din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось запустить проигрыватель. Закройте экран воспроизведения и попробуйте снова."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prehrávač sa nepodarilo spustiť. Zatvorte obrazovku prehrávania a skúste to znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Predvajalnika ni bilo mogoče zagnati. Zaprite zaslon za predvajanje in poskusite znova."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plejer nije mogao da se pokrene. Zatvorite ekran za reprodukciju i pokušajte ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mediespelaren kunde inte startas. Stäng uppspelningsvyn och försök igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่สามารถเริ่มเครื่องเล่นได้ ปิดการเล่นแล้วลองอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oynatıcı başlatılamadı. Oynatmayı kapatıp tekrar deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не вдалося запустити програвач. Закрийте відтворення та спробуйте ще раз."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không thể khởi động trình phát. Đóng trình phát rồi thử lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法启动播放器。请关闭播放后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法啟動播放器。請關閉播放後再試一次。"
+          }
+        }
+      }
+    },
     "The player could not decode this channel's audio or video. Try another stream version or channel." : {
       "localizations" : {
         "ar" : {
@@ -700961,6 +702062,1766 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "無法開啟播放清單檔案"
+          }
+        }
+      }
+    },
+    "The provider could not find this playlist or stream. Refresh the source or check the address." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لم يتمكّن مزوّد الخدمة من العثور على قائمة التشغيل هذه أو هذا البث. حدّث المصدر أو تحقّق من عنوان URL."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът не можа да намери този плейлист или поток. Опреснете източника или проверете адреса."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor no ha trobat aquesta llista de reproducció o aquest flux. Actualitza la font o comprova l’adreça."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel nemohl najít tento playlist nebo datový proud. Obnovte zdroj nebo zkontrolujte adresu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen kunne ikke finde denne afspilningsliste eller mediestrøm. Opdater kilden, eller kontrollér adressen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter konnte diese Wiedergabeliste oder diesen Datenstrom nicht finden. Aktualisiere die Quelle oder prüfe die Adresse."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος δεν μπόρεσε να βρει αυτή τη λίστα αναπαραγωγής ή τη ροή. Ανανεώστε την πηγή ή ελέγξτε τη διεύθυνση."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor no pudo encontrar esta lista de reproducción o transmisión. Actualiza la fuente o comprueba la dirección."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده نتوانست این فهرست پخش یا جریان پخش را پیدا کند. منبع را تازه‌سازی کنید یا نشانی را بررسی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja ei löytänyt tätä soittolistaa tai mediavirtaa. Päivitä lähde tai tarkista osoite."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur n’a pas trouvé cette liste de lecture ou ce flux. Actualisez la source ou vérifiez l’adresse."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק לא הצליח למצוא את הפלייליסט הזה או את זרם המדיה הזה. יש לרענן את המקור או לבדוק את הכתובת."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता को यह प्लेलिस्ट या स्ट्रीम नहीं मिली। स्रोत रीफ़्रेश करें या पता जाँचें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj usluge nije mogao pronaći ovaj popis za reprodukciju ili prijenos. Osvježite izvor ili provjerite adresu."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató nem találta ezt a lejátszási listát vagy streamet. Frissítse a forrást, vagy ellenőrizze a címet."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia tidak dapat menemukan daftar putar atau stream ini. Segarkan sumber atau periksa alamatnya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore non ha trovato questa playlist o questo flusso. Aggiorna la sorgente o controlla l'indirizzo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーがこのプレイリストまたはストリームを見つけられませんでした。ソースを更新するか、アドレスを確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자가 이 재생 목록이나 스트림을 찾을 수 없습니다. 소스를 새로 고치거나 주소를 확인하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia tidak dapat menemui senarai main atau strim ini. Segarkan sumber atau semak alamat."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren fant ikke denne spillelisten eller mediestrømmen. Oppdater kilden eller kontroller adressen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De provider kon deze afspeellijst of stream niet vinden. Vernieuw de bron of controleer het adres."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca nie mógł znaleźć tej listy odtwarzania lub strumienia. Odśwież źródło lub sprawdź adres."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor não encontrou esta lista de reprodução ou este fluxo de mídia. Atualize a fonte ou verifique o endereço."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul nu a găsit această listă de redare sau acest flux media. Reîmprospătează sursa sau verifică adresa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер не смог найти этот плейлист или поток. Обновите источник или проверьте адрес."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ nenašiel tento zoznam prehrávania alebo dátový prúd. Obnovte zdroj alebo skontrolujte adresu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik ni našel tega seznama predvajanja ali toka. Osvežite vir ali preverite naslov."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder nije pronašao ovu listu za reprodukciju ili medijski tok. Osvežite izvor ili proverite adresu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören kunde inte hitta den här spellistan eller strömmen. Uppdatera källan eller kontrollera adressen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการไม่พบเพลย์ลิสต์หรือสตรีมนี้ รีเฟรชแหล่งที่มาหรือตรวจสอบที่อยู่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı bu oynatma listesini veya yayını bulamadı. Kaynağı yenileyin ya da adresi kontrol edin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер не знайшов цей список відтворення або потік. Оновіть джерело або перевірте адресу."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp không tìm thấy danh sách phát hoặc luồng phát này. Làm mới nguồn hoặc kiểm tra địa chỉ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商找不到此播放列表或媒体流。请刷新来源或检查地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商找不到此播放清單或串流。請重新整理來源或檢查位址。"
+          }
+        }
+      }
+    },
+    "The provider did not respond in time. Check your connection, then try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لم يستجب مزوّد الخدمة في الوقت المحدد. تحقّق من اتصالك، ثم حاول مجددًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът не отговори навреме. Проверете връзката си, след което опитайте отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor no ha respost a temps. Comprova la connexió i després torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel neodpověděl včas. Zkontrolujte připojení a pak to zkuste znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen svarede ikke i tide. Kontrollér din forbindelse, og prøv derefter igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat nicht rechtzeitig geantwortet. Prüfe deine Verbindung und versuche es dann erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος δεν απάντησε εγκαίρως. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor no respondió a tiempo. Comprueba tu conexión y vuelve a intentarlo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده به‌موقع پاسخ نداد. اتصالتان را بررسی کنید و سپس دوباره تلاش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja ei vastannut ajoissa. Tarkista yhteytesi ja yritä sitten uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur n’a pas répondu à temps. Vérifiez votre connexion, puis réessayez."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק לא הגיב בזמן. יש לבדוק את החיבור ואז לנסות שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता ने समय पर जवाब नहीं दिया। अपना कनेक्शन जाँचें, फिर से कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj usluge nije odgovorio na vrijeme. Provjerite vezu, a zatim pokušajte ponovno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató nem válaszolt időben. Ellenőrizze a kapcsolatot, majd próbálja újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia tidak merespons tepat waktu. Periksa koneksi Anda, lalu coba lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore non ha risposto in tempo. Controlla la connessione, poi riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーが時間内に応答しませんでした。接続を確認してから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자가 제시간에 응답하지 않았습니다. 연결을 확인한 후 다시 시도하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia tidak memberikan respons dalam masa yang ditetapkan. Semak sambungan anda, kemudian cuba lagi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren svarte ikke i tide. Kontroller tilkoblingen din og prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De provider heeft niet op tijd gereageerd. Controleer je verbinding en probeer het daarna opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca nie odpowiedział na czas. Sprawdź połączenie, a następnie spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor não respondeu a tempo. Verifique sua conexão e tente novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul nu a răspuns la timp. Verifică conexiunea, apoi încearcă din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер не ответил вовремя. Проверьте подключение, затем попробуйте снова."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ neodpovedal včas. Skontrolujte pripojenie a potom to skúste znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik se ni pravočasno odzval. Preverite povezavo in nato poskusite znova."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder nije odgovorio na vreme. Proverite vezu, pa pokušajte ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören svarade inte i tid. Kontrollera anslutningen och försök sedan igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการไม่ตอบกลับภายในเวลาที่กำหนด ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı zamanında yanıt vermedi. Bağlantınızı kontrol edip tekrar deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер не відповів вчасно. Перевірте з’єднання та спробуйте ще раз."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp không phản hồi kịp thời. Kiểm tra kết nối rồi thử lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商未及时响应。请检查连接后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商未及時回應。請檢查連線後再試一次。"
+          }
+        }
+      }
+    },
+    "The provider is limiting requests. Wait before trying again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يحدّ مزوّد الخدمة من عدد الطلبات. انتظر قبل المحاولة مجددًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът ограничава заявките. Изчакайте, преди да опитате отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor està limitant les peticions. Espera abans de tornar-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel omezuje počet požadavků. Před dalším pokusem chvíli počkejte."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen begrænser antallet af anmodninger. Vent, før du prøver igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter begrenzt die Anzahl der Anfragen. Warte, bevor du es erneut versuchst."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος περιορίζει τα αιτήματα. Περιμένετε πριν δοκιμάσετε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor está limitando las solicitudes. Espera antes de volver a intentarlo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده درخواست‌ها را محدود می‌کند. پیش از تلاش دوباره کمی صبر کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja rajoittaa pyyntöjä. Odota ennen kuin yrität uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur limite les requêtes. Patientez avant de réessayer."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק מגביל בקשות. יש להמתין לפני ניסיון נוסף."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता अनुरोधों को सीमित कर रहा है। फिर से कोशिश करने से पहले कुछ देर इंतज़ार करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj usluge ograničava zahtjeve. Pričekajte prije ponovnog pokušaja."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató korlátozza a kéréseket. Várjon, mielőtt újra próbálkozik."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia sedang membatasi permintaan. Tunggu sebelum mencoba lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore sta limitando le richieste. Attendi prima di riprovare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーがリクエストを制限しています。しばらく待ってから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자가 요청을 제한하고 있습니다. 잠시 기다린 후 다시 시도하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia sedang mengehadkan permintaan. Tunggu sebentar sebelum mencuba lagi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren begrenser antall forespørsler. Vent litt før du prøver igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De provider beperkt het aantal verzoeken. Wacht even voordat je het opnieuw probeert."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca ogranicza liczbę żądań. Poczekaj chwilę, zanim spróbujesz ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor está limitando as solicitações. Aguarde um pouco antes de tentar novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul limitează solicitările. Așteaptă înainte de a încerca din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер ограничивает запросы. Подождите, прежде чем повторить попытку."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ obmedzuje požiadavky. Pred ďalším pokusom počkajte."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik omejuje zahteve. Pred ponovnim poskusom počakajte."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder ograničava zahteve. Sačekajte pre nego što pokušate ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören begränsar antalet förfrågningar. Vänta innan du försöker igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการกำลังจำกัดคำขอ โปรดรอสักครู่ก่อนลองอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı istekleri sınırlıyor. Tekrar denemeden önce bekleyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер обмежує кількість запитів. Зачекайте, перш ніж спробувати ще раз."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp đang giới hạn yêu cầu. Hãy đợi trước khi thử lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商正在限制请求。请稍等后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商正在限制請求。請稍等後再試一次。"
+          }
+        }
+      }
+    },
+    "The provider refused access (HTTP 403). Contact your provider to check this account's access." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "رفض مزوّد الخدمة السماح بالوصول (HTTP 403). اتصل بمزوّد الخدمة للتحقّق من صلاحية وصول هذا الحساب."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът отказа достъп (HTTP 403). Свържете се с доставчика, за да проверите достъпа на този акаунт."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor ha denegat l’accés (HTTP 403). Contacta amb el proveïdor per comprovar l’accés d’aquest compte."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel odmítl přístup (HTTP 403). Kontaktujte poskytovatele a ověřte, zda má tento účet přístup."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen afviste adgang (HTTP 403). Kontakt udbyderen for at få kontrolleret denne kontos adgang."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat den Zugriff verweigert (HTTP 403). Wende dich an deinen Anbieter, um den Zugriff für dieses Konto prüfen zu lassen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος αρνήθηκε την πρόσβαση (HTTP 403). Επικοινωνήστε με τον πάροχό σας για να ελέγξει τα δικαιώματα πρόσβασης αυτού του λογαριασμού."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor denegó el acceso (HTTP 403). Contacta con tu proveedor para comprobar los permisos de acceso de esta cuenta."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده دسترسی را رد کرد (HTTP 403). با ارائه‌دهنده تماس بگیرید تا دسترسی این حساب را بررسی کند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja esti pääsyn (HTTP 403). Ota yhteyttä palveluntarjoajaasi tämän tilin käyttöoikeuksien tarkistamiseksi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur a refusé l’accès (HTTP 403). Contactez votre fournisseur pour vérifier les droits d’accès de ce compte."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק סירב לאפשר גישה (HTTP 403). יש ליצור קשר עם הספק כדי לבדוק את הרשאות הגישה של חשבון זה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता ने पहुँच देने से इनकार कर दिया (HTTP 403)। इस खाते की पहुँच की जाँच करवाने के लिए अपने प्रदाता से संपर्क करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj usluge odbio je pristup (HTTP 403). Obratite se pružatelju usluge kako biste provjerili prava pristupa za ovaj račun."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató megtagadta a hozzáférést (HTTP 403). Lépjen kapcsolatba a szolgáltatóval a fiók hozzáférési jogosultságainak ellenőrzéséhez."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia menolak akses (HTTP 403). Hubungi penyedia Anda untuk memeriksa hak akses akun ini."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore ha negato l'accesso (HTTP 403). Contatta il fornitore per verificare i permessi di accesso di questo account."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーがアクセスを拒否しました（HTTP 403）。このアカウントのアクセス権について、プロバイダーにお問い合わせください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자가 접근을 거부했습니다(HTTP 403). 제공자에게 문의하여 이 계정의 접근 권한을 확인하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia menolak akses (HTTP 403). Hubungi penyedia anda untuk menyemak akses akaun ini."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren nektet tilgang (HTTP 403). Kontakt leverandøren for å kontrollere tilgangen for denne kontoen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De provider heeft toegang geweigerd (HTTP 403). Neem contact op met je provider om de toegangsrechten van dit account te controleren."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca odmówił dostępu (HTTP 403). Skontaktuj się z dostawcą, aby sprawdzić uprawnienia dostępu tego konta."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor recusou o acesso (HTTP 403). Entre em contato com o provedor para verificar as permissões de acesso desta conta."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul a refuzat accesul (HTTP 403). Contactează furnizorul pentru a verifica drepturile de acces ale acestui cont."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер отказал в доступе (HTTP 403). Свяжитесь с провайдером, чтобы проверить права доступа этой учётной записи."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ odmietol prístup (HTTP 403). Kontaktujte poskytovateľa a overte si prístupové práva tohto účtu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik je zavrnil dostop (HTTP 403). Obrnite se na ponudnika, da preveri pravice dostopa tega računa."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder je odbio pristup (HTTP 403). Obratite se provajderu da proveri prava pristupa ovog naloga."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören nekade åtkomst (HTTP 403). Kontakta din leverantör för att kontrollera det här kontots åtkomst."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการปฏิเสธการเข้าถึง (HTTP 403) ติดต่อผู้ให้บริการเพื่อตรวจสอบสิทธิ์การเข้าถึงของบัญชีนี้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı erişimi reddetti (HTTP 403). Bu hesabın erişimini kontrol etmek için sağlayıcınızla iletişime geçin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер відмовив у доступі (HTTP 403). Зверніться до провайдера, щоб перевірити доступ для цього облікового запису."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp từ chối quyền truy cập (HTTP 403). Liên hệ với nhà cung cấp để kiểm tra quyền truy cập của tài khoản này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商拒绝访问（HTTP 403）。请联系提供商，检查此账户的访问权限。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商拒絕存取（HTTP 403）。請聯絡供應商，檢查此帳號的存取權限。"
+          }
+        }
+      }
+    },
+    "The provider rejected the login (HTTP 401). Check your account details." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "رفض مزوّد الخدمة تسجيل الدخول (HTTP 401). تحقّق من بيانات حسابك."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът отхвърли опита за вход (HTTP 401). Проверете данните за акаунта си."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor ha rebutjat l’inici de sessió (HTTP 401). Comprova les dades del compte."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel odmítl přihlášení (HTTP 401). Zkontrolujte údaje o účtu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen afviste login (HTTP 401). Kontrollér dine kontooplysninger."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat die Anmeldung abgelehnt (HTTP 401). Prüfe deine Kontodaten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος απέρριψε τη σύνδεση στον λογαριασμό (HTTP 401). Ελέγξτε τα στοιχεία του λογαριασμού σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor rechazó el inicio de sesión (HTTP 401). Comprueba los datos de tu cuenta."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده ورود به حساب را رد کرد (HTTP 401). اطلاعات حسابتان را بررسی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja hylkäsi kirjautumisen (HTTP 401). Tarkista tilisi tiedot."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur a rejeté la connexion au compte (HTTP 401). Vérifiez les informations de votre compte."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק דחה את ההתחברות (HTTP 401). יש לבדוק את פרטי החשבון."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता ने लॉगिन अस्वीकार कर दिया (HTTP 401)। अपने खाते की जानकारी जाँचें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj usluge odbio je prijavu (HTTP 401). Provjerite podatke svojeg računa."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató elutasította a bejelentkezést (HTTP 401). Ellenőrizze fiókadatait."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia menolak login (HTTP 401). Periksa detail akun Anda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore ha rifiutato il login (HTTP 401). Controlla i dati del tuo account."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーがログインを拒否しました（HTTP 401）。アカウント情報を確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자가 로그인을 거부했습니다(HTTP 401). 계정 정보를 확인하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia menolak log masuk (HTTP 401). Semak butiran akaun anda."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren avviste påloggingen (HTTP 401). Kontroller kontoopplysningene dine."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De provider heeft de aanmelding geweigerd (HTTP 401). Controleer je accountgegevens."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca odrzucił logowanie (HTTP 401). Sprawdź dane konta."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor rejeitou o login (HTTP 401). Verifique os dados da sua conta."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul a respins autentificarea (HTTP 401). Verifică datele contului."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер отклонил попытку входа (HTTP 401). Проверьте данные учётной записи."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ odmietol prihlásenie (HTTP 401). Skontrolujte údaje účtu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik je zavrnil prijavo (HTTP 401). Preverite podatke računa."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder je odbio prijavu (HTTP 401). Proverite podatke naloga."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören nekade inloggningen (HTTP 401). Kontrollera dina kontouppgifter."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการปฏิเสธการเข้าสู่ระบบ (HTTP 401) ตรวจสอบข้อมูลบัญชี"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı oturum açma isteğini reddetti (HTTP 401). Hesap bilgilerinizi kontrol edin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер відхилив вхід (HTTP 401). Перевірте дані облікового запису."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp từ chối đăng nhập (HTTP 401). Kiểm tra thông tin tài khoản."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商拒绝登录（HTTP 401）。请检查账户信息。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商拒絕登入（HTTP 401）。請檢查帳號資料。"
+          }
+        }
+      }
+    },
+    "The provider returned HTML instead of a playlist or channel list. Check the address; it may lead to a login or error page." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أعاد مزوّد الخدمة HTML بدلًا من قائمة تشغيل أو قائمة قنوات. تحقّق من عنوان URL؛ فقد يؤدي إلى صفحة تسجيل دخول أو صفحة خطأ."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът върна HTML вместо плейлист или списък с канали. Проверете адреса — той може да води към страница за вход или страница с грешка."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor ha retornat HTML en lloc d’una llista de reproducció o de canals. Comprova l’adreça; pot portar a una pàgina d’inici de sessió o d’error."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel vrátil HTML místo playlistu nebo seznamu kanálů. Zkontrolujte adresu; může vést na přihlašovací nebo chybovou stránku."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen returnerede HTML i stedet for en afspilningsliste eller kanalliste. Kontrollér adressen; den kan føre til en login- eller fejlside."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat HTML statt einer Wiedergabeliste oder Senderliste zurückgegeben. Prüfe die Adresse; sie führt möglicherweise zu einer Anmelde- oder Fehlerseite."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος επέστρεψε HTML αντί για λίστα αναπαραγωγής ή λίστα καναλιών. Ελέγξτε τη διεύθυνση· μπορεί να οδηγεί σε σελίδα σύνδεσης ή σφάλματος."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor devolvió HTML en lugar de una lista de reproducción o de canales. Comprueba la dirección; puede llevar a una página de inicio de sesión o de error."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده به‌جای فهرست پخش یا فهرست کانال‌ها، HTML برگرداند. نشانی را بررسی کنید؛ ممکن است به صفحهٔ ورود یا خطا منتهی شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja palautti HTML-sisältöä soittolistan tai kanavaluettelon sijaan. Tarkista osoite; se voi johtaa kirjautumis- tai virhesivulle."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur a renvoyé du HTML au lieu d’une liste de lecture ou de chaînes. Vérifiez l’adresse ; elle peut mener à une page de connexion ou d’erreur."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק החזיר HTML במקום פלייליסט או רשימת ערוצים. יש לבדוק את הכתובת; ייתכן שהיא מובילה לדף התחברות או לדף שגיאה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता ने प्लेलिस्ट या चैनलों की सूची के बजाय HTML भेजा। पता जाँचें; यह लॉगिन या त्रुटि वाले पेज पर ले जा सकता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj usluge vratio je HTML umjesto popisa za reprodukciju ili popisa kanala. Provjerite adresu; možda vodi na stranicu za prijavu ili stranicu s pogreškom."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató HTML-t küldött vissza lejátszási lista vagy csatornalista helyett. Ellenőrizze a címet; lehet, hogy egy bejelentkezési vagy hibaoldalra mutat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan HTML alih-alih daftar putar atau daftar saluran. Periksa alamatnya; alamat tersebut mungkin mengarah ke halaman login atau halaman kesalahan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore ha restituito HTML anziché una playlist o un elenco di canali. Controlla l'indirizzo: potrebbe rimandare a una pagina di accesso o di errore."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーがプレイリストやチャンネル一覧ではなくHTMLを返しました。アドレスを確認してください。ログインページやエラーページを指している可能性があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자가 재생 목록이나 채널 목록 대신 HTML을 반환했습니다. 주소를 확인하세요. 로그인 또는 오류 페이지로 연결되는 주소일 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan HTML dan bukannya senarai main atau senarai saluran. Semak alamat; alamat itu mungkin membawa ke halaman log masuk atau ralat."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren returnerte HTML i stedet for en spilleliste eller kanalliste. Kontroller adressen; den kan føre til en påloggingsside eller feilside."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De provider heeft HTML teruggestuurd in plaats van een afspeellijst of zenderlijst. Controleer het adres; het kan naar een inlog- of foutpagina leiden."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca zwrócił HTML zamiast listy odtwarzania lub listy kanałów. Sprawdź adres — może prowadzić do strony logowania lub strony błędu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor retornou HTML em vez de uma lista de reprodução ou lista de canais. Verifique o endereço; ele pode levar a uma página de login ou de erro."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul a returnat HTML în locul unei liste de redare sau de canale. Verifică adresa; este posibil să ducă la o pagină de autentificare sau de eroare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер вернул HTML вместо плейлиста или списка каналов. Проверьте адрес: он может вести на страницу входа или ошибки."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ vrátil HTML namiesto zoznamu prehrávania alebo kanálov. Skontrolujte adresu; môže viesť na prihlasovaciu stránku alebo stránku s chybou."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik je vrnil HTML namesto seznama predvajanja ali seznama kanalov. Preverite naslov; morda vodi na stran za prijavo ali stran z napako."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder je vratio HTML umesto liste za reprodukciju ili liste kanala. Proverite adresu; možda vodi na stranicu za prijavu ili stranicu sa greškom."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören returnerade HTML i stället för en spellista eller kanallista. Kontrollera adressen; den kan leda till en inloggningssida eller felsida."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการส่ง HTML กลับมาแทนเพลย์ลิสต์หรือรายการช่อง ตรวจสอบที่อยู่ ซึ่งอาจนำไปยังหน้าเข้าสู่ระบบหรือหน้าข้อผิดพลาด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı, oynatma listesi veya kanal listesi yerine HTML döndürdü. Adresi kontrol edin; bir giriş veya hata sayfasına yönlendiriyor olabilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер повернув HTML замість списку відтворення або каналів. Перевірте адресу: вона може вести на сторінку входу або помилки."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp trả về HTML thay vì danh sách phát hoặc danh sách kênh. Kiểm tra địa chỉ; địa chỉ này có thể dẫn đến trang đăng nhập hoặc trang lỗi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商返回了 HTML，而不是播放列表或频道列表。请检查地址；该地址可能指向登录页面或错误页面。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商傳回 HTML，而非播放清單或頻道列表。請檢查位址；該位址可能指向登入頁面或錯誤頁面。"
+          }
+        }
+      }
+    },
+    "The provider returned a server error (HTTP %@). Try again later." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أعاد مزوّد الخدمة خطأ في الخادم (HTTP %@). حاول مجددًا لاحقًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът върна сървърна грешка (HTTP %@). Опитайте отново по-късно."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor ha retornat un error de servidor (HTTP %@). Torna-ho a provar més tard."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel vrátil chybu serveru (HTTP %@). Zkuste to znovu později."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen returnerede en serverfejl (HTTP %@). Prøv igen senere."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat einen Serverfehler zurückgegeben (HTTP %@). Versuche es später erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος επέστρεψε σφάλμα διακομιστή (HTTP %@). Δοκιμάστε ξανά αργότερα."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor devolvió un error del servidor (HTTP %@). Inténtalo de nuevo más tarde."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده خطای سرور برگرداند (HTTP %@). بعداً دوباره تلاش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja palautti palvelinvirheen (HTTP %@). Yritä myöhemmin uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur a renvoyé une erreur serveur (HTTP %@). Réessayez plus tard."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק החזיר שגיאת שרת (HTTP %@). יש לנסות שוב מאוחר יותר."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता ने सर्वर त्रुटि लौटाई (HTTP %@)। बाद में फिर से कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj usluge vratio je pogrešku poslužitelja (HTTP %@). Pokušajte ponovno kasnije."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató szerverhibát jelzett (HTTP %@). Próbálja újra később."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan kesalahan server (HTTP %@). Coba lagi nanti."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore ha restituito un errore del server (HTTP %@). Riprova più tardi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーがサーバーエラー（HTTP %@）を返しました。時間をおいて、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자가 서버 오류를 반환했습니다(HTTP %@). 나중에 다시 시도하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan ralat pelayan (HTTP %@). Cuba lagi kemudian."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren returnerte en serverfeil (HTTP %@). Prøv igjen senere."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De provider heeft een serverfout teruggestuurd (HTTP %@). Probeer het later opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca zwrócił błąd serwera (HTTP %@). Spróbuj ponownie później."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor retornou um erro de servidor (HTTP %@). Tente novamente mais tarde."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul a returnat o eroare de server (HTTP %@). Încearcă din nou mai târziu."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер вернул ошибку сервера (HTTP %@). Попробуйте снова позже."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ vrátil chybu servera (HTTP %@). Skúste to znova neskôr."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik je vrnil napako strežnika (HTTP %@). Poskusite znova pozneje."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder je vratio grešku servera (HTTP %@). Pokušajte ponovo kasnije."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören returnerade ett serverfel (HTTP %@). Försök igen senare."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการส่งข้อผิดพลาดของเซิร์ฟเวอร์กลับมา (HTTP %@) ลองอีกครั้งในภายหลัง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı bir sunucu hatası döndürdü (HTTP %@). Daha sonra tekrar deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер повернув помилку сервера (HTTP %@). Спробуйте пізніше."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp trả về lỗi máy chủ (HTTP %@). Thử lại sau."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商返回了服务器错误（HTTP %@）。请稍后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商傳回伺服器錯誤（HTTP %@）。請稍後再試一次。"
+          }
+        }
+      }
+    },
+    "The provider's address could not be found. Check the address and your network's DNS settings." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر العثور على عنوان مزوّد الخدمة. تحقّق من العنوان وإعدادات DNS لشبكتك."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Адресът на доставчика не можа да бъде намерен. Проверете адреса и DNS настройките на мрежата си."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No s’ha trobat l’adreça del proveïdor. Comprova l’adreça i la configuració DNS de la xarxa."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adresu poskytovatele se nepodařilo najít. Zkontrolujte adresu a nastavení DNS vaší sítě."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderens adresse kunne ikke findes. Kontrollér adressen og DNS-indstillingerne for dit netværk."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die Adresse des Anbieters konnte nicht gefunden werden. Prüfe die Adresse und die DNS-Einstellungen deines Netzwerks."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν ήταν δυνατή η εύρεση της διεύθυνσης του παρόχου. Ελέγξτε τη διεύθυνση και τις ρυθμίσεις DNS του δικτύου σας."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se pudo encontrar la dirección del proveedor. Comprueba la dirección y la configuración DNS de tu red."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نشانی ارائه‌دهنده پیدا نشد. نشانی و تنظیمات DNS شبکه‌تان را بررسی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoajan osoitetta ei löytynyt. Tarkista osoite ja verkkosi DNS-asetukset."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible de trouver l’adresse du fournisseur. Vérifiez l’adresse et les paramètres DNS de votre réseau."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן היה למצוא את כתובת הספק. יש לבדוק את הכתובת ואת הגדרות ה-DNS של הרשת."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता का पता नहीं मिल सका। पता और अपने नेटवर्क की DNS सेटिंग्स जाँचें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adresu pružatelja usluge nije bilo moguće pronaći. Provjerite adresu i DNS postavke svoje mreže."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató címe nem található. Ellenőrizze a címet és a hálózat DNS-beállításait."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alamat penyedia tidak dapat ditemukan. Periksa alamat dan pengaturan DNS jaringan Anda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Non è stato possibile trovare l'indirizzo del fornitore. Controlla l'indirizzo e le impostazioni DNS della rete."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダーのアドレスが見つかりませんでした。アドレスとネットワークのDNS設定を確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공자의 주소를 찾을 수 없습니다. 주소와 네트워크의 DNS 설정을 확인하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alamat penyedia tidak dapat ditemui. Semak alamat dan tetapan DNS rangkaian anda."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fant ikke leverandørens adresse. Kontroller adressen og nettverkets DNS-innstillinger."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Het adres van de provider kon niet worden gevonden. Controleer het adres en de DNS-instellingen van je netwerk."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie udało się znaleźć adresu dostawcy. Sprawdź adres i ustawienia DNS swojej sieci."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível encontrar o endereço do provedor. Verifique o endereço e as configurações de DNS da sua rede."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adresa furnizorului nu a putut fi găsită. Verifică adresa și setările DNS ale rețelei."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось найти адрес провайдера. Проверьте адрес и настройки DNS вашей сети."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adresu poskytovateľa sa nepodarilo nájsť. Skontrolujte adresu a nastavenia DNS vašej siete."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Naslova ponudnika ni bilo mogoče najti. Preverite naslov in nastavitve DNS svojega omrežja."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adresa provajdera nije pronađena. Proverite adresu i DNS podešavanja svoje mreže."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantörens adress kunde inte hittas. Kontrollera adressen och nätverkets DNS-inställningar."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่พบที่อยู่ของผู้ให้บริการ ตรวจสอบที่อยู่และการตั้งค่า DNS ของเครือข่าย"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcının adresi bulunamadı. Adresi ve ağınızın DNS ayarlarını kontrol edin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не вдалося знайти адресу провайдера. Перевірте адресу та налаштування DNS вашої мережі."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không tìm thấy địa chỉ của nhà cung cấp. Kiểm tra địa chỉ và cài đặt DNS của mạng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "找不到提供商的地址。请检查地址和网络的 DNS 设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "找不到供應商的位址。請檢查位址和網路的 DNS 設定。"
           }
         }
       }
@@ -815984,6 +818845,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "你的代碼已過期"
+          }
+        }
+      }
+    },
+    "Your device is offline. Connect to the internet and try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جهازك غير متصل بالإنترنت. اتصل بالإنترنت وحاول مجددًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Устройството ви няма връзка с интернет. Свържете се с интернет и опитайте отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El dispositiu no està connectat a internet. Connecta’t a internet i torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vaše zařízení je offline. Připojte se k internetu a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Din enhed er offline. Opret forbindelse til internettet, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dein Gerät ist offline. Stelle eine Internetverbindung her und versuche es erneut."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η συσκευή σας είναι εκτός σύνδεσης. Συνδεθείτε στο διαδίκτυο και δοκιμάστε ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tu dispositivo no tiene conexión. Conéctate a internet e inténtalo de nuevo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "دستگاهتان آفلاین است. به اینترنت متصل شوید و دوباره تلاش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Laitteesi ei ole yhteydessä verkkoon. Yhdistä internetiin ja yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Votre appareil est hors ligne. Connectez-vous à Internet et réessayez."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "המכשיר אינו מחובר לרשת. יש להתחבר לאינטרנט ולנסות שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "आपका डिवाइस ऑफ़लाइन है। इंटरनेट से कनेक्ट करें और फिर से कोशिश करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uređaj nije povezan s internetom. Povežite se s internetom i pokušajte ponovno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Az eszköz nem csatlakozik az internethez. Csatlakozzon az internethez, és próbálja újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Perangkat Anda sedang offline. Hubungkan ke internet dan coba lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il dispositivo è offline. Connettiti a internet e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "デバイスがオフラインです。インターネットに接続して、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "기기가 오프라인 상태입니다. 인터넷에 연결한 후 다시 시도하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Peranti anda di luar talian. Sambungkan ke internet dan cuba lagi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enheten din er frakoblet. Koble til internett og prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je apparaat is offline. Maak verbinding met internet en probeer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Urządzenie jest offline. Połącz się z internetem i spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seu dispositivo está offline. Conecte-se à internet e tente novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dispozitivul nu este conectat la internet. Conectează-l la internet și încearcă din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Устройство не подключено к интернету. Подключитесь к интернету и попробуйте снова."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vaše zariadenie je offline. Pripojte sa k internetu a skúste to znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Naprava nima internetne povezave. Povežite se z internetom in poskusite znova."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uređaj nije povezan na internet. Povežite se na internet i pokušajte ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Din enhet är offline. Anslut till internet och försök igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "อุปกรณ์ออฟไลน์อยู่ เชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cihazınız çevrimdışı. İnternete bağlanıp tekrar deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ваш пристрій не підключено до мережі. Підключіться до інтернету та спробуйте ще раз."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Thiết bị của bạn đang ngoại tuyến. Kết nối với internet rồi thử lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "您的设备处于离线状态。请连接到互联网后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "您的裝置處於離線狀態。請連上網際網路後再試一次。"
           }
         }
       }
