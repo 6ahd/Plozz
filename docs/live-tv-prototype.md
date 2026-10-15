@@ -1505,6 +1505,32 @@ the Release model is empty; imported listings never receive synthetic gap filler
 
 ## Live activity and diagnostics
 
+Copied playback reports use `plozz-live-tv-2`; `stream_format` is separate from
+the report-format identifier. Both the local report and opt-in failure telemetry
+retain the engine route, first-frame state, up to eight nested native error
+domain/code pairs, and the last four native error-log domain/code pairs. Native
+logs are read off the UI actor with a 500 ms deadline and at most two outstanding
+readers process-wide. Missing items, busy readers, and timed-out captures are
+explicit, not interpreted as an absence of native errors. A replaced or stopped
+playback cannot publish a late capture into its successor.
+
+The authenticated IPTV proxy keeps a bounded, playback-local delivery history:
+the latest root GET, first failed upstream attempt, and eight recent attempts,
+including successful responses. Facts include root/child role, GET/HEAD, relative
+timing, HTTP status, observed format, redirects/cross-origin delivery, range
+presence/validity, expected/received bytes, and network error codes. HLS facts
+include target and maximum segment durations, media sequence, segment count,
+master/end-list flags, byte ranges, initialization maps, and encryption presence.
+They are observations, not a playlist validator or a new retry policy. A child
+404 remains available even if AVFoundation replaces it with a generic failure;
+an earlier recovered request does not become the terminal error.
+
+These reports never include URLs, hosts, IPs, channel names, response bodies,
+raw headers, native descriptions, or native error-log comments. Local copying
+does not enable telemetry; the existing consent-generation, report-count, and
+deduplication gates still apply. Diagnostics make a subsequent failure more
+actionable but cannot reconstruct the missing evidence in an older report.
+
 The centered activity indicator is owned by `LiveChannelPlayerModel` and driven
 by AetherEngine's typed `playbackPhase`, gated on
 `hasFirstFrameReadyForDisplay` for initial video. Connecting, buffering, seeking

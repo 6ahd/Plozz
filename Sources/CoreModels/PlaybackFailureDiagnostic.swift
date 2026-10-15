@@ -52,12 +52,14 @@ public struct PlaybackFailureDiagnostic: Codable, Equatable, Sendable {
     public let httpStatus: Int?
     public let format: Format
     public let elapsedMilliseconds: Int
+    public let evidence: PlaybackFailureEvidence?
 
     public var isValid: Bool {
         reason != .cancelled
             && (0...86_400_000).contains(elapsedMilliseconds)
             && code.map { (Int(Int32.min)...Int(Int32.max)).contains($0) } != false
             && httpStatus.map { (100...599).contains($0) } != false
+            && evidence?.isValid != false
     }
 }
 
@@ -126,14 +128,16 @@ public final class PlaybackFailureAttempt: @unchecked Sendable {
         stage: PlaybackFailureDiagnostic.Stage, reason: IPTVSetupDiagnostic.Failure.Reason = .other,
         engineFailure: PlaybackFailureDiagnostic.EngineFailure = .none,
         domain: PlaybackFailureDiagnostic.Domain = .none, code: Int? = nil,
-        httpStatus: Int? = nil, format: PlaybackFailureDiagnostic.Format = .unknown
+        httpStatus: Int? = nil, format: PlaybackFailureDiagnostic.Format = .unknown,
+        evidence: PlaybackFailureEvidence? = nil
     ) -> PlaybackFailureDiagnostic? {
         guard reason != .cancelled else { return nil }
         let diagnostic = PlaybackFailureDiagnostic(
             layer: layer, content: content, stage: stage, reason: reason, engineFailure: engineFailure,
             domain: domain, code: code.flatMap { (Int(Int32.min)...Int(Int32.max)).contains($0) ? $0 : nil },
             httpStatus: httpStatus.flatMap { (100...599).contains($0) ? $0 : nil }, format: format,
-            elapsedMilliseconds: min(86_400_000, max(0, Int((ProcessInfo.processInfo.systemUptime - started) * 1_000)))
+            elapsedMilliseconds: min(86_400_000, max(0, Int((ProcessInfo.processInfo.systemUptime - started) * 1_000))),
+            evidence: evidence
         )
         let emit = lock.withLock {
             guard !finished else { return false }

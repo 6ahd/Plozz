@@ -784,12 +784,22 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     private var liveFailureDiagnostic: PlaybackFailureAttempt?
     private var liveDeliveryFailure: PlaybackDeliveryFailure?
+    private var liveFailureCaptureTask: Task<Void, Never>?
 
     public var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic? {
-        liveDeliveryFailure?.diagnostic ?? liveFailureDiagnostic?.diagnostic
+        liveFailureDiagnostic?.diagnostic ?? liveDeliveryFailure?.diagnostic
+    }
+
+    public var isCapturingLiveFailureDiagnostic: Bool {
+        guard liveAttemptGate.activeGeneration != nil, liveFailureDiagnostic?.diagnostic == nil else { return false }
+        // The phase can reach the guide before Combine delivers the error callback.
+        if case .error = engine.state { return true }
+        return liveFailureCaptureTask != nil
     }
 
     private func beginLiveAttempt() -> UInt64 {
+        liveFailureCaptureTask?.cancel()
+        liveFailureCaptureTask = nil
         let generation = liveAttemptGate.begin()
         liveFailureDiagnostic = PlaybackFailureDiagnostics.shared.begin(
             layer: .liveEngine, content: .live, captureForPresentation: true
@@ -808,6 +818,8 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     private func endLiveAttempt() {
+        liveFailureCaptureTask?.cancel()
+        liveFailureCaptureTask = nil
         liveAttemptGate.invalidate()
         liveFailureDiagnostic = nil
         liveDeliveryFailure = nil
@@ -825,7 +837,6 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         // A queued state publication may outlive its errorInfo. Never classify
         // an older message using a replacement session's failure.
         let info = engine.errorInfo.flatMap { $0.message == detail ? $0 : nil }
-        PlozzigenLiveFailure.record(info, attempt: liveFailureDiagnostic, stage: stage, fallbackError: fallbackError)
         let classification = PlozzigenLiveFailure.diagnostic(info)
         let redacted = HandoffDiagnostics.redactedDetail(detail)
         HandoffDiagnostics.emit(
@@ -834,9 +845,26 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         PlozzLog.playback.error(
             "Plozzigen live playback failed at \(stage): \(classification) \(redacted)"
         )
-        let error = PlozzigenLiveFailure.appError(info, deliveryFailure: liveDeliveryFailure?.error)
-        status = .failed(error)
-        onFailure?(error)
+        let item = engine.currentAVPlayerItem
+        let route = PlaybackFailureEvidence.Route(rawValue: Self.liveRoute(engine.videoRoute).rawValue)
+        let firstFrameReady = engine.hasFirstFrameReadyForDisplay
+        let delivery = liveDeliveryFailure
+        liveFailureCaptureTask = Task { [weak self] in
+            var evidence = await PlozzigenNativeFailureCapture.shared.capture(
+                item: item, fallbackError: fallbackError as NSError?
+            )
+            guard let self, !Task.isCancelled, self.liveAttemptGate.accepts(generation) else { return }
+            evidence.route = route
+            evidence.firstFrameReady = firstFrameReady
+            evidence.delivery = delivery?.evidence
+            PlozzigenLiveFailure.record(
+                info, attempt: self.liveFailureDiagnostic, stage: stage, fallbackError: fallbackError,
+                evidence: evidence, deliveryDiagnostic: delivery?.diagnostic
+            )
+            let error = PlozzigenLiveFailure.appError(info, deliveryFailure: delivery?.error)
+            self.status = .failed(error)
+            self.onFailure?(error)
+        }
     }
 
     /// Optional container short-name hint for the demuxer probe, derived from the

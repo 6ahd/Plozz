@@ -2188,6 +2188,10 @@ final class LiveChannelPlayerModel {
             return
         }
         if snapshot.phase == .failed {
+            if engine.isCapturingLiveFailureDiagnostic {
+                idleSleepGuard.allowSleep()
+                return
+            }
             if case .failed(let error) = engine.status {
                 fail(.engine(error))
             } else {

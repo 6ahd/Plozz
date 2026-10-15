@@ -26,6 +26,9 @@ public final class LibraryLiveChannelEngine: LiveChannelEngine {
     public var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic? {
         hasSource && decoderGeneration == generation ? underlyingEngine.livePlaybackFailureDiagnostic : nil
     }
+    public var isCapturingLiveFailureDiagnostic: Bool {
+        hasSource && decoderGeneration == generation && underlyingEngine.isCapturingLiveFailureDiagnostic
+    }
     public var isPlaybackPositionReady: Bool { status == .ready && underlyingEngine.isPlaybackPositionReady }
     public var subtitlePresentationTime: TimeInterval { underlyingEngine.subtitlePresentationTime }
     public func renderSubtitles(at time: TimeInterval, style: SubtitleStyle) {
