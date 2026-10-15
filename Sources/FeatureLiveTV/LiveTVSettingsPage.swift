@@ -143,7 +143,7 @@ struct LiveTVSettingsPage<Content: View>: View {
     @ViewBuilder let content: () -> Content
     #if os(tvOS)
     @Environment(\.settingsInWorkspace) private var inWorkspace
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
     #endif
 
     var body: some View {
@@ -154,10 +154,14 @@ struct LiveTVSettingsPage<Content: View>: View {
                     Button { dismiss() } label: {
                         Label("Back", systemImage: "chevron.backward")
                     }
+                    .settingsPageEntryFocus()
                     .accessibilityIdentifier("live-tv-settings-back")
                 }
-                if let sourceName { SettingsPageHeader(verbatim: sourceName) }
-                else { SettingsPageHeader(title) }
+                Group {
+                    if let sourceName { SettingsPageHeader(verbatim: sourceName) }
+                    else { SettingsPageHeader(title) }
+                }
+                .environment(\.settingsPageBackButton, nil)
                 content()
             }
             .frame(maxWidth: PlozzTheme.Metrics.settingsContentMaxWidth, alignment: .leading)

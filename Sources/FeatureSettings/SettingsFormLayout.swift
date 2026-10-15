@@ -32,7 +32,7 @@ private struct SettingsFormHeader: View {
     let title: Text
     let showsBack: Bool
     var route: SettingsRoute?
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
@@ -47,6 +47,8 @@ private struct SettingsFormHeader: View {
                         Label("Back", systemImage: "chevron.backward")
                     }
                     .settingsWorkspaceEntry(route: route)
+                    .settingsPageEntryFocus()
+                    .accessibilityIdentifier("settings-workspace-back")
                 }
                 title.font(.largeTitle.bold())
             }
@@ -69,13 +71,13 @@ private struct SettingsFormRow: View {
 
     @ViewBuilder private var content: some View {
         if let route = row.route {
-            NavigationLink(value: route) {
+            SettingsRouteLink(value: route) {
                 SettingsFormLinkLabel(row: row)
             }
             .buttonStyle(SettingsFocusButtonStyle(size: .contained))
             .accessibilityIdentifier("settings-page-\(row.id)")
         } else if row.presentation == .page {
-            NavigationLink {
+            SettingsPageLink {
                 SettingsFormRowPage(row: row)
             } label: {
                 SettingsFormLinkLabel(row: row)
@@ -175,6 +177,7 @@ private struct SettingsFormRowContent: View {
             VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
                 SettingsFormHeader(title: row.title, showsBack: showsBack, route: route)
                 row.detail()
+                    .environment(\.settingsPageBackButton, nil)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if let description = row.description {
                     description.settingsHelperText()

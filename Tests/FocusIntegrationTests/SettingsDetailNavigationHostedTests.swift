@@ -1,10 +1,116 @@
 @testable import FeatureSettings
+import CoreUI
+import Observation
 import SwiftUI
 import UIKit
 import XCTest
 
 @MainActor
 final class SettingsDetailNavigationHostedTests: XCTestCase {
+    func testDialogDismissDoesNotPopItsPresentingSettingsPage() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let navigation = SettingsPageNavigation<Int>()
+        let probe = SettingsDialogProbe()
+        window.rootViewController = UIHostingController(rootView:
+            SettingsPageStack(navigation: navigation, pageWidth: 1920, onRootBack: {}) {
+                Text("Categories")
+            } destination: { _ in
+                Text("Settings page")
+                    .plozzSheet(isPresented: Binding(get: { probe.isPresented }, set: { probe.isPresented = $0 })) {
+                        SettingsDialogDismissProbe(probe: probe)
+                    }
+            }
+        )
+        window.makeKeyAndVisible()
+        defer {
+            window.rootViewController?.dismiss(animated: false)
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        navigation.push(1)
+        try await Task.sleep(for: .milliseconds(300))
+        probe.isPresented = true
+        let presented = ContinuousClock.now + .seconds(5)
+        while probe.dismiss == nil, ContinuousClock.now < presented {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertEqual(probe.inheritsSettingsPage, false)
+        try await Task.sleep(for: .milliseconds(350))
+        try XCTUnwrap(probe.dismiss)()
+        let dismissed = ContinuousClock.now + .seconds(5)
+        while probe.isPresented, ContinuousClock.now < dismissed {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertFalse(probe.isPresented)
+        XCTAssertEqual(navigation.routes, [1], "Closing a dialog must not pop the underlying page.")
+    }
+
+    func testSharedStackSlidesRetainsParentsAndMirrorsInRightToLeftLayout() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 960, height: 540)
+            let navigation = SettingsPageNavigation<Int>()
+            let probes = PageMotionProbes()
+            window.rootViewController = UIHostingController(rootView:
+                SettingsPageStack(navigation: navigation, pageWidth: 960, onRootBack: {}) {
+                    PageMotionProbe(id: "root", probes: probes)
+                } destination: { route in
+                    PageMotionProbe(id: route == 1 ? "detail" : "nested", probes: probes)
+                }
+                .environment(\.layoutDirection, direction)
+                .ignoresSafeArea()
+            )
+            window.makeKeyAndVisible()
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+                previous?.makeKeyAndVisible()
+            }
+            try await Task.sleep(for: .milliseconds(200))
+            let sampler = PageMotionSampler(probes: probes, window: window)
+            sampler.start()
+            defer { sampler.stop() }
+            navigation.push(1)
+            try await Task.sleep(for: .milliseconds(350))
+            let sign: CGFloat = direction == .leftToRight ? 1 : -1
+            if !UIAccessibility.isReduceMotionEnabled {
+                assertIntermediatePages(sampler.samples, width: 960, sign: sign)
+            }
+            navigation.push(2)
+            try await Task.sleep(for: .milliseconds(350))
+            navigation.pop()
+            try await Task.sleep(for: .milliseconds(350))
+            XCTAssertEqual(probes.creations["root"], 1)
+            XCTAssertEqual(probes.creations["detail"], 1)
+            XCTAssertEqual(try XCTUnwrap(probes.frame("detail", in: window)).minX, 0, accuracy: 2)
+            sampler.samples.removeAll()
+            navigation.pop()
+            try await Task.sleep(for: .milliseconds(350))
+            if !UIAccessibility.isReduceMotionEnabled {
+                assertIntermediatePages(sampler.samples, width: 960, sign: sign)
+            }
+            XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)).minX, 0, accuracy: 2)
+            XCTAssertEqual(navigation.returnGeneration, 2)
+        }
+    }
+
     func testWorkspaceStyleDestinationsStayFullWidthDuringEntryAndReturn() async throws {
         try await verifyWorkspaceStyleWidth()
     }
@@ -23,19 +129,17 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
         let navigation = SettingsNavigationModel()
         navigation.select(.subtitles)
+        navigation.enterDetail()
         let probes = PageMotionProbes()
         let host = UIHostingController(rootView:
             SettingsWorkspace(navigation: navigation) {
                 Button("Subtitles") {}
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background { PageMotionProbe(id: "root", probes: probes) }
             } detail: { route in
                 Button(route.usesFullScreenDetail ? "Style control" : "Open style") {}
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background {
-                        if route.usesFullScreenDetail {
-                            PageMotionProbe(id: "detail", probes: probes)
-                        }
+                        PageMotionProbe(id: route.usesFullScreenDetail ? "detail" : "root", probes: probes)
                     }
             }
             .padding(.horizontal, 80)
@@ -252,6 +356,28 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         }
         try await Task.sleep(for: .milliseconds(200))
         try await inspect(navigation, probes, window)
+    }
+}
+
+@MainActor
+@Observable
+private final class SettingsDialogProbe {
+    var isPresented = false
+    var inheritsSettingsPage: Bool?
+    var dismiss: (() -> Void)?
+}
+
+private struct SettingsDialogDismissProbe: View {
+    let probe: SettingsDialogProbe
+    @SettingsPageDismiss private var dismiss
+    @Environment(\.settingsPageContext) private var context
+
+    var body: some View {
+        Button("Close", action: dismiss)
+            .onAppear {
+                probe.inheritsSettingsPage = context != nil
+                probe.dismiss = dismiss
+            }
     }
 }
 

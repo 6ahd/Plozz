@@ -17,7 +17,7 @@ import CoreUI
 struct ServerDetailView: View {
     let context: SettingsContext
     let serverKey: String
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
     @Environment(\.managedProviderSetupRouter) private var providerSetupRouter
 
     /// Account the user has asked to sign out, captured at button-tap so the

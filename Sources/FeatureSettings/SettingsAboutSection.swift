@@ -38,7 +38,7 @@ struct SettingsAboutSection: View {
                     }
 
                     if showsReleaseNotes {
-                        NavigationLink(value: SettingsRoute.releaseNotes) {
+                        SettingsRouteLink(value: SettingsRoute.releaseNotes) {
                             SettingsRowLabel(
                                 icon: "doc.text",
                                 title: "Release Notes",

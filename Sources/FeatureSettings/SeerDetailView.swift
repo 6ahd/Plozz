@@ -233,7 +233,7 @@ struct SeerDetailView: View {
                 case let .loaded(list):
                     VStack(spacing: 14) {
                         ForEach(profiles) { profile in
-                            NavigationLink(value: SettingsRoute.seerUserPicker(profileID: profile.id)) {
+                            SettingsRouteLink(value: SettingsRoute.seerUserPicker(profileID: profile.id)) {
                                 profileMappingRow(profile: profile, users: list)
                             }
                             .buttonStyle(SettingsFocusButtonStyle())
@@ -246,7 +246,7 @@ struct SeerDetailView: View {
                             .plozzForeground(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         ForEach(profiles) { profile in
-                            NavigationLink(
+                            SettingsRouteLink(
                                 value: SettingsRoute.seerUserPicker(profileID: profile.id)
                             ) {
                                 profileMappingRow(profile: profile, users: [])
@@ -348,7 +348,7 @@ struct SeerUserPickerView: View {
     let onSelect: (SeerUser?) -> Void
 
     @State private var users: LoadState<[SeerUser]> = .idle
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
 
     private var profileName: String { profile.name }
 

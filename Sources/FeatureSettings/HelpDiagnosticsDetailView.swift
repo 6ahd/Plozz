@@ -186,7 +186,7 @@ struct HelpDiagnosticsDetailView: View {
         SettingsPanel(
             footer: "The most recent app log lines, kept only on this Apple TV and already stripped of tokens and secrets. Shown so a maintainer can ask what Plozz was doing when a bug happened."
         ) {
-            NavigationLink(value: SettingsRoute.recentActivity) {
+            SettingsRouteLink(value: SettingsRoute.recentActivity) {
                 SettingsRowLabel(icon: "list.bullet.rectangle", title: "Recent Activity") {
                     Text("The latest app log lines from this Apple TV")
                         .font(.subheadline)

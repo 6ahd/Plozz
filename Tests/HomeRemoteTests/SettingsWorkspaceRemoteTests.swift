@@ -45,7 +45,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertFalse(app.buttons["settings-page-subtitles"].exists)
         XCTAssertFalse(app.staticTexts["Show subtitles"].exists)
         capture("19-playback-entered", in: app)
-        XCTAssertFalse(app.buttons["settings-section-general"].isEnabled, app.debugDescription)
+        XCTAssertFalse(app.buttons["settings-section-general"].exists, app.debugDescription)
         XCUIRemote.shared.press(.menu)
         try focus(section("subtitles", in: app), in: app)
         XCUIRemote.shared.press(.select)
@@ -128,7 +128,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             try focus(choice, in: app)
             XCUIRemote.shared.press(.select)
             XCTAssertTrue(app.staticTexts["Prevent Accidental Exit"].waitForExistence(timeout: 5), app.debugDescription)
-            XCTAssertTrue(section("appearance", in: app).isSelected)
+            XCTAssertFalse(section("appearance", in: app).exists)
             capture("navigation-\(style)", in: app)
         }
         XCUIRemote.shared.press(.menu)
@@ -222,7 +222,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
                     predicate: NSPredicate { _, _ in !app.buttons["1"].exists }, object: nil
                 )
                 XCTAssertEqual(XCTWaiter.wait(for: [unlocked], timeout: 5), .completed, app.debugDescription)
-                XCTAssertTrue(section("myLibraries", in: app).exists, "Unlock must not dismiss Settings.")
+                XCTAssertTrue(app.buttons["settings-category-back"].exists, "Unlock must stay in the category.")
+                XCTAssertFalse(section("myLibraries", in: app).exists)
                 capture("kids-unlocked", in: app)
             }
             XCTAssertFalse(section("metadata", in: app).exists)
@@ -350,7 +351,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let detailMaxX = detailScroll.frame.maxX
         try focus(first, in: app)
         XCUIRemote.shared.press(.select)
-        let back = app.buttons["live-tv-settings-back"]
+        let back = pageBack("live-tv-settings-back", in: app)
         XCTAssertTrue(back.waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(app.staticTexts["Northstar TV"].exists)
         capture("iptv-source-controls", in: app)
@@ -409,7 +410,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertFalse(section("subtitles", in: app).exists, app.debugDescription)
             XCTAssertFalse(app.buttons["settings-profile-switch"].exists)
             XCTAssertLessThan(heading.frame.minX, 200, "The editor must reclaim the sidebar column.")
-            let back = app.buttons["settings-workspace-back"]
+            let back = pageBack(in: app)
             let controlColumn = try XCTUnwrap(app.scrollViews.allElementsBoundByIndex.first {
                 $0.buttons["settings-workspace-back"].exists
             }, "The editor's Back button must belong to its scrolling control column.")
@@ -442,13 +443,14 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             if title == "Customize subtitle style" {
                 XCUIRemote.shared.press(.menu)
             } else {
-                let back = app.buttons.matching(NSPredicate(format: "label == %@", "Back")).firstMatch
+                let back = pageBack(in: app)
                 try focus(back, in: app)
                 XCUIRemote.shared.press(.select)
             }
             XCTAssertTrue(link.waitForExistence(timeout: 5), app.debugDescription)
-            XCTAssertTrue(section("subtitles", in: app).isSelected)
-            XCTAssertTrue(app.buttons["settings-profile-switch"].exists)
+            XCTAssertFalse(section("subtitles", in: app).exists)
+            XCTAssertFalse(app.buttons["settings-profile-switch"].exists)
+            XCTAssertTrue(app.buttons["settings-category-back"].exists)
             capture("\(captureName)-returned", in: app)
         }
         XCUIRemote.shared.press(.menu)
@@ -475,7 +477,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.select)
         let showScores = app.switches["Show review scores"]
         XCTAssertTrue(showScores.waitForExistence(timeout: 5), app.debugDescription)
-        let back = app.buttons["settings-workspace-back"]
+        let back = pageBack(in: app)
         XCTAssertTrue(back.exists)
         let scroll = try XCTUnwrap(app.scrollViews.allElementsBoundByIndex.first {
             $0.buttons["settings-workspace-back"].exists
@@ -570,13 +572,20 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let other = section(route == "general" ? "playback" : "general", in: app)
         XCUIRemote.shared.press(usingRight ? .right : .select)
         let arrived = XCTNSPredicateExpectation(
-            predicate: NSPredicate { _, _ in selected.isEnabled && !other.isEnabled },
+            predicate: NSPredicate { _, _ in
+                !selected.exists && !other.exists && app.buttons["settings-category-back"].exists
+            },
             object: nil
         )
         XCTAssertEqual(XCTWaiter.wait(for: [arrived], timeout: 4), .completed,
                        "Native focus did not enter \(route). \(app.debugDescription)")
         capture("editing-\(route)", in: app)
-        XCUIRemote.shared.press(usingRight ? .left : .menu)
+        if usingRight {
+            try focus(app.buttons["settings-category-back"], in: app)
+            XCUIRemote.shared.press(.select)
+        } else {
+            XCUIRemote.shared.press(.menu)
+        }
         let returned = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in selected.isSelected && other.isEnabled },
             object: nil
@@ -586,11 +595,15 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
     }
 
     private func focus(_ target: XCUIElement, in app: XCUIApplication) throws {
+        guard target.waitForExistence(timeout: 5) else {
+            XCTFail("Missing focus target. \(app.debugDescription)")
+            return
+        }
         var requestedNavigation = false
         for _ in 0..<35 {
             if hasFocus(target) { return }
             let nativeFocused = app.descendants(matching: .any)
-                .matching(NSPredicate(format: "hasFocus == true")).firstMatch
+                .matching(NSPredicate(format: "hasFocus == true AND enabled == true")).firstMatch
             let selected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "settings-section-"))
                 .allElementsBoundByIndex.first(where: \.isSelected)
             guard let focused = nativeFocused.exists ? nativeFocused : selected else {
@@ -605,7 +618,10 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             let from = focused.frame
             let to = target.frame
             let general = section("general", in: app)
-            let sameDetail = general.exists && from.minX > general.frame.maxX && to.minX > general.frame.maxX
+            let fullWidthSettings = pageBack("settings-category-back", in: app).exists
+                || pageBack(in: app).exists || pageBack("live-tv-settings-back", in: app).exists
+            let sameDetail = fullWidthSettings
+                || (general.exists && from.minX > general.frame.maxX && to.minX > general.frame.maxX)
             if sameDetail && to.maxY <= from.minY {
                 XCUIRemote.shared.press(.up)
             } else if sameDetail && to.minY >= from.maxY {
@@ -622,8 +638,14 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
     }
 
     private func hasFocus(_ target: XCUIElement) -> Bool {
-        target.hasFocus || target.descendants(matching: .any)
+        guard target.exists, target.isEnabled else { return false }
+        return target.hasFocus || target.descendants(matching: .any)
             .matching(NSPredicate(format: "hasFocus == true")).firstMatch.exists
+    }
+
+    private func pageBack(_ identifier: String = "settings-workspace-back", in app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(identifier: identifier)
+            .matching(NSPredicate(format: "enabled == true")).firstMatch
     }
 
     private func capture(_ name: String, in app: XCUIApplication) {

@@ -19,6 +19,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   focus inset. The contained focus radius is the group's radius minus that
   inset, so the corners remain concentric. Existing checkmark groups keep
   their separate focus-bleed geometry.
+- **Settings page navigation** — the TV workspace uses `SettingsPageStack` for
+  retained, full-width child pages. Only the current page owns input,
+  accessibility and Back; a pop restores the originating link's focus after the
+  shared directional animation. `SettingsPageLink`, `SettingsPageDismiss` and
+  boolean destinations retain native navigation outside this workspace,
+  including iOS/iPadOS. `SettingsPageMotion` is also used by nested form and
+  subtitle panels, with Reduce Motion respected by their hosts.
 - **Native action controls** — `plozzActionButton` only selects the system
   glass/glass-prominent styles, or bordered styles on older systems. It adds no
   font, padding, capsule, border, focus effect or press scaling. Setup, profile/PIN,

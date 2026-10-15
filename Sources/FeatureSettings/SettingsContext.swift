@@ -183,8 +183,17 @@ extension SettingsRoute {
 @MainActor
 @Observable
 public final class SettingsNavigationModel {
+    #if os(tvOS)
+    let pages = SettingsPageNavigation<SettingsRoute>()
+    var path: [SettingsRoute] {
+        get { pages.routes }
+        set { pages.routes = newValue }
+    }
+    #else
     var path: [SettingsRoute] = []
+    #endif
     var section: SettingsRoute = .general
+    var isCategoryOpen = false
     var focusInDetail = false
     var restoringSidebar = true
     var enteringDetail = false
@@ -196,7 +205,7 @@ public final class SettingsNavigationModel {
     var appearanceRowID: String?
 
     var usesFullScreenDetail: Bool {
-        path.contains(where: \.usesFullScreenDetail)
+        isCategoryOpen || !path.isEmpty
     }
 
     public init() {}
@@ -219,17 +228,21 @@ public final class SettingsNavigationModel {
 
     func select(_ route: SettingsRoute) {
         guard section != route else { return }
-        path.removeAll()
+        resetPages()
+        isCategoryOpen = false
         section = route
     }
 
     func enterDetail() {
+        isCategoryOpen = true
         restoringSidebar = false
         enteringDetail = true
         detailFocusRequest += 1
     }
 
     func returnToSidebar() {
+        resetPages()
+        isCategoryOpen = false
         enteringDetail = false
         focusInDetail = false
         restoringSidebar = true
@@ -237,10 +250,18 @@ public final class SettingsNavigationModel {
     }
 
     func resetForProfile() {
-        path.removeAll()
+        resetPages()
         section = .general
         appearanceRowID = nil
         returnToSidebar()
+    }
+
+    private func resetPages() {
+        #if os(tvOS)
+        pages.reset()
+        #else
+        path.removeAll()
+        #endif
     }
 }
 

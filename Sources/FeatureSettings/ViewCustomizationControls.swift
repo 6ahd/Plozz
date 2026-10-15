@@ -117,7 +117,7 @@ struct ViewCustomizationList<Content: View>: View {
     var focusedHelp: (String) -> ViewCustomizationHelp? = { _ in nil }
     var sectionSpacing: CGFloat = SettingsRowMetrics.formRowSpacing
     @ViewBuilder var content: () -> Content
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
     @Environment(SettingsDetailNavigation.self) private var detailNavigation: SettingsDetailNavigation?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.themePalette) private var palette

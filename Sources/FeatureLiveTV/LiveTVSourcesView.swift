@@ -274,7 +274,7 @@ private struct LiveTVSourcesContent: View {
             if !model.configuration.playlists.isEmpty || !model.configuration.servers.isEmpty {
                 SettingsSectionGroup("Your sources") {
                     ForEach(model.configuration.playlists) { source in
-                        NavigationLink {
+                        SettingsPageLink {
                             LiveTVPlaylistSourceDetails(
                                 model: model, imports: imports, sourceID: source.id,
                                 didConfigurePlaylist: didConfigurePlaylist,
@@ -291,7 +291,7 @@ private struct LiveTVSourcesContent: View {
                         .accessibilityIdentifier("live-tv-source-details-\(source.id)")
                     }
                     ForEach(model.configuration.servers) { source in
-                        NavigationLink {
+                        SettingsPageLink {
                             LiveTVServerSourceDetails(
                                 model: model, imports: imports, sourceID: source.id,
                                 removeSource: { commitRemoval(.server($0)) }
@@ -335,7 +335,7 @@ private struct LiveTVSourcesContent: View {
                             .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                     }
                     if browseSource != nil {
-                        NavigationLink {
+                        SettingsPageLink {
                             LiveTVSourceFilterList(
                                 configuration: model.configuration,
                                 sourceFilterID: sourceFilterID, browseSource: browseSource
@@ -352,7 +352,7 @@ private struct LiveTVSourcesContent: View {
                         .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                     }
                     if let imports, imports.retainedProgramCount > 0 {
-                        NavigationLink {
+                        SettingsPageLink {
                             LiveTVSettingsPage(title: "Guide coverage") {
                                 LiveTVGuideOverview(imports: imports)
                             }
@@ -399,7 +399,7 @@ private struct LiveTVSourcesContent: View {
                 .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                 .accessibilityIdentifier("live-tv-add-playlist")
             } else {
-            NavigationLink {
+            SettingsPageLink {
                 LiveTVPlaylistEditor { input in
                     let previousIDs = Set(model.configuration.playlists.map(\.id))
                     try model.savePlaylist(input: input)
@@ -427,7 +427,7 @@ private struct LiveTVSourcesContent: View {
                 .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                 .accessibilityIdentifier("live-tv-import-playlist")
             } else if let imports, imports.supportsDurableCatalog {
-                NavigationLink {
+                SettingsPageLink {
                     LiveTVImportedPlaylistEditor(
                         sources: model, imports: imports, didConfigurePlaylist: didConfigurePlaylist,
                         didImportPlaylist: didImportPlaylist
@@ -442,7 +442,7 @@ private struct LiveTVSourcesContent: View {
                 .accessibilityIdentifier("live-tv-import-playlist")
             }
             #endif
-            NavigationLink {
+            SettingsPageLink {
                 LiveTVServerSetupView(
                     sources: model, choices: serverChoices,
                     resolver: serverProviderResolver, connectServer: connectServer
@@ -533,7 +533,7 @@ private struct LiveTVPlaylistSourceDetails: View {
     let removeSource: (LiveTVPlaylistSource) -> Bool
     var connectIPTV: ((LiveTVPlaylistSource?, IPTVCredential.Mode) -> Void)? = nil
     @State private var confirmsRemoval = false
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
     @Environment(\.managedProviderSetupRouter) private var providerSetupRouter
 
     var body: some View {
@@ -573,7 +573,7 @@ private struct LiveTVPlaylistSourceDetails: View {
                     )
                 }
                 SettingsSectionGroup {
-                    NavigationLink {
+                    SettingsPageLink {
                         if source.importedPlaylistID != nil {
                             LiveTVImportedPlaylistEditor(
                                 sources: model, imports: imports, original: source,
@@ -592,7 +592,7 @@ private struct LiveTVPlaylistSourceDetails: View {
                     .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                     .accessibilityIdentifier("live-tv-edit-source-\(source.id)")
                     if let scanCoordinator, scanCoordinator.sourceIDs.contains(source.id) {
-                        NavigationLink {
+                        SettingsPageLink {
                             LiveTVSettingsPage(title: "Check channels") {
                                 LiveTVScanSourceSection(
                                     coordinator: scanCoordinator, sourceID: source.id, sourceName: source.name
@@ -608,7 +608,7 @@ private struct LiveTVPlaylistSourceDetails: View {
                     }
                 }
                 SettingsSectionGroup {
-                    NavigationLink {
+                    SettingsPageLink {
                         LiveTVPlaylistGuideSettings(model: model, imports: imports, sourceID: source.id)
                     } label: {
                         SettingsRowLabel(icon: "calendar", title: "Guide options", trailing: {
@@ -618,7 +618,7 @@ private struct LiveTVPlaylistSourceDetails: View {
                     .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                     .accessibilityIdentifier("live-tv-source-guides-\(source.id)")
                     if let imports {
-                        NavigationLink {
+                        SettingsPageLink {
                             LiveTVSettingsPage(title: "Source details") {
                                 if let status = imports.playlistSources.first(where: { $0.id == sourceID }) {
                                     SettingsSectionGroup("Channels") {
@@ -692,7 +692,7 @@ private struct LiveTVPlaylistGuideSettings: View {
                         }
                         if imports.supportsDurableCatalog,
                            !source.guideURLs.isEmpty || imports.guideSources.contains(where: { $0.playlistSourceID == sourceID }) {
-                            NavigationLink {
+                            SettingsPageLink {
                                 LiveTVGuideMappingView(
                                     imports: imports, sourceID: sourceID, authorize: model.ensureCanMutate
                                 )
@@ -705,7 +705,7 @@ private struct LiveTVPlaylistGuideSettings: View {
                             .accessibilityIdentifier("live-tv-guide-mapping-\(sourceID)")
                         }
                         if let reviews = imports.identityReviews[sourceID], !reviews.isEmpty {
-                            NavigationLink {
+                            SettingsPageLink {
                                 LiveTVIdentityReviewView(
                                     imports: imports, sourceID: sourceID, authorize: model.ensureCanMutate
                                 )
@@ -809,7 +809,7 @@ private struct LiveTVServerSourceDetails: View {
     let sourceID: String
     let removeSource: (LiveTVServerSource) -> Bool
     @State private var confirmsRemoval = false
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
 
     var body: some View {
         if let source = model.configuration.servers.first(where: { $0.id == sourceID }) {
@@ -823,7 +823,7 @@ private struct LiveTVServerSourceDetails: View {
                         Label("Enabled", systemImage: "server.rack")
                     }
                     .accessibilityIdentifier("live-tv-source-enabled-\(source.id)")
-                    NavigationLink {
+                    SettingsPageLink {
                         LiveTVServerSourceRename(model: model, source: source)
                     } label: {
                         SettingsRowLabel(icon: "pencil", title: "Rename source", trailing: {
@@ -939,7 +939,7 @@ private struct LiveTVServerSourceRename: View {
     @State private var original: LiveTVServerSource
     @State private var name: String
     @State private var failure: LiveTVSourceManagementModel.Issue?
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
 
     init(model: LiveTVSourceManagementModel, source: LiveTVServerSource) {
         self.model = model

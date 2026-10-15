@@ -1,9 +1,45 @@
 #if canImport(SwiftUI)
 @testable import FeatureSettings
+import CoreUI
 import XCTest
 
 @MainActor
 final class SettingsWorkspaceNavigationTests: XCTestCase {
+    #if os(tvOS)
+    func testSharedStackRetainsRepeatedRouteIdentityAndReturnsToItsSource() {
+        let pages = SettingsPageNavigation<SettingsRoute>()
+        pages.animationsEnabled = false
+        let firstSource = UUID()
+        let secondSource = UUID()
+        pages.push(.about, sourceID: firstSource)
+        pages.push(.about, sourceID: secondSource)
+        let identities = pages.pages.map(\.id)
+        pages.routes.append(.help)
+        XCTAssertEqual(Array(pages.pages.prefix(2)).map(\.id), identities)
+        pages.pop()
+        XCTAssertEqual(pages.pages.map(\.id), identities)
+        pages.pop()
+        XCTAssertEqual(pages.returnSourceID, secondSource)
+        XCTAssertEqual(pages.routes, [.about])
+        pages.pop()
+        XCTAssertEqual(pages.returnSourceID, firstSource)
+        XCTAssertTrue(pages.pages.isEmpty)
+    }
+
+    func testSharedStackResetInvalidatesOutstandingReturnCompletion() async throws {
+        let pages = SettingsPageNavigation<SettingsRoute>()
+        pages.push(.artwork, sourceID: UUID())
+        pages.pop()
+        pages.reset()
+        pages.animationsEnabled = false
+        pages.push(.about)
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(pages.routes, [.about])
+        XCTAssertEqual(pages.returnGeneration, 0)
+        XCTAssertNil(pages.returnSourceID)
+    }
+    #endif
+
     func testGeneralIsTheInitialSectionAndSidebarOwnsEntry() {
         let navigation = SettingsNavigationModel()
         XCTAssertEqual(navigation.section, .general)
@@ -24,7 +60,7 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         XCTAssertEqual(navigation.section, .playback)
     }
 
-    func testFocusReturnDoesNotChangeSectionOrNavigationPath() {
+    func testReturningToCategoriesKeepsSectionAndDiscardsChildren() {
         let navigation = SettingsNavigationModel()
         navigation.select(.appearance)
         navigation.path = [.artwork]
@@ -34,7 +70,8 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         XCTAssertFalse(navigation.restoringSidebar)
         navigation.returnToSidebar()
         XCTAssertEqual(navigation.section, .appearance)
-        XCTAssertEqual(navigation.path, [.artwork])
+        XCTAssertTrue(navigation.path.isEmpty)
+        XCTAssertFalse(navigation.isCategoryOpen)
         XCTAssertFalse(navigation.focusInDetail)
         XCTAssertTrue(navigation.restoringSidebar)
     }
@@ -76,22 +113,25 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         XCTAssertFalse(navigation.focusInDetail)
     }
 
-    func testFullScreenDetailFollowsTheStyleRouteUntilItIsPopped() {
+    func testEveryCategoryRemainsFullScreenUntilExplicitReturn() {
         let navigation = SettingsNavigationModel()
-        navigation.select(.subtitles)
-        for liveTV in [false, true] {
-            navigation.path = [.subtitleStyle(liveTV: liveTV)]
+        for route: SettingsRoute in [.general, .myLibraries, .appearance, .subtitles, .liveTV, .metadata, .about] {
+            navigation.select(route)
+            navigation.enterDetail()
             XCTAssertTrue(navigation.usesFullScreenDetail)
+            navigation.focusInDetail = false
+            navigation.enteringDetail = false
+            XCTAssertTrue(navigation.usesFullScreenDetail, "Transient native focus loss must not reopen categories.")
             navigation.path.append(.about)
             XCTAssertTrue(navigation.usesFullScreenDetail)
             navigation.path.removeLast()
             XCTAssertTrue(navigation.usesFullScreenDetail)
-            navigation.path.removeLast()
+            navigation.returnToSidebar()
             XCTAssertFalse(navigation.usesFullScreenDetail)
-            XCTAssertEqual(navigation.section, .subtitles)
+            XCTAssertEqual(navigation.section, route)
         }
         navigation.path = [.artwork, .navigationLayout]
-        XCTAssertFalse(navigation.usesFullScreenDetail)
+        XCTAssertTrue(navigation.usesFullScreenDetail)
     }
 
     func testHouseholdRoutesRemainUnavailableToKidsEvenAfterUnlock() {

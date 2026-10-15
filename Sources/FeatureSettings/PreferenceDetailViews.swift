@@ -671,7 +671,7 @@ struct PlaybackDetailView: View {
                 title: "Subtitle style",
                 description: "Use the full player controls to customize subtitles, with a live preview."
             ) {
-                NavigationLink("Customize subtitle style", value: SettingsRoute.subtitleStyle(liveTV: false))
+                SettingsRouteLink("Customize subtitle style", value: SettingsRoute.subtitleStyle(liveTV: false))
             },
             SettingsSplitRow(
                 id: "live-subtitle-style",
@@ -681,7 +681,7 @@ struct PlaybackDetailView: View {
                 VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
                     Toggle("Use a separate style for Live TV", isOn: $subtitleStyle.usesSeparateLiveTVStyle)
                     if subtitleStyle.usesSeparateLiveTVStyle {
-                        NavigationLink("Customize Live TV subtitles", value: SettingsRoute.subtitleStyle(liveTV: true))
+                        SettingsRouteLink("Customize Live TV subtitles", value: SettingsRoute.subtitleStyle(liveTV: true))
                     }
                 }
             }

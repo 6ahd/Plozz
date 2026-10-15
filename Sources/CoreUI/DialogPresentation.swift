@@ -82,6 +82,7 @@ public extension View {
         #if os(tvOS)
         fullScreenCover(isPresented: isPresented, onDismiss: onDismiss) {
             PlozzDialogContent(content: content(), style: style)
+                .environment(\.settingsPageContext, nil)
         }
         #else
         sheet(isPresented: isPresented, onDismiss: onDismiss) {
@@ -98,6 +99,7 @@ public extension View {
         #if os(tvOS)
         fullScreenCover(item: item, onDismiss: onDismiss) { item in
             PlozzDialogContent(content: content(item), style: style)
+                .environment(\.settingsPageContext, nil)
         }
         #else
         sheet(item: item, onDismiss: onDismiss) { item in
@@ -114,6 +116,9 @@ public extension View {
     ) -> some View {
         fullScreenCover(isPresented: isPresented, onDismiss: onDismiss) {
             content().environment(\.plozzDialogBackgroundOwned, false)
+                #if os(tvOS)
+                .environment(\.settingsPageContext, nil)
+                #endif
         }
     }
 
@@ -123,6 +128,9 @@ public extension View {
     ) -> some View {
         fullScreenCover(item: item, onDismiss: onDismiss) { item in
             content(item).environment(\.plozzDialogBackgroundOwned, false)
+                #if os(tvOS)
+                .environment(\.settingsPageContext, nil)
+                #endif
         }
     }
     #endif

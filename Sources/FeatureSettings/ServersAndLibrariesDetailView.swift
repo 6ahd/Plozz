@@ -63,7 +63,7 @@ struct ServersAndLibrariesDetailView: View {
     /// One server's at-a-glance row with a clear chevron so the affordance
     /// reads as "tap to open a level deeper," not just status.
     private func serverSummaryRow(_ group: ServerAccountGroup) -> some View {
-        NavigationLink(value: SettingsRoute.server(key: group.serverKey)) {
+        SettingsRouteLink(value: SettingsRoute.server(key: group.serverKey)) {
             HStack(alignment: .top, spacing: 16) {
                 ProviderIcon(
                     provider: group.providerKind, size: 48, mediaShareTransport: group.transportKind,

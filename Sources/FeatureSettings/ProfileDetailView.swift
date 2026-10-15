@@ -79,7 +79,7 @@ struct ProfileDetailView: View {
     }
 
     private func profileRow(_ profile: Profile) -> some View {
-        NavigationLink(value: SettingsRoute.profileSettings(profileID: profile.id)) {
+        SettingsRouteLink(value: SettingsRoute.profileSettings(profileID: profile.id)) {
             HStack(alignment: .center, spacing: 16) {
                 ProfileAvatarView(profile: profile, size: 40)
                 VStack(alignment: .leading, spacing: 4) {

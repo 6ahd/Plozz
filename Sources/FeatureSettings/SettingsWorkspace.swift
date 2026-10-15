@@ -56,17 +56,21 @@ struct SettingsWorkspace<Sidebar: View, Detail: View>: View {
                         .transition(reduceMotion ? .identity : .move(edge: .leading).combined(with: .opacity))
                 }
 
-                NavigationStack(path: $navigation.path) {
-                    detail(navigation.section).id(navigation.section)
-                        .navigationDestination(for: SettingsRoute.self) { route in
-                            SettingsWorkspaceDestination(route: route) {
-                                detail(route)
-                            }
-                            // Lay out the incoming editor at its final size, not the animating navigation viewport's width.
-                            .frame(width: route.usesFullScreenDetail ? geometry.size.width : nil, alignment: .leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .onExitCommand { navigation.returnToSidebar() }
+                SettingsPageStack(
+                    navigation: navigation.pages, pageWidth: geometry.size.width,
+                    onRootBack: navigation.returnToSidebar
+                ) {
+                    detail(navigation.section)
+                        .id(navigation.section)
+                        .environment(\.settingsPageBackButton, fullScreen ? AnyView(Button {
+                            navigation.returnToSidebar()
+                        } label: {
+                            Label("Back", systemImage: "chevron.backward")
+                        }.accessibilityIdentifier("settings-category-back")) : nil)
+                } destination: { route in
+                    SettingsWorkspaceDestination(route: route) {
+                        detail(route)
+                    }
                 }
                 .toolbar(.hidden, for: .tabBar)
                 .safeAreaPadding(.top, 36)
@@ -75,19 +79,20 @@ struct SettingsWorkspace<Sidebar: View, Detail: View>: View {
                 .disabled(navigation.restoringSidebar)
                 .focusSection()
                 .background {
-                    NativeFocusRegionObserver {
+                    NativeFocusRegionObserver(isEnabled: !navigation.restoringSidebar) {
                         navigation.focusInDetail = true
+                        navigation.isCategoryOpen = true
                         navigation.restoringSidebar = false
                         navigation.enteringDetail = false
                     }
                 }
             }
-            .animation(reduceMotion ? nil : .smooth(duration: 0.38, extraBounce: 0), value: fullScreen)
+            .animation(reduceMotion ? nil : SettingsPageMotion.animation, value: fullScreen)
         }
         .environment(navigation)
         .environment(\.settingsInWorkspace, true)
         .onAppear {
-            if navigation.focusInDetail || !navigation.path.isEmpty {
+            if navigation.isCategoryOpen || !navigation.path.isEmpty {
                 navigation.enterDetail()
             } else {
                 navigation.returnToSidebar()
@@ -100,7 +105,7 @@ struct SettingsWorkspace<Sidebar: View, Detail: View>: View {
 private struct SettingsWorkspaceDestination<Content: View>: View {
     let route: SettingsRoute
     @ViewBuilder var content: () -> Content
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
 
     var body: some View {
         if route == .artwork || route == .navigationLayout {
@@ -112,6 +117,7 @@ private struct SettingsWorkspaceDestination<Content: View>: View {
                 } label: {
                     Label("Back", systemImage: "chevron.backward")
                 }.settingsWorkspaceEntry(route: route)
+                    .settingsPageEntryFocus(enabled: !route.usesFullScreenDetail)
                     .accessibilityIdentifier("settings-workspace-back")))
                 .toolbar(.hidden, for: .tabBar)
         }
@@ -127,6 +133,7 @@ struct SettingsSectionButton: View {
     @Environment(SettingsNavigationModel.self) private var navigation
     @Environment(\.settingsWorkspaceFocusScope) private var scope
     @Environment(\.resetFocus) private var resetFocus
+    @Environment(\.layoutDirection) private var layoutDirection
     @FocusState private var focused: Bool
 
     private var canReceiveFocus: Bool {
@@ -145,6 +152,12 @@ struct SettingsSectionButton: View {
             )
         }
         .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+        .onMoveCommand { direction in
+            if direction == (layoutDirection == .leftToRight ? .right : .left) {
+                navigation.select(route)
+                navigation.enterDetail()
+            }
+        }
         .focused($focused)
         .modifier(SettingsSectionFocusPreference(scope: scope, selected: navigation.section == route))
         .disabled(!canReceiveFocus)

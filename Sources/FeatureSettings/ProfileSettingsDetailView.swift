@@ -27,7 +27,7 @@ struct ProfileSettingsDetailView: View {
     /// set here can say when it's device-only.
     let syncEnabled: Bool
 
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
 
     /// Read live from the context so the page reflects edits made on it (a lock
     /// added, a rename) without needing its own copy to be invalidated.

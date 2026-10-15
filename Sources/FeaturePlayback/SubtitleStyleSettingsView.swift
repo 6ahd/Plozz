@@ -11,8 +11,10 @@ public struct SubtitleStyleSettingsView: View {
     @State private var prepared = false
     @State private var previewOptions = SubtitlePreviewOptions()
     #if os(tvOS)
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var screen = PlayerControls.SubtitleScreen.style
+    @State private var returningToParent = false
     #endif
 
     public init(style: Binding<SubtitleStyle>, isLiveTV: Bool = false) {
@@ -35,7 +37,8 @@ public struct SubtitleStyleSettingsView: View {
                 #if os(tvOS)
                 HStack(alignment: .center, spacing: 44) {
                     TelevisionSubtitleStyleColumn(
-                        context: context, screen: $screen, style: style,
+                        context: context, screen: Binding(get: { screen }, set: openScreen),
+                        returningToParent: returningToParent, style: style,
                         secondaryVisible: secondaryVisible, previewOptions: previewOptions
                     )
                         .frame(width: SubtitleStylePanel.panelWidth)
@@ -74,7 +77,7 @@ public struct SubtitleStyleSettingsView: View {
         .navigationTitle(Text(verbatim: ""))
         .onExitCommand {
             if screen == .style { dismiss() }
-            else { screen = screen.parent }
+            else { openScreen(screen.parent) }
         }
         #else
         .navigationTitle(Text(pageTitle))
@@ -98,6 +101,15 @@ public struct SubtitleStyleSettingsView: View {
     private var pageTitle: LocalizedStringResource {
         isLiveTV ? "Customize Live TV subtitles" : "Customize subtitle style"
     }
+
+    #if os(tvOS)
+    private func openScreen(_ next: PlayerControls.SubtitleScreen) {
+        returningToParent = next == screen.parent
+        withAnimation(reduceMotion ? nil : SettingsPageMotion.animation) {
+            screen = next
+        }
+    }
+    #endif
 
     private var pageInset: CGFloat {
         #if os(tvOS)
@@ -125,6 +137,7 @@ public struct SubtitleStyleSettingsView: View {
 private struct TelevisionSubtitleStyleColumn: View {
     let context: SubtitleStyleEditingContext
     @Binding var screen: PlayerControls.SubtitleScreen
+    let returningToParent: Bool
     let style: SubtitleStyle
     let secondaryVisible: Bool
     let previewOptions: SubtitlePreviewOptions
@@ -136,7 +149,9 @@ private struct TelevisionSubtitleStyleColumn: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
                     SettingsPageBackButton()
-                    TelevisionSubtitleStyleEditor(context: context, screen: $screen)
+                    TelevisionSubtitleStyleEditor(
+                        context: context, screen: $screen, returningToParent: returningToParent
+                    )
                 }
             }
             SubtitlePreviewControls(
@@ -150,10 +165,43 @@ private struct TelevisionSubtitleStyleColumn: View {
 private struct TelevisionSubtitleStyleEditor: View {
     let context: SubtitleStyleEditingContext
     @Binding var screen: PlayerControls.SubtitleScreen
+    let returningToParent: Bool
     @Environment(\.themePalette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focus: PlayerControls.FocusSlot?
 
     var body: some View {
+        ZStack(alignment: .topLeading) {
+            page
+                .id(screen)
+                .transition(reduceMotion ? .identity : SettingsPageMotion.transition(isReturning: returningToParent))
+        }
+        .mask { Rectangle().ignoresSafeArea(.container, edges: .vertical) }
+        .padding(.top, SettingsFormMetrics.groupInset)
+        .padding(.bottom, SettingsFormMetrics.headingInset)
+        .settingsGroupSurface(cornerRadius: 32)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("subtitle-style-editor-card")
+        .task(id: screen) {
+            focus = nil
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+            let style = context.effectiveStyle
+            switch screen {
+            case .styleFont:
+                focus = .row(style.systemFont == nil && style.fontDescriptor == nil
+                    ? SubtitleFontFamily.allCases.firstIndex(of: style.fontFamily) ?? 0
+                    : SubtitleFontFamily.allCases.count)
+            case .styleSystemFont:
+                focus = .row(SubtitleSystemFonts.all.firstIndex {
+                    $0.id == style.systemFont
+                } ?? 0)
+            default: focus = .row(0)
+            }
+        }
+    }
+
+    private var page: some View {
         VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
             HStack(spacing: 16) {
                 if screen != .style {
@@ -178,27 +226,6 @@ private struct TelevisionSubtitleStyleEditor: View {
                 secondaryPreview: context.secondaryPreview,
                 offersDualSubtitles: context.offersDualSubtitles
             )
-        }
-        .padding(.top, SettingsFormMetrics.groupInset)
-        .padding(.bottom, SettingsFormMetrics.headingInset)
-        .settingsGroupSurface(cornerRadius: 32)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("subtitle-style-editor-card")
-        .task(id: screen) {
-            focus = nil
-            await Task.yield()
-            let style = context.effectiveStyle
-            switch screen {
-            case .styleFont:
-                focus = .row(style.systemFont == nil && style.fontDescriptor == nil
-                    ? SubtitleFontFamily.allCases.firstIndex(of: style.fontFamily) ?? 0
-                    : SubtitleFontFamily.allCases.count)
-            case .styleSystemFont:
-                focus = .row(SubtitleSystemFonts.all.firstIndex {
-                    $0.id == style.systemFont
-                } ?? 0)
-            default: focus = .row(0)
-            }
         }
     }
 

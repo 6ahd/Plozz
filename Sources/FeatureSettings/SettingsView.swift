@@ -36,7 +36,6 @@ public struct SettingsView: View {
     /// App-wide media-share scan/enrich status. Optional so previews/tests that
     /// don't inject it don't crash. Drives the status card at the top of this
     /// page — the home for progress that used to float over Home's top-right.
-    @Environment(ShareScanStatusModel.self) private var shareScanStatus: ShareScanStatusModel?
 
     /// The parental-control header includes an optional second line.
     private static let identityAvatarSize: CGFloat = 58
@@ -365,16 +364,6 @@ public struct SettingsView: View {
         SettingsWorkspace(navigation: navigation) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
-                    // Live media-share scan/enrich progress, when any share is
-                    // working. Sits above everything so it's the first thing the
-                    // page reports; renders nothing at all when idle. This is
-                    // where the old floating Home status pill went — Home stays
-                    // clear of it, and this is where you'd come to look.
-                    ShareScanStatusHeader(
-                        status: shareScanStatus,
-                        shareIDs: mediaShareAccountIDs
-                    )
-
                     // The active profile's own container comes FIRST. Almost
                     // everything anyone opens Settings to change is in here —
                     // playback, appearance, trackers — while the device-shared
@@ -450,18 +439,6 @@ public struct SettingsView: View {
     }
 
     // MARK: - Profile container (header + all settings this profile owns)
-
-    /// Media-share account ids signed in on this Apple TV. Scoping the status
-    /// header to these means a removed share's late scanner event can't leave a
-    /// ghost row. NOT narrowed to the active profile's subset — scanning is a
-    /// device-level background job, and this heads the device-shared page.
-    private var mediaShareAccountIDs: Set<String> {
-        Set(
-            accounts
-                .filter { $0.server.provider == .mediaShare }
-                .map(\.id)
-        )
-    }
 
     /// One visual container that wraps the active profile's identity AND
     /// every setting it saves. The profile header is the *top* of the same
@@ -1166,7 +1143,7 @@ public struct SettingsView: View {
                 }
                 if syncEnabled, syncRepair != nil {
                     SettingsPanel(contentPadding: .settingsPanelRowContent) {
-                        NavigationLink(value: SettingsRoute.syncTroubleshooting) {
+                        SettingsRouteLink(value: SettingsRoute.syncTroubleshooting) {
                             SettingsRowLabel(
                                 icon: "wrench.and.screwdriver",
                                 title: "Troubleshooting",
@@ -1336,7 +1313,7 @@ public struct SettingsView: View {
         route: SettingsRoute,
         @ViewBuilder secondary: () -> Secondary
     ) -> some View {
-        NavigationLink(value: route) {
+        SettingsRouteLink(value: route) {
             SettingsRowLabel(icon: icon, assetIcon: assetIcon, title: title, secondary: secondary) {
                 HStack(spacing: 16) {
                     if let value {

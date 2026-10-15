@@ -38,8 +38,11 @@ and the single place caption customization lives.
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing
   its watched/unwatched style.
-- `SettingsView` / `SettingsWorkspace` — tvOS keeps two fixed columns: profile
-  identity and categories on the left, the selected section on the right.
+- `SettingsView` / `SettingsWorkspace` — tvOS previews categories in two columns:
+  profile identity and categories on the left, the selected section on the right.
+  Entering a category slides the sidebar away and gives the section the full
+  workspace. Back from the category restores its sidebar selection; Back from
+  a child returns one page without reopening the sidebar.
   General is initially visible. The avatar/name switches profiles; the adjacent
   Edit action uses the same `ProfileActionsList` as the profile picker.
   Profile and Everyone headers share title weight/size, icon width, label gap
@@ -55,14 +58,16 @@ and the single place caption customization lives.
   Subtitles is its own profile category for mode, the shared/Live TV style
   editors, language, downloading and per-series memory; downloading still
   follows the active profile's provider capabilities.
-  Both subtitle-style editors reclaim the full screen: the category column
-  slides and fades away as the detail expands, then returns with Back to the
-  same Subtitles section. Reduce Motion changes the layout without the slide.
+  Both subtitle-style editors keep the category's full width. The shared
+  `SettingsPageStack` retains parents and owns typed routes, local child pages,
+  and Back, including IPTV and profile editors. All use the same directional
+  timing as the subtitle editor's internal panels. Reduce Motion changes the
+  layout without the slide.
   The incoming and outgoing style destination always lays out at the final
   workspace width; the navigation viewport reveals it without resizing the preview.
   Hidden or focus-ineligible categories also stop observing native focus, so
   an editor control cannot be mistaken for a category during the transition.
-  The existing navigation stack and profile context remain intact, including
+  The navigation history and profile context remain intact, including
   inside the editor's font and appearance subpages.
   Libraries, Live TV and Trackers remain profile-owned. Household setup is
   separate under Everyone; About and Help & Diagnostics have their own entries.
@@ -85,6 +90,12 @@ and the single place caption customization lives.
 - `ServerDetailView` + `ServersAndLibrariesDetailView` — manage stored
   household servers / accounts (`AccountStore`) and remove accounts.
   `MyLibrariesDetailView` owns the active profile's server-user and library choices.
+  On TV, each enabled media-share section shows its own compact update phase,
+  progress bar and known percentage. Only accounts included in the current
+  profile contribute; idle, excluded and removed shares show no status. Progress
+  observation stays in that small row, not the Settings workspace. Other Settings
+  categories no longer carry a global scan card; mobile and browsing banners
+  retain their existing behavior.
 - `IntegrationsDetailView` — "Trackers" page: connect/disconnect for Trakt,
   Simkl, AniList & MyAnimeList (delegates to each tracker service) plus the
   Watch Status across-servers sync toggle.

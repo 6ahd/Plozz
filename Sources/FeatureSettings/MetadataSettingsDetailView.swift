@@ -430,7 +430,7 @@ public struct MetadataSettingsDetailView: View {
 
     private var diagnosticsLink: some View {
         SettingsPanel(contentPadding: .settingsPanelRowContent) {
-            NavigationLink(value: SettingsRoute.metadataDiagnostics) {
+            SettingsRouteLink(value: SettingsRoute.metadataDiagnostics) {
                 SettingsRowLabel(
                     icon: "chart.bar.xaxis",
                     title: "Diagnostics"
