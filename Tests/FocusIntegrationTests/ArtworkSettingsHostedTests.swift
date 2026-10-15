@@ -200,6 +200,35 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         }
     }
 
+    func testHeroSourceSummaryFollowsLiveLocaleChanges() async throws {
+        let namespace = "HeroLocaleHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        models.heroSettingsModel.settings.sources = [.continueWatching]
+        let locale = HeroHostedLocale()
+        try await withScreen(content: HeroLocaleHostedControls(locale: locale)
+            .frame(width: 1100)
+            .environment(models.heroSettingsModel)
+            .environment(models.heroBackgroundModel)
+            .buttonStyle(SettingsFocusButtonStyle())
+            .toggleStyle(SettingsSwitchToggleStyle())) { window in
+            for (identifier, expected, previous) in [
+                ("en_US", "Continue Watching", "Seguir viendo"),
+                ("es", "Seguir viendo", "Continue Watching"),
+                ("en_US", "Continue Watching", "Seguir viendo"),
+            ] {
+                locale.value = Locale(identifier: identifier)
+                let shown = try await self.capture(window, name: "hero-summary-\(identifier)", includeMaster: true)
+                XCTAssertTrue(shown.contains(expected), shown)
+                XCTAssertFalse(shown.contains(previous), shown)
+            }
+        }
+    }
+
     func testHeroKeepsEverydayControlsInlineAndReturnsNativeFocusToNamedPages() async throws {
         let namespace = "HeroHierarchyHosted.\(UUID())"
         let models = ProfileSettingsModel(namespace: namespace)
@@ -1514,6 +1543,25 @@ private struct SettingsScaleFixture: View {
 @MainActor
 private protocol ArtworkFocusRequesting: AnyObject {
     var artworkFocusTarget: (any UIFocusEnvironment)? { get set }
+}
+
+@MainActor
+private final class HeroHostedLocale: ObservableObject {
+    @Published var value = Locale(identifier: "en_US")
+}
+
+private struct HeroLocaleHostedControls: View {
+    @ObservedObject var locale: HeroHostedLocale
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: SettingsRowMetrics.formSectionSpacing) {
+                HeroSettingsControls(libraries: [], accounts: [])
+            }
+            .padding(48)
+        }
+        .environment(\.locale, locale.value)
+    }
 }
 
 private struct HeroPickerHostedProvider: MediaProvider, CapabilityReporting {

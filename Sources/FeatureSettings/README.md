@@ -12,7 +12,8 @@ and the single place caption customization lives.
   The shared rating-count picker is visibly labeled **Maximum ratings shown**:
   it caps available scores rather than promising every title has that many.
   **Hero content sources** is the source-selection page; its link summarizes the
-  currently permitted selections. Library, collection, Watchlist variety, and
+  currently permitted selections using the current app locale for both source
+  labels and list formatting. Library, collection, Watchlist variety, and
   Discovery options use the shared `ViewPreferenceChoiceGroup` with the source
   they configure, so a source toggle and its links form one visual group.
   TV forms share row/section spacing and contained, concentric focus geometry;

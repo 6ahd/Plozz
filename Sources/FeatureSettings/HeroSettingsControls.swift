@@ -240,7 +240,7 @@ private struct HeroTitleSourceSummary: View {
             Text(sources.map { source in
                 var title = source.displayName
                 title.locale = locale
-                return String(localized: title)
+                return String(localized: title) // l10n:content - Foundation list boundary; resolved from the environment locale on every body update.
             }, format: .list(type: .and).locale(locale))
         }
     }
