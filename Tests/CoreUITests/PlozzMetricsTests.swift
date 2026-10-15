@@ -7,6 +7,13 @@ import CoreModels
 final class PlozzMetricsTests: XCTestCase {
     func testSettingsControlLabelsUseTheNavigationBodyFont() {
         XCTAssertEqual(SettingsRowMetrics.titleFont, Font.body)
+        #if os(tvOS)
+        XCTAssertEqual(SettingsRowMetrics.descriptionFont, Font.caption)
+        #else
+        XCTAssertEqual(SettingsRowMetrics.descriptionFont, Font.footnote)
+        #endif
+        XCTAssertGreaterThan(SettingsRowMetrics.segmentedTrackInset, 0)
+        XCTAssertLessThan(SettingsRowMetrics.segmentedTrackInset, SettingsRowMetrics.verticalPadding(.primary))
     }
 
     func testContainedSettingsFocusCornersAreConcentricWithTheirGroup() {

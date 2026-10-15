@@ -102,6 +102,12 @@ and the single place caption customization lives.
 
 ## Invariants
 
+- **Shared TV control scale.** Tri-state segments, reorder labels, compact preview-card
+  captions, and form controls use `SettingsRowMetrics.titleFont`. Feature and group
+  descriptions share the smaller `descriptionFont`. Segmented tracks and single-line
+  reorder rows match the shared primary control height; selection marks reserve their
+  space so choosing an option does not resize the track. Focus still only previews an
+  option: Select commits it. Reorder lift/drop behavior and mobile sizing are unchanged.
 - **Artwork and label presets.** Choosing any preset, including reselecting the
   previous one, replaces the whole configuration through `applyPreset`. Editing
   a view switches to Custom: no preset is selected, and a single badge appears on

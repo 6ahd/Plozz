@@ -182,8 +182,7 @@ private struct NightShiftScheduleControl: View {
             .tvOSFocusSection()
 
             Text(describedMode.detail)
-                .font(.callout)
-                .plozzForeground(.secondary)
+                .settingsHelperText()
                 .fixedSize(horizontal: false, vertical: true)
                 .contentTransition(.opacity)
                 .frame(maxWidth: .infinity, alignment: .leading)

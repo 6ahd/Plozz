@@ -852,8 +852,7 @@ private struct DescribedSegmentedPicker<Option: Hashable>: View {
                 onFocusedOptionChange: { focusedOption = $0 }
             )
             Text(detail(describedOption))
-                .font(.callout)
-                .plozzForeground(.secondary)
+                .settingsHelperText()
                 .fixedSize(horizontal: false, vertical: true)
                 .contentTransition(.opacity)
                 .frame(maxWidth: .infinity, alignment: .leading)

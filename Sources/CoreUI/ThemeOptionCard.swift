@@ -304,6 +304,13 @@ public struct PreviewCard<Swatch: View>: View {
         self.swatch = swatch
     }
 
+    private var titleFont: Font {
+        #if os(tvOS)
+        if compact { return SettingsRowMetrics.titleFont }
+        #endif
+        return compact ? .headline : .title3.weight(.semibold)
+    }
+
     public var body: some View {
         Button(action: action) {
             VStack(spacing: compact ? 10 : 18) {
@@ -320,7 +327,7 @@ public struct PreviewCard<Swatch: View>: View {
                         }
                         Text(title)
                     }
-                    .font(compact ? .headline : .title3.weight(.semibold))
+                    .font(titleFont)
                     .lineLimit(titleLineLimit)
                     .minimumScaleFactor(0.8)
                     .fixedSize(horizontal: false, vertical: true)
