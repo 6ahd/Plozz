@@ -374,7 +374,17 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   native image or trigger artwork/status rendering. A mounted poster prepares
   its latest inputs at the committed UIKit size, with a per-poster autorelease
   pool for temporary raster surfaces. Creation uses shared loading surfaces
-  (evictable cache targets: 8 entries, 4 MiB), not per-item composition.
+  (bounded to 8 entries, 4 MiB), not per-item composition.
+  Cold source-image conversion runs on the same two-operation worker lane as
+  Browse, never synchronously inside native poster layout. The existing native
+  image view receives the finished pixels without replacing its focus owner.
+  Identical pending requests coalesce; replacement, detachment and dismantling
+  cancel work, and generation checks reject stale completions. A replacement
+  shows a safe placeholder rather than the previous title or unprotected artwork.
+  SwiftUI indicator and protected/extended treatment preparation still requires
+  the main actor. Final Home and Browse bitmaps share one memory-budgeted cache;
+  warm returning artwork paints immediately, and a memory warning prevents
+  in-flight work from repopulating a purged cache.
   Ordinary artwork uses one final normalized/composited surface rather than
   retaining an additional unmarked full-size copy per card. Identical status
   presentations share concrete pixels in a separate 24 MiB/64-entry cache;
@@ -388,7 +398,7 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Ordinary watch flags/check badges use opaque white; episode-count tiles keep
   their dark fill and white text.
   This keeps lazy-row estimation out of the expensive rendering path without
-  delaying first paint through another observable loading state.
+  adding another observable loading state to the row.
   Portrait television rows fit six full cards and a quarter of the seventh at
   standard display size. `PlozzMetrics.portraitRowSlotWidth` uses the actual
   navigation-safe viewport and visible card margins, shared by loaded cards,

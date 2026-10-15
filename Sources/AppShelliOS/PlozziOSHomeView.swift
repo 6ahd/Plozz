@@ -2680,7 +2680,10 @@ private final class PlozziOSArtworkPrefetchTasks {
     }
 }
 
-private struct PlozziOSHomeMediaCard: View {
+struct PlozziOSHomeMediaCard: View {
+    #if DEBUG
+    static var routingResolutionCount = 0
+    #endif
     @Environment(PlozziOSAppModel.self) private var appModel
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let item: MediaItem
@@ -2694,12 +2697,6 @@ private struct PlozziOSHomeMediaCard: View {
 
     var body: some View {
         let playsDirectly = interaction == .play && railPlay != nil && item.isPlayableNow
-        let accounts = appModel.accountsProviders.resolvedActiveAccounts
-        let identitySources = appModel.identityIndex.identitySourcesProvider
-        let detailItem = playsDirectly
-            ? PlaybackSourceSelection.bestPlayItem(item, accounts: accounts, identitySources: identitySources)
-            : PlaybackSourceSelection.bestDetailItem(item, accounts: accounts, identitySources: identitySources)
-        let detailProvider = appModel.provider(for: detailItem) ?? provider
         Group {
             // A Continue Watching card resumes; every other rail opens detail.
             // Playing needs a handler installed by the page that owns the player,
@@ -2707,16 +2704,13 @@ private struct PlozziOSHomeMediaCard: View {
             // nothing to run — so both fall back to the detail push rather than
             // opening a broken player.
             if playsDirectly, let railPlay {
-                Button { railPlay(detailItem) } label: { card }
+                Button {
+                    railPlay(Self.resolvedItem(item, appModel: appModel, playsDirectly: true))
+                } label: { card }
                     .buttonStyle(.plain)
-            } else if let detailProvider {
+            } else if provider != nil || !appModel.accountsProviders.resolvedActiveAccounts.isEmpty {
                 NavigationLink {
-                    PlozziOSItemDetailView(
-                        appModel: appModel,
-                        provider: detailProvider,
-                        item: detailItem,
-                        seerService: appModel.seerService
-                    )
+                    PlozziOSHomeCardDetail(item: item, fallbackProvider: provider)
                     .environment(\.plozzMetrics, .touch(
                         density: appModel.settings.density.density, dynamicTypeSize: dynamicTypeSize))
                     .environment(\.plozzCardCaptionView, .related)
@@ -2728,6 +2722,19 @@ private struct PlozziOSHomeMediaCard: View {
                 card
             }
         }
+    }
+
+    static func resolvedItem(
+        _ item: MediaItem, appModel: PlozziOSAppModel, playsDirectly: Bool
+    ) -> MediaItem {
+        #if DEBUG
+        Self.routingResolutionCount += 1
+        #endif
+        let accounts = appModel.accountsProviders.resolvedActiveAccounts
+        let identitySources = appModel.identityIndex.identitySourcesProvider
+        return playsDirectly
+            ? PlaybackSourceSelection.bestPlayItem(item, accounts: accounts, identitySources: identitySources)
+            : PlaybackSourceSelection.bestDetailItem(item, accounts: accounts, identitySources: identitySources)
     }
 
     @ViewBuilder
@@ -2772,6 +2779,29 @@ private struct PlozziOSHomeMediaCard: View {
         return appModel.downloads.records.first {
             $0.identityKey == downloadRecord.identityKey
         } ?? downloadRecord
+    }
+}
+
+private struct PlozziOSHomeCardDetail: View {
+    @Environment(PlozziOSAppModel.self) private var appModel
+    let item: MediaItem
+    let fallbackProvider: (any MediaProvider)?
+
+    var body: some View {
+        // NavigationLink constructs its destination value while browsing. Keep
+        // source resolution in the destination's body, after it is activated.
+        let target = PlozziOSHomeMediaCard.resolvedItem(item, appModel: appModel, playsDirectly: false)
+        if let provider = appModel.provider(for: target) ?? fallbackProvider {
+            PlozziOSItemDetailView(
+                appModel: appModel, provider: provider, item: target, seerService: appModel.seerService
+            )
+        } else {
+            ContentUnavailableView(
+                "Server unavailable",
+                systemImage: "exclamationmark.triangle",
+                description: Text("This title's server is no longer connected.")
+            )
+        }
     }
 }
 

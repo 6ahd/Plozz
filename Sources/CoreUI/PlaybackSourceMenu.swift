@@ -269,6 +269,21 @@ public struct PlaybackSourceMenuButton<Label: View>: View {
     }
 }
 
+struct PlaybackSourceVersionPresentation {
+    let title: String? // l10n:content - provider edition/name and preformatted media facts
+    let supplementalFacts: [String]
+
+    init(_ version: MediaVersion) {
+        title = version.displayLabel
+        let titleFacts = Set((title ?? "").components(separatedBy: " · "))
+        // Resolution, HDR, source quality and size are already in displayLabel.
+        // Rebuilding menuFacts reparses the edition/name without adding a fact.
+        supplementalFacts = [version.audioLabel, version.bitrateLabel, version.durationLabel]
+            .compactMap { $0 }
+            .filter { !titleFacts.contains($0) }
+    }
+}
+
 private struct PlaybackSourceMenuPanel: View {
     @Binding var page: PlaybackSourceMenuButtonPage
     /// Ceiling imposed by the room available on the trigger's chosen side.
@@ -595,18 +610,16 @@ private struct PlaybackSourceMenuPanel: View {
             // already shows; the actual rendered title below branches on the
             // Optional so the "Version" fallback stays a translatable resource
             // rather than a `Text(String)` that would always render verbatim.
-            let titleForDedupe = version.displayLabel ?? ""
-            let titleFacts = Set(titleForDedupe.components(separatedBy: " · "))
-            let supplementalFacts = version.menuFacts.filter { !titleFacts.contains($0) }
+            let presentation = PlaybackSourceVersionPresentation(version)
             menuRowButton(id: "version.\(version.id)") {
                 onSelectVersion(version.id)
             } label: {
                 HStack(alignment: .top, spacing: 14) {
                     VStack(alignment: .leading, spacing: 5) {
-                        versionTitleText(version.displayLabel)
+                        versionTitleText(presentation.title)
                             .font(rowTitleFont)
-                        if !supplementalFacts.isEmpty {
-                            Text(supplementalFacts.joined(separator: " · "))
+                        if !presentation.supplementalFacts.isEmpty {
+                            Text(presentation.supplementalFacts.joined(separator: " · "))
                                 .font(rowDetailFont)
                                 .settingsRowSecondary()
                                 .fixedSize(horizontal: false, vertical: true)

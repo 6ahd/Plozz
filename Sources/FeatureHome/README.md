@@ -68,6 +68,10 @@ fallback when the user's server has no attached trailer.
   On mobile, a root-owned `LazyViewState` retains the shared Home/Watchlist
   model by profile, credentials and active accounts. Rebuilding the tab shell
   for settings/theme changes must not construct and rehydrate throwaway models.
+  Mobile cards defer identity-index source resolution until direct-play activation
+  or the detail destination's body. Browsing and metadata updates do not resolve
+  every visible card. Activation reads current accounts/index contents while
+  preserving explicit detail editions and folder/collection routing.
   Both platforms recheck hero Watchlist membership immediately, but memoize
   supporting-source identity tokens by the full current row values. No
   supporting index is built without exclusions; source-scope changes clear it.
