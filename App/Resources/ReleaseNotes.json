@@ -2,6 +2,24 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/056.1",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.1",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Fixed",
+          "items": [
+            {
+              "text": "A crash when opening hero settings from Customize Home.",
+              "platforms": ["iOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/056",
       "version": "2026.10.14",
       "marketingVersion": "2026.9.25",

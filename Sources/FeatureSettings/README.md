@@ -23,7 +23,10 @@ and the single place caption customization lives.
   **Seconds per item** control share a group without a redundant section heading.
   Mobile source groups use separate native Section rows; grouped-page links
   use independent buttons with native navigation destinations so no link can
-  claim a sibling switch's cell action.
+  claim a sibling switch's cell action. Each mobile destination explicitly receives
+  the link's existing profile-scoped hero and trailer settings models, including
+  nested source pages; page-local environment injection does not cross the native
+  navigation boundary.
   **Discovery** consistently means external recommendations; its
   provider selections and **Show provider labels** attribution toggle live together.
   Ratings, trailers, and the longer source/provider/library/collection lists use subpages. TV uses

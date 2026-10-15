@@ -745,6 +745,64 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Rows on Home"].exists)
     }
 
+    func testHeroSettingsNavigationKeepsProfileModelsAndEdits() {
+        openSettingsPage("Customize Home")
+        for (page, title, setting) in [
+            ("ratings", "Ratings", "hero-ratings"),
+            ("trailers", "Trailers", "hero-trailers")
+        ] {
+            let link = app.buttons["hero-settings-\(page)"]
+            reveal(link)
+            link.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
+            let toggle = app.switches[setting]
+            XCTAssertTrue(toggle.waitForExistence(timeout: 3), app.debugDescription)
+            let before = toggle.value as? String
+            tapNativeSwitch(toggle)
+            let after = toggle.value as? String
+            XCTAssertNotEqual(after, before)
+            app.navigationBars[title].buttons.firstMatch.tap()
+            XCTAssertTrue(app.navigationBars["Customize Home"].waitForExistence(timeout: 3))
+            reveal(link)
+            XCTAssertTrue(link.label.contains(after == "1" ? "On" : "Off"), link.label)
+            link.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3))
+            XCTAssertEqual(toggle.value as? String, after, "Reopening must use the same profile model.")
+            app.navigationBars[title].buttons.firstMatch.tap()
+        }
+    }
+
+    func testNestedHeroSettingsNavigationKeepsProfileModels() {
+        openSettingsPage("Customize Home")
+        let sources = app.buttons["hero-settings-titles"]
+        reveal(sources)
+        sources.tap()
+        XCTAssertTrue(app.navigationBars["Hero content sources"].waitForExistence(timeout: 5))
+        for (source, page, title, content) in [
+            ("Random from Library", "libraries", "Random libraries", "No movie or TV libraries are enabled on Home."),
+            ("Collections", "collections", "Choose collections", "No available collection sources."),
+            ("Discovery", "discovery", "Discovery", "Show provider labels")
+        ] {
+            let toggle = app.switches[source]
+            reveal(toggle, fullyVisible: true)
+            if toggle.value as? String != "1" { tapNativeSwitch(toggle) }
+            let link = app.buttons["hero-settings-\(page)"]
+            reveal(link)
+            link.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(app.staticTexts[content].firstMatch.waitForExistence(timeout: 3), app.debugDescription)
+            if page == "discovery" {
+                let labels = app.switches["Show provider labels"]
+                let before = labels.value as? String
+                tapNativeSwitch(labels)
+                XCTAssertNotEqual(labels.value as? String, before)
+            }
+            app.navigationBars[title].buttons.firstMatch.tap()
+            XCTAssertTrue(app.navigationBars["Hero content sources"].waitForExistence(timeout: 3))
+            XCTAssertEqual(toggle.value as? String, "1", "Nested navigation must not replace the source settings.")
+        }
+    }
+
     func testHomeRowArrangementAndArtworkMenuKeepSeparateActions() {
         openSettingsPage("Customize Home")
         let artwork = button("Continue Watching")
