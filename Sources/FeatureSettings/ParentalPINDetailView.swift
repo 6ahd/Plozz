@@ -44,6 +44,7 @@ struct ParentalPINDetailView: View {
                                     .settingsRowSecondary()
                             }
                         }
+                        .settingsWorkspaceEntry()
 
                         if hasPIN {
                             Button(role: .destructive) {

@@ -38,16 +38,24 @@ and the single place caption customization lives.
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing
   its watched/unwatched style.
-- `SettingsView` — the root focused list (themes, profiles, servers &
-  libraries, integrations, captions, about). `SettingsRowStyle` &
-  `SettingsContext` provide the shared look + the environment needed by
-  every detail page.
+- `SettingsView` / `SettingsWorkspace` — tvOS keeps two fixed columns: profile
+  identity and categories on the left, the selected section on the right.
+  General is initially visible. The avatar/name switches profiles; the adjacent
+  Edit action uses the same `ProfileActionsList` as the profile picker.
+  `SettingsFormLayout` groups related controls into one vertical form, retaining
+  child pages for longer editors. General owns language, theme and spoilers;
+  Appearance & Layout owns Customize Home, display size, artwork, cards,
+  navigation, Music Player, Circadian Mode and Detail Page. Playback groups
+  subtitles, audio, autoplay/Up Next, marker skipping, seeking and display fades.
+  Libraries, Live TV and Trackers remain profile-owned. Household setup is
+  separate under Everyone; About and Help & Diagnostics have their own entries.
+  `SettingsRowStyle` and `SettingsContext` provide shared controls and dependencies.
 - `ProfileDetailView` — manage the active profile: rename, recolor,
   switch / sign out of accounts, configure the Plex Home-user mapping
   (`PlexLinkedUserDetailView`).
 - `ServerDetailView` + `ServersAndLibrariesDetailView` — manage stored
-  servers / accounts (`AccountStore`), pick which Jellyfin libraries the
-  current profile includes, remove accounts.
+  household servers / accounts (`AccountStore`) and remove accounts.
+  `MyLibrariesDetailView` owns the active profile's server-user and library choices.
 - `IntegrationsDetailView` — "Trackers" page: connect/disconnect for Trakt,
   Simkl, AniList & MyAnimeList (delegates to each tracker service) plus the
   Watch Status across-servers sync toggle.
@@ -102,6 +110,32 @@ and the single place caption customization lives.
   `python3 -c "import cairosvg; cairosvg.svg2pdf(url='docs/assets/discord-mark.svg', write_to='App/Resources/CommunityAssets.xcassets/DiscordMark.imageset/discord_mark.pdf')"`.
 
 ## Invariants
+
+- **TV navigation ownership.** Focusing a category previews its section; Select
+  or Right enters its first control. Left returns to the selected category.
+  Back pops a child, then returns to categories, then leaves Settings for the
+  previous available app destination. MainTabView presents the workspace outside
+  the navigation-style shell, retaining the hidden shell while excluding it from
+  focus and accessibility. This prevents native sidebar adaptation from expanding
+  a right-pane destination across both columns. Changing navigation style retains
+  the Settings section and typed child path; all three styles restore on exit.
+  Focus requests are separate from native focus arrival: competing controls stay
+  gated until `NativeFocusRegionObserver` confirms ownership.
+- **Profile and parental scope.** Switching profile or changing Kids/PIN status
+  resets the workspace. Parental unlock proof is tied to the active profile and
+  current PIN verifier, not a persistent boolean. Route rendering enforces the
+  same restrictions as category visibility, including artwork/metadata cross-links.
+  A PIN unlock opens the selected protected pane in place; it must not dismiss
+  Settings. Kids without a household PIN retain their simplified, unsealed setup.
+  Mobile keeps its existing Settings navigation and control layouts.
+- **Review capture.** `SettingsWorkspaceRemoteTests` is opt-in through
+  `PLOZZ_SETTINGS_REVIEW=1` and runs only against the real app on an explicitly
+  owned simulator. The DEBUG-only `PLOZZ_SHOTS_SETTINGS=1` launch fixture uses
+  fictional Alex/Sam profiles. `PLOZZ_SHOTS_SETTINGS_NAVIGATION` chooses the
+  initial navigation style; `PLOZZ_SHOTS_SETTINGS_KIDS` configures the test child
+  as `off`, `no-pin`, or `pin`. These fixtures are never enabled on physical TVs
+  or normal launches. Attachments include native screenshots and accessibility
+  trees, not browser mockups.
 
 - **Artwork and label presets.** Choosing any preset, including reselecting the
   previous one, replaces the whole configuration through `applyPreset`. Editing

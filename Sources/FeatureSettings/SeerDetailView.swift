@@ -89,6 +89,7 @@ struct SeerDetailView: View {
 
                 TextField("Server address (e.g. https://requests.example.com)", text: $urlText)
                     .textContentType(.URL)
+                    .settingsWorkspaceEntry()
                     #if os(tvOS) || os(iOS)
                     .keyboardType(.URL)
                     .autocorrectionDisabled(true)
@@ -196,6 +197,7 @@ struct SeerDetailView: View {
                 } label: {
                     Label("Disconnect", systemImage: "xmark.circle")
                 }
+                .settingsWorkspaceEntry()
             }
         }
     }

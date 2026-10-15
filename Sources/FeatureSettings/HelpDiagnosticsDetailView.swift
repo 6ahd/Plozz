@@ -50,7 +50,11 @@ struct HelpDiagnosticsDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                #if os(tvOS)
+                SettingsPageHeader("Help & Diagnostics")
+                #endif
                 reportPanel
+                    .settingsWorkspaceEntry()
                 sendDiagnosticsPanel
                 crashReportingPanel
                 diagnosticsPanel

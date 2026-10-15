@@ -10,6 +10,9 @@ public struct LiveTVSettingsView: View {
     private let sourceManagement: (() -> AnyView)?
     @State private var settings: LiveTVViewSettings
     @State private var hiddenChannelsModel: LiveTVHiddenChannelsSettingsModel
+    #if os(tvOS)
+    @Environment(\.settingsInWorkspace) private var inWorkspace
+    #endif
 
     public init(
         store: any LiveTVViewSettingsStoring = LiveTVViewSettingsStore(),
@@ -168,15 +171,37 @@ public struct LiveTVSettingsView: View {
                 }
             },
         ]
-        guard sourceManagement != nil else { return browsingRows }
-        return [
+        let sources: [SettingsSplitRow] = sourceManagement == nil ? [] : [
             SettingsSplitRow(
                 id: "sources",
                 title: "Sources"
             ) {
                 sourceDestination
             }
-        ] + browsingRows
+        ]
+        guard inWorkspace else { return sources + browsingRows }
+        return sources.map { $0.page() } + [
+            SettingsSplitRow(id: "channel-order", title: "Channel order") {
+                SettingsSegmentedPicker(
+                    options: [false, true], selection: $settings.sortByName,
+                    title: { $0 ? "Name" : "Channel number" }
+                )
+            },
+            SettingsSplitRow(id: "guide", title: "Guide") {
+                VStack(alignment: .leading, spacing: 24) {
+                    ForEach(browsingRows.filter { ["auto-preview", "keep-watching-while-browsing", "preview-after-watching", "recently-watched"].contains($0.id) }) { row in
+                        row.detail()
+                        if let description = row.description {
+                            description.settingsHelperText().fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            },
+            SettingsSplitRow(id: "filters", title: "Filters") {
+                Toggle("Favorites only", isOn: $settings.favoritesOnly)
+                Toggle("With guide listings", isOn: $settings.guideOnly)
+            }
+        ] + browsingRows.filter { $0.id == "hidden-channels" }.map { $0.page() }
     }
     #endif
 }

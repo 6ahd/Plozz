@@ -21,29 +21,10 @@ public struct SyncRepairActions {
     }
 }
 
-/// Settings root — a hierarchical list of top-level rows that each push a
-/// dedicated detail page.
-///
-/// The drill-down structure exists to (1) shorten the home-of-settings to a
-/// scannable list rather than one long scroll of panels, and (2) make it
-/// obvious that selecting a profile changes ALL settings while different
-/// rows (Appearance / Captions / Playback / etc.) are independent.
-///
-/// We use a root `NavigationStack` (not a sheet) so pushed `NavigationLink`
-/// destinations don't render blank — pushed pickers inside tvOS sheets are
-/// the known IA pitfall this rewrite explicitly avoids.
+/// Fixed profile/category column and independently navigable settings pane.
 public struct SettingsView: View {
-    /// Typed routes for the Settings drill-down. Using `navigationDestination(for:)`
-    /// (instead of `NavigationLink(destination:label:)` closures inside a
-    /// ScrollView) is the pattern that reliably pushes onto the tab's
-    /// NavigationStack on tvOS — the closure-based form sometimes hosts the
-    /// destination *outside* the stack, so the Menu/Back button quits the app
-    /// instead of popping back.
-    /// Stable navigation identity owned by MainTabView. The model survives shell
-    /// swaps, while only this view observes its path mutations.
+    /// Stable identity owned by MainTabView; only the workspace observes its path.
     private let navigation: SettingsNavigationModel
-    /// The shell's chrome model, present only under the custom navigation rail.
-    @Environment(NavigationChromeModel.self) private var navigationChrome: NavigationChromeModel?
     @State private var confirmSignOutAll = false
     @State private var confirmEraseICloud = false
     /// Hidden Developer Mode: reveals the diagnostic rows once unlocked by
@@ -51,28 +32,6 @@ public struct SettingsView: View {
     /// build. `showDeveloperUnlockedAlert` confirms the unlock.
     private var developerMode: DeveloperModeModel { .shared }
     @State private var showDeveloperUnlockedAlert = false
-    /// The profile header's Edit button **pushes** the profile settings page
-    /// rather than presenting a modal.
-    ///
-    /// It used to present a sheet, then a full-screen cover, and neither
-    /// appeared. Console tracing showed the button firing, the state being set
-    /// and held, the view never rebuilt, and SwiftUI building the modal's
-    /// content but never presenting it. The cause is above this view: `RootView`
-    /// stacks six `fullScreenCover` modifiers on one view, and a modal requested
-    /// from deep inside that host gets dropped when the slot is contested.
-    ///
-    /// Pushing avoids the contested host entirely and reuses
-    /// ``ProfileSettingsDetailView``, which already shows the very same
-    /// `ProfileActionsList` — so there is one implementation of "what can I do
-    /// to this profile", not two. It's also the more native shape for a settings
-    /// drill-down on tvOS.
-
-    /// Focus scope for the Settings root list. Turning profiles off pops the
-    /// stack back here, and we `resetFocus` into this scope so focus lands on
-    /// the "Enable Profiles" row (where the Profiles row the user came from was)
-    /// instead of tvOS picking an arbitrary row like Playback.
-    @Namespace private var rootFocusScope
-    @Environment(\.resetFocus) private var resetFocus
     @Environment(\.themePalette) private var palette
     /// App-wide media-share scan/enrich status. Optional so previews/tests that
     /// don't inject it don't crash. Drives the status card at the top of this
@@ -83,8 +42,8 @@ public struct SettingsView: View {
     /// profile) so their avatar/icon and title read as the same component. The
     /// circle is sized to sit between the old TV glyph (64) and profile avatar
     /// (104), roughly the combined height of the title + subtitle lines.
-    private static let identityAvatarSize: CGFloat = 84
-    private static let identityTitleFont: Font = .system(size: 36, weight: .bold)
+    private static let identityAvatarSize: CGFloat = 58
+    private static let identityTitleFont: Font = .system(size: 29, weight: .bold)
 
     /// The device kind used in the scope subtitles when iCloud Sync is off. This
     /// shell only ever runs on an Apple TV; the iOS shell passes iPhone/iPad.
@@ -96,11 +55,6 @@ public struct SettingsView: View {
     /// UIKit, `2` = force SwiftUI. Changing it applies live on return to Home.
     @AppStorage("PLZDebugHeroForegroundMode") private var heroForegroundMode = 0
     #endif
-
-    /// Caps the root "Settings" page content and centers it, so the profile
-    /// card and About/Sign Out list don't stretch edge-to-edge on a wide TV.
-    /// Tune this single value to make the page wider/narrower.
-    private static let contentMaxWidth: CGFloat = PlozzTheme.Metrics.settingsContentMaxWidth
 
     private let subtitleBehavior: SubtitleBehaviorModel
     private let subtitleStyle: SubtitleStyleModel
@@ -156,11 +110,6 @@ public struct SettingsView: View {
     /// Current cross-device sync opt-in state, and the setter. When the setter is
     /// nil the row is hidden (e.g. a host that doesn't wire sync).
     private let syncEnabled: Bool
-    /// Whether the household has a Parental PIN — the switch between a Kids
-    /// Profile being enforced and merely simplified.
-    ///
-    /// Read from the environment rather than passed in: this initializer already
-    /// takes ~60 arguments and one more tipped the type-checker over.
     /// Household profile state, injected at the root.
     ///
     /// Read from the environment rather than passed in: this initializer already
@@ -177,7 +126,12 @@ public struct SettingsView: View {
     /// Deliberately view state, not persisted: it dies with this screen and is
     /// cleared the moment the active profile changes, so unsealing the settings
     /// once never turns into unsealing them for good.
-    @State private var isParentalUnlocked = false
+    @State private var unlockedProfileID: String?
+    @State private var unlockedParentalPIN: ParentalPIN?
+
+    private var isParentalUnlocked: Bool {
+        unlockedProfileID == activeProfile.id && unlockedParentalPIN == profilesModel?.parentalPIN
+    }
 
     /// Whether this profile's restricted settings are sealed right now.
     ///
@@ -388,7 +342,10 @@ public struct SettingsView: View {
             hasParentalPIN: hasParentalPIN,
             isParentalUnlocked: isParentalUnlocked,
             matchesParentalPIN: { [profilesModel] pin in profilesModel?.matchesParentalPIN(pin) ?? false },
-            onParentalUnlock: { isParentalUnlocked = true },
+            onParentalUnlock: {
+                unlockedProfileID = activeProfile.id
+                unlockedParentalPIN = profilesModel?.parentalPIN
+            },
             onSetParentalPIN: { [profilesModel] pin in profilesModel?.setParentalPIN(pin) },
             onAddUser: onAddUser,
             onRemoveAccount: onRemoveAccount,
@@ -408,10 +365,9 @@ public struct SettingsView: View {
 
 
     public var body: some View {
-        @Bindable var navigation = navigation
-        NavigationStack(path: $navigation.path) {
+        SettingsWorkspace(navigation: navigation) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 36) {
+                VStack(alignment: .leading, spacing: 28) {
                     // Live media-share scan/enrich progress, when any share is
                     // working. Sits above everything so it's the first thing the
                     // page reports; renders nothing at all when idle. This is
@@ -454,33 +410,34 @@ public struct SettingsView: View {
                         everyoneSection
                     }
 
-                    // About + Attributions + Sign Out render INLINE at the bottom.
-                    aboutAndSignOut
+                    VStack(spacing: 8) {
+                        sectionRow("About", icon: "info.circle", route: .about)
+                        sectionRow("Help & Diagnostics", icon: "ladybug", route: .help)
+                    }
+                    .padding(12)
+                    .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
                 }
-                .frame(maxWidth: Self.contentMaxWidth, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, PlozzTheme.Metrics.screenPadding)
-                .padding(.vertical, 48)
-                .focusScope(rootFocusScope)
+                .padding(.bottom, 48)
             }
             .scrollClipDisabled()
-            .navigationDestination(for: SettingsRoute.self) { route in
-                destination(for: route)
-                    // Native tvOS hides the tab bar on drill-down pages; our
-                    // Settings tab is a TabView tab hosting a NavigationStack,
-                    // so pushed details would otherwise still show the tab
-                    // strip on top. Hiding it here makes every detail render
-                    // full-screen and the root list restores the bar on pop.
-                    .toolbar(.hidden, for: .tabBar)
-            }
-            .task { await reloadLibraries() }
-            .onAppear { MainThreadStallProbe.context = "settings" }
-            // Switching profiles re-seals: an unlock proves who is standing
-            // there now, not who was standing there for a different profile.
-            .onChange(of: activeProfile.id) { _, _ in isParentalUnlocked = false }
-            // A PIN replaced on another device must invalidate an unlock proved
-            // against the old one.
-            .onChange(of: profilesModel?.parentalPIN) { _, _ in isParentalUnlocked = false }
+        } detail: { route in
+            destination(for: route)
+        }
+        .padding(.horizontal, PlozzTheme.Metrics.screenPadding)
+        .padding(.top, 36)
+        .task { await reloadLibraries() }
+        .onAppear { MainThreadStallProbe.context = "settings" }
+        .onChange(of: activeProfile.id) { _, _ in
+            unlockedProfileID = nil
+            navigation.resetForProfile()
+        }
+        .onChange(of: profilesModel?.parentalPIN) { _, _ in
+            unlockedProfileID = nil
+            navigation.resetForProfile()
+        }
+        .onChange(of: activeProfile.isKids) { _, _ in
+            unlockedProfileID = nil
+            navigation.resetForProfile()
         }
         .alert("Sign out of all accounts?", isPresented: $confirmSignOutAll) {
             Button("Sign Out", role: .destructive, action: onSignOutAll)
@@ -494,11 +451,6 @@ public struct SettingsView: View {
         } message: {
             Text("Deletes the whole household — every profile and server — from iCloud (all your devices), wipes this Apple TV to first-run, and turns iCloud Sync OFF here. Use to test a clean cold start (e.g. set up only on this Apple TV, then fresh-install another device). Re-enable Sync when done.")
         }
-        // Under the custom navigation rail, a drilled-in Settings page is a detail
-        // page: report the depth so the rail steps aside rather than overlaying it
-        // and competing for a Left press. A no-op under the two native tab styles,
-        // which install no chrome model.
-        .reportsNavigationDepth(navigation.path.count, to: navigationChrome)
     }
 
     // MARK: - Profile container (header + all settings this profile owns)
@@ -524,9 +476,7 @@ public struct SettingsView: View {
             PlozzDivider()
                 .padding(.horizontal, 28)
             profileOwnedRows
-                .padding(.horizontal, 28)
-                .padding(.top, 16)
-                .padding(.bottom, 16)
+                .padding(12)
         }
         .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
     }
@@ -581,24 +531,13 @@ public struct SettingsView: View {
                 // While sealed every row leads to the PIN instead of its own
                 // page. The row still says what it is — the lock is the only
                 // thing that changes.
-                navRow(SettingsCopy.libraries,
+                sectionRow(SettingsCopy.libraries,
                        icon: isParentalSealed ? "lock.fill" : "rectangle.stack",
-                       value: nil,
-                       route: isParentalSealed ? .grownUps : .myLibraries) {
-                    signedInStrip
-                }
+                       route: .myLibraries)
 
-                navRow(KidsProfileCopy.manageProfile,
+                sectionRow(KidsProfileCopy.manageProfile,
                        icon: isParentalSealed ? "lock.fill" : "person.crop.circle",
-                       value: nil,
-                       route: isParentalSealed
-                           ? .grownUps
-                           : .profileSettings(profileID: activeProfile.id)) {
-                    Text(KidsProfileCopy.profileManagementDetail)
-                        .font(.footnote)
-                        .settingsRowSecondary()
-                        .lineLimit(2)
-                }
+                       route: .profileSettings(profileID: activeProfile.id))
             }
             .padding(.horizontal, 28)
             .padding(.top, 16)
@@ -607,21 +546,14 @@ public struct SettingsView: View {
         .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
     }
 
-    /// Rows nested inside the profile container — the settings this profile
-    /// actually *owns*: identity + presentation only. Grouped by concern and
-    /// consolidated so there are no thin one-off pages: content/browsing first
-    /// (Your Libraries, then Home — which now also holds spoiler masking), then
-    /// the core watching page (Playback), then look (Appearance — which now also
-    /// holds Circadian Mode), then external connections (Integrations). Server
-    /// sign-ins AND profile management (the roster) are intentionally NOT here —
-    /// they're device-shared (see `thisAppleTVSection`). Each row pushes its own
-    /// detail page via the root NavigationStack.
+    /// Categories inside the active profile's panel; household setup stays separate.
     @ViewBuilder
     private var profileOwnedRows: some View {
         // Inter-row spacing replaces the previous dividers: it lets the
         // contained focus lift breathe without crossing into a neighbor row
         // or sitting on top of a divider line.
-        VStack(spacing: 14) {
+        VStack(spacing: 8) {
+            sectionRow("General", icon: "gearshape", route: .general)
             // Per-profile "Your Libraries": who you watch as + what shows on THIS
             // profile's Home. The personal mirror of This Apple TV › Servers.
             // Its second line glances the household's server sign-ins.
@@ -630,47 +562,18 @@ public struct SettingsView: View {
             // it's a parent's setting, and grouping it with the child's own
             // preferences made the two look equally theirs.
             if !showsParentalControlsSection {
-                navRow(SettingsCopy.libraries, icon: "rectangle.stack",
-                       value: nil,
-                       route: .myLibraries) {
-                    signedInStrip
-                }
+                sectionRow(SettingsCopy.libraries, icon: "rectangle.stack", route: .myLibraries)
             }
             // Only when Parental Controls has taken the management page away.
             // Otherwise this would duplicate the Appearance row inside it.
             if showsParentalControlsSection {
-                navRow(KidsProfileCopy.nameAndAvatar, icon: "person.crop.circle",
-                       value: nil,
+                sectionRow(KidsProfileCopy.nameAndAvatar, icon: "person.crop.circle",
                        route: .profileAppearance(profileID: activeProfile.id))
             }
-            navRow("Customize Home", icon: "house",
-                   value: nil,
-                   route: .customizeHome)
-            navRow("Live TV", icon: "antenna.radiowaves.left.and.right",
-                   value: nil,
-                   route: .liveTV)
-            navRow("Detail Page", icon: "rectangle.portrait.on.rectangle.portrait",
-                   value: nil,
-                   route: .detailPage)
-            navRow("Playback", icon: "play.rectangle",
-                   value: nil,
-                   route: .playback)
-            navRow("Appearance", icon: "paintpalette",
-                   value: nil,
-                   route: .appearance) {
-                Text("Theme, navigation, and cards")
-                    .font(.footnote)
-                    .settingsRowSecondary()
-                    .lineLimit(2)
-            }
-            navRow("Trackers", icon: "link",
-                   value: nil,
-                   route: .integrations) {
-                Text("Trakt, Simkl, AniList, MyAnimeList, Last.fm")
-                    .font(.footnote)
-                    .settingsRowSecondary()
-                    .lineLimit(2)
-            }
+            sectionRow("Appearance & Layout", icon: "paintpalette", route: .appearance)
+            sectionRow("Playback", icon: "play.rectangle", route: .playback)
+            sectionRow("Live TV", icon: "antenna.radiowaves.left.and.right", route: .liveTV)
+            sectionRow("Trackers", icon: "link", route: .integrations)
             // The profile's own PIN gate. Belongs to the profile (it travels with
             // it to every device), so it sits here rather than in the shared
             // section — even though "who can open this" reads like a household
@@ -684,7 +587,7 @@ public struct SettingsView: View {
     /// follows the profile card, because the profile holds what people actually
     /// open Settings to change while this is setup you do once. Nothing here
     /// belongs to a single profile; a profile only picks which of these servers
-    /// it watches (see Profile › Your Libraries).
+    /// it watches (see the profile's Libraries section).
     ///
     /// Named for its audience, not the hardware. Most of what's in here syncs, so
     /// "This Apple TV" was only ever true when iCloud Sync was off — see
@@ -696,44 +599,34 @@ public struct SettingsView: View {
             // "Identity on top", mirroring the profile card's avatar header. The
             // glyph tracks reach the same way the subtitle does: people when these
             // settings span the user's devices, a lone Apple TV when they don't.
-            HStack(spacing: 20) {
-                Image(systemName: syncEnabled ? "person.2" : "appletv")
-                    .font(.system(size: 40, weight: .regular))
+            VStack(alignment: .leading, spacing: 8) {
+                Label(SettingsCopy.everyone, systemImage: syncEnabled ? "person.2" : "appletv")
+                    .font(.headline)
+                Text(SettingsCopy.everyoneScope(syncEnabled: syncEnabled, deviceName: Self.deviceName))
+                    .font(.caption)
                     .plozzForeground(.secondary)
-                    .frame(width: Self.identityAvatarSize, height: Self.identityAvatarSize)
-                    .background(Circle().fill(palette.fillSubtle))
-                    .overlay(Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(SettingsCopy.everyone)
-                        .font(Self.identityTitleFont)
-                    Text(SettingsCopy.everyoneScope(syncEnabled: syncEnabled, deviceName: Self.deviceName))
-                        .font(.subheadline)
-                        .plozzForeground(.secondary)
-                }
-                Spacer()
             }
-            .padding(28)
+            .padding(24)
 
             PlozzDivider().padding(.horizontal, 28)
 
-            VStack(spacing: 14) {
+            VStack(spacing: 8) {
                 // Shared server sign-ins (the household's full inventory). The
                 // list screen opens with a prominent Add Server button.
-                navRow("Servers", icon: "externaldrive.connected.to.line.below",
+                sectionRow("Servers", icon: "externaldrive.connected.to.line.below",
                        value: householdServersSummary,
                        route: .servers)
 
                 // Profile roster management is a device concern (who exists on
                 // this Apple TV), not a per-profile one — so it lives here.
                 // Device startup sign-in lives inside Profiles.
-                navRow("Profiles", icon: "person.2",
+                sectionRow("Profiles", icon: "person.2",
                        value: Text(verbatim: profiles.count.formatted()),
                        route: .profile)
 
                 // Household-level, so it sits here rather than on a profile —
                 // one PIN for everyone, not a property of any one person.
-                navRow(KidsProfileCopy.parentalPIN, icon: "figure.and.child.holdinghands",
+                sectionRow(KidsProfileCopy.parentalPIN, icon: "figure.and.child.holdinghands",
                        value: hasParentalPIN ? Text(ProfileLockCopy.on) : Text(ProfileLockCopy.off),
                        route: .parentalPIN)
 
@@ -741,28 +634,26 @@ public struct SettingsView: View {
                 // trending row + requests for everyone on this Apple TV, so it's
                 // a household concern — not a per-profile tracker. The per-profile
                 // "requests are made as" mapping is managed inside its page.
-                navRow(verbatim: "Seerr", icon: "sparkles.tv", assetIcon: "SeerrIcon",
+                SettingsSectionButton(title: Text(verbatim: "Seerr"), icon: "sparkles.tv", assetIcon: "SeerrIcon",
                        value: seerrRowValue,
                        route: .seerr)
 
                 // Cross-device sync + device pairing, combined under one entry that
                 // drills into a detail page (matches the Settings hierarchy).
                 if onSetSyncEnabled != nil || onSetUpAnotherDevice != nil {
-                    navRow("iCloud Sync", icon: "icloud",
+                    sectionRow("iCloud Sync", icon: "icloud",
                            value: onSetSyncEnabled == nil ? nil : (syncEnabled ? Text("On") : Text("Off")),
                            route: .syncSetup)
                 }
                 // Metadata (artwork/details enrichment) is household-wide: one set
                 // of providers + caches serves every profile, so it lives here.
                 if metadataSettings != nil {
-                    navRow("Metadata Providers", icon: "sparkles.rectangle.stack",
+                    sectionRow("Metadata Providers", icon: "sparkles.rectangle.stack",
                            value: nil,
                            route: .metadata)
                 }
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 16)
-            .padding(.bottom, 16)
+            .padding(12)
         }
         .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
     }
@@ -787,17 +678,12 @@ public struct SettingsView: View {
                 // very restrictions this profile exists to apply.
                 onActivate: activeProfile.isKids ? nil : handleAboutActivation
             )
+            .settingsWorkspaceEntry()
 
             // The one acceptable deeper page: open-source credits & licensing.
             navRow(SettingsCopy.attributions, icon: "doc.text.magnifyingglass",
                    value: nil,
                    route: .attributions)
-
-            // Help & Diagnostics: report a problem (GitHub-issue QR) + the
-            // playback diagnostics overlay toggle + recent redacted activity.
-            navRow("Help & Diagnostics", icon: "ladybug",
-                   value: nil,
-                   route: .help)
 
             // The only Sign-Out-All entry point now lives here, inline, guarded
             // by the are-you-sure confirmation alert on the root view.
@@ -1015,7 +901,58 @@ public struct SettingsView: View {
 
     @ViewBuilder
     private func destination(for route: SettingsRoute) -> some View {
+        switch route.access(
+            activeProfileID: activeProfile.id,
+            isKids: activeProfile.isKids,
+            isParentalSealed: isParentalSealed
+        ) {
+        case .allowed:
+            authorizedDestination(for: route)
+        case .parentalPIN:
+            GrownUpsUnlockView(
+                context: context,
+                onCancel: {
+                    if navigation.path.isEmpty { navigation.returnToSidebar() }
+                    else { navigation.path.removeLast() }
+                },
+                onUnlock: navigation.enterDetail
+            )
+        case .adultProfile:
+            SettingsPanel {
+                Text("Switch to an adult profile to manage these settings.")
+                Button("Switch Profile", action: onSwitchProfile)
+                    .settingsWorkspaceEntry()
+            }
+            .padding(28)
+        }
+    }
+
+    @ViewBuilder
+    private func authorizedDestination(for route: SettingsRoute) -> some View {
         switch route {
+        case .general:
+            AppearanceDetailView(
+                librariesScope: context.librariesScope, settingsNavigation: navigation,
+                theme: theme, nightShift: nightShift, spoilers: spoilers, section: .general
+            )
+        case .about:
+            ScrollView {
+                aboutAndSignOut
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 48)
+            }
+            .scrollClipDisabled()
+        case .artwork:
+            AppearanceDetailView(
+                librariesScope: context.librariesScope, settingsNavigation: navigation,
+                canManageProviders: metadataSettings != nil && !activeProfile.isKids,
+                theme: theme, nightShift: nightShift, spoilers: spoilers, section: .artwork
+            )
+        case .navigationLayout:
+            AppearanceDetailView(
+                librariesScope: context.librariesScope, settingsNavigation: navigation,
+                theme: theme, nightShift: nightShift, spoilers: spoilers, section: .navigation
+            )
         case .profile:
             ProfileDetailView(
                 context: context,
@@ -1043,7 +980,7 @@ public struct SettingsView: View {
             AppearanceDetailView(
                 librariesScope: context.librariesScope,
                 settingsNavigation: navigation,
-                canManageProviders: metadataSettings != nil && !isParentalSealed,
+                canManageProviders: metadataSettings != nil && !activeProfile.isKids,
                 theme: theme,
                 nightShift: nightShift,
                 spoilers: spoilers
@@ -1154,103 +1091,16 @@ public struct SettingsView: View {
 
     // MARK: - Header (inside the profile container)
 
-    /// Big avatar + name + switch button rendered as the *top* of the profile
-    /// container card. Visually fused with the rows below (no card divider).
+    /// Profile switching and the shared editor stay inside the owned panel.
     private var profileHeaderInline: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 20) {
-                ProfileAvatarView(profile: activeProfile, size: Self.identityAvatarSize)
-                    .overlay(Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(activeProfile.name)
-                        .font(Self.identityTitleFont)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    Text(SettingsCopy.profileScope(syncEnabled: syncEnabled, deviceName: Self.deviceName))
-                        .font(.subheadline)
-                        .plozzForeground(.secondary)
-                }
-                Spacer()
-                HStack(spacing: 12) {
-                    // Hidden while sealed: this page carries the Kids flag, the
-                    // profile's lock and Delete. Appearance goes with it, which
-                    // is a small loss next to leaving an escalation route open.
-                    if !isParentalSealed {
-                        NavigationLink(
-                            value: SettingsRoute.profileSettings(profileID: activeProfile.id)
-                        ) {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                    }
-                    Button(action: onSwitchProfile) {
-                        Text(KidsProfileCopy.openProfiles(profileCount: profiles.count))
-                    }
-                }
+        SettingsWorkspaceProfileHeader(
+            profile: activeProfile, canEdit: !isParentalSealed,
+            onSwitch: onSwitchProfile,
+            onEdit: {
+                navigation.path.append(.profileSettings(profileID: activeProfile.id))
+                navigation.enterDetail()
             }
-        }
-        .padding(28)
-    }
-
-    /// Compact, read-only glance of the servers **this profile is watching**,
-    /// rendered as the SECOND line of the "Libraries" row. It
-    /// mirrors the page's master toggles, so turning a server off inside drops it
-    /// here too — the entry point is a truthful preview, not a household dump.
-    /// Server-forward (provider logo + server name) to match the redesigned cards;
-    /// capped to three with a trailing "+N more" so a busy profile stays on one
-    /// line. Shows a prompt when the profile watches nothing yet.
-    @ViewBuilder
-    private var signedInStrip: some View {
-        if accounts.isEmpty {
-            Text("No servers yet")
-                .font(.footnote)
-                .settingsRowSecondary()
-        } else if watchedServerGroups.isEmpty {
-            Text("Choose what to watch")
-                .font(.footnote)
-                .settingsRowSecondary()
-        } else {
-            HStack(alignment: .center, spacing: 10) {
-                let visible = Array(watchedServerGroups.prefix(3))
-                let overflow = max(0, watchedServerGroups.count - visible.count)
-                ForEach(Array(visible.enumerated()), id: \.element.serverKey) { idx, group in
-                    if idx > 0 {
-                        Text(verbatim: "·")
-                            .font(.footnote)
-                            .settingsRowSecondary()
-                    }
-                    HStack(spacing: 8) {
-                        ProviderIcon(provider: group.providerKind, size: 24, mediaShareTransport: group.transportKind)
-                            // Render larger without growing the row: scaleEffect
-                            // enlarges the drawing but keeps the 24pt layout
-                            // footprint, so the line height is unchanged. The
-                            // horizontal padding reserves real space for the
-                            // enlarged drawing so it doesn't crowd the label/dots.
-                            .scaleEffect(1.3)
-                            .padding(.horizontal, 4)
-                        Text(group.serverName)
-                            .font(.footnote.weight(.medium))
-                            .settingsRowSecondary()
-                            .lineLimit(1)
-                    }
-                }
-                if overflow > 0 {
-                    Text("· +\(overflow) more")
-                        .font(.footnote)
-                        .settingsRowSecondary()
-                }
-            }
-            .accessibilityElement(children: .combine)
-        }
-    }
-
-    /// Servers the active profile is watching, grouped like the detail page:
-    /// "watching" = at least one of the server's sign-ins is in the profile's
-    /// active set (mirrors ``activeProfileServerCount``).
-    private var watchedServerGroups: [ServerAccountGroup] {
-        serverGroups(from: accounts).filter { group in
-            group.accounts.contains { isAccountIncludedInActiveProfile($0.id) }
-        }
+        )
     }
 
     // MARK: - iCloud sync and setup
@@ -1261,6 +1111,7 @@ public struct SettingsView: View {
     private var syncSetupDetail: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 48) {
+                SettingsPageHeader("iCloud Sync")
                 if let onSetSyncEnabled {
                     SettingsPanel(
                         title: "iCloud Sync",
@@ -1270,6 +1121,7 @@ public struct SettingsView: View {
                             get: { syncEnabled }, set: { onSetSyncEnabled($0) }
                         ))
                         .toggleStyle(SettingsSwitchToggleStyle())
+                        .settingsWorkspaceEntry()
 
                         if syncEnabled, let syncStatusSummary {
                             HStack(spacing: 24) {
@@ -1293,6 +1145,7 @@ public struct SettingsView: View {
                 if let onSetUpAnotherDevice {
                     SettingsPanel(contentPadding: .settingsPanelRowContent) {
                         setUpAnotherDeviceRow(onSetUpAnotherDevice)
+                            .settingsWorkspaceEntry(onSetSyncEnabled == nil)
                     }
                 }
                 if !pendingSyncedServers.isEmpty {
@@ -1490,6 +1343,13 @@ public struct SettingsView: View {
             }
         }
         .buttonStyle(SettingsFocusButtonStyle())
+    }
+
+    private func sectionRow(
+        _ title: LocalizedStringResource, icon: String,
+        value: Text? = nil, route: SettingsRoute
+    ) -> some View {
+        SettingsSectionButton(title: Text(title), icon: icon, value: value, route: route)
     }
 }
 

@@ -3,6 +3,10 @@ import SwiftUI
 import CoreModels
 import CoreUI
 
+enum AppearanceSettingsSection {
+    case general, appearance, artwork, navigation
+}
+
 struct AppearanceDetailView: View {
     /// The household's libraries + per-profile availability, needed by the
     /// navigation-arrangement pane. Passed in (rather than reached for) so this
@@ -15,10 +19,12 @@ struct AppearanceDetailView: View {
     /// Circadian Mode (night-warming) settings, folded in as sections here — it's
     /// a display concern, so it no longer earns its own top-level row.
     @Bindable var nightShift: NightShiftSettingsModel
-    /// Spoiler-protection (hide unwatched episode art/titles/ratings). It's a
-    /// content-protection concern that applies wherever you browse — not
-    /// Home-specific — so it lives here in Appearance rather than folded into Home.
+    /// Browsing protection, grouped under General in the tvOS workspace.
     @Bindable var spoilers: SpoilerSettingsModel
+    var section: AppearanceSettingsSection = .appearance
+    #if os(tvOS)
+    @Environment(\.settingsInWorkspace) private var inWorkspace
+    #endif
     @Environment(MusicPlayerSettingsModel.self) private var musicPlayer
     /// App-wide card presentation — scale + style — that applies across every row
     /// and grid in the app (not just Home), so it lives in Appearance rather than
@@ -35,11 +41,22 @@ struct AppearanceDetailView: View {
 
     var body: some View {
         @Bindable var settingsNavigation = settingsNavigation
-        SettingsSplitLayout(
-            title: "Appearance",
-            rows: rows,
-            selection: $settingsNavigation.appearanceRowID
-        )
+        Group {
+            #if os(tvOS)
+            if section == .artwork || section == .navigation,
+               let row = allRows.first(where: { $0.id == (section == .artwork ? "artwork" : "navigation") }) {
+                SettingsFormRowPage(row: row, route: section == .artwork ? .artwork : .navigationLayout)
+            } else {
+                SettingsSplitLayout(
+                    title: section == .general ? "General" : "Appearance & Layout",
+                    rows: rows,
+                    selection: $settingsNavigation.appearanceRowID
+                )
+            }
+            #else
+            SettingsSplitLayout(title: "Appearance", rows: allRows, selection: $settingsNavigation.appearanceRowID)
+            #endif
+        }
             // Circadian's day/night preview animates a model flag; make sure it
             // never keeps running once you leave Appearance or turn Circadian off.
             .onChange(of: nightShift.settings.isEnabled) { _, enabled in
@@ -49,6 +66,32 @@ struct AppearanceDetailView: View {
     }
 
     private var rows: [SettingsSplitRow] {
+        #if os(tvOS)
+        if inWorkspace {
+            if section == .general {
+                return allRows.filter { ["language", "theme", "spoilers"].contains($0.id) }
+            }
+            let appearance = allRows.filter { !["language", "theme", "spoilers"].contains($0.id) }
+            return [
+                SettingsSplitRow(id: "home", title: "Customize Home") { EmptyView() }
+                    .destination(.customizeHome)
+            ] + appearance.map { row in
+                switch row.id {
+                case "display-size": row.page(summary: Text(density.density.displayName))
+                case "navigation": row.destination(.navigationLayout)
+                case "artwork": row.destination(.artwork)
+                default: row.page()
+                }
+            } + [
+                SettingsSplitRow(id: "title-details", title: "Detail Page") { EmptyView() }
+                    .destination(.detailPage)
+            ]
+        }
+        #endif
+        return allRows
+    }
+
+    private var allRows: [SettingsSplitRow] {
         @Bindable var musicPlayer = musicPlayer
         @Bindable var density = density
         @Bindable var navigation = navigation
@@ -154,11 +197,6 @@ struct AppearanceDetailView: View {
         }
     }
 
-    /// The media-card controls in one pane — style (framed vs poster), the
-    /// watched indicator, and what focus does to a card — since all three are
-    /// "how a card looks". Shorter swatches so the preview rows sit together
-    /// without heavy scrolling; each headed by a shared uppercase section header.
-
     /// Everything controlled by the single Navigation master row.
     ///
     /// Style and destination arrangement share one pane for every navigation style.
@@ -203,10 +241,7 @@ struct SpoilersDetailView: View {
     }
 }
 
-/// Builds the Spoiler-protection settings rows. Extracted from
-/// ``SpoilersDetailView`` so the same controls can appear folded into the
-/// Appearance settings page (spoiler masking is a browsing concern that applies
-/// everywhere, so it lives in Appearance rather than Home or its own row).
+/// Shared spoiler controls for General on tvOS and the legacy detail layout.
 @MainActor
 struct SpoilerRowsBuilder {
     let spoilers: SpoilerSettingsModel
@@ -324,6 +359,9 @@ private struct DetailHeaderAgeSettingsForm: View {
 
 struct PlaybackDetailView: View {
     @Environment(\.locale) private var locale
+    #if os(tvOS)
+    @Environment(\.settingsInWorkspace) private var inWorkspace
+    #endif
     @Bindable var playback: PlaybackSettingsModel
     /// The profile base subtitle mode/language now lives in `SubtitleBehavior`
     /// (behaviour half of the retired `CaptionSettings`).
@@ -481,7 +519,43 @@ struct PlaybackDetailView: View {
     // MARK: - Split sections
 
     private var rows: [SettingsSplitRow] {
-        subtitleRows
+        #if os(tvOS)
+        if inWorkspace {
+            return [
+                .page(id: "subtitles", title: "Subtitles", rows: { subtitleRows }),
+                SettingsSplitRow(id: "audio", title: "Audio") {
+                    VStack(alignment: .leading, spacing: 28) {
+                        ForEach(audioRows) { row in
+                            row.detail()
+                            if let description = row.description {
+                                description.settingsHelperText().fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                },
+                SettingsSplitRow(id: "autoplay-up-next", title: "Autoplay & Up Next") {
+                    VStack(alignment: .leading, spacing: 28) {
+                        ForEach(upNextRows) { $0.detail() }
+                    }
+                }
+            ] + skipIntroRows.map { $0.page() } + [
+                SettingsSplitRow(id: "seeking", title: "Seeking") {
+                    VStack(alignment: .leading, spacing: 28) {
+                        ForEach(skipIntervalRows) { $0.detail() }
+                        Text("Rewind on resume").font(.headline)
+                        ForEach(resumeRows) { $0.detail() }
+                        ForEach(scrubbingRows) { row in
+                            row.detail()
+                            if let description = row.description {
+                                description.settingsHelperText().fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+            ] + displayFadeRows
+        }
+        #endif
+        return subtitleRows
             + audioRows
             + skipIntroRows
             + skipIntervalRows

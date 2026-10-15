@@ -33,6 +33,9 @@ public struct MyLibrariesDetailView: View {
     /// snapshot value here (a copied `Set`) went stale for the same reason — hence
     /// a local revision counter driving live re-reads instead.
     @State private var revision = 0
+    #if os(tvOS)
+    @Environment(\.settingsInWorkspace) private var inWorkspace
+    #endif
 
     private var allGroups: [ServerAccountGroup] { serverGroups(from: scope.accounts) }
 
@@ -72,6 +75,7 @@ public struct MyLibrariesDetailView: View {
                     }
                     if allGroups.isEmpty {
                         emptyInventoryState
+                            .settingsWorkspaceEntry()
                     } else {
                         ForEach(allGroups, id: \.serverKey) {
                             serverCard($0, scrollProxy: scrollProxy)
@@ -91,10 +95,24 @@ public struct MyLibrariesDetailView: View {
 
     // MARK: - Empty state
 
-    private var emptyInventoryState: some View {
-        SettingsPanel(
-            footer: "Sign in to a server under Everyone › Servers, then choose what you watch here."
-        ) {
+    @ViewBuilder private var emptyInventoryState: some View {
+        #if os(tvOS)
+        if inWorkspace {
+            FocusableSettingsPanel(
+                footer: "Sign in to a server under Everyone › Servers, then choose what you watch here."
+            ) {
+                Text("No servers yet.").font(.headline)
+            }
+        } else {
+            emptyInventoryPanel
+        }
+        #else
+        emptyInventoryPanel
+        #endif
+    }
+
+    private var emptyInventoryPanel: some View {
+        SettingsPanel(footer: "Sign in to a server under Everyone › Servers, then choose what you watch here.") {
             Text("No servers yet.").font(.headline)
         }
     }
@@ -131,6 +149,7 @@ public struct MyLibrariesDetailView: View {
                     }
                 }
                 .id(serverHeaderID(group))
+                .settingsWorkspaceEntry(group.serverKey == allGroups.first?.serverKey)
 
                 if isWatching(group) {
                     // A media share has no watcher identity, so it skips "Watching

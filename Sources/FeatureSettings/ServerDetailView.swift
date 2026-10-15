@@ -3,7 +3,7 @@ import SwiftUI
 import CoreModels
 import CoreUI
 
-/// Settings → This Apple TV → Servers → <Server> detail.
+/// Settings → Everyone → Servers → <Server> detail.
 ///
 /// This screen is **global / household scope** — it manages the server's
 /// sign-ins only:
@@ -12,7 +12,7 @@ import CoreUI
 ///
 /// Anything *personal* — which Plex user a profile plays as, whether a profile
 /// uses this server, and which libraries show on a profile's Home — lives on
-/// `<Profile>` › Your Libraries instead, so a personal tweak never reads as
+/// the active profile's Libraries section instead, so a personal tweak never reads as
 /// household administration.
 struct ServerDetailView: View {
     let context: SettingsContext
@@ -181,20 +181,20 @@ struct ServerDetailView: View {
     private func accountsFooter(for provider: ProviderKind, transport: MediaShareTransportKind?) -> LocalizedStringResource {
         switch provider {
         case .plex:
-            return "Plex shares one sign-in across the household. Each profile picks its own Plex user and libraries under Profile › Your Libraries."
+            return "Plex shares one sign-in across the household. Each profile picks its own Plex user and libraries under Libraries."
         case .jellyfin:
-            return "Jellyfin signs in per profile, each with its own credentials. Choose what shows on your Home under Profile › Your Libraries."
+            return "Jellyfin signs in per profile, each with its own credentials. Choose what shows on your Home under Libraries."
         case .emby:
-            return "Emby signs in per profile, each with its own credentials. Choose what shows on your Home under Profile › Your Libraries."
+            return "Emby signs in per profile, each with its own credentials. Choose what shows on your Home under Libraries."
         case .silo:
             return "Each Silo connection uses the household profile selected during pairing. Its library access and watch history stay on Silo."
         case .iptv:
             return "Your provider supplies channels, movies, and series. Watch history stays separate for each Plozz profile on this device."
         case .mediaShare:
             if transport == .nfs {
-                return "This NFS export connects without a sign-in — anyone on this Apple TV can browse it. Choose what shows on your Home under Profile › Your Libraries."
+                return "This NFS export connects without a sign-in — anyone on this Apple TV can browse it. Choose what shows on your Home under Libraries."
             }
-            return "A media share connects with the credentials you entered (or as a guest). Choose what shows on your Home under Profile › Your Libraries."
+            return "A media share connects with the credentials you entered (or as a guest). Choose what shows on your Home under Libraries."
         }
     }
 

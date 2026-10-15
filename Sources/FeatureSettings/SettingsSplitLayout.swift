@@ -18,6 +18,10 @@ enum SettingsMetrics {
 /// toggle revealing Movies/TV/Anime). Set `indented` for those revealed
 /// children so they read as nested under their parent toggle.
 struct SettingsSplitRow: Identifiable {
+    enum Presentation {
+        case inline
+        case page
+    }
     enum SectionStart {
         case heading(Text)
         case divider
@@ -33,6 +37,33 @@ struct SettingsSplitRow: Identifiable {
     let sectionStart: SectionStart?
     let subpage: SettingsDetailSubpage?
     let detail: () -> AnyView
+    var presentation: Presentation = .inline
+    var route: SettingsRoute?
+    var summary: Text?
+    var childRows: (() -> [SettingsSplitRow])?
+
+    static func page(
+        id: String, title: LocalizedStringResource,
+        rows: @escaping () -> [SettingsSplitRow]
+    ) -> Self {
+        var row = Self(id: id, title: title) { EmptyView() }
+        row.presentation = .page
+        row.childRows = rows
+        return row
+    }
+
+    func page(summary: Text? = nil) -> Self {
+        var row = self
+        row.presentation = .page
+        row.summary = summary
+        return row
+    }
+
+    func destination(_ route: SettingsRoute) -> Self {
+        var row = self
+        row.route = route
+        return row
+    }
 
     /// A row whose label is app COPY — the common case.
     ///
@@ -149,6 +180,7 @@ struct SettingsSplitLayout: View {
     @State private var focusRestoreGeneration = 0
     #if os(tvOS)
     @Environment(\.resetFocus) private var resetFocus
+    @Environment(\.settingsInWorkspace) private var inWorkspace
     #endif
 
     init(
@@ -191,6 +223,18 @@ struct SettingsSplitLayout: View {
     }
 
     var body: some View {
+        #if os(tvOS)
+        if inWorkspace {
+            SettingsFormLayout(title: Text(title), rows: rows)
+        } else {
+            legacyBody
+        }
+        #else
+        legacyBody
+        #endif
+    }
+
+    private var legacyBody: some View {
         GeometryReader { geo in
             HStack(alignment: .top, spacing: 60) {
                 masterList

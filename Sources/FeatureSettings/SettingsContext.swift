@@ -95,6 +95,10 @@ struct SettingsContext {
 /// this to drill from a server summary row into `ServerDetailView`, and a
 /// future per-account flow can do the same without re-plumbing closures.
 public enum SettingsRoute: Hashable {
+    case general
+    case about
+    case artwork
+    case navigationLayout
     case profile
     case liveTV
     /// Per-profile settings page (Everyone › Profiles › <name>).
@@ -139,6 +143,31 @@ public enum SettingsRoute: Hashable {
     case server(key: String)
 }
 
+enum SettingsRouteAccess: Equatable {
+    case allowed, parentalPIN, adultProfile
+}
+
+extension SettingsRoute {
+    func access(activeProfileID: String, isKids: Bool, isParentalSealed: Bool) -> SettingsRouteAccess {
+        guard isKids else { return .allowed }
+        switch self {
+        case .profile, .servers, .server, .parentalPIN,
+             .metadata, .metadataDiagnostics, .seerr, .seerUserPicker,
+             .syncSetup, .syncTroubleshooting:
+            return .adultProfile
+        case .myLibraries, .plexUser, .serverUser, .parentalPINSetup:
+            return isParentalSealed ? .parentalPIN : .allowed
+        case let .profileSettings(profileID), let .profileLockSetup(profileID):
+            guard profileID == activeProfileID else { return .adultProfile }
+            return isParentalSealed ? .parentalPIN : .allowed
+        case let .profileAppearance(profileID):
+            return profileID == activeProfileID ? .allowed : .adultProfile
+        default:
+            return .allowed
+        }
+    }
+}
+
 /// Settings navigation state that survives a top-bar/sidebar/rail shell swap.
 ///
 /// MainTabView owns this model's identity but never reads `path`. SettingsView is
@@ -149,6 +178,12 @@ public enum SettingsRoute: Hashable {
 @Observable
 public final class SettingsNavigationModel {
     var path: [SettingsRoute] = []
+    var section: SettingsRoute = .general
+    var focusInDetail = false
+    var restoringSidebar = true
+    var enteringDetail = false
+    var sidebarFocusRequest = 0
+    var detailFocusRequest = 0
     /// Live row mirrored in Appearance's detail pane. Stored beside the path so
     /// replacing the surrounding tab/sidebar shell restores not only Appearance,
     /// but the exact feature row the viewer was editing inside it.
@@ -158,7 +193,9 @@ public final class SettingsNavigationModel {
 
     func openArtwork() {
         appearanceRowID = "artwork"
-        reveal(.appearance)
+        select(.appearance)
+        path = [.artwork]
+        enterDetail()
     }
 
     func openMetadataProviders() {
@@ -166,13 +203,70 @@ public final class SettingsNavigationModel {
     }
 
     private func reveal(_ route: SettingsRoute) {
-        if let index = path.lastIndex(of: route) {
-            path = Array(path.prefix(through: index))
-        } else {
-            path.append(route)
-        }
+        select(route)
+        enterDetail()
+    }
+
+    func select(_ route: SettingsRoute) {
+        guard section != route else { return }
+        path.removeAll()
+        section = route
+    }
+
+    func enterDetail() {
+        restoringSidebar = false
+        enteringDetail = true
+        detailFocusRequest += 1
+    }
+
+    func returnToSidebar() {
+        enteringDetail = false
+        focusInDetail = false
+        restoringSidebar = true
+        sidebarFocusRequest += 1
+    }
+
+    func resetForProfile() {
+        path.removeAll()
+        section = .general
+        appearanceRowID = nil
+        returnToSidebar()
     }
 }
+
+extension View {
+    @ViewBuilder
+    func settingsWorkspaceEntry(_ isEntry: Bool = true, route: SettingsRoute? = nil) -> some View {
+        #if os(tvOS)
+        modifier(SettingsWorkspaceEntryFocus(isEntry: isEntry, route: route))
+        #else
+        self
+        #endif
+    }
+}
+
+#if os(tvOS)
+private struct SettingsWorkspaceEntryFocus: ViewModifier {
+    let isEntry: Bool
+    let route: SettingsRoute?
+    @Environment(SettingsNavigationModel.self) private var navigation: SettingsNavigationModel?
+    @FocusState private var focused: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .focused($focused)
+            .task(id: navigation?.detailFocusRequest) {
+                guard isEntry, let navigation, navigation.enteringDetail,
+                      navigation.path.last == route else { return }
+                focused = false
+                await Task.yield()
+                guard !Task.isCancelled, navigation.enteringDetail,
+                      navigation.path.last == route else { return }
+                focused = true
+            }
+    }
+}
+#endif
 
 extension EdgeInsets {
     /// The default uniform `SettingsPanel` inset — fine for text / non-row content.

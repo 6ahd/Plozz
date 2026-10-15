@@ -544,6 +544,7 @@ struct MainTabView: View {
     /// MainTabView passes the reference but never reads its path, so Settings
     /// pushes do not invalidate this large shell body.
     @State private var settingsNavigation = SettingsNavigationModel()
+    @State private var settingsReturnDestination: NavigationRailDestination = .home
 
     private var selectedTab: Binding<NavigationRailDestination> {
         Binding(
@@ -1118,8 +1119,25 @@ struct MainTabView: View {
             )
             .background { SettingsPageBackground() }
             .environment(Self.subtitleStyleDestination)
+            .environment(\.settingsExitAction, SettingsExitAction(closeSettings))
     }
 
+    private func closeSettings() {
+        let destinations = activeNavigationDestinations.filter { $0 != .settings }
+        guard !destinations.isEmpty else {
+            retainsExplicitHomeEntry = true
+            requireHomeDestination()
+            return
+        }
+        let destination = NavigationRailPlan.resolvedSelection(
+            settingsReturnDestination, destinations: destinations
+        )
+        if navigationStyle == .tabBar {
+            selectedTab.wrappedValue = destination
+        } else {
+            libraryNavigationSelection.wrappedValue = destination
+        }
+    }
 
     /// Extracted from `body`: the `HomeTab` initializer takes ~40 arguments and,
     /// inside the `TabView` expression, it is a large part of why this body sat
@@ -1256,6 +1274,22 @@ struct MainTabView: View {
     /// drift in what they provide.
     @ViewBuilder
     private var shellContent: some View {
+        let showsSettings = isActiveTab(.settings)
+        ZStack {
+            navigationShell
+                .opacity(showsSettings ? 0 : 1)
+                .disabled(showsSettings)
+                .accessibilityHidden(showsSettings)
+            if showsSettings {
+                settingsTabContent
+            }
+        }
+    }
+
+    // Keep the Settings stack outside TabView's navigation adaptation. Changing
+    // chrome must not lift its right-hand destination over the category column.
+    @ViewBuilder
+    private var navigationShell: some View {
         switch navigationStyle {
         case .rail:
             railShell
@@ -1338,7 +1372,7 @@ struct MainTabView: View {
         case .music:
             return AnyView(musicTabContent)
         case .settings:
-            return AnyView(settingsTabContent)
+            return AnyView(Color.clear)
         case .allLibraries, .library:
             guard let libraryEntry else {
                 return AnyView(homeTabContent(isActive: isActive))
@@ -1553,7 +1587,7 @@ struct MainTabView: View {
         case .music:
             return AnyView(musicTabContent)
         case .settings:
-            return AnyView(settingsTabContent)
+            return AnyView(Color.clear)
         case .allLibraries, .library:
             if let entry = railEntries.first(where: {
                 $0.destination == activeLibraryNavigationDestination
@@ -1773,7 +1807,12 @@ struct MainTabView: View {
                 persistPrunedRailSelection()
             }
         }
-        .onChange(of: activeDestinationKey, initial: true) { _, destination in
+        .onChange(of: activeDestinationKey, initial: true) { previous, destination in
+            if destination == NavigationRailDestination.settings.storageValue,
+               let previous = NavigationRailDestination(storageValue: previous),
+               previous != .settings {
+                settingsReturnDestination = previous
+            }
             if let selected = NavigationRailDestination(storageValue: destination) {
                 retainsActiveWatchlist = selected == .watchlist
                 releaseExplicitLiveTVEntry(ifLeavingFor: selected)

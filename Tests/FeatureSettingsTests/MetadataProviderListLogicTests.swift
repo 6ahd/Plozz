@@ -13,25 +13,29 @@ final class MetadataProviderListLogicTests: XCTestCase {
     @MainActor
     func testArtworkLinkReturnsToTheExistingAppearancePage() {
         let navigation = SettingsNavigationModel()
-        navigation.path = [.appearance, .metadata]
+        navigation.section = .appearance
+        navigation.path = [.metadata]
         navigation.appearanceRowID = "theme"
         navigation.openArtwork()
-        XCTAssertEqual(navigation.path, [.appearance])
+        XCTAssertEqual(navigation.section, .appearance)
+        XCTAssertEqual(navigation.path, [.artwork])
         XCTAssertEqual(navigation.appearanceRowID, "artwork")
         navigation.openArtwork()
-        XCTAssertEqual(navigation.path, [.appearance])
+        XCTAssertEqual(navigation.path, [.artwork])
     }
 
     @MainActor
     func testArtworkAndMetadataLinksDoNotGrowRepeatedNavigationStacks() {
         let navigation = SettingsNavigationModel()
-        navigation.path = [.metadata]
+        navigation.section = .metadata
         for _ in 0..<3 {
             navigation.openArtwork()
-            XCTAssertEqual(navigation.path, [.metadata, .appearance])
+            XCTAssertEqual(navigation.section, .appearance)
+            XCTAssertEqual(navigation.path, [.artwork])
             XCTAssertEqual(navigation.appearanceRowID, "artwork")
             navigation.openMetadataProviders()
-            XCTAssertEqual(navigation.path, [.metadata])
+            XCTAssertEqual(navigation.section, .metadata)
+            XCTAssertTrue(navigation.path.isEmpty)
         }
     }
 

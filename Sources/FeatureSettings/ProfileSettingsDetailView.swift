@@ -59,6 +59,7 @@ struct ProfileSettingsDetailView: View {
                         subtitle: "How this profile looks, and who can open it."
                     )
                     actionsPanel(profile)
+                        .settingsWorkspaceEntry()
                 }
             }
             .frame(maxWidth: PlozzTheme.Metrics.settingsContentMaxWidth, alignment: .leading)

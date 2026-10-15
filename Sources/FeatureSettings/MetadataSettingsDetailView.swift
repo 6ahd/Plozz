@@ -269,6 +269,7 @@ public struct MetadataSettingsDetailView: View {
                     selection: orderModeBinding,
                     title: orderModeTitle
                 )
+                .settingsWorkspaceEntry()
 
                 Text("Shared by all profiles.")
                     .font(.caption)

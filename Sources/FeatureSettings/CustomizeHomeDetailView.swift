@@ -10,6 +10,9 @@ struct CustomizeHomeDetailView: View {
     let homeVisibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
     @Environment(HeroSettingsModel.self) private var hero
+    #if os(tvOS)
+    @Environment(\.settingsInWorkspace) private var inWorkspace
+    #endif
 
     init(
         discoveredLibraries: LoadState<[AggregatedLibrary]>,
@@ -27,7 +30,13 @@ struct CustomizeHomeDetailView: View {
     }
 
     private var rows: [SettingsSplitRow] {
-        layoutRows + homeRowsRows + continueWatchingRows
+        #if os(tvOS)
+        if inWorkspace {
+            return layoutRows + homeRowsRows.map { $0.page() } + continueWatchingRows
+                + (hero.settings.style == .carousel ? heroRows.map { $0.page() } : [])
+        }
+        #endif
+        return layoutRows + homeRowsRows + continueWatchingRows
             + (hero.settings.style == .carousel ? heroRows : [])
     }
 

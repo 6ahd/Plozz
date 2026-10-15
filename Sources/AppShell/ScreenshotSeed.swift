@@ -1,4 +1,5 @@
 import CoreModels
+import CoreNetworking
 import FeaturePlayback
 import Foundation
 
@@ -47,6 +48,38 @@ enum ScreenshotSeed {
         }
 
         let environment = ProcessInfo.processInfo.environment
+        #if targetEnvironment(simulator)
+        if environment["PLOZZ_SHOTS_SETTINGS"] == "1" {
+            FeatureIntroductionStore().markCompleted(.homeLayout)
+            if !appState.profilesModel.firstRunProfileSetupComplete {
+                guard appState.enterStandalonePlayback() else {
+                    PlozzLog.boot("Settings capture could not enter standalone setup")
+                    return
+                }
+                _ = appState.profilesModel.seedDefaultProfileIdentity(name: "Alex", avatarImageURL: nil)
+                appState.profilesModel.add(name: "Sam", avatarSymbol: "person.crop.circle", colorIndex: 3)
+                appState.confirmFirstRunProfile()
+                appState.finishThemeSelection()
+                FeatureIntroductionStore().markCompleted(.navigationStyles)
+                appState.finishNavigationSelection()
+                appState.finishHomeLayoutSelection()
+            }
+            if let mode = environment["PLOZZ_SHOTS_SETTINGS_KIDS"],
+               var sam = appState.profilesModel.profiles.first(where: { $0.name == "Sam" }) {
+                sam.replaceKidsProfile(with: mode != "off")
+                appState.profilesModel.update(sam)
+                appState.profilesModel.setParentalPIN(mode == "pin" ? ParentalPIN.make(pin: "1234") : nil)
+            }
+            let navigationStyle =
+                environment["PLOZZ_SHOTS_SETTINGS_NAVIGATION"].flatMap(NavigationStyle.init(rawValue:)) ?? .rail
+            for profile in appState.profilesModel.profiles where ["Alex", "Sam"].contains(profile.name) {
+                let namespace = profile.settingsNamespace(isDefault: appState.profilesModel.isDefault(profile))
+                NavigationStyleSettingsStore(namespace: namespace).save(navigationStyle)
+            }
+            appState.profileSettings.navigationStyleModel.style = navigationStyle
+            return
+        }
+        #endif
         guard let host = environment["PLOZZ_SHOTS_NFS_HOST"],
               let export = environment["PLOZZ_SHOTS_NFS_EXPORT"],
               !host.isEmpty,
