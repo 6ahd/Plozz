@@ -22,9 +22,11 @@ public final class PlaybackDeliveryFailure: @unchecked Sendable {
 
     public func recordRequest(_ request: PlaybackDeliveryEvidence.Request) {
         lock.withLock {
+            let root = deliveryEvidence.root
             if request.resource == .root,
-               request.sequence >= (deliveryEvidence.root?.sequence ?? 0),
-               request.method == .get || deliveryEvidence.root?.method != .get {
+               request.sequence >= (root?.sequence ?? 0),
+               request.method == .get || root?.method != .get,
+               request.outcome == .complete || root?.outcome != .complete || root?.method != request.method {
                 deliveryEvidence.root = request
             }
             if request.outcome == .upstreamFailure, deliveryEvidence.firstFailure == nil {

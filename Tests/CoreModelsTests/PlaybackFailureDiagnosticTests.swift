@@ -152,6 +152,44 @@ final class PlaybackFailureDiagnosticTests: XCTestCase {
         XCTAssertTrue(diagnostic.isValid)
     }
 
+    func testCompletedRootEvidenceSurvivesIncompleteRefreshes() throws {
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:12345/refresh-fixture"))
+        let state = PlaybackDeliveryFailure.register(loopbackURL: url)
+        defer { PlaybackDeliveryFailure.unregister(loopbackURL: url) }
+        var completed = PlaybackDeliveryEvidence.Request(
+            sequence: 1, resource: .root, method: .get, startedMilliseconds: 0
+        )
+        completed.status = 200
+        completed.outcome = .complete
+        completed.format = .hls
+        completed.playlist = .init(
+            hasHeader: true, isMaster: false, targetDurationMilliseconds: 6_000,
+            maximumSegmentMilliseconds: 6_000, mediaSequence: 100, segments: 1,
+            hasEndList: false, hasByteRanges: false, hasMap: false, hasEncryption: false
+        )
+        state.recordRequest(completed)
+
+        var refresh = PlaybackDeliveryEvidence.Request(
+            sequence: 2, resource: .root, method: .get, startedMilliseconds: 1
+        )
+        for outcome in [PlaybackDeliveryEvidence.Outcome.pending, .receiving, .consumerClosed, .upstreamFailure] {
+            refresh.outcome = outcome
+            state.recordRequest(refresh)
+            XCTAssertEqual(state.evidence.root, completed)
+            XCTAssertEqual(state.evidence.recent.last, refresh)
+        }
+        XCTAssertEqual(state.evidence.firstFailure, refresh)
+
+        refresh.outcome = .complete
+        refresh.format = .hls
+        refresh.playlist = completed.playlist
+        refresh.playlist?.mediaSequence = 101
+        state.recordRequest(refresh)
+        XCTAssertEqual(state.evidence.root, refresh)
+        state.recordRequest(completed)
+        XCTAssertEqual(state.evidence.root, refresh, "Older completions must not replace the newer response.")
+    }
+
     func testRootHeadEvidenceUpdatesUntilAGetProvidesThePlaybackFacts() throws {
         let url = try XCTUnwrap(URL(string: "http://127.0.0.1:12345/head-fixture"))
         let state = PlaybackDeliveryFailure.register(loopbackURL: url)
