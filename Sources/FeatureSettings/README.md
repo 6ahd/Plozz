@@ -45,6 +45,26 @@ and the single place caption customization lives.
   libraries, integrations, captions, about). `SettingsRowStyle` &
   `SettingsContext` provide the shared look + the environment needed by
   every detail page.
+- **iCloud Sync > Troubleshooting** remains reachable with sync off. The grouped
+  breakdown is an on-demand local-ledger snapshot of encoded payload bytes and
+  record counts, not an iCloud quota or network-usage measurement. Pending uploads
+  are included, pending deletions are counted separately, and separately managed
+  iCloud Keychain/Trakt authorization data is explicitly excluded.
+  **Erase Sync Data** needs no Developer Mode. A compact, single-title shared dialog
+  separates iCloud data, local data, and unaffected media, with native buttons
+  for its standalone actions. tvOS presents from the app root to avoid contested
+  nested Settings modal hosts; mobile uses the shared sheet. Choose **Erase Sync Data…**,
+  then confirm the native destructive alert. Cancellation at either
+  step does nothing. Kids profiles cannot execute it, including after a profile
+  switch. Erasure drains the sync engine, switches sync off, enumerates all
+  configured server zones (including unmirrored and direct tracker records),
+  checks every deletion and verifies emptiness before resetting local profiles
+  and servers. In-flight Trakt exchanges are drained and their local replay state
+  retired before remote deletion, including already-cancelled exchanges.
+  Sync cannot be re-enabled while recovery is still running.
+  Failures remain failures, even after a partial erase; no automatic reseed follows.
+  Other devices must stop syncing to avoid republishing. Apple TV cannot remove
+  server logins from iCloud Keychain; the review page directs that step to mobile.
 - `ProfileDetailView` — manage the active profile: rename, recolor,
   switch / sign out of accounts, configure the Plex Home-user mapping
   (`PlexLinkedUserDetailView`).

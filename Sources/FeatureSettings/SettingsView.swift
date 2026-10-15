@@ -45,7 +45,6 @@ public struct SettingsView: View {
     /// The shell's chrome model, present only under the custom navigation rail.
     @Environment(NavigationChromeModel.self) private var navigationChrome: NavigationChromeModel?
     @State private var confirmSignOutAll = false
-    @State private var confirmEraseICloud = false
     /// Hidden Developer Mode: reveals the diagnostic rows once unlocked by
     /// selecting the About/Version panel seven times. Off by default in every
     /// build. `showDeveloperUnlockedAlert` confirms the unlock.
@@ -151,7 +150,7 @@ public struct SettingsView: View {
     private let onRescanShare: (String) -> Void
     private let onSignOutAll: () -> Void
     private let onResetToFirstRun: () -> Void
-    private let onEraseICloud: (() -> Void)?
+    private let onReviewSyncErasure: (() -> Void)?
     private let onSetUpAnotherDevice: (() -> Void)?
     /// Current cross-device sync opt-in state, and the setter. When the setter is
     /// nil the row is hidden (e.g. a host that doesn't wire sync).
@@ -257,7 +256,7 @@ public struct SettingsView: View {
         onRescanShare: @escaping (String) -> Void,
         onSignOutAll: @escaping () -> Void,
         onResetToFirstRun: @escaping () -> Void,
-        onEraseICloud: (() -> Void)? = nil,
+        onReviewSyncErasure: (() -> Void)? = nil,
         plexHomeUsersFetcher: @escaping (String) async -> [PlexHomeUser],
         onSelectPlexHomeUser: @escaping (String, PlexHomeUser?) -> Void,
         onSetProfileLock: @escaping (String, ProfileLock?) -> Void = { _, _ in },
@@ -327,7 +326,7 @@ public struct SettingsView: View {
         self.onRescanShare = onRescanShare
         self.onSignOutAll = onSignOutAll
         self.onResetToFirstRun = onResetToFirstRun
-        self.onEraseICloud = onEraseICloud
+        self.onReviewSyncErasure = onReviewSyncErasure
         self.plexHomeUsersFetcher = plexHomeUsersFetcher
         self.onSelectPlexHomeUser = onSelectPlexHomeUser
         self.onSetProfileLock = onSetProfileLock
@@ -487,12 +486,6 @@ public struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes every Plex and Jellyfin sign-in on this Apple TV. You'll need to sign in again.")
-        }
-        .alert("Erase everything from iCloud?", isPresented: $confirmEraseICloud) {
-            Button("Erase Household From iCloud", role: .destructive) { onEraseICloud?() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Deletes the whole household — every profile and server — from iCloud (all your devices), wipes this Apple TV to first-run, and turns iCloud Sync OFF here. Use to test a clean cold start (e.g. set up only on this Apple TV, then fresh-install another device). Re-enable Sync when done.")
         }
         // Under the custom navigation rail, a drilled-in Settings page is a detail
         // page: report the depth so the rail steps aside rather than overlaying it
@@ -842,12 +835,6 @@ public struct SettingsView: View {
                 // next server add reproduces a genuine first run.
                 debugResetFirstRunRow
 
-                // Empty the shared iCloud copy AND this device's local copy and
-                // turn Sync off, so a true cold start can be tested (unlike Reset
-                // to First Run, which only clears local and leaves iCloud intact).
-                if onEraseICloud != nil {
-                    debugEraseICloudRow
-                }
             }
         }
         .alert("Developer Mode Enabled", isPresented: $showDeveloperUnlockedAlert) {
@@ -962,28 +949,6 @@ public struct SettingsView: View {
                 Spacer()
             }
             .foregroundStyle(.orange)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(SettingsFocusButtonStyle())
-    }
-
-    /// "Erase Everything From iCloud" row. Empties the shared iCloud household
-    /// copy, wipes this device to first-run, and turns Sync off — for testing a
-    /// genuine cold start. Gated behind Developer Mode like the other debug rows.
-    private var debugEraseICloudRow: some View {
-        Button {
-            confirmEraseICloud = true
-        } label: {
-            HStack(spacing: 16) {
-                Image(systemName: "trash.slash")
-                    .font(.system(size: 22, weight: .regular))
-                    .frame(width: 30, height: 30)
-                Text("Erase Everything From iCloud (Debug)").font(.callout.weight(.medium))
-                Spacer()
-            }
-            .foregroundStyle(.red)
             .padding(.vertical, 12)
             .padding(.horizontal, 12)
             .contentShape(Rectangle())
@@ -1118,7 +1083,9 @@ public struct SettingsView: View {
             if let syncRepair {
                 SyncTroubleshootingView(
                     repair: syncRepair,
-                    statusProvider: syncStatusSummary
+                    statusProvider: syncStatusSummary,
+                    syncEnabled: syncEnabled,
+                    onReviewErasure: !activeProfile.isKids && !isParentalSealed ? onReviewSyncErasure : nil
                 )
             }
         case let .seerUserPicker(profileID):
@@ -1270,6 +1237,7 @@ public struct SettingsView: View {
                             get: { syncEnabled }, set: { onSetSyncEnabled($0) }
                         ))
                         .toggleStyle(SettingsSwitchToggleStyle())
+                        .modifier(SyncRecoveryDisabled(provider: syncStatusSummary))
 
                         if syncEnabled, let syncStatusSummary {
                             HStack(spacing: 24) {
@@ -1282,6 +1250,7 @@ public struct SettingsView: View {
                                 if let onSyncNow {
                                     Button("Sync Now", action: onSyncNow)
                                         .buttonStyle(PlozzSeasonTabStyle(isSelected: false))
+                                        .modifier(SyncRecoveryDisabled(provider: syncStatusSummary))
                                 }
                             }
                             .padding(.top, 12)
@@ -1302,7 +1271,7 @@ public struct SettingsView: View {
                         }
                     }
                 }
-                if syncEnabled, syncRepair != nil {
+                if syncRepair != nil {
                     SettingsPanel(contentPadding: .settingsPanelRowContent) {
                         NavigationLink(value: SettingsRoute.syncTroubleshooting) {
                             SettingsRowLabel(
@@ -1496,6 +1465,8 @@ public struct SettingsView: View {
 private struct SyncTroubleshootingView: View {
     let repair: SyncRepairActions
     let statusProvider: SyncStatusProvider?
+    let syncEnabled: Bool
+    let onReviewErasure: (() -> Void)?
     @State private var confirmsReset = false
 
     var body: some View {
@@ -1505,6 +1476,7 @@ private struct SyncTroubleshootingView: View {
                 SettingsPageHeader("Troubleshooting")
                 if let statusProvider {
                     SyncComparisonPanel(provider: statusProvider)
+                    SyncDataBreakdown(provider: statusProvider)
                 }
                 SettingsPanel(
                     title: "Recovery",
@@ -1525,7 +1497,7 @@ private struct SyncTroubleshootingView: View {
                             )
                         }
                         .buttonStyle(SettingsFocusButtonStyle())
-                        .disabled(isRecovering)
+                        .disabled(isRecovering || !syncEnabled)
                         .accessibilityIdentifier("cloud-sync-reload")
 
                         Button { confirmsReset = true } label: {
@@ -1540,10 +1512,20 @@ private struct SyncTroubleshootingView: View {
                             )
                         }
                         .buttonStyle(SettingsFocusButtonStyle())
-                        .disabled(isRecovering)
+                        .disabled(isRecovering || !syncEnabled)
                     }
                 }
                 LiveTVPortableSyncPendingSettings()
+                if let onReviewErasure {
+                    SettingsPanel(contentPadding: .settingsPanelRowContent) {
+                        Button(action: onReviewErasure) {
+                            SettingsRowLabel(icon: "trash", title: "Erase Sync Data")
+                        }
+                        .buttonStyle(SettingsFocusButtonStyle())
+                        .disabled(isRecovering)
+                        .accessibilityIdentifier("cloud-sync-erase")
+                    }
+                }
             }
             .frame(maxWidth: 1200, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
