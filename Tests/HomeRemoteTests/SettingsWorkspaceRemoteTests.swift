@@ -414,6 +414,13 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             let controlColumn = try XCTUnwrap(app.scrollViews.allElementsBoundByIndex.first {
                 $0.buttons["settings-workspace-back"].exists
             }, "The editor's Back button must belong to its scrolling control column.")
+            XCTAssertTrue(controlColumn.staticTexts[title].exists,
+                          "The page heading must scroll with its controls, not occupy a fixed header.")
+            XCTAssertLessThanOrEqual(controlColumn.frame.minY, 1,
+                                     "The page scroll viewport must reach the top screen edge.")
+            let preview = app.otherElements["subtitle-style-preview"]
+            XCTAssertTrue(preview.exists)
+            let previewAtEntry = preview.frame
             XCTAssertTrue(back.exists)
             XCTAssertGreaterThanOrEqual(back.frame.minY, controlColumn.frame.minY,
                                         "The scrolling viewport must not crop Back at page entry.")
@@ -433,6 +440,13 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCUIRemote.shared.press(.select)
             XCTAssertTrue(app.staticTexts["Font"].waitForExistence(timeout: 5), app.debugDescription)
             XCTAssertFalse(section("subtitles", in: app).exists)
+            try focus(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "System Fonts")).firstMatch,
+                      in: app)
+            XCTAssertLessThanOrEqual(heading.frame.maxY, controlColumn.frame.minY,
+                                    "Browsing fonts must scroll the entire page title out of the viewport.")
+            XCTAssertEqual(preview.frame.minY, previewAtEntry.minY, accuracy: 1)
+            XCTAssertEqual(preview.frame.width, previewAtEntry.width, accuracy: 1)
+            XCTAssertEqual(preview.frame.height, previewAtEntry.height, accuracy: 1)
             capture("\(captureName)-fonts", in: app)
             XCUIRemote.shared.press(.menu)
             XCTAssertTrue(app.staticTexts["Appearance"].waitForExistence(timeout: 5), app.debugDescription)

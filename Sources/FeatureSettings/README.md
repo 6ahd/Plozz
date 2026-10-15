@@ -83,7 +83,9 @@ and the single place caption customization lives.
   control through `settingsPageBackButton`; page headers and custom editors
   host it inside their scrolling content, never above the scroll viewport.
   In the subtitle editor, Back scrolls with the control column but stays outside
-  the Appearance card; the live preview and its preview tools remain separate.
+  the Appearance card. The page title and preview tools share that scroll view,
+  which extends to the screen edge; only the large live preview stays stationary
+  beside the controls. Scrolling never leaves a fixed title above a shortened list.
 - `ProfileDetailView` — manage the active profile: rename, recolor,
   switch / sign out of accounts, configure the Plex Home-user mapping
   (`PlexLinkedUserDetailView`).

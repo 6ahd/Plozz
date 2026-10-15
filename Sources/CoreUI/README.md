@@ -19,6 +19,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   focus inset. The contained focus radius is the group's radius minus that
   inset, so the corners remain concentric. Existing checkmark groups keep
   their separate focus-bleed geometry.
+  Page titles and Back belong inside the scrolling content, not in a fixed
+  header strip that shortens the viewport. `SettingsPageHeader` supplies their
+  styling, not a separate pinned container.
 - **Settings page navigation** — the TV workspace uses `SettingsPageStack` for
   retained, full-width child pages. Only the current page owns input,
   accessibility and Back; a pop restores the originating link's focus after the

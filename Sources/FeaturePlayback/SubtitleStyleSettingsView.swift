@@ -23,55 +23,63 @@ public struct SubtitleStyleSettingsView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        GeometryReader { geometry in
+            let context = SubtitleStyleEditingContext(
+                controls: controls, style: $style, secondaryPreview: secondaryPreview,
+                offersDualSubtitles: !isLiveTV
+            )
             #if os(tvOS)
-            SettingsPageHeader(pageTitle)
-                .environment(\.settingsPageBackButton, nil)
-                .plozzForeground(.primary)
-            #endif
-            GeometryReader { geometry in
-                let context = SubtitleStyleEditingContext(
-                    controls: controls, style: $style, secondaryPreview: secondaryPreview,
-                    offersDualSubtitles: !isLiveTV
-                )
-                #if os(tvOS)
-                HStack(alignment: .center, spacing: 44) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
+                    SettingsPageHeader(pageTitle)
+                        .environment(\.settingsPageBackButton, nil)
+                        .plozzForeground(.primary)
                     TelevisionSubtitleStyleColumn(
                         context: context, screen: Binding(get: { screen }, set: openScreen),
                         returningToParent: returningToParent, style: style,
                         secondaryVisible: secondaryVisible, previewOptions: previewOptions
                     )
-                        .frame(width: SubtitleStylePanel.panelWidth)
-                    SubtitleStylePreview(
-                        style: style, secondaryVisible: secondaryVisible,
-                        referenceSize: SubtitleStylePreviewMetrics.televisionCanvas,
-                        options: previewOptions
-                    )
-                    .frame(maxWidth: .infinity)
-                    .allowsHitTesting(false)
+                    .frame(width: SubtitleStylePanel.panelWidth)
                 }
-                #else
-                let width = max(geometry.size.width, geometry.size.height)
-                let reference = CGSize(width: width, height: width * 9 / 16)
-                let layout = geometry.size.width > geometry.size.height
-                    ? AnyLayout(HStackLayout(alignment: .top, spacing: 24))
-                    : AnyLayout(VStackLayout(alignment: .leading, spacing: 20))
-                layout {
-                    SubtitleStylePreview(
-                        style: style, secondaryVisible: secondaryVisible,
-                        referenceSize: reference, options: previewOptions
-                    )
-                        .frame(maxWidth: .infinity)
-                    NavigationStack {
-                        MobileSubtitleStyleEditor(viewModel: context)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                #endif
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, SettingsFormMetrics.pageTopInset)
+                .padding(.bottom, SettingsFormMetrics.pageBottomInset)
             }
+            .scrollClipDisabled()
+            .overlay(alignment: .trailing) {
+                SubtitleStylePreview(
+                    style: style, secondaryVisible: secondaryVisible,
+                    referenceSize: SubtitleStylePreviewMetrics.televisionCanvas,
+                    options: previewOptions
+                )
+                .frame(width: max(0, geometry.size.width - SubtitleStylePanel.panelWidth - 44))
+                .allowsHitTesting(false)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("subtitle-style-preview")
+            }
+            #else
+            let width = max(geometry.size.width, geometry.size.height)
+            let reference = CGSize(width: width, height: width * 9 / 16)
+            let layout = geometry.size.width > geometry.size.height
+                ? AnyLayout(HStackLayout(alignment: .top, spacing: 24))
+                : AnyLayout(VStackLayout(alignment: .leading, spacing: 20))
+            layout {
+                SubtitleStylePreview(
+                    style: style, secondaryVisible: secondaryVisible,
+                    referenceSize: reference, options: previewOptions
+                )
+                .frame(maxWidth: .infinity)
+                NavigationStack {
+                    MobileSubtitleStyleEditor(viewModel: context)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            #endif
         }
         .padding(.horizontal, pageInset)
+        #if !os(tvOS)
         .padding(.vertical, 24)
+        #endif
         .background { SettingsPageBackground() }
         #if os(tvOS)
         .navigationTitle(Text(verbatim: ""))
@@ -146,13 +154,11 @@ private struct TelevisionSubtitleStyleColumn: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
-                    SettingsPageBackButton()
-                    TelevisionSubtitleStyleEditor(
-                        context: context, screen: $screen, returningToParent: returningToParent
-                    )
-                }
+            VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+                SettingsPageBackButton()
+                TelevisionSubtitleStyleEditor(
+                    context: context, screen: $screen, returningToParent: returningToParent
+                )
             }
             SubtitlePreviewControls(
                 style: style, secondaryVisible: secondaryVisible, options: previewOptions,

@@ -1,8 +1,8 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
-/// The shared page-level Settings heading. Add a subtitle only when the title
-/// cannot communicate the scope of the page.
+/// Place this heading inside the page's scrollable content, never above its viewport.
+/// Add a subtitle only when the title cannot communicate the scope of the page.
 public struct SettingsPageHeader: View {
     private let title: Text
     private let subtitle: Text?
