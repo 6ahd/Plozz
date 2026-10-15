@@ -49,6 +49,55 @@ final class IPTVPlaybackHostedTests: XCTestCase {
         XCTAssertEqual(requests, 1, "Native engine retries must not repeatedly contact the rejecting provider.")
     }
 
+    func testNativeHLSFailureRetainsSuccessfulPlaylistAndFailedChildWithoutPrivateData() async throws {
+        let server = try IPTVTestHTTPServer { request in
+            if request.contains("/private-channel.m3u8") {
+                return .init(data: Data("""
+                #EXTM3U
+                #EXT-X-TARGETDURATION:6
+                #EXT-X-MEDIA-SEQUENCE:100
+                #EXTINF:6,
+                private-segment.ts?token=secret
+                #EXT-X-ENDLIST
+
+                """.utf8), headers: ["Content-Type": "application/vnd.apple.mpegurl"])
+            }
+            return .init(data: Data("private failure".utf8), status: 404, headers: ["Content-Type": "text/html"])
+        }
+        addTeardownBlock { await server.stop() }
+        let base = try await server.start()
+        let proxy = try IPTVPlaybackProxy(origin: base.appendingPathComponent("private-channel.m3u8"), headers: [:])
+        addTeardownBlock { await proxy.stop() }
+        let engine = try PlozzigenVideoEngine()
+        defer { engine.stop() }
+        var report: LiveChannelFailureReport?
+        engine.onFailure = { error in
+            report = .init(failure: .engine(error), diagnostic: engine.livePlaybackFailureDiagnostic)
+        }
+        defer { engine.onFailure = nil }
+        let url = try await proxy.start()
+        await engine.loadLive(url: url, httpHeaders: [:])
+        let deadline = ContinuousClock.now + .seconds(25)
+        while report == nil, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        let failure = try XCTUnwrap(report)
+        let evidence = try XCTUnwrap(failure.diagnostic?.evidence)
+        XCTAssertEqual(evidence.firstFrameReady, false)
+        XCTAssertNotNil(evidence.route)
+        XCTAssertEqual(evidence.nativeCapture, .captured)
+        XCTAssertFalse(evidence.nativeErrors.isEmpty, "Retain the actual native failure, not only the relay status.")
+        XCTAssertEqual(evidence.delivery?.root?.format, .hls)
+        XCTAssertEqual(evidence.delivery?.root?.playlist?.mediaSequence, 100)
+        XCTAssertEqual(evidence.delivery?.firstFailure?.status, 404)
+        XCTAssertEqual(evidence.delivery?.firstFailure?.resource, .child)
+        let text = LiveTVDiagnosticReport.playback(failure).supportText
+        XCTAssertTrue(text.contains("upstream_first_failure.http_status=404"))
+        for secret in ["private", "token", "secret", base.absoluteString] {
+            XCTAssertFalse(text.contains(secret))
+        }
+    }
+
     func testOptInTrialChannelSustainsPlaybackThroughTheProductionEngine() async throws {
         let control = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
