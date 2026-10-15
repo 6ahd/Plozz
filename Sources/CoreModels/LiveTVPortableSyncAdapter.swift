@@ -42,6 +42,11 @@ public struct LiveTVPortableLibraryExport: Sendable {
         recordStorage = storage
     }
 
+    /// Run off the main actor at startup, including when portable sync is disabled.
+    public static func reclaimObsoleteTemporaryStorage() {
+        _ = LiveTVPortableRecordStorage.reclaimLegacyFilesOnce
+    }
+
     var residentRecordBytes: Int { recordStorage.residentBytes }
     var encodedRecordBytes: Int { recordStorage.storedBytes }
 }

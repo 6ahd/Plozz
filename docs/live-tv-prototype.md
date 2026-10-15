@@ -1287,6 +1287,14 @@ Generated completion never writes resume position or sends a legacy
 playback-stop event. Pending completions retain runtime consent and account
 authorization checks; restoring an outbox cannot recreate an expired grant.
 
+IPTV provider catalogues retain their indexed metadata, including on-demand
+movies/shows where supplied, rather than downloaded video. SQLite retains at
+most a 4 MiB reusable WAL after a completed reset/checkpoint. The client also
+attempts a non-waiting checkpoint of oversized legacy journals on first use and
+after imports. Active readers defer truncation; their snapshots and committed
+catalogue are never removed to meet a space target. No database sidecars are
+deleted manually, and these limits do not cap the underlying catalogue itself.
+
 Live TV follows the main iCloud Sync switch for each profile. The existing
 portable channel covers channel preferences, matching hints and generated
 definitions/snapshots. A separate encrypted source channel carries playlist
@@ -1331,6 +1339,16 @@ state commits before engine cursors advance; failed persistence stops delivery
 and retries from the last durable state. Source transfer retains a 256 MiB
 aggregate record budget rather than silently dropping
 files when an account exceeds the device's supported working set.
+
+The non-secret Live TV state channel also uses an incremental local record
+ledger, not a whole-library JSON rewrite on every acknowledgement. Matching
+local/server payloads are stored once while edit clocks, server fields, pending
+changes and deletions retain their exact semantics. Legacy whole-ledger JSON
+(including files above 256 MiB) is validated and migrated before replacement.
+Unchanged entry files are reused; failed saves retain the committed index.
+Startup validates that index before reclaiming unreferenced entry files and
+abandoned atomic writes for this channel. Credential channels remain encrypted;
+CloudKit record formats and schedules are unchanged.
 
 Incomplete transfers remain pending. Identity changes are deferred while
 playback holds their identities, while authorization revocation takes effect
@@ -1400,6 +1418,13 @@ The journal enforces its **128 MiB serialized-storage bound** before writing.
 Each export and incoming preparation has a separate 128 MiB staging quota and
 50,000-record bound, not a 64 MiB whole-library memory limit. Encoded records
 above a **4 MiB working buffer** spill to invocation-owned, memory-mapped files.
+Their file names are unlinked before payload bytes are written. Each returned
+`Data` owns its mapping, so releasing the export owner cannot invalidate a
+retained value, and process termination reclaims the backing without requiring
+`deinit`. Startup removes only recognized old numbered-record staging folders
+from this app's temporary directory, off-main, even when sync is disabled.
+These are per-operation working limits, not a claim that all simultaneously
+retained exports together occupy only 128 MiB.
 Journal reopening validates one wrapper at a time with the same bounded backing;
 prepared snapshot entries retain only validated identity and encoded bytes, not
 a second decoded copy of every item. Opt-in replay and failed-apply hydration use
@@ -1420,9 +1445,10 @@ Journal commits stage record descriptors rather than another fully serialized
 collection. The worker encodes and writes one bounded wrapper at a time; exact
 serialized sizes are checked before any new records are written. Storage quota,
 record-size and record-count failures remain explicit and never authorize a
-partial schedule. Retired temporary backing is removed off-main; failed/cancelled
+partial schedule. Retired temporary backing is reclaimed with its mappings; failed/cancelled
 operations retain no reusable authority. A fresh device can receive more than
 64 MiB of valid parts in one preparation or progressively across deliveries.
+
 Replacing or deleting a known library definition retires snapshot parts only
 when no remaining definition revision references that generation. Current,
 future, retained and pending revisions all count. Retirement uses explicit
