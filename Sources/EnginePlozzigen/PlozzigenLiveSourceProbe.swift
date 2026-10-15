@@ -1,5 +1,6 @@
 import CoreModels
 import Foundation
+import os
 
 /// Opaque IPTV addresses describe a resource, not its container. Inspect a small
 /// prefix before choosing AVPlayer's HLS bypass or the engine's demuxer.
@@ -9,9 +10,17 @@ final class PlozzigenLiveSourceProbe: Sendable {
     }
 
     private let session: URLSession
+    typealias RequestBytes = @Sendable (URLSession, URLRequest) async throws -> (URLSession.AsyncBytes, URLResponse)
+    private typealias RequestTask = Task<(URLSession.AsyncBytes, URLResponse), Error>
+    private struct Lifecycle {
+        var closed = false
+        var starting: [UUID: RequestTask] = [:]
+    }
+    private let lifecycle = OSAllocatedUnfairLock(initialState: Lifecycle())
+    private let requestBytes: RequestBytes
     static let maximumBytes = 1_024
 
-    init(configuration: URLSessionConfiguration = .ephemeral) {
+    init(configuration: URLSessionConfiguration = .ephemeral, requestBytes: RequestBytes? = nil) {
         configuration.urlCache = nil
         configuration.httpCookieStorage = nil
         configuration.httpShouldSetCookies = false
@@ -20,10 +29,54 @@ final class PlozzigenLiveSourceProbe: Sendable {
         configuration.timeoutIntervalForRequest = 15
         configuration.timeoutIntervalForResource = 15
         session = URLSession(configuration: configuration)
+        self.requestBytes = requestBytes ?? { session, request in
+            try await session.bytes(for: request, delegate: Redirects())
+        }
     }
 
     deinit { session.invalidateAndCancel() }
-    func cancel() { session.invalidateAndCancel() }
+    func cancel() {
+        let shutdown = lifecycle.withLock { state -> (tasks: [RequestTask], invalidate: Bool) in
+            guard !state.closed else { return ([], false) }
+            state.closed = true
+            return (Array(state.starting.values), state.starting.isEmpty)
+        }
+        for task in shutdown.tasks { task.cancel() }
+        if shutdown.invalidate { session.invalidateAndCancel() }
+    }
+
+    private func bytes(for request: URLRequest) async throws -> (URLSession.AsyncBytes, URLResponse) {
+        let id = UUID()
+        // Like IPTVHTTP, hold admission across asynchronous native task creation.
+        // Creating a task after URLSession invalidation raises an Obj-C exception.
+        let task = try lifecycle.withLock { state in
+            guard !state.closed else { throw CancellationError() }
+            let task = RequestTask { [session, requestBytes] in
+                try Task.checkCancellation()
+                let result = try await requestBytes(session, request)
+                if Task.isCancelled {
+                    result.0.task.cancel()
+                    throw CancellationError()
+                }
+                return result
+            }
+            state.starting[id] = task
+            return task
+        }
+        defer {
+            let invalidate = lifecycle.withLock { state in
+                state.starting.removeValue(forKey: id)
+                return state.closed && state.starting.isEmpty
+            }
+            if invalidate { session.invalidateAndCancel() }
+        }
+        let result = try await task.value
+        if Task.isCancelled || lifecycle.withLock({ $0.closed }) {
+            result.0.task.cancel()
+            throw CancellationError()
+        }
+        return result
+    }
 
     static func isRequired(for url: URL) -> Bool {
         ["http", "https"].contains(url.scheme?.lowercased() ?? "")
@@ -40,7 +93,7 @@ final class PlozzigenLiveSourceProbe: Sendable {
         // A live origin may legitimately ignore Range. No seek support is needed
         // to identify a prefix, and an endless response must never be downloaded.
         return try await withTaskCancellationHandler {
-            let (bytes, response) = try await session.bytes(for: request, delegate: Redirects())
+            let (bytes, response) = try await bytes(for: request)
             defer { bytes.task.cancel() }
             guard let response = response as? HTTPURLResponse else { throw AppError.invalidResponse }
             try Self.validate(response)
@@ -61,7 +114,7 @@ final class PlozzigenLiveSourceProbe: Sendable {
                 bytes.task.cancel()
             }
         } onCancel: {
-            session.invalidateAndCancel()
+            cancel()
         }
     }
 

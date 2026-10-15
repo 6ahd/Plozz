@@ -2,6 +2,21 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/056.4",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.4",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Fixed",
+          "items": [
+            "Some IPTV channels failing to start."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/056.3",
       "version": "2026.10.15",
       "marketingVersion": "2026.9.25",

@@ -78,4 +78,67 @@ final class PlozzigenLiveSourceProbeTests: XCTestCase {
             .unauthorized
         )
     }
+
+    func testClosedProbeRejectsRequestAdmissionBeforeNativeTaskCreation() async throws {
+        let probe = PlozzigenLiveSourceProbe(requestBytes: { _, _ in
+            XCTFail("A closed probe must not admit native task creation.")
+            throw CancellationError()
+        })
+        probe.cancel()
+        probe.cancel()
+        do {
+            _ = try await probe.format(url: XCTUnwrap(URL(string: "https://example.test/channel")), headers: [:])
+            XCTFail("A closed probe must cancel.")
+        } catch is CancellationError {
+        }
+    }
+
+    func testCancellationDuringNativeTaskCreationDefersSessionInvalidation() async throws {
+        for cancelCaller in [false, true] {
+            let started = expectation(description: "Native creation boundary reached")
+            let gate = StartupGate()
+            let probe = PlozzigenLiveSourceProbe(requestBytes: { session, request in
+                await gate.suspend { started.fulfill() }
+                // Deliberately create after cancellation, as URLSession's async
+                // implementation can. An invalidated session would trap here.
+                let native = session.dataTask(with: request)
+                native.cancel()
+                await gate.recordCreation()
+                throw CancellationError()
+            })
+            let url = try XCTUnwrap(URL(string: "https://example.test/channel"))
+            let request = Task { try await probe.format(url: url, headers: [:]) }
+            await fulfillment(of: [started], timeout: 2)
+            if cancelCaller { request.cancel() }
+            else { probe.cancel() }
+            await gate.release()
+            do {
+                _ = try await request.value
+                XCTFail("Cancelled startup must not publish a playable format.")
+            } catch is CancellationError {
+            }
+            let creations = await gate.creations
+            XCTAssertEqual(creations, 1)
+            probe.cancel()
+        }
+    }
+
+    private actor StartupGate {
+        private var continuation: CheckedContinuation<Void, Never>?
+        private(set) var creations = 0
+
+        func suspend(started: @Sendable () -> Void) async {
+            await withCheckedContinuation {
+                continuation = $0
+                started()
+            }
+        }
+
+        func recordCreation() { creations += 1 }
+
+        func release() {
+            continuation?.resume()
+            continuation = nil
+        }
+    }
 }
