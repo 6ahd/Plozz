@@ -271,7 +271,7 @@ struct PlozziOSPlayerControlsOverlay: View {
         .onChange(of: versionsPresented) { _, presented in
             if presented { cancelAutoHide() } else { scheduleAutoHide() }
         }
-        .sheet(item: $presentedSheet, onDismiss: scheduleAutoHide) { sheet in
+        .plozzSheet(item: $presentedSheet, onDismiss: scheduleAutoHide) { sheet in
             switch sheet {
             case .speed:
                 PlozziOSPlaybackSpeedSheet(viewModel: viewModel)

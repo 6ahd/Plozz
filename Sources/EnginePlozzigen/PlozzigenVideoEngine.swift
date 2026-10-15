@@ -715,7 +715,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         if #available(tvOS 26.0, *), trueHDAtmosEnabled,
            outputPolicy.isAudible, !outputPolicy.sharesAudioSession {
             // This is an intermediate spatial bed, not a detected speaker inventory.
-            // Aether gates TrueHD Atmos/48 kHz/native VOD and retains the bridge fallback.
+            // Aether verifies 48 kHz TrueHD Atmos/DTS:X on native VOD, with a channel fallback.
             // Shared live players and muted previews must not add spatial encoding work.
             options.objectAudioRendering = .apac(.l714)
         }
@@ -785,9 +785,15 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     private var liveFailureDiagnostic: PlaybackFailureAttempt?
     private var liveDeliveryFailure: PlaybackDeliveryFailure?
 
+    public var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic? {
+        liveDeliveryFailure?.diagnostic ?? liveFailureDiagnostic?.diagnostic
+    }
+
     private func beginLiveAttempt() -> UInt64 {
         let generation = liveAttemptGate.begin()
-        liveFailureDiagnostic = PlaybackFailureDiagnostics.shared.begin(layer: .liveEngine, content: .live)
+        liveFailureDiagnostic = PlaybackFailureDiagnostics.shared.begin(
+            layer: .liveEngine, content: .live, captureForPresentation: true
+        )
         liveSourceResetCancellable?.cancel()
         liveSourceResetCancellable = engine.liveSourceReset
             .receive(on: DispatchQueue.main)

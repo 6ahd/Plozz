@@ -32,7 +32,7 @@ struct PlaybackDiagnosticsOverlay: View {
                 }
                 .accessibilityIdentifier("playback-diagnostics-scroll")
             }
-            .background(palette.backgroundBase)
+            .background { AppBackground(palette: palette) }
         } else {
             TelevisionDiagnosticsPlacement(controlsLayout: televisionControlsLayout) { width in
                 televisionPanel(width: width)

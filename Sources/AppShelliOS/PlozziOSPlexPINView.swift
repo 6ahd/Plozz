@@ -11,24 +11,22 @@ struct PlozziOSPlexPINView: View {
     var dismissOnSuccess = true
     var onCancel: () -> Void = {}
 
-    @State private var isSubmitting = false
-
     var body: some View {
         let pendingRequest = model.pendingPlexPINRequest
         PINEntryScaffold(
             title: "Enter your Plex PIN",
             name: Text(verbatim: request.homeUserName),
             errorMessage: model.plexPINError,
-            isSubmitting: isSubmitting,
+            isSubmitting: model.isSubmittingPlexPIN,
             sequenceStep: sequenceStep,
             onSubmit: { pin in
-                isSubmitting = true
+                guard model.pendingPlexPINRequest == request else { return }
                 model.submitPlexPIN(pin)
             },
             onCancel: {
                 onCancel()
                 model.cancelPlexPIN()
-                if dismissOnSuccess { dismiss() }
+                if dismissOnSuccess, model.pendingPlexPINRequest == nil { dismiss() }
             }
         ) {
             PINBadge {
@@ -50,9 +48,8 @@ struct PlozziOSPlexPINView: View {
                 }
             }
         }
-        .onChange(of: model.plexPINError) { _, error in
-            if error != nil { isSubmitting = false }
-        }
+        .id([request.id, request.accountID, request.homeUserID])
+        .interactiveDismissDisabled(pendingRequest != nil)
         .onChange(of: pendingRequest?.id) { _, requestID in
             if requestID == nil, dismissOnSuccess {
                 dismiss()

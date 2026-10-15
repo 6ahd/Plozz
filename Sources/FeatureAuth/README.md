@@ -146,6 +146,21 @@ profiles mapped to the same Plex user. Local Profile Locks and Kids Profile exit
 gates remain in force for manual switching. Disabling automatic sign-in removes
 the stored session without changing any PIN; sign-out invalidates it.
 
+Before leaving a protected Plex Home binding at its PIN prompt, Plozz refreshes
+that user's protection status. A removed Plex PIN clears the cached requirement
+only after a successful PIN-less switch for the same profile, user and account
+credential. The prompt remains a gate until that authentication completes.
+Unavailable metadata, a missing user or a rejected switch never removes the
+requirement; an entered PIN can still authenticate when the metadata endpoint
+is unavailable. Cancellation and superseded profile/account/lock state invalidate
+the refresh. A successful switch cannot dismiss another account's PIN prompt,
+and cancelling retains the gate unless an authorized fallback profile activates.
+The shared keypad cancels its final-digit display delay before cancellation or
+disappearance, so an abandoned entry cannot submit afterward. Mobile PIN sheets
+also block interactive dismissal while the gate remains unresolved.
+This does not create, remove or change a separate Plozz Profile Lock, even when
+the person chose the same digits for both locks.
+
 Foreground account or profile-membership credential recovery must leave a
 launching session in `launching`. The shell's bootstrap owns profile/PIN gates
 and automatic sign-in restoration before emitting `restored`; an early

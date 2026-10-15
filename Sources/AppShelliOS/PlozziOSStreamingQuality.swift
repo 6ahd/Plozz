@@ -148,7 +148,7 @@ struct StreamingQualityPicker: View {
         }
         .accessibilityLabel(Text(title))
         .accessibilityValue(Text(selection.title))
-        .sheet(item: $editingQuality) { quality in
+        .plozzSheet(item: $editingQuality) { quality in
             StreamingCustomQualityEditor(quality: quality, support: support) { selection = $0 }
         }
         if let message = support.validationMessage(for: selection) {

@@ -173,7 +173,7 @@ struct LiveChannelOverlay: View {
         }
         .onDisappear { onTracksPresentationChange(false) }
         #if os(iOS)
-        .sheet(isPresented: $showsCustomZoom) {
+        .plozzSheet(isPresented: $showsCustomZoom) {
             PlayerZoomSettingsSheet(model: tracks.videoZoom)
         }
         #endif
@@ -875,7 +875,7 @@ struct LiveChannelOverlay: View {
             // Across a wide screen the grid alone draws its roomy layout at a
             // height that shows barely a row; beside an info column it keeps
             // the phone's compact shape, which scrolls comfortably.
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 LiveChannelGuideInfoColumn(
                     title: title, logoURL: logoURL, plozzChannelID: plozzChannelID, program: program
                 )
@@ -1648,7 +1648,7 @@ private struct LiveChannelProgramTiming: View {
 #if os(iOS)
 /// The Guide card's left column on a wide touch screen: what is playing, so
 /// the grid beside it can take the phone's compact shape and stay navigable.
-private struct LiveChannelGuideInfoColumn: View {
+struct LiveChannelGuideInfoColumn: View {
     let title: String // l10n:content — provider-supplied channel name
     let logoURL: URL?
     let plozzChannelID: String?
@@ -1700,7 +1700,10 @@ private struct LiveChannelGuideInfoColumn: View {
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
         }
         .clipped()
-        .modifier(PanelGlassBackground(cornerRadius: metrics.panelCornerRadius))
+        .plozzSurface(
+            .raised, cornerRadius: max(0, metrics.panelCornerRadius - metrics.contentPadding)
+        )
+        .environment(\.themePalette, .dark)
     }
 }
 #endif

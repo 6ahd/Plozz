@@ -4,11 +4,14 @@ import SwiftUI
 public struct SettingsPageBackground: View {
     @Environment(\.themePalette) private var palette
     @Environment(\.gradientBackgroundsEnabled) private var gradientEnabled
+    @Environment(\.plozzDialogBackgroundOwned) private var dialogBackgroundOwned
 
     public init() {}
 
     public var body: some View {
-        if gradientEnabled {
+        if dialogBackgroundOwned {
+            Color.clear
+        } else if gradientEnabled {
             AmbientGradientBackground(palette: palette)
         } else {
             palette.settingsBackground.ignoresSafeArea()
@@ -68,8 +71,13 @@ private struct PlozzSurfaceModifier: ViewModifier {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         content
             .background {
-                shape
-                    .fill(style.fill)
+                Group {
+                    if level == .overlay {
+                        PlozzDialogBackground().clipShape(shape)
+                    } else {
+                        shape.fill(style.fill)
+                    }
+                }
                     .overlay {
                         if let border = style.border {
                             shape.strokeBorder(border, lineWidth: style.borderWidth)

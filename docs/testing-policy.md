@@ -403,6 +403,12 @@ without an application scene, `drawHierarchy` returns an empty image.
 `PlayerOrientationTests` checks the UIKit player owner's close path without
 another update from the hidden SwiftUI presenter, including disappearance
 cleanup, closing during presentation, reopening, and stale close callbacks.
+Its in-place Live TV fixture checks real scene rotation for Landscape/Portrait,
+Auto and preference changes, restoration on collapse, per-window ownership,
+stale-owner teardown, and retained content lifecycle across expansion. The
+mobile Guide rendering check compares its actual header bounds with the
+standalone grid and checks the current-program surface pixels with normal and
+reduced transparency at phone/tablet widths and larger text.
 `PlayerRotationInteractionTests` verifies actual X taps and return to a hittable
 presenting screen across rotation preferences and nested navigation. Its
 synthetic Emby-quality fixture serves local HTTP video so quality changes are
@@ -1125,14 +1131,28 @@ App-owned tvOS guidance, expanded-overview, title-overview, and startup-release-
 dialogs use `PlozzDialogBackdrop` and the shared `.overlay` surface. Dark and Black
 dim the underlying page by 85%; Light retains 40%. Startup release notes retain
 their 72% minimum in Light and follow the stronger shared dimming in Dark/Black.
-Border, fill, and shadow come from `ThemePalette.overlay`, including the subtle
-Black-appearance hairline (13% opacity), rather than individual dialog implementations.
-Native alerts/sheets retain system-managed dimming; anchored playback menus are
+Border, solid fill, and shadow come from `ThemePalette.overlay`, including the subtle
+Black-appearance hairline (13% opacity). With Gradient Backgrounds enabled, the
+shared dialog style uses the theme's opaque mesh instead of the solid fill.
+`plozzSheet` uses the native presentation background on iPhone/iPad and a clear
+full-screen presentation with the shared card/dimmer on tvOS, avoiding the glass
+sheet's refracted edge strips. Existing custom cards use `.floatingCard` to
+avoid double surfaces/dimming. `plozzFullScreenCover` resets page-background
+ownership when a new full-screen flow opens inside a dialog.
+Native alerts and mobile sheets retain system-managed dimming; anchored playback menus are
 not blocking dialogs and do not gain a screen-wide dimmer.
 
 `DialogSurfaceTests` verifies rendered backdrop pixel values, preserves the
 stronger minimum, and checks that the Black border is visible but subtle without
-changing layout. Remote guidance tests keep focus, scrolling, and dismissal covered.
+changing layout. It also checks gradient/solid surface parity, clipping, page
+background ownership, and appearance forwarding across hosting boundaries.
+`DialogPresentationHostedTests` runs in both native hosted targets and opens the
+real profile actions dialog across Dark/Black/Light, gradient on/off, and normal/
+reduced transparency. Edge pixels must match the shared surface, not the
+contrasting presenter; retained images include the panel geometry. The suite
+also covers Boolean/item bindings, native dismissal callbacks, explicit
+appearance overrides, nested full-screen background ownership, TV focus, and
+single-dimmer floating cards. Remote guidance tests retain scrolling and dismissal coverage.
 
 ## Common Sense Media guidance
 

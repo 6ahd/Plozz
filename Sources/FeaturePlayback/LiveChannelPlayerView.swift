@@ -9,7 +9,7 @@ import UIKit
 struct LiveChannelSessionReporting {
     let id: UUID
     let update: @MainActor (LiveTVPlaybackUpdate) -> Void
-    let failed: @MainActor () -> Void
+    let failed: @MainActor (LiveChannelFailureReport) -> Void
 }
 
 /// Playback host for live channels.
@@ -37,7 +37,7 @@ public struct LiveChannelPlayerView: View {
     private let onPlaybackStarted: () -> Void
     private let reportingID: UUID?
     private let onPlaybackUpdate: @MainActor (LiveTVPlaybackUpdate) -> Void
-    private let onPlaybackFailed: @MainActor () -> Void
+    private let onPlaybackFailed: @MainActor (LiveChannelFailureReport) -> Void
     private let onVideoAspectRatioChange: @MainActor (Double?) -> Void
     private let preparingChannelName: String?
     private let onMultiview: (() -> Void)?
@@ -121,7 +121,7 @@ public struct LiveChannelPlayerView: View {
         onPlaybackStarted: @escaping () -> Void = {},
         reportingID: UUID? = nil,
         onPlaybackUpdate: @escaping @MainActor (LiveTVPlaybackUpdate) -> Void = { _ in },
-        onPlaybackFailed: @escaping @MainActor () -> Void = {},
+        onPlaybackFailed: @escaping @MainActor (LiveChannelFailureReport) -> Void = { _ in },
         onVideoAspectRatioChange: @escaping @MainActor (Double?) -> Void = { _ in },
         preparingChannelName: String? = nil,
         onMultiview: (() -> Void)? = nil,
@@ -206,7 +206,7 @@ public struct LiveChannelPlayerView: View {
         onPlaybackStarted: @escaping () -> Void = {},
         reportingID: UUID? = nil,
         onPlaybackUpdate: @escaping @MainActor (LiveTVPlaybackUpdate) -> Void = { _ in },
-        onPlaybackFailed: @escaping @MainActor () -> Void = {},
+        onPlaybackFailed: @escaping @MainActor (LiveChannelFailureReport) -> Void = { _ in },
         onVideoAspectRatioChange: @escaping @MainActor (Double?) -> Void = { _ in },
         preparingChannelName: String? = nil,
         onMultiview: (() -> Void)? = nil,
@@ -518,7 +518,7 @@ public struct LiveChannelPlayerView: View {
                 playerSurface
             }
         }
-        .fullScreenCover(isPresented: $fullscreenPresented, onDismiss: fullscreenDidDismiss) {
+        .plozzFullScreenCover(isPresented: $fullscreenPresented, onDismiss: fullscreenDidDismiss) {
             playerSurface
                 .ignoresSafeArea()
         }
@@ -560,7 +560,7 @@ public struct LiveChannelPlayerView: View {
         .onDisappear(perform: releaseGlassSuspension)
         .onChange(of: reportingID) { _, _ in updateDiagnosticsSampling(diagnosticsEnabled) }
         #if os(iOS)
-        .sheet(isPresented: $diagnosticsEnabled) {
+        .plozzSheet(isPresented: $diagnosticsEnabled) {
             NavigationStack {
                 PlaybackDiagnosticsOverlay(diagnostics: diagnosticsSampler.latest, presentation: .mobile)
                     .navigationTitle("Playback Diagnostics")
@@ -694,7 +694,10 @@ public struct LiveChannelPlayerView: View {
             LiveChannelDiagnostics().event(.initializationFailure, attempt: 0)
             engineInitializationFailed = true
             focusAfterPresentation(.close)
-            if reportingID != nil { onPlaybackFailed() }
+            if reportingID != nil {
+                onPlaybackFailed(.init(failure: (error as? AppError).map(LiveChannelPlaybackFailure.engine)
+                    ?? .initializationFailed))
+            }
             return
         }
         let playerModel = LiveChannelPlayerModel(
@@ -2300,10 +2303,10 @@ final class LiveChannelPlayerModel {
         }
     }
 
-    private func reportSessionFailure() {
+    private func reportSessionFailure(_ report: LiveChannelFailureReport) {
         guard let sessionReporting, !reportedSessionFailure else { return }
         reportedSessionFailure = true
-        sessionReporting.failed()
+        sessionReporting.failed(report)
     }
 
     private func resumeActivePlayback() {
@@ -2400,7 +2403,7 @@ final class LiveChannelPlayerModel {
               !stopped, !phase.isInterrupted || isRecoveringProgramme else { return }
         if showRecoverableProgrammeIssue() { return }
         switch failure {
-        case .input, .library:
+        case .input, .library, .ended, .initializationFailed:
             diagnostics.event(.failure, attempt: attemptCount)
         case .engine(let error):
             diagnostics.event(.failure, attempt: attemptCount, error: error)
@@ -2418,9 +2421,10 @@ final class LiveChannelPlayerModel {
         cancelRecovery()
         foregroundTask?.cancel()
         foregroundTask = nil
+        let report = LiveChannelFailureReport(failure: failure, diagnostic: engine.livePlaybackFailureDiagnostic)
         engine.stop()
         idleSleepGuard.allowSleep()
-        reportSessionFailure()
+        reportSessionFailure(report)
     }
 
     private func streamEnded(generation: Int? = nil) {
@@ -2434,9 +2438,10 @@ final class LiveChannelPlayerModel {
         cancelRecovery()
         foregroundTask?.cancel()
         foregroundTask = nil
+        let report = LiveChannelFailureReport(failure: .ended, diagnostic: engine.livePlaybackFailureDiagnostic)
         engine.stop()
         idleSleepGuard.allowSleep()
-        reportSessionFailure()
+        reportSessionFailure(report)
     }
 }
 
@@ -2504,38 +2509,6 @@ enum LiveChannelPlaybackPhase: Equatable {
     }
 }
 
-enum LiveChannelPlaybackFailure: Equatable {
-    case startupTimedOut
-    case bufferingTimedOut
-    case recoveryExhausted
-    case engine(AppError)
-    case input(LiveChannelInputError)
-    case library(LibraryChannelError)
-
-    static func engineMessage(_ error: AppError) -> LocalizedStringResource {
-        switch error {
-        case .notFound:
-            "The channel provider could not find this stream. Its playlist link may be outdated, or the feed may be temporarily off air."
-        case .unauthorized, .invalidCredentials:
-            "The channel provider refused access to this stream. It may require authorization or be unavailable in your region."
-        case .accessRestricted:
-            error.userMessage
-        case .serverUnreachable:
-            "Plozz could not reach the channel's streaming server. Check your internet connection or try again later."
-        case .rateLimited:
-            "The channel provider is limiting requests. Wait before trying again."
-        case .invalidResponse:
-            "The channel's playlist or video data could not be opened. Its link may be outdated or the feed may be temporarily unavailable."
-        case .decoding:
-            "The player could not decode this channel's audio or video. Try another stream version or channel."
-        case .cancelled:
-            "Opening this channel was cancelled."
-        default:
-            "Plozz could not start playback. Retry or choose another channel."
-        }
-    }
-}
-
 enum LibraryChannelPlaybackCopy {
     static func returnToCurrentTitle(isScheduledChannel: Bool) -> LocalizedStringResource {
         isScheduledChannel ? "Jump to now" : "Go Live"
@@ -2562,6 +2535,12 @@ private struct LiveChannelInterruption {
     ) -> LiveChannelInterruption {
         let base: LiveChannelInterruption
         switch failure {
+        case .ended:
+            base = ended(retryLimitReached: false)
+        case .initializationFailed:
+            base = LiveChannelInterruption(
+                icon: "exclamationmark.triangle.fill", title: "Unable to Play Channel", message: failure.message
+            )
         case .input(let error):
             base = LiveChannelInterruption(
                 icon: "exclamationmark.triangle.fill",

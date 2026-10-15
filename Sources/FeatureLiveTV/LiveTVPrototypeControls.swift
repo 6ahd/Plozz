@@ -249,10 +249,10 @@ struct PrototypeSheetPresentation<SheetContent: View>: ViewModifier {
     func body(content: Content) -> some View {
         #if os(tvOS)
         content
-            .fullScreenCover(item: binding(forManagement: true), onDismiss: onDismiss, content: sheetContent)
-            .sheet(item: binding(forManagement: false), onDismiss: onDismiss, content: sheetContent)
+            .plozzFullScreenCover(item: binding(forManagement: true), onDismiss: onDismiss, content: sheetContent)
+            .plozzSheet(item: binding(forManagement: false), onDismiss: onDismiss, content: sheetContent)
         #else
-        content.sheet(item: $selection, onDismiss: onDismiss, content: sheetContent)
+        content.plozzSheet(item: $selection, onDismiss: onDismiss, content: sheetContent)
         #endif
     }
 
@@ -312,6 +312,8 @@ struct PrototypeSheetContent: View {
         NavigationStack {
             Group {
                 switch destination {
+                case .diagnostics(let report):
+                    LiveTVDiagnosticDetailsView(report: report)
                 case .multiviewFavorites:
                     LiveTVMultiviewFavoritesView(model: model, open: openMultiview)
                 case .filters:
@@ -371,7 +373,7 @@ struct PrototypeSheetContent: View {
                 }
                 #endif
             }
-            .background(palette.backgroundBase)
+            .background { AppBackground(palette: palette) }
         }
     }
 }

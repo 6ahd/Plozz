@@ -52,7 +52,7 @@ and the diagnostics overlay.
 
 ## Mobile player orientation
 
-The iPhone full-screen on-demand player reads the active profile's
+The iPhone full-screen on-demand and expanded Live TV players read the active profile's
 `PlaybackSettings.orientation` (Landscape by default, Auto, or Portrait).
 The existing playback-settings store and profile snapshot transfer carry the
 preference; it has no effect on iPad, tvOS, browsing, inline trailers, or the
@@ -63,14 +63,22 @@ options menu. Explicitly saved Auto or Portrait choices remain unchanged when
 loading existing profiles; older settings without an orientation use Landscape.
 Episode/version handoffs retain the preference for the active presentation.
 
-The actual presented UIKit hosting controller owns supported orientations.
-Dismissal releases that policy
-without a global application lock or forcing the browsing screen to rotate.
+The actual presented UIKit hosting controller owns on-demand orientations.
+Expanded Live TV uses the same policy through a window-scoped owner without
+moving or recreating the playing view. Collapsing the player or leaving Live TV
+releases that owner and restores the preceding guide orientation when a forced
+preference was used. Auto continues to follow system rotation. No restriction is
+applied to other windows, the ordinary guide, or inactive profiles.
 iPad follows system rotation and offers no app orientation control, preserving
 multitasking. iPadOS refuses forced Portrait/Landscape changes in multitasking
 mode, even when a window fills the display.
 Rejected geometry requests log the failure, show a status message, and fall
 back to Auto for the current presentation without changing the saved preference.
+
+The mobile in-player Guide reuses the guide grid without its standalone top
+inset, aligning the ruler with the current-program column. That column uses the
+shared raised content surface inside the single outer glass panel, not another
+glass layer. The standalone guide and tvOS grid retain their existing spacing.
 
 ## Mobile playback settings
 

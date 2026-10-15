@@ -150,6 +150,7 @@ public actor CloudConfigSyncService {
         let schema: CloudSyncSchemaDescriptor
         let stateFileURL: URL
         let stateCodec: CloudSyncStateCodec?
+        let usesRecordLedger: Bool
         let captureSnapshot: (@Sendable (SyncChannelSnapshot) async throws -> [SyncRecordID: Data])?
         let applySnapshot: (@Sendable (SyncChannelSnapshot) async -> Void)?
         let snapshotAuthority: @Sendable () -> String
@@ -173,6 +174,7 @@ public actor CloudConfigSyncService {
             isHydrated: @escaping @Sendable () -> Bool,
             ledger: SyncLedger,
             stateCodec: CloudSyncStateCodec? = nil,
+            usesRecordLedger: Bool = false,
             captureSnapshot: (@Sendable (SyncChannelSnapshot) async throws -> [SyncRecordID: Data])? = nil,
             applySnapshot: (@Sendable (SyncChannelSnapshot) async -> Void)? = nil,
             snapshotAuthority: @escaping @Sendable () -> String = { "" }
@@ -186,6 +188,7 @@ public actor CloudConfigSyncService {
             self.isHydrated = isHydrated
             self.ledger = ledger
             self.stateCodec = stateCodec
+            self.usesRecordLedger = usesRecordLedger || stateCodec != nil
             self.captureSnapshot = captureSnapshot
             self.applySnapshot = applySnapshot
             self.snapshotAuthority = snapshotAuthority
@@ -333,6 +336,7 @@ public actor CloudConfigSyncService {
                 stateCodec: extra.stateCodec ?? (schema.encryptsValue
                     ? .deviceLocal(context: configuration.containerIdentifier + ":" + schema.zoneName)
                     : nil),
+                usesRecordLedger: extra.schema == .liveTVStateV1,
                 captureSnapshot: extra.captureSnapshot, applySnapshot: extra.applySnapshot,
                 snapshotAuthority: extra.snapshotAuthority
             ))
@@ -1034,9 +1038,9 @@ public actor CloudConfigSyncService {
             var needsFullFetch = false
             let additional: [(ledger: SyncLedger, authority: String?)] = try channels.dropFirst().map { channel in
                 let authority = channel.currentAuthority
-                if let codec = channel.stateCodec {
+                if channel.usesRecordLedger {
                     let ledger = try CloudSyncSealedLedger.load(
-                        from: channel.stateFileURL, codec: codec, authority: authority
+                        from: channel.stateFileURL, codec: channel.stateCodec, authority: authority
                     )
                     if ledger == nil { needsFullFetch = true }
                     return (ledger ?? SyncLedger(), authority)
@@ -1283,9 +1287,9 @@ public actor CloudConfigSyncService {
                     engineRevision: channel.isPrimary ? engineStateRevision : nil,
                     authority: channel.ledgerAuthority
                 ) {
-                    if let codec = channel.stateCodec {
+                    if channel.usesRecordLedger {
                         try CloudSyncSealedLedger.save(
-                            channel.ledger, to: channel.stateFileURL, codec: codec, authority: channel.ledgerAuthority
+                            channel.ledger, to: channel.stateFileURL, codec: channel.stateCodec, authority: channel.ledgerAuthority
                         )
                         return
                     }

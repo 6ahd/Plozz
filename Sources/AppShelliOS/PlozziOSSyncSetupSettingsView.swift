@@ -59,15 +59,15 @@ struct PlozziOSSyncSetupSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { if case .idle = model.phase { model.startDiscovery() } }
         .onDisappear { model.stopDiscovery() }
-        .fullScreenCover(isPresented: $showReceive) {
+        .plozzFullScreenCover(isPresented: $showReceive) {
             PlozziOSSyncSetupReceiveView(appModel: appModel) { showReceive = false }
         }
-        .fullScreenCover(item: $serverToReceive) { server in
+        .plozzFullScreenCover(item: $serverToReceive) { server in
             PlozziOSSyncSetupReceiveView(appModel: appModel, requestedServer: server) {
                 serverToReceive = nil
             }
         }
-        .sheet(item: $serverPrompt, onDismiss: consumeServerPromptFollowUp) { server in
+        .plozzSheet(item: $serverPrompt, onDismiss: consumeServerPromptFollowUp) { server in
             SyncedServerSetupPrompt(
                 descriptor: server, palette: palette,
                 onSignIn: {
@@ -84,10 +84,10 @@ struct PlozziOSSyncSetupSettingsView: View {
                 }
             )
         }
-        .fullScreenCover(isPresented: $showAddShare, onDismiss: appModel.refreshPendingSyncedServers) {
+        .plozzFullScreenCover(isPresented: $showAddShare, onDismiss: appModel.refreshPendingSyncedServers) {
             PlozziOSUnifiedAddShareView(appModel: appModel)
         }
-        .sheet(item: $serverToSignIn, onDismiss: {
+        .plozzSheet(item: $serverToSignIn, onDismiss: {
             appModel.finishManagedServerPresentation()
             appModel.refreshPendingSyncedServers()
         }) { server in
@@ -98,7 +98,7 @@ struct PlozziOSSyncSetupSettingsView: View {
             )
             .presentationSizing(.page)
         }
-        .fullScreenCover(isPresented: $showScanner) {
+        .plozzFullScreenCover(isPresented: $showScanner) {
             SyncSetupScannerScreen(
                 onCode: { code in
                     showScanner = false
@@ -109,7 +109,7 @@ struct PlozziOSSyncSetupSettingsView: View {
                 onCancel: { showScanner = false }
             )
         }
-        .sheet(isPresented: $showCodeEntry) {
+        .plozzSheet(isPresented: $showCodeEntry) {
             SyncSetupCodeEntryScreen(
                 onSubmit: { code in
                     showCodeEntry = false

@@ -168,10 +168,10 @@ struct PlozziOSPlayerView: View {
                 }
             }
         }
-        .sheet(isPresented: $presentsStreamingQuality) {
+        .plozzSheet(isPresented: $presentsStreamingQuality) {
             if let viewModel { PlozziOSStreamingQualitySheet(viewModel: viewModel) }
         }
-        .sheet(isPresented: $presentsVersions) {
+        .plozzSheet(isPresented: $presentsVersions) {
             PlozziOSPlayerVersionSheet(
                 item: versionItem, mediaSourceID: viewModel?.currentMediaSourceID,
                 onlySDR: showsSDRVersions,

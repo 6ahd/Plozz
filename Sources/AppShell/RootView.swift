@@ -365,7 +365,7 @@ public struct RootView: View {
                     onSetUpFromAnotherDevice: canReturnToApp ? nil : { showSyncReceive = true },
                     onAppearanceSelected: completeAppearanceIntroductions
                 )
-                .fullScreenCover(isPresented: $showSyncReceive) {
+                .plozzFullScreenCover(isPresented: $showSyncReceive) {
                     SyncSetupReceiveView(appState: appState) { showSyncReceive = false }
                 }
 
@@ -640,7 +640,7 @@ public struct RootView: View {
         // profile PIN to Home, then presented the Plex PIN — flashing Home as if
         // access had been granted. This cover stays opaque and switches its
         // content in place.
-        .fullScreenCover(isPresented: Binding(
+        .plozzFullScreenCover(isPresented: Binding(
             get: {
                 appState.profileFlow.pendingLockedProfile != nil
                     || appState.profileFlow.pendingParentalSwitch != nil
@@ -660,7 +660,7 @@ public struct RootView: View {
         // who does this profile watch as there? Without it the watchlist reads
         // that server as the account owner and quietly shows their list in, say,
         // a child's profile. Backing out declines rather than consenting.
-        .fullScreenCover(item: Binding(
+        .plozzFullScreenCover(item: Binding(
             get: { appState.profileFlow.pendingIdentityAccountID.map(PendingIdentityAccount.init(id:)) },
             set: { if $0 == nil { appState.profileFlow.declineIdentityPrompt(for: appState.profileFlow.pendingIdentityAccountID ?? "") } }
         )) { pending in
@@ -678,7 +678,7 @@ public struct RootView: View {
         // Last onboarding step stays full-screen. An alert here exposed Home
         // underneath an unrelated setup question, making the flow feel finished
         // before it actually was.
-        .fullScreenCover(
+        .plozzFullScreenCover(
             item: Binding(
                 get: { appState.profileFlow.pendingLockOfferProfile },
                 set: { if $0 == nil { appState.profileFlow.dismissLockOffer() } }
@@ -705,7 +705,7 @@ public struct RootView: View {
                 pendingFeatureIntroduction = nextFeatureIntroduction
             }
         }
-        .fullScreenCover(
+        .plozzFullScreenCover(
             item: $pendingFeatureIntroduction,
             onDismiss: { isDismissingFeatureIntroduction = false }
         ) { introduction in
@@ -733,7 +733,7 @@ public struct RootView: View {
                 releaseNotes.prepareForStartup()
             }
         }
-        .fullScreenCover(
+        .plozzFullScreenCover(
             isPresented: Binding(
                 get: { releaseNotes.hasPendingStartupNotes },
                 set: { presented in
@@ -748,7 +748,7 @@ public struct RootView: View {
         }
         // One-time appearance flow for a profile just created in-app. The app has
         // already switched profiles, so all choices write to its namespace.
-        .fullScreenCover(
+        .plozzFullScreenCover(
             isPresented: Binding(
                 get: { appState.profileFlow.isPickingAppearanceForNewProfile },
                 set: { newValue in
@@ -766,10 +766,10 @@ public struct RootView: View {
                 }
             )
         }
-        .fullScreenCover(isPresented: $showSyncSend) {
+        .plozzFullScreenCover(isPresented: $showSyncSend) {
             SyncSetupSendView(appState: appState) { showSyncSend = false }
         }
-        .fullScreenCover(isPresented: $showSyncReceiveFromSettings) {
+        .plozzFullScreenCover(isPresented: $showSyncReceiveFromSettings) {
             SyncSetupReceiveView(appState: appState) {
                 showSyncReceiveFromSettings = false
                 appState.refreshPendingSyncedServers()
@@ -1558,7 +1558,6 @@ private struct PlexPINEntryView: View {
     let onCancel: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var isSubmitting: Bool = false
 
     var body: some View {
         // Track the request directly so a successful switch (which clears
@@ -1571,13 +1570,11 @@ private struct PlexPINEntryView: View {
             title: "Enter your Plex PIN",
             name: Text(verbatim: userName),
             errorMessage: appState.plexHomeUsers.plexPINError,
-            isSubmitting: isSubmitting,
+            isSubmitting: appState.plexHomeUsers.isSubmittingPlexPIN,
             sequenceStep: sequenceStep,
             onSubmit: { pin in
-                // Flip isSubmitting so the user sees a spinner rather than "four
-                // dots and nothing happens" while the network round-trip runs.
+                guard appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest else { return }
                 PlozzLog.auth.debug("PIN auto-submit at 4 digits")
-                isSubmitting = true
                 onSubmit(pin)
             },
             onCancel: onCancel
@@ -1598,11 +1595,7 @@ private struct PlexPINEntryView: View {
             }
             .frame(width: PINLayout.badgeSize, height: PINLayout.badgeSize)
         }
-        .onChange(of: appState.plexHomeUsers.plexPINError) { _, newValue in
-            // Wrong-PIN response: drop the submitting state so the user can retry
-            // (the scaffold clears the entered digits off the same signal).
-            if newValue != nil { isSubmitting = false }
-        }
+        .id([pendingRequest?.id, pendingRequest?.accountID, pendingRequest?.homeUserID])
         .onChange(of: pendingRequest?.id) { _, newValue in
             // The cover's outer Binding tracking has been flaky on tvOS — call
             // dismiss() directly from inside the cover when AppState clears the

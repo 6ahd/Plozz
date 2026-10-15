@@ -79,7 +79,7 @@ public struct DetailHeaderMetadataRow: View {
             .buttonStyle(.plain)
             .plozzForeground(.primary)
             .frame(maxWidth: .infinity, alignment: .center)
-            .sheet(isPresented: $showsDetails) {
+            .plozzSheet(isPresented: $showsDetails) {
                 NavigationStack {
                     List {
                         if !ratings.isEmpty || familyGuidanceAge != nil {

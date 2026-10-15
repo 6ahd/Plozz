@@ -19,6 +19,13 @@ actor IPTVClient {
     private var cachedGuide: (url: URL, data: Data, expires: Date)?
     private let progress: @Sendable (IPTVImportProgress) -> Void
     var pendingCatalogRequestCount: Int { refreshWaiters.count }
+    private var didReclaimJournal = false
+
+    private func reclaimJournalOnce() {
+        guard !didReclaimJournal else { return }
+        didReclaimJournal = true
+        catalog.reclaimJournal()
+    }
 
     init(
         credential: IPTVCredential, directory: URL? = nil, configuration: URLSessionConfiguration? = nil,
@@ -39,6 +46,7 @@ actor IPTVClient {
     }
 
     func authenticate() async throws {
+        reclaimJournalOnce()
         let diagnostic = IPTVSetupDiagnostics.current
         diagnostic?.advance(to: .authentication)
         if credential.mode == .file {
@@ -84,6 +92,7 @@ actor IPTVClient {
     }
 
     func ensureCatalog(_ library: String, force: Bool = false) async throws {
+        reclaimJournalOnce()
         if credential.mode == .file {
             try await authenticate()
             return

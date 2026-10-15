@@ -22,6 +22,9 @@ extension LiveTVPortableSyncBridge {
     }
 
     public static func makeRuntime(profiles: ProfilesModel, directory: URL) -> LiveTVPortableSyncBridge {
+        Task.detached(priority: .utility) {
+            LiveTVPortableLibraryExport.reclaimObsoleteTemporaryStorage()
+        }
         let absentCatalogRevision = UUID()
         let sources: @MainActor (String) -> any LiveTVSourcesStoring = { profileID in
             let namespace = profileID == profiles.rootNamespaceOwnerID ? nil : profileID

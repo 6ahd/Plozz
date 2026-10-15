@@ -32,6 +32,7 @@ actor IPTVPlaybackProxy {
     private var refusal: (status: Int, retryAfter: TimeInterval?)?
     private var playbackURL: URL?
     private var deliveryFailure: PlaybackDeliveryFailure?
+    private var livePlaylistURL: URL?
 
     init(
         origin: URL, headers: [String: String], formatHint: MediaFormatHint = .init(),
@@ -50,7 +51,7 @@ actor IPTVPlaybackProxy {
         let parameters = NWParameters.tcp
         parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: .any)
         listener = try NWListener(using: parameters)
-        diagnostic = diagnostics.begin(layer: .iptvProxy, content: content)
+        diagnostic = diagnostics.begin(layer: .iptvProxy, content: content, captureForPresentation: true)
     }
 
     func start() async throws -> URL {
@@ -95,6 +96,7 @@ actor IPTVPlaybackProxy {
     func stop() async {
         if let shutdown { await shutdown.value; return }
         stopped = true
+        livePlaylistURL = nil
         listener.newConnectionHandler = nil
         listener.cancel()
         http.cancel()
@@ -248,7 +250,7 @@ actor IPTVPlaybackProxy {
                 try await Self.send(connection, data: Self.failureHead(refusal.status, retryAfter: refusal.retryAfter))
                 return
             }
-            var outgoing = IPTVCredential.sameOrigin(origin, url) ? headers : [:]
+            var outgoing: [String: String] = [:]
             for field in text.components(separatedBy: "\r\n").dropFirst() {
                 guard let colon = field.firstIndex(of: ":") else { continue }
                 let name = field[..<colon].lowercased()
@@ -258,9 +260,8 @@ actor IPTVPlaybackProxy {
                 }
             }
             diagnosticStage = .response
-            let (bytes, response) = try await http.bytes(
-                url: url, headers: outgoing, method: String(request[0]),
-                receivedResponse: { status, mimeType in responseEvidence.record(status: status, mimeType: mimeType) }
+            let (bytes, response) = try await openUpstream(
+                url: url, forwardedHeaders: outgoing, method: String(request[0]), evidence: responseEvidence
             )
             defer { bytes.task.cancel() }
             let upstreamTask = bytes.task
@@ -276,8 +277,9 @@ actor IPTVPlaybackProxy {
                 while prefix.count < 16, let byte = try await iterator.next() { prefix.append(byte) }
                 let contentType = response.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
                 let prefixText = String(decoding: prefix, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-                let manifest = contentType.contains("mpegurl") || prefixText.hasPrefix("#EXTM3U")
+                let hasManifestHeader = prefixText.hasPrefix("#EXTM3U")
                     || prefixText.hasPrefix("\u{FEFF}#EXTM3U")
+                let manifest = contentType.contains("mpegurl") || hasManifestHeader
                 if manifest {
                     responseEvidence.detectHLS()
                     var body = prefix
@@ -289,6 +291,12 @@ actor IPTVPlaybackProxy {
                     guard let text = String(data: body, encoding: .utf8) else { throw IPTVError.malformed }
                     diagnosticStage = .manifest
                     let rewritten = try rewrite(text, baseURL: response.url ?? url)
+                    try Task.checkCancellation()
+                    if isLive, url == origin, hasManifestHeader {
+                        // Reopening an Xtream entrypoint can mint new session URLs
+                        // for the same HLS media sequence. Refresh its delivery URL.
+                        livePlaylistURL = response.url
+                    }
                     let data = Data(rewritten.utf8)
                     diagnosticStage = nil
                     try await Self.send(connection, data: Data(
@@ -321,7 +329,7 @@ actor IPTVPlaybackProxy {
             if !Task.isCancelled, !(error is CancellationError), let diagnosticStage {
                 let failure = (error as? IPTVError)?.setupFailure ?? .sanitized(error)
                 let evidence = responseEvidence.snapshot
-                diagnostic?.fail(
+                let failureDiagnostic = diagnostic?.fail(
                     stage: diagnosticStage, reason: failure.reason,
                     domain: failure.networkCode == nil ? .none : .url, code: failure.networkCode,
                     httpStatus: evidence.status, format: evidence.format
@@ -337,7 +345,7 @@ actor IPTVPlaybackProxy {
                     case 451: appError = .accessRestricted
                     default: appError = .invalidResponse
                     }
-                    deliveryFailure?.record(appError)
+                    deliveryFailure?.record(appError, diagnostic: failureDiagnostic)
                     refusal = (status, retryAfter)
                 }
             }
@@ -351,6 +359,32 @@ actor IPTVPlaybackProxy {
                     ))
                 } catch { connection.cancel() }
             }
+        }
+    }
+
+    private func openUpstream(
+        url: URL, forwardedHeaders: [String: String], method: String,
+        evidence: IPTVPlaybackResponseEvidence
+    ) async throws -> (URLSession.AsyncBytes, HTTPURLResponse) {
+        func fetch(_ target: URL) async throws -> (URLSession.AsyncBytes, HTTPURLResponse) {
+            let scoped = IPTVCredential.sameOrigin(origin, target) ? headers : [:]
+            return try await http.bytes(
+                url: target, headers: scoped.merging(forwardedHeaders) { _, forwarded in forwarded }, method: method,
+                receivedResponse: { status, mimeType in evidence.record(status: status, mimeType: mimeType) }
+            )
+        }
+        let target = isLive && url == origin ? livePlaylistURL ?? url : url
+        do {
+            return try await fetch(target)
+        } catch {
+            guard target != url, !Task.isCancelled, !(error is CancellationError),
+                  let status = evidence.snapshot.status, [401, 403, 404, 410].contains(status) else { throw error }
+            // Renew only an expired redirected session, once. A refusal from
+            // the original entrypoint still follows the terminal failure path.
+            livePlaylistURL = nil
+            evidence.reset()
+            PlozzLog.playback.debug("Renewing expired IPTV live delivery")
+            return try await fetch(url)
         }
     }
 
@@ -378,6 +412,7 @@ actor IPTVPlaybackProxy {
         }
 
         func detectHLS() { lock.withLock { format = .hls } }
+        func reset() { lock.withLock { status = nil; format = .unknown } }
     }
 
     func rewrite(_ manifest: String, baseURL: URL) throws -> String {

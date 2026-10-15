@@ -73,8 +73,10 @@ final class IPTVPlaybackDiagnosticsTests: XCTestCase {
             XCTAssertNil(PlaybackDeliveryFailure.state(for: url))
             if [401, 403, 429, 451].contains(status) {
                 XCTAssertNotNil(state.error, "The active player retains evidence through proxy cleanup.")
+                XCTAssertEqual(state.diagnostic?.httpStatus, status)
             } else {
                 XCTAssertNil(state.error, "Recoverable failures must not poison a successful native fallback.")
+                XCTAssertNil(state.diagnostic)
             }
         }
     }

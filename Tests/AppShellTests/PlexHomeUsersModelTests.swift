@@ -59,6 +59,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             automaticSignInStore: AutomaticSignInStore(defaults: makeDefaults(), secureStore: InMemorySecureStore()),
             switchProfile: switchProfile
         )
+        model.plexHomeUsersFetch = { _, _ in throw URLError(.notConnectedToInternet) }
         return (model, hub, profiles)
     }
 
@@ -387,5 +388,297 @@ final class PlexHomeUsersModelTests: XCTestCase {
         model.plexHomeUsersFetch = { _, _ in throw FetchError() }
         let users = await model.plexHomeUsers(forAccountID: "a")
         XCTAssertTrue(users.isEmpty)
+    }
+
+    func testRemovedPlexPINClearsOnlyPlexRequirementAfterAuthenticatedSwitch() async throws {
+        let cache = PlexHomeUserTokenCache(store: InMemorySecureStore())
+        let (model, _, profiles) = try makeModel(accountIDs: ["a"], cache: cache)
+        var profile = profiles.activeProfile
+        profile.replaceLock(with: ProfileLock.make(pin: "2468", matchesPlexPIN: true, iterations: 1))
+        profiles.update(profile)
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: false)]
+        }
+        model.plexHomeUserSwitch = { user, pin, admin, _ in
+            XCTAssertEqual(user, "parent")
+            XCTAssertNil(pin)
+            XCTAssertEqual(admin, "admin-a")
+            await MainActor.run {
+                XCTAssertNotNil(model.pendingPlexPINRequest, "The gate stays up until authentication finishes.")
+                XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a")?.requiresPIN, true)
+                var renamed = profiles.activeProfile
+                renamed.name = "Renamed during authentication"
+                profiles.update(renamed)
+            }
+            return "PARENT-CLOUD"
+        }
+        model.plexServerTokenResolve = { _, _, _ in "PARENT-SERVER" }
+        model.setPlexHomeUserForActiveProfile(
+            accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+        )
+        model.prefillPlexPIN("2468", forProfile: profile.id)
+        model.ensurePlexIdentityForActiveProfile()
+        await model.waitForPlexPINRequirementCheck()
+
+        XCTAssertNil(model.pendingPlexPINRequest)
+        XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a")?.requiresPIN, false)
+        XCTAssertEqual(profiles.activeProfile.plexHomeUserRequiresPIN, false)
+        XCTAssertEqual(profiles.activeProfile.lock, profile.lock)
+        XCTAssertEqual(profiles.activeProfile.lockRevision, profile.lockRevision)
+        XCTAssertEqual(profiles.activeProfile.name, "Renamed during authentication")
+        XCTAssertEqual(model.resolvedToken(for: "a"), "PARENT-SERVER")
+        XCTAssertEqual(model.discoverToken(for: "a"), "PARENT-CLOUD")
+        XCTAssertEqual(cache.token(account: "a", homeUser: "parent"), "PARENT-SERVER")
+        model.plexHomeUserSwitch = { _, _, _, _ in "PARENT-CLOUD" }
+        model.beginExplicitProfileActivation()
+        model.ensurePlexIdentityForActiveProfile()
+        XCTAssertNil(model.pendingPlexPINRequest, "The corrected binding must survive another activation.")
+        XCTAssertFalse(model.isAutomaticallySignedIn(profiles.activeProfile))
+        await drainMainActor()
+    }
+
+    func testPlexPINRefreshFailsClosedWithoutPositiveAuthentication() async throws {
+        enum Failure: CaseIterable, Equatable, Sendable { case unavailable, missingUser, stillProtected, switchRejected }
+        for failure in Failure.allCases {
+            let (model, _, profiles) = try makeModel(accountIDs: ["a"])
+            model.plexHomeUsersFetch = { _, _ in
+                switch failure {
+                case .unavailable: throw URLError(.notConnectedToInternet)
+                case .missingUser: return []
+                case .stillProtected, .switchRejected:
+                    return [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: failure == .stillProtected)]
+                }
+            }
+            model.plexHomeUserSwitch = { _, _, _, _ in
+                XCTAssertEqual(failure, .switchRejected)
+                throw AppError.unauthorized
+            }
+            model.setPlexHomeUserForActiveProfile(
+                accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+            )
+            await model.waitForPlexPINRequirementCheck()
+            XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a")?.requiresPIN, true, "\(failure)")
+            XCTAssertEqual(model.pendingPlexPINRequest?.homeUserID, "parent", "\(failure)")
+            XCTAssertNil(model.discoverToken(for: "a"), "\(failure)")
+        }
+    }
+
+    func testExplicitPINStillWorksWhenProtectionMetadataIsUnavailable() async throws {
+        let (model, _, profiles) = try makeModel(accountIDs: ["a"])
+        model.plexHomeUserSwitch = { _, pin, _, _ in
+            XCTAssertEqual(pin, "2468")
+            return "PARENT-CLOUD"
+        }
+        model.plexServerTokenResolve = { _, _, _ in "PARENT-SERVER" }
+        model.setPlexHomeUserForActiveProfile(
+            accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+        )
+        model.submitPlexPIN("2468")
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertNil(model.pendingPlexPINRequest)
+        XCTAssertEqual(model.discoverToken(for: "a"), "PARENT-CLOUD")
+        XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a")?.requiresPIN, true)
+    }
+
+    func testRepeatedReconciliationDoesNotRepeatProtectionLookup() async throws {
+        let (model, _, _) = try makeModel(accountIDs: ["a"])
+        let fetched = expectation(description: "One protection lookup")
+        fetched.assertForOverFulfill = true
+        model.plexHomeUsersFetch = { _, _ in
+            fetched.fulfill()
+            return [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+        }
+        model.setPlexHomeUserForActiveProfile(
+            accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+        )
+        for _ in 0..<4 { model.ensurePlexIdentityForActiveProfile() }
+        await model.waitForPlexPINRequirementCheck()
+        model.ensurePlexIdentityForActiveProfile()
+        await model.waitForPlexPINRequirementCheck()
+        await fulfillment(of: [fetched], timeout: 1)
+        XCTAssertNotNil(model.pendingPlexPINRequest)
+    }
+
+    func testStaleProtectionLookupCannotChangeNewerAuthorization() async throws {
+        enum Mutation: CaseIterable, Equatable, Sendable {
+            case cancel, activation, profile, binding, accountRemoval, accountCredential, lock, explicitPIN
+        }
+        for mutation in Mutation.allCases {
+            let (model, hub, profiles) = try makeModel(accountIDs: ["a"])
+            let originalID = profiles.activeProfileID
+            model.plexHomeUserSwitch = { _, pin, _, _ in
+                XCTAssertEqual(mutation, .explicitPIN, "Stale \(mutation) must not authenticate.")
+                XCTAssertEqual(pin, "2468")
+                return "EXPLICIT-CLOUD"
+            }
+            model.plexServerTokenResolve = { _, _, _ in "EXPLICIT-SERVER" }
+            model.plexHomeUsersFetch = { _, _ in
+                try await MainActor.run {
+                    switch mutation {
+                    case .cancel: model.cancelPlexPIN()
+                    case .activation: model.beginExplicitProfileActivation()
+                    case .profile:
+                        let other = profiles.add(name: "Other", avatarSymbol: "person", colorIndex: 1)
+                        profiles.select(other.id)
+                    case .binding:
+                        profiles.update(profiles.activeProfile.settingHomeUserBinding(
+                            .init(homeUserID: "other", name: "Other", requiresPIN: true), forPlexAccount: "a"
+                        ))
+                    case .accountRemoval:
+                        model.forgetAccount("a")
+                        try hub.accountStore.remove(id: "a")
+                        hub.reloadAccounts()
+                    case .accountCredential:
+                        try hub.accountStore.add(hub.accounts[0], token: "ROTATED-CREDENTIAL")
+                        hub.reloadAccounts()
+                    case .lock:
+                        var profile = profiles.activeProfile
+                        profile.replaceLock(with: ProfileLock.make(pin: "1357", iterations: 1))
+                        profiles.update(profile)
+                    case .explicitPIN:
+                        model.plexHomeUsersFetch = { _, _ in
+                            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+                        }
+                        model.submitPlexPIN("2468")
+                    }
+                }
+                return [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: false)]
+            }
+            model.setPlexHomeUserForActiveProfile(
+                accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+            )
+            await model.waitForPlexPINRequirementCheck()
+            await model.waitForPlexPINRequirementCheck()
+            let original = try XCTUnwrap(profiles.profiles.first { $0.id == originalID })
+            XCTAssertEqual(original.homeUserBinding(forPlexAccount: "a")?.requiresPIN, true, "\(mutation)")
+            if mutation == .explicitPIN {
+                XCTAssertEqual(model.discoverToken(for: "a"), "EXPLICIT-CLOUD")
+            } else {
+                XCTAssertNil(model.discoverToken(for: "a"), "\(mutation)")
+            }
+        }
+    }
+
+    func testUnrelatedServerRefreshCannotDismissProtectedAccountsPrompt() async throws {
+        let (model, _, profiles) = try makeModel(accountIDs: ["a", "b"])
+        profiles.update(profiles.activeProfile.settingHomeUserBinding(
+            .init(homeUserID: "child", name: "Child", requiresPIN: false), forPlexAccount: "a"
+        ).settingHomeUserBinding(
+            .init(homeUserID: "parent", name: "Parent", requiresPIN: true), forPlexAccount: "b"
+        ))
+        model.plexHomeUserSwitch = { _, _, _, _ in "CHILD-CLOUD" }
+        model.plexServerTokenResolve = { _, _, _ in "CHILD-SERVER" }
+        model.ensurePlexIdentityForActiveProfile()
+        let request = model.pendingPlexPINRequest
+        await drainMainActor()
+        XCTAssertEqual(model.discoverToken(for: "a"), "CHILD-CLOUD")
+        XCTAssertEqual(model.pendingPlexPINRequest, request)
+        XCTAssertEqual(model.pendingPlexPINRequest?.accountID, "b")
+        XCTAssertNil(model.discoverToken(for: "b"))
+    }
+
+    func testRemovedPINAdvancesToNextProtectedAccount() async throws {
+        let (model, _, profiles) = try makeModel(accountIDs: ["a", "b"])
+        var profile = profiles.activeProfile
+        for accountID in ["a", "b"] {
+            profile = profile.settingHomeUserBinding(
+                .init(homeUserID: "parent-\(accountID)", name: "Parent", requiresPIN: true), forPlexAccount: accountID
+            )
+        }
+        profiles.update(profile)
+        model.plexHomeUsersFetch = { admin, _ in
+            let removed = admin == "admin-a"
+            return [PlexHomeUser(id: removed ? "parent-a" : "parent-b", name: "Parent", requiresPIN: !removed)]
+        }
+        model.plexHomeUserSwitch = { user, pin, _, _ in
+            XCTAssertEqual(user, "parent-a")
+            XCTAssertNil(pin)
+            return "PARENT-A-CLOUD"
+        }
+        model.plexServerTokenResolve = { _, _, _ in "PARENT-A-SERVER" }
+        model.ensurePlexIdentityForActiveProfile()
+        await model.waitForPlexPINRequirementCheck()
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(model.pendingPlexPINRequest?.accountID, "b")
+        XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a")?.requiresPIN, false)
+        XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "b")?.requiresPIN, true)
+        XCTAssertNil(model.discoverToken(for: "b"))
+    }
+
+    func testCancellingDefaultProfilePINRetainsTheUnresolvedGate() async throws {
+        let (model, _, _) = try makeModel(accountIDs: ["a"])
+        model.setPlexHomeUserForActiveProfile(
+            accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+        )
+        let request = model.pendingPlexPINRequest
+        model.cancelPlexPIN()
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(model.pendingPlexPINRequest, request)
+        XCTAssertNil(model.discoverToken(for: "a"))
+        XCTAssertFalse(model.hasResolvedWatchMutationIdentity(forAccountID: "a"))
+    }
+
+    func testCancelledSubmissionLeavesRetainedGateReadyForAnotherPIN() async throws {
+        let (model, _, _) = try makeModel(accountIDs: ["a"])
+        model.plexHomeUsersFetch = { _, _ in
+            await MainActor.run {
+                XCTAssertTrue(model.isSubmittingPlexPIN)
+                model.cancelPlexPIN()
+            }
+            return [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: false)]
+        }
+        model.plexHomeUserSwitch = { _, _, _, _ in
+            XCTFail("The cancelled submission cannot continue authenticating.")
+            return "CANCELLED-CLOUD"
+        }
+        model.setPlexHomeUserForActiveProfile(
+            accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+        )
+        model.submitPlexPIN("2468")
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertFalse(model.isSubmittingPlexPIN)
+        XCTAssertNotNil(model.pendingPlexPINRequest)
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+        }
+        model.plexHomeUserSwitch = { _, pin, _, _ in
+            XCTAssertEqual(pin, "1357")
+            return "RETRIED-CLOUD"
+        }
+        model.plexServerTokenResolve = { _, _, _ in "RETRIED-SERVER" }
+        model.submitPlexPIN("1357")
+        XCTAssertTrue(model.isSubmittingPlexPIN)
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertFalse(model.isSubmittingPlexPIN)
+        XCTAssertNil(model.pendingPlexPINRequest)
+        XCTAssertEqual(model.discoverToken(for: "a"), "RETRIED-CLOUD")
+    }
+
+    func testCancelledLockedFallbackCannotReleaseTheOriginalPlexGate() throws {
+        var flow: ProfileFlowModel?
+        let (model, hub, profiles) = try makeModel(
+            accountIDs: ["a"], switchProfile: { flow?.switchProfile(to: $0) }
+        )
+        var fallback = profiles.activeProfile
+        fallback.replaceLock(with: ProfileLock.make(pin: "2468", iterations: 1))
+        profiles.update(fallback)
+        let selected = profiles.add(name: "Selected", avatarSymbol: "person", colorIndex: 1)
+        profiles.select(selected.id)
+        flow = ProfileFlowModel(
+            profilesModel: profiles, accountsProviders: hub, plexHomeUsers: model,
+            profileSettings: .init(namespace: profiles.activeNamespace),
+            audioController: .init(),
+            updateTrackersForActiveProfile: {}, discardWatchReconciler: { _ in }
+        )
+        model.setPlexHomeUserForActiveProfile(
+            accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+        )
+        let request = model.pendingPlexPINRequest
+        model.cancelPlexPIN()
+        XCTAssertEqual(flow?.pendingLockedProfile?.id, fallback.id)
+        flow?.cancelProfileLockPrompt()
+        XCTAssertEqual(profiles.activeProfileID, selected.id)
+        XCTAssertEqual(model.pendingPlexPINRequest, request)
+        XCTAssertFalse(model.isSubmittingPlexPIN)
     }
 }
