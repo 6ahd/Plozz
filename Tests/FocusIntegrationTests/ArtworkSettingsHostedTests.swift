@@ -37,15 +37,15 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         .environment(models.heroSettingsModel)
         .environment(models.heroBackgroundModel)) { window in
             let root = try await self.capture(window, name: "hero-inline-titles", includeMaster: true)
-            for title in ["Titles shown in hero", "Hide watched titles", "Number of titles", "Change titles automatically"] {
+            for title in ["Content sources", "Hide watched content", "Items to show", "Advance automatically"] {
                 XCTAssertTrue(root.contains(title), root)
             }
-            for title in ["Content", "Appearance", "Rotation", "Rotate automatically"] {
+            for title in ["Titles shown in hero", "Automatic changes", "Appearance", "Rotation", "Rotate automatically"] {
                 XCTAssertFalse(root.contains(title), root)
             }
             XCTAssertFalse(root.contains("TMDB"), root)
             XCTAssertFalse(root.contains("Show provider labels"), root)
-            XCTAssertFalse(root.contains("Seconds per title"), root)
+            XCTAssertFalse(root.contains("Seconds per item"), root)
             let scroll = try self.verticalScroll(in: window)
             scroll.setContentOffset(CGPoint(
                 x: 0, y: max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
@@ -62,7 +62,8 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             scroll.setContentOffset(.zero, animated: false)
             models.heroSettingsModel.settings.autoAdvance = true
             let automatic = try await self.capture(window, name: "hero-inline-automatic", includeMaster: true)
-            XCTAssertTrue(automatic.contains("Seconds per title"), automatic)
+            XCTAssertTrue(automatic.contains("Seconds per item"), automatic)
+            XCTAssertFalse(automatic.localizedCaseInsensitiveContains("Automatic changes"), automatic)
             let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
             for page in [HeroSettingsPage.titles, .ratings, .trailers] {
                 if page != .titles {
@@ -89,7 +90,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 let expected = page == .titles ? "Continue Watching"
                     : page == .ratings ? "Show ratings" : "Play trailer behind the hero"
                 XCTAssertTrue(shown.contains(expected), shown)
-                XCTAssertFalse(shown.contains("Hide watched titles"), shown)
+                XCTAssertFalse(shown.contains("Hide watched content"), shown)
                 XCTAssertFalse(navigation.awaitingFocus, "The page must receive native focus, not trap the master pane.")
                 if page == .ratings {
                     XCTAssertFalse(shown.contains("Show Common Sense age"), shown)
@@ -129,7 +130,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             XCTAssertTrue(kids.contains("Watchlist"), kids)
             models.heroSettingsModel.settings.sources = []
             let empty = try await self.capture(window, name: "hero-empty-source-summary", includeMaster: true)
-            XCTAssertTrue(empty.contains("No title sources selected"), empty)
+            XCTAssertTrue(empty.contains("No content sources selected"), empty)
         }
     }
 

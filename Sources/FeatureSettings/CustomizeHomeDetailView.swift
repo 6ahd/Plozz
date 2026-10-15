@@ -120,7 +120,7 @@ struct CustomizeHomeDetailView: View {
             SettingsSplitRow(
                 id: "hero",
                 title: "Hero",
-                description: "Choose the titles and details shown at the top of Home.",
+                description: "Choose the content and details shown at the top of Home.",
                 subpage: SettingsDetailSubpage {
                     HeroSettingsDestination(libraries: homeVisibleLibraries, accounts: accounts)
                 }

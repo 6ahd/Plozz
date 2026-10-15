@@ -8,7 +8,7 @@ enum HeroSettingsPage: String, CaseIterable {
 
     var title: LocalizedStringResource {
         switch self {
-        case .titles: "Titles shown in hero"
+        case .titles: "Content sources"
         case .ratings: "Ratings"
         case .trailers: "Trailers"
         case .discovery: "Discovery"
@@ -73,12 +73,12 @@ private struct HeroTitleControls: View {
 
     var body: some View {
         @Bindable var hero = hero
-        HeroSettingsGroup(title: "Titles") {
+        HeroSettingsGroup(title: "Content") {
             HeroSettingsLink(page: .titles, libraries: libraries, accounts: accounts)
-            Toggle("Hide watched titles", isOn: $hero.settings.hideWatched)
+            Toggle("Hide watched content", isOn: $hero.settings.hideWatched)
                 .accessibilityIdentifier("hero-hide-watched")
             #if os(tvOS)
-            LabeledSettingRow("Number of titles", trailingAlignment: .trailing) {
+            LabeledSettingRow("Items to show", trailingAlignment: .trailing) {
                 SettingsStepper(
                     options: Array(HeroSettings.maxItemsRange), selection: $hero.settings.maxItems,
                     compact: true, title: { "\($0)" }
@@ -86,7 +86,7 @@ private struct HeroTitleControls: View {
             }
             .settingsFormRowLayout()
             #else
-            Stepper("Number of titles: \(hero.settings.maxItems)",
+            Stepper("Items to show: \(hero.settings.maxItems)",
                     value: $hero.settings.maxItems, in: HeroSettings.maxItemsRange)
             #endif
         }
@@ -98,12 +98,12 @@ private struct HeroAutomaticChangeControls: View {
 
     var body: some View {
         @Bindable var hero = hero
-        HeroSettingsGroup(title: "Automatic changes") {
-            Toggle("Change titles automatically", isOn: $hero.settings.autoAdvance)
+        HeroSettingsGroup {
+            Toggle("Advance automatically", isOn: $hero.settings.autoAdvance)
                 .accessibilityIdentifier("hero-auto-advance")
             if hero.settings.autoAdvance {
                 #if os(tvOS)
-                LabeledSettingRow("Seconds per title", trailingAlignment: .trailing) {
+                LabeledSettingRow("Seconds per item", trailingAlignment: .trailing) {
                     SettingsStepper(
                         options: Array(HeroSettings.autoAdvanceRange), selection: $hero.settings.autoAdvanceSeconds,
                         compact: true,
@@ -112,7 +112,7 @@ private struct HeroAutomaticChangeControls: View {
                 }
                 .settingsFormRowLayout()
                 #else
-                Stepper("Seconds per title: \(hero.settings.autoAdvanceSeconds)",
+                Stepper("Seconds per item: \(hero.settings.autoAdvanceSeconds)",
                         value: $hero.settings.autoAdvanceSeconds, in: HeroSettings.autoAdvanceRange)
                 #endif
             }
@@ -235,7 +235,7 @@ private struct HeroTitleSourceSummary: View {
 
     var body: some View {
         if sources.isEmpty {
-            Text("No title sources selected")
+            Text("No content sources selected")
         } else {
             Text(sources.map { source in
                 var title = source.displayName
@@ -315,14 +315,14 @@ struct HeroSettingsScreen: View {
         if hero.allowsDiscovery {
             HeroSettingsGroup(
                 title: "Provider labels",
-                detail: "Show provider names on Discovery titles. This does not change which titles appear."
+                detail: "Show provider names on Discovery content. This does not change what appears."
             ) {
                 Toggle("Show provider labels", isOn: $hero.settings.showsDiscoverySources)
                     .modifier(ViewCustomizationRowFocus(id: "hero-provider-labels"))
             }
             HeroSettingsGroup(
                 title: "Discovery providers",
-                detail: "Recommendations may include titles outside your libraries. Seerr is only needed to request them."
+                detail: "Recommendations may include content outside your libraries. Seerr is only needed to request it."
             ) {
                 ForEach(HeroDiscoverySource.allCases) { source in
                     Toggle(isOn: discoveryBinding(source)) {
@@ -423,7 +423,7 @@ private struct HeroTitleSources: View {
                     case .collection:
                         HeroSettingsLink(page: .collections, libraries: libraries, accounts: accounts)
                     case .watchlist:
-                        Toggle("Prefer less recently shown Watchlist titles", isOn: $hero.settings.watchlistDiscoveryEnabled)
+                        Toggle("Prefer less recently shown Watchlist items", isOn: $hero.settings.watchlistDiscoveryEnabled)
                     case .continueWatching, .recentlyAdded:
                         EmptyView()
                     }

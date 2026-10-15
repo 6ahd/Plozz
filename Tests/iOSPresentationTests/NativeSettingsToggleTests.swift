@@ -62,11 +62,11 @@ final class NativeSettingsToggleTests: XCTestCase {
             window.makeKeyAndVisible()
             try await settle(window)
             let root = try captureText(window, name: "hero-root-mobile-\(Int(width))")
-            for label in ["Titles shown in hero", "Hide watched titles", "Number of titles",
-                          "Change titles automatically", "Ratings", "Off", "Trailers"] {
+            for label in ["Content sources", "Hide watched content", "Items to show",
+                          "Advance automatically", "Ratings", "Off", "Trailers"] {
                 XCTAssertTrue(root.contains(label), root)
             }
-            for label in ["Appearance", "Rotation", "Content", "Show ratings", "Seconds per title",
+            for label in ["Appearance", "Rotation", "Titles shown in hero", "Show ratings", "Seconds per item",
                           "Play trailer behind the hero", "Start muted"] {
                 XCTAssertFalse(root.contains(label), root)
             }
@@ -80,7 +80,8 @@ final class NativeSettingsToggleTests: XCTestCase {
             try await settle(window)
             XCTAssertTrue(hero.settings.autoAdvance)
             let advanced = try captureText(window, name: "hero-automatic-mobile-\(Int(width))")
-            XCTAssertTrue(advanced.contains("Seconds per title"), advanced)
+            XCTAssertTrue(advanced.contains("Seconds per item"), advanced)
+            XCTAssertFalse(advanced.localizedCaseInsensitiveContains("Automatic changes"), advanced)
 
             hero.settings.showsRatings = true
             background.settings.homeTrailerEnabled = true
