@@ -11,7 +11,7 @@
         {
           "category": "New",
           "items": [
-            "Choose multiple collections across your libraries, or personal Silo collections, for the rotating Home hero.",
+            "Use collections in the Home hero.",
             {
               "text": "Add your libraries to the horizontal navigation bar.",
               "platforms": ["tvOS"]
@@ -45,7 +45,7 @@
               "platforms": ["tvOS"]
             },
             {
-              "text": "The Settings tab is now optional; open Settings from your profile or enable its navigation shortcut.",
+              "text": "Settings no longer adds a tab by default; open it from your profile or enable its navigation shortcut.",
               "platforms": ["iOS"]
             },
             {
