@@ -12,11 +12,30 @@ public final class PlaybackDeliveryFailure: @unchecked Sendable {
     private let lock = NSLock()
     private var failure: AppError?
     private var failureDiagnostic: PlaybackFailureDiagnostic?
+    private var deliveryEvidence = PlaybackDeliveryEvidence()
 
     private init() {}
 
     public var error: AppError? { lock.withLock { failure } }
     public var diagnostic: PlaybackFailureDiagnostic? { lock.withLock { failureDiagnostic } }
+    public var evidence: PlaybackDeliveryEvidence { lock.withLock { deliveryEvidence } }
+
+    public func recordRequest(_ request: PlaybackDeliveryEvidence.Request) {
+        lock.withLock {
+            if request.resource == .root,
+               request.sequence >= (deliveryEvidence.root?.sequence ?? 0),
+               request.method == .get || deliveryEvidence.root?.method != .get {
+                deliveryEvidence.root = request
+            }
+            if request.outcome == .upstreamFailure, deliveryEvidence.firstFailure == nil {
+                deliveryEvidence.firstFailure = request
+            }
+            deliveryEvidence.recent.removeAll { $0.sequence == request.sequence }
+            deliveryEvidence.recent.append(request)
+            deliveryEvidence.recent.sort { $0.sequence < $1.sequence }
+            deliveryEvidence.recent = Array(deliveryEvidence.recent.suffix(8))
+        }
+    }
 
     public func record(_ error: AppError, diagnostic: PlaybackFailureDiagnostic? = nil) {
         guard error != .cancelled else { return }

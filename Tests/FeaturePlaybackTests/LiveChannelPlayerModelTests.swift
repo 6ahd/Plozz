@@ -985,6 +985,33 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertFalse(model.showsActivityIndicator)
     }
 
+    func testFailurePollingWaitsForBoundedDiagnosticCaptureBeforeStoppingTheEngine() async throws {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        var report: LiveChannelFailureReport?
+        model.setSessionReporting(.init(id: UUID(), update: { _ in }, failed: { report = $0 }))
+        await model.start()
+        engine.liveSnapshot.phase = .failed
+        engine.isCapturingLiveFailureDiagnostic = true
+        model.refreshFromEngine()
+        XCTAssertNil(report)
+        let attempt = try XCTUnwrap(PlaybackFailureDiagnostics().begin(
+            layer: .liveEngine, content: .live, captureForPresentation: true
+        ))
+        attempt.fail(
+            stage: .playback, domain: .avfoundation, code: -11850,
+            evidence: .init(nativeCapture: .captured,
+                            nativeErrors: [.init(domain: "CoreMediaErrorDomain", code: -12939)])
+        )
+        engine.livePlaybackFailureDiagnostic = attempt.diagnostic
+        engine.isCapturingLiveFailureDiagnostic = false
+        engine.status = .failed(.invalidResponse)
+        model.refreshFromEngine()
+        XCTAssertEqual(report?.diagnostic?.evidence?.nativeErrors.first?.code, -12939)
+        XCTAssertNil(engine.livePlaybackFailureDiagnostic, "Capture must precede teardown.")
+    }
+
     func testManualRetriesAreBounded() async {
         let engine = LiveEngineSpy()
         let model = makeModel(engine: engine)
@@ -1540,6 +1567,7 @@ private struct LiveFullscreenHarness: View {
 @MainActor
 final class LiveEngineSpy: LiveChannelEngine {
     var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic?
+    var isCapturingLiveFailureDiagnostic = false
     let outputView = UIView()
     var liveSnapshot = LiveChannelEngineSnapshot(
         phase: .playing, firstFrameReady: true, position: 100,
