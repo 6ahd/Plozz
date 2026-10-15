@@ -344,8 +344,17 @@ suffixes, never original filenames. The suffix must agree with the encrypted
 upstream URL. Known raw transport-stream URLs use Aether's regular live-source
 path rather than its HLS-only native bypass; HLS retains native playback,
 including fragmented MP4. Hosted tests require a rendered frame and advancing
-time through the authenticated proxy on both platforms. Extensionless raw
-streams are not classified by this suffix-based correction.
+time through the authenticated proxy on both platforms. Opaque or otherwise
+undeclared HTTP addresses receive a bounded content check before engine loading:
+at most 1,024 consumed bytes and a 15-second request/resource deadline. Manifest
+bytes select native HLS (including fragmented MP4); framed MPEG-TS selects raw
+ingest, regardless of a missing or generic MIME type. Other bytes go to Aether's
+container probe rather than being assumed to be HLS. The check closes before
+playback opens its request, so it adds a sequential request for these addresses,
+not a simultaneous provider stream. It applies to legacy direct HTTP channels
+as well as account-backed proxy URLs; declared formats skip the extra check.
+Cancellation or replacement retires the owned check, and an HTTP refusal is
+reported rather than retried on another route.
 The proxy observes player disconnects while waiting for upstream headers or
 body data, cancels its native HTTP tasks, and drains owned request work on close.
 Within one live proxy, root requests are serialized so duplicate player probes

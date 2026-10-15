@@ -176,6 +176,62 @@ final class LiveTVSourcesRuntimeTests: XCTestCase {
         XCTAssertEqual(checks, 0)
     }
 
+    func testSavedIPTVSurvivesProviderFailureAccountReadmissionAndReopeningWithoutDuplicates() async throws {
+        let fixture = try SourcesRuntimeFixture()
+        defer { fixture.removeOwnedFiles() }
+        try fixture.addIPTVChoice()
+        let runtime = fixture.runtime()
+        await runtime.restore()
+        let saved = try fixture.store.load()
+        await fixture.provider.setFailure(.serverUnreachable)
+        await runtime.catalog.refresh()
+        XCTAssertEqual(try fixture.store.load(), saved)
+        XCTAssertEqual(runtime.catalog.imports.configuration.servers, saved.servers)
+        runtime.invalidate()
+
+        let choices = fixture.choices
+        fixture.choices = []
+        fixture.accountIdentity = "temporarily-unavailable"
+        let unavailable = fixture.runtime()
+        await unavailable.restore()
+        XCTAssertEqual(try fixture.store.load(), saved)
+        unavailable.invalidate()
+
+        fixture.choices = choices
+        fixture.accountIdentity = "recovered"
+        await fixture.provider.setFailure(nil)
+        let reopened = fixture.runtime()
+        defer { reopened.invalidate() }
+        await reopened.restore()
+        await reopened.catalog.refresh()
+        XCTAssertEqual(try fixture.store.load(), saved)
+        XCTAssertEqual(reopened.catalog.imports.configuration.servers, saved.servers)
+        XCTAssertEqual(reopened.catalog.catalog.channels.map(\.name), ["IPTV channel"])
+    }
+
+    func testSavedIPTVSurvivesTransientSecureStorageFailureAndColdReadmission() async throws {
+        let fixture = try SourcesRuntimeFixture()
+        defer { fixture.removeOwnedFiles() }
+        try fixture.addIPTVChoice()
+        let initial = fixture.runtime()
+        await initial.restore()
+        let saved = try fixture.store.load()
+        initial.invalidate()
+        fixture.secure.failReads = true
+        let unreadable = fixture.runtime()
+        await unreadable.restore()
+        XCTAssertEqual(unreadable.catalog.issue, .configuration)
+        unreadable.invalidate()
+
+        fixture.secure.failReads = false
+        let reopened = fixture.runtime()
+        defer { reopened.invalidate() }
+        await reopened.restore()
+        XCTAssertEqual(try fixture.store.load(), saved)
+        XCTAssertEqual(reopened.catalog.imports.configuration.servers, saved.servers)
+        XCTAssertEqual(reopened.catalog.catalog.channels.map(\.name), ["IPTV channel"])
+    }
+
     func testLateIPTVRegistrationCannotSaveAfterProfileAccessChanges() async throws {
         let gate = SourcesRuntimeLoadGate()
         let fixture = try SourcesRuntimeFixture(providerGate: gate)
@@ -537,10 +593,12 @@ private actor SourcesRuntimeProvider: ServerLiveTVProviding {
     private(set) var refreshes = 0
     private(set) var guides = 0
     private var channels: [ServerLiveTVChannel] = [.init(id: "channel", name: "IPTV channel")]
+    private var failure: AppError?
 
     init(gate: SourcesRuntimeLoadGate?) { self.gate = gate }
 
     func setChannels(_ channels: [ServerLiveTVChannel]) { self.channels = channels }
+    func setFailure(_ failure: AppError?) { self.failure = failure }
 
     func cachedLiveTVCatalog() -> ServerLiveTVCatalogSnapshot? {
         .init(channels: channels, supportsGuide: true)
@@ -549,6 +607,7 @@ private actor SourcesRuntimeProvider: ServerLiveTVProviding {
     func liveTVAvailability() async throws -> ServerLiveTVAvailability {
         checks += 1
         await gate?.suspend()
+        if let failure { throw failure }
         return .init(status: channels.isEmpty ? .noChannels : .available, channelCount: channels.count)
     }
 

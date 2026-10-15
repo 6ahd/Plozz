@@ -4,8 +4,14 @@ import CoreModels
 import AetherEngine
 
 enum PlozzigenLiveFailure {
-    static func appError(_ info: PlaybackErrorInfo?, deliveryFailure: AppError? = nil) -> AppError {
+    static func appError(
+        _ info: PlaybackErrorInfo?, deliveryFailure: AppError? = nil, fallbackError: Error? = nil
+    ) -> AppError {
         if let deliveryFailure { return deliveryFailure }
+        if info == nil, let error = fallbackError as? AppError { return error }
+        if info == nil, let error = fallbackError as? URLError {
+            return error.code == .cancelled ? .cancelled : .serverUnreachable
+        }
         guard let info else { return .unknown("live playback failed") }
         if info.kind == .sourceRateLimited { return .rateLimited(retryAfter: nil) }
         if info.kind == .sourceRefused, info.underlyingDomain == nil {

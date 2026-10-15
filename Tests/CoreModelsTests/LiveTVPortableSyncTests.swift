@@ -468,6 +468,28 @@ final class LiveTVPortableSyncTests: XCTestCase {
         XCTAssertEqual(try fixture.preferences.load().favoriteIDs, ["recoverable-channel"])
     }
 
+    func testServerDescriptorRoundTripAndUnavailableStorageDoNotDeleteSavedSources() throws {
+        let sender = try makeFixture()
+        let receiver = try makeFixture()
+        let saved = LiveTVSourcesConfiguration(servers: [
+            .init(id: "saved-server", name: "Live playlist", accountID: "iptv-account")
+        ])
+        try sender.sources.save(saved)
+        let initial = try sender.adapter.capture(sourceStore: sender.sources, fallback: [:])
+        _ = try receiver.adapter.apply(initial.mapValues(Optional.some), sourceStore: receiver.sources)
+        XCTAssertTrue(try receiver.sources.load().servers.isEmpty, "A descriptor cannot enroll an account.")
+        let returned = try receiver.adapter.capture(sourceStore: receiver.sources, fallback: initial)
+        XCTAssertEqual(returned, initial, "An unconfigured peer must not invent source deletions.")
+        _ = try sender.adapter.apply(returned.mapValues(Optional.some), sourceStore: sender.sources)
+        XCTAssertEqual(try sender.sources.load(), saved)
+        XCTAssertThrowsError(try sender.adapter.capture(sourceStore: UnavailablePortableSources(), fallback: initial))
+        XCTAssertEqual(try sender.adapter.capture(sourceStore: sender.sources, fallback: initial), initial)
+        XCTAssertEqual(try sender.sources.load(), saved)
+        XCTAssertTrue(try LiveTVServerEnrollmentSuppressionStore(
+            defaults: sender.defaults, profileID: profileID
+        ).suppressedAccountIDs().isEmpty)
+    }
+
     func testOptInHydratesPreviouslyFetchedRemoteFavoritesWithoutErasingLocalChoices() throws {
         let fixture = try makeFixture(enabled: false)
         try fixture.preferences.save(.init(favoriteIDs: ["local"]))
