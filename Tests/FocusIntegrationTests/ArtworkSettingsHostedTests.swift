@@ -37,7 +37,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         .environment(models.heroSettingsModel)
         .environment(models.heroBackgroundModel)) { window in
             let root = try await self.capture(window, name: "hero-inline-titles", includeMaster: true)
-            for title in ["Content sources", "Hide watched content", "Items to show", "Advance automatically"] {
+            for title in ["Hero content sources", "Hide watched content", "Items to show", "Advance automatically"] {
                 XCTAssertTrue(root.contains(title), root)
             }
             for title in ["Titles shown in hero", "Automatic changes", "Appearance", "Rotation", "Rotate automatically"] {
@@ -90,6 +90,9 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 let expected = page == .titles ? "Continue Watching"
                     : page == .ratings ? "Show ratings" : "Play trailer behind the hero"
                 XCTAssertTrue(shown.contains(expected), shown)
+                if page == .titles {
+                    XCTAssertTrue(shown.contains("Hero content sources"), shown)
+                }
                 XCTAssertFalse(shown.contains("Hide watched content"), shown)
                 XCTAssertFalse(navigation.awaitingFocus, "The page must receive native focus, not trap the master pane.")
                 if page == .ratings {

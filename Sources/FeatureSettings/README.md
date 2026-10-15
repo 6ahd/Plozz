@@ -11,7 +11,7 @@ and the single place caption customization lives.
   controls; neither is hidden behind a generic Appearance label.
   The shared rating-count picker is visibly labeled **Maximum ratings shown**:
   it caps available scores rather than promising every title has that many.
-  **Content sources** is the source-selection page; its link summarizes the
+  **Hero content sources** is the source-selection page; its link summarizes the
   currently permitted selections. Library, collection, Watchlist variety, and
   Discovery options use the shared `ViewPreferenceChoiceGroup` with the source
   they configure, so a source toggle and its links form one visual group.

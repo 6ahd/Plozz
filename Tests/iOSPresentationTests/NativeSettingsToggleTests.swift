@@ -62,7 +62,7 @@ final class NativeSettingsToggleTests: XCTestCase {
             window.makeKeyAndVisible()
             try await settle(window)
             let root = try captureText(window, name: "hero-root-mobile-\(Int(width))")
-            for label in ["Content sources", "Hide watched content", "Items to show",
+            for label in ["Hero content sources", "Hide watched content", "Items to show",
                           "Advance automatically", "Ratings", "Off", "Trailers"] {
                 XCTAssertTrue(root.contains(label), root)
             }

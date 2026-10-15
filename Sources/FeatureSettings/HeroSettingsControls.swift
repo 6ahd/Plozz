@@ -8,7 +8,7 @@ enum HeroSettingsPage: String, CaseIterable {
 
     var title: LocalizedStringResource {
         switch self {
-        case .titles: "Content sources"
+        case .titles: "Hero content sources"
         case .ratings: "Ratings"
         case .trailers: "Trailers"
         case .discovery: "Discovery"
