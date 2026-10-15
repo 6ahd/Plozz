@@ -34,6 +34,20 @@ public enum SettingsRowProminence {
 public enum SettingsRowMetrics {
     /// Control labels share the navigation-row size; headings use separate styles.
     public static let titleFont: Font = .body
+    public static var optionFont: Font {
+        #if os(tvOS)
+        titleFont
+        #else
+        .headline
+        #endif
+    }
+    public static var helperFont: Font {
+        #if os(tvOS)
+        .caption2
+        #else
+        .callout
+        #endif
+    }
 
     public static let formRowSpacing: CGFloat = 8
     public static let formSectionSpacing: CGFloat = 24
@@ -451,7 +465,7 @@ public extension View {
 ///     "Sources", "Items"). Clearly larger than a control label so it reads as a
 ///     header, not a row.
 ///  3. control labels — a control's own text (toggle/checkmark/stepper label);
-///     use the component defaults (`.headline`), which now sit a step *below* the
+///     use ``SettingsRowMetrics/titleFont``, which sits a step *below* the
 ///     section header.
 ///  4. ``settingsHelperText()`` — descriptive/helper copy under a title or header.
 ///
@@ -478,7 +492,7 @@ public extension View {
     /// L3 — a **feature** description: the intro sentence under the pane's feature
     /// title (e.g. under "Hero"). Readable but secondary.
     func settingsHelperText() -> some View {
-        font(.callout).plozzForeground(.secondary)
+        font(SettingsRowMetrics.helperFont).plozzForeground(.secondary)
     }
 
     /// L4 — a **section** description: a small, dim note under a section header.
@@ -486,7 +500,11 @@ public extension View {
     /// so it reads as a footnote and never competes with the header. Use sparingly
     /// (only when the header + control aren't self-explanatory).
     func settingsSectionDescription() -> some View {
+        #if os(tvOS)
+        font(SettingsRowMetrics.helperFont).plozzForeground(.tertiary)
+        #else
         font(.footnote).plozzForeground(.tertiary)
+        #endif
     }
 }
 #endif

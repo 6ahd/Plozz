@@ -111,7 +111,11 @@ struct SettingsSegmentedPicker<Option: Hashable>: View {
                     )
                 if isSelected {
                     Image(systemName: "checkmark")
+                        #if os(tvOS)
+                        .font(SettingsRowMetrics.optionFont.weight(.semibold))
+                        #else
                         .font(.subheadline.weight(.bold))
+                        #endif
                         .accessibilityHidden(true)
                 }
             }
@@ -157,10 +161,15 @@ struct SettingsSegmentedPicker<Option: Hashable>: View {
 
             var body: some View {
                 configuration.label
-                    .font(.headline)
+                    .font(SettingsRowMetrics.optionFont)
                     .foregroundStyle(foreground)
+                    #if os(tvOS)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    #else
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)
+                    #endif
                     .background {
                         Capsule(style: .continuous)
                             .fill(segmentFill)

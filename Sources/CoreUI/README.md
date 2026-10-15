@@ -10,7 +10,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   body-size label for navigation rows, TV switch variants, and labeled controls.
   Keep headings separate; do not give toggles a larger headline font or add
   per-screen compensating font overrides. Native iOS/iPadOS switches retain
-  system sizing.
+  system sizing. TV option/segmented pickers use the same body-sized labels;
+  `settingsHelperText()` uses the smaller caption size for explanatory copy
+  (tvOS footnote and body render at the same size).
 - **Settings form geometry** — `settingsFormRowLayout()` gives links, On/Off
   rows, and compact inline steppers the same content padding and minimum height.
   Form groups use 8pt row spacing, 24pt section spacing, and a uniform 10pt
@@ -102,7 +104,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   alpha. The texture is created only when a card needs it, its longest edge is
   capped at 480 pixels, and it is rebuilt only for palette or viewport size
   changes. Scrolling updates each background's sampling rectangle, not its
-  texture or foreground content. Native focus,
+  texture or foreground content. `settingsPageBackground()` provides the same
+  page-aligned texture to Settings' focusable information cards, without the
+  detail page's darker information band. Nested workspace pages inherit that
+  background instead of painting another gradient. Native focus,
   clipping and text remain TVUIKit-owned.
   Text stays opaque and native focus geometry is unchanged. Gradient Off or
   Reduce Transparency restores both the solid band and solid card fills.

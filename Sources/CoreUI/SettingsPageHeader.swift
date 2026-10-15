@@ -23,7 +23,11 @@ public struct SettingsPageHeader: View {
                 .font(.largeTitle.bold())
             if let subtitle {
                 subtitle
+                    #if os(tvOS)
+                    .font(SettingsRowMetrics.helperFont)
+                    #else
                     .font(.subheadline)
+                    #endif
                     .plozzForeground(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

@@ -112,12 +112,6 @@ struct AppLanguagePicker: View {
             if languages.count == 1 {
                 Text("Plozz is only available in English for now. More languages are on the way.")
                     .settingsHelperText()
-            } else {
-                // Deliberately no longer claims the Top Shelf follows the Apple
-                // TV's language — it follows this setting now, because the app
-                // resolves those titles before handing them to the extension.
-                Text("System prompts and the player's own on-screen controls follow the Apple TV's language, not this setting.")
-                    .settingsHelperText()
             }
 
             if let translationIssueURL {

@@ -14,10 +14,6 @@ private struct SettingsExitActionKey: EnvironmentKey {
     static let defaultValue: SettingsExitAction? = nil
 }
 
-private struct SettingsWorkspaceKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
 private struct SettingsWorkspaceFocusScopeKey: EnvironmentKey {
     static let defaultValue: Namespace.ID? = nil
 }
@@ -30,11 +26,6 @@ public extension EnvironmentValues {
 }
 
 extension EnvironmentValues {
-    var settingsInWorkspace: Bool {
-        get { self[SettingsWorkspaceKey.self] }
-        set { self[SettingsWorkspaceKey.self] = newValue }
-    }
-
     var settingsWorkspaceFocusScope: Namespace.ID? {
         get { self[SettingsWorkspaceFocusScopeKey.self] }
         set { self[SettingsWorkspaceFocusScopeKey.self] = newValue }
@@ -46,17 +37,24 @@ struct SettingsWorkspace<Sidebar: View, Detail: View>: View {
     @ViewBuilder var sidebar: () -> Sidebar
     @ViewBuilder var detail: (SettingsRoute) -> Detail
     @Environment(\.settingsExitAction) private var exit
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var sidebarScope
 
     var body: some View {
         GeometryReader { geometry in
-            HStack(alignment: .top, spacing: 56) {
-                sidebar()
-                    .frame(width: min(548, geometry.size.width * 0.32), alignment: .topLeading)
-                    .focusSection()
-                    .focusScope(sidebarScope)
-                    .environment(\.settingsWorkspaceFocusScope, sidebarScope)
-                    .onExitCommand { exit?.perform() }
+            let sidebarWidth = min(548, geometry.size.width * 0.32)
+            let fullScreen = navigation.usesFullScreenDetail
+            HStack(alignment: .top, spacing: fullScreen ? 0 : 56) {
+                if !fullScreen {
+                    sidebar()
+                        .padding(.top, 36)
+                        .frame(width: sidebarWidth, alignment: .topLeading)
+                        .focusSection()
+                        .focusScope(sidebarScope)
+                        .environment(\.settingsWorkspaceFocusScope, sidebarScope)
+                        .onExitCommand { exit?.perform() }
+                        .transition(reduceMotion ? .identity : .move(edge: .leading).combined(with: .opacity))
+                }
 
                 NavigationStack(path: $navigation.path) {
                     detail(navigation.section).id(navigation.section)
@@ -68,6 +66,8 @@ struct SettingsWorkspace<Sidebar: View, Detail: View>: View {
                         .onExitCommand { navigation.returnToSidebar() }
                 }
                 .toolbar(.hidden, for: .tabBar)
+                .safeAreaPadding(.top, 36)
+                .ignoresSafeArea(.container, edges: .vertical)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .disabled(navigation.restoringSidebar)
                 .focusSection()
@@ -79,6 +79,7 @@ struct SettingsWorkspace<Sidebar: View, Detail: View>: View {
                     }
                 }
             }
+            .animation(reduceMotion ? nil : .smooth(duration: 0.38, extraBounce: 0), value: fullScreen)
         }
         .environment(navigation)
         .environment(\.settingsInWorkspace, true)
@@ -128,6 +129,11 @@ struct SettingsSectionButton: View {
     @Environment(\.resetFocus) private var resetFocus
     @FocusState private var focused: Bool
 
+    private var canReceiveFocus: Bool {
+        !navigation.usesFullScreenDetail && !navigation.enteringDetail
+            && (!(navigation.focusInDetail || navigation.restoringSidebar) || navigation.section == route)
+    }
+
     var body: some View {
         Button {
             navigation.select(route)
@@ -141,12 +147,13 @@ struct SettingsSectionButton: View {
         .buttonStyle(SettingsFocusButtonStyle(size: .contained))
         .focused($focused)
         .modifier(SettingsSectionFocusPreference(scope: scope, selected: navigation.section == route))
-        .disabled(navigation.enteringDetail || (navigation.focusInDetail || navigation.restoringSidebar) && navigation.section != route)
+        .disabled(!canReceiveFocus)
         .accessibilityIdentifier("settings-section-\(route)")
         .accessibilityAddTraits(navigation.section == route ? .isSelected : [])
         .navigationEntryFocus(navigation.section == route ? .content : nil)
         .background {
-            NativeFocusRegionObserver {
+            NativeFocusRegionObserver(isEnabled: canReceiveFocus) {
+                guard canReceiveFocus else { return }
                 navigation.focusInDetail = false
                 navigation.restoringSidebar = false
                 navigation.enteringDetail = false

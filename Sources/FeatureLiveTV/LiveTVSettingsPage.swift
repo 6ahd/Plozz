@@ -141,18 +141,28 @@ struct LiveTVSettingsPage<Content: View>: View {
     let title: LocalizedStringResource
     var sourceName: String? = nil
     @ViewBuilder let content: () -> Content
+    #if os(tvOS)
+    @Environment(\.settingsInWorkspace) private var inWorkspace
+    @Environment(\.dismiss) private var dismiss
+    #endif
 
     var body: some View {
         #if os(tvOS)
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                if inWorkspace {
+                    Button { dismiss() } label: {
+                        Label("Back", systemImage: "chevron.backward")
+                    }
+                    .accessibilityIdentifier("live-tv-settings-back")
+                }
                 if let sourceName { SettingsPageHeader(verbatim: sourceName) }
                 else { SettingsPageHeader(title) }
                 content()
             }
             .frame(maxWidth: PlozzTheme.Metrics.settingsContentMaxWidth, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, PlozzTheme.Metrics.screenPadding)
+            .padding(.horizontal, inWorkspace ? 28 : PlozzTheme.Metrics.screenPadding)
             .padding(.vertical, 24)
         }
         .scrollClipDisabled()

@@ -124,6 +124,7 @@ public enum SettingsRoute: Hashable {
     case detailPage
     case nightShift
     case playback
+    case subtitles
     case subtitleStyle(liveTV: Bool)
     case spoilers
     case integrations
@@ -188,6 +189,13 @@ public final class SettingsNavigationModel {
     /// replacing the surrounding tab/sidebar shell restores not only Appearance,
     /// but the exact feature row the viewer was editing inside it.
     var appearanceRowID: String?
+
+    var usesFullScreenDetail: Bool {
+        path.contains { route in
+            if case .subtitleStyle = route { return true }
+            return false
+        }
+    }
 
     public init() {}
 
@@ -321,7 +329,11 @@ struct SettingsPanel<Content: View>: View {
                     }
                     if let subtitle {
                         Text(subtitle)
+                            #if os(tvOS)
+                            .font(SettingsRowMetrics.helperFont)
+                            #else
                             .font(.footnote)
+                            #endif
                             .plozzForeground(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -330,7 +342,11 @@ struct SettingsPanel<Content: View>: View {
             content
             if let footer {
                 Text(footer)
+                    #if os(tvOS)
+                    .font(SettingsRowMetrics.helperFont)
+                    #else
                     .font(.footnote)
+                    #endif
                     .plozzForeground(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -390,6 +406,7 @@ struct FocusableSettingsPanel<Content: View>: View {
     var body: some View {
         SettingsPanel(title: title, footer: footer, showsSurface: false) { content }
             .plozzFocusableCard(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
+            .plozzAdaptiveCardSurface()
             .accessibilityElement(children: .combine)
             .onTapGesture { onActivate?() }
     }
@@ -413,12 +430,23 @@ struct ProviderIcon: View {
     let provider: ProviderKind
     var size: CGFloat = 14
     var mediaShareTransport: MediaShareTransportKind? = nil
+    var siteURL: URL? = nil
 
     var body: some View {
         // Delegates to the shared CoreUI mark so provider logos, brand tints,
         // the media-share drive glyph, and its transport badge have one
         // implementation across the app.
+        #if os(tvOS)
+        if provider == .iptv {
+            ProviderSiteIcon(url: siteURL, size: size) {
+                ProviderBrandMark(provider: provider, size: size)
+            }
+        } else {
+            ProviderBrandMark(provider: provider, size: size, mediaShareTransport: mediaShareTransport)
+        }
+        #else
         ProviderBrandMark(provider: provider, size: size, mediaShareTransport: mediaShareTransport)
+        #endif
     }
 
     static func tint(_ provider: ProviderKind) -> Color {

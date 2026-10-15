@@ -20,6 +20,7 @@ enum SettingsMetrics {
 struct SettingsSplitRow: Identifiable {
     enum Presentation {
         case inline
+        case compactRow
         case page
     }
     enum SectionStart {
@@ -56,6 +57,12 @@ struct SettingsSplitRow: Identifiable {
         var row = self
         row.presentation = .page
         row.summary = summary
+        return row
+    }
+
+    func compactRow() -> Self {
+        var row = self
+        row.presentation = .compactRow
         return row
     }
 

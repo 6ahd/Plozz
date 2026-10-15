@@ -439,13 +439,17 @@ Search/category state remains session-scoped. Playlist addresses, optional guide
 addresses and their order, source names, and enabled states are stored securely
 per profile. Server sources store an account reference, not duplicate credentials.
 View preferences and source management live in **Settings > Live TV**.
-On Apple TV, Sources shows the actual source controls in the existing detail
-pane, without an intermediate Manage sources page. Enable/disable and removal
-are available there; playlist/guide editing and server renaming open their
-specific editors directly. Hidden-channel restoration also lives in its detail
-pane. Setup and source pages reuse Plozz's shared settings groups, row labels,
-switches, focus/card styles and page heading.
-On iPhone/iPad, Sources and its grouped detail pages use a scroll-based settings
+On Apple TV, Sources stays inside the Settings detail pane. Saved sources use
+compact icon/name/status rows instead of repeating every control and hostname.
+Playlist icons optionally load the source origin's favicon, with a generic
+fallback; no playlist credentials or third-party favicon service are used.
+Each source opens its controls and diagnostics on a child page with Back.
+Guide lookback/lookahead use native value menus on TV so all day choices fit
+the fixed detail column without overflowing horizontal pills.
+Child pages inherit the workspace background rather than drawing a second
+gradient. Hidden-channel restoration also lives in its detail pane.
+Setup and source pages reuse Plozz's shared settings groups, row labels,
+switches, focus/card styles and page heading. On iPhone/iPad, Sources uses a scroll-based settings
 surface rather than embedding multiple navigation links in one native List cell.
 Saved sources appear first as compact icon/name/status rows. Each opens its own
 page for enabling, editing, checking and removing that source; guide policy and

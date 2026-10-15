@@ -75,6 +75,15 @@ private struct SettingsFormRow: View {
             }
             .buttonStyle(SettingsFocusButtonStyle(size: .contained))
             .accessibilityIdentifier("settings-page-\(row.id)")
+        } else if row.presentation == .compactRow {
+            HStack(spacing: 24) {
+                row.title.font(SettingsRowMetrics.titleFont)
+                Spacer(minLength: 16)
+                row.detail()
+            }
+            .padding(24)
+            .settingsGroupSurface(cornerRadius: 28)
+            .accessibilityIdentifier("settings-group-\(row.id)")
         } else {
             SettingsFormGroup(title: row.title, description: row.description) {
                 row.detail()

@@ -1,5 +1,6 @@
 import CoreModels
 import CoreNetworking
+import CoreSecureStore
 import FeaturePlayback
 import Foundation
 
@@ -75,6 +76,32 @@ enum ScreenshotSeed {
             for profile in appState.profilesModel.profiles where ["Alex", "Sam"].contains(profile.name) {
                 let namespace = profile.settingsNamespace(isDefault: appState.profilesModel.isDefault(profile))
                 NavigationStyleSettingsStore(namespace: namespace).save(navigationStyle)
+                do {
+                    let store = LiveTVSourceStorage.store(namespace: namespace)
+                    var sources = try store.load()
+                    sources.playlists.removeAll { $0.id.hasPrefix("settings-review-") }
+                    if let address = environment["PLOZZ_SHOTS_SETTINGS_SOURCES"],
+                       let origin = URL(string: address), origin.scheme == "http",
+                       origin.host == "127.0.0.1" {
+                        let viewStore = LiveTVViewSettingsStore(namespace: namespace)
+                        var viewSettings = viewStore.load()
+                        viewSettings.chooseAutoPreview(false)
+                        viewStore.save(viewSettings)
+                        for (index, name) in [
+                            "Northstar TV", "Harbor Channels", "Weekend Sports",
+                            "Documentary Club", "Family Channels", "City News"
+                        ].enumerated() {
+                            sources.playlists.append(LiveTVPlaylistSource(
+                                id: "settings-review-\(index)", name: name,
+                                playlistURL: origin.appendingPathComponent("playlist-\(index).m3u"),
+                                guideURLs: [origin.appendingPathComponent("guide.xml")]
+                            ))
+                        }
+                    }
+                    try store.save(sources)
+                } catch {
+                    PlozzLog.boot("Settings source capture fixture could not be saved")
+                }
             }
             appState.profileSettings.navigationStyleModel.style = navigationStyle
             return

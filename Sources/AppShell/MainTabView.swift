@@ -1117,7 +1117,7 @@ struct MainTabView: View {
                 navigation: settingsNavigation,
                 homeRowAccounts: accounts
             )
-            .background { SettingsPageBackground() }
+            .settingsPageBackground()
             .environment(Self.subtitleStyleDestination)
             .environment(\.settingsExitAction, SettingsExitAction(closeSettings))
     }

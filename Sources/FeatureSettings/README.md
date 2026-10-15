@@ -43,13 +43,30 @@ and the single place caption customization lives.
   General is initially visible. The avatar/name switches profiles; the adjacent
   Edit action uses the same `ProfileActionsList` as the profile picker.
   `SettingsFormLayout` groups related controls into one vertical form, retaining
-  child pages for longer editors. General owns language, theme and spoilers;
-  Appearance & Layout owns Customize Home, display size, artwork, cards,
+  child pages for longer editors. Single-control preferences such as Language
+  use one compact label-and-control row without an extra heading or explanatory
+  paragraphs. General owns language and spoiler protection.
+  Appearance & Layout starts with Theme (including gradient backgrounds and
+  Liquid Glass), followed by Customize Home, display size, artwork, cards,
   navigation, Music Player, Circadian Mode and Detail Page. Playback groups
-  subtitles, audio, autoplay/Up Next, marker skipping, seeking and display fades.
+  audio, autoplay/Up Next, marker skipping, seeking and display fades.
+  Subtitles is its own profile category for mode, language, downloading,
+  per-series memory and the shared/Live TV style editors; downloading still
+  follows the active profile's provider capabilities.
+  Both subtitle-style editors reclaim the full screen: the category column
+  slides and fades away as the detail expands, then returns with Back to the
+  same Subtitles section. Reduce Motion changes the layout without the slide.
+  Hidden or focus-ineligible categories also stop observing native focus, so
+  an editor control cannot be mistaken for a category during the transition.
+  The existing navigation stack and profile context remain intact, including
+  inside the editor's font and appearance subpages.
   Libraries, Live TV and Trackers remain profile-owned. Household setup is
   separate under Everyone; About and Help & Diagnostics have their own entries.
   `SettingsRowStyle` and `SettingsContext` provide shared controls and dependencies.
+  The right navigation viewport extends through the vertical safe area, keeping
+  the initial top inset inside its scrollable content instead of clipping pages
+  at that inset. Segmented choices share the body-sized control font; explanatory
+  copy uses the smaller shared helper style.
 - `ProfileDetailView` — manage the active profile: rename, recolor,
   switch / sign out of accounts, configure the Plex Home-user mapping
   (`PlexLinkedUserDetailView`).
@@ -111,6 +128,9 @@ and the single place caption customization lives.
 
 ## Invariants
 
+- **Settings surfaces.** Read-only focusable panels use the same adaptive
+  gradient surface as ordinary groups, including the opaque Reduce Transparency
+  fallback. Their native focus behavior stays unchanged.
 - **TV navigation ownership.** Focusing a category previews its section; Select
   or Right enters its first control. Left returns to the selected category.
   Back pops a child, then returns to categories, then leaves Settings for the

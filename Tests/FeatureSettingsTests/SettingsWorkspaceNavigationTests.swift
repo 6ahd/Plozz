@@ -10,6 +10,7 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         XCTAssertTrue(navigation.path.isEmpty)
         XCTAssertTrue(navigation.restoringSidebar)
         XCTAssertFalse(navigation.focusInDetail)
+        XCTAssertFalse(navigation.usesFullScreenDetail)
     }
 
     func testChangingSectionClearsItsChildrenButRefocusingItDoesNot() {
@@ -38,6 +39,29 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         XCTAssertTrue(navigation.restoringSidebar)
     }
 
+    func testSubtitlesOwnTheirStyleDestinationAndResetWithTheProfile() {
+        let navigation = SettingsNavigationModel()
+        navigation.select(.subtitles)
+        XCTAssertFalse(navigation.usesFullScreenDetail)
+        navigation.path = [.subtitleStyle(liveTV: false)]
+        XCTAssertTrue(navigation.usesFullScreenDetail)
+        navigation.path = [.subtitleStyle(liveTV: true)]
+        XCTAssertTrue(navigation.usesFullScreenDetail)
+        navigation.select(.subtitles)
+        XCTAssertEqual(navigation.path, [.subtitleStyle(liveTV: true)])
+        navigation.select(.playback)
+        XCTAssertTrue(navigation.path.isEmpty)
+        XCTAssertFalse(navigation.usesFullScreenDetail)
+        navigation.select(.subtitles)
+        navigation.path = [.subtitleStyle(liveTV: false)]
+        navigation.resetForProfile()
+        XCTAssertEqual(navigation.section, .general)
+        XCTAssertFalse(navigation.usesFullScreenDetail)
+        XCTAssertEqual(SettingsRoute.subtitles.access(
+            activeProfileID: "child", isKids: true, isParentalSealed: true
+        ), .allowed)
+    }
+
     func testProfileOrAuthorizationResetDiscardsPriorDestinations() {
         let navigation = SettingsNavigationModel()
         navigation.select(.servers)
@@ -50,6 +74,24 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         XCTAssertNil(navigation.appearanceRowID)
         XCTAssertTrue(navigation.restoringSidebar)
         XCTAssertFalse(navigation.focusInDetail)
+    }
+
+    func testFullScreenDetailFollowsTheStyleRouteUntilItIsPopped() {
+        let navigation = SettingsNavigationModel()
+        navigation.select(.subtitles)
+        for liveTV in [false, true] {
+            navigation.path = [.subtitleStyle(liveTV: liveTV)]
+            XCTAssertTrue(navigation.usesFullScreenDetail)
+            navigation.path.append(.about)
+            XCTAssertTrue(navigation.usesFullScreenDetail)
+            navigation.path.removeLast()
+            XCTAssertTrue(navigation.usesFullScreenDetail)
+            navigation.path.removeLast()
+            XCTAssertFalse(navigation.usesFullScreenDetail)
+            XCTAssertEqual(navigation.section, .subtitles)
+        }
+        navigation.path = [.artwork, .navigationLayout]
+        XCTAssertFalse(navigation.usesFullScreenDetail)
     }
 
     func testHouseholdRoutesRemainUnavailableToKidsEvenAfterUnlock() {

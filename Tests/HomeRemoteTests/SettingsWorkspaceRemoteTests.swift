@@ -10,13 +10,26 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(general.isSelected, app.debugDescription)
         XCTAssertTrue(app.buttons["settings-profile-switch"].exists)
         XCTAssertTrue(app.buttons["settings-profile-edit"].exists)
+        let language = app.staticTexts["Language"].firstMatch
+        let languageMenu = app.buttons["settings-group-language"].firstMatch
+        XCTAssertTrue(languageMenu.exists, app.debugDescription)
+        XCTAssertEqual(language.frame.midY, languageMenu.frame.midY, accuracy: 3)
+        XCTAssertLessThanOrEqual(languageMenu.frame.height, 80, "Language must remain a compact single row.")
+        XCTAssertFalse(app.staticTexts["Theme"].exists)
+        XCTAssertFalse(app.buttons["settings-page-theme"].exists)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "System prompts and the player's own"
+        )).firstMatch.exists)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "The language Plozz uses for its own labels"
+        )).firstMatch.exists)
         capture("01-general", in: app)
         try enterAndReturn("general", in: app)
         XCUIRemote.shared.press(.down)
         XCTAssertTrue(section("myLibraries", in: app).isSelected, app.debugDescription)
 
         for (index, name) in [
-            "myLibraries", "appearance", "playback", "liveTV", "integrations",
+            "myLibraries", "appearance", "playback", "subtitles", "liveTV", "integrations",
             "servers", "profile", "parentalPIN", "seerr", "syncSetup", "metadata", "about", "help"
         ].enumerated() {
             let target = section(name, in: app)
@@ -28,17 +41,27 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         }
         try focus(section("playback", in: app), in: app)
         XCUIRemote.shared.press(.select)
-        let subtitles = app.buttons["settings-page-subtitles"]
-        XCTAssertTrue(subtitles.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Audio"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(app.buttons["settings-page-subtitles"].exists)
+        XCTAssertFalse(app.staticTexts["Show subtitles"].exists)
         capture("19-playback-entered", in: app)
         XCTAssertFalse(app.buttons["settings-section-general"].isEnabled, app.debugDescription)
+        XCUIRemote.shared.press(.menu)
+        try focus(section("subtitles", in: app), in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.staticTexts["Show subtitles"].waitForExistence(timeout: 5), app.debugDescription)
         capture("20-subtitles", in: app)
+        let style = app.buttons["Customize subtitle style"]
+        try focus(style, in: app)
+        capture("subtitles-lower", in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label == %@", "Back"))
+            .firstMatch.waitForExistence(timeout: 5), app.debugDescription)
+        capture("subtitle-style", in: app)
         XCUIRemote.shared.press(.menu)
-        XCTAssertTrue(subtitles.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(style.waitForExistence(timeout: 5), app.debugDescription)
         XCUIRemote.shared.press(.menu)
-        XCTAssertTrue(hasFocus(section("playback", in: app)), app.debugDescription)
+        XCTAssertTrue(hasFocus(section("subtitles", in: app)), app.debugDescription)
         #else
         throw XCTSkip("Never seeds or changes settings on a physical device.")
         #endif
@@ -47,8 +70,19 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
     func testAppearancePagesAndNavigationStyleChanges() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
+        defer { capture("appearance-final-state", in: app) }
         try focus(section("appearance", in: app), in: app)
         XCUIRemote.shared.press(.select)
+        let theme = app.buttons["settings-page-theme"]
+        XCTAssertTrue(theme.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(theme, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.staticTexts["Gradient Backgrounds"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "Liquid Glass")).firstMatch.exists,
+                      app.debugDescription)
+        capture("theme", in: app)
+        XCUIRemote.shared.press(.menu)
+        try focus(app.buttons["settings-page-home"], in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.staticTexts["Home Layout"].waitForExistence(timeout: 5), app.debugDescription)
         capture("customize-home", in: app)
@@ -204,7 +238,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
 
     func testPlaybackLiveTVAndTrackerChildPages() throws {
         #if targetEnvironment(simulator)
-        let app = try launchSettings()
+        let app = try launchSettings(style: "tabBar")
         for (category, pages) in [
             ("playback", ["skip-intros-mode"]),
             ("liveTV", ["sources", "hidden-channels"]),
@@ -246,6 +280,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let app = try launchSettings()
         try focus(section("appearance", in: app), in: app)
         XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-home"], in: app)
         XCUIRemote.shared.press(.select)
         let fullscreen = app.buttons["Fullscreen Hero"]
         XCTAssertTrue(fullscreen.waitForExistence(timeout: 5))
@@ -276,7 +311,143 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
-    private func launchSettings(style: String = "rail", profile: String = "Alex", kids: String = "off", diagnostics: Bool = false) throws -> XCUIApplication {
+    func testCompactIPTVSourcesAndChildBackNavigation() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar", sources: true)
+        defer { capture("compact-final-state", in: app) }
+        try focus(section("metadata", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        let recommended = app.buttons["Recommended"]
+        XCTAssertTrue(recommended.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertLessThanOrEqual(recommended.frame.height, 66)
+        capture("compact-metadata-options", in: app)
+        XCUIRemote.shared.press(.menu)
+        try focus(section("liveTV", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertLessThan(
+            app.staticTexts["Preview the focused channel as you browse."].firstMatch.frame.height,
+            app.staticTexts["Auto preview"].firstMatch.frame.height,
+            "Helper text must render smaller than the control label, not just use a different text style."
+        )
+        capture("compact-guide-settings", in: app)
+        try focus(app.buttons["settings-page-sources"], in: app)
+        XCUIRemote.shared.press(.select)
+        let first = app.buttons["live-tv-source-details-settings-review-0"]
+        XCTAssertTrue(first.waitForExistence(timeout: 10), app.debugDescription)
+        for index in 0..<6 {
+            let row = app.buttons["live-tv-source-details-settings-review-\(index)"]
+            XCTAssertTrue(row.exists)
+            XCTAssertLessThanOrEqual(row.frame.height, 110, "Sources must be compact summary rows.")
+        }
+        XCTAssertFalse(app.buttons["live-tv-remove-source-settings-review-0"].exists)
+        capture("compact-iptv-sources", in: app)
+        try focus(app.buttons["live-tv-add-server"], in: app)
+        capture("iptv-sources-scrolled", in: app)
+        let detailScroll = try XCTUnwrap(app.scrollViews.allElementsBoundByIndex.first {
+            $0.buttons["live-tv-add-server"].exists
+        })
+        XCTAssertLessThanOrEqual(detailScroll.frame.minY, 1, "The scroll viewport must reach the screen edge.")
+        let detailMaxX = detailScroll.frame.maxX
+        try focus(first, in: app)
+        XCUIRemote.shared.press(.select)
+        let back = app.buttons["live-tv-settings-back"]
+        XCTAssertTrue(back.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Northstar TV"].exists)
+        capture("iptv-source-controls", in: app)
+        for link in [
+            "live-tv-edit-source-settings-review-0",
+            "live-tv-source-guides-settings-review-0"
+        ] {
+            try focus(app.buttons[link], in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(back.waitForExistence(timeout: 5), app.debugDescription)
+            if link == "live-tv-source-guides-settings-review-0" {
+                for identifier in ["live-tv-guide-lookback", "live-tv-guide-lookahead"] {
+                    let menu = app.buttons[identifier]
+                    XCTAssertTrue(menu.exists)
+                    XCTAssertLessThanOrEqual(menu.frame.maxX, detailMaxX - 28)
+                }
+            }
+            capture(link, in: app)
+            try focus(back, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(app.buttons[link].waitForExistence(timeout: 5), app.debugDescription)
+        }
+        try focus(back, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(first.waitForExistence(timeout: 5), app.debugDescription)
+        #else
+        throw XCTSkip("Never seeds sources on a physical device.")
+        #endif
+    }
+
+    func testSubtitleStyleEditorsExpandAndRestoreTheWorkspace() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        defer { capture("subtitle-fullscreen-final-state", in: app) }
+        try focus(section("subtitles", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        for (title, captureName) in [
+            ("Customize subtitle style", "subtitle-style"),
+            ("Customize Live TV subtitles", "subtitle-style-live-tv")
+        ] {
+            if title == "Customize Live TV subtitles", !app.buttons[title].exists {
+                let separateStyle = app.switches["Use a separate style for Live TV"]
+                try focus(separateStyle, in: app)
+                XCUIRemote.shared.press(.select)
+            }
+            let link = app.buttons[title]
+            XCTAssertTrue(link.waitForExistence(timeout: 5), app.debugDescription)
+            try focus(link, in: app)
+            capture("\(captureName)-before", in: app)
+            XCUIRemote.shared.press(.select)
+            let heading = app.staticTexts[title]
+            XCTAssertTrue(heading.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(section("subtitles", in: app).exists, app.debugDescription)
+            XCTAssertFalse(app.buttons["settings-profile-switch"].exists)
+            XCTAssertLessThan(heading.frame.minX, 200, "The editor must reclaim the sidebar column.")
+            capture(captureName, in: app)
+            let font = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Font")).firstMatch
+            let matchedSystemStyle = !font.isEnabled
+            let matchSystemStyle = app.buttons["Match Apple TV Subtitle Style"]
+            if matchedSystemStyle {
+                try focus(matchSystemStyle, in: app)
+                XCUIRemote.shared.press(.select)
+            }
+            try focus(font, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(app.staticTexts["Font"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(section("subtitles", in: app).exists)
+            capture("\(captureName)-fonts", in: app)
+            XCUIRemote.shared.press(.menu)
+            XCTAssertTrue(app.staticTexts["Appearance"].waitForExistence(timeout: 5), app.debugDescription)
+            if matchedSystemStyle {
+                try focus(matchSystemStyle, in: app)
+                XCUIRemote.shared.press(.select)
+            }
+            if title == "Customize subtitle style" {
+                XCUIRemote.shared.press(.menu)
+            } else {
+                let back = app.buttons.matching(NSPredicate(format: "label == %@", "Back")).firstMatch
+                try focus(back, in: app)
+                XCUIRemote.shared.press(.select)
+            }
+            XCTAssertTrue(link.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(section("subtitles", in: app).isSelected)
+            XCTAssertTrue(app.buttons["settings-profile-switch"].exists)
+            capture("\(captureName)-returned", in: app)
+        }
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(hasFocus(section("subtitles", in: app)), app.debugDescription)
+        #else
+        throw XCTSkip("Simulator-only Settings review.")
+        #endif
+    }
+
+    private func launchSettings(
+        style: String = "rail", profile: String = "Alex", kids: String = "off",
+        diagnostics: Bool = false, sources: Bool = false
+    ) throws -> XCUIApplication {
         try XCTSkipUnless(
             ProcessInfo.processInfo.environment["PLOZZ_SETTINGS_REVIEW"] == "1",
             "Requires the production app installed on a task-owned simulator."
@@ -286,6 +457,12 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         app.launchEnvironment["PLOZZ_SHOTS_SETTINGS"] = "1"
         app.launchEnvironment["PLOZZ_SHOTS_SETTINGS_NAVIGATION"] = style
         app.launchEnvironment["PLOZZ_SHOTS_SETTINGS_KIDS"] = kids
+        if sources {
+            app.launchEnvironment["PLOZZ_SHOTS_SETTINGS_SOURCES"] = try XCTUnwrap(
+                ProcessInfo.processInfo.environment["PLOZZ_SETTINGS_SOURCE_ORIGIN"],
+                "Source review requires an owned loopback fixture server."
+            )
+        }
         if diagnostics { app.launchEnvironment["PLZHFOCUS"] = "1" }
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
@@ -302,6 +479,12 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             try focus(app.buttons["Continue"], in: app)
             XCUIRemote.shared.press(.select)
         }
+        let keepPreviewsOff = app.buttons["live-tv-preview-disable"]
+        if keepPreviewsOff.waitForExistence(timeout: 2) {
+            try focus(keepPreviewsOff, in: app)
+            XCUIRemote.shared.press(.select)
+        }
+        if sources { capture("source-fixture-entry", in: app) }
         try openSettingsIfNeeded(in: app)
         return app
     }

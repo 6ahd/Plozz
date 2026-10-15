@@ -424,7 +424,6 @@ public struct SettingsView: View {
             destination(for: route)
         }
         .padding(.horizontal, PlozzTheme.Metrics.screenPadding)
-        .padding(.top, 36)
         .task { await reloadLibraries() }
         .onAppear { MainThreadStallProbe.context = "settings" }
         .onChange(of: activeProfile.id) { _, _ in
@@ -572,6 +571,7 @@ public struct SettingsView: View {
             }
             sectionRow("Appearance & Layout", icon: "paintpalette", route: .appearance)
             sectionRow("Playback", icon: "play.rectangle", route: .playback)
+            sectionRow("Subtitles", icon: "captions.bubble", route: .subtitles)
             sectionRow("Live TV", icon: "antenna.radiowaves.left.and.right", route: .liveTV)
             sectionRow("Trackers", icon: "link", route: .integrations)
             // The profile's own PIN gate. Belongs to the profile (it travels with
@@ -1010,14 +1010,15 @@ public struct SettingsView: View {
                 themeMusic: themeMusic,
                 heroBackground: heroBackground
             )
-        case .playback:
+        case .playback, .subtitles:
             PlaybackDetailView(
                 playback: playback,
                 subtitleBehavior: subtitleBehavior,
                 subtitleStyle: subtitleStyle,
                 subtitlePolicy: subtitlePolicy,
                 audioPolicy: audioPolicy,
-                canDownloadSubtitles: activeProfileCanDownloadSubtitles
+                canDownloadSubtitles: activeProfileCanDownloadSubtitles,
+                section: route == .subtitles ? .subtitles : .playback
             )
         case .subtitleStyle(let liveTV):
             if let subtitleStyleDestination {

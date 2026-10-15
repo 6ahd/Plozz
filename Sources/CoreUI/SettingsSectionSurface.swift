@@ -133,7 +133,11 @@ public struct SettingsSectionGroup<Content: View, Footer: View>: View {
             .settingsGroupSurface(cornerRadius: 18)
 
             footer
+                #if os(tvOS)
+                .font(SettingsRowMetrics.helperFont)
+                #else
                 .font(.footnote)
+                #endif
                 .plozzForeground(.secondary)
                 .padding(.horizontal, 16)
         }

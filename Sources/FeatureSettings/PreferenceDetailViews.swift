@@ -69,10 +69,10 @@ struct AppearanceDetailView: View {
         #if os(tvOS)
         if inWorkspace {
             if section == .general {
-                return allRows.filter { ["language", "theme", "spoilers"].contains($0.id) }
+                return allRows.filter { ["language", "spoilers"].contains($0.id) }
             }
             let appearance = allRows.filter { !["language", "theme", "spoilers"].contains($0.id) }
-            return [
+            return allRows.filter { $0.id == "theme" }.map { $0.page() } + [
                 SettingsSplitRow(id: "home", title: "Customize Home") { EmptyView() }
                     .destination(.customizeHome)
             ] + appearance.map { row in
@@ -99,11 +99,10 @@ struct AppearanceDetailView: View {
         return [
                 SettingsSplitRow(
                     id: "language",
-                    title: "Language",
-                    description: "The language Plozz uses for its own labels. Media titles keep the language your server provides."
+                    title: "Language"
                 ) {
                     AppLanguagePicker(model: appLanguage)
-                },
+                }.compactRow(),
                 SettingsSplitRow(
                     id: "theme",
                     title: "Theme"
@@ -357,6 +356,10 @@ private struct DetailHeaderAgeSettingsForm: View {
     }
 }
 
+enum PlaybackSettingsSection {
+    case playback, subtitles
+}
+
 struct PlaybackDetailView: View {
     @Environment(\.locale) private var locale
     #if os(tvOS)
@@ -378,6 +381,7 @@ struct PlaybackDetailView: View {
     /// subtitles" row (auto-download + SDH/Forced ranking, all of which only act on
     /// a server search) is hidden rather than shown as a dead control.
     var canDownloadSubtitles: Bool = true
+    var section: PlaybackSettingsSection = .playback
 
     /// The three classifiable content types the per-type rules apply to, in the
     /// order shown in Settings (`.other` always follows the base, so it isn't
@@ -513,7 +517,7 @@ struct PlaybackDetailView: View {
     }
 
     var body: some View {
-        SettingsSplitLayout(title: "Playback", rows: rows)
+        SettingsSplitLayout(title: section == .subtitles ? "Subtitles" : "Playback", rows: rows)
     }
 
     // MARK: - Split sections
@@ -521,8 +525,8 @@ struct PlaybackDetailView: View {
     private var rows: [SettingsSplitRow] {
         #if os(tvOS)
         if inWorkspace {
+            if section == .subtitles { return subtitleRows }
             return [
-                .page(id: "subtitles", title: "Subtitles", rows: { subtitleRows }),
                 SettingsSplitRow(id: "audio", title: "Audio") {
                     VStack(alignment: .leading, spacing: 28) {
                         ForEach(audioRows) { row in
@@ -809,8 +813,7 @@ struct PlaybackDetailView: View {
                         verbatimTitle: { $0.title(locale: locale) }
                     )
                     Text(playback.settings.resumeRewindInterval.effectDescription)
-                        .font(.callout)
-                        .plozzForeground(.secondary)
+                        .settingsHelperText()
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -874,8 +877,7 @@ struct PlaybackDetailView: View {
                     Text(playback.settings.autoPlayNextEpisode
                          ? "The next episode starts when one finishes."
                          : "The player closes when an episode finishes.")
-                        .font(.callout)
-                        .plozzForeground(.secondary)
+                        .settingsHelperText()
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             },
@@ -926,8 +928,7 @@ private struct DescribedSegmentedPicker<Option: Hashable>: View {
                 onFocusedOptionChange: { focusedOption = $0 }
             )
             Text(detail(describedOption))
-                .font(.callout)
-                .plozzForeground(.secondary)
+                .settingsHelperText()
                 .fixedSize(horizontal: false, vertical: true)
                 .contentTransition(.opacity)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -976,8 +977,7 @@ private struct SkipModeControl: View {
             VStack(alignment: .leading, spacing: 12) {
                 Toggle("Use community markers", isOn: $useCommunityMarkers)
                 Text("When your server has no intro or credits marker, Plozz looks one up on IntroDB and TheIntroDB, sending them the title’s IMDb or TMDB ID.")
-                    .font(.callout)
-                    .plozzForeground(.secondary)
+                    .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -1064,16 +1064,14 @@ private struct SeparateSettingRow<Option: Hashable>: View {
                         .font(.headline.weight(.semibold))
                     if let hint {
                         Text(hint)
-                            .font(.callout)
-                            .plozzForeground(.secondary)
+                            .settingsHelperText()
                     }
                 }
                 picker
             }
             if let focusedOption {
                 Text(detail(focusedOption))
-                    .font(.callout)
-                    .plozzForeground(.secondary)
+                    .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // Under the picker, not the name.

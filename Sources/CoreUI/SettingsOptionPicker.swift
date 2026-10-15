@@ -63,7 +63,7 @@ public struct SettingsOptionPicker<Option: Hashable>: View {
                                 Image(systemName: "checkmark.circle.fill")
                             }
                         }
-                        .font(.headline)
+                        .font(SettingsRowMetrics.optionFont)
                         .padding(.horizontal, 4)
                     }
                     .buttonStyle(PlozzSeasonTabStyle(isSelected: selection == option))
