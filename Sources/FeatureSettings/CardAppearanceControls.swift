@@ -197,8 +197,7 @@ struct CardCaptionViewChoices: View {
             id: "card-label-view-\(view.rawValue)",
             title: view.displayName,
             value: settings.customizationValue(in: view),
-            detail: settings.customizationDetail(in: view)
-                ?? "Labels are separate from any text already in the artwork.",
+            detail: settings.customizationDetail(in: view),
             selection: Binding(
                 get: { settings.customization(in: view) },
                 set: { settings.setOverride($0, for: view) }
@@ -221,12 +220,11 @@ struct CardCaptionViewChoices: View {
 
 extension CardCaptionSettings {
     func customizationHelp(in view: CardCaptionView, style: CardStyle) -> ViewCustomizationHelp {
-        let mixedDetail = customizationDetail(in: view)
         return ViewCustomizationHelp(
-            detail: mixedDetail ?? "Labels are separate from any text already in the artwork.",
+            detail: customizationDetail(in: view),
             illustration: .captions(
                 style: style, showsCaptions: showsLabels(in: view),
-                showsMixedCaptions: mixedDetail != nil
+                showsMixedCaptions: customization(in: view) == .mixed
             )
         )
     }
@@ -235,11 +233,11 @@ extension CardCaptionSettings {
         customization(in: view).displayName
     }
 
-    func customizationDetail(in view: CardCaptionView) -> LocalizedStringResource? {
+    func customizationDetail(in view: CardCaptionView) -> LocalizedStringResource {
         if customization(in: view) == .mixed {
-            return "Labels are hidden in Showcase and on series artwork."
+            return "Labels are visible except in Showcase and on series artwork."
         }
-        return nil
+        return showsLabels(in: view) ? "Labels are visible in this view." : "Labels are hidden in this view."
     }
 }
 

@@ -62,6 +62,34 @@ fallback when the user's server has no attached trailer.
   Both platforms recheck hero Watchlist membership immediately, but memoize
   supporting-source identity tokens by the full current row values. No
   supporting index is built without exclusions; source-scope changes clear it.
+- **Collections hero source** — an opt-in source mixes individual movies and
+  shows from multiple account-qualified collections across libraries, not collection cards. TV and
+  mobile use the same `MediaProvider.collectionMembers` loader and existing
+  watched-title, artwork, freshness and source-mixing rules. A session-seeded,
+  bounded window per collection gives large collections coverage beyond their first page
+  without enumerating entire collections on Home. Loads are serial within this
+  source, each sampling at most 48 members. Round-robin sampling retains alternate
+  copies through eligibility checks. After applying current watch mutations,
+  Hide Watched excludes a title if any matching selected copy has been watched,
+  even before the identity index is warm. All sampled selections participate in
+  filtering and freshness ranking before the candidate cap, which counts distinct
+  title groups without dropping their alternate artwork. Bounded artwork checks
+  choose the first usable copy per group, preserving its provider routing and
+  artwork while carrying the group's identity aliases and per-copy watch history.
+  Cached slides therefore recognize later account-scoped watch mutations without
+  a warm identity index, and final source mixing still shows each title once. Short pages
+  follow the reported total, while duplicate/non-progressing pages fail the
+  whole load. Cancellation and fetch failures are distinct from a confirmed
+  empty collection. Selection changes invalidate the cached lineup; account
+  and library availability are rechecked for live and persisted candidates.
+  A failed or cancelled collection does not turn a partial aggregate into
+  authoritative success. The cached collection bucket has no individual
+  collection-membership attribution, so losing access to any saved selection
+  requires fresh sampling instead of reusing that bucket.
+  Personal collections are account/server-viewer scoped with no invented library;
+  mixed movie/show members retain their own known library attribution and the
+  existing Home visibility rules. Legacy single selections and cache keys migrate;
+  an explicitly empty selection array never restores the old single choice.
 - **Multi-account aggregation** — `HomeAggregator` fans out across the
   active account set (`[ResolvedAccount]`) so Home is a merged view
   across multiple servers / profiles. Uses the `MediaProvider`

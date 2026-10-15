@@ -26,6 +26,22 @@ and the single place caption customization lives.
   Home-customization preferences. Subtitle *behaviour* (mode, language,
   auto-download) lives here; the subtitle *look* is now adjusted in the
   player while watching.
+- `HeroCollectionPickerView` — Customize Home's opt-in **Collections** hero source
+  chooses multiple collections across enabled movie and TV libraries, or from accounts'
+  personal collections when its provider advertises that capability. The native picker
+  is shared by TV, iPhone and iPad, scopes requests to the active account and
+  server viewer, and loads collection pages only while open. Errors retain
+  loaded rows and expose Retry. TV reuses the settings detail-page scroll layout,
+  local header, native Back and wrapping checkable source rows rather than a
+  full-page List or automatic segmented Picker. Mobile retains grouped native
+  navigation. Choosing a collection toggles only that selection; switching sources
+  retains other selections. Selected rows show their source and can be removed
+  individually, including when a source is unavailable. Choice identity includes
+  account, optional library, server viewer and collection, not the display name.
+  The account/optional-library/collection selections stay
+  in the profile's `HeroSettings` blob and travels with existing profile
+  transfer/sync; older single-selection blobs migrate to a one-element array,
+  and unavailable sources do not silently erase saved choices.
 - `SettingsAboutSection` — app identity / version / release notes.
 - `SettingsCommunityLinks` — separate Discord-first and GitHub cards shared by
   About and mobile Settings. Apple TV shows them below the app identity.
@@ -98,6 +114,14 @@ and the single place caption customization lives.
   govern all media captions; App default owns Showcase and title-artwork exceptions.
   Explicit per-view choices, including Episodes, last until a preset replaces them.
   Library navigation names and on-artwork information are not captions.
+  Per-view help states whether labels are visible or hidden; Mixed explains
+  the Showcase and series-artwork exceptions. It follows the focused setting
+  and updates when that setting changes.
+  TV customization pages share the same scrolling Back control and title.
+  Their scroll content can cross the top safe-area inset without a hard crop;
+  a scroll-dependent fade handles the outer edge. Neither Back nor the title
+  is pinned. Pages without contextual help also draw through the bottom safe
+  area to the screen edge; pages with a fixed help footer retain its clearance.
 - **Scoped TV detail navigation.** `SettingsDetailPages` and `SettingsDetailLink`
   in `SettingsDetailNavigation.swift` are reusable across settings, independent of
   artwork and labels. A `SettingsSplitRow` opts in with `SettingsDetailSubpage`;

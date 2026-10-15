@@ -1147,6 +1147,9 @@ struct PlozziOSHomeView: View {
                 await rolls.items(for: rollKey) {
                     await randomProvider(libraries, limit)
                 }
+            },
+            collectionProvider: { selection, limit in
+                try await viewModel.heroCollectionContent(selection, limit: limit, hideWatched: settings.hideWatched)
             }
         )
         guard !Task.isCancelled else { return }
@@ -1174,7 +1177,8 @@ struct PlozziOSHomeView: View {
             recentlyAdded: content.latest,
             randomLibraries: randomLibraries,
             seerConnected: appModel.seerService.isConfigured,
-            featuredDiscoveryEnabled: !settings.discoverySources.isEmpty
+            featuredDiscoveryEnabled: !settings.discoverySources.isEmpty,
+            collectionState: result.collectionState
         )
         let foldsIntoLoadedSet = heroCuratedConfiguration == configuration
             && heroCuratedDisabledLibraryKeys == disabledLibraryKeys

@@ -171,12 +171,14 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         let position = engine.currentTime
         let bufferAhead: TimeInterval? = engine.isSessionReady && buffered.isFinite && position.isFinite
             ? max(0, buffered - position) : nil
-        guard t != nil || bufferAhead != nil else { return nil }
+        let audioPipeline = engine.activeAudioDecoder
+        guard t != nil || bufferAhead != nil || audioPipeline != nil else { return nil }
         return EngineLiveTelemetry(
             droppedFrameCount: t?.droppedFrameCount,
             observedFps: t?.observedFps,
             observedBitrate: t?.instantBitrateMbps.map { $0 * 1_000_000 },
-            bufferedSecondsAhead: bufferAhead
+            bufferedSecondsAhead: bufferAhead,
+            audioPipelineDescription: audioPipeline
         )
     }
 
@@ -713,7 +715,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         if #available(tvOS 26.0, *), trueHDAtmosEnabled,
            outputPolicy.isAudible, !outputPolicy.sharesAudioSession {
             // This is an intermediate spatial bed, not a detected speaker inventory.
-            // Aether gates TrueHD Atmos/48 kHz/native VOD and retains the bridge fallback.
+            // Aether verifies 48 kHz TrueHD Atmos/DTS:X on native VOD, with a channel fallback.
             // Shared live players and muted previews must not add spatial encoding work.
             options.objectAudioRendering = .apac(.l714)
         }

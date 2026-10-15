@@ -20,15 +20,80 @@ final class HeroSettingsTests: XCTestCase {
         super.tearDown()
     }
 
-    func testDefaultIsActiveWithAllSources() {
+    func testDefaultIsActiveWithoutOptInCollection() {
         let d = HeroSettings.default
         XCTAssertTrue(d.isActive)
-        XCTAssertEqual(d.sources, HeroSourceKind.allCases)
+        XCTAssertEqual(d.sources, HeroSourceKind.allCases.filter { $0 != .collection })
+        XCTAssertTrue(d.collections.isEmpty)
         XCTAssertTrue(d.hideWatched)
         XCTAssertFalse(d.showsRatings)
         XCTAssertFalse(d.showsDiscoverySources)
         XCTAssertFalse(d.watchlistDiscoveryEnabled)
         XCTAssertEqual(d.maxItems, 8)
+    }
+
+    func testCollectionSelectionRoundTripsAndTransfersOnlyWithItsProfile() throws {
+        var settings = HeroSettings.default
+        settings.sources = [.collection]
+        settings.collections = [
+            .init(accountID: "a", libraryID: "movies", collectionID: "c", title: "Favorites"),
+            .init(accountID: "b", libraryID: "shows", collectionID: "c", title: "Favorites", serverUserID: "viewer")
+        ]
+        XCTAssertEqual(try JSONDecoder().decode(HeroSettings.self, from: JSONEncoder().encode(settings)), settings)
+        HeroSettingsStore(defaults: defaults, namespace: "one").save(settings)
+        let snapshot = ProfileSettingsTransfer.capture(namespace: "one", defaults: defaults)
+        ProfileSettingsTransfer.apply(snapshot, namespace: "two", defaults: defaults)
+        XCTAssertEqual(HeroSettingsStore(defaults: defaults, namespace: "two").load(), settings)
+        XCTAssertTrue(HeroSettingsStore(defaults: defaults).load().collections.isEmpty)
+        XCTAssertTrue(settings.requiresExternalWatchHistory)
+    }
+
+    func testOldSettingsDoNotAdoptCollectionWithoutSelection() throws {
+        let settings = try JSONDecoder().decode(HeroSettings.self, from: Data(#"{"sources":["watchlist"]}"#.utf8))
+        XCTAssertTrue(settings.collections.isEmpty)
+        XCTAssertFalse(settings.sources.contains(.collection))
+    }
+
+    func testPersonalCollectionSelectionRoundTripsWithoutInventingALibrary() throws {
+        var settings = HeroSettings.default
+        settings.sources = [.collection]
+        settings.collections = [.init(accountID: "a", collectionID: "personal", title: "Favorites", serverUserID: "viewer")]
+        HeroSettingsStore(defaults: defaults, namespace: "one").save(settings)
+        let snapshot = ProfileSettingsTransfer.capture(namespace: "one", defaults: defaults)
+        ProfileSettingsTransfer.apply(snapshot, namespace: "two", defaults: defaults)
+        XCTAssertEqual(HeroSettingsStore(defaults: defaults, namespace: "two").load(), settings)
+        XCTAssertNil(settings.collections.first?.libraryKey)
+        let legacy = try JSONDecoder().decode(HeroCollectionSelection.self, from: Data(
+            #"{"accountID":"a","libraryID":"movies","collectionID":"c","title":"Favorites"}"#.utf8
+        ))
+        XCTAssertEqual(legacy.libraryKey, "a:movies")
+    }
+
+    func testLegacyCollectionMigratesWithoutResurrectingAClearedSelection() throws {
+        let legacy = #"{"sources":["collection"],"collection":{"accountID":"a","libraryID":"movies","collectionID":"c","title":"Favorites","serverUserID":"viewer"}}"#
+        let migrated = try JSONDecoder().decode(HeroSettings.self, from: Data(legacy.utf8))
+        XCTAssertEqual(migrated.collections, [
+            .init(accountID: "a", libraryID: "movies", collectionID: "c", title: "Favorites", serverUserID: "viewer")
+        ])
+        let cleared = legacy.dropLast() + #","collections":[]}"#
+        XCTAssertTrue(try JSONDecoder().decode(HeroSettings.self, from: Data(cleared.utf8)).collections.isEmpty)
+        let encoded = try JSONEncoder().encode(migrated)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        XCTAssertNil(object["collection"])
+        XCTAssertNotNil(object["collections"])
+    }
+
+    func testSelectionIdentityIncludesScopeButNotItsDisplayName() {
+        let first = HeroCollectionSelection(accountID: "a", libraryID: "movies", collectionID: "c", title: "Original", serverUserID: "viewer")
+        let renamed = HeroCollectionSelection(accountID: "a", libraryID: "movies", collectionID: "c", title: "Renamed", serverUserID: "viewer")
+        let others: [HeroCollectionSelection] = [
+            .init(accountID: "b", libraryID: "movies", collectionID: "c", title: "Original", serverUserID: "viewer"),
+            .init(accountID: "a", libraryID: "shows", collectionID: "c", title: "Original", serverUserID: "viewer"),
+            .init(accountID: "a", libraryID: "movies", collectionID: "c", title: "Original", serverUserID: "child"),
+            .init(accountID: "a", collectionID: "c", title: "Original", serverUserID: "viewer")
+        ]
+        XCTAssertEqual(first.id, renamed.id)
+        XCTAssertEqual(HeroCollectionSelection.normalized([first, renamed] + others), [first] + others)
     }
 
     func testMaxItemsIsClamped() {

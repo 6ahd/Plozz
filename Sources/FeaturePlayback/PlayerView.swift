@@ -273,7 +273,10 @@ public struct PlayerView: View {
         // Keep diagnostics off during load/failure while Plozzigen is initializing;
         // this avoids extra SwiftUI preference/layout churn on the crash path.
         if viewModel.controls.diagnosticsEnabled, viewModel.phase == .ready {
-            PlaybackDiagnosticsOverlay(diagnostics: diagnosticsSampler.latest)
+            PlaybackDiagnosticsOverlay(
+                diagnostics: diagnosticsSampler.latest,
+                televisionControlsLayout: viewModel.controls.subtitleLayout
+            )
                 .environment(\.themePalette, themePalette)
                 .allowsHitTesting(false)
                 .ignoresSafeArea()

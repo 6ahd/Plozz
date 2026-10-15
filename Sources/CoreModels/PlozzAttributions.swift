@@ -73,7 +73,7 @@ public enum PlozzAttributions {
             title: "AetherEngine",
             detail:
                 "Plozzigen playback is powered by AetherEngine by Vincent Herbst. "
-                + "Source: https://github.com/brandomoore/AetherEngine/tree/4b7552a06c4cf646bb94eb7eb273946f8b916a70",
+                + "Source: https://github.com/brandomoore/AetherEngine/tree/299a3d9ea767e2382158c2a3d137c4b1d302ab4a",
             licenses: [.init("LGPL-3.0", family: .lgpl)]
         ),
         PlozzAttribution(
@@ -94,13 +94,23 @@ public enum PlozzAttributions {
             detail:
                 "AetherEngine includes the TrueHD/Atmos decoder by Quick104 and "
                 + "Vincent Herbst, using truehdd and oamd by Rainbaby and contributors. "
-                + "Source: https://github.com/superuser404notfound/LibTrueHD/tree/2.2.0. "
+                + "Source: https://github.com/superuser404notfound/LibTrueHD/tree/2.3.0. "
                 + "Complete notices and license texts are bundled in LibTrueHDNotices.txt, "
                 + "LibTrueHDLicense.txt and LibTrueHDApacheLicense.txt.",
             licenses: [
                 .init("MIT", family: .mit),
                 .init("Apache-2.0", family: .apache),
             ]
+        ),
+        PlozzAttribution(
+            title: "LibDTSX",
+            detail:
+                "AetherEngine includes LibDTSX by kristofferR and Vincent Herbst, "
+                + "using the dca decoder from harletty-bridge to render DTS:X heights and objects. "
+                + "Source: https://github.com/superuser404notfound/LibDTSX/tree/1.0.1. "
+                + "Complete notices and license text are bundled in LibDTSXNotices.txt "
+                + "and LibDTSXLicense.txt.",
+            licenses: [.init("Apache-2.0", family: .apache)]
         ),
         PlozzAttribution(
             title: "libass & Text Rendering",

@@ -270,7 +270,10 @@ public struct LiveChannelPlayerView: View {
 
                 #if os(tvOS)
                 if isExpanded, diagnosticsEnabled, sourceMatches, model.hasPresentedFrame {
-                    PlaybackDiagnosticsOverlay(diagnostics: diagnosticsSampler.latest)
+                    PlaybackDiagnosticsOverlay(
+                        diagnostics: diagnosticsSampler.latest,
+                        televisionControlsLayout: model.subtitles.controlsLayout
+                    )
                         // Pinned to the top-left corner, as the VOD player's is.
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .allowsHitTesting(false)
