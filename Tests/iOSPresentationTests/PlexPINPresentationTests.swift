@@ -30,9 +30,7 @@ final class PlexPINPresentationTests: XCTestCase {
             automaticSignInStore: AutomaticSignInStore(defaults: defaults, secureStore: InMemorySecureStore()),
             switchProfile: { _ in XCTFail("The default profile has no alternate fallback.") }
         )
-        model.plexHomeUsersFetch = { _, _ in
-            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
-        }
+        model.plexHomeUserSwitch = { _, _, _, _ in throw AppError.unauthorized }
         model.setPlexHomeUserForActiveProfile(
             accountID: "plex", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )

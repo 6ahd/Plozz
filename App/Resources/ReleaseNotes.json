@@ -2,6 +2,27 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/056.2",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.2",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Updated",
+          "items": [
+            "More detailed IPTV playback error reports to help diagnose stream failures."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Plex sign-in getting stuck at the PIN screen because of outdated Plex Home information."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/056.1",
       "version": "2026.10.15",
       "marketingVersion": "2026.9.25",
