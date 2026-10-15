@@ -18,6 +18,14 @@ public struct SettingsPageHeader: View {
     }
 
     public var body: some View {
+        VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+            SettingsPageBackButton()
+            heading
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var heading: some View {
         VStack(alignment: .leading, spacing: 6) {
             title
                 .font(.largeTitle.bold())
@@ -32,7 +40,6 @@ public struct SettingsPageHeader: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 #endif

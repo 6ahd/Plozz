@@ -42,6 +42,8 @@ and the single place caption customization lives.
   identity and categories on the left, the selected section on the right.
   General is initially visible. The avatar/name switches profiles; the adjacent
   Edit action uses the same `ProfileActionsList` as the profile picker.
+  Profile and Everyone headers share title weight/size, icon width, label gap
+  and content insets so their icons and names align.
   `SettingsFormLayout` groups related controls into one vertical form, retaining
   child pages for longer editors. Single-control preferences such as Language
   use one compact label-and-control row without an extra heading or explanatory
@@ -50,12 +52,14 @@ and the single place caption customization lives.
   Liquid Glass), followed by Customize Home, display size, artwork, cards,
   navigation, Music Player, Circadian Mode and Detail Page. Playback groups
   audio, autoplay/Up Next, marker skipping, seeking and display fades.
-  Subtitles is its own profile category for mode, language, downloading,
-  per-series memory and the shared/Live TV style editors; downloading still
+  Subtitles is its own profile category for mode, the shared/Live TV style
+  editors, language, downloading and per-series memory; downloading still
   follows the active profile's provider capabilities.
   Both subtitle-style editors reclaim the full screen: the category column
   slides and fades away as the detail expands, then returns with Back to the
   same Subtitles section. Reduce Motion changes the layout without the slide.
+  The incoming and outgoing style destination always lays out at the final
+  workspace width; the navigation viewport reveals it without resizing the preview.
   Hidden or focus-ineligible categories also stop observing native focus, so
   an editor control cannot be mistaken for a category during the transition.
   The existing navigation stack and profile context remain intact, including
@@ -67,6 +71,14 @@ and the single place caption customization lives.
   the initial top inset inside its scrollable content instead of clipping pages
   at that inset. Segmented choices share the body-sized control font; explanatory
   copy uses the smaller shared helper style.
+  `SettingsFormMetrics` in CoreUI owns page insets, group padding and the gaps
+  between sections, controls and related content, using `PlozzTheme.Spacing`.
+  A legacy split-pane gap must not become large empty space between controls
+  inside a workspace form. The navigation owner supplies a focus-aware Back
+  control through `settingsPageBackButton`; page headers and custom editors
+  host it inside their scrolling content, never above the scroll viewport.
+  In the subtitle editor, Back scrolls with the control column but stays outside
+  the Appearance card; the live preview and its preview tools remain separate.
 - `ProfileDetailView` — manage the active profile: rename, recolor,
   switch / sign out of accounts, configure the Plex Home-user mapping
   (`PlexLinkedUserDetailView`).

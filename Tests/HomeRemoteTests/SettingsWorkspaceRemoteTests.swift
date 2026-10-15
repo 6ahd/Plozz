@@ -387,6 +387,9 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         defer { capture("subtitle-fullscreen-final-state", in: app) }
         try focus(section("subtitles", in: app), in: app)
         XCUIRemote.shared.press(.select)
+        let primaryStyle = app.buttons["Customize subtitle style"]
+        XCTAssertTrue(primaryStyle.isHittable, "Subtitle style must be visible near the top without scrolling.")
+        XCTAssertLessThan(primaryStyle.frame.minY, app.staticTexts["Subtitle language"].firstMatch.frame.minY)
         for (title, captureName) in [
             ("Customize subtitle style", "subtitle-style"),
             ("Customize Live TV subtitles", "subtitle-style-live-tv")
@@ -406,6 +409,17 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertFalse(section("subtitles", in: app).exists, app.debugDescription)
             XCTAssertFalse(app.buttons["settings-profile-switch"].exists)
             XCTAssertLessThan(heading.frame.minX, 200, "The editor must reclaim the sidebar column.")
+            let back = app.buttons["settings-workspace-back"]
+            let controlColumn = try XCTUnwrap(app.scrollViews.allElementsBoundByIndex.first {
+                $0.buttons["settings-workspace-back"].exists
+            }, "The editor's Back button must belong to its scrolling control column.")
+            XCTAssertTrue(back.exists)
+            XCTAssertGreaterThanOrEqual(back.frame.minY, controlColumn.frame.minY,
+                                        "The scrolling viewport must not crop Back at page entry.")
+            let editorCard = app.otherElements["subtitle-style-editor-card"]
+            XCTAssertTrue(editorCard.exists)
+            XCTAssertFalse(editorCard.buttons["settings-workspace-back"].exists,
+                           "Page navigation belongs outside the Appearance card.")
             capture(captureName, in: app)
             let font = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Font")).firstMatch
             let matchedSystemStyle = !font.isEnabled
@@ -439,6 +453,51 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         }
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(hasFocus(section("subtitles", in: app)), app.debugDescription)
+        #else
+        throw XCTSkip("Simulator-only Settings review.")
+        #endif
+    }
+
+    func testAlignedIdentityHeadersAndCompactDetailPageControls() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        let profile = app.staticTexts["settings-profile-name"]
+        let everyone = app.staticTexts["settings-everyone-name"]
+        XCTAssertTrue(profile.exists && everyone.exists, app.debugDescription)
+        XCTAssertEqual(profile.frame.minX, everyone.frame.minX, accuracy: 2)
+        XCTAssertEqual(profile.frame.height, everyone.frame.height, accuracy: 2)
+        XCTAssertLessThanOrEqual(profile.frame.height, 46)
+        capture("aligned-settings-headers", in: app)
+
+        try focus(section("appearance", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-title-details"], in: app)
+        XCUIRemote.shared.press(.select)
+        let showScores = app.switches["Show review scores"]
+        XCTAssertTrue(showScores.waitForExistence(timeout: 5), app.debugDescription)
+        let back = app.buttons["settings-workspace-back"]
+        XCTAssertTrue(back.exists)
+        let scroll = try XCTUnwrap(app.scrollViews.allElementsBoundByIndex.first {
+            $0.buttons["settings-workspace-back"].exists
+        }, "Back must be inside the page scroll view, not overlaid above it.")
+        capture("detail-page-scrolling-back", in: app)
+        try focus(showScores, in: app)
+        let countLabel = app.staticTexts.matching(NSPredicate(
+            format: "label ==[c] %@", "Maximum ratings shown"
+        )).firstMatch
+        XCTAssertTrue(countLabel.exists, app.debugDescription)
+        XCTAssertGreaterThan(countLabel.frame.minY, showScores.frame.maxY)
+        XCTAssertLessThanOrEqual(countLabel.frame.minY - showScores.frame.maxY, 40,
+                                "Related review-score controls must use the compact shared gap.")
+        capture("compact-review-score-controls", in: app)
+        let age = app.switches["Show Common Sense age"]
+        try focus(age, in: app)
+        XCTAssertTrue(scroll.buttons["settings-workspace-back"].exists)
+        capture("detail-page-scrolled", in: app)
+        try focus(back, in: app)
+        capture("detail-page-back-returned", in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["settings-page-title-details"].waitForExistence(timeout: 5))
         #else
         throw XCTSkip("Simulator-only Settings review.")
         #endif

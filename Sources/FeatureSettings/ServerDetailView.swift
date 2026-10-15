@@ -48,6 +48,7 @@ struct ServerDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                SettingsPageBackButton()
                 if let group = currentGroup {
                     header(group)
                     // Each panel is its own focus section so directional (up/down)

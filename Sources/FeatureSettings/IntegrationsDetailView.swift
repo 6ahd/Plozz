@@ -562,6 +562,7 @@ struct AttributionsDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                SettingsPageBackButton()
                 Text(PlozzAttributions.introduction)
                     .font(.callout)
                     .plozzForeground(.secondary)

@@ -149,6 +149,11 @@ enum SettingsRouteAccess: Equatable {
 }
 
 extension SettingsRoute {
+    var usesFullScreenDetail: Bool {
+        if case .subtitleStyle = self { return true }
+        return false
+    }
+
     func access(activeProfileID: String, isKids: Bool, isParentalSealed: Bool) -> SettingsRouteAccess {
         guard isKids else { return .allowed }
         switch self {
@@ -191,10 +196,7 @@ public final class SettingsNavigationModel {
     var appearanceRowID: String?
 
     var usesFullScreenDetail: Bool {
-        path.contains { route in
-            if case .subtitleStyle = route { return true }
-            return false
-        }
+        path.contains(where: \.usesFullScreenDetail)
     }
 
     public init() {}
@@ -278,7 +280,10 @@ private struct SettingsWorkspaceEntryFocus: ViewModifier {
 
 extension EdgeInsets {
     /// The default uniform `SettingsPanel` inset — fine for text / non-row content.
-    static var settingsPanelDefault: EdgeInsets { EdgeInsets(top: 28, leading: 28, bottom: 28, trailing: 28) }
+    static var settingsPanelDefault: EdgeInsets {
+        EdgeInsets(top: SettingsFormMetrics.pageInset, leading: SettingsFormMetrics.pageInset,
+                   bottom: SettingsFormMetrics.pageInset, trailing: SettingsFormMetrics.pageInset)
+    }
 
     /// `SettingsPanel` inset tuned so list-row controls inside focus
     /// **concentrically** with the panel: 28pt horizontal / 16pt vertical, i.e.
@@ -286,7 +291,10 @@ extension EdgeInsets {
     /// plus a uniform 12pt gap on every side. Use for a panel whose content is a
     /// stack of toggle / checkable / selector rows (which also pass
     /// `flushLeading: false`).
-    static var settingsPanelRowContent: EdgeInsets { EdgeInsets(top: 16, leading: 28, bottom: 16, trailing: 28) }
+    static var settingsPanelRowContent: EdgeInsets {
+        EdgeInsets(top: SettingsFormMetrics.headingInset, leading: SettingsFormMetrics.pageInset,
+                   bottom: SettingsFormMetrics.headingInset, trailing: SettingsFormMetrics.pageInset)
+    }
 }
 
 /// A titled section rendered as a translucent panel. Reused by every Settings

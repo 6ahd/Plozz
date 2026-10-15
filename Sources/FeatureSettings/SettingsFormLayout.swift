@@ -10,7 +10,7 @@ struct SettingsFormLayout: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
                 SettingsFormHeader(title: title, showsBack: showsBack)
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                     SettingsFormRow(row: row, isEntry: index == 0)
@@ -18,9 +18,9 @@ struct SettingsFormLayout: View {
                         .id(row.id)
                 }
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 8)
-            .padding(.bottom, 60)
+            .padding(.horizontal, SettingsFormMetrics.pageInset)
+            .padding(.top, SettingsFormMetrics.pageTopInset)
+            .padding(.bottom, SettingsFormMetrics.pageBottomInset)
         }
         .scrollClipDisabled()
         .toggleStyle(SettingsSwitchToggleStyle())
@@ -35,16 +35,23 @@ private struct SettingsFormHeader: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        HStack(spacing: 24) {
-            if showsBack {
-                Button {
-                    dismiss()
-                } label: {
-                    Label("Back", systemImage: "chevron.backward")
-                }
-                .settingsWorkspaceEntry(route: route)
+        VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+            if !showsBack {
+                SettingsPageBackButton()
             }
-            title.font(.largeTitle.bold())
+            HStack(spacing: SettingsFormMetrics.controlSpacing) {
+                if showsBack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label("Back", systemImage: "chevron.backward")
+                    }
+                    .settingsWorkspaceEntry(route: route)
+                }
+                title.font(.largeTitle.bold())
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .focusSection()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 8)
@@ -81,7 +88,7 @@ private struct SettingsFormRow: View {
                 Spacer(minLength: 16)
                 row.detail()
             }
-            .padding(24)
+            .padding(SettingsFormMetrics.groupInset)
             .settingsGroupSurface(cornerRadius: 28)
             .accessibilityIdentifier("settings-group-\(row.id)")
         } else {
@@ -99,20 +106,20 @@ struct SettingsFormGroup<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
             title
                 .font(.headline)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, SettingsFormMetrics.headingInset)
                 .accessibilityAddTraits(.isHeader)
-            VStack(alignment: .leading, spacing: 24, content: content)
+            VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing, content: content)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(24)
+                .padding(SettingsFormMetrics.groupInset)
                 .settingsGroupSurface(cornerRadius: 28)
             if let description {
                 description
                     .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, SettingsFormMetrics.headingInset)
             }
         }
     }
@@ -165,7 +172,7 @@ private struct SettingsFormRowContent: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
                 SettingsFormHeader(title: row.title, showsBack: showsBack, route: route)
                 row.detail()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,9 +181,9 @@ private struct SettingsFormRowContent: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 8)
-            .padding(.bottom, 60)
+            .padding(.horizontal, SettingsFormMetrics.pageInset)
+            .padding(.top, SettingsFormMetrics.pageTopInset)
+            .padding(.bottom, SettingsFormMetrics.pageBottomInset)
         }
         .scrollClipDisabled()
         .toggleStyle(SettingsSwitchToggleStyle())

@@ -62,6 +62,9 @@ struct SettingsWorkspace<Sidebar: View, Detail: View>: View {
                             SettingsWorkspaceDestination(route: route) {
                                 detail(route)
                             }
+                            // Lay out the incoming editor at its final size, not the animating navigation viewport's width.
+                            .frame(width: route.usesFullScreenDetail ? geometry.size.width : nil, alignment: .leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .onExitCommand { navigation.returnToSidebar() }
                 }
@@ -103,17 +106,14 @@ private struct SettingsWorkspaceDestination<Content: View>: View {
         if route == .artwork || route == .navigationLayout {
             content()
         } else {
-            VStack(alignment: .leading, spacing: 12) {
-                Button {
+            content()
+                .environment(\.settingsPageBackButton, AnyView(Button {
                     dismiss()
                 } label: {
                     Label("Back", systemImage: "chevron.backward")
-                }
-                .settingsWorkspaceEntry(route: route)
-                .padding(.horizontal, 28)
-                content()
-            }
-            .toolbar(.hidden, for: .tabBar)
+                }.settingsWorkspaceEntry(route: route)
+                    .accessibilityIdentifier("settings-workspace-back")))
+                .toolbar(.hidden, for: .tabBar)
         }
     }
 }
@@ -211,6 +211,15 @@ private struct SettingsSectionLabel: View {
     }
 }
 
+enum SettingsWorkspaceHeaderMetrics {
+    static let iconSize: CGFloat = 52
+    static let titleFont: Font = .system(size: 36, weight: .bold)
+    static let labelSpacing = PlozzTheme.Spacing.medium
+    static let outerInset = PlozzTheme.Spacing.medium
+    static let controlInset = PlozzTheme.Spacing.xSmall
+    static let contentInset = outerInset + controlInset
+}
+
 struct SettingsWorkspaceProfileHeader: View {
     let profile: Profile
     let canEdit: Bool
@@ -221,15 +230,17 @@ struct SettingsWorkspaceProfileHeader: View {
     var body: some View {
         HStack(spacing: 12) {
             Button(action: onSwitch) {
-                HStack(spacing: 14) {
-                    ProfileAvatarView(profile: profile, size: 58)
+                HStack(spacing: SettingsWorkspaceHeaderMetrics.labelSpacing) {
+                    ProfileAvatarView(profile: profile, size: SettingsWorkspaceHeaderMetrics.iconSize)
+                        .accessibilityIdentifier("settings-profile-avatar")
                     Text(verbatim: profile.name)
-                        .font(.title3.bold())
+                        .font(SettingsWorkspaceHeaderMetrics.titleFont)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
+                        .accessibilityIdentifier("settings-profile-name")
                     Spacer(minLength: 0)
                 }
-                .padding(10)
+                .padding(SettingsWorkspaceHeaderMetrics.controlInset)
             }
             .buttonStyle(SettingsFocusButtonStyle(size: .contained))
             .accessibilityLabel("Switch Profile")
@@ -242,7 +253,7 @@ struct SettingsWorkspaceProfileHeader: View {
             }
         }
         .disabled(navigation.focusInDetail || navigation.restoringSidebar || navigation.enteringDetail)
-        .padding(16)
+        .padding(SettingsWorkspaceHeaderMetrics.outerInset)
     }
 }
 #endif

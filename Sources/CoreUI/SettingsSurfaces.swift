@@ -53,10 +53,20 @@ private struct SettingsWorkspaceKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct SettingsPageBackButtonKey: EnvironmentKey {
+    static let defaultValue: AnyView? = nil
+}
+
 public extension EnvironmentValues {
     var settingsInWorkspace: Bool {
         get { self[SettingsWorkspaceKey.self] }
         set { self[SettingsWorkspaceKey.self] = newValue }
+    }
+
+    /// The navigation owner supplies its focus-aware Back control; the page hosts it inside its scroll content.
+    var settingsPageBackButton: AnyView? {
+        get { self[SettingsPageBackButtonKey.self] }
+        set { self[SettingsPageBackButtonKey.self] = newValue }
     }
 }
 
@@ -71,6 +81,26 @@ extension EnvironmentValues {
     }
 }
 #endif
+
+public struct SettingsPageBackButton: View {
+    #if os(tvOS)
+    @Environment(\.settingsPageBackButton) private var backButton
+    #endif
+
+    public init() {}
+
+    public var body: some View {
+        #if os(tvOS)
+        if let backButton {
+            backButton
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .focusSection()
+        }
+        #else
+        EmptyView()
+        #endif
+    }
+}
 
 private struct SettingsPageSurface: ViewModifier {
     #if os(tvOS)

@@ -38,10 +38,7 @@ public struct SettingsView: View {
     /// page — the home for progress that used to float over Home's top-right.
     @Environment(ShareScanStatusModel.self) private var shareScanStatus: ShareScanStatusModel?
 
-    /// Shared sizing for the two identity headers (Everyone + the active
-    /// profile) so their avatar/icon and title read as the same component. The
-    /// circle is sized to sit between the old TV glyph (64) and profile avatar
-    /// (104), roughly the combined height of the title + subtitle lines.
+    /// The parental-control header includes an optional second line.
     private static let identityAvatarSize: CGFloat = 58
     private static let identityTitleFont: Font = .system(size: 29, weight: .bold)
 
@@ -600,13 +597,21 @@ public struct SettingsView: View {
             // glyph tracks reach the same way the subtitle does: people when these
             // settings span the user's devices, a lone Apple TV when they don't.
             VStack(alignment: .leading, spacing: 8) {
-                Label(SettingsCopy.everyone, systemImage: syncEnabled ? "person.2" : "appletv")
-                    .font(.headline)
+                HStack(spacing: SettingsWorkspaceHeaderMetrics.labelSpacing) {
+                    Image(systemName: syncEnabled ? "person.2" : "appletv")
+                        .font(SettingsWorkspaceHeaderMetrics.titleFont)
+                        .frame(width: SettingsWorkspaceHeaderMetrics.iconSize,
+                               height: SettingsWorkspaceHeaderMetrics.iconSize)
+                        .accessibilityIdentifier("settings-everyone-icon")
+                    Text(SettingsCopy.everyone)
+                        .font(SettingsWorkspaceHeaderMetrics.titleFont)
+                        .accessibilityIdentifier("settings-everyone-name")
+                }
                 Text(SettingsCopy.everyoneScope(syncEnabled: syncEnabled, deviceName: Self.deviceName))
                     .font(.caption)
                     .plozzForeground(.secondary)
             }
-            .padding(24)
+            .padding(SettingsWorkspaceHeaderMetrics.contentInset)
 
             PlozzDivider().padding(.horizontal, 28)
 
@@ -937,9 +942,12 @@ public struct SettingsView: View {
             )
         case .about:
             ScrollView {
-                aboutAndSignOut
-                    .padding(.horizontal, 28)
-                    .padding(.bottom, 48)
+                VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
+                    SettingsPageBackButton()
+                    aboutAndSignOut
+                }
+                .padding(.horizontal, SettingsFormMetrics.pageInset)
+                .padding(.bottom, 48)
             }
             .scrollClipDisabled()
         case .artwork:

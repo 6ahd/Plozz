@@ -656,30 +656,36 @@ struct PlaybackDetailView: View {
             Toggle("Remember per series", isOn: $playback.settings.rememberSubtitleTrackPerSeries)
         })
 
-        rows.append(SettingsSplitRow(
-            id: "subtitle-style",
-            title: "Subtitle style",
-            description: "Use the full player controls to customize subtitles, with a live preview."
-        ) {
-            VStack(alignment: .leading, spacing: 24) {
-                NavigationLink("Customize subtitle style", value: SettingsRoute.subtitleStyle(liveTV: false))
-            }
-        })
+        #if os(tvOS)
+        rows.insert(contentsOf: subtitleStyleRows, at: 1)
+        #else
+        rows.append(contentsOf: subtitleStyleRows)
+        #endif
+        return rows
+    }
 
-        rows.append(SettingsSplitRow(
-            id: "live-subtitle-style",
-            title: "Live TV subtitle style",
-            description: "Use the same subtitle appearance everywhere, or choose a separate look for Live TV."
-        ) {
-            VStack(alignment: .leading, spacing: 24) {
-                Toggle("Use a separate style for Live TV", isOn: $subtitleStyle.usesSeparateLiveTVStyle)
-                if subtitleStyle.usesSeparateLiveTVStyle {
-                    NavigationLink("Customize Live TV subtitles", value: SettingsRoute.subtitleStyle(liveTV: true))
+    private var subtitleStyleRows: [SettingsSplitRow] {
+        [
+            SettingsSplitRow(
+                id: "subtitle-style",
+                title: "Subtitle style",
+                description: "Use the full player controls to customize subtitles, with a live preview."
+            ) {
+                NavigationLink("Customize subtitle style", value: SettingsRoute.subtitleStyle(liveTV: false))
+            },
+            SettingsSplitRow(
+                id: "live-subtitle-style",
+                title: "Live TV subtitle style",
+                description: "Use the same subtitle appearance everywhere, or choose a separate look for Live TV."
+            ) {
+                VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
+                    Toggle("Use a separate style for Live TV", isOn: $subtitleStyle.usesSeparateLiveTVStyle)
+                    if subtitleStyle.usesSeparateLiveTVStyle {
+                        NavigationLink("Customize Live TV subtitles", value: SettingsRoute.subtitleStyle(liveTV: true))
+                    }
                 }
             }
-        })
-
-        return rows
+        ]
     }
 
     private var audioRows: [SettingsSplitRow] {

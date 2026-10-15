@@ -24,6 +24,7 @@ public struct SubtitleStyleSettingsView: View {
         VStack(alignment: .leading, spacing: 24) {
             #if os(tvOS)
             SettingsPageHeader(pageTitle)
+                .environment(\.settingsPageBackButton, nil)
                 .plozzForeground(.primary)
             #endif
             GeometryReader { geometry in
@@ -132,7 +133,12 @@ private struct TelevisionSubtitleStyleColumn: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            TelevisionSubtitleStyleEditor(context: context, screen: $screen)
+            ScrollView {
+                VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+                    SettingsPageBackButton()
+                    TelevisionSubtitleStyleEditor(context: context, screen: $screen)
+                }
+            }
             SubtitlePreviewControls(
                 style: style, secondaryVisible: secondaryVisible, options: previewOptions,
                 fullscreenPresented: $fullscreenPresented, focus: $previewFocus
@@ -148,7 +154,7 @@ private struct TelevisionSubtitleStyleEditor: View {
     @FocusState private var focus: PlayerControls.FocusSlot?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
             HStack(spacing: 16) {
                 if screen != .style {
                     Button {
@@ -162,23 +168,22 @@ private struct TelevisionSubtitleStyleEditor: View {
                 Text(title).font(.headline)
                 Spacer()
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 24)
-            Divider().padding(.horizontal, 28)
-            ScrollView {
-                SubtitleStylePanel(
-                    screen: screen, model: context.controls, palette: palette,
-                    actions: PlayerOptionsActions(setSubtitleStyle: context.applySubtitleStyle),
-                    focus: $focus,
-                    openScreen: { screen = $0 },
-                    secondaryPreview: context.secondaryPreview,
-                    offersDualSubtitles: context.offersDualSubtitles
-                )
-            }
-            .clipped()
-            .padding(.bottom, 16)
+            .padding(.horizontal, SettingsFormMetrics.pageInset)
+            Divider().padding(.horizontal, SettingsFormMetrics.pageInset)
+            SubtitleStylePanel(
+                screen: screen, model: context.controls, palette: palette,
+                actions: PlayerOptionsActions(setSubtitleStyle: context.applySubtitleStyle),
+                focus: $focus,
+                openScreen: { screen = $0 },
+                secondaryPreview: context.secondaryPreview,
+                offersDualSubtitles: context.offersDualSubtitles
+            )
         }
+        .padding(.top, SettingsFormMetrics.groupInset)
+        .padding(.bottom, SettingsFormMetrics.headingInset)
         .settingsGroupSurface(cornerRadius: 32)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("subtitle-style-editor-card")
         .task(id: screen) {
             focus = nil
             await Task.yield()

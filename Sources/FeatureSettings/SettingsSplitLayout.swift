@@ -5,9 +5,12 @@ import CoreUI
 /// Shared metrics for the Settings detail panes so spacing is consistent (and
 /// tunable in one place) across every feature form.
 enum SettingsMetrics {
-    /// Vertical gap between top-level sections within a detail pane (the enable
-    /// toggle and each headed group). Deliberately generous for the 10-foot UI.
+    /// Legacy split panes and workspace forms share the same control-group spacing.
+    #if os(tvOS)
+    static let sectionSpacing = SettingsFormMetrics.controlSpacing
+    #else
     static let sectionSpacing: CGFloat = 80
+    #endif
 }
 
 /// One row in a Settings master/detail split. The left list shows the row's

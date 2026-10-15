@@ -34,7 +34,11 @@ public struct HeaderReviewScoreCountPicker: View {
             #endif
             .accessibilityIdentifier("maximum-ratings-shown")
             Text("Shows fewer when fewer ratings are available.")
+                #if os(tvOS)
+                .font(SettingsRowMetrics.helperFont)
+                #else
                 .font(.footnote)
+                #endif
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

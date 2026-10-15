@@ -552,6 +552,7 @@ public struct ProfileEditorView: View {
     private var pickerColumn: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 40) {
+                SettingsPageBackButton()
                 headerRow
                 nameSection
                 avatarSection

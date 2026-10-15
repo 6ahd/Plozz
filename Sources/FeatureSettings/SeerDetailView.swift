@@ -355,6 +355,7 @@ struct SeerUserPickerView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                SettingsPageBackButton()
                 SettingsPanel(
                     title: "Requests as — \(profileName)",
                     footer: "Requests from \(profileName) will use this Seerr user’s quota, approvals, and default quality profile."

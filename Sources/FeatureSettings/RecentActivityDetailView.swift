@@ -39,6 +39,7 @@ struct RecentActivityDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                SettingsPageBackButton()
                 header
                 sendSection
                 if !categories.isEmpty { filterChips }

@@ -5,6 +5,79 @@ import XCTest
 
 @MainActor
 final class SettingsDetailNavigationHostedTests: XCTestCase {
+    func testWorkspaceStyleDestinationsStayFullWidthDuringEntryAndReturn() async throws {
+        try await verifyWorkspaceStyleWidth()
+    }
+
+    private func verifyWorkspaceStyleWidth() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let reduceMotion = UIAccessibility.isReduceMotionEnabled
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let navigation = SettingsNavigationModel()
+        navigation.select(.subtitles)
+        let probes = PageMotionProbes()
+        let host = UIHostingController(rootView:
+            SettingsWorkspace(navigation: navigation) {
+                Button("Subtitles") {}
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background { PageMotionProbe(id: "root", probes: probes) }
+            } detail: { route in
+                Button(route.usesFullScreenDetail ? "Style control" : "Open style") {}
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background {
+                        if route.usesFullScreenDetail {
+                            PageMotionProbe(id: "detail", probes: probes)
+                        }
+                    }
+            }
+            .padding(.horizontal, 80)
+            .ignoresSafeArea()
+        )
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        try await Task.sleep(for: .milliseconds(200))
+        let sampler = PageMotionSampler(probes: probes, window: window)
+        sampler.start()
+        defer { sampler.stop() }
+        let expectedWidth = window.bounds.width - 160
+        for liveTV in [false, true] {
+            for opening in [true, false] {
+                sampler.samples.removeAll()
+                navigation.path = opening ? [.subtitleStyle(liveTV: liveTV)] : []
+                try await Task.sleep(for: .milliseconds(650))
+                if opening {
+                    XCTAssertEqual(try XCTUnwrap(probes.frame("detail", in: window)).width,
+                                   expectedWidth, accuracy: 1)
+                }
+                if !reduceMotion {
+                    XCTAssertGreaterThanOrEqual(sampler.samples.count, 2,
+                                               "Sample the actual animated overlap, not only the settled layout.")
+                }
+                for sample in sampler.samples {
+                    XCTAssertEqual(sample.detailWidth, expectedWidth, accuracy: 1,
+                                   "The style editor must not grow from or shrink to the two-column width.")
+                }
+                let attachment = XCTAttachment(string: String(describing: sampler.samples))
+                attachment.name = "workspace-style-width-live-\(liveTV)-opening-\(opening)-reduced-\(reduceMotion)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+        }
+    }
+
     func testBothPagesSlideTogetherInBothDirectionsAndRetainTheRoot() async throws {
         try await verifySlides(direction: .leftToRight)
     }
@@ -214,7 +287,8 @@ private final class PageMotionSampler: NSObject {
     struct Sample: CustomStringConvertible {
         let rootX: CGFloat
         let detailX: CGFloat
-        var description: String { "root=\(rootX), detail=\(detailX)" }
+        let detailWidth: CGFloat
+        var description: String { "root=\(rootX), detail=\(detailX), width=\(detailWidth)" }
     }
 
     var samples: [Sample] = []
@@ -241,6 +315,6 @@ private final class PageMotionSampler: NSObject {
     @objc private func sample() {
         guard let root = probes.frame("root", in: window),
               let detail = probes.frame("detail", in: window) else { return }
-        samples.append(Sample(rootX: root.minX, detailX: detail.minX))
+        samples.append(Sample(rootX: root.minX, detailX: detail.minX, detailWidth: detail.width))
     }
 }

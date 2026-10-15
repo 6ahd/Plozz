@@ -26,6 +26,18 @@ public enum SettingsRowProminence {
     case secondary
 }
 
+/// Spacing for settings pages, distinct from the clearance around individual focusable rows.
+public enum SettingsFormMetrics {
+    public static let sectionSpacing = PlozzTheme.Spacing.large + PlozzTheme.Spacing.xxSmall
+    public static let controlSpacing = PlozzTheme.Spacing.large
+    public static let relatedControlSpacing = PlozzTheme.Spacing.small
+    public static let groupInset = PlozzTheme.Spacing.large
+    public static let pageInset = sectionSpacing
+    public static let headingInset = PlozzTheme.Spacing.medium
+    public static let pageTopInset = PlozzTheme.Spacing.xSmall
+    public static let pageBottomInset = PlozzTheme.Spacing.xxxLarge + PlozzTheme.Spacing.small
+}
+
 /// One source of truth for list-row control metrics, so every control at the
 /// same ``SettingsRowProminence`` is the same height and its focus card nests
 /// concentrically. Toggle rows and checkable rows both read these, which is what
