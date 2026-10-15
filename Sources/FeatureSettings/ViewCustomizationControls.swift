@@ -4,15 +4,20 @@ import CoreUI
 import SwiftUI
 
 struct ViewPreferenceChoiceGroup<Content: View>: View {
+    var rowSize: SettingsRowSize = .standard
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         #if os(tvOS)
-        SettingsCheckGroup {
-            VStack(alignment: .leading, spacing: 8, content: content)
+        SettingsCheckGroup(rowSize: rowSize) {
+            VStack(alignment: .leading, spacing: SettingsRowMetrics.formRowSpacing, content: content)
         }
         #else
-        SettingsSectionGroup(content: content)
+        if rowSize == .contained {
+            Section(content: content)
+        } else {
+            SettingsSectionGroup(content: content)
+        }
         #endif
     }
 }
@@ -110,6 +115,7 @@ struct ViewCustomizationList<Content: View>: View {
     let title: LocalizedStringResource
     let initialRowID: String
     var focusedHelp: (String) -> ViewCustomizationHelp? = { _ in nil }
+    var sectionSpacing: CGFloat = SettingsRowMetrics.formRowSpacing
     @ViewBuilder var content: () -> Content
     @Environment(\.dismiss) private var dismiss
     @Environment(SettingsDetailNavigation.self) private var detailNavigation: SettingsDetailNavigation?
@@ -136,14 +142,15 @@ struct ViewCustomizationList<Content: View>: View {
                         Label("Back", systemImage: "chevron.left")
                     }
                     .accessibilityIdentifier("view-customization-back")
-                    .disabled(!hasEnteredList)
+                    .disabled(!hasEnteredList && initialRowID != "view-customization-back")
+                    .modifier(ViewCustomizationRowFocus(id: "view-customization-back"))
                     Text(title).settingsFeatureTitle()
-                    VStack(alignment: .leading, spacing: 8, content: content)
+                    VStack(alignment: .leading, spacing: sectionSpacing, content: content)
                 }
                 .environment(\.viewCustomizationFocus, $focusedRow)
                 .focusScope(focusScope)
                 .defaultFocus($focusedRow, initialRowID)
-                .task { focusedRow = initialRowID }
+                .task(id: initialRowID) { focusedRow = initialRowID }
                 .onChange(of: focusedRow) { _, row in
                     if row != nil {
                         hasEnteredList = true

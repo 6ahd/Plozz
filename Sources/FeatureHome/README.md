@@ -5,6 +5,15 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+- **Kids Discovery policy** — both shells consume the live profile's effective
+  Hero settings, not a destructive rewrite of saved preferences. Kids profiles
+  exclude external Discovery, including Showcase, cached attributed titles, and
+  delayed network results. The shared runtime checks authorization before and
+  after awaits; curation and final display reconciliation apply the same restriction.
+  Cache configuration includes the policy even when Discovery was already switched
+  off. Public provider caches stay profile-independent; server-owned library titles
+  continue to follow the selected server user's access rather than an invented
+  app-wide maturity threshold.
 - **Home row customization** — Settings > Customize Home > Rows on Home uses
   the same individual-row arranger on TV, iPhone and iPad. Rows from different
   libraries can be interleaved, reordered or hidden, including the Libraries

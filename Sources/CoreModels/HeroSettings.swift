@@ -14,6 +14,21 @@ import Observation
 /// persisted blob as "that field at its default" instead of failing the whole
 /// decode and resetting every setting.
 public struct HeroSettings: Codable, Equatable, Sendable {
+    /// Runtime policy, never synced as a preference or lifted by a settings edit.
+    public private(set) var allowsDiscovery = true
+
+    public func applyingDiscoveryPolicy(allowed: Bool) -> Self {
+        var settings = self
+        settings.allowsDiscovery = allowed
+        if !allowed {
+            settings.sources.removeAll { $0 == .featured }
+            settings.discoverySources = []
+            settings.showsDiscoverySources = false
+            settings.showsDiscoverRow = false
+        }
+        return settings
+    }
+
     /// Whether the hero section is shown at all. When `false`, Home renders its
     /// classic rows unchanged.
     public var isEnabled: Bool
@@ -362,9 +377,21 @@ public final class HeroSettingsModel {
     }
 
     private let store: HeroSettingsStoring
+    private var discoveryAllowed: @MainActor () -> Bool = { true }
 
     public init(store: HeroSettingsStoring = HeroSettingsStore()) {
         self.store = store
         self.settings = store.load()
+    }
+
+    public var allowsDiscovery: Bool { discoveryAllowed() }
+
+    public var effectiveSettings: HeroSettings {
+        settings.applyingDiscoveryPolicy(allowed: allowsDiscovery)
+    }
+
+    /// Read the live profile so local edits and incoming household sync apply immediately.
+    public func setDiscoveryPolicy(_ allowed: @escaping @MainActor () -> Bool) {
+        discoveryAllowed = allowed
     }
 }

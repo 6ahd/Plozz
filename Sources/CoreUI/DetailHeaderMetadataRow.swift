@@ -20,10 +20,23 @@ public struct HeaderReviewScoreCountPicker: View {
     }
 
     public var body: some View {
-        Picker("Review scores shown", selection: $settings.maxHeaderRatings) {
-            ForEach(Array(DetailPageSettings.headerRatingCountRange), id: \.self) { count in
-                Text(count, format: .number).tag(count)
+        VStack(alignment: .leading, spacing: 12) {
+            #if os(tvOS)
+            Text("Maximum ratings shown").settingsSectionHeader()
+            #endif
+            Picker("Maximum ratings shown", selection: $settings.maxHeaderRatings) {
+                ForEach(Array(DetailPageSettings.headerRatingCountRange), id: \.self) { count in
+                    Text(count, format: .number).tag(count)
+                }
             }
+            #if os(tvOS)
+            .labelsHidden()
+            #endif
+            .accessibilityIdentifier("maximum-ratings-shown")
+            Text("Shows fewer when fewer ratings are available.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

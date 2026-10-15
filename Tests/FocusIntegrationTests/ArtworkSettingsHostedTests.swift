@@ -9,6 +9,279 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
+    func testHeroKeepsEverydayControlsInlineAndReturnsNativeFocusToNamedPages() async throws {
+        let namespace = "HeroHierarchyHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        models.heroSettingsModel.settings.autoAdvance = false
+        models.heroSettingsModel.settings.showsRatings = false
+        models.heroBackgroundModel.settings.homeTrailerEnabled = false
+        let navigation = SettingsDetailNavigation()
+        try await withScreen(content: SettingsDetailPages(navigation: navigation) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: SettingsRowMetrics.formSectionSpacing) {
+                    HeroSettingsControls(libraries: [], accounts: [])
+                }
+                .padding(48)
+            }
+            .buttonStyle(SettingsFocusButtonStyle())
+            .toggleStyle(SettingsSwitchToggleStyle())
+        } detail: {
+            HeroSettingsDestination(libraries: [], accounts: [])
+        }
+        .frame(width: 1100)
+        .environment(models.heroSettingsModel)
+        .environment(models.heroBackgroundModel)) { window in
+            let root = try await self.capture(window, name: "hero-inline-titles", includeMaster: true)
+            for title in ["Hero content sources", "Hide watched content", "Items to show", "Advance automatically"] {
+                XCTAssertTrue(root.contains(title), root)
+            }
+            for title in ["Titles shown in hero", "Automatic changes", "Appearance", "Rotation", "Rotate automatically"] {
+                XCTAssertFalse(root.contains(title), root)
+            }
+            XCTAssertFalse(root.contains("TMDB"), root)
+            XCTAssertFalse(root.contains("Show provider labels"), root)
+            XCTAssertFalse(root.contains("Seconds per item"), root)
+            let scroll = try self.verticalScroll(in: window)
+            scroll.setContentOffset(CGPoint(
+                x: 0, y: max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+            ), animated: false)
+            let bottom = try await self.capture(window, name: "hero-inline-ratings-trailers", includeMaster: true)
+            XCTAssertTrue(bottom.contains("Ratings"), bottom)
+            XCTAssertTrue(bottom.contains("Trailers"), bottom)
+            XCTAssertTrue(bottom.contains("Off"), bottom)
+            XCTAssertFalse(bottom.contains("Show ratings"), bottom)
+            XCTAssertFalse(bottom.contains("Play trailer behind the hero"), bottom)
+            XCTAssertFalse(bottom.contains("Show Common Sense age"), bottom)
+            XCTAssertFalse(bottom.contains("Start muted"), bottom)
+
+            scroll.setContentOffset(.zero, animated: false)
+            models.heroSettingsModel.settings.autoAdvance = true
+            let automatic = try await self.capture(window, name: "hero-inline-automatic", includeMaster: true)
+            XCTAssertTrue(automatic.contains("Seconds per item"), automatic)
+            XCTAssertFalse(automatic.localizedCaseInsensitiveContains("Automatic changes"), automatic)
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            for page in [HeroSettingsPage.titles, .ratings, .trailers] {
+                if page != .titles {
+                    scroll.setContentOffset(CGPoint(
+                        x: 0, y: max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+                    ), animated: false)
+                    _ = try await self.capture(window, name: "hero-\(page.rawValue)-link", includeMaster: true)
+                }
+                let openingLabel = try XCTUnwrap(self.collectionLabelFrames(in: window).first {
+                    $0.text == String(localized: page.title)
+                })
+                let center = CGPoint(x: openingLabel.frame.midX, y: openingLabel.frame.midY)
+                let originatingLink = try XCTUnwrap(self.focusItems(in: window).first {
+                    (try? self.nativeFrame($0, in: window).contains(center)) == true
+                })
+                let host = try XCTUnwrap(window.rootViewController as? ArtworkFocusRequesting)
+                host.artworkFocusTarget = originatingLink
+                system.requestFocusUpdate(to: try XCTUnwrap(window.rootViewController))
+                system.updateFocusIfNeeded()
+                host.artworkFocusTarget = nil
+                XCTAssertTrue(system.focusedItem === originatingLink)
+                navigation.push(pageID: page.rawValue, animated: false)
+                let shown = try await self.capture(window, name: "hero-\(page.rawValue)", includeMaster: true)
+                let expected = page == .titles ? "Continue Watching"
+                    : page == .ratings ? "Show ratings" : "Play trailer behind the hero"
+                XCTAssertTrue(shown.contains(expected), shown)
+                if page == .titles {
+                    XCTAssertTrue(shown.contains("Hero content sources"), shown)
+                }
+                XCTAssertFalse(shown.contains("Hide watched content"), shown)
+                XCTAssertFalse(navigation.awaitingFocus, "The page must receive native focus, not trap the master pane.")
+                if page == .ratings {
+                    XCTAssertFalse(shown.contains("Show Common Sense age"), shown)
+                    models.heroSettingsModel.settings.showsRatings = true
+                    let ratings = try await self.capture(window, name: "hero-ratings-enabled", includeMaster: true)
+                    XCTAssertTrue(ratings.contains("Show Common Sense age"), ratings)
+                    XCTAssertTrue(ratings.localizedCaseInsensitiveContains("Maximum ratings shown"), ratings)
+                    XCTAssertTrue(ratings.contains("Shows fewer when fewer ratings are available"), ratings)
+                } else if page == .trailers {
+                    XCTAssertFalse(shown.contains("Start muted"), shown)
+                    models.heroBackgroundModel.settings.homeTrailerEnabled = true
+                    let trailers = try await self.capture(window, name: "hero-trailers-enabled", includeMaster: true)
+                    XCTAssertTrue(trailers.contains("Start muted"), trailers)
+                }
+                navigation.pop(animated: false)
+                let returned = try await self.capture(window, name: "hero-return-\(page.rawValue)", includeMaster: true)
+                if page != .titles {
+                    XCTAssertTrue(returned.contains("On"), returned)
+                    XCTAssertFalse(returned.contains("Show Common Sense age"), returned)
+                    XCTAssertFalse(returned.contains("Start muted"), returned)
+                }
+                let label = try XCTUnwrap(self.collectionLabelFrames(in: window).first {
+                    $0.text == String(localized: page.title)
+                })
+                let frame = try self.nativeFrame(try XCTUnwrap(system.focusedItem), in: window)
+                XCTAssertTrue(frame.contains(CGPoint(x: label.frame.midX, y: label.frame.midY)),
+                              "Return must focus \(page.rawValue), not a competing link. Focus: \(frame), label: \(label.frame)")
+            }
+            scroll.setContentOffset(.zero, animated: false)
+            models.heroSettingsModel.settings.sources = [.featured, .watchlist]
+            let selected = try await self.capture(window, name: "hero-selected-source-summary", includeMaster: true)
+            XCTAssertTrue(selected.contains("Discovery"), selected)
+            XCTAssertTrue(selected.contains("Watchlist"), selected)
+            models.heroSettingsModel.setDiscoveryPolicy { false }
+            let kids = try await self.capture(window, name: "hero-kids-source-summary", includeMaster: true)
+            XCTAssertFalse(kids.contains("Discovery"), kids)
+            XCTAssertTrue(kids.contains("Watchlist"), kids)
+            models.heroSettingsModel.settings.sources = []
+            let empty = try await self.capture(window, name: "hero-empty-source-summary", includeMaster: true)
+            XCTAssertTrue(empty.contains("No content sources selected"), empty)
+        }
+    }
+
+    func testNestedDiscoveryReturnsToTitleSourcesWithoutPoppingTheHeroPage() async throws {
+        let namespace = "HeroNestedHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        let parent = SettingsDetailNavigation()
+        let child = SettingsDetailNavigation()
+        parent.push(pageID: HeroSettingsPage.titles.rawValue, animated: false)
+        try await withScreen(content: HeroSettingsScreen(
+            page: .titles, libraries: [], accounts: [], childNavigation: child
+        )
+        .frame(width: 1100)
+        .environment(parent)
+        .environment(models.heroSettingsModel)
+        .environment(models.heroBackgroundModel)) { window in
+            _ = try await self.capture(window, name: "hero-grouped-title-sources", includeMaster: true)
+            let sourceLabels = try self.collectionLabelFrames(in: window, attachmentName: "hero-source-label-metrics")
+            let random = try XCTUnwrap(sourceLabels.first { $0.text == "Random from Library" })
+            let choose = try XCTUnwrap(sourceLabels.first { $0.text == "Choose libraries" })
+            XCTAssertEqual(random.frame.height, choose.frame.height, accuracy: 4,
+                           "Source switches and their links must use the same text size.")
+            XCTAssertEqual(random.frame.minX, choose.frame.minX, accuracy: 2,
+                           "Grouped source controls must share a leading text edge.")
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            let host = try XCTUnwrap(window.rootViewController as? ArtworkFocusRequesting)
+            let initialFrame = try self.nativeFrame(try XCTUnwrap(system.focusedItem), in: window)
+            XCTAssertEqual(initialFrame.minX, (window.bounds.width - 1100) / 2 + 48
+                           + SettingsRowMetrics.formGroupInset, accuracy: 1)
+            XCTAssertEqual(initialFrame.width, 1100 - 96 - 2 * SettingsRowMetrics.formGroupInset, accuracy: 1)
+            try self.assertConcentricGroup(in: window, focusFrame: initialFrame)
+            var sourceFrames: [CGRect] = []
+            for label in [random, choose] {
+                let center = CGPoint(x: label.frame.midX, y: label.frame.midY)
+                let target = try XCTUnwrap(self.focusItems(in: window).first {
+                    (try? self.nativeFrame($0, in: window).contains(center)) == true
+                })
+                sourceFrames.append(try self.nativeFrame(target, in: window))
+                host.artworkFocusTarget = target
+                system.requestFocusUpdate(to: try XCTUnwrap(window.rootViewController))
+                system.updateFocusIfNeeded()
+                host.artworkFocusTarget = nil
+                XCTAssertTrue(system.focusedItem === target)
+                _ = try await self.capture(window, name: "hero-group-focus-\(sourceFrames.count)", includeMaster: true)
+            }
+            XCTAssertEqual(sourceFrames[0].height, sourceFrames[1].height, accuracy: 1)
+            XCTAssertEqual(sourceFrames[1].minY - sourceFrames[0].maxY,
+                           SettingsRowMetrics.formRowSpacing, accuracy: 1)
+            let scroll = try self.verticalScroll(in: window)
+            scroll.setContentOffset(CGPoint(
+                x: scroll.contentOffset.x,
+                y: max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+            ), animated: false)
+            _ = try await self.capture(window, name: "hero-title-source-options", includeMaster: true)
+            let label = try XCTUnwrap(self.collectionLabelFrames(in: window)
+                .first { $0.text == "Discovery providers" })
+            let center = CGPoint(x: label.frame.midX, y: label.frame.midY)
+            let target = try XCTUnwrap(self.focusItems(in: window).first {
+                (try? self.nativeFrame($0, in: window).contains(center)) == true
+            })
+            host.artworkFocusTarget = target
+            system.requestFocusUpdate(to: try XCTUnwrap(window.rootViewController))
+            system.updateFocusIfNeeded()
+            host.artworkFocusTarget = nil
+            XCTAssertTrue(system.focusedItem === target)
+            child.push(pageID: HeroSettingsPage.discovery.rawValue, animated: false)
+            let opened = try await self.capture(window, name: "hero-nested-discovery", includeMaster: true)
+            XCTAssertTrue(opened.contains("Show provider labels"), opened)
+            XCTAssertFalse(child.awaitingFocus)
+            child.pop(animated: false)
+            _ = try await self.capture(window, name: "hero-nested-titles-return", includeMaster: true)
+            XCTAssertTrue(parent.isPresented, "Returning from Discovery must not leave the title-source page.")
+            let returnedLabel = try XCTUnwrap(self.collectionLabelFrames(in: window)
+                .first { $0.text == "Discovery providers" })
+            let frame = try self.nativeFrame(try XCTUnwrap(system.focusedItem), in: window)
+            XCTAssertTrue(frame.contains(CGPoint(x: returnedLabel.frame.midX, y: returnedLabel.frame.midY)),
+                          "Nested return should retain the source-option link: \(frame), \(returnedLabel.frame)")
+        }
+    }
+
+    func testOpenDiscoveryPageRemovesProvidersWhenProfileBecomesKids() async throws {
+        let namespace = "HeroKidsHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        let navigation = SettingsDetailNavigation()
+        navigation.push(pageID: HeroSettingsPage.discovery.rawValue, animated: false)
+        try await withScreen(content: SettingsDetailPages(navigation: navigation) {
+            HeroSettingsControls(libraries: [], accounts: [])
+        } detail: {
+            HeroSettingsDestination(libraries: [], accounts: [])
+        }
+        .frame(width: 1100)
+        .environment(models.heroSettingsModel)
+        .environment(models.heroBackgroundModel)) { window in
+            let adult = try await self.capture(window, name: "hero-discovery-providers", includeMaster: true)
+            XCTAssertTrue(adult.contains("Show provider labels"), adult)
+            XCTAssertTrue(adult.contains("TMDB"), adult)
+            models.heroSettingsModel.setDiscoveryPolicy { false }
+            let kids = try await self.capture(window, name: "hero-discovery-kids", includeMaster: true)
+            XCTAssertTrue(kids.contains("Discovery is unavailable in Kids profiles"), kids)
+            XCTAssertFalse(kids.contains("TMDB"), kids)
+            XCTAssertFalse(kids.contains("Show provider labels"), kids)
+            XCTAssertEqual(try self.collectionLabelFrames(in: window).filter {
+                $0.text.trimmingCharacters(in: .letters.inverted) == "Back"
+            }.count, 1)
+            XCTAssertNotNil(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+        }
+    }
+
+    func testEmptyHeroPagesEnterTheirSingleBackControl() async throws {
+        let hero = HeroSettingsModel(store: InMemoryHeroSettingsStore())
+        hero.setDiscoveryPolicy { false }
+        let background = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore())
+        for page in [HeroSettingsPage.discovery, .libraries] {
+            let navigation = SettingsDetailNavigation()
+            navigation.push(pageID: page.rawValue, animated: false)
+            try await withScreen(content: SettingsDetailPages(navigation: navigation) {
+                HeroSettingsControls(libraries: [], accounts: [])
+            } detail: {
+                HeroSettingsDestination(libraries: [], accounts: [])
+            }
+                .frame(width: 1100)
+                .environment(hero)
+                .environment(background)) { window in
+                _ = try await self.capture(window, name: "hero-empty-\(page.rawValue)", includeMaster: true)
+                let labels = try self.collectionLabelFrames(in: window).filter {
+                    $0.text.trimmingCharacters(in: .letters.inverted) == "Back"
+                }
+                XCTAssertEqual(labels.count, 1)
+                let label = try XCTUnwrap(labels.first)
+                let focused = try XCTUnwrap(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+                XCTAssertTrue(try self.nativeFrame(focused, in: window).contains(
+                    CGPoint(x: label.frame.midX, y: label.frame.midY)
+                ))
+                XCTAssertFalse(navigation.awaitingFocus)
+            }
+        }
+    }
+
     func testMultipleSelectionsShowTheirLibrariesAndClearingDoesNotSwitchTheBrowsedSource() async throws {
         let provider = HeroPickerHostedProvider(empty: false)
         let account = ResolvedAccount(account: Account(id: "a", from: provider.session), provider: provider)
@@ -251,10 +524,16 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         return try XCTUnwrap(Optional<CGRect>.none, "A focused row must expose native focus coordinates.")
     }
 
-    private func collectionLabelFrames(in window: UIWindow) throws -> [(text: String, frame: CGRect)] {
+    private func collectionLabelFrames(
+        in window: UIWindow, attachmentName: String? = nil
+    ) throws -> [(text: String, frame: CGRect)] {
         window.layoutIfNeeded()
-        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        let image = renderWindow(window)
+        if let attachmentName {
+            let attachment = XCTAttachment(image: image)
+            attachment.name = attachmentName
+            attachment.lifetime = .keepAlways
+            add(attachment)
         }
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
@@ -267,6 +546,34 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 x: bounds.minX * window.bounds.width, y: (1 - bounds.maxY) * window.bounds.height,
                 width: bounds.width * window.bounds.width, height: bounds.height * window.bounds.height
             ))
+        }
+    }
+
+    private func assertConcentricGroup(in window: UIWindow, focusFrame: CGRect) throws {
+        let image = try XCTUnwrap(renderWindow(window).cgImage)
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        try pixels.withUnsafeMutableBytes { bytes in
+            let context = try XCTUnwrap(CGContext(
+                data: bytes.baseAddress, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        func brightness(x: Int, y: Int) -> UInt8 { pixels[(y * image.width + x) * 4] }
+        let horizontal = Array(Int(focusFrame.minX - 30)...Int(focusFrame.maxX + 30))
+        let vertical = Array(Int(focusFrame.minY - 30)...Int(focusFrame.maxY + 30))
+        for samples in [
+            horizontal.map { brightness(x: $0, y: Int(focusFrame.midY)) },
+            vertical.map { brightness(x: Int(focusFrame.midX), y: $0) }
+        ] {
+            let outerStart = try XCTUnwrap(samples.firstIndex { $0 > 5 })
+            let innerStart = try XCTUnwrap(samples.firstIndex { $0 > 240 })
+            let outerEnd = try XCTUnwrap(samples.lastIndex { $0 > 5 })
+            let innerEnd = try XCTUnwrap(samples.lastIndex { $0 > 240 })
+            XCTAssertEqual(CGFloat(innerStart - outerStart), SettingsRowMetrics.formGroupInset, accuracy: 1)
+            XCTAssertEqual(CGFloat(outerEnd - innerEnd), SettingsRowMetrics.formGroupInset, accuracy: 1)
         }
     }
 
@@ -749,6 +1056,18 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         return Array(items.values)
     }
 
+    private func verticalScroll(in window: UIWindow) throws -> UIScrollView {
+        var pending = [try XCTUnwrap(window.rootViewController?.view)]
+        var scrolls: [UIScrollView] = []
+        while let view = pending.popLast() {
+            if let scroll = view as? UIScrollView {
+                scrolls.append(scroll)
+            }
+            pending.append(contentsOf: view.subviews)
+        }
+        return try XCTUnwrap(scrolls.max { $0.bounds.width < $1.bounds.width })
+    }
+
     private func makeCards(defaults: UserDefaults) -> CardStyleSettingsModel {
         CardStyleSettingsModel(
             store: CardStyleSettingsStore(defaults: defaults),
@@ -822,14 +1141,22 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         try await inspect(window)
     }
 
+    private func renderWindow(_ window: UIWindow) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        format.preferredRange = .standard
+        return UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { context in
+            UIColor.black.setFill()
+            context.fill(window.bounds)
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+    }
+
     private func capture(_ window: UIWindow, name: String, includeMaster: Bool = false) async throws -> String {
         try await Task.sleep(for: .milliseconds(250))
         window.layoutIfNeeded()
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
-            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
-        }
+        let image = renderWindow(window)
         let attachment = XCTAttachment(image: image)
         attachment.name = name
         attachment.lifetime = .keepAlways

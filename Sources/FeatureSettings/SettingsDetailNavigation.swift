@@ -9,10 +9,12 @@ final class SettingsDetailNavigation {
     private(set) var isPresented = false
     private(set) var awaitingFocus = false
     private(set) var returnFocusGeneration = 0
+    private(set) var pageID: String?
     private var transitionGeneration = 0
 
-    func push(animated: Bool) {
+    func push(pageID: String? = nil, animated: Bool) {
         transitionGeneration += 1
+        self.pageID = pageID
         awaitingFocus = true
         withAnimation(animated ? .easeInOut(duration: 0.2) : nil) {
             isPresented = true
@@ -38,6 +40,7 @@ final class SettingsDetailNavigation {
         isPresented = false
         awaitingFocus = false
         returnFocusGeneration = 0
+        pageID = nil
     }
 }
 
@@ -85,6 +88,7 @@ struct SettingsDetailPages<Root: View, Detail: View>: View {
 
 /// Uses the registered detail pane on TV, or ordinary navigation outside that pane.
 struct SettingsDetailLink<Destination: View, Label: View>: View {
+    var pageID: String? = nil
     @ViewBuilder var destination: () -> Destination
     @ViewBuilder var label: () -> Label
     @Environment(SettingsDetailNavigation.self) private var navigation: SettingsDetailNavigation?
@@ -100,23 +104,36 @@ struct SettingsDetailLink<Destination: View, Label: View>: View {
         Group {
             if let navigation {
                 Button {
-                    navigation.push(animated: !reduceMotion)
+                    navigation.push(pageID: pageID, animated: !reduceMotion)
                 } label: {
                     label()
                 }
                 .focused($isFocused)
-                .modifier(SettingsDetailReturnFocus())
-                .environment(\.isEnabled, rootEnabled && !navigation.isPresented)
+                .modifier(SettingsDetailReturnFocus(pageID: pageID))
+                .environment(
+                    \.isEnabled,
+                    rootEnabled && !navigation.isPresented
+                        && (!navigation.awaitingFocus || navigation.pageID == pageID)
+                )
+                #if os(tvOS)
+                .background {
+                    NativeFocusRegionObserver(isEnabled: !navigation.isPresented) {
+                        navigation.focusArrived()
+                    }
+                }
+                #endif
             } else {
                 NavigationLink(destination: destination, label: label)
                     .focused($isFocused)
             }
         }
+        #if !os(tvOS)
         .onChange(of: isFocused) { _, focused in
             if focused { navigation?.focusArrived() }
         }
+        #endif
         .task(id: navigation?.returnFocusGeneration) {
-            guard let navigation, navigation.returnFocusGeneration > 0 else { return }
+            guard let navigation, navigation.pageID == pageID, navigation.returnFocusGeneration > 0 else { return }
             isFocused = false
             await Task.yield()
             if !Task.isCancelled, !navigation.isPresented {
@@ -130,13 +147,18 @@ struct SettingsDetailLink<Destination: View, Label: View>: View {
 }
 
 private struct SettingsDetailReturnFocus: ViewModifier {
+    let pageID: String?
     @Environment(SettingsDetailNavigation.self) private var navigation: SettingsDetailNavigation?
     @Environment(\.settingsDetailRootFocusScope) private var scope
 
     @ViewBuilder
     func body(content: Content) -> some View {
         if let scope {
-            content.tvOSPrefersDefaultFocus(navigation?.awaitingFocus == true, in: scope)
+            content.tvOSPrefersDefaultFocus(
+                navigation?.isPresented == false && navigation?.pageID == pageID
+                    && (navigation?.returnFocusGeneration ?? 0) > 0,
+                in: scope
+            )
         } else {
             content
         }

@@ -45,7 +45,7 @@ public struct LabeledSettingRow<Trailing: View>: View {
         HStack(alignment: .center, spacing: 24) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.headline.weight(.semibold))
+                    .font(SettingsRowMetrics.titleFont)
                     // Never wrap the label to a second line: keep it on one line
                     // and let the column grow past `labelWidth` for a long title
                     // (e.g. "Preferred language") instead of wrapping.

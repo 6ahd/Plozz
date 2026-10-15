@@ -1,21 +1,12 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
-// MARK: - Switch-style Toggle (shared)
+// MARK: - Platform-native settings toggles
 
 /// A platform-aware `ToggleStyle` used across the app — the Settings detail
 /// pane AND the onboarding library picker — so every real on/off control looks
 /// consistent. iOS/iPadOS use the native switch without custom geometry or colors.
-///
-/// tvOS has no native sliding switch — a default `Toggle` renders as a text
-/// "On/Off" pill, which reads almost identically to a navigation row. This draws
-/// a real track-and-knob switch plus a compact On/Off word, so a *control* is
-/// unmistakably a control and reads differently from the chevroned *navigation*
-/// rows across the room (10-foot UI).
-///
-/// The whole row is a single focus target; pressing Select flips the value. The
-/// switch graphic + On/Off label are coloured explicitly so they stay legible on
-/// the inverted focus card (via the shared `settingsRow*` focus environment).
+/// tvOS uses its native On/Off presentation with the shared settings row style.
 public struct SettingsSwitchToggleStyle: ToggleStyle {
     /// When false the row does NOT pull its leading edge outward — pass this
     /// inside a bordered card so the focus card nests concentrically instead of
@@ -33,47 +24,16 @@ public struct SettingsSwitchToggleStyle: ToggleStyle {
             .toggleStyle(.switch)
             .tint(nil)
         #else
-        SettingsSwitchToggleBody(configuration: configuration, flushLeading: flushLeading)
+        Toggle(configuration)
+            .toggleStyle(.automatic)
+            .font(SettingsRowMetrics.titleFont)
+            .buttonStyle(SettingsFormButtonStyle())
+            .padding(.leading, flushLeading ? -SettingsRowMetrics.horizontalPadding : 0)
         #endif
     }
 }
 
-private struct SettingsSwitchToggleBody: View {
-    let configuration: ToggleStyleConfiguration
-    let flushLeading: Bool
-    @Environment(\.isEnabled) private var isEnabled
-
-    // Horizontal breathing room inside the focus pill (shared token). The same
-    // amount is pulled back off the leading edge below (unless `flushLeading` is
-    // off), so the *label* lines up flush-left with the content around it — while
-    // the pill (drawn by the button style, which bleeds outward on focus) still
-    // keeps a symmetric cushion around it.
-    private var hInset: CGFloat { SettingsRowMetrics.horizontalPadding }
-
-    var body: some View {
-        Button {
-            configuration.isOn.toggle()
-        } label: {
-            HStack(spacing: SettingsRowMetrics.spacing(.primary)) {
-                configuration.label
-                    .font(.headline.weight(.semibold))
-                    .lineLimit(1)
-                Spacer(minLength: SettingsRowMetrics.spacing(.primary))
-                SettingsSwitchIndicator(isOn: configuration.isOn)
-            }
-            .frame(minHeight: SettingsRowMetrics.minHeight(.primary))
-            .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
-            .padding(.horizontal, hInset)
-            .opacity(isEnabled ? 1 : 0.45)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(SettingsFocusButtonStyle())
-        .padding(.leading, flushLeading ? -hInset : 0)
-    }
-}
-
-/// A switch-style control identical in look to `SettingsSwitchToggleStyle`, but
-/// with an explicit `canFocus` gate.
+/// An On/Off row with an explicit `canFocus` gate.
 ///
 /// Unlike a stock `Toggle` (whose internal `Button` can't be removed from focus
 /// with `.focusable(false)`, and where `.disabled` dims the row), this owns its
@@ -100,13 +60,13 @@ public struct FocusGatedSwitch: View {
         } label: {
             HStack(spacing: SettingsRowMetrics.spacing(.primary)) {
                 Text(title)
-                    .font(.headline.weight(.semibold))
+                    .font(SettingsRowMetrics.titleFont)
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)
                     .fixedSize(horizontal: false, vertical: true)
                     .layoutPriority(1)
                 Spacer(minLength: SettingsRowMetrics.spacing(.primary))
-                SettingsSwitchIndicator(isOn: isOn)
+                SettingsToggleValue(isOn: isOn)
             }
             .frame(minHeight: SettingsRowMetrics.minHeight(.primary))
             .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
@@ -121,9 +81,7 @@ public struct FocusGatedSwitch: View {
     }
 }
 
-/// A plain `Button` that looks EXACTLY like `SettingsSwitchToggleStyle` (same
-/// track-and-knob switch + On/Off word), but is a button, not a `Toggle`, and
-/// takes an arbitrary `label`.
+/// An On/Off action row with an arbitrary label.
 ///
 /// Use this when "on/off" is really a **side-effectful action** rather than a
 /// simple boolean binding — e.g. the per-profile server master switch, where one
@@ -155,10 +113,10 @@ public struct SettingsSwitchButton<Label: View>: View {
         Button(action: action) {
             HStack(spacing: SettingsRowMetrics.spacing(.primary)) {
                 label()
-                    .font(.headline.weight(.semibold))
+                    .font(SettingsRowMetrics.titleFont)
                     .lineLimit(1)
                 Spacer(minLength: SettingsRowMetrics.spacing(.primary))
-                SettingsSwitchIndicator(isOn: isOn)
+                SettingsToggleValue(isOn: isOn)
             }
             .frame(minHeight: SettingsRowMetrics.minHeight(.primary))
             .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
@@ -170,67 +128,19 @@ public struct SettingsSwitchButton<Label: View>: View {
     }
 }
 
-/// The track-and-knob graphic plus the On/Off state word. Reads the shared
-/// settings focus environment so it stays legible against the inverted
-/// (white-in-dark-mode) focus card.
-private struct SettingsSwitchIndicator: View {
+private struct SettingsToggleValue: View {
     let isOn: Bool
-    @Environment(\.settingsRowIsFocused) private var isFocused
-    @Environment(\.settingsRowFocusForeground) private var focusFg
-    @Environment(\.colorScheme) private var colorScheme
-
-    private let trackWidth: CGFloat = 84
-    // Matches the primary row min-height so a switch row and a primary checkable
-    // row are exactly the same height.
-    private var trackHeight: CGFloat { SettingsRowMetrics.minHeight(.primary) }
-    private var knobSize: CGFloat { trackHeight - 10 }
-    private var travel: CGFloat { (trackWidth - knobSize) / 2 - 4 }
-
-    private var surfaceIsDark: Bool {
-        isFocused ? (colorScheme == .light) : (colorScheme == .dark)
-    }
-
-    private var ink: Color { surfaceIsDark ? .white : .black }
-    private var paper: Color { surfaceIsDark ? .black : .white }
-
-    private var trackColor: Color {
-        isOn ? ink : ink.opacity(isFocused ? 0.22 : 0.18)
-    }
-    private var knobColor: Color { isOn ? paper : ink }
-
-    private var stateWordColor: AnyShapeStyle {
-        if isFocused { return AnyShapeStyle(focusFg.opacity(0.7)) }
-        return AnyShapeStyle(.secondary)
-    }
 
     var body: some View {
-        HStack(spacing: 16) {
-            // A FLOOR, not a fixed width. 48pt fits "On"/"Off" and keeps the
-            // track from shifting as the word changes, but pinning the width
-            // outright wrapped longer translations into a vertical column —
-            // Spanish "Activado" rendered as "Ac / ti- / va / do". `fixedSize`
-            // lets the word claim the width it needs; the row's Spacer absorbs it.
-            Text(isOn ? "On" : "Off")
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(stateWordColor)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(minWidth: 48, alignment: .trailing)
-
-            ZStack {
-                Capsule(style: .continuous)
-                    .fill(trackColor)
-                Circle()
-                    .fill(knobColor)
-                    .frame(width: knobSize, height: knobSize)
-                    .shadow(color: .black.opacity(0.22), radius: 2, y: 1)
-                    .offset(x: isOn ? travel : -travel)
-            }
-            .frame(width: trackWidth, height: trackHeight)
-            .animation(.easeOut(duration: 0.18), value: isOn)
-            // Keep the switch from animating its own position when its row moves.
-            .geometryGroup()
+        Group {
+            if isOn { Text("On") }
+            else { Text("Off") }
         }
+        .font(SettingsRowMetrics.titleFont)
+        .settingsRowSecondary()
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .frame(minWidth: 48, alignment: .trailing)
     }
 }
 #endif

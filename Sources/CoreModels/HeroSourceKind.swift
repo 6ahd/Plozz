@@ -27,9 +27,9 @@ public enum HeroSourceKind: String, CaseIterable, Identifiable, Codable, Sendabl
         switch self {
         case .featured:
             return LocalizedStringResource(
-                "heroSource.featured",
-                defaultValue: "Featured",
-                comment: "Home hero content-source option in Settings."
+                "heroSource.discovery",
+                defaultValue: "Discovery",
+                comment: "Home content source: recommendations from external catalogs, not necessarily in the user's libraries."
             )
         case .continueWatching:
             return LocalizedStringResource(
@@ -65,8 +65,8 @@ public enum HeroSourceKind: String, CaseIterable, Identifiable, Codable, Sendabl
         switch self {
         case .featured:
             return LocalizedStringResource(
-                "Discover movies and shows from your selected feeds. Seerr is optional for requests.",
-                comment: "Explanation shown under the Featured hero source option in Settings."
+                "Recommendations from external catalogs. Titles may not be in your libraries.",
+                comment: "Explanation of the Discovery source in Home settings."
             )
         case .continueWatching:
             return LocalizedStringResource(

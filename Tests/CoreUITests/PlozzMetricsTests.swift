@@ -5,6 +5,19 @@ import CoreModels
 @testable import CoreUI
 
 final class PlozzMetricsTests: XCTestCase {
+    func testSettingsControlLabelsUseTheNavigationBodyFont() {
+        XCTAssertEqual(SettingsRowMetrics.titleFont, Font.body)
+    }
+
+    func testContainedSettingsFocusCornersAreConcentricWithTheirGroup() {
+        XCTAssertGreaterThan(SettingsRowMetrics.formGroupInset, 0)
+        XCTAssertEqual(
+            SettingsRowMetrics.formRowCornerRadius + SettingsRowMetrics.formGroupInset,
+            PlozzTheme.Metrics.Radius.card
+        )
+        XCTAssertGreaterThan(SettingsRowMetrics.formSectionSpacing, SettingsRowMetrics.formRowSpacing)
+    }
+
     func testPortraitRowsKeepTheSameVisibleFractionWithEitherNavigation() {
         for density in UIDensity.allCases {
             let metrics = PlozzMetrics(density: density)

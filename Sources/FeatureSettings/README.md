@@ -5,6 +5,34 @@ and the single place caption customization lives.
 
 ## Responsibility
 
+- `HeroSettingsControls` — Hero keeps content selection, watched filtering, item
+  count, and automatic changes together, shared by TV and mobile. **Ratings** and
+  **Trailers** each show their current On/Off state and open their detailed
+  controls; neither is hidden behind a generic Appearance label.
+  The shared rating-count picker is visibly labeled **Maximum ratings shown**:
+  it caps available scores rather than promising every title has that many.
+  **Hero content sources** is the source-selection page; its link summarizes the
+  currently permitted selections. Library, collection, Watchlist variety, and
+  Discovery options use the shared `ViewPreferenceChoiceGroup` with the source
+  they configure, so a source toggle and its links form one visual group.
+  TV forms share row/section spacing and contained, concentric focus geometry;
+  inline steppers use the same row height and align to the trailing value column.
+  Hero copy uses **content** for the overall selection and **item** for one entry,
+  rather than calling entries titles. **Advance automatically** and its conditional
+  **Seconds per item** control share a group without a redundant section heading.
+  Mobile source groups use separate native Section rows; grouped-page links
+  use independent buttons with native navigation destinations so no link can
+  claim a sibling switch's cell action.
+  **Discovery** consistently means external recommendations; its
+  provider selections and **Show provider labels** attribution toggle live together.
+  Ratings, trailers, and the longer source/provider/library/collection lists use subpages. TV uses
+  retained detail panes with a separate nested navigation owner and returns focus
+  to the originating link; mobile keeps system switches and native navigation.
+- **Kids profiles** always disable external Home Discovery, including Showcase's
+  Discovery row, independently of whether a Parental PIN exists. Preferences stay
+  saved for later use outside Kids mode; this restriction is not synced as an
+  editable setting. Connected server-user restrictions still govern library
+  content—Plozz does not infer maturity from incomplete external catalog ratings.
 - `CardAppearanceControls` — the independent **Show unwatched episode count**
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing

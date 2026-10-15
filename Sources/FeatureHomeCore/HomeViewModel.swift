@@ -1706,7 +1706,8 @@ public final class HomeViewModel {
                 $0.isVisibleOnHome(isLibraryVisible: visibility.isEnabled)
             }
         }
-        let durable = HeroDurableSnapshot.filter(stored)
+        let permitted = settings.allowsDiscovery ? stored : stored.filter { $0.discoverySources.isEmpty }
+        let durable = HeroDurableSnapshot.filter(permitted)
         let rehydrated = mediaItemActionHandler?
             .rehydratePersistedArtwork(durable) ?? durable
         if cachedHeroSelections.count >= 8 { cachedHeroSelections.removeAll() }
