@@ -543,6 +543,11 @@ not the Cloud sync checkpoint stored alongside them. A checkpoint-only write mus
 not revoke an open Sources page, discard a pending channel refresh, or stop channel
 checks. Checkpoints remain intact in secure storage; real source edits, account
 changes, profile locks and parental-approval revocations still invalidate old work.
+An open Sources page also observes profile-scoped local and synced source changes.
+If a real configuration change invalidates its snapshot, it cancels the old work
+and restores the newly authorized cached catalogue without requiring Retry or
+reopening. Changes while inactive wait for normal presentation admission; they
+never bypass a profile lock or re-enable a deliberately disabled source.
 Earlier prototype builds did not store Favorites or Recents on disk, so there
 is no prior in-memory history to migrate on the first updated launch.
 

@@ -11,18 +11,114 @@ import XCTest
 
 @MainActor
 final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
+    func testSourceUpdateDuringIPTVRestoreDoesNotLeaveProfileAccessFailure() async throws {
+        let fixture = try Fixture(hasIPTV: true, pausesCatalog: true)
+        defer { fixture.close() }
+        fixture.show()
+        try await waitUntil { fixture.provider.isWaiting }
+        let runtime = try XCTUnwrap(fixture.state.runtime)
+        let identity = runtime.authorityID
+        var configuration = try runtime.store.load()
+        configuration.servers[0].name = "Updated IPTV"
+        try runtime.store.save(configuration)
+        fixture.provider.release()
+
+        try await waitUntil {
+            runtime.isCurrent && runtime.catalog.catalog.channels.map(\.name) == ["IPTV channel"]
+        }
+        XCTAssertEqual(runtime.authorityID, identity, "Neither profile nor account access changed.")
+        XCTAssertNil(runtime.catalog.issue)
+        XCTAssertEqual(runtime.catalog.imports.configuration.servers, configuration.servers)
+        XCTAssertEqual(try runtime.store.load().servers, configuration.servers)
+    }
+
+    func testLoadedIPTVTracksSourceChangesWithoutReopeningSources() async throws {
+        let fixture = try Fixture(hasIPTV: true)
+        defer { fixture.close() }
+        fixture.show()
+        try await waitUntil { fixture.runtime.catalog.catalog.channels.count == 1 }
+        let runtime = fixture.runtime
+        let identity = runtime.authorityID
+        var configuration = try runtime.store.load()
+        configuration.servers[0].isEnabled = false
+        try runtime.store.save(configuration)
+        try await waitUntil { runtime.isCurrent && runtime.catalog.catalog.channels.isEmpty }
+
+        configuration.servers[0].isEnabled = true
+        try runtime.store.save(configuration)
+        try await waitUntil { runtime.isCurrent && runtime.catalog.catalog.channels.count == 1 }
+        configuration.servers[0].name = "Synced IPTV"
+        try fixture.store.save(configuration)
+        NotificationCenter.default.post(name: .plozzLiveTVPortableStateDidApply, object: fixture.profileID)
+        try await waitUntil {
+            runtime.isCurrent && runtime.catalog.imports.configuration.servers == configuration.servers
+        }
+        XCTAssertEqual(runtime.authorityID, identity)
+        XCTAssertEqual(runtime.catalog.catalog.channels.count, 1)
+        XCTAssertNil(runtime.catalog.issue)
+        XCTAssertEqual(try runtime.store.load().servers, configuration.servers)
+    }
+
     func testSourcesStayAdmittedWhenBackgroundSyncSavesItsCheckpoint() async throws {
-        let fixture = try Fixture()
+        let fixture = try Fixture(hasIPTV: true)
         defer { fixture.close() }
         fixture.show()
         try await waitUntil { fixture.state.runtime?.isCurrent == true }
         let runtime = try XCTUnwrap(fixture.state.runtime)
+        try await waitUntil { runtime.catalog.catalog.channels.count == 1 }
+        let reads = fixture.provider.catalogReads
         var configuration = try fixture.store.load()
         configuration.syncCheckpoint = .init(profileID: fixture.profileID, accountEpoch: "sync-generation")
         try fixture.store.save(configuration)
+        NotificationCenter.default.post(name: .plozzLiveTVPortableStateDidChange, object: fixture.profileID)
+        NotificationCenter.default.post(name: .plozzLiveTVPortableStateDidApply, object: fixture.profileID)
+        NotificationCenter.default.post(name: .plozzLiveTVPortableStateDidChange, object: "another-profile")
         try await Task.sleep(for: .milliseconds(100))
         XCTAssertTrue(runtime.isCurrent, "No Retry or navigation should be needed after a sync checkpoint.")
         XCTAssertNil(runtime.catalog.issue)
+        XCTAssertEqual(runtime.catalog.catalog.channels.count, 1)
+        XCTAssertEqual(fixture.provider.catalogReads, reads, "Bookkeeping must not restart the catalogue.")
+    }
+
+    func testSourceUpdatesCannotReadmitLockedProfileOrPublishLateChannels() async throws {
+        let fixture = try Fixture(hasIPTV: true, pausesCatalog: true)
+        defer { fixture.close() }
+        fixture.show()
+        try await waitUntil { fixture.provider.isWaiting }
+        let runtime = fixture.runtime
+        fixture.state.authorized = false
+        var configuration = try runtime.store.load()
+        configuration.servers[0].name = "Updated IPTV"
+        try runtime.store.save(configuration)
+        fixture.provider.release()
+        try await waitUntil { runtime.authorityID == nil && runtime.catalog.issue == .authorization }
+        XCTAssertFalse(runtime.isCurrent)
+        XCTAssertTrue(runtime.catalog.catalog.channels.isEmpty)
+
+        fixture.state.authorized = true
+        try await waitUntil { runtime.isCurrent && runtime.catalog.catalog.channels.count == 1 }
+        XCTAssertNil(runtime.catalog.issue)
+    }
+
+    func testBackgroundSourceUpdateWaitsForPresentationToResume() async throws {
+        let fixture = try Fixture(hasIPTV: true)
+        defer { fixture.close() }
+        fixture.show()
+        try await waitUntil { fixture.runtime.catalog.catalog.channels.count == 1 }
+        fixture.state.phase = .background
+        try await waitUntil { !fixture.runtime.isCurrent }
+        let reads = fixture.provider.catalogReads
+        var configuration = try fixture.runtime.store.load()
+        configuration.servers[0].name = "Updated IPTV"
+        try fixture.runtime.store.save(configuration)
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertTrue(fixture.runtime.catalog.catalog.channels.isEmpty)
+        XCTAssertEqual(fixture.provider.catalogReads, reads)
+
+        fixture.state.phase = .active
+        try await waitUntil { fixture.runtime.isCurrent && fixture.runtime.catalog.catalog.channels.count == 1 }
+        XCTAssertEqual(fixture.runtime.catalog.imports.configuration.servers, configuration.servers)
+        XCTAssertNil(fixture.runtime.catalog.issue)
     }
 
     func testSourcesStayAdmittedWhileOpeningAndClosingAnEditor() async throws {
@@ -140,10 +236,12 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
         let state = State()
         let runtime: LiveTVSourcesRuntime
         let store: LiveTVSourcesStore
+        let provider: CachedIPTVProvider
         let window: UIWindow
         weak var previous: UIWindow?
 
-        init() throws {
+        init(hasIPTV: Bool = false, pausesCatalog: Bool = false) throws {
+            provider = CachedIPTVProvider(paused: pausesCatalog)
             defaults = try XCTUnwrap(UserDefaults(suiteName: domain))
             profiles = ProfilesModel(store: ProfileStore(defaults: defaults))
             profileID = profiles.add(name: "Sources fixture").id
@@ -159,11 +257,21 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
                 secureStore: InMemorySecureStore()
             )
             store = LiveTVSourcesStore(secureStore: InMemorySecureStore(), namespace: profileID)
+            if hasIPTV {
+                try store.save(.init(servers: [
+                    .init(id: "source", name: "IPTV", accountID: "iptv")
+                ]))
+            }
             let state = state
             let profiles = profiles
+            let provider = provider
+            let approvals = LiveTVSourceApprovalStore(
+                defaults: defaults, profileID: profileID, namespace: profileID
+            )
             runtime = LiveTVSourcesRuntime(
-                profileID: profileID, store: store,
-                approvals: LiveTVSourceApprovalStore(defaults: defaults, profileID: profileID, namespace: profileID),
+                profileID: profileID,
+                store: LiveTVApprovalAwareSourcesStore(underlying: store, approvals: approvals),
+                approvals: approvals,
                 cache: cache, loader: EmptyLoader(),
                 preferencesStore: LiveTVPreferencesStore(defaults: defaults, namespace: profileID),
                 scanCoordinator: LiveTVChannelScanCoordinator(
@@ -172,7 +280,11 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
                 context: {
                     state.authorized ? LiveTVSourceApprovalContext(profiles: profiles) : nil
                 },
-                accountAuthorizationID: { "fixture" }
+                accountAuthorizationID: { "fixture" },
+                serverProviderResolver: { id in
+                    guard hasIPTV, id == "iptv" else { return nil }
+                    return .init(accountID: id, authorizationID: "fixture", kind: .iptv, provider: provider)
+                }
             )
             let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
             previous = scene.windows.first(where: \.isKeyWindow)
@@ -193,6 +305,7 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
         }
 
         func close() {
+            provider.release()
             runtime.invalidate()
             window.isHidden = true
             window.rootViewController = nil
@@ -203,6 +316,50 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
                 do { try FileManager.default.removeItem(at: directory) }
                 catch { XCTFail("Could not remove this fixture's cache: \(error)") }
             }
+        }
+    }
+
+    @MainActor private final class CachedIPTVProvider: ServerLiveTVProviding {
+        private var paused: Bool
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+        private(set) var catalogReads = 0
+        var isWaiting: Bool { !waiters.isEmpty }
+
+        init(paused: Bool) { self.paused = paused }
+
+        func release() {
+            paused = false
+            let pending = waiters
+            waiters = []
+            pending.forEach { $0.resume() }
+        }
+
+        func cachedLiveTVCatalog() async throws -> ServerLiveTVCatalogSnapshot? {
+            catalogReads += 1
+            if paused {
+                await withCheckedContinuation { waiters.append($0) }
+            }
+            try Task.checkCancellation()
+            return .init(channels: [.init(id: "channel", name: "IPTV channel")], supportsGuide: false)
+        }
+
+        func liveTVAvailability() async throws -> ServerLiveTVAvailability {
+            XCTFail("Restoring Sources must use the existing IPTV catalogue.")
+            throw AppError.serverUnreachable
+        }
+
+        func liveTVChannels() async throws -> [ServerLiveTVChannel] {
+            XCTFail("Restoring Sources must not refresh channels.")
+            return []
+        }
+
+        func liveTVGuide(channelIDs: [String], from: Date, to: Date) async throws -> [ServerLiveTVProgramme] {
+            XCTFail("Restoring Sources must not refresh the guide.")
+            return []
+        }
+
+        func openLiveTVChannel(id: String) async throws -> any LiveTVStreamLease {
+            throw ServerLiveTVError.tunerUnavailable
         }
     }
 

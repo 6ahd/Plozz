@@ -67,6 +67,7 @@ struct LiveTVSourcesRuntimeHost<Content: View>: View {
     let isProfileAuthorized: @MainActor () -> Bool
     let content: (LiveTVSourcesRuntime) -> Content
     @State var runtime: LiveTVSourcesRuntime?
+    @State private var sourceRevision = 0
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -83,7 +84,8 @@ struct LiveTVSourcesRuntimeHost<Content: View>: View {
                     .task(id: AdmissionRequest(
                         identity: runtime.authorityID,
                         isPresented: isPresented,
-                        isSceneActive: scenePhase == .active
+                        isSceneActive: scenePhase == .active,
+                        sourceRevision: sourceRevision
                     )) {
                         guard isPresented, scenePhase == .active else {
                             runtime.invalidate()
@@ -137,12 +139,26 @@ struct LiveTVSourcesRuntimeHost<Content: View>: View {
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { runtime?.invalidate() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .plozzLiveTVPortableStateDidChange)
+            .receive(on: DispatchQueue.main), perform: restoreChangedSources)
+        .onReceive(NotificationCenter.default.publisher(for: .plozzLiveTVPortableStateDidApply)
+            .receive(on: DispatchQueue.main), perform: restoreChangedSources)
+    }
+
+    private func restoreChangedSources(_ notification: Notification) {
+        guard notification.object as? String == profileID,
+              isPresented, scenePhase == .active, let runtime, !runtime.isCurrent else { return }
+        // Saves can arrive during an import. Retire that snapshot and readmit
+        // the current configuration; sync checkpoints alone remain current.
+        runtime.invalidate()
+        sourceRevision &+= 1
     }
 
     private struct AdmissionRequest: Hashable {
         let identity: String?
         let isPresented: Bool
         let isSceneActive: Bool
+        let sourceRevision: Int
     }
 }
 
