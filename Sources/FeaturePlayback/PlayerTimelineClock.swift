@@ -14,9 +14,9 @@ public final class PlayerTimelineClock {
 public struct PlayerClockTimes {
     public let current: String
     public let endTime: String?
-    public let end: String?
+    public let end: LocalizedStringResource?
     public let currentWidthSamples: [String]
-    public let endWidthSamples: [String]
+    public let endWidthSamples: [LocalizedStringResource]
 
     static func estimatedEnd(
         now: Date, position: TimeInterval, duration: TimeInterval, speed: Double
@@ -36,9 +36,9 @@ public struct PlayerClockTimes {
     ) {
         let format = Date.FormatStyle(date: .omitted, time: .shortened, locale: locale, timeZone: timeZone)
         current = now.formatted(format)
-        func endLabel(_ time: String) -> String {
-            String(
-                localized: "Ends at \(time)", locale: locale,
+        func endLabel(_ time: String) -> LocalizedStringResource {
+            LocalizedStringResource(
+                "Ends at \(time)", locale: locale,
                 comment: "Estimated playback completion time on the clock, for example Ends at 11:42 PM."
             )
         }

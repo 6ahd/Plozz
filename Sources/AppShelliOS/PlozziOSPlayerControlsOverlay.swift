@@ -806,8 +806,8 @@ struct PlozziOSPlayerTimeline: View {
             let visibleClock = isScrubbing ? nil : clock
             HStack(spacing: 16) {
                 timeButton(
-                    visibleClock?.current ?? playbackTime(displayedSeconds),
-                    samples: clock?.currentWidthSamples ?? [],
+                    Text(verbatim: visibleClock?.current ?? playbackTime(displayedSeconds)),
+                    samples: (clock?.currentWidthSamples ?? []).map { Text(verbatim: $0) },
                     label: visibleClock != nil ? "Current time" : "Elapsed time",
                     identifier: "player-timeline-current-time"
                 )
@@ -819,9 +819,9 @@ struct PlozziOSPlayerTimeline: View {
                 .accessibilityLabel("Playback position")
                 .accessibilityIdentifier("player-timeline-scrubber")
                 timeButton(
-                    visibleClock.map { $0.end ?? "--:--" }
-                        ?? "-\(playbackTime(max(model.duration - displayedSeconds, 0)))",
-                    samples: clock?.endWidthSamples ?? [],
+                    visibleClock.map { $0.end.map { Text($0) } ?? Text(verbatim: "--:--") }
+                        ?? Text(verbatim: "-\(playbackTime(max(model.duration - displayedSeconds, 0)))"),
+                    samples: (clock?.endWidthSamples ?? []).map { Text($0) },
                     label: visibleClock != nil ? "Estimated end time" : "Remaining time",
                     identifier: "player-timeline-end-time"
                 )
@@ -830,20 +830,21 @@ struct PlozziOSPlayerTimeline: View {
     }
 
     private func timeButton(
-        _ text: String, samples: [String], label: LocalizedStringResource, identifier: String
+        _ text: Text, samples: [Text], label: LocalizedStringResource, identifier: String
     ) -> some View {
         Button {
             model.timelineClock.isEnabled.toggle()
             onInteraction()
         } label: {
             ZStack {
-                ForEach(["-\(playbackTime(model.duration))"] + samples, id: \.self) { sample in
-                    Text(verbatim: sample).hidden()
+                Text(verbatim: "-\(playbackTime(model.duration))").hidden()
+                ForEach(samples.indices, id: \.self) { index in
+                    samples[index].hidden()
                 }
             }
             .accessibilityHidden(true)
             .overlay {
-                Text(verbatim: text)
+                text
                     .foregroundStyle(.white.opacity(0.85))
             }
             .font(.caption.monospacedDigit())
@@ -854,7 +855,7 @@ struct PlozziOSPlayerTimeline: View {
         .buttonStyle(.plain)
         .disabled(isScrubbing)
         .accessibilityLabel(Text(label))
-        .accessibilityValue(Text(verbatim: text))
+        .accessibilityValue(text)
         .accessibilityHint("Switch between playback and clock times")
         .accessibilityIdentifier(identifier)
     }
