@@ -38,9 +38,21 @@ public enum SettingsFormMetrics {
     public static let groupCornerRadius = PlozzTheme.Metrics.mediumCardCornerRadius
     public static let dividerFocusClearance = PlozzTheme.Spacing.xSmall
     public static let illustratedGroupSpacing = PlozzTheme.Spacing.medium
-    public static let groupInset = PlozzTheme.Spacing.large
+    public static var groupInset: CGFloat {
+        #if os(tvOS)
+        illustratedGroupSpacing
+        #else
+        PlozzTheme.Spacing.large
+        #endif
+    }
     public static let pageInset = sectionSpacing
-    public static let headingInset = PlozzTheme.Spacing.medium
+    public static var headingInset: CGFloat {
+        #if os(tvOS)
+        groupInset + SettingsRowMetrics.horizontalPadding
+        #else
+        PlozzTheme.Spacing.medium
+        #endif
+    }
     public static let pageTopInset = PlozzTheme.Spacing.xSmall
     public static let pageBottomInset = PlozzTheme.Spacing.xxxLarge + PlozzTheme.Spacing.small
 }
@@ -78,7 +90,13 @@ public enum SettingsRowMetrics {
 
     public static let formRowSpacing: CGFloat = 8
     public static let formSectionSpacing: CGFloat = 24
-    public static let formGroupInset: CGFloat = 10
+    public static var formGroupInset: CGFloat {
+        #if os(tvOS)
+        SettingsFormMetrics.groupInset
+        #else
+        10
+        #endif
+    }
     public static let navigationCornerRadius = SettingsFormMetrics.groupCornerRadius
     public static var formRowCornerRadius: CGFloat {
         #if os(tvOS)
@@ -178,6 +196,7 @@ public extension View {
     func settingsFormRowLayout() -> some View {
         #if os(tvOS)
         self
+            .environment(\.settingsFormTextInset, 0)
             .frame(
                 maxWidth: .infinity,
                 minHeight: SettingsRowMetrics.minHeight(.primary),
@@ -187,6 +206,25 @@ public extension View {
             .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
         #else
         self
+        #endif
+    }
+
+    /// Static text joins the control-label keyline only inside a grouped form.
+    func settingsFormTextLayout() -> some View {
+        modifier(SettingsFormTextLayout())
+    }
+}
+
+private struct SettingsFormTextLayout: ViewModifier {
+    @Environment(\.settingsFormTextInset) private var inset
+
+    func body(content: Content) -> some View {
+        #if os(tvOS)
+        content
+            .environment(\.settingsFormTextInset, 0)
+            .padding(.horizontal, inset)
+        #else
+        content
         #endif
     }
 }
@@ -259,6 +297,7 @@ public struct SettingsFocusRow<Content: View>: View {
     private let content: Content
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.settingsRowsHaveDividers) private var hasDividers
+    @Environment(\.settingsFormTextInset) private var textInset
 
     public init(
         isFocused: Bool, isPressed: Bool = false, size: SettingsRowSize = .standard,
@@ -270,14 +309,16 @@ public struct SettingsFocusRow<Content: View>: View {
         self.content = content()
     }
 
-    // Concentric focus card: the top-level Settings cards use an outer radius
-    // of `mediumCardCornerRadius` (28) with 28pt horizontal / 16pt vertical
-    // content padding. Extending the focus fill outward by 16pt H / 4pt V
-    // leaves a UNIFORM 12pt gap on every side (28−16 = 16−4 = 12), and a focus
-    // corner of 28−12 = 16 makes the fill's corners concentric with the card's.
-    // `.prominent` keeps larger geometry; `.contained` disables the bleed.
+    private var effectiveSize: SettingsRowSize {
+        #if os(tvOS)
+        size == .standard && textInset > 0 ? .contained : size
+        #else
+        size
+        #endif
+    }
+
     private var corner: CGFloat {
-        switch size {
+        switch effectiveSize {
         case .standard: 16
         case .prominent: 18
         case .contained: SettingsRowMetrics.formRowCornerRadius
@@ -286,7 +327,7 @@ public struct SettingsFocusRow<Content: View>: View {
     }
 
     private var focusInsetH: CGFloat {
-        switch size {
+        switch effectiveSize {
         case .standard: 16
         case .prominent: 10
         case .contained, .navigation: 0
@@ -295,7 +336,7 @@ public struct SettingsFocusRow<Content: View>: View {
 
     private var focusInsetV: CGFloat {
         if hasDividers { return 0 }
-        return switch size {
+        return switch effectiveSize {
         case .standard: 4
         case .prominent: 6
         case .contained, .navigation: 0
@@ -311,6 +352,7 @@ public struct SettingsFocusRow<Content: View>: View {
 
     public var body: some View {
         content
+            .environment(\.settingsFormTextInset, 0)
             .font(SettingsRowMetrics.titleFont)
             // Inject the focused state + the "what color should focused
             // content be?" into the environment so descendants (subtitle,
@@ -364,7 +406,17 @@ private struct SettingsRowsHaveDividersKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct SettingsFormTextInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
 public extension EnvironmentValues {
+    /// Group-relative text and divider inset, consumed by already-padded row labels.
+    var settingsFormTextInset: CGFloat {
+        get { self[SettingsFormTextInsetKey.self] }
+        set { self[SettingsFormTextInsetKey.self] = newValue }
+    }
+
     /// Contained groups keep the shared row inset; ordinary forms align labels to their gutter.
     var settingsFormRowsFlushLeading: Bool {
         get { self[SettingsFormRowsFlushLeadingKey.self] }
@@ -548,6 +600,7 @@ public extension View {
             .textCase(.uppercase)
             .tracking(1.8)
             .plozzForeground(.secondary)
+            .settingsFormTextLayout()
         #else
         font(.subheadline.weight(.bold))
             .textCase(.uppercase)
@@ -560,12 +613,14 @@ public extension View {
     /// title (e.g. under "Hero"). Readable but secondary.
     func settingsHelperText() -> some View {
         font(SettingsRowMetrics.helperFont).plozzForeground(.secondary)
+            .settingsFormTextLayout()
     }
 
     /// L4 — a **section** description: a small, dim note under a section header.
     /// Shares the helper-copy size, with quieter emphasis beneath a group heading.
     func settingsSectionDescription() -> some View {
         font(SettingsRowMetrics.descriptionFont).plozzForeground(.tertiary)
+            .settingsFormTextLayout()
     }
 }
 #endif

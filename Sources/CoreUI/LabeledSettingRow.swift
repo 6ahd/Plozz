@@ -52,6 +52,7 @@ public struct LabeledSettingRow<Trailing: View>: View {
                     .frame(maxWidth: .infinity, alignment: trailingAlignment)
             }
         }
+        .settingsFormTextLayout()
         #else
         horizontalRow
         #endif

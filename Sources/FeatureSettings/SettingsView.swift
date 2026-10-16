@@ -442,11 +442,13 @@ public struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             profileHeaderInline
             PlozzDivider()
-                .padding(.leading, 12 + SettingsRowMetrics.iconTitleInset)
-                .padding(.trailing, 28)
+                .padding(.leading, SettingsFormMetrics.groupInset + SettingsRowMetrics.iconTitleInset)
+                .padding(.trailing, SettingsFormMetrics.headingInset)
             profileOwnedRows
-                .padding(12)
+                .padding(SettingsFormMetrics.groupInset)
         }
+        .environment(\.settingsFormTextInset, SettingsRowMetrics.horizontalPadding)
+        .environment(\.settingsFormRowsFlushLeading, false)
         .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
     }
 
@@ -495,8 +497,8 @@ public struct SettingsView: View {
             .padding(28)
 
             PlozzDivider()
-                .padding(.leading, 28 + SettingsRowMetrics.iconTitleInset)
-                .padding(.trailing, 28)
+                .padding(.leading, SettingsFormMetrics.groupInset + SettingsRowMetrics.iconTitleInset)
+                .padding(.trailing, SettingsFormMetrics.headingInset)
 
             SettingsControlRows(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
                 // While sealed every row leads to the PIN instead of its own
@@ -510,10 +512,10 @@ public struct SettingsView: View {
                        icon: isParentalSealed ? "lock.fill" : "person.crop.circle",
                        route: .profileSettings(profileID: activeProfile.id))
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 16)
-            .padding(.bottom, 16)
+            .padding(SettingsFormMetrics.groupInset)
         }
+        .environment(\.settingsFormTextInset, SettingsRowMetrics.horizontalPadding)
+        .environment(\.settingsFormRowsFlushLeading, false)
         .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
     }
 
@@ -590,8 +592,8 @@ public struct SettingsView: View {
             .padding(SettingsWorkspaceHeaderMetrics.contentInset)
 
             PlozzDivider()
-                .padding(.leading, 12 + SettingsRowMetrics.iconTitleInset)
-                .padding(.trailing, 28)
+                .padding(.leading, SettingsFormMetrics.groupInset + SettingsRowMetrics.iconTitleInset)
+                .padding(.trailing, SettingsFormMetrics.headingInset)
 
             SettingsControlRows(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
                 // Shared server sign-ins (the household's full inventory). The
@@ -636,8 +638,10 @@ public struct SettingsView: View {
                            route: .metadata)
                 }
             }
-            .padding(12)
+            .padding(SettingsFormMetrics.groupInset)
         }
+        .environment(\.settingsFormTextInset, SettingsRowMetrics.horizontalPadding)
+        .environment(\.settingsFormRowsFlushLeading, false)
         .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
     }
 

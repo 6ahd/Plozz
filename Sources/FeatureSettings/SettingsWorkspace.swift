@@ -232,7 +232,7 @@ enum SettingsWorkspaceHeaderMetrics {
     static let iconSize: CGFloat = 52
     static let titleFont: Font = .system(size: 36, weight: .bold)
     static let labelSpacing = PlozzTheme.Spacing.medium
-    static let outerInset = PlozzTheme.Spacing.medium
+    static let outerInset = SettingsFormMetrics.groupInset
     static let controlInset = PlozzTheme.Spacing.xSmall
     static let contentInset = outerInset + controlInset
 }

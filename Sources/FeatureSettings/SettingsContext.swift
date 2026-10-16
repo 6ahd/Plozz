@@ -334,8 +334,8 @@ extension EdgeInsets {
     /// stack of toggle / checkable / selector rows (which also pass
     /// `flushLeading: false`).
     static var settingsPanelRowContent: EdgeInsets {
-        EdgeInsets(top: SettingsFormMetrics.headingInset, leading: SettingsFormMetrics.pageInset,
-                   bottom: SettingsFormMetrics.headingInset, trailing: SettingsFormMetrics.pageInset)
+        EdgeInsets(top: PlozzTheme.Spacing.medium, leading: SettingsFormMetrics.pageInset,
+                   bottom: PlozzTheme.Spacing.medium, trailing: SettingsFormMetrics.pageInset)
     }
 }
 

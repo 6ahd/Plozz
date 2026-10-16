@@ -43,6 +43,22 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertFalse(app.buttons["settings-page-subtitles"].exists)
         XCTAssertFalse(app.staticTexts["Show subtitles"].exists)
         capture("19-playback-entered", in: app)
+        let audioKeyline = app.staticTexts["Audio"].frame.minX
+        for label in [
+            "Preferred audio language", "Set separately for movies, TV shows & anime",
+            "Remember audio per series", "TrueHD Atmos and DTS:X", "Autoplay & Up Next"
+        ] {
+            let text = app.staticTexts[label].firstMatch
+            XCTAssertTrue(text.exists, label)
+            XCTAssertEqual(text.frame.minX, audioKeyline, accuracy: 1,
+                           "\(label) must share the section-heading keyline.")
+        }
+        let helper = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "How Plozz picks the audio language")
+        ).firstMatch
+        XCTAssertTrue(helper.exists)
+        XCTAssertEqual(helper.frame.minX, audioKeyline, accuracy: 1,
+                       "Multiline helper text must align with the native control labels.")
         XCTAssertFalse(section("screensNavigation", in: app).exists, app.debugDescription)
         XCUIRemote.shared.press(.menu)
         try focus(section("subtitles", in: app), in: app)

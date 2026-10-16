@@ -15,10 +15,14 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   (tvOS footnote and body render at the same size).
 - **Settings form geometry** — `settingsFormRowLayout()` gives links, On/Off
   rows, and compact inline steppers the same content padding and minimum height.
-  Form groups use 8pt row spacing, 24pt section spacing, and a uniform 10pt
-  focus inset. The contained focus radius is the group's radius minus that
-  inset, so the corners remain concentric. Existing checkmark groups keep
-  their separate focus-bleed geometry.
+  TV form groups use a uniform 16pt focus inset. The contained focus radius is
+  the 28pt group radius minus that inset (12pt), including illustrated groups.
+  Headings, compact labels, helper copy and ordinary dividers share the control
+  text keyline: 16pt group inset plus 12pt row padding. Groups provide
+  `settingsFormTextInset`; `settingsFormTextLayout()` consumes it for static
+  content, while padded focus-row labels reset it to prevent double insets.
+  Outside a grouped form the text helpers add no padding. Legacy uncontained
+  checkmark groups retain their separate focus-bleed geometry.
   Standalone page links use the `.navigation` row role: idle and focused surfaces
   both read the same 28pt radius, with no focus bleed or corner tightening.
   Adjacent page links have an 8pt gap; separate control sections keep their larger gap.

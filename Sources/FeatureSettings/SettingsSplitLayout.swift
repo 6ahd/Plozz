@@ -613,6 +613,9 @@ struct SettingsDetailGroup<Content: View>: View {
                 Text(description)
                     .settingsSectionDescription()
                     .fixedSize(horizontal: false, vertical: true)
+                    #if os(tvOS)
+                    .padding(.horizontal, SettingsFormMetrics.headingInset)
+                    #endif
             }
             #if os(tvOS)
             SettingsControlGroup(illustrated: illustrated, content: content)

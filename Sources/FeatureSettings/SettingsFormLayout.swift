@@ -91,7 +91,8 @@ private struct SettingsFormRow: View {
                 Spacer(minLength: 16)
                 row.detail()
             }
-            .padding(SettingsFormMetrics.groupInset)
+            .padding(.horizontal, SettingsFormMetrics.headingInset)
+            .padding(.vertical, SettingsFormMetrics.groupInset)
             .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
             .accessibilityIdentifier("settings-group-\(row.id)")
         } else {
@@ -128,7 +129,7 @@ struct SettingsFormGroup<Content: View>: View {
 
 struct SettingsControlGroup<Content: View>: View {
     var illustrated = false
-    var dividerLeadingInset: CGFloat = 0
+    var dividerLeadingInset: CGFloat? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -140,10 +141,11 @@ struct SettingsControlGroup<Content: View>: View {
             }
         }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(illustrated ? SettingsFormMetrics.illustratedGroupSpacing : SettingsFormMetrics.groupInset)
+            .padding(SettingsFormMetrics.groupInset)
             .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
             .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
             .environment(\.settingsFormRowsFlushLeading, false)
+            .environment(\.settingsFormTextInset, SettingsRowMetrics.horizontalPadding)
     }
 }
 
@@ -160,7 +162,8 @@ private struct SettingsFormLinkLabel: View {
                 .font(.caption.weight(.semibold))
                 .settingsRowSecondary()
         }
-        .padding(20)
+        .padding(.horizontal, SettingsFormMetrics.headingInset)
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .settingsGroupSurface(cornerRadius: SettingsRowMetrics.navigationCornerRadius)
     }
@@ -208,6 +211,7 @@ private struct SettingsFormRowContent: View {
                 if let description = row.description {
                     description.settingsHelperText()
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, SettingsFormMetrics.headingInset)
                 }
             }
             .padding(.horizontal, SettingsFormMetrics.pageInset)

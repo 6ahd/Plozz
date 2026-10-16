@@ -267,7 +267,8 @@ struct HeroSettingsScreen: View {
             SettingsDetailPages(navigation: childNavigation) {
                 ViewCustomizationList(
                     title: page.title, initialRowID: initialRowID,
-                    sectionSpacing: SettingsRowMetrics.formSectionSpacing
+                    sectionSpacing: SettingsRowMetrics.formSectionSpacing,
+                    hasGroupedContent: true
                 ) {
                     form
                         .environment(childNavigation)

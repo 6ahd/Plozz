@@ -23,7 +23,7 @@ struct SettingsCheckGroup<Content: View>: View {
 
     var body: some View {
         content()
-            .padding(.vertical, SettingsRowMetrics.formGroupInset)
+            .padding(.vertical, rowSize == .contained ? SettingsRowMetrics.formGroupInset : 10)
             .padding(.horizontal, rowSize == .contained ? SettingsRowMetrics.formGroupInset : 22)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
@@ -34,6 +34,9 @@ struct SettingsCheckGroup<Content: View>: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
             )
+            #if os(tvOS)
+            .environment(\.settingsFormTextInset, rowSize == .contained ? SettingsRowMetrics.horizontalPadding : 0)
+            #endif
     }
 }
 

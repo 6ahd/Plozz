@@ -10,6 +10,37 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
+    func testGroupedSettingsAlignHeadingsCompactLabelsHelpersAndSteppers() async throws {
+        try await withScreen(content:
+            SettingsFormGroup(title: Text("Shared heading"), description: Text("Shared footer")) {
+                LabeledSettingRow("Shared preferred language", trailingAlignment: .trailing) {
+                    Button("English") {}.buttonStyle(.bordered)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Shared toggle", isOn: .constant(true))
+                    Text("Shared helper").settingsHelperText()
+                }
+                SettingsStepper(
+                    options: [10, 20, 30], selection: .constant(20),
+                    label: "Shared time interval", subtitle: "Shared interval description",
+                    verbatimTitle: { $0.formatted() }
+                )
+            }
+            .frame(width: SettingsFormMetrics.pageWidth)
+        ) { window in
+            let labels = [
+                "Shared heading", "Shared preferred language", "Shared toggle",
+                "Shared helper", "Shared time interval", "Shared interval description", "Shared footer"
+            ]
+            let expected = (window.bounds.width - SettingsFormMetrics.pageWidth) / 2 + 28
+            for label in labels {
+                let frame = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: label).first).frame
+                XCTAssertEqual(frame.minX, expected, accuracy: 3, "\(label) must share the group text keyline.")
+            }
+            _ = try await self.capture(window, name: "settings-native-shared-keylines", includeMaster: true)
+        }
+    }
+
     func testIllustratedCardSeparatorAlternatives() async throws {
         for divider in [false, true] {
             try await withScreen(content: VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
@@ -519,18 +550,22 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             let sourceLabels = try self.collectionLabelFrames(in: window, attachmentName: "hero-source-label-metrics")
             let random = try XCTUnwrap(sourceLabels.first { $0.text == "Random from Library" })
             let choose = try XCTUnwrap(sourceLabels.first { $0.text == "Choose libraries" })
+            let image = self.renderWindow(window)
             for label in [random, choose] {
-                XCTAssertEqual(label.frame.height, try self.controlInkHeight(label.text), accuracy: 3,
+                XCTAssertEqual(try self.textInkBounds(in: image, frame: label.frame).height,
+                               try self.controlInkHeight(label.text, excludingOCRPadding: true), accuracy: 3,
                                "Source switches and links must use the shared control font, accounting for different glyphs.")
             }
-            XCTAssertEqual(random.frame.minX, choose.frame.minX, accuracy: 2,
+            XCTAssertEqual(try self.textInkBounds(in: image, frame: random.frame).minX,
+                           try self.textInkBounds(in: image, frame: choose.frame).minX, accuracy: 2,
                            "Grouped source controls must share a leading text edge.")
             let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
             let host = try XCTUnwrap(window.rootViewController as? ArtworkFocusRequesting)
             let initialFrame = try self.nativeFrame(try XCTUnwrap(system.focusedItem), in: window)
-            XCTAssertEqual(initialFrame.minX, (window.bounds.width - 1100) / 2 + 48
+            XCTAssertEqual(initialFrame.minX, (window.bounds.width - 1100) / 2 + SettingsFormMetrics.pageInset
                            + SettingsRowMetrics.formGroupInset, accuracy: 1)
-            XCTAssertEqual(initialFrame.width, 1100 - 96 - 2 * SettingsRowMetrics.formGroupInset, accuracy: 1)
+            XCTAssertEqual(initialFrame.width,
+                           1100 - 2 * (SettingsFormMetrics.pageInset + SettingsRowMetrics.formGroupInset), accuracy: 1)
             try self.assertConcentricGroup(in: window, focusFrame: initialFrame)
             var sourceFrames: [CGRect] = []
             for label in [random, choose] {
@@ -548,7 +583,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             }
             XCTAssertEqual(sourceFrames[0].height, sourceFrames[1].height, accuracy: 1)
             XCTAssertEqual(sourceFrames[1].minY - sourceFrames[0].maxY,
-                           SettingsRowMetrics.formRowSpacing, accuracy: 1)
+                           2 * SettingsFormMetrics.dividerFocusClearance + 1, accuracy: 1)
             let scroll = try self.verticalScroll(in: window)
             scroll.setContentOffset(CGPoint(
                 x: scroll.contentOffset.x,
@@ -919,7 +954,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         }
     }
 
-    private func controlInkHeight(_ text: String) throws -> CGFloat {
+    private func controlInkHeight(_ text: String, excludingOCRPadding: Bool = false) throws -> CGFloat {
         let renderer = ImageRenderer(content: Text(verbatim: text)
             .font(SettingsRowMetrics.titleFont)
             .foregroundStyle(.white)
@@ -931,7 +966,12 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-        return try XCTUnwrap(request.results?.first).boundingBox.height * image.size.height
+        let bounds = try XCTUnwrap(request.results?.first).boundingBox
+        guard excludingOCRPadding else { return bounds.height * image.size.height }
+        return try textInkBounds(in: image, frame: CGRect(
+            x: bounds.minX * image.size.width, y: (1 - bounds.maxY) * image.size.height,
+            width: bounds.width * image.size.width, height: bounds.height * image.size.height
+        )).height
     }
 
     /// OCR locates the label; actual ink avoids contrast-dependent OCR box padding.
@@ -982,9 +1022,10 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             horizontal.map { brightness(x: $0, y: Int(focusFrame.midY)) },
             vertical.map { brightness(x: Int(focusFrame.midX), y: $0) }
         ] {
-            let outerStart = try XCTUnwrap(samples.firstIndex { $0 > 5 })
+            let background = try XCTUnwrap(samples.first)
+            let outerStart = try XCTUnwrap(samples.firstIndex { Int($0) > Int(background) + 5 })
             let innerStart = try XCTUnwrap(samples.firstIndex { $0 > 240 })
-            let outerEnd = try XCTUnwrap(samples.lastIndex { $0 > 5 })
+            let outerEnd = try XCTUnwrap(samples.lastIndex { Int($0) > Int(background) + 5 })
             let innerEnd = try XCTUnwrap(samples.lastIndex { $0 > 240 })
             XCTAssertEqual(CGFloat(innerStart - outerStart), SettingsRowMetrics.formGroupInset, accuracy: 1)
             XCTAssertEqual(CGFloat(outerEnd - innerEnd), SettingsRowMetrics.formGroupInset, accuracy: 1)

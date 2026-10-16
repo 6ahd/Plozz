@@ -115,6 +115,7 @@ struct ViewCustomizationList<Content: View>: View {
     let initialRowID: String
     var focusedHelp: (String) -> ViewCustomizationHelp? = { _ in nil }
     var sectionSpacing: CGFloat = SettingsRowMetrics.formRowSpacing
+    var hasGroupedContent = false
     @ViewBuilder var content: () -> Content
     @SettingsPageDismiss private var dismiss
     @Environment(SettingsDetailNavigation.self) private var detailNavigation: SettingsDetailNavigation?
@@ -150,7 +151,13 @@ struct ViewCustomizationList<Content: View>: View {
                                 VStack(alignment: .leading, spacing: sectionSpacing) {
                                     section.header
                                         .padding(.horizontal, SettingsFormMetrics.headingInset)
-                                    SettingsControlGroup { section.content }
+                                    if hasGroupedContent {
+                                        VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
+                                            section.content
+                                        }
+                                    } else {
+                                        SettingsControlGroup { section.content }
+                                    }
                                     section.footer
                                         .settingsHelperText()
                                         .padding(.horizontal, SettingsFormMetrics.headingInset)

@@ -22,6 +22,10 @@ final class PlozzMetricsTests: XCTestCase {
         XCTAssertGreaterThan(SettingsRowMetrics.formGroupInset, 0)
         #if os(tvOS)
         let groupRadius = SettingsFormMetrics.groupCornerRadius
+        XCTAssertEqual(SettingsFormMetrics.groupInset, 16)
+        XCTAssertEqual(SettingsRowMetrics.formGroupInset, SettingsFormMetrics.groupInset)
+        XCTAssertEqual(SettingsRowMetrics.formRowCornerRadius, 12)
+        XCTAssertEqual(SettingsFormMetrics.headingInset, 28)
         #else
         let groupRadius = PlozzTheme.Metrics.Radius.card
         #endif

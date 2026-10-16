@@ -115,8 +115,16 @@ and the single place caption customization lives.
   `SettingsControlGroup` supplies section surfaces, row separators and insets;
   `SettingsDetailGroup` uses it for Cards and other multi-group pages. A row marked
   `groupedContent()` already owns its groups and must not gain another outer box.
+  `ViewCustomizationList.hasGroupedContent` preserves the same boundary for
+  editors such as Hero's source groups instead of adding a second container.
   Illustrated groups use 16pt padding on every side and a 16pt gap without a
   divider between previews and controls, including Theme, Cards and Navigation.
+  Ordinary form groups share that 16pt inset and a concentric 12pt focus radius.
+  Illustrated cards derive their outer chrome from the same contained radius and
+  do not scale through the inset on focus; standalone/onboarding cards are unchanged.
+  Group headings, compact labels, toggle/stepper labels, helper copy and ordinary
+  separators use one 28pt leading text keyline. Static copy inherits its inset
+  from the group; already-padded control labels consume it instead of doubling it.
   `illustratedContent()` selects that layout for single-group form rows. Ordinary
   row separators leave 8pt clear of focus on each side; root category separators
   align with the labels rather than extending under their icons.

@@ -6,6 +6,122 @@ import XCTest
 
 @MainActor
 final class SettingsControlRowsHostedTests: XCTestCase {
+    func testGroupedControlHelperAndDividerShareTheTextKeyline() throws {
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            let renderer = ImageRenderer(content:
+                SettingsControlGroup {
+                    VStack(spacing: 0) {
+                        Color(red: 1, green: 0, blue: 0).frame(height: 40).settingsFormRowLayout()
+                        Color(red: 0, green: 1, blue: 0).frame(height: 8).settingsHelperText()
+                    }
+                    Color.clear.frame(height: 40)
+                }
+                .frame(width: 320)
+                .environment(\.layoutDirection, direction)
+                .environment(\.themePalette, .dark)
+            )
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.cgImage)
+            let bytes = try pixels(image)
+            for (y, channel) in [(48, 0), (94, 1)] {
+                let columns = (0..<image.width).filter {
+                    let offset = (y * image.width + $0) * 4
+                    return bytes[offset + channel] > 100 && bytes[offset + 2] < 10
+                }
+                XCTAssertEqual(columns, Array(28..<292),
+                               "Controls and helpers share a 16pt group inset plus 12pt text inset.")
+            }
+            let divider = (0..<image.width).filter {
+                bytes[(106 * image.width + $0) * 4] > bytes[(105 * image.width + $0) * 4] + 5
+            }
+            XCTAssertEqual(divider, Array(28..<292))
+        }
+    }
+
+    func testGroupedFocusUsesTheActualInsetAndConcentricCornerSilhouette() throws {
+        for illustrated in [false, true] {
+            let renderer = ImageRenderer(content:
+                SettingsControlGroup(illustrated: illustrated) {
+                    SettingsFocusRow(isFocused: true) {
+                        Color.clear.frame(height: 80)
+                    }
+                }
+                .frame(width: 320)
+                .background(Color.black)
+                .environment(\.themePalette, .dark)
+                .environment(\.colorScheme, .dark)
+            )
+            let reference = ImageRenderer(content:
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white)
+                    .frame(width: 288, height: 80)
+                    .padding(16)
+                    .background(Color.black)
+            )
+            renderer.scale = 1
+            reference.scale = 1
+            let image = try XCTUnwrap(renderer.cgImage)
+            let expected = try XCTUnwrap(reference.cgImage)
+            XCTAssertEqual(image.width, 320)
+            XCTAssertEqual(image.height, 112)
+            let actualBytes = try pixels(image)
+            let expectedBytes = try pixels(expected)
+            let mismatches = stride(from: 0, to: actualBytes.count, by: 4).filter {
+                (actualBytes[$0] > 240) != (expectedBytes[$0] > 240)
+            }
+            XCTAssertEqual(mismatches.count, 0,
+                           "A 28pt outer corner and 16pt inset require a 12pt contained focus corner, without bleed.")
+        }
+    }
+
+    func testGroupedIconDividersFollowTheTextColumnInBothDirections() throws {
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            let renderer = ImageRenderer(content:
+                SettingsControlGroup(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
+                    Color.clear.frame(height: 40)
+                    Color.clear.frame(height: 40)
+                }
+                .frame(width: 320)
+                .environment(\.layoutDirection, direction)
+                .environment(\.themePalette, .dark)
+            )
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.cgImage)
+            let bytes = try pixels(image)
+            let columns = (0..<image.width).filter {
+                bytes[(64 * image.width + $0) * 4] > bytes[(63 * image.width + $0) * 4] + 5
+            }
+            XCTAssertEqual(columns, direction == .leftToRight ? Array(74..<292) : Array(28..<246))
+        }
+    }
+
+    func testIllustratedCardChromeUsesTheContainedCornerRadius() throws {
+        let renderer = ImageRenderer(content:
+            SettingsControlGroup(illustrated: true) {
+                Button {} label: { Color.clear.frame(height: 80) }
+                    .buttonStyle(ThemeCardButtonStyle(accent: .white, isSelected: true, cornerRadius: 32))
+            }
+            .frame(width: 320)
+            .environment(\.themePalette, .dark)
+            .environment(\.colorScheme, .dark)
+        )
+        let reference = ImageRenderer(content:
+            Button {} label: { Color.clear.frame(width: 288, height: 80) }
+                .buttonStyle(ThemeCardButtonStyle(accent: .white, isSelected: true, cornerRadius: 12))
+                .padding(16)
+                .settingsGroupSurface(cornerRadius: 28)
+                .environment(\.themePalette, .dark)
+                .environment(\.colorScheme, .dark)
+        )
+        renderer.scale = 1
+        reference.scale = 1
+        let actualBytes = try pixels(XCTUnwrap(renderer.cgImage))
+        let expectedBytes = try pixels(XCTUnwrap(reference.cgImage))
+        XCTAssertEqual(actualBytes.count, expectedBytes.count)
+        let mismatches = zip(actualBytes, expectedBytes).filter { $0 != $1 }
+        XCTAssertEqual(mismatches.count, 0, "Illustrated cards must derive their chrome from the containing group.")
+    }
+
     func testStandaloneNavigationFocusMatchesTheIdleContainerSilhouette() throws {
         let focused = ImageRenderer(content:
             SettingsFocusRow(isFocused: true, size: .navigation) {
