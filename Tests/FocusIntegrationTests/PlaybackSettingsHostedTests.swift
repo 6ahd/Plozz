@@ -1,5 +1,6 @@
 import CoreModels
 import CoreUI
+import Observation
 import SwiftUI
 import UIKit
 import Vision
@@ -8,7 +9,7 @@ import XCTest
 
 @MainActor
 final class PlaybackSettingsHostedTests: XCTestCase {
-    func testLibrarySummaryUpdatesWithoutRebuildingTheRootSettingsFocusHierarchy() async throws {
+    func testLibrarySourcesShowConfiguredNamesAndUpdateWithProfileSelection() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
               ContinuousClock.now < deadline {
@@ -17,21 +18,26 @@ final class PlaybackSettingsHostedTests: XCTestCase {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
         let previous = scene.windows.first(where: \.isKeyWindow)
-        let suite = "library-summary-hosted-\(UUID())"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
-        let libraries = DiscoveredLibrariesStore()
-        let account = Account(
-            id: "included",
-            server: MediaServer(id: "server", name: "Server",
-                                baseURL: URL(string: "https://example.invalid")!, provider: .jellyfin),
-            userID: "viewer", userName: "Viewer", deviceID: "test"
-        )
+        let fixtures: [(String, String, ProviderKind)] = [
+            ("plex", "Family Plex", .plex), ("jellyfin", "Cinema Server", .jellyfin),
+            ("share", "Archive NAS", .mediaShare), ("silo", "Weekend Silo", .silo),
+            ("emby", "Family Emby", .emby)
+        ]
+        let accounts = fixtures.map { id, name, provider in
+            Account(
+                id: id, server: MediaServer(
+                    id: id, name: name,
+                    baseURL: URL(string: "\(provider == .mediaShare ? "smb" : "https")://\(id).example/Media")!,
+                    provider: provider
+                ), userID: "viewer", userName: "Viewer", deviceID: "test"
+            )
+        }
+        let selection = LibrarySourceSelection(includedIDs: Set(accounts.map(\.id)))
         var rootRenders = 0
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
         window.rootViewController = UIHostingController(rootView:
-            LibrarySummaryHost(libraries: libraries, visibility: visibility, account: account) {
+            LibrarySummaryHost(accounts: accounts, selection: selection) {
                 rootRenders += 1
             }
             .environment(SettingsNavigationModel())
@@ -46,33 +52,24 @@ final class PlaybackSettingsHostedTests: XCTestCase {
             window.isHidden = true
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
-            defaults.removePersistentDomain(forName: suite)
         }
         try await Task.sleep(for: .milliseconds(400))
         let initialRenders = rootRenders
         XCTAssertGreaterThan(initialRenders, 0)
-        let discovered = ["Movies", "Music"].enumerated().map { index, name in
-            AggregatedLibrary(
-                accountID: account.id, accountName: account.userName,
-                serverName: account.server.name, providerKind: .jellyfin,
-                library: MediaLibrary(id: "\(index)", title: name, kind: .movie, isMusic: index == 1)
-            )
-        }
-        for loaded in [false, true] {
-            libraries.state = loaded ? .loaded(discovered) : .loading
+        for included: Set<String> in [Set(accounts.map(\.id)), ["silo", "emby"], []] {
+            selection.includedIDs = included
             try await Task.sleep(for: .milliseconds(200))
-            let text = try visibleText(in: window, attachment: "settings-library-summary-loaded-\(loaded)")
+            let text = try visibleText(in: window, attachment: "settings-library-sources-\(included.count)")
             XCTAssertTrue(text.contains("Libraries"), text)
-            XCTAssertEqual(text.contains("Movies"), loaded, text)
-            XCTAssertEqual(text.contains("Music"), loaded, text)
-            XCTAssertEqual(rootRenders, initialRenders, "Discovery must update only the stable Libraries row.")
+            let visibleNames = Array(fixtures.filter { included.contains($0.0) }.prefix(3)).map(\.1)
+            for (_, name, _) in fixtures {
+                XCTAssertEqual(text.contains(name), visibleNames.contains(name), text)
+            }
+            XCTAssertEqual(text.replacingOccurrences(of: " ", with: "").contains("+2more"),
+                           included.count == 5, text)
+            XCTAssertEqual(text.contains("Choose what to watch"), included.isEmpty, text)
+            XCTAssertEqual(rootRenders, initialRenders, "Source selection must update only the Libraries row.")
         }
-        visibility.setEnabled(false, for: discovered[0].key)
-        try await Task.sleep(for: .milliseconds(200))
-        let text = try visibleText(in: window, attachment: "settings-library-summary-disabled")
-        XCTAssertFalse(text.contains("Movies"), text)
-        XCTAssertTrue(text.contains("Music"), text)
-        XCTAssertEqual(rootRenders, initialRenders, "Visibility must also be observed inside the row.")
     }
 
     func testSkipMarkerControlsAreInlineOnPlaybackPage() async throws {
@@ -182,16 +179,24 @@ final class PlaybackSettingsHostedTests: XCTestCase {
 }
 
 private struct LibrarySummaryHost: View {
-    let libraries: DiscoveredLibrariesStore
-    let visibility: HomeLibraryVisibilityModel
-    let account: Account
+    let accounts: [Account]
+    let selection: LibrarySourceSelection
     let onRender: () -> Void
 
     var body: some View {
         let _ = onRender()
         SettingsLibrariesRow(
-            libraries: libraries, visibility: visibility, accounts: [account],
-            isAccountIncluded: { $0 == account.id }
+            accounts: accounts,
+            isAccountIncluded: { selection.includedIDs.contains($0) }
         )
+    }
+}
+
+@MainActor @Observable
+private final class LibrarySourceSelection {
+    var includedIDs: Set<String>
+
+    init(includedIDs: Set<String>) {
+        self.includedIDs = includedIDs
     }
 }

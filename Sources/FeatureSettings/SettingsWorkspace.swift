@@ -114,6 +114,7 @@ struct SettingsSectionButton: View {
     var assetIcon: String?
     var value: Text?
     var subtitle: Text?
+    var subtitleContent: AnyView?
     let route: SettingsRoute
     @Environment(SettingsNavigationModel.self) private var navigation
     @Environment(\.layoutDirection) private var layoutDirection
@@ -125,7 +126,8 @@ struct SettingsSectionButton: View {
         } label: {
             SettingsSectionLabel(
                 title: title, icon: icon, assetIcon: assetIcon,
-                value: value, subtitle: subtitle, selected: navigation.section == route
+                value: value, subtitle: subtitle, subtitleContent: subtitleContent,
+                selected: navigation.section == route
             )
         }
         .buttonStyle(SettingsFocusButtonStyle(size: .contained))
@@ -200,6 +202,7 @@ struct SettingsSectionLabel: View {
     let assetIcon: String?
     let value: Text?
     let subtitle: Text?
+    var subtitleContent: AnyView?
     let selected: Bool
     var accessorySymbol = "chevron.forward"
     @Environment(\.settingsRowIsFocused) private var focused
@@ -207,10 +210,16 @@ struct SettingsSectionLabel: View {
 
     var body: some View {
         SettingsRowLabel(icon: icon, assetIcon: assetIcon, title: title, secondary: {
-            subtitle?
-                .font(SettingsRowMetrics.helperFont)
-                .settingsRowSecondary()
-                .lineLimit(2)
+            Group {
+                if let subtitleContent {
+                    subtitleContent
+                } else {
+                    subtitle
+                }
+            }
+            .font(SettingsRowMetrics.helperFont)
+            .settingsRowSecondary()
+            .lineLimit(2)
         }, trailing: {
             HStack(spacing: 10) {
                 value?.font(.caption).settingsRowSecondary()

@@ -1,52 +1,42 @@
 #if os(tvOS)
 import CoreModels
-import CoreUI
 import XCTest
 @testable import FeatureSettings
 
 @MainActor
 final class SettingsLibrarySummaryTests: XCTestCase {
-    func testSummaryOnlyIncludesEnabledLibrariesForTheCurrentAccounts() {
-        let libraries = [
-            library("movies", title: "Movies", account: "plex", provider: .plex),
-            library("films", title: "Movies", account: "jellyfin", provider: .jellyfin),
-            library("music", title: "Music", account: "jellyfin", provider: .jellyfin, isMusic: true),
-            library("hidden", title: "Hidden", account: "plex", provider: .plex),
-            library("adult", title: "Another profile", account: "excluded", provider: .jellyfin),
-            library("plex:collections:movies", title: "Retired", account: "plex", provider: .plex,
-                    kind: .collection)
+    func testStripShowsAddedSourceNamesGroupedByServerAndFilteredByProfile() {
+        let accounts = [
+            account("plex-owner", name: "Family Plex", provider: .plex, url: "https://plex.example"),
+            account("plex-viewer", name: "Family Plex", provider: .plex, url: "https://plex.example"),
+            account("jellyfin", name: "Cinema Server", provider: .jellyfin, url: "https://jellyfin.example"),
+            account("excluded", name: "Another profile's server", provider: .silo, url: "https://silo.example")
         ]
-        let visibility = HomeLibraryVisibility(disabledKeys: ["plex:hidden"])
-        XCTAssertEqual(SettingsLibrariesRow.names(
-            in: libraries, accountIDs: ["plex", "jellyfin"], visibility: visibility,
-            locale: Locale(identifier: "en_US")
-        ), ["Movies", "Music"])
-        XCTAssertEqual(SettingsLibrariesRow.names(
-            in: libraries, accountIDs: ["excluded"], visibility: visibility,
-            locale: Locale(identifier: "en_US")
-        ), ["Another profile"])
-        XCTAssertEqual(SettingsLibrariesRow.names(
-            in: libraries, accountIDs: [], visibility: visibility, locale: .current
-        ), [])
+        let included: Set<String> = ["plex-viewer", "jellyfin"]
+        let groups = SettingsLibrariesRow.watchedServerGroups(in: accounts) { included.contains($0) }
+        XCTAssertEqual(groups.map(\.serverName), ["Family Plex", "Cinema Server"])
+        XCTAssertEqual(groups.map(\.providerKind), [.plex, .jellyfin])
+        XCTAssertEqual(SettingsLibrariesRow.watchedServerGroups(in: accounts) { $0 == "excluded" }
+            .map(\.serverName), ["Another profile's server"])
+        XCTAssertTrue(SettingsLibrariesRow.watchedServerGroups(in: accounts) { _ in false }.isEmpty)
+        XCTAssertTrue(SettingsLibrariesRow.watchedServerGroups(in: []) { _ in true }.isEmpty)
     }
 
-    func testSummaryUsesSynthesizedDisplayNamesWithoutTranslatingServerNames() {
-        var synthesized = library("share", title: "Internal fallback", account: "share", provider: .mediaShare)
-        synthesized.library.synthesizedName = .movies
-        let named = library("named", title: "Family cinema", account: "share", provider: .mediaShare)
-        let locale = Locale(identifier: "fr_FR")
-        XCTAssertEqual(SettingsLibrariesRow.names(
-            in: [synthesized, named], accountIDs: ["share"], visibility: .default, locale: locale
-        ), [synthesized.library.displayName(in: locale), "Family cinema"])
+    func testStripPreservesDistinctSharesAndTheirTransportIcons() {
+        let accounts = [
+            account("smb", name: "NAS", provider: .mediaShare, url: "smb://nas.example/Media"),
+            account("dav", name: "NAS", provider: .mediaShare, url: "https://nas.example/Media")
+        ]
+        let groups = SettingsLibrariesRow.watchedServerGroups(in: accounts) { _ in true }
+        XCTAssertEqual(groups.map(\.serverName), ["NAS", "NAS"])
+        XCTAssertEqual(groups.map(\.transportKind), [.smb, .webDAV])
+        XCTAssertNotEqual(groups[0].serverKey, groups[1].serverKey)
     }
 
-    private func library(
-        _ id: String, title: String, account: String, provider: ProviderKind,
-        kind: MediaItemKind = .movie, isMusic: Bool = false
-    ) -> AggregatedLibrary {
-        AggregatedLibrary(
-            accountID: account, accountName: "Viewer", serverName: "Server", providerKind: provider,
-            library: MediaLibrary(id: id, title: title, kind: kind, isMusic: isMusic)
+    private func account(_ id: String, name: String, provider: ProviderKind, url: String) -> Account {
+        Account(
+            id: id, server: MediaServer(id: id, name: name, baseURL: URL(string: url)!, provider: provider),
+            userID: id, userName: id, deviceID: "test"
         )
     }
 }

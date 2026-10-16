@@ -91,9 +91,11 @@ and the single place caption customization lives.
   The navigation history and profile context remain intact, including
   inside the editor's font and appearance subpages.
   Libraries, Live TV and Trackers remain profile-owned. Household setup is
-  separate under Everyone. The root Libraries row lists enabled libraries from
-  the active profile's included accounts. Discovery is observed inside that
-  stable row rather than rebuilding the root focus hierarchy.
+  separate under Everyone. Beneath Libraries, the original signed-in strip shows
+  the names and provider icons of the added sources this profile watches, grouped
+  by server like the detail page. It shows up to three, then a "+N more" count.
+  These are configured source names, not discovered sections such as Movies or
+  Music, so they remain visible before discovery or while a server is offline.
   Profile categories start with Playback, Subtitles,
   Live TV and Libraries, then Appearance, Screens & Navigation, Trackers and Language.
   Appearance, Screens & Navigation and Trackers retain concise explanatory subtitles.

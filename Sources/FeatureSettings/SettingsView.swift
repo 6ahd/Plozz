@@ -503,7 +503,7 @@ public struct SettingsView: View {
                 // page. The row still says what it is — the lock is the only
                 // thing that changes.
                 SettingsLibrariesRow(
-                    libraries: librariesStore, visibility: homeVisibility, accounts: accounts,
+                    accounts: accounts,
                     isAccountIncluded: isAccountIncludedInActiveProfile,
                     icon: isParentalSealed ? "lock.fill" : "rectangle.stack"
                 )
@@ -531,7 +531,7 @@ public struct SettingsView: View {
             // preferences made the two look equally theirs.
             if !showsParentalControlsSection {
                 SettingsLibrariesRow(
-                    libraries: librariesStore, visibility: homeVisibility, accounts: accounts,
+                    accounts: accounts,
                     isAccountIncluded: isAccountIncludedInActiveProfile
                 )
             }

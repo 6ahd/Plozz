@@ -3,45 +3,57 @@ import CoreModels
 import CoreUI
 import SwiftUI
 
-/// Observe discovery in this row, never in the root Settings focus hierarchy.
+/// The added sources this profile watches, independent of library discovery.
 struct SettingsLibrariesRow: View {
-    let libraries: DiscoveredLibrariesStore
-    let visibility: HomeLibraryVisibilityModel
     let accounts: [Account]
     let isAccountIncluded: (String) -> Bool
     var icon = "rectangle.stack"
-    @Environment(\.locale) private var locale
 
     var body: some View {
         SettingsSectionButton(
             title: Text(SettingsCopy.libraries), icon: icon,
-            subtitle: summary, route: .myLibraries
+            subtitleContent: AnyView(signedInStrip), route: .myLibraries
         )
     }
 
-    private var summary: Text? {
-        guard case let .loaded(discovered) = libraries.state else { return nil }
-        let names = Self.names(
-            in: discovered,
-            accountIDs: Set(accounts.filter { isAccountIncluded($0.id) }.map(\.id)),
-            visibility: visibility.visibility, locale: locale
-        )
-        guard !names.isEmpty else { return nil }
-        return Text(verbatim: names.formatted(.list(type: .and).locale(locale)))
+    @ViewBuilder private var signedInStrip: some View {
+        let groups = Self.watchedServerGroups(in: accounts, isAccountIncluded: isAccountIncluded)
+        if accounts.isEmpty {
+            Text("No servers yet")
+        } else if groups.isEmpty {
+            Text("Choose what to watch")
+        } else {
+            HStack(alignment: .center, spacing: 10) {
+                let visible = Array(groups.prefix(3))
+                let overflow = groups.count - visible.count
+                ForEach(Array(visible.enumerated()), id: \.element.serverKey) { index, group in
+                    if index > 0 { Text(verbatim: "·") }
+                    HStack(spacing: 8) {
+                        ProviderIcon(
+                            provider: group.providerKind, size: 24,
+                            mediaShareTransport: group.transportKind
+                        )
+                        .scaleEffect(1.3)
+                        .padding(.horizontal, 4)
+                        Text(verbatim: group.serverName)
+                            .fontWeight(.medium)
+                            .lineLimit(1)
+                    }
+                }
+                if overflow > 0 {
+                    Text("· +\(overflow) more")
+                        .fixedSize()
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
     }
 
-    static func names(
-        in libraries: [AggregatedLibrary],
-        accountIDs: Set<String>,
-        visibility: HomeLibraryVisibility,
-        locale: Locale
-    ) -> [String] {
-        var seen = Set<String>()
-        return libraries.compactMap { library in
-            guard accountIDs.contains(library.accountID), visibility.isEnabled(library.key),
-                  !library.isRetiredCollectionShortcut else { return nil }
-            let name = library.library.displayName(in: locale)
-            return seen.insert(name).inserted ? name : nil
+    static func watchedServerGroups(
+        in accounts: [Account], isAccountIncluded: (String) -> Bool
+    ) -> [ServerAccountGroup] {
+        serverGroups(from: accounts).filter { group in
+            group.accounts.contains { isAccountIncluded($0.id) }
         }
     }
 }
