@@ -8,6 +8,73 @@ import XCTest
 
 @MainActor
 final class PlaybackSettingsHostedTests: XCTestCase {
+    func testLibrarySummaryUpdatesWithoutRebuildingTheRootSettingsFocusHierarchy() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let suite = "library-summary-hosted-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        let libraries = DiscoveredLibrariesStore()
+        let account = Account(
+            id: "included",
+            server: MediaServer(id: "server", name: "Server",
+                                baseURL: URL(string: "https://example.invalid")!, provider: .jellyfin),
+            userID: "viewer", userName: "Viewer", deviceID: "test"
+        )
+        var rootRenders = 0
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        window.rootViewController = UIHostingController(rootView:
+            LibrarySummaryHost(libraries: libraries, visibility: visibility, account: account) {
+                rootRenders += 1
+            }
+            .environment(SettingsNavigationModel())
+            .environment(\.themePalette, .dark)
+            .environment(\.locale, Locale(identifier: "en_US"))
+            .frame(width: SettingsFormMetrics.pageWidth)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.black)
+        )
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+            defaults.removePersistentDomain(forName: suite)
+        }
+        try await Task.sleep(for: .milliseconds(400))
+        let initialRenders = rootRenders
+        XCTAssertGreaterThan(initialRenders, 0)
+        let discovered = ["Movies", "Music"].enumerated().map { index, name in
+            AggregatedLibrary(
+                accountID: account.id, accountName: account.userName,
+                serverName: account.server.name, providerKind: .jellyfin,
+                library: MediaLibrary(id: "\(index)", title: name, kind: .movie, isMusic: index == 1)
+            )
+        }
+        for loaded in [false, true] {
+            libraries.state = loaded ? .loaded(discovered) : .loading
+            try await Task.sleep(for: .milliseconds(200))
+            let text = try visibleText(in: window, attachment: "settings-library-summary-loaded-\(loaded)")
+            XCTAssertTrue(text.contains("Libraries"), text)
+            XCTAssertEqual(text.contains("Movies"), loaded, text)
+            XCTAssertEqual(text.contains("Music"), loaded, text)
+            XCTAssertEqual(rootRenders, initialRenders, "Discovery must update only the stable Libraries row.")
+        }
+        visibility.setEnabled(false, for: discovered[0].key)
+        try await Task.sleep(for: .milliseconds(200))
+        let text = try visibleText(in: window, attachment: "settings-library-summary-disabled")
+        XCTAssertFalse(text.contains("Movies"), text)
+        XCTAssertTrue(text.contains("Music"), text)
+        XCTAssertEqual(rootRenders, initialRenders, "Visibility must also be observed inside the row.")
+    }
+
     func testSkipMarkerControlsAreInlineOnPlaybackPage() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
@@ -95,5 +162,36 @@ final class PlaybackSettingsHostedTests: XCTestCase {
     private func scrollView(in view: UIView) -> UIScrollView? {
         if let scroll = view as? UIScrollView { return scroll }
         return view.subviews.lazy.compactMap { self.scrollView(in: $0) }.first
+    }
+
+    private func visibleText(in window: UIWindow, attachment name: String) throws -> String {
+        window.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+    }
+}
+
+private struct LibrarySummaryHost: View {
+    let libraries: DiscoveredLibrariesStore
+    let visibility: HomeLibraryVisibilityModel
+    let account: Account
+    let onRender: () -> Void
+
+    var body: some View {
+        let _ = onRender()
+        SettingsLibrariesRow(
+            libraries: libraries, visibility: visibility, accounts: [account],
+            isAccountIncluded: { $0 == account.id }
+        )
     }
 }

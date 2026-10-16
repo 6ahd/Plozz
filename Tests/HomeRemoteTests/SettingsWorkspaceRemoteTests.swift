@@ -2,6 +2,72 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testSettingsMenusShareWholeRowFocusAndRestoreChoices() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { capture("settings-menus-final", in: app) }
+        let language = section("language", in: app)
+        try focus(language, in: app)
+        let menuWidth = language.frame.width
+        XCTAssertGreaterThan(menuWidth, 800)
+        capture("settings-language-whole-row", in: app)
+        try focus(section("playback", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        let audio = app.buttons["Preferred audio language"]
+        try focus(audio, in: app)
+        XCTAssertTrue(hasFocus(audio))
+        XCTAssertEqual(audio.frame.width, menuWidth, accuracy: 1)
+        XCTAssertEqual(audio.value as? String, "Original")
+        capture("settings-audio-whole-row", in: app)
+        XCUIRemote.shared.press(.select)
+        let device = app.cells.containing(.any, identifier: "Device").firstMatch
+        XCTAssertTrue(device.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(device, in: app)
+        XCUIRemote.shared.press(.select)
+        let changed = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in audio.value as? String == "Device" }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 5), .completed)
+        XCTAssertTrue(hasFocus(audio), "Selecting a menu value must restore the full row's focus.")
+        XCUIRemote.shared.press(.select)
+        try focus(app.cells.containing(.any, identifier: "Original").firstMatch, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertEqual(audio.value as? String, "Original")
+
+        let separate = app.switches["Set separately for movies, TV shows & anime"]
+        try focus(separate, in: app)
+        XCUIRemote.shared.press(.select)
+        let movies = app.buttons["Movies"]
+        try focus(movies, in: app)
+        XCTAssertEqual(movies.frame.width, menuWidth, accuracy: 1)
+        capture("settings-audio-per-type", in: app)
+        try focus(separate, in: app)
+        XCUIRemote.shared.press(.select)
+        XCUIRemote.shared.press(.menu)
+        waitForCategoryFocus("playback", in: app)
+        try focus(section("subtitles", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        let subtitles = app.buttons["Subtitle language"]
+        try focus(subtitles, in: app)
+        XCTAssertEqual(subtitles.frame.width, menuWidth, accuracy: 1)
+        capture("settings-subtitle-whole-row", in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.cells.containing(.any, identifier: "Device Default")
+            .firstMatch.waitForExistence(timeout: 5), app.debugDescription)
+        XCUIRemote.shared.press(.menu)
+        let restored = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in self.hasFocus(subtitles) }, object: nil
+        )
+        let restoration = XCTWaiter.wait(for: [restored], timeout: 5)
+        capture("settings-subtitle-menu-return", in: app)
+        XCTAssertEqual(restoration, .completed, app.debugDescription)
+        XCUIRemote.shared.press(.menu)
+        waitForCategoryFocus("subtitles", in: app)
+        #else
+        throw XCTSkip("Never changes language preferences on a physical device.")
+        #endif
+    }
+
     func testSettingsSectionsAndNestedPagesInTheProductionApp() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
@@ -226,6 +292,14 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["Default"].waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(app.staticTexts["DISPLAY SIZE"].waitForExistence(timeout: 5), app.debugDescription)
+        let cardHeadings = ["Labels", "Watched Indicator", "Focus", "Style", "Display Size"].map {
+            app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", $0)).firstMatch
+        }
+        XCTAssertTrue(cardHeadings.allSatisfy(\.exists))
+        let cardPositions = cardHeadings.map(\.frame.minY)
+        XCTAssertEqual(cardPositions, cardPositions.sorted(), "Display Size must be the final Cards group.")
+        capture("cards-top", in: app)
+        try focus(app.buttons["Default"], in: app)
         capture("display-size", in: app)
         XCTAssertTrue(app.buttons["card-label-customization"].waitForExistence(timeout: 5))
         capture("cards", in: app)
@@ -410,12 +484,22 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #if targetEnvironment(simulator)
         let app = try launchSettings(style: "tabBar")
         for (category, pages) in [
-            ("playback", ["skip-intros-mode"]),
+            ("playback", []),
             ("liveTV", ["sources", "hidden-channels"]),
             ("integrations", ["trakt", "simkl", "anilist", "mal", "lastfm"])
         ] {
             try focus(section(category, in: app), in: app)
             XCUIRemote.shared.press(.select)
+            if category == "playback" {
+                let separate = app.switches["Set each marker separately"]
+                XCTAssertTrue(separate.waitForExistence(timeout: 5), app.debugDescription)
+                XCTAssertFalse(app.buttons["settings-page-skip-intros-mode"].exists)
+                try focus(separate, in: app)
+                let community = app.switches["Use community markers"]
+                XCTAssertTrue(community.exists, app.debugDescription)
+                try focus(community, in: app)
+                capture("playback-inline-skip-controls", in: app)
+            }
             for page in pages {
                 let link = app.buttons["settings-page-\(page)"]
                 XCTAssertTrue(link.waitForExistence(timeout: 5), app.debugDescription)
@@ -798,7 +882,15 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertEqual(profile.frame.minX, everyone.frame.minX, accuracy: 2)
         XCTAssertEqual(profile.frame.height, everyone.frame.height, accuracy: 2)
         XCTAssertLessThanOrEqual(profile.frame.height, 46)
+        let avatar = app.descendants(matching: .any).matching(identifier: "settings-profile-avatar").firstMatch
+        let scope = app.descendants(matching: .any).matching(identifier: "settings-everyone-icon").firstMatch
+        XCTAssertTrue(avatar.exists && scope.exists, app.debugDescription)
+        XCTAssertEqual(avatar.frame.width, scope.frame.width, accuracy: 1)
+        XCTAssertEqual(avatar.frame.height, scope.frame.height, accuracy: 1)
+        XCTAssertEqual(scope.frame.width, 52, accuracy: 1)
         capture("aligned-settings-headers", in: app)
+        try focus(section("servers", in: app), in: app)
+        capture("everyone-circular-badge-and-divider", in: app)
 
         try focus(section("screensNavigation", in: app), in: app)
         XCUIRemote.shared.press(.select)

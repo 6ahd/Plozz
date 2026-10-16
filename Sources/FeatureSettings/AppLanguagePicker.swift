@@ -76,37 +76,39 @@ struct AppLanguagePicker: View {
     /// menu — which on tvOS is a scrollable overlay the remote is already good at.
     @ViewBuilder
     private var languageMenu: some View {
+        #if os(tvOS)
+        SettingsMenuRow(
+            title: "Language", value: label(for: model.language),
+            icon: isCategoryRow ? "globe" : nil,
+            selected: isCategoryRow && navigation?.section == .language
+        ) {
+            languageOptions
+        }
+        #else
         Menu {
-            Picker("Language", selection: $model.language) {
-                ForEach(languages) { language in
-                    label(for: language).tag(language)
-                }
-            }
-            #if os(tvOS)
-            if isCategoryRow, translationIssueURL != nil {
-                Button("Send Feedback") {
-                    showingFeedback = true
-                }
-                .accessibilityIdentifier("settings-language-feedback")
-            }
-            #endif
+            languageOptions
         } label: {
-            #if os(tvOS)
-            if isCategoryRow {
-                SettingsSectionLabel(
-                    title: Text("Language"), icon: "globe", assetIcon: nil,
-                    value: label(for: model.language), subtitle: nil,
-                    selected: navigation?.section == .language,
-                    accessorySymbol: "chevron.up.chevron.down"
-                )
-            } else {
-                menuLabel
-            }
-            #else
             menuLabel
-            #endif
         }
         .menuStyle(.button)
+        #endif
+    }
+
+    @ViewBuilder
+    private var languageOptions: some View {
+        Picker("Language", selection: $model.language) {
+            ForEach(languages) { language in
+                label(for: language).tag(language)
+            }
+        }
+        #if os(tvOS)
+        if isCategoryRow, translationIssueURL != nil {
+            Button("Send Feedback") {
+                showingFeedback = true
+            }
+            .accessibilityIdentifier("settings-language-feedback")
+        }
+        #endif
     }
 
     private var menuLabel: some View {
@@ -139,7 +141,6 @@ struct AppLanguagePicker: View {
         #if os(tvOS)
         if isCategoryRow {
             languageMenu
-                .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                 .settingsCategoryFocus(.language)
                 .accessibilityLabel(Text("Language"))
                 .accessibilityValue(label(for: model.language))

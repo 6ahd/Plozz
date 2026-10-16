@@ -442,8 +442,6 @@ public struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             profileHeaderInline
             PlozzDivider()
-                .padding(.leading, SettingsFormMetrics.groupInset + SettingsRowMetrics.iconTitleInset)
-                .padding(.trailing, SettingsFormMetrics.headingInset)
             profileOwnedRows
                 .padding(SettingsFormMetrics.groupInset)
         }
@@ -504,9 +502,11 @@ public struct SettingsView: View {
                 // While sealed every row leads to the PIN instead of its own
                 // page. The row still says what it is — the lock is the only
                 // thing that changes.
-                sectionRow(SettingsCopy.libraries,
-                       icon: isParentalSealed ? "lock.fill" : "rectangle.stack",
-                       route: .myLibraries)
+                SettingsLibrariesRow(
+                    libraries: librariesStore, visibility: homeVisibility, accounts: accounts,
+                    isAccountIncluded: isAccountIncludedInActiveProfile,
+                    icon: isParentalSealed ? "lock.fill" : "rectangle.stack"
+                )
 
                 sectionRow(KidsProfileCopy.manageProfile,
                        icon: isParentalSealed ? "lock.fill" : "person.crop.circle",
@@ -526,15 +526,14 @@ public struct SettingsView: View {
             sectionRow("Playback", icon: "play.rectangle", route: .playback)
             sectionRow("Subtitles", icon: "captions.bubble", route: .subtitles)
             sectionRow("Live TV", icon: "antenna.radiowaves.left.and.right", route: .liveTV)
-            // Per-profile "Your Libraries": who you watch as + what shows on THIS
-            // profile's Home. The personal mirror of This Apple TV › Servers.
-            // Its second line glances the household's server sign-ins.
-            //
             // On a Kids Profile this moves to `parentalControlsSection` instead:
             // it's a parent's setting, and grouping it with the child's own
             // preferences made the two look equally theirs.
             if !showsParentalControlsSection {
-                sectionRow(SettingsCopy.libraries, icon: "rectangle.stack", route: .myLibraries)
+                SettingsLibrariesRow(
+                    libraries: librariesStore, visibility: homeVisibility, accounts: accounts,
+                    isAccountIncluded: isAccountIncludedInActiveProfile
+                )
             }
             // Only when Parental Controls has taken the management page away.
             // Otherwise this would duplicate the Appearance row inside it.
@@ -576,10 +575,7 @@ public struct SettingsView: View {
             // settings span the user's devices, a lone Apple TV when they don't.
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: SettingsWorkspaceHeaderMetrics.labelSpacing) {
-                    Image(systemName: syncEnabled ? "person.2" : "appletv")
-                        .font(SettingsWorkspaceHeaderMetrics.titleFont)
-                        .frame(width: SettingsWorkspaceHeaderMetrics.iconSize,
-                               height: SettingsWorkspaceHeaderMetrics.iconSize)
+                    SettingsWorkspaceScopeBadge(syncEnabled: syncEnabled)
                         .accessibilityIdentifier("settings-everyone-icon")
                     Text(SettingsCopy.everyone)
                         .font(SettingsWorkspaceHeaderMetrics.titleFont)
@@ -592,8 +588,6 @@ public struct SettingsView: View {
             .padding(SettingsWorkspaceHeaderMetrics.contentInset)
 
             PlozzDivider()
-                .padding(.leading, SettingsFormMetrics.groupInset + SettingsRowMetrics.iconTitleInset)
-                .padding(.trailing, SettingsFormMetrics.headingInset)
 
             SettingsControlRows(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
                 // Shared server sign-ins (the household's full inventory). The

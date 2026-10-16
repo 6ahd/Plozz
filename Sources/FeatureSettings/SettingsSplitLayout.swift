@@ -24,6 +24,7 @@ struct SettingsSplitRow: Identifiable {
     enum Presentation {
         case inline
         case compactRow
+        case labeledControl
         case page
     }
     enum SectionStart {
@@ -80,6 +81,12 @@ struct SettingsSplitRow: Identifiable {
     func compactRow() -> Self {
         var row = self
         row.presentation = .compactRow
+        return row
+    }
+
+    func labeledControl() -> Self {
+        var row = self
+        row.presentation = .labeledControl
         return row
     }
 

@@ -99,7 +99,7 @@ struct AppearanceDetailView: View {
                     title: "Language"
                 ) {
                     AppLanguagePicker(model: appLanguage)
-                }.compactRow(),
+                }.labeledControl(),
                 SettingsSplitRow(
                     id: "theme",
                     title: "Theme"
@@ -518,21 +518,20 @@ struct PlaybackDetailView: View {
     /// A native pop-up menu for choosing an audio-language preference (the
     /// common-language list is too long for the inline pill picker).
     @ViewBuilder
-    private func audioLanguageMenu(_ selection: Binding<AudioLanguagePreference>) -> some View {
-        Menu {
+    private func audioLanguageMenu(
+        _ selection: Binding<AudioLanguagePreference>,
+        title: LocalizedStringResource,
+        subtitle: LocalizedStringResource? = nil
+    ) -> some View {
+        SettingsMenuRow(
+            title: title, value: audioPreferenceName(selection.wrappedValue), subtitle: subtitle
+        ) {
             Picker("Audio language", selection: selection) {
                 ForEach(Self.audioPreferenceOptions, id: \.self) { preference in
                     audioPreferenceName(preference).tag(preference)
                 }
             }
-        } label: {
-            Label {
-                audioPreferenceName(selection.wrappedValue)
-            } icon: {
-                Image(systemName: "globe")
-            }
         }
-        .menuStyle(.button)
     }
 
     var body: some View {
@@ -639,23 +638,17 @@ struct PlaybackDetailView: View {
                 title: "Subtitle language",
                 description: "The language Plozz prefers when choosing subtitles."
             ) {
-                Menu {
+                SettingsMenuRow(
+                    title: "Subtitle language",
+                    value: subtitleLanguageName(for: subtitleLanguageSelection.wrappedValue)
+                ) {
                     Picker("Subtitle language", selection: subtitleLanguageSelection) {
                         ForEach(subtitleLanguageOptions, id: \.self) { code in
                             subtitleLanguageName(for: code).tag(code)
                         }
                     }
-                } label: {
-                    Label {
-                        subtitleLanguageName(
-                            for: subtitleLanguageSelection.wrappedValue
-                        )
-                    } icon: {
-                        Image(systemName: "globe")
-                    }
                 }
-                .menuStyle(.button)
-            }
+            }.labeledControl()
         ]
 
         // "Downloading subtitles" only makes sense with a server that can actually
@@ -670,29 +663,25 @@ struct PlaybackDetailView: View {
             ) {
                 SettingsControlRows(nonTVSpacing: 28) {
                     Toggle("Automatically download", isOn: $subtitleBehavior.settings.autoDownloadSubtitles)
-                    LabeledSettingRow("Hearing-Impaired (SDH)", trailingAlignment: .trailing) {
-                        Menu {
-                            Picker("Hearing-impaired subtitles", selection: $subtitleBehavior.settings.hearingImpairedPreference) {
-                                ForEach(HearingImpairedPreference.allCases, id: \.self) { option in
-                                    Text(option.displayName).tag(option)
-                                }
+                    SettingsMenuRow(
+                        title: "Hearing-Impaired (SDH)",
+                        value: Text(subtitleBehavior.settings.hearingImpairedPreference.displayName)
+                    ) {
+                        Picker("Hearing-impaired subtitles", selection: $subtitleBehavior.settings.hearingImpairedPreference) {
+                            ForEach(HearingImpairedPreference.allCases, id: \.self) { option in
+                                Text(option.displayName).tag(option)
                             }
-                        } label: {
-                            Label(subtitleBehavior.settings.hearingImpairedPreference.displayName, systemImage: "ear")
                         }
-                        .menuStyle(.button)
                     }
-                    LabeledSettingRow("Forced", trailingAlignment: .trailing) {
-                        Menu {
-                            Picker("Forced subtitles", selection: $subtitleBehavior.settings.forcedSearchPreference) {
-                                ForEach(ForcedSubtitlePreference.allCases, id: \.self) { option in
-                                    Text(option.displayName).tag(option)
-                                }
+                    SettingsMenuRow(
+                        title: "Forced",
+                        value: Text(subtitleBehavior.settings.forcedSearchPreference.displayName)
+                    ) {
+                        Picker("Forced subtitles", selection: $subtitleBehavior.settings.forcedSearchPreference) {
+                            ForEach(ForcedSubtitlePreference.allCases, id: \.self) { option in
+                                Text(option.displayName).tag(option)
                             }
-                        } label: {
-                            Label(subtitleBehavior.settings.forcedSearchPreference.displayName, systemImage: "captions.bubble")
                         }
-                        .menuStyle(.button)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -750,9 +739,9 @@ struct PlaybackDetailView: View {
                     // Set separately, "Everything else" takes over the one
                     // preference, so it isn't shown twice.
                     if !audioPerContentTypeEnabled {
-                        LabeledSettingRow("Preferred audio language", trailingAlignment: .trailing) {
-                            audioLanguageMenu($playback.settings.audioLanguagePreference)
-                        }
+                        audioLanguageMenu(
+                            $playback.settings.audioLanguagePreference, title: "Preferred audio language"
+                        )
                     }
 
                     SettingsRevealSection(
@@ -760,15 +749,12 @@ struct PlaybackDetailView: View {
                         masterLabel: "Set separately for movies, TV shows & anime"
                     ) {
                         ForEach(Self.policyCategories + [.other], id: \.self) { category in
-                            LabeledSettingRow(
-                                category.separateSettingTitle,
-                                subtitle: category.separateSettingHint,
-                                trailingAlignment: .trailing
-                            ) {
-                                audioLanguageMenu(category == .other
+                            audioLanguageMenu(
+                                category == .other
                                     ? $playback.settings.audioLanguagePreference
-                                    : audioPreferenceBinding(for: category))
-                            }
+                                    : audioPreferenceBinding(for: category),
+                                title: category.separateSettingTitle, subtitle: category.separateSettingHint
+                            )
                         }
                     }
 

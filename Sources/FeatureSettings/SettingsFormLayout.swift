@@ -85,6 +85,17 @@ private struct SettingsFormRow: View {
             }
             .buttonStyle(SettingsFocusButtonStyle(size: .navigation))
             .accessibilityIdentifier("settings-page-\(row.id)")
+        } else if row.presentation == .labeledControl {
+            VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+                SettingsControlGroup { row.detail() }
+                if let description = row.description {
+                    description
+                        .settingsHelperText()
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, SettingsFormMetrics.headingInset)
+                }
+            }
+            .accessibilityIdentifier("settings-group-\(row.id)")
         } else if row.presentation == .compactRow {
             HStack(spacing: 24) {
                 row.title.font(SettingsRowMetrics.titleFont)

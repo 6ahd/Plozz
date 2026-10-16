@@ -20,12 +20,6 @@ public struct CardAppearanceControls: View {
     public var body: some View {
         #if os(tvOS)
         VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
-            if let density {
-                @Bindable var density = density
-                SettingsDetailGroup(title: "Display Size", illustrated: true) {
-                    CompactDisplaySizePicker(selection: $density.density)
-                }
-            }
             SettingsDetailGroup(title: "Labels", illustrated: true) {
                 CardLabelControls(settings: $cards.captions, style: cards.style)
             }
@@ -45,6 +39,12 @@ public struct CardAppearanceControls: View {
             }
             SettingsDetailGroup(title: "Style", illustrated: true) {
                 CompactCardStylePicker(selection: $cards.style, swatchHeight: 150)
+            }
+            if let density {
+                @Bindable var density = density
+                SettingsDetailGroup(title: "Display Size", illustrated: true) {
+                    CompactDisplaySizePicker(selection: $density.density)
+                }
             }
         }
         #else

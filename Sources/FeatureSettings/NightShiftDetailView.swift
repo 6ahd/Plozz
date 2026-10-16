@@ -199,7 +199,7 @@ private struct NightShiftScheduleControl: View {
         case .off, .alwaysOn:
             EmptyView()
         case .auto:
-            LabeledSettingRow("Location", labelWidth: circadianRowLabelWidth) { locationMenu }
+            locationMenu
                 .tvOSFocusSection()
         case .manual:
             SettingsControlRows(nonTVSpacing: 20) {
@@ -254,23 +254,14 @@ private struct NightShiftScheduleControl: View {
     // MARK: Extras
 
     private var locationMenu: some View {
-        Menu {
+        SettingsMenuRow(title: "Location", value: Text(model.region.name)) {
             Picker("Location", selection: $model.settings.regionID) {
                 ForEach(NightShiftRegion.sortedCatalog) { region in
                     Text(region.name).tag(region.id)
                 }
             }
             .pickerStyle(.inline)
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "mappin.and.ellipse")
-                Text(model.region.name)
-                Image(systemName: "chevron.up.chevron.down").font(.caption.weight(.semibold))
-            }
-            .font(SettingsRowMetrics.titleFont)
-            .padding(.horizontal, 4)
         }
-        .buttonStyle(PlozzSeasonTabStyle(isSelected: false))
     }
 
     /// A ±15-minute clock stepper that wraps around midnight, reusing the shared

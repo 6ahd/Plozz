@@ -196,7 +196,7 @@ private struct SettingsSectionFocusPreference: ViewModifier {
 
 struct SettingsSectionLabel: View {
     let title: Text
-    let icon: String
+    let icon: String?
     let assetIcon: String?
     let value: Text?
     let subtitle: Text?
@@ -235,6 +235,20 @@ enum SettingsWorkspaceHeaderMetrics {
     static let outerInset = SettingsFormMetrics.groupInset
     static let controlInset = PlozzTheme.Spacing.xSmall
     static let contentInset = outerInset + controlInset
+}
+
+struct SettingsWorkspaceScopeBadge: View {
+    let syncEnabled: Bool
+    @Environment(\.themePalette) private var palette
+
+    var body: some View {
+        Image(systemName: syncEnabled ? "person.2" : "appletv")
+            .font(.system(size: SettingsWorkspaceHeaderMetrics.iconSize / 2))
+            .frame(width: SettingsWorkspaceHeaderMetrics.iconSize,
+                   height: SettingsWorkspaceHeaderMetrics.iconSize)
+            .background(Circle().fill(palette.fillSubtle))
+            .overlay(Circle().strokeBorder(palette.cardBorder, lineWidth: 1))
+    }
 }
 
 struct SettingsWorkspaceProfileHeader: View {

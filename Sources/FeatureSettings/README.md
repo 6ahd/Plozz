@@ -54,7 +54,9 @@ and the single place caption customization lives.
   The avatar/name switches profiles; the adjacent
   Edit action uses the same `ProfileActionsList` as the profile picker.
   Profile and Everyone headers share title weight/size, icon width, label gap
-  and content insets so their icons and names align.
+  and content insets so their icons and names align. Everyone's scope glyph sits
+  inside a circle the same size as the profile avatar. The separators beneath
+  these two headers span the full card; category-row separators stay text-aligned.
   `SettingsFormLayout` groups related controls into one vertical form, retaining
   child pages for longer editors. Single-control preferences such as Language
   use one compact label-and-control row without an extra heading or explanatory
@@ -62,8 +64,11 @@ and the single place caption customization lives.
   showing the current selection. A translation-feedback QR dialog remains
   available from that menu for non-English languages and restores focus on dismissal. It shares the category
   focus/return behavior without opening an intermediate General page.
+  `SettingsMenuRow` gives app/audio/subtitle language, subtitle download policy,
+  and Circadian location the same whole-row focus and native menu presentation.
+  A setting's label and current value form one control, not a detached value pill.
   Appearance contains Theme (including gradient backgrounds and Liquid Glass),
-  Cards (with Display Size first), Artwork, Spoiler Protection and Circadian Mode.
+  Cards (with Display Size last), Artwork, Spoiler Protection and Circadian Mode.
   Screens & Navigation contains Customize Home, Navigation, Detail Page and
   Music Player. Moving these controls does not change their profile-scoped stores.
   Playback groups
@@ -86,7 +91,10 @@ and the single place caption customization lives.
   The navigation history and profile context remain intact, including
   inside the editor's font and appearance subpages.
   Libraries, Live TV and Trackers remain profile-owned. Household setup is
-  separate under Everyone. Profile categories start with Playback, Subtitles,
+  separate under Everyone. The root Libraries row lists enabled libraries from
+  the active profile's included accounts. Discovery is observed inside that
+  stable row rather than rebuilding the root focus hierarchy.
+  Profile categories start with Playback, Subtitles,
   Live TV and Libraries, then Appearance, Screens & Navigation, Trackers and Language.
   Appearance, Screens & Navigation and Trackers retain concise explanatory subtitles.
   Artwork remains profile-owned; Metadata Providers remains shared under Everyone.
