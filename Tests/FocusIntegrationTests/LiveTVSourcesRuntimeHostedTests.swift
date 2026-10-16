@@ -21,18 +21,29 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
             for (name, palette) in [("dark", ThemePalette.dark), ("black", .pureBlack), ("light", .light)] {
                 let fixture = try Fixture(hasIPTV: true)
                 defer { fixture.close() }
+                var configuration = try fixture.store.load()
+                configuration.servers.append(.init(
+                    id: "other", name: "Other server", accountID: "other", isEnabled: false
+                ))
+                try fixture.store.save(configuration)
                 fixture.window.frame = CGRect(x: 0, y: 0, width: width, height: 1024)
                 fixture.provider.failure = .unauthorized
                 fixture.show(palette: palette)
                 try await waitUntil { fixture.runtime.catalog.imports.serverSources.first?.failure == .permissionDenied }
                 try await Task.sleep(for: .milliseconds(300))
-                let lines = try recognizedLines(fixture.window, name: "sources-specific-error-\(Int(width))-\(name)")
+                let capture = try recognizedLines(fixture.window, name: "sources-specific-error-\(Int(width))-\(name)")
+                let lines = capture.lines
                 let source = try XCTUnwrap(lines.first { $0.text == "IPTV" })
                 let error = try XCTUnwrap(lines.first { $0.text.lowercased().contains("permission") })
+                let firstErrorLine = try XCTUnwrap(lines.first { $0.text.contains("This server account") })
+                let status = try XCTUnwrap(lines.first { $0.text == "Refresh failed" })
+                let retry = try XCTUnwrap(lines.first { $0.text == "Retry" })
+                let other = try XCTUnwrap(lines.first { $0.text == "Other server" })
                 let setup = try XCTUnwrap(lines.first { $0.text == "ADD A SOURCE" })
                 XCTAssertLessThan(error.frame.maxY, source.frame.minY)
                 XCTAssertGreaterThan(error.frame.minY, setup.frame.maxY)
-                XCTAssertTrue(lines.contains { $0.text == "Retry" })
+                XCTAssertFalse(try hasDivider(in: capture.image, between: status.frame, and: firstErrorLine.frame))
+                XCTAssertTrue(try hasDivider(in: capture.image, between: retry.frame, and: other.frame))
                 XCTAssertFalse(lines.contains { $0.text.lowercased().contains("channel and guide data") })
                 XCTAssertNil(fixture.runtime.catalog.issue)
             }
@@ -46,7 +57,7 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
         fixture.show()
         try await waitUntil { fixture.runtime.catalog.issue == .authorization }
         try await Task.sleep(for: .milliseconds(300))
-        let lines = try recognizedLines(fixture.window, name: "sources-page-error")
+        let lines = try recognizedLines(fixture.window, name: "sources-page-error").lines
         let error = try XCTUnwrap(lines.first { $0.text.lowercased().contains("profile access") })
         let sources = try XCTUnwrap(lines.first { $0.text == "YOUR SOURCES" })
         XCTAssertGreaterThan(error.frame.minY, sources.frame.maxY)
@@ -54,9 +65,11 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
 
     private func recognizedLines(
         _ window: UIWindow, name: String
-    ) throws -> [(text: String, frame: CGRect)] {
+    ) throws -> (image: UIImage, lines: [(text: String, frame: CGRect)]) {
         window.layoutIfNeeded()
-        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+        let format = UIGraphicsImageRendererFormat()
+        format.preferredRange = .standard
+        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
         }
         let attachment = XCTAttachment(image: image)
@@ -68,9 +81,33 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
         request.recognitionLanguages = ["en-US"]
         request.customWords = ["IPTV"]
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-        return (request.results ?? []).compactMap {
+        let lines: [(text: String, frame: CGRect)] = (request.results ?? []).compactMap {
             guard let text = $0.topCandidates(1).first?.string else { return nil }
             return (text, $0.boundingBox)
+        }
+        return (image, lines)
+    }
+
+    private func hasDivider(in image: UIImage, between upper: CGRect, and lower: CGRect) throws -> Bool {
+        let cgImage = try XCTUnwrap(image.cgImage)
+        XCTAssertEqual(cgImage.bitsPerPixel, 32)
+        XCTAssertEqual(cgImage.bitsPerComponent, 8)
+        let data = try XCTUnwrap(cgImage.dataProvider?.data)
+        let pixels = try XCTUnwrap(CFDataGetBytePtr(data))
+        let top = max(2, Int((1 - upper.minY) * CGFloat(cgImage.height)) + 2)
+        let bottom = min(cgImage.height - 3, Int((1 - lower.maxY) * CGFloat(cgImage.height)) - 2)
+        guard top < bottom else { return false }
+        let columns = [0.2, 0.5, 0.8].map { Int(CGFloat(cgImage.width) * $0) }
+        return (top..<bottom).contains { y in
+            columns.allSatisfy { x in
+                let center = y * cgImage.bytesPerRow + x * 4
+                return [-2, 2].allSatisfy { offset in
+                    let neighbor = center + offset * cgImage.bytesPerRow
+                    return (0..<3).reduce(0) {
+                        $0 + abs(Int(pixels[center + $1]) - Int(pixels[neighbor + $1]))
+                    } > 12
+                }
+            }
         }
     }
     #endif

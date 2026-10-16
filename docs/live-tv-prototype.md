@@ -500,6 +500,12 @@ Each tap pushes only its selected destination, and Back returns one level.
 This applies to both Settings and the Live TV toolbar's Sources entry.
 Channel, guide and access failures appear beside the affected enabled source,
 using the shared theme-aware inline error style and naming failed guides.
+On mobile, the source row, error and Retry share one group item; dividers
+separate sources, never a source from its own error.
+Retry shows an inline loading spinner and label, prevents duplicate taps, and
+briefly retains feedback even when the provider refuses the request immediately.
+During a source Retry, that inline indicator replaces the source's loading
+subtitle and page-wide loading indicators instead of showing duplicate spinners.
 Source Retry refreshes only that playlist and its guides, or that server; it
 preserves other sources' channels, errors and in-flight server-guide requests.
 The source detail page offers the same error and Retry. Page-wide storage,

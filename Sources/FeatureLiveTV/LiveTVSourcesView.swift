@@ -11,6 +11,7 @@ public struct LiveTVSourcesView: View {
     @State private var importedRemovalID: UUID?
     @State private var importedRemovalRequest = UUID()
     @State private var catalogReloadRevision = 0
+    @State private var retryingSourceIDs: Set<String> = []
     private let presentation: Presentation
     private let imports: LiveTVPrototypeImportModel?
     private let refresh: (@MainActor () -> Void)?
@@ -129,7 +130,7 @@ public struct LiveTVSourcesView: View {
         LiveTVSourceAccessGate(model: model) {
             let content = LiveTVSourcesContent(
                 model: model, imports: catalog?.isPresentationCurrent == false ? nil : imports, refresh: refresh,
-                retrySource: refreshSource,
+                retrySource: sourceRetry, retryingSourceIDs: retryingSourceIDs,
                 serverChoices: serverChoices, serverProviderResolver: serverProviderResolver,
                 connectServer: connectServer, sourceFilterID: sourceFilterID,
                 browseSource: browseSource, didConfigurePlaylist: didConfigurePlaylist,
@@ -218,6 +219,15 @@ public struct LiveTVSourcesView: View {
         }
     }
 
+    private var sourceRetry: (@MainActor (String) async throws -> Void)? {
+        guard let refreshSource else { return nil }
+        return { sourceID in
+            retryingSourceIDs.insert(sourceID)
+            defer { retryingSourceIDs.remove(sourceID) }
+            try await refreshSource(sourceID)
+        }
+    }
+
     private func remove(_ removal: LiveTVSourceRemoval) -> Bool {
         let revision = model.mutationRevision
         switch removal {
@@ -252,7 +262,7 @@ public struct LiveTVSourcesView: View {
                 .accessibilityElement(children: .contain)
             }
             .accessibilityIdentifier("live-tv-page-error")
-        } else if catalog?.isLoading == true {
+        } else if catalog?.isLoading == true, retryingSourceIDs.isEmpty {
             ProgressView("Loading channels and guide")
         }
     }
@@ -269,6 +279,7 @@ private struct LiveTVSourcesContent: View {
     let imports: LiveTVPrototypeImportModel?
     let refresh: (@MainActor () -> Void)?
     let retrySource: (@MainActor (String) async throws -> Void)?
+    let retryingSourceIDs: Set<String>
     let serverChoices: [LiveTVServerChoice]
     let serverProviderResolver: LiveTVServerProviderResolver?
     let connectServer: (() -> Void)?
@@ -299,60 +310,70 @@ private struct LiveTVSourcesContent: View {
             if !model.configuration.playlists.isEmpty || !model.configuration.servers.isEmpty {
                 SettingsSectionGroup("Your sources") {
                     ForEach(model.configuration.playlists) { source in
-                        NavigationLink {
-                            LiveTVPlaylistSourceDetails(
-                                model: model, imports: imports, sourceID: source.id,
-                                didConfigurePlaylist: didConfigurePlaylist,
-                                refresh: refresh, scanCoordinator: scanCoordinator,
-                                removeSource: { commitRemoval(.playlist($0)) }, connectIPTV: connectIPTV,
-                                retrySource: retrySource
-                            )
-                        } label: {
-                            SettingsRowLabel(
-                                icon: source.importedPlaylistID == nil ? "list.bullet.rectangle" : "doc",
-                                title: Text(source.name),
-                                secondary: {
-                                    LiveTVPlaylistSourceState(
-                                        source: source,
-                                        status: imports?.playlistSources.first { $0.id == source.id }
-                                    )
-                                    .font(.caption)
-                                    .settingsRowSecondary()
-                                },
-                                trailing: { LiveTVSourceChevron() }
-                            )
+                        VStack(alignment: .leading, spacing: 12) {
+                            NavigationLink {
+                                LiveTVPlaylistSourceDetails(
+                                    model: model, imports: imports, sourceID: source.id,
+                                    didConfigurePlaylist: didConfigurePlaylist,
+                                    refresh: refresh, scanCoordinator: scanCoordinator,
+                                    removeSource: { commitRemoval(.playlist($0)) }, connectIPTV: connectIPTV,
+                                    retrySource: retrySource
+                                )
+                            } label: {
+                                SettingsRowLabel(
+                                    icon: source.importedPlaylistID == nil ? "list.bullet.rectangle" : "doc",
+                                    title: Text(source.name),
+                                    secondary: {
+                                        if !retryingSourceIDs.contains(source.id) {
+                                            LiveTVPlaylistSourceState(
+                                                source: source,
+                                                status: imports?.playlistSources.first { $0.id == source.id }
+                                            )
+                                            .font(.caption)
+                                            .settingsRowSecondary()
+                                        }
+                                    },
+                                    trailing: { LiveTVSourceChevron() }
+                                )
+                            }
+                            .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                            .accessibilityIdentifier("live-tv-source-details-\(source.id)")
+                            if source.isEnabled, let imports {
+                                LiveTVSourceErrors(imports: imports, sourceID: source.id, retry: retrySource)
+                            }
                         }
-                        .buttonStyle(SettingsFocusButtonStyle(size: .contained))
-                        .accessibilityIdentifier("live-tv-source-details-\(source.id)")
-                        if source.isEnabled, let imports {
-                            LiveTVSourceErrors(imports: imports, sourceID: source.id, retry: retrySource)
-                        }
+                        .accessibilityElement(children: .contain)
                     }
                     ForEach(model.configuration.servers) { source in
-                        NavigationLink {
-                            LiveTVServerSourceDetails(
-                                model: model, imports: imports, sourceID: source.id,
-                                removeSource: { commitRemoval(.server($0)) }, retrySource: retrySource
-                            )
-                        } label: {
-                            SettingsRowLabel(
-                                icon: "server.rack", title: Text(source.name),
-                                secondary: {
-                                    LiveTVServerSourceState(
-                                        source: source,
-                                        status: imports?.serverSources.first { $0.id == source.id }
-                                    )
-                                    .font(.caption)
-                                    .settingsRowSecondary()
-                                },
-                                trailing: { LiveTVSourceChevron() }
-                            )
+                        VStack(alignment: .leading, spacing: 12) {
+                            NavigationLink {
+                                LiveTVServerSourceDetails(
+                                    model: model, imports: imports, sourceID: source.id,
+                                    removeSource: { commitRemoval(.server($0)) }, retrySource: retrySource
+                                )
+                            } label: {
+                                SettingsRowLabel(
+                                    icon: "server.rack", title: Text(source.name),
+                                    secondary: {
+                                        if !retryingSourceIDs.contains(source.id) {
+                                            LiveTVServerSourceState(
+                                                source: source,
+                                                status: imports?.serverSources.first { $0.id == source.id }
+                                            )
+                                            .font(.caption)
+                                            .settingsRowSecondary()
+                                        }
+                                    },
+                                    trailing: { LiveTVSourceChevron() }
+                                )
+                            }
+                            .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                            .accessibilityIdentifier("live-tv-source-details-\(source.id)")
+                            if source.isEnabled, let imports {
+                                LiveTVSourceErrors(imports: imports, sourceID: source.id, retry: retrySource)
+                            }
                         }
-                        .buttonStyle(SettingsFocusButtonStyle(size: .contained))
-                        .accessibilityIdentifier("live-tv-source-details-\(source.id)")
-                        if source.isEnabled, let imports {
-                            LiveTVSourceErrors(imports: imports, sourceID: source.id, retry: retrySource)
-                        }
+                        .accessibilityElement(children: .contain)
                     }
                 }
             }
@@ -557,7 +578,7 @@ private struct LiveTVSourcesContent: View {
                     }
                     .buttonStyle(SettingsFocusButtonStyle(size: .contained))
                     .disabled(imports?.isLoading == true)
-                    if imports?.isLoading == true {
+                    if imports?.isLoading == true, retryingSourceIDs.isEmpty {
                         ProgressView("Refreshing sources")
                     }
                 }
@@ -1057,12 +1078,15 @@ private struct LiveTVSourceErrors: View {
             guard retryRequested, let retry else { return }
             retryFailed = false
             defer { retryRequested = false }
+            let feedbackDeadline = ContinuousClock.now.advanced(by: .milliseconds(400))
             do {
                 try await retry(sourceID)
             } catch {
                 guard !Task.isCancelled, !(error is CancellationError) else { return }
                 retryFailed = true
             }
+            // Keep even an immediate refusal visible as an attempted refresh.
+            try? await Task.sleep(until: feedbackDeadline, clock: .continuous)
         }
     }
 
@@ -1092,10 +1116,23 @@ private struct LiveTVSourceErrors: View {
                 InlineErrorMessage(Text(failure.userDescription))
             }
             if retry != nil {
-                Button("Retry") { retryRequested = true }
-                    .plozzActionButton(role: .secondary)
-                    .disabled(imports.isLoading || retryRequested)
-                    .accessibilityIdentifier("live-tv-source-retry-\(sourceID)")
+                if retryRequested {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                            .accessibilityHidden(true)
+                        Text("Loading channels and guide")
+                    }
+                    .font(.callout)
+                    .settingsRowSecondary()
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("live-tv-source-retry-progress-\(sourceID)")
+                } else {
+                    Button("Retry") { retryRequested = true }
+                        .plozzActionButton(role: .secondary)
+                        .disabled(imports.isLoading)
+                        .accessibilityIdentifier("live-tv-source-retry-\(sourceID)")
+                }
             }
         }
         .fixedSize(horizontal: false, vertical: true)
