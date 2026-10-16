@@ -310,6 +310,22 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["hero-settings-titles"].waitForExistence(timeout: 5))
         capture("hero", in: app)
+        for label in ["Items to show", "Seconds per item"] {
+            let stepper = app.buttons[label]
+            try focus(stepper, in: app)
+            XCTAssertGreaterThan(stepper.frame.width, 700)
+            let title = app.staticTexts[label].firstMatch
+            let peer = app.staticTexts["Hide watched content"].firstMatch
+            XCTAssertEqual(title.frame.minX, peer.frame.minX, accuracy: 1)
+            XCTAssertEqual(title.frame.height, peer.frame.height, accuracy: 1)
+            let original = try XCTUnwrap(stepper.value as? String)
+            XCUIRemote.shared.press(.right)
+            XCTAssertNotEqual(stepper.value as? String, original)
+            XCTAssertTrue(stepper.hasFocus)
+            XCUIRemote.shared.press(.left)
+            XCTAssertEqual(stepper.value as? String, original)
+            capture("hero-stepper-\(label)", in: app)
+        }
         for (page, content) in [
             ("titles", "Hero content sources"), ("ratings", "Ratings"), ("trailers", "Trailers")
         ] {
@@ -324,6 +340,37 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         }
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(hero.waitForExistence(timeout: 5))
+        #else
+        throw XCTSkip("Simulator-only Settings review.")
+        #endif
+    }
+
+    func testCircadianSteppersKeepWholeRowFocusAndRestoreValues() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        try focus(section("appearance", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-night-shift"], in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["Manual"], in: app)
+        XCUIRemote.shared.press(.select)
+        for label in ["Turns on", "Turns off", "Fade", "Darkness", "Warmth"] {
+            let stepper = app.buttons[label]
+            try focus(stepper, in: app)
+            XCTAssertGreaterThan(stepper.frame.width, 700)
+            let original = try XCTUnwrap(stepper.value as? String)
+            XCUIRemote.shared.press(.right)
+            XCTAssertNotEqual(stepper.value as? String, original)
+            XCTAssertTrue(stepper.hasFocus)
+            XCUIRemote.shared.press(.left)
+            XCTAssertEqual(stepper.value as? String, original)
+            capture("circadian-stepper-\(label)", in: app)
+        }
+        try focus(app.buttons["Off"], in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertFalse(app.buttons["Darkness"].exists, "Restore the fixture before later visual checks.")
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(app.buttons["settings-page-night-shift"].waitForExistence(timeout: 5))
         #else
         throw XCTSkip("Simulator-only Settings review.")
         #endif
@@ -432,20 +479,19 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertFalse(app.buttons["settings-profile-switch"].exists)
             XCTAssertLessThan(heading.frame.minX, 200, "The editor must reclaim the sidebar column.")
             let back = pageBack(in: app)
-            let controlColumn = try XCTUnwrap(app.scrollViews.allElementsBoundByIndex.first {
-                $0.buttons["settings-workspace-back"].exists
-            }, "The editor's Back button must belong to its scrolling control column.")
-            XCTAssertTrue(controlColumn.staticTexts[title].exists,
-                          "The page heading must scroll with its controls, not occupy a fixed header.")
-            XCTAssertLessThanOrEqual(controlColumn.frame.minY, 1,
-                                     "The page scroll viewport must reach the top screen edge.")
+            let controlColumn = app.scrollViews["subtitle-style-editor-card"]
+            XCTAssertTrue(controlColumn.waitForExistence(timeout: 5))
+            XCTAssertFalse(controlColumn.buttons["settings-workspace-back"].exists)
+            XCTAssertFalse(controlColumn.staticTexts[title].exists)
+            let headingAtEntry = heading.frame
+            XCTAssertLessThan(back.frame.maxY, heading.frame.minY)
+            XCTAssertGreaterThan(controlColumn.frame.minY, heading.frame.maxY)
+            XCTAssertFalse(app.staticTexts["Appearance"].exists)
             let preview = app.otherElements["subtitle-style-preview"]
             XCTAssertTrue(preview.exists)
             let previewAtEntry = preview.frame
             XCTAssertTrue(back.exists)
-            XCTAssertGreaterThanOrEqual(back.frame.minY, controlColumn.frame.minY,
-                                        "The scrolling viewport must not crop Back at page entry.")
-            let editorCard = app.otherElements["subtitle-style-editor-card"]
+            let editorCard = controlColumn
             XCTAssertTrue(editorCard.exists)
             XCTAssertFalse(editorCard.buttons["settings-workspace-back"].exists,
                            "Page navigation belongs outside the Appearance card.")
@@ -463,18 +509,46 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertFalse(section("subtitles", in: app).exists)
             try focus(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "System Fonts")).firstMatch,
                       in: app)
-            XCTAssertLessThanOrEqual(heading.frame.maxY, controlColumn.frame.minY,
-                                    "Browsing fonts must scroll the entire page title out of the viewport.")
+            XCTAssertEqual(heading.frame, headingAtEntry, "Only the editor pane may scroll.")
             XCTAssertEqual(preview.frame.minY, previewAtEntry.minY, accuracy: 1)
             XCTAssertEqual(preview.frame.width, previewAtEntry.width, accuracy: 1)
             XCTAssertEqual(preview.frame.height, previewAtEntry.height, accuracy: 1)
             capture("\(captureName)-fonts", in: app)
             XCUIRemote.shared.press(.menu)
-            XCTAssertTrue(app.staticTexts["Appearance"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(matchSystemStyle.waitForExistence(timeout: 5), app.debugDescription)
             if matchedSystemStyle {
                 try focus(matchSystemStyle, in: app)
                 XCUIRemote.shared.press(.select)
             }
+            let paneBeforePreview = controlColumn.frame
+            let previewHeader = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Preview")).firstMatch
+            try focus(previewHeader, in: app)
+            let expanded = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in
+                    app.buttons["HDR preview"].exists
+                        && controlColumn.frame.height < paneBeforePreview.height - 100
+                }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [expanded], timeout: 5), .completed)
+            XCTAssertEqual(heading.frame, headingAtEntry)
+            XCTAssertEqual(preview.frame, previewAtEntry)
+            let previewControls = app.otherElements["subtitle-preview-controls"]
+            XCTAssertGreaterThan(previewControls.frame.minY, controlColumn.frame.maxY)
+            XCTAssertLessThan(previewControls.frame.maxY, app.frame.maxY)
+            capture("\(captureName)-preview-expanded", in: app)
+            XCUIRemote.shared.press(.select)
+            let fullScreenBack = app.buttons["Back"].firstMatch
+            XCTAssertTrue(fullScreenBack.waitForExistence(timeout: 5))
+            XCUIRemote.shared.press(.menu)
+            XCTAssertTrue(previewHeader.waitForExistence(timeout: 5))
+            try focus(matchSystemStyle, in: app)
+            let collapsed = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in
+                    abs(controlColumn.frame.height - paneBeforePreview.height) < 1
+                }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [collapsed], timeout: 5), .completed)
+            XCTAssertEqual(heading.frame, headingAtEntry)
             if title == "Customize subtitle style" {
                 XCUIRemote.shared.press(.menu)
             } else {
@@ -492,6 +566,61 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         waitForCategoryFocus("subtitles", in: app)
         #else
         throw XCTSkip("Simulator-only Settings review.")
+        #endif
+    }
+
+    func testDirectionalSteppersAdjustWithoutMovingFocus() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        defer { capture("directional-steppers-final", in: app) }
+        try focus(section("playback", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        var trailingEdge: CGFloat?
+        for label in ["Time before the end", "Backward", "Forward", "Rewind on resume"] {
+            let stepper = app.buttons[label]
+            XCTAssertTrue(stepper.waitForExistence(timeout: 5), app.debugDescription)
+            try focus(stepper, in: app)
+            let initialValue = stepper.value as? String
+            XCTAssertNotNil(initialValue)
+            let title = app.staticTexts[label].firstMatch
+            let labelInsideTarget = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in stepper.frame.contains(title.frame) }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [labelInsideTarget], timeout: 3), .completed,
+                           "After native scrolling settles, the focus target must contain its label.")
+            let initialFrame = stepper.frame
+            XCTAssertGreaterThan(initialFrame.width, 800, "The entire Settings row must receive native focus.")
+            let peer = app.staticTexts["Show Up Next card"].firstMatch
+            XCTAssertEqual(title.frame.minX, peer.frame.minX, accuracy: 1,
+                           "Stepper text must align with neighboring setting rows.")
+            XCTAssertEqual(title.frame.height, peer.frame.height, accuracy: 1)
+            if let trailingEdge {
+                XCTAssertEqual(initialFrame.maxX, trailingEdge, accuracy: 2)
+            } else {
+                trailingEdge = initialFrame.maxX
+            }
+            XCUIRemote.shared.press(.right)
+            XCTAssertTrue(hasFocus(stepper), "Right must adjust rather than move focus.")
+            XCTAssertNotEqual(stepper.value as? String, initialValue)
+            XCTAssertEqual(stepper.frame.width, initialFrame.width, accuracy: 1)
+            XCTAssertEqual(stepper.frame.height, initialFrame.height, accuracy: 1)
+            XCTAssertEqual(stepper.frame.minX, initialFrame.minX, accuracy: 1)
+            XCUIRemote.shared.press(.left)
+            XCTAssertEqual(stepper.value as? String, initialValue)
+            XCTAssertTrue(hasFocus(stepper))
+            capture("directional-stepper-\(label)", in: app)
+            XCUIRemote.shared.press(.down)
+            XCTAssertFalse(hasFocus(stepper), "Down must remain native navigation.")
+            try focus(stepper, in: app)
+            XCUIRemote.shared.press(.up)
+            XCTAssertFalse(hasFocus(stepper), "Up must remain native navigation.")
+        }
+        XCTAssertEqual(
+            app.staticTexts["Backward"].firstMatch.frame.height,
+            app.staticTexts["Rewind on resume"].firstMatch.frame.height, accuracy: 1
+        )
+        #else
+        throw XCTSkip("Never changes settings on a physical device.")
         #endif
     }
 
@@ -526,6 +655,17 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertGreaterThan(countLabel.frame.minY, showScores.frame.maxY)
         XCTAssertLessThanOrEqual(countLabel.frame.minY - showScores.frame.maxY, 40,
                                 "Related review-score controls must use the compact shared gap.")
+        let countControl = app.buttons["Maximum ratings shown"]
+        try focus(countControl, in: app)
+        let originalCount = countControl.value as? String
+        XCTAssertNotNil(originalCount)
+        XCTAssertGreaterThan(countControl.frame.width, 800)
+        XCTAssertTrue(countControl.frame.contains(countLabel.frame))
+        XCUIRemote.shared.press(originalCount == "10" ? .left : .right)
+        XCTAssertNotEqual(countControl.value as? String, originalCount)
+        XCTAssertTrue(hasFocus(countControl))
+        XCUIRemote.shared.press(originalCount == "10" ? .right : .left)
+        XCTAssertEqual(countControl.value as? String, originalCount)
         capture("compact-review-score-controls", in: app)
         let age = app.switches["Show Common Sense age"]
         try focus(age, in: app)
@@ -592,7 +732,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             let settings = app.buttons.matching(NSPredicate(format: "label == %@", "Settings")).firstMatch
             XCTAssertTrue(settings.waitForExistence(timeout: 5), app.debugDescription)
             try focus(settings, in: app, stoppingWhen: { general.exists })
-            if !general.exists { XCUIRemote.shared.press(.select) }
+            if !general.waitForExistence(timeout: 2) { XCUIRemote.shared.press(.select) }
         }
         XCTAssertTrue(general.waitForExistence(timeout: 20), app.debugDescription)
         try focus(general, in: app)

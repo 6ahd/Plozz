@@ -10,8 +10,9 @@ struct ViewPreferenceChoiceGroup<Content: View>: View {
     var body: some View {
         #if os(tvOS)
         SettingsCheckGroup(rowSize: rowSize) {
-            VStack(alignment: .leading, spacing: SettingsRowMetrics.formRowSpacing, content: content)
+            SettingsControlRows(content: content)
         }
+        .environment(\.settingsFormRowsFlushLeading, false)
         #else
         if rowSize == .contained {
             Section(content: content)

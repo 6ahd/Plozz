@@ -32,6 +32,7 @@ public enum SettingsFormMetrics {
     public static let sectionSpacing = PlozzTheme.Spacing.large + PlozzTheme.Spacing.xxSmall
     public static let controlSpacing = PlozzTheme.Spacing.large
     public static let relatedControlSpacing = PlozzTheme.Spacing.small
+    public static let dividerFocusClearance: CGFloat = 3
     public static let groupInset = PlozzTheme.Spacing.large
     public static let pageInset = sectionSpacing
     public static let headingInset = PlozzTheme.Spacing.medium
@@ -234,6 +235,7 @@ public struct SettingsFocusRow<Content: View>: View {
     private let size: SettingsRowSize
     private let content: Content
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.settingsRowsHaveDividers) private var hasDividers
 
     public init(
         isFocused: Bool, isPressed: Bool = false, size: SettingsRowSize = .standard,
@@ -268,7 +270,8 @@ public struct SettingsFocusRow<Content: View>: View {
     }
 
     private var focusInsetV: CGFloat {
-        switch size {
+        if hasDividers { return 0 }
+        return switch size {
         case .standard: 4
         case .prominent: 6
         case .contained: 0
@@ -329,7 +332,26 @@ private struct SettingsRowFocusForegroundKey: EnvironmentKey {
     static let defaultValue: Color = .white
 }
 
+private struct SettingsFormRowsFlushLeadingKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+private struct SettingsRowsHaveDividersKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 public extension EnvironmentValues {
+    /// Contained groups keep the shared row inset; ordinary forms align labels to their gutter.
+    var settingsFormRowsFlushLeading: Bool {
+        get { self[SettingsFormRowsFlushLeadingKey.self] }
+        set { self[SettingsFormRowsFlushLeadingKey.self] = newValue }
+    }
+
+    var settingsRowsHaveDividers: Bool {
+        get { self[SettingsRowsHaveDividersKey.self] }
+        set { self[SettingsRowsHaveDividersKey.self] = newValue }
+    }
+
     var settingsRowIsFocused: Bool {
         get { self[SettingsRowIsFocusedKey.self] }
         set { self[SettingsRowIsFocusedKey.self] = newValue }

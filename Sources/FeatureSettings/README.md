@@ -17,7 +17,10 @@ and the single place caption customization lives.
   Discovery options use the shared `ViewPreferenceChoiceGroup` with the source
   they configure, so a source toggle and its links form one visual group.
   TV forms share row/section spacing and contained, concentric focus geometry;
-  inline steppers use the same row height and align to the trailing value column.
+  steppers focus the whole labeled row, with visible minus/plus cues and
+  Left/Right adjustment. Values stay aligned to the trailing column.
+  `SettingsControlRows` separates controls sharing a container, keeping each
+  helper with its control and omitting the divider after the last visible row.
   Hero copy uses **content** for the overall selection and **item** for one entry,
   rather than calling entries titles. **Advance automatically** and its conditional
   **Seconds per item** control share a group without a redundant section heading.
@@ -84,11 +87,12 @@ and the single place caption customization lives.
   A legacy split-pane gap must not become large empty space between controls
   inside a workspace form. The navigation owner supplies a focus-aware Back
   control through `settingsPageBackButton`; page headers and custom editors
-  host it inside their scrolling content, never above the scroll viewport.
-  In the subtitle editor, Back scrolls with the control column but stays outside
-  the Appearance card. The page title and preview tools share that scroll view,
-  which extends to the screen edge; only the large live preview stays stationary
-  beside the controls. Scrolling never leaves a fixed title above a shortened list.
+  host it inside ordinary pages' scrolling content. Full-screen subtitle
+  customization is the explicit exception: Back sits above the stationary title,
+  and only the bounded left tool pane scrolls beside the large preview.
+  Preview controls below the pane expand on focus, smoothly reducing the pane's
+  available height instead of scrolling the whole page. There is no redundant
+  Appearance heading.
 - `ProfileDetailView` — manage the active profile: rename, recolor,
   switch / sign out of accounts, configure the Plex Home-user mapping
   (`PlexLinkedUserDetailView`).

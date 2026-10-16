@@ -1,7 +1,8 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
-/// Place this heading inside the page's scrollable content, never above its viewport.
+/// Place this heading inside ordinary pages' scrollable content. Full-screen
+/// editors may keep it outside their independently scrolling tool pane.
 /// Add a subtitle only when the title cannot communicate the scope of the page.
 public struct SettingsPageHeader: View {
     private let title: Text

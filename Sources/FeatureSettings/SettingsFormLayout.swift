@@ -113,7 +113,7 @@ struct SettingsFormGroup<Content: View>: View {
                 .font(.headline)
                 .padding(.horizontal, SettingsFormMetrics.headingInset)
                 .accessibilityAddTraits(.isHeader)
-            VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing, content: content)
+            SettingsControlRows(content: content)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(SettingsFormMetrics.groupInset)
                 .settingsGroupSurface(cornerRadius: 28)

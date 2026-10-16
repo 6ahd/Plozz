@@ -553,7 +553,7 @@ struct SettingsRevealSection<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        SettingsControlRows(nonTVSpacing: 20) {
             Toggle(isOn: $isOn) {
                 Text(masterLabel)
             }
@@ -565,7 +565,7 @@ struct SettingsRevealSection<Content: View>: View {
                             .settingsSectionHeader()
                             .padding(.top, 4)
                     }
-                    content()
+                    SettingsControlRows(nonTVSpacing: 16, content: content)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .transition(.opacity.combined(with: .move(edge: .top)))

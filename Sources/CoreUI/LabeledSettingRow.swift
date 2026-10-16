@@ -53,8 +53,13 @@ public struct LabeledSettingRow<Trailing: View>: View {
                     .fixedSize(horizontal: true, vertical: false)
                 if let subtitle {
                     Text(subtitle)
+                        #if os(tvOS)
+                        .font(SettingsRowMetrics.helperFont)
+                        .settingsRowSecondary()
+                        #else
                         .font(.footnote)
                         .plozzForeground(.secondary)
+                        #endif
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

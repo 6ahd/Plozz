@@ -188,7 +188,7 @@ public struct LiveTVSettingsView: View {
                 )
             },
             SettingsSplitRow(id: "guide", title: "Guide") {
-                VStack(alignment: .leading, spacing: 24) {
+                SettingsControlRows {
                     ForEach(browsingRows.filter { ["auto-preview", "keep-watching-while-browsing", "preview-after-watching", "recently-watched"].contains($0.id) }) { row in
                         VStack(alignment: .leading, spacing: 4) {
                             row.detail()

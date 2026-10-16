@@ -257,7 +257,7 @@ struct SpoilerRowsBuilder {
                     comment: "Description under the Spoilers heading in tvOS Settings, explaining what the switches below it do. 'Press' is the Apple TV remote's Select button."
                 ),
             ) {
-                VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
+                SettingsControlRows(nonTVSpacing: SettingsMetrics.sectionSpacing) {
                     SettingsRevealSection(
                         isOn: $spoilers.settings.isEnabled,
                         masterLabel: "Hide spoilers for unwatched episodes"
@@ -294,7 +294,7 @@ struct DetailPageDetailView: View {
                 title: "Background",
                 description: "Choose what plays behind the hero on a title's detail page. Trailer and theme music never play together."
             ) {
-                VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
+                SettingsControlRows(nonTVSpacing: SettingsMetrics.sectionSpacing) {
                     DescribedSegmentedPicker(
                         options: HeroBackgroundMode.allCases,
                         selection: $heroBackground.settings.detailMode,
@@ -339,7 +339,7 @@ private struct DetailHeaderRatingsSettingsForm: View {
     @Bindable var model: DetailPageSettingsModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
+        SettingsControlRows(nonTVSpacing: SettingsMetrics.sectionSpacing) {
             Toggle("Show review scores", isOn: $model.settings.showsHeaderRatings)
             if model.settings.showsHeaderRatings {
                 HeaderReviewScoreCountPicker(settings: $model.settings)
@@ -528,30 +528,33 @@ struct PlaybackDetailView: View {
             if section == .subtitles { return subtitleRows }
             return [
                 SettingsSplitRow(id: "audio", title: "Audio") {
-                    VStack(alignment: .leading, spacing: 28) {
+                    SettingsControlRows {
                         ForEach(audioRows) { row in
-                            row.detail()
-                            if let description = row.description {
-                                description.settingsHelperText().fixedSize(horizontal: false, vertical: true)
+                            VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+                                row.detail()
+                                if let description = row.description {
+                                    description.settingsHelperText().fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
                     }
                 },
                 SettingsSplitRow(id: "autoplay-up-next", title: "Autoplay & Up Next") {
-                    VStack(alignment: .leading, spacing: 28) {
+                    SettingsControlRows {
                         ForEach(upNextRows) { $0.detail() }
                     }
                 }
             ] + skipIntroRows.map { $0.page() } + [
                 SettingsSplitRow(id: "seeking", title: "Seeking") {
-                    VStack(alignment: .leading, spacing: 28) {
+                    SettingsControlRows {
                         ForEach(skipIntervalRows) { $0.detail() }
-                        Text("Rewind on resume").font(.headline)
                         ForEach(resumeRows) { $0.detail() }
                         ForEach(scrubbingRows) { row in
-                            row.detail()
-                            if let description = row.description {
-                                description.settingsHelperText().fixedSize(horizontal: false, vertical: true)
+                            VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+                                row.detail()
+                                if let description = row.description {
+                                    description.settingsHelperText().fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
                     }
@@ -617,7 +620,7 @@ struct PlaybackDetailView: View {
                 title: "Downloading subtitles",
                 description: "Download subtitles you don't already have."
             ) {
-                VStack(alignment: .leading, spacing: 28) {
+                SettingsControlRows(nonTVSpacing: 28) {
                     Toggle("Automatically download", isOn: $subtitleBehavior.settings.autoDownloadSubtitles)
                     LabeledSettingRow("Hearing-Impaired (SDH)", trailingAlignment: .trailing) {
                         Menu {
@@ -678,7 +681,7 @@ struct PlaybackDetailView: View {
                 title: "Live TV subtitle style",
                 description: "Use the same subtitle appearance everywhere, or choose a separate look for Live TV."
             ) {
-                VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
+                SettingsControlRows {
                     Toggle("Use a separate style for Live TV", isOn: $subtitleStyle.usesSeparateLiveTVStyle)
                     if subtitleStyle.usesSeparateLiveTVStyle {
                         SettingsRouteLink("Customize Live TV subtitles", value: SettingsRoute.subtitleStyle(liveTV: true))
@@ -695,7 +698,7 @@ struct PlaybackDetailView: View {
                 title: "Audio defaults",
                 description: "How Plozz picks the audio language when a title offers more than one — with optional per-content-type rules and per-series memory.",
             ) {
-                VStack(alignment: .leading, spacing: 32) {
+                SettingsControlRows(nonTVSpacing: 32) {
                     // Set separately, "Everything else" takes over the one
                     // preference, so it isn't shown twice.
                     if !audioPerContentTypeEnabled {
@@ -785,21 +788,19 @@ struct PlaybackDetailView: View {
                 title: "Skip Intervals",
                 description: "How far the remote's left and right buttons jump during playback.",
             ) {
-                VStack(alignment: .leading, spacing: 28) {
-                    LabeledSettingRow("Backward") {
-                        SettingsStepper(
-                            options: SkipInterval.allCases,
-                            selection: $playback.settings.skipBackwardInterval,
-                            verbatimTitle: { $0.title(locale: locale) }
-                        )
-                    }
-                    LabeledSettingRow("Forward") {
-                        SettingsStepper(
-                            options: SkipInterval.allCases,
-                            selection: $playback.settings.skipForwardInterval,
-                            verbatimTitle: { $0.title(locale: locale) }
-                        )
-                    }
+                SettingsControlRows(nonTVSpacing: 28) {
+                    SettingsStepper(
+                        options: SkipInterval.allCases,
+                        selection: $playback.settings.skipBackwardInterval,
+                        label: "Backward",
+                        verbatimTitle: { $0.title(locale: locale) }
+                    )
+                    SettingsStepper(
+                        options: SkipInterval.allCases,
+                        selection: $playback.settings.skipForwardInterval,
+                        label: "Forward",
+                        verbatimTitle: { $0.title(locale: locale) }
+                    )
                 }
             }
         ]
@@ -813,11 +814,7 @@ struct PlaybackDetailView: View {
                 description: "When you return to a partially-watched title, playback starts a little before where you left off. Set anywhere from 0 to 60 seconds.",
             ) {
                 VStack(alignment: .leading, spacing: 20) {
-                    SettingsStepper(
-                        options: ResumeRewindInterval.allCases,
-                        selection: $playback.settings.resumeRewindInterval,
-                        verbatimTitle: { $0.title(locale: locale) }
-                    )
+                    resumeRewindStepper
                     Text(playback.settings.resumeRewindInterval.effectDescription)
                         .settingsHelperText()
                         .fixedSize(horizontal: false, vertical: true)
@@ -825,6 +822,23 @@ struct PlaybackDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         ]
+    }
+
+    private var resumeRewindStepper: some View {
+        SettingsStepper(
+            options: ResumeRewindInterval.allCases,
+            selection: $playback.settings.resumeRewindInterval,
+            label: resumeRewindLabel,
+            verbatimTitle: { $0.title(locale: locale) }
+        )
+    }
+
+    private var resumeRewindLabel: LocalizedStringResource? {
+        #if os(tvOS)
+        inWorkspace ? "Rewind on resume" : nil
+        #else
+        nil
+        #endif
     }
 
     private var scrubbingRows: [SettingsSplitRow] {
@@ -853,7 +867,7 @@ struct PlaybackDetailView: View {
                 title: "Fade on display changes",
                 description: "If you don't match dynamic range or frame rate on your Apple TV, turn these off for faster transitions.",
             ) {
-                VStack(alignment: .leading, spacing: 24) {
+                SettingsControlRows {
                     // "HDR" and "Dolby Vision" are both `neverTranslate` brands, so
                     // this label must reach the UI verbatim rather than entering the
                     // catalog where a translator would have no way to know that.
@@ -877,14 +891,16 @@ struct PlaybackDetailView: View {
                 title: "Autoplay",
                 description: "Play the next episode automatically.",
             ) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Autoplay next episode", isOn: $playback.settings.autoPlayNextEpisode)
+                SettingsControlRows(nonTVSpacing: 8) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Autoplay next episode", isOn: $playback.settings.autoPlayNextEpisode)
+                        Text(playback.settings.autoPlayNextEpisode
+                             ? "The next episode starts when one finishes."
+                             : "The player closes when an episode finishes.")
+                            .settingsHelperText()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     Toggle("Autoplay next playlist item", isOn: $playback.settings.autoPlayNextPlaylistItem)
-                    Text(playback.settings.autoPlayNextEpisode
-                         ? "The next episode starts when one finishes."
-                         : "The player closes when an episode finishes.")
-                        .settingsHelperText()
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             },
             SettingsSplitRow(
@@ -892,16 +908,15 @@ struct PlaybackDetailView: View {
                 title: "Show Up Next card",
                 description: "Jump straight to the next episode.",
             ) {
-                VStack(alignment: .leading, spacing: 24) {
+                SettingsControlRows {
                     Toggle("Show Up Next card", isOn: $playback.settings.showUpNextCard)
                     if playback.settings.showUpNextCard {
-                        LabeledSettingRow("Time before the end", subtitle: "When credits can't be detected") {
-                            SettingsStepper(
-                                options: PlaybackSettings.upNextLeadSecondsOptions,
-                                selection: $playback.settings.upNextLeadSeconds,
-                                verbatimTitle: { Duration.seconds($0).formatted(.units(allowed: [.seconds], width: .narrow)) }
-                            )
-                        }
+                        SettingsStepper(
+                            options: PlaybackSettings.upNextLeadSecondsOptions,
+                            selection: $playback.settings.upNextLeadSeconds,
+                            label: "Time before the end", subtitle: "When credits can't be detected",
+                            verbatimTitle: { Duration.seconds($0).formatted(.units(allowed: [.seconds], width: .narrow)) }
+                        )
                     }
                 }
             }
@@ -954,7 +969,7 @@ private struct SkipModeControl: View {
     @Binding var useCommunityMarkers: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 32) {
+        SettingsControlRows(nonTVSpacing: 32) {
             if !perKindEnabled {
                 DescribedSegmentedPicker(
                     options: SkipIntrosMode.allCases,
@@ -1003,7 +1018,7 @@ private struct SubtitleModeControl: View {
     let categoryMode: (SubtitleContentCategory) -> Binding<SubtitleMode>
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 32) {
+        SettingsControlRows(nonTVSpacing: 32) {
             if !perTypeEnabled {
                 DescribedSegmentedPicker(
                     options: SubtitleMode.allCases,

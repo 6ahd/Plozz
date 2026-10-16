@@ -53,7 +53,7 @@ struct SettingsOptionList<Option: Hashable>: View {
     @FocusState private var focusedOption: Option?
 
     private var list: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        SettingsControlRows(nonTVSpacing: SettingsRowMetrics.formRowSpacing) {
             ForEach(options, id: \.self) { option in
                 SettingsCheckableRow(
                     title: title(option),
@@ -112,7 +112,7 @@ struct SettingsCheckList<Option: Hashable & Identifiable>: View {
     var onToggle: (Option) -> Void
 
     private var list: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        SettingsControlRows(nonTVSpacing: SettingsRowMetrics.formRowSpacing) {
             ForEach(options) { option in
                 SettingsCheckableRow(
                     title: title(option),

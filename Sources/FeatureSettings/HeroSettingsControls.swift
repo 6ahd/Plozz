@@ -78,13 +78,10 @@ private struct HeroTitleControls: View {
             Toggle("Hide watched content", isOn: $hero.settings.hideWatched)
                 .accessibilityIdentifier("hero-hide-watched")
             #if os(tvOS)
-            LabeledSettingRow("Items to show", trailingAlignment: .trailing) {
-                SettingsStepper(
-                    options: Array(HeroSettings.maxItemsRange), selection: $hero.settings.maxItems,
-                    compact: true, title: { "\($0)" }
-                )
-            }
-            .settingsFormRowLayout()
+            SettingsStepper(
+                options: Array(HeroSettings.maxItemsRange), selection: $hero.settings.maxItems,
+                compact: true, label: "Items to show", title: { "\($0)" }
+            )
             #else
             Stepper("Items to show: \(hero.settings.maxItems)",
                     value: $hero.settings.maxItems, in: HeroSettings.maxItemsRange)
@@ -103,14 +100,11 @@ private struct HeroAutomaticChangeControls: View {
                 .accessibilityIdentifier("hero-auto-advance")
             if hero.settings.autoAdvance {
                 #if os(tvOS)
-                LabeledSettingRow("Seconds per item", trailingAlignment: .trailing) {
-                    SettingsStepper(
-                        options: Array(HeroSettings.autoAdvanceRange), selection: $hero.settings.autoAdvanceSeconds,
-                        compact: true,
-                        verbatimTitle: { Duration.seconds($0).formatted(.units(allowed: [.seconds], width: .narrow)) }
-                    )
-                }
-                .settingsFormRowLayout()
+                SettingsStepper(
+                    options: Array(HeroSettings.autoAdvanceRange), selection: $hero.settings.autoAdvanceSeconds,
+                    compact: true, label: "Seconds per item",
+                    verbatimTitle: { Duration.seconds($0).formatted(.units(allowed: [.seconds], width: .narrow)) }
+                )
                 #else
                 Stepper("Seconds per item: \(hero.settings.autoAdvanceSeconds)",
                         value: $hero.settings.autoAdvanceSeconds, in: HeroSettings.autoAdvanceRange)
@@ -133,10 +127,6 @@ private struct HeroRatingControls: View {
                 Toggle("Show Common Sense age", isOn: $hero.settings.ratingPreferences.showsHeaderFamilyGuidance)
                     .accessibilityIdentifier("hero-common-sense-age")
                 HeaderReviewScoreCountPicker(settings: $hero.settings.ratingPreferences)
-                    #if os(tvOS)
-                    .padding(.horizontal, SettingsRowMetrics.horizontalPadding)
-                    .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
-                    #endif
             }
         }
     }

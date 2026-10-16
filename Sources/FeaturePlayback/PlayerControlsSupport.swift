@@ -545,12 +545,7 @@ extension AnyTransition {
     }
 }
 
-enum PlozzMoveCommandDirection {
-    case up
-    case down
-    case left
-    case right
-}
+typealias PlozzMoveCommandDirection = SettingsMoveCommandDirection
 
 /// The floating panel's translucent backing. Native **Liquid Glass** on tvOS
 /// 26+, with the profile/accessibility choice and pre-26 fallback retained.

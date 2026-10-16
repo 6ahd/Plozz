@@ -21,7 +21,8 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   their separate focus-bleed geometry.
   Page titles and Back belong inside the scrolling content, not in a fixed
   header strip that shortens the viewport. `SettingsPageHeader` supplies their
-  styling, not a separate pinned container.
+  styling, not a separate pinned container. The full-screen subtitle editor is
+  an explicit exception: its stationary heading sits above a scrolling tool pane.
   TV Settings categories and descendants share the centered
   `SettingsFormMetrics.pageWidth`. `SettingsPageStack` keeps that width throughout
   navigation; only explicitly full-width destinations use the whole viewport.
@@ -50,6 +51,23 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   keeps visible title-and-icon labels and uses the same `playerGlassButton`
   treatment, including native menus. Only the existing reduced-transparency
   playback path draws the shared frosted fallback.
+- **Settings steppers** — TV makes the whole labeled row one focus target using
+  the existing `SettingsFormButtonStyle`, including its helper, persistent minus/plus cues and
+  `SettingsRowMetrics.titleFont` value. Labels must be supplied to the shared
+  stepper, not placed outside its focus target. Left/Right adjusts,
+  Select increments, and Up/Down remains native focus navigation. Bounds clamp
+  unless a caller explicitly requests wrapping. Width reserves the longest value.
+  `SettingsAdjustmentFocusScope` shares the player's horizontal input ownership,
+  held-press cancellation, and navigation-rail protection. VoiceOver adjustment
+  uses the same stepping operation. Mobile retains separate buttons.
+- **Grouped Settings rows** — `SettingsControlRows` inserts palette separators
+  between tvOS rows sharing a container, never after the last visible row. Keep
+  a control and its helper in one child view; the divider belongs after both.
+  Conditional rows keep their SwiftUI identity, and separators add no focus or
+  accessibility stops. Focus fills stay within row bounds, with the shared
+  3pt `dividerFocusClearance` on each side of the line. Grouped steppers inherit
+  the same leading inset as their neighboring rows, with no extra resting chip.
+  Mobile keeps its existing stack/native-list presentation.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than

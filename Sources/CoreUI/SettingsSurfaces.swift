@@ -102,7 +102,7 @@ public struct SettingsPageBackButton: View {
     }
 }
 
-private struct SettingsPageSurface: ViewModifier {
+private struct SettingsPageBackgroundModifier: ViewModifier {
     #if os(tvOS)
     @State private var cardSurface = NativeGradientCardSurface()
     #endif
@@ -219,7 +219,7 @@ private struct SettingsGroupSurface: ViewModifier {
 public extension View {
     /// Shares the Settings backdrop with native cards' page-aligned surface.
     func settingsPageBackground() -> some View {
-        modifier(SettingsPageSurface())
+        modifier(SettingsPageBackgroundModifier())
     }
 
     /// Paints an elevated surface behind this view at the given rung, using the

@@ -523,6 +523,10 @@ section. The picture itself is non-focusable, so Left/Right stay dedicated to
 adjusting editor values and Down reaches preview controls. Select on the Preview
 header opens an actual full-screen canvas at playback scale; Back returns focus
 to that header without losing the chosen appearance or preview options.
+The full-screen Settings editor keeps Back above its stationary page title and
+the large picture stationary. Only the bounded left tool pane scrolls; the
+redundant Appearance heading is omitted. Expanding Preview smoothly reduces the
+pane's height, using the shared Settings motion and respecting Reduce Motion.
 
 ### Genuine HDR preview
 
