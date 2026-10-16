@@ -14,8 +14,8 @@
 <p align="center">
   <b>Dolby TrueHD Atmos &amp; DTS:X height-channel audio on Apple TV.</b>
   <br />
-  Powered by <a href="https://github.com/superuser404notfound/AetherEngine">AetherEngine</a>
-  on tvOS 26 or later, with compatible audio equipment.
+  Overhead sound from your own movie library, on tvOS 26 or later
+  with compatible audio equipment.
 </p>
 
 <p align="center">
@@ -127,13 +127,12 @@ available when you want them.
   other clients hand back to you, powered by
   [AetherEngine](https://github.com/superuser404notfound/AetherEngine).
   ([The full format list](https://github.com/superuser404notfound/AetherEngine/blob/main/docs/formats.md).)
-- **Hear the sound above you** — Dolby TrueHD Atmos and DTS:X height-channel
-  audio on Apple TV with tvOS 26 or later and compatible audio equipment.
-  Powered by AetherEngine, supported movie and episode tracks retain overhead
-  positioning through on-device spatial audio conversion. It's enabled by default;
-  the per-profile switch is in **Settings > Playback > TrueHD Atmos and DTS:X**.
-  This uses lossy spatial conversion, not lossless TrueHD/DTS:X bitstream
-  passthrough. [How it works and supported playback paths](docs/playback-engines.md#dependency-version).
+- **Hear the sound above you** — Plozz brings Dolby TrueHD Atmos and DTS:X
+  height-channel audio to Apple TV. Hear overhead effects from supported movie
+  and episode soundtracks, not just the surround channels around you.
+  Requires tvOS 26 or later and compatible audio equipment. Enabled by default,
+  with a per-profile switch in **Settings > Playback > TrueHD Atmos and DTS:X**.
+  [Compatibility and how spatial conversion works](docs/playback-engines.md#dependency-version).
 - **Change versions without leaving the player** — switch between files or
   editions on the active server on Apple TV, iPhone, and iPad. Keep your
   playback position, pause state, speed, quality limit, and matching audio and
