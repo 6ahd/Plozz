@@ -7,12 +7,30 @@ import XCTest
 
 @MainActor
 final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
+    private var capturedImages: [(image: UIImage, name: String)] = []
+
     func testFirstForwardInsertionConfirmsOnceAndAdditionalTapRetriggers() async throws {
         try await assertBriefConfirmation(direction: .forward)
     }
 
     func testFirstBackwardInsertionConfirmsOnceAndAdditionalTapRetriggers() async throws {
         try await assertBriefConfirmation(direction: .backward)
+    }
+
+    func testForwardChevronsFlowIntoLeadingSlotWithoutReversing() async throws {
+        try await assertDirectionalFlow(direction: .forward)
+    }
+
+    func testBackwardChevronsFlowIntoLeadingSlotWithoutReversing() async throws {
+        try await assertDirectionalFlow(direction: .backward)
+    }
+
+    func testRapidForwardTapsPreserveFlowAndCoalesceToOneAdditionalCycle() async throws {
+        try await assertRapidTapFlow(direction: .forward)
+    }
+
+    func testRapidBackwardTapsPreserveFlowAndCoalesceToOneAdditionalCycle() async throws {
+        try await assertRapidTapFlow(direction: .backward)
     }
 
     func testReduceMotionRendersExactlyTwoSteadyChevronsAcrossAdditionalTaps() async throws {
@@ -109,6 +127,100 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         }
     }
 
+    private func assertDirectionalFlow(direction: PlayerTouchSkipDirection) async throws {
+        try await withFeedback { fixture, window in
+            let startedAt = ContinuousClock.now
+            fixture.seek(by: direction == .forward ? 25 : -25)
+            let sign = direction == .forward ? 1.0 : -1.0
+            var previousX: Double?
+            for milliseconds in [60, 140, 220] {
+                try await Task.sleep(until: startedAt + .milliseconds(milliseconds), clock: .continuous)
+                let frame = try self.capture(window, direction: direction, afterScreenUpdates: false)
+                let positions = self.glyphCentroids(frame.subject)
+                if let priorX = previousX {
+                    // Follow the original trailing glyph, not the fading/wrapped glyph behind it.
+                    let advancing = positions.filter {
+                        let displacement = ($0 - priorX) * sign
+                        return displacement > 1 && displacement < 12
+                    }
+                    XCTAssertEqual(
+                        advancing.count, 1,
+                        "The trailing glyph must advance in the skip direction without wobbling: \(priorX) → \(positions)"
+                    )
+                    previousX = try XCTUnwrap(advancing.first)
+                } else {
+                    previousX = try XCTUnwrap(direction == .forward ? positions.min() : positions.max())
+                }
+            }
+        }
+    }
+
+    private func assertRapidTapFlow(direction: PlayerTouchSkipDirection) async throws {
+        try await withFeedback { fixture, window in
+            let sign = direction == .forward ? 1.0 : -1.0
+            let startedAt = ContinuousClock.now
+            fixture.seek(by: sign * 25)
+            // Keep totals two digits so text layout cannot shift the glyph comparison.
+            // The reference queues one cycle; the subject receives five rapid accepted taps.
+            let burst = Task { @MainActor in
+                var lastPulseAt = startedAt
+                for milliseconds in [80, 100, 120, 140, 160] {
+                    try await Task.sleep(until: startedAt + .milliseconds(milliseconds), clock: .continuous)
+                    if milliseconds == 80 {
+                        _ = fixture.reference.seek(by: sign * 5, from: 300, within: 0...600)
+                    }
+                    _ = fixture.subject.seek(by: sign * 5, from: 300, within: 0...600)
+                    lastPulseAt = ContinuousClock.now
+                }
+                return lastPulseAt
+            }
+            defer { burst.cancel() }
+
+            try await Task.sleep(until: startedAt + .milliseconds(50), clock: .continuous)
+            let initial = try self.capture(window, direction: direction, afterScreenUpdates: false)
+            XCTAssertLessThan(self.difference(initial.reference, initial.subject), 0.12)
+            try await Task.sleep(until: startedAt + .milliseconds(200), clock: .continuous)
+            let lastPulseAt = try await burst.value
+            XCTAssertLessThan(lastPulseAt, startedAt + .milliseconds(280), "The entire burst must land in the first cycle")
+            let duringBurst = try self.capture(window, direction: direction, afterScreenUpdates: false)
+            XCTAssertGreaterThan(self.difference(initial.subject, duringBurst.subject), 0.12)
+            XCTAssertLessThan(
+                self.difference(duringBurst.reference, duringBurst.subject), 0.12,
+                "Rapid taps must preserve the original rendered phase, not restart or cancel it"
+            )
+
+            try await Task.sleep(until: startedAt + .milliseconds(340), clock: .continuous)
+            let queued = try self.capture(window, direction: direction, afterScreenUpdates: false)
+            try await Task.sleep(until: startedAt + .milliseconds(450), clock: .continuous)
+            let queuedLater = try self.capture(window, direction: direction, afterScreenUpdates: false)
+            XCTAssertGreaterThan(
+                self.difference(queued.subject, queuedLater.subject), 0.12,
+                "Accepted taps must produce one additional moving cycle after the initial 280 ms"
+            )
+            for frame in [queued, queuedLater] {
+                XCTAssertLessThan(
+                    self.difference(frame.reference, frame.subject), 0.12,
+                    "One queued tap and five coalesced taps must remain in the same rendered phase"
+                )
+            }
+
+            try await Task.sleep(until: startedAt + .milliseconds(650), clock: .continuous)
+            let settled = try self.capture(window, direction: direction)
+            try await Task.sleep(until: startedAt + .milliseconds(850), clock: .continuous)
+            let resting = try self.capture(window, direction: direction)
+            XCTAssertTrue(
+                settled.subject == resting.subject,
+                "The burst must stop after two 280 ms cycles, without an idle loop or per-tap backlog"
+            )
+            XCTAssertTrue(settled.reference == resting.reference, "The one-extra-cycle reference must also be static")
+            XCTAssertEqual(self.componentCount(resting.subject), 2)
+            XCTAssertEqual(fixture.subject.skip?.pulse, 6)
+            XCTAssertEqual(fixture.subject.skip?.seconds, sign * 50, "All accepted taps must contribute to the visible total")
+            XCTAssertEqual(fixture.subject.skip?.direction, direction)
+            XCTAssertEqual(fixture.reference.skip?.pulse, 2)
+        }
+    }
+
     private func withFeedback(
         reduceMotion: Bool = false,
         _ operation: (FeedbackFixture, UIWindow) async throws -> Void
@@ -133,6 +245,14 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             window.isHidden = true
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
+            // Serialize evidence after the short animation samples, not between them.
+            for capture in capturedImages {
+                let attachment = XCTAttachment(image: capture.image)
+                attachment.name = capture.name
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+            capturedImages.removeAll()
         }
         window.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(80))
@@ -140,18 +260,15 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     }
 
     private func capture(
-        _ window: UIWindow, direction: PlayerTouchSkipDirection
+        _ window: UIWindow, direction: PlayerTouchSkipDirection, afterScreenUpdates: Bool = true
     ) throws -> (reference: [UInt8], subject: [UInt8]) {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
         let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
-            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: afterScreenUpdates))
         }
-        let attachment = XCTAttachment(image: image)
-        attachment.name = "Skip confirmation \(direction)"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        capturedImages.append((image, "Skip confirmation \(direction)"))
         let cgImage = try XCTUnwrap(image.cgImage)
         // Isolate the glyph side of each fixed 400×200 HUD, excluding the changing total.
         let x: CGFloat = direction == .forward ? 325 : 15
@@ -178,14 +295,22 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     }
 
     private func componentCount(_ pixels: [UInt8]) -> Int {
+        glyphCentroids(pixels).count
+    }
+
+    private func glyphCentroids(_ pixels: [UInt8]) -> [Double] {
         var remaining = Set(pixels.indices.filter { pixels[$0] > 128 })
-        var count = 0
+        var positions: [Double] = []
         while let seed = remaining.first {
             remaining.remove(seed)
             var queue = [seed]
             var size = 0
+            var weightedX = 0
+            var weight = 0
             while let index = queue.popLast() {
                 size += 1
+                weightedX += (index % 60) * Int(pixels[index])
+                weight += Int(pixels[index])
                 for dy in -1...1 {
                     for dx in -1...1 {
                         let x = index % 60 + dx
@@ -196,9 +321,9 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     }
                 }
             }
-            if size > 10 { count += 1 }
+            if size > 10 { positions.append(Double(weightedX) / Double(weight)) }
         }
-        return count
+        return positions.sorted()
     }
 }
 

@@ -240,36 +240,58 @@ struct PlayerTouchGestureFeedbackContent: View {
 }
 
 private struct PlayerTouchSkipChevrons: View {
+    private static let cycleDuration: TimeInterval = 0.28
+
     let direction: PlayerTouchSkipDirection
     let pulse: Int
     let reduceMotion: Bool
     @State private var startedAt = Date()
-    @State private var isAnimating = true
+    @State private var endsAt: Date?
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 60, paused: reduceMotion || !isAnimating)) { context in
-            let elapsed = max(0, context.date.timeIntervalSince(startedAt))
+        TimelineView(.animation(minimumInterval: 1 / 60, paused: reduceMotion || endsAt == nil)) { context in
+            let elapsed = max(0, min(context.date, endsAt ?? startedAt).timeIntervalSince(startedAt))
+            let phase = reduceMotion || endsAt == nil
+                ? 0 : (elapsed / Self.cycleDuration).truncatingRemainder(dividingBy: 1)
+            let sign: CGFloat = direction == .forward ? 1 : -1
             HStack(spacing: -3) {
                 ForEach(0..<2) { index in
-                    let order = direction == .forward ? index : 1 - index
-                    let progress = min(1, max(0, (elapsed - Double(order) * 0.04) / 0.24))
-                    let confirmation = reduceMotion || !isAnimating ? 0 : sin(progress * .pi)
+                    let leading = index == (direction == .forward ? 1 : 0)
+                    let travel = leading && phase >= 0.5 ? phase - 2 : phase
                     Image(systemName: direction == .forward ? "chevron.right" : "chevron.left")
-                        .opacity(1 - 0.35 * confirmation)
-                        .offset(x: 4 * confirmation * (direction == .forward ? 1 : -1))
+                        .opacity(leading ? abs(cos(phase * .pi)) : 1)
+                        .visualEffect { content, geometry in
+                            content.offset(x: (geometry.size.width - 3) * CGFloat(travel) * sign)
+                        }
                 }
             }
         }
-        .task(id: pulse) {
-            startedAt = Date()
-            isAnimating = !reduceMotion
-            guard isAnimating else { return }
-            do { try await Task.sleep(for: .milliseconds(300)) }
+        .onChange(of: pulse, initial: true) { confirmSkip() }
+        .onChange(of: reduceMotion) {
+            if reduceMotion { endsAt = nil }
+        }
+        .task(id: endsAt) {
+            guard let deadline = endsAt else { return }
+            do { try await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSinceNow))) }
             catch { return }
-            isAnimating = false
+            guard !Task.isCancelled, endsAt == deadline else { return }
+            endsAt = nil
         }
         .transaction { $0.animation = nil }
         .accessibilityHidden(true)
+    }
+
+    private func confirmSkip() {
+        guard !reduceMotion else { return }
+        let now = Date()
+        if let endsAt, now < endsAt {
+            // Keep the moving phase and coalesce rapid taps into at most one queued cycle.
+            let currentCycle = floor(now.timeIntervalSince(startedAt) / Self.cycleDuration)
+            self.endsAt = startedAt.addingTimeInterval((currentCycle + 2) * Self.cycleDuration)
+        } else {
+            startedAt = now
+            endsAt = now.addingTimeInterval(Self.cycleDuration)
+        }
     }
 }
 #endif
