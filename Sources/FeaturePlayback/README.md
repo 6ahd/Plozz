@@ -89,10 +89,12 @@ chevrons and the signed total replace the main controls, retaining the player's
 actual timeline in its normal position, with its time labels, playhead, buffer
 and segment styling, and scrubbing behavior. Each accepted skip launches one
 native chevron outward: right for forward, left for backward. It travels 20 points
-and fades away over 0.4 seconds. Rapid taps add independent, overlapping chevrons
-without restarting earlier ones or queuing a replay. Each chevron is removed
-after its own animation finishes; the signed total retains its existing feedback
-lifetime. The indicator keeps a compact 30-point glyph slot and 26-point count.
+at a steady pace over 0.7 seconds, staying fully visible for the first 0.25 seconds
+before gradually fading over the remaining 0.45 seconds. Rapid taps add independent,
+overlapping chevrons without restarting earlier ones or queuing a replay.
+Each chevron is removed after its own animation finishes; the signed total retains
+its existing feedback lifetime. The indicator keeps a compact 30-point glyph slot
+and 26-point count.
 Reduce Motion shows one steady chevron instead, and enabling it removes any
 moving chevrons immediately. Single taps still toggle controls; native controls
 and open menus keep their own touches.

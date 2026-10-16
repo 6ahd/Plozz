@@ -281,9 +281,10 @@ private struct PlayerTouchSkipChevronFlight: View {
     var body: some View {
         Image(systemName: "chevron.right")
             .offset(x: isTraveling ? 20 : 0)
+            .animation(.linear(duration: 0.7), value: isTraveling)
             .opacity(isTraveling ? 0 : 1)
             .onAppear {
-                withAnimation(.easeOut(duration: 0.4), completionCriteria: .removed) {
+                withAnimation(.easeIn(duration: 0.45).delay(0.25), completionCriteria: .removed) {
                     isTraveling = true
                 } completion: {
                     onCompletion()
