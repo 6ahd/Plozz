@@ -36,6 +36,7 @@ public struct AutomaticSignInStore {
         struct PlexCredential: Codable {
             let serverToken: String
             let discoverToken: String
+            var pinVerified: Bool? = nil
         }
 
         let profile: ProfileAccess

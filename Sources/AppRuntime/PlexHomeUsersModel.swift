@@ -159,6 +159,8 @@ public final class PlexHomeUsersModel {
     /// re-armed into an infinite prompt/re-prompt loop.
     @ObservationIgnored
     private var plexResolvedHomeUser: [String: String] = [:]
+    @ObservationIgnored
+    private var plexPINVerifiedHomeUser: [String: String] = [:]
     /// Keychain-backed cache of resolved server tokens for **unprotected** Plex
     /// Home users. Lets `ensurePlexIdentityForActiveProfile` install the right
     /// identity synchronously at launch/profile-pick (instant, ungated paint),
@@ -263,6 +265,11 @@ public final class PlexHomeUsersModel {
             guard Set(session.plexCredentials.keys) == Set(boundAccounts.map(\.id)),
                   session.plexCredentials.values.allSatisfy({
                       !$0.serverToken.isEmpty && !$0.discoverToken.isEmpty
+                  }),
+                  boundAccounts.allSatisfy({ account in
+                      guard let binding = profile.homeUserBinding(forPlexAccount: account.id) else { return false }
+                      return session.plexCredentials[account.id]?.pinVerified == true
+                          || (binding.requiresPIN == false && binding.pinRequirementVerified == true)
                   }) else {
                 try automaticSignInStore.invalidate()
                 return false
@@ -273,6 +280,9 @@ public final class PlexHomeUsersModel {
                 setPlexTokenOverride(credential.serverToken, for: account.id)
                 plexDiscoverTokens.setToken(credential.discoverToken, for: account.id)
                 plexResolvedHomeUser[account.id] = account.homeUserID
+                if credential.pinVerified == true {
+                    plexPINVerifiedHomeUser[account.id] = account.homeUserID
+                }
                 accountsProviders.registry.invalidate(accountID: account.id)
             }
             startupProfileAccess = session.profile
@@ -347,7 +357,12 @@ public final class PlexHomeUsersModel {
                   let serverToken = plexTokenOverrides[account.id], !serverToken.isEmpty,
                   let discoverToken = plexDiscoverTokens.token(for: account.id), !discoverToken.isEmpty
             else { return nil }
-            credentials[account.id] = .init(serverToken: serverToken, discoverToken: discoverToken)
+            let pinVerified = plexPINVerifiedHomeUser[account.id] == binding.homeUserID
+            guard pinVerified || (binding.requiresPIN == false && binding.pinRequirementVerified == true)
+            else { return nil }
+            credentials[account.id] = .init(
+                serverToken: serverToken, discoverToken: discoverToken, pinVerified: pinVerified
+            )
         }
         return .init(
             profile: .init(profile),
@@ -436,6 +451,7 @@ public final class PlexHomeUsersModel {
         plexTokenOverrides[accountID] = token
         if token == nil {
             plexDiscoverTokens.setToken(nil, for: accountID)
+            plexPINVerifiedHomeUser[accountID] = nil
         }
     }
 
@@ -483,6 +499,10 @@ public final class PlexHomeUsersModel {
     /// Submits a PIN for the outstanding Plex Home-user switch.
     public func submitPlexPIN(_ pin: String) {
         guard let request = pendingPlexPINRequest else { return }
+        guard !pin.isEmpty else {
+            plexPINError = ProfileLockCopy.incorrectPIN
+            return
+        }
         PlozzLog.auth.debug("submitPlexPIN len=\(pin.count) acct=\(request.accountID)")
         plexPINError = nil
         checkPlexPINRequirement(for: request, suppliedPIN: pin)
@@ -552,7 +572,7 @@ public final class PlexHomeUsersModel {
 
         for account in plexAccounts {
             if let binding = profile.homeUserBinding(forPlexAccount: account.id) {
-                if binding.requiresPIN == true {
+                if binding.requiresPIN != false || binding.pinRequirementVerified != true {
                     // The general switch cache must never unlock a protected user.
                     plexHomeUserTokenCache.remove(account: account.id, homeUser: binding.homeUserID)
                     // Already resolved to exactly this user? It's satisfied —
@@ -560,7 +580,8 @@ public final class PlexHomeUsersModel {
                     // re-entrancy loop: success cleared the override, the
                     // reconciler immediately re-prompted, cover never tore down.)
                     if plexTokenOverrides[account.id] != nil,
-                       plexResolvedHomeUser[account.id] == binding.homeUserID {
+                       plexResolvedHomeUser[account.id] == binding.homeUserID,
+                       plexPINVerifiedHomeUser[account.id] == binding.homeUserID {
                         continue
                     }
                     // Stale override for a DIFFERENT user — drop before prompting.
@@ -743,23 +764,47 @@ public final class PlexHomeUsersModel {
             return
         }
         guard isCurrentPINRequirementCheck(context, adminToken: adminToken) else { return }
-        // The switch endpoint authenticates the saved user. The Home-user list
-        // can be stale or incomplete and must not veto or replace an entered PIN.
-        let result = await performPlexSwitch(
-            accountID: request.accountID, homeUserID: request.homeUserID,
-            pin: suppliedPIN,
-            expectedGeneration: context.identityGeneration, expectedActivation: context.activation,
-            checkingPINRequirement: suppliedPIN == nil
-        )
-        if suppliedPIN != nil,
-           case let .failure(error) = result, error as? AppError == .unauthorized,
-           isCurrentPINRequirementCheck(context, adminToken: adminToken) {
-            // A saved "same PIN as Plex" entry can outlive removal of the Plex PIN.
+        if let suppliedPIN, !suppliedPIN.isEmpty {
+            // Metadata must never veto, replace, or discard an entered PIN.
+            let result = await performPlexSwitch(
+                accountID: request.accountID, homeUserID: request.homeUserID, pin: suppliedPIN,
+                expectedGeneration: context.identityGeneration, expectedActivation: context.activation
+            )
+            guard case let .failure(error) = result, error as? AppError == .unauthorized,
+                  isCurrentPINRequirementCheck(context, adminToken: adminToken) else { return }
+        }
+        do {
+            let users = try await plexHomeUsersFetch(adminToken, accountsProviders.deviceID)
+            guard isCurrentPINRequirementCheck(context, adminToken: adminToken) else { return }
+            guard let user = users.first(where: { $0.id == request.homeUserID }) else {
+                PlozzLog.auth.error("Plex PIN status refresh missing selected Home user acct=\(request.accountID)")
+                if plexPINError == nil { plexPINError = ProfileLockCopy.plexSwitchFailed }
+                return
+            }
+            guard !user.requiresPIN else {
+                if context.binding.requiresPIN != true || context.binding.pinRequirementVerified != true {
+                    var binding = context.binding
+                    binding.requiresPIN = true
+                    binding.pinRequirementVerified = true
+                    profilesModel.update(profilesModel.activeProfile.settingHomeUserBinding(
+                        binding, forPlexAccount: request.accountID
+                    ))
+                }
+                return
+            }
+            // A token-only response may succeed using the owner's credential even
+            // while a PIN is enabled. Require explicit metadata AND authentication.
             await performPlexSwitch(
                 accountID: request.accountID, homeUserID: request.homeUserID, pin: nil,
                 expectedGeneration: context.identityGeneration, expectedActivation: context.activation,
-                checkingPINRequirement: true
+                confirmedUnprotectedUser: user
             )
+        } catch is CancellationError {
+            return
+        } catch {
+            guard isCurrentPINRequirementCheck(context, adminToken: adminToken) else { return }
+            PlozzLog.auth.error("Plex PIN status refresh failed acct=\(request.accountID): \(error)")
+            if plexPINError == nil { plexPINError = ProfileLockCopy.plexSwitchFailed }
         }
     }
 
@@ -864,7 +909,7 @@ public final class PlexHomeUsersModel {
         let profile = profilesModel.activeProfile
         guard let binding = profile.homeUserBinding(forPlexAccount: accountID) else { return nil }
         if let token = discoverToken(for: accountID) { return token }
-        guard binding.requiresPIN != true else {
+        guard binding.requiresPIN == false, binding.pinRequirementVerified == true else {
             PlozzLog.auth.info("Missing protected Plex Home cloud credential requires the normal PIN flow")
             HandoffDiagnostics.emit("plex-home CLOUD_RECOVERY rejected=requires-pin")
             throw AppError.unauthorized
@@ -901,6 +946,7 @@ public final class PlexHomeUsersModel {
         plexDiscoverTokens.removeAll()
         plexOverrideCredentialRevisions.removeAll()
         plexResolvedHomeUser.removeAll()
+        plexPINVerifiedHomeUser.removeAll()
         if !accountIDs.isEmpty {
             for accountID in accountIDs {
                 accountsProviders.registry.invalidate(accountID: accountID)
@@ -918,7 +964,7 @@ public final class PlexHomeUsersModel {
         accountID: String, homeUserID: String, pin: String?,
         expectedGeneration: Int? = nil, expectedActivation: Int,
         refreshServerCredential: Bool = true,
-        checkingPINRequirement: Bool = false
+        confirmedUnprotectedUser: PlexHomeUser? = nil
     ) async -> Result<String, Error> {
         guard expectedActivation == profileActivationGeneration else {
             return .failure(CancellationError())
@@ -927,11 +973,13 @@ public final class PlexHomeUsersModel {
         let profile = profilesModel.activeProfile
         let profileID = profile.id
         let profileAccess = AutomaticSignInStore.Session.ProfileAccess(profile)
-        let checksWithoutPIN = checkingPINRequirement && pin == nil
+        let checksWithoutPIN = confirmedUnprotectedUser?.id == homeUserID
+            && confirmedUnprotectedUser?.requiresPIN == false && pin == nil
         guard let account = accountsProviders.accounts.first(where: { $0.id == accountID }),
               let binding = profile.homeUserBinding(forPlexAccount: accountID),
               binding.homeUserID == homeUserID,
-              binding.requiresPIN != true || pin != nil || checksWithoutPIN else {
+              (binding.requiresPIN == false && binding.pinRequirementVerified == true)
+                || pin?.isEmpty == false || checksWithoutPIN else {
             return .failure(CancellationError())
         }
         PlozzLog.auth.debug("performPlexSwitch acct=\(accountID) home=\(homeUserID) pin?=\(pin != nil)")
@@ -1028,6 +1076,15 @@ public final class PlexHomeUsersModel {
             }
             if checksWithoutPIN, var updatedBinding = liveBinding {
                 updatedBinding.requiresPIN = false
+                updatedBinding.pinRequirementVerified = true
+                profilesModel.update(profilesModel.activeProfile.settingHomeUserBinding(
+                    updatedBinding, forPlexAccount: accountID
+                ))
+                liveBinding = updatedBinding
+            } else if pin?.isEmpty == false, var updatedBinding = liveBinding {
+                // Repair a legacy false flag without depending on a Home-user list.
+                updatedBinding.requiresPIN = true
+                updatedBinding.pinRequirementVerified = true
                 profilesModel.update(profilesModel.activeProfile.settingHomeUserBinding(
                     updatedBinding, forPlexAccount: accountID
                 ))
@@ -1042,9 +1099,10 @@ public final class PlexHomeUsersModel {
             // but only after all identity and credential guards have passed.
             plexDiscoverTokens.setToken(token, for: accountID)
             plexResolvedHomeUser[accountID] = homeUserID
+            plexPINVerifiedHomeUser[accountID] = pin?.isEmpty == false ? homeUserID : nil
             HandoffDiagnostics.emit("plex-home SWITCH cloudReady=true serverRefresh=\(refreshServerCredential)")
             // The general cache is safe for manual switches only when unprotected.
-            if liveBinding?.requiresPIN != true {
+            if liveBinding?.requiresPIN == false && liveBinding?.pinRequirementVerified == true {
                 if refreshServerCredential {
                     plexHomeUserTokenCache.store(token: resolvedToken, account: accountID, homeUser: homeUserID)
                 }
@@ -1138,6 +1196,7 @@ public final class PlexHomeUsersModel {
         plexAccountIdentityGenerations.removeAll()
         plexOverrideCredentialRevisions.removeAll()
         plexResolvedHomeUser.removeAll()
+        plexPINVerifiedHomeUser.removeAll()
         plexHomeUserTokenCache.removeAll()
         pendingPlexUserSelection = nil
         pendingPlexPINRequest = nil

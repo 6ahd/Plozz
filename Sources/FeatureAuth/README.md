@@ -138,6 +138,9 @@ Plex server and Discover tokens, never a PIN. The preference and session are not
 part of profile sync, device pairing, or credential export. Restoration requires
 the same profile, lock revision, account credential revisions, and Plex bindings;
 missing or changed state returns to the normal gates, never the owner's identity.
+Protected Plex credentials also require a device-local record of successful,
+nonempty PIN authentication. Enabling the preference alone never grants this
+proof. Older startup sessions without it must authenticate again on that device.
 
 Only the startup entry point can restore this session, once per process. Manual
 profile activation discards startup unlock credit and Plex overrides, so switching
@@ -146,14 +149,17 @@ profiles mapped to the same Plex user. Local Profile Locks and Kids Profile exit
 gates remain in force for manual switching. Disabling automatic sign-in removes
 the stored session without changing any PIN; sign-out invalidates it.
 
-Before leaving a protected Plex Home binding at its PIN prompt, Plozz attempts
-one PIN-less switch for that activation. Only successful authentication for the
-same profile, user and account credential clears the cached PIN requirement.
+Before clearing a protected Plex Home binding's PIN requirement, Plozz requires
+current Home-user metadata explicitly reporting no PIN and a successful PIN-less
+switch for the same profile, user and account credential. A successful switch
+using the owner's credential alone is not proof of PIN removal or PIN knowledge.
+Legacy bindings without a verified protection marker cannot restore unprotected
+cached tokens or automatic-sign-in sessions until they are revalidated.
 Plex rejecting that probe leaves the ordinary PIN prompt, without claiming an
 entered PIN was incorrect. An entered PIN goes directly to the switch endpoint;
 stale, missing or unavailable Home-user metadata cannot block authentication or
 discard the entered PIN. A rejected entered PIN also permits one authenticated
-PIN-less attempt in case the Plex PIN was removed, including when a separate
+PIN-less attempt only after metadata confirms the Plex PIN was removed, including when a separate
 Plozz lock supplied its former matching PIN. Network errors and rejected switches
 never unlock the profile. Cancellation and superseded profile/account/lock state invalidate the
 attempt. A successful switch cannot dismiss another account's PIN prompt,

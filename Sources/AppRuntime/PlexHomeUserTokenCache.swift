@@ -11,7 +11,8 @@ import FeatureAuthCore
 /// This cache is also read on manual switches, so protected tokens are never
 /// written here. Opt-in trusted startup uses the separate, device-only
 /// `AutomaticSignInStore`. Callers gate this cache behind
-/// `binding.requiresPIN != true`. Unprotected users have no
+/// a verified `binding.requiresPIN == false`. Legacy protection flags must be
+/// rechecked before any cached credentials can be restored. Unprotected users have no
 /// PIN to bypass, and their token is no more sensitive than the admin token the
 /// `AccountStore` already persists in the same Keychain.
 ///
