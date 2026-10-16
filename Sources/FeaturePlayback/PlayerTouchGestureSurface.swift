@@ -275,16 +275,23 @@ private struct PlayerTouchSkipChevrons: View {
 }
 
 private struct PlayerTouchSkipChevronFlight: View {
+    private static let travelDuration = 0.25
+    private static let holdDuration = 0.5
+    private static let fadeDuration = 0.3
+
     let onCompletion: () -> Void
     @State private var isTraveling = false
 
     var body: some View {
         Image(systemName: "chevron.right")
             .offset(x: isTraveling ? 20 : 0)
-            .animation(.linear(duration: 0.7), value: isTraveling)
+            .animation(.easeOut(duration: Self.travelDuration), value: isTraveling)
             .opacity(isTraveling ? 0 : 1)
             .onAppear {
-                withAnimation(.easeIn(duration: 0.45).delay(0.25), completionCriteria: .removed) {
+                withAnimation(
+                    .easeIn(duration: Self.fadeDuration).delay(Self.travelDuration + Self.holdDuration),
+                    completionCriteria: .removed
+                ) {
                     isTraveling = true
                 } completion: {
                     onCompletion()

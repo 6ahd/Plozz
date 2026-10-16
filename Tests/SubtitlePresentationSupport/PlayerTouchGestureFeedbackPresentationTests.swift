@@ -9,11 +9,11 @@ import XCTest
 final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     private var capturedImages: [(image: UIImage, name: String)] = []
 
-    func testFirstForwardChevronTravelsFadesAndRetriggersWhileCountRemains() async throws {
+    func testFirstForwardChevronTravelsHoldsFadesAndRetriggersWhileCountRemains() async throws {
         try await assertFlight(direction: .forward)
     }
 
-    func testFirstBackwardChevronTravelsFadesAndRetriggersWhileCountRemains() async throws {
+    func testFirstBackwardChevronTravelsHoldsFadesAndRetriggersWhileCountRemains() async throws {
         try await assertFlight(direction: .backward)
     }
 
@@ -58,6 +58,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 let interval: TimeInterval = direction == .forward ? 25 : -25
                 fixture.seek(by: interval)
                 try await Task.sleep(for: .milliseconds(140))
+                let lastPulseAt = ContinuousClock.now
                 fixture.seek(by: interval)
                 try await Task.sleep(for: .milliseconds(60))
                 let moving = try self.captureGlyphs(window, direction: direction, label: "Before Reduce Motion")
@@ -67,7 +68,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 let stopped = try self.captureGlyphs(window, direction: direction, label: "Reduce Motion activated")
                 XCTAssertEqual(self.componentCount(stopped), 1)
                 try self.assertCompactIndicator(stopped, window: window, direction: direction)
-                try await Task.sleep(for: .milliseconds(650))
+                try await Task.sleep(until: lastPulseAt + .milliseconds(1120), clock: .continuous)
                 let later = try self.captureGlyphs(window, direction: direction, label: "Past both flight completions")
                 XCTAssertTrue(stopped.pixels == later.pixels, "Disposed flights must not disturb the steady chevron")
                 XCTAssertEqual(fixture.state.skip?.seconds, interval * 2)
@@ -85,48 +86,67 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 lastPulseAt = startedAt
                 fixture.seek(by: interval)
                 var frames: [Int: RenderedFrame] = [:]
-                for milliseconds in [60, 220, 460, 620, 820, 1000] {
+                for milliseconds in [60, 170, 300, 500, 720, 880, 1000, 1120] {
                     try await Task.sleep(until: startedAt + .milliseconds(milliseconds), clock: .continuous)
                     frames[milliseconds] = try self.captureGlyphs(
                         window, direction: direction, label: "Pulse \(pulse), target \(milliseconds) ms", since: startedAt
                     )
                 }
                 let early = try XCTUnwrap(frames[60])
-                let held = try XCTUnwrap(frames[220])
-                let fading = try XCTUnwrap(frames[460])
-                let late = try XCTUnwrap(frames[620])
+                let traveling = try XCTUnwrap(frames[170])
+                let parked = try XCTUnwrap(frames[300])
+                let fading = try XCTUnwrap(frames[880])
+                let late = try XCTUnwrap(frames[1000])
                 self.assertVisible(early)
-                self.assertVisible(held)
+                self.assertVisible(traveling)
+                self.assertVisible(parked)
                 self.assertVisible(fading)
                 self.assertVisible(late)
                 XCTAssertEqual(self.componentCount(early), 1, "Each isolated tap must launch one open chevron")
-                XCTAssertGreaterThan(self.difference(early, held), 0.12, "Each accepted pulse must visibly animate")
-                let travel = self.horizontalCentroid(held) - self.horizontalCentroid(early)
+                XCTAssertGreaterThan(self.difference(early, traveling), 0.12, "Each accepted pulse must visibly animate")
+                let travel = self.horizontalCentroid(traveling) - self.horizontalCentroid(early)
                 XCTAssertGreaterThan(
                     travel * (direction == .forward ? 1 : -1), 3,
                     "The chevron must translate outward, not just fade or scale in place"
                 )
                 let earlyEnergy = self.inkEnergy(early)
-                let heldEnergy = self.inkEnergy(held)
+                let parkedEnergy = self.inkEnergy(parked)
+                let parkedCenter = self.horizontalCentroid(parked)
                 let fadingEnergy = self.inkEnergy(fading)
                 let lateEnergy = self.inkEnergy(late)
                 XCTAssertGreaterThan(
-                    heldEnergy, earlyEnergy * 0.85,
-                    "The traveling chevron must hold its brightness initially, rather than immediately fading"
+                    parkedEnergy, earlyEnergy * 0.85,
+                    "The chevron must arrive at its parked position at full opacity"
                 )
-                XCTAssertLessThan(heldEnergy, earlyEnergy * 1.15, "Travel must not grow or brighten the single glyph")
+                XCTAssertLessThan(parkedEnergy, earlyEnergy * 1.15, "Travel must not grow or brighten the single glyph")
+                for milliseconds in [500, 720] {
+                    let held = try XCTUnwrap(frames[milliseconds])
+                    XCTAssertEqual(
+                        self.horizontalCentroid(held), parkedCenter, accuracy: 0.5,
+                        "The chevron must stay parked throughout its half-second hold"
+                    )
+                    XCTAssertEqual(
+                        self.inkEnergy(held), parkedEnergy, accuracy: parkedEnergy * 0.05,
+                        "The chevron must stay fully opaque until its half-second hold finishes"
+                    )
+                }
+                for frame in [fading, late] {
+                    XCTAssertEqual(
+                        self.horizontalCentroid(frame), parkedCenter, accuracy: 0.5,
+                        "The fade must not restart or continue horizontal travel"
+                    )
+                }
                 XCTAssertGreaterThan(
-                    fadingEnergy, earlyEnergy * 0.35,
-                    "The chevron must remain clearly visible beyond the old 0.4-second lifetime"
+                    fadingEnergy, parkedEnergy * 0.25,
+                    "The chevron must fade gradually after its parked hold"
                 )
-                XCTAssertLessThan(fadingEnergy, heldEnergy * 0.95, "The initial hold must give way to a gradual fade")
-                XCTAssertGreaterThan(lateEnergy, earlyEnergy * 0.05, "The flight must remain visible near its end")
+                XCTAssertLessThan(fadingEnergy, parkedEnergy * 0.97, "Fading must begin after the half-second hold")
+                XCTAssertGreaterThan(lateEnergy, parkedEnergy * 0.05, "The flight must remain visible near its end")
                 XCTAssertLessThan(
-                    lateEnergy, fadingEnergy * 0.85,
+                    lateEnergy, fadingEnergy * 0.8,
                     "The chevron must progressively fade, not stay opaque until abrupt removal"
                 )
-                self.assertAbsent(try XCTUnwrap(frames[820]))
-                self.assertAbsent(try XCTUnwrap(frames[1000]))
+                self.assertAbsent(try XCTUnwrap(frames[1120]))
                 XCTAssertEqual(fixture.state.skip?.seconds, interval * Double(pulse), "The cumulative HUD must still be present")
                 XCTAssertEqual(fixture.state.skip?.pulse, pulse)
                 XCTAssertEqual(fixture.state.skip?.direction, direction)
@@ -157,7 +177,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             }
             defer { burst.cancel() }
             var frames: [Int: RenderedFrame] = [:]
-            for milliseconds in [60, 220, 370, 520, 780, 960, 1090] {
+            for milliseconds in [60, 220, 370, 520, 780] {
                 try await Task.sleep(until: startedAt + .milliseconds(milliseconds), clock: .continuous)
                 frames[milliseconds] = try self.captureGlyphs(
                     window, direction: direction, label: "Rapid taps, target \(milliseconds) ms", since: startedAt
@@ -168,48 +188,59 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             let single = try XCTUnwrap(frames[60])
             self.assertVisible(single)
             let singleBounds = try self.inkBounds(single, threshold: 32)
-            // Overlapping glyphs can merge into one connected component. Their combined extent,
-            // including the older outward flight, distinguishes a stack from one restarted glyph.
-            // Each 150 ms gap adds about 4.3 points of separation; allow raster and frame-cadence slack.
-            let insertionSamples: [(Int, CGFloat)] = [(220, 2), (370, 5), (520, 8)]
-            for (milliseconds, minimumGrowth) in insertionSamples {
+            let parked = try XCTUnwrap(frames[780])
+            self.assertVisible(parked)
+            let parkedBounds = try self.inkBounds(parked, threshold: 32)
+            XCTAssertLessThanOrEqual(
+                parkedBounds.width, singleBounds.width + 2,
+                "Finished travel must bring the parked glyphs to the same position"
+            )
+            // At each new tap +70 ms, the new glyph is still about 10 points behind the older
+            // parked glyphs. Combined extent proves coexistence even when their pixels intersect.
+            for milliseconds in [220, 370, 520] {
                 let overlap = try XCTUnwrap(frames[milliseconds])
                 self.assertVisible(overlap)
                 let bounds = try self.inkBounds(overlap, threshold: 32)
                 XCTAssertGreaterThan(
-                    bounds.width, singleBounds.width + minimumGrowth,
-                    "The stack must keep widening after each insertion, including the oldest flight at \(milliseconds) ms"
+                    bounds.width, parkedBounds.width + 5,
+                    "Each new moving glyph must coexist with older parked glyphs at \(milliseconds) ms"
                 )
-                let outwardTravel = direction == .forward
-                    ? bounds.maxX - singleBounds.maxX
-                    : singleBounds.minX - bounds.minX
-                XCTAssertGreaterThan(
-                    outwardTravel, minimumGrowth,
-                    "A new tap must not reset or remove the older outward flight at \(milliseconds) ms"
-                )
-            }
-            for milliseconds in [780, 960, 1090] {
-                self.assertVisible(
-                    try XCTUnwrap(frames[milliseconds]),
-                    message: "Earlier flight completions must not remove the later flights at \(milliseconds) ms"
+                let outerEdge = direction == .forward ? bounds.maxX : bounds.minX
+                let parkedEdge = direction == .forward ? parkedBounds.maxX : parkedBounds.minX
+                XCTAssertEqual(
+                    outerEdge, parkedEdge, accuracy: 3,
+                    "A new tap must not pull the older glyph back from its parked position"
                 )
             }
-            let fullStackBounds = try self.inkBounds(try XCTUnwrap(frames[520]), threshold: 32)
-            let thinningStackBounds = try self.inkBounds(try XCTUnwrap(frames[960]), threshold: 32)
-            XCTAssertLessThan(
-                thinningStackBounds.width, fullStackBounds.width - 3,
-                "Older flights must fade independently instead of having their lifetime restarted by newer taps"
-            )
-            for milliseconds in [820, 1000] {
+            var completionFrames: [Int: RenderedFrame] = [:]
+            for milliseconds in [670, 830, 980] {
                 try await Task.sleep(until: lastPulseAt + .milliseconds(milliseconds), clock: .continuous)
-                let tail = try self.captureGlyphs(
-                    window, direction: direction, label: "Burst tail, target \(milliseconds) ms", since: lastPulseAt
+                let frame = try self.captureGlyphs(
+                    window, direction: direction, label: "Independent completions, target \(milliseconds) ms", since: lastPulseAt
                 )
-                self.assertAbsent(
-                    tail,
-                    message: "All flights must disappear without replay \(milliseconds) ms after the last tap"
+                completionFrames[milliseconds] = frame
+                self.assertVisible(frame, message: "Earlier completions must not remove the last flight")
+                XCTAssertEqual(
+                    self.horizontalCentroid(frame), self.horizontalCentroid(parked), accuracy: 0.5,
+                    "Surviving glyphs must remain parked while older flights finish"
                 )
             }
+            let heldEnergy = self.inkEnergy(try XCTUnwrap(completionFrames[670]))
+            let fadingEnergy = self.inkEnergy(try XCTUnwrap(completionFrames[830]))
+            let lastEnergy = self.inkEnergy(try XCTUnwrap(completionFrames[980]))
+            XCTAssertGreaterThan(
+                heldEnergy, self.inkEnergy(parked) * 0.85,
+                "The last glyph must retain its full hold after the first flight completes"
+            )
+            XCTAssertLessThan(
+                lastEnergy, fadingEnergy * 0.8,
+                "Older parked copies must fade independently instead of restarting their lifetime on every tap"
+            )
+            try await Task.sleep(until: lastPulseAt + .milliseconds(1120), clock: .continuous)
+            let tail = try self.captureGlyphs(
+                window, direction: direction, label: "Burst tail, target 1120 ms", since: lastPulseAt
+            )
+            self.assertAbsent(tail, message: "All flights must disappear without replay before the count expires")
             XCTAssertEqual(fixture.state.skip?.pulse, 4)
             XCTAssertEqual(fixture.state.skip?.seconds, sign * 40, "Every accepted tap must contribute to the held total")
             XCTAssertEqual(fixture.state.skip?.direction, direction)
