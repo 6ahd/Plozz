@@ -50,6 +50,24 @@ and the diagnostics overlay.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## On-demand player clock
+
+The on-demand timeline normally shows elapsed and remaining playback time.
+On tvOS, stationary touchpad taps cycle through controls with playback times,
+current local time on the left and estimated finish time on the right, then
+hidden controls. Clock values replace the numbers without adding a label or row.
+Physical clicks retain their transport actions, and swipes begin seeking without waiting for tap
+recognition. Moving, held, cancelled, or clicked contacts cannot toggle the clock.
+iPhone and iPad use native buttons on the two time labels instead of changing
+the video-tap or scrubber gestures.
+
+Scrubbing always shows the media position; hiding the controls resets clock mode.
+Finish estimates use the current position and selected playback speed, and update
+after seeking or pausing. Unknown duration or invalid timing omits the estimate.
+Clock formatting follows the device locale/time-zone conventions. The clock only
+ticks while requested, and mobile label slots retain their width during scrubbing.
+Live TV retains its existing guide-based program times.
+
 ## Mobile player orientation
 
 The iPhone full-screen on-demand and expanded Live TV players read the active profile's

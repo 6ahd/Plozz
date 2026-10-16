@@ -235,6 +235,9 @@ struct PlozziOSPlayerControlsOverlay: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: controlsVisible)
+        .onChange(of: controlsVisible) { _, visible in
+            if !visible { viewModel.controls.timelineClock.isEnabled = false }
+        }
         .onChange(of: isCardOpen) { _, _ in cardOpenChanged() }
         .onAppear { scheduleAutoHide() }
         .onAppear { configureScrubPreview() }
@@ -253,6 +256,7 @@ struct PlozziOSPlayerControlsOverlay: View {
         .onDisappear {
             cancelAutoHide()
             scrubPreviewCoordinator?.clear()
+            viewModel.controls.timelineClock.isEnabled = false
         }
         .onChange(of: viewModel.scrubPreview) {
             configureScrubPreview()
@@ -686,28 +690,11 @@ private struct PlozziOSPlayerTransport: View {
             .opacity(isCardOpen ? 0 : 1)
             .allowsHitTesting(!isCardOpen)
 
-            // Times flank the scrubber rather than sitting above it, so the row
-            // reads as one timeline instead of three stacked things.
-            HStack(spacing: 16) {
-                // Each label is exactly as wide as the longest string THIS video
-                // can produce, so the bar's ends never drift as the digits tick
-                // over, and no dead space is reserved for an hours digit a
-                // 42-minute episode will never show. A hardcoded width has to
-                // assume the worst case for every video.
-                playbackTimeLabel(playbackTime(displayedSeconds))
-
-                PlayerTouchScrubBar(
-                    currentSeconds: displayedSeconds,
-                    duration: viewModel.controls.duration,
-                    bufferedFraction: viewModel.controls.bufferedFraction,
-                    segments: viewModel.controls.skipSegments.segments,
-                    onScrub: onScrubChanged,
-                    onScrubbingChanged: onScrubEditingChanged
-                )
-                .accessibilityLabel("Playback position")
-
-                playbackTimeLabel("-\(playbackTime(max(viewModel.controls.duration - displayedSeconds, 0)))")
-            }
+            PlozziOSPlayerTimeline(
+                model: viewModel.controls, displayedSeconds: displayedSeconds, isScrubbing: isScrubbing,
+                onScrubChanged: onScrubChanged, onScrubEditingChanged: onScrubEditingChanged,
+                onInteraction: onInteraction
+            )
             .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .timeline, isVisible: !isCardOpen)
             .opacity(isCardOpen ? 0 : 1)
             .allowsHitTesting(!isCardOpen)
@@ -804,25 +791,76 @@ private struct PlozziOSPlayerTransport: View {
         viewModel.controls.engineCapabilities.contains(.dialogEnhance)
     }
 
-    // Sized by the longest string this video can produce — remaining time at
-    // its maximum, which is the duration itself plus the minus sign. Elapsed
-    // and remaining both fit it, so neither label resizes mid-playback and the
-    // bar's ends stay put. Minutes are not zero-padded, so width changes at
-    // 9:59 → 10:00 as well as at the hour; deriving the template from the
-    // duration covers both without enumerating cases.
-    private func playbackTimeLabel(_ text: String) -> some View {
-        Text(verbatim: "-\(playbackTime(viewModel.controls.duration))")
-            .font(.caption.monospacedDigit())
-            .hidden()
+}
+
+struct PlozziOSPlayerTimeline: View {
+    let model: PlayerControlsModel
+    let displayedSeconds: TimeInterval
+    let isScrubbing: Bool
+    let onScrubChanged: (TimeInterval) -> Void
+    let onScrubEditingChanged: (Bool) -> Void
+    let onInteraction: () -> Void
+
+    var body: some View {
+        PlayerClockTimeline(model: model, enabled: model.timelineClock.isEnabled) { clock in
+            let visibleClock = isScrubbing ? nil : clock
+            HStack(spacing: 16) {
+                timeButton(
+                    visibleClock?.current ?? playbackTime(displayedSeconds),
+                    samples: clock?.currentWidthSamples ?? [],
+                    label: visibleClock != nil ? "Current time" : "Elapsed time",
+                    identifier: "player-timeline-current-time"
+                )
+                PlayerTouchScrubBar(
+                    currentSeconds: displayedSeconds, duration: model.duration,
+                    bufferedFraction: model.bufferedFraction, segments: model.skipSegments.segments,
+                    onScrub: onScrubChanged, onScrubbingChanged: onScrubEditingChanged
+                )
+                .accessibilityLabel("Playback position")
+                .accessibilityIdentifier("player-timeline-scrubber")
+                timeButton(
+                    visibleClock.map { $0.end ?? "--:--" }
+                        ?? "-\(playbackTime(max(model.duration - displayedSeconds, 0)))",
+                    samples: clock?.endWidthSamples ?? [],
+                    label: visibleClock != nil ? "Estimated end time" : "Remaining time",
+                    identifier: "player-timeline-end-time"
+                )
+            }
+        }
+    }
+
+    private func timeButton(
+        _ text: String, samples: [String], label: LocalizedStringResource, identifier: String
+    ) -> some View {
+        Button {
+            model.timelineClock.isEnabled.toggle()
+            onInteraction()
+        } label: {
+            ZStack {
+                ForEach(["-\(playbackTime(model.duration))"] + samples, id: \.self) { sample in
+                    Text(verbatim: sample).hidden()
+                }
+            }
             .accessibilityHidden(true)
             .overlay {
                 Text(verbatim: text)
-                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.white.opacity(0.85))
             }
+            .font(.caption.monospacedDigit())
+            .fixedSize()
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isScrubbing)
+        .accessibilityLabel(Text(label))
+        .accessibilityValue(Text(verbatim: text))
+        .accessibilityHint("Switch between playback and clock times")
+        .accessibilityIdentifier(identifier)
     }
 
     private func playbackTime(_ seconds: TimeInterval) -> String {
+        guard seconds.isFinite, seconds >= 0, seconds < Double(Int.max) else { return "--:--" }
         let total = max(Int(seconds.rounded()), 0)
         let hours = total / 3_600
         let minutes = (total % 3_600) / 60

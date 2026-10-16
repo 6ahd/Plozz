@@ -3,6 +3,7 @@ import CoreUI
 @testable import FeaturePlayback
 import SwiftUI
 import UIKit
+import Vision
 import XCTest
 
 @MainActor
@@ -41,12 +42,15 @@ final class PlayerControlsRenderingHostedTests: XCTestCase {
                 )
                 .environment(\.plozzReducePanelGlass, performance)
                 .environment(\.colorScheme, .dark)
+                .environment(\.locale, Locale(identifier: "en_US"))
+                .environment(\.timeZone, .gmt)
                 .background(Color(red: 0.08, green: 0.12, blue: 0.18))
             )
             window.makeKeyAndVisible()
             window.layoutIfNeeded()
             try await Task.sleep(for: .milliseconds(800))
             let initial = try XCTUnwrap(model.subtitleLayout.frame(for: .timeline))
+            _ = try await captureTimeline(in: window, matching: "10:00.*50:00")
 
             for _ in 0..<20 {
                 model.currentSeconds += 0.25
@@ -54,6 +58,23 @@ final class PlayerControlsRenderingHostedTests: XCTestCase {
                 try await Task.sleep(for: .milliseconds(25))
             }
             XCTAssertEqual(model.subtitleLayout.frame(for: .timeline), initial)
+
+            model.timelineClock.isEnabled = true
+            let clockPattern = #"\d{1,2}:\d{2}\s*(AM|PM).*\d{1,2}:\d{2}\s*(AM|PM)"#
+            _ = try await captureTimeline(in: window, matching: clockPattern)
+            XCTAssertEqual(model.subtitleLayout.frame(for: .timeline), initial,
+                           "Clock mode must reuse the existing timeline without adding a row.")
+            model.isScrubbing = true
+            model.scrubSeconds = 1_200
+            _ = try await captureTimeline(in: window, matching: "20:00")
+            XCTAssertEqual(model.subtitleLayout.frame(for: .timeline), initial,
+                           "Returning to media timestamps while seeking must preserve timeline bounds.")
+            model.isScrubbing = false
+            let clockImage = try await captureTimeline(in: window, matching: clockPattern)
+            let clockAttachment = XCTAttachment(image: clockImage)
+            clockAttachment.name = "On-demand clock - \(performance ? "flat" : "glass")"
+            clockAttachment.lifetime = .keepAlways
+            add(clockAttachment)
 
             for _ in 0..<3 {
                 model.controlBar.entry = .info
@@ -107,6 +128,28 @@ final class PlayerControlsRenderingHostedTests: XCTestCase {
 @MainActor
 private final class InfoFocusDriver {
     var requestFocus: ((PlayerControls.FocusSlot) -> Void)?
+}
+
+@MainActor
+private func captureTimeline(in window: UIWindow, matching expected: String) async throws -> UIImage {
+    let deadline = ContinuousClock.now + .seconds(4)
+    var rendered = UIImage()
+    var text = ""
+    repeat {
+        try await Task.sleep(for: .milliseconds(100))
+        window.layoutIfNeeded()
+        rendered = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let recognition = VNRecognizeTextRequest()
+        recognition.recognitionLevel = .accurate
+        recognition.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: XCTUnwrap(rendered.cgImage)).perform([recognition])
+        text = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        if text.range(of: expected, options: .regularExpression) != nil { return rendered }
+    } while ContinuousClock.now < deadline
+    XCTFail("Timeline did not render \(expected): \(text)")
+    return rendered
 }
 
 private struct InfoFocusFixture: View {
