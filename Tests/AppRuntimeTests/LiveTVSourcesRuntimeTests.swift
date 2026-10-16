@@ -7,6 +7,74 @@ import XCTest
 
 @MainActor
 final class LiveTVSourcesRuntimeTests: XCTestCase {
+    func testCancelledSourceRetryDoesNotCreateAPageError() async throws {
+        let gate = SourcesRuntimeLoadGate()
+        let fixture = try SourcesRuntimeFixture(gate: gate)
+        defer { fixture.removeOwnedFiles() }
+        let runtime = fixture.runtime()
+        defer { runtime.invalidate() }
+        runtime.activate()
+        let refresh = Task { await runtime.catalog.refresh(sourceID: fixture.source.id) }
+        await gate.waitUntilStarted()
+        refresh.cancel()
+        await gate.release()
+        await refresh.value
+
+        XCTAssertNil(runtime.catalog.issue)
+        XCTAssertFalse(runtime.catalog.isLoading)
+        XCTAssertTrue(runtime.isCurrent)
+        XCTAssertTrue(runtime.catalog.catalog.channels.isEmpty)
+    }
+
+    func testSourceRetryDoesNotEnrollAnotherAccount() async throws {
+        let fixture = try SourcesRuntimeFixture()
+        defer { fixture.removeOwnedFiles() }
+        try fixture.addIPTVChoice()
+        let runtime = fixture.runtime(activeAccountIDs: ["iptv", "new-account"])
+        defer { runtime.invalidate() }
+        await runtime.restore()
+        let saved = try fixture.store.load()
+        let source = try XCTUnwrap(saved.servers.first)
+        fixture.choices.append(.init(id: "new-account", name: "Other playlist", userName: "IPTV", kind: .iptv))
+        let before = await fixture.provider.checks
+
+        await runtime.catalog.refresh(sourceID: source.id)
+
+        XCTAssertNil(runtime.catalog.issue)
+        XCTAssertEqual(try fixture.store.load(), saved)
+        let after = await fixture.provider.checks
+        XCTAssertEqual(after - before, 1)
+    }
+
+    func testSourceFailureIsAttributedWithoutADuplicatePageErrorAndCanRetryLocally() async throws {
+        let fixture = try SourcesRuntimeFixture()
+        defer { fixture.removeOwnedFiles() }
+        try fixture.addIPTVChoice()
+        let runtime = fixture.runtime()
+        defer { runtime.invalidate() }
+        await runtime.restore()
+        let source = try XCTUnwrap(runtime.catalog.imports.serverSources.first?.source)
+        await fixture.provider.setFailure(.unauthorized)
+        await runtime.catalog.refresh()
+
+        XCTAssertTrue(runtime.isCurrent)
+        XCTAssertNil(runtime.catalog.issue)
+        XCTAssertEqual(runtime.catalog.imports.serverSources.first?.failure, .permissionDenied)
+
+        await fixture.provider.setFailure(nil)
+        await runtime.catalog.refresh(sourceID: source.id)
+        XCTAssertNil(runtime.catalog.issue)
+        XCTAssertNil(runtime.catalog.imports.serverSources.first?.failure)
+        XCTAssertEqual(runtime.catalog.catalog.channels.map(\.name), ["IPTV channel"])
+        let loads = await fixture.loader.loads
+        XCTAssertEqual(loads, 0)
+
+        fixture.hasAccess = false
+        await runtime.catalog.refresh(sourceID: source.id)
+        XCTAssertEqual(runtime.catalog.issue, .authorization)
+        XCTAssertTrue(runtime.catalog.catalog.channels.isEmpty)
+    }
+
     func testSyncBookkeepingDoesNotRevokeSourcesOrScanAdmission() async throws {
         let fixture = try SourcesRuntimeFixture()
         defer { fixture.removeOwnedFiles() }
@@ -534,7 +602,7 @@ private final class SourcesRuntimeFixture {
         try store.save(.init(playlists: [source]))
     }
 
-    func runtime() -> LiveTVSourcesRuntime {
+    func runtime(activeAccountIDs: [String]? = nil) -> LiveTVSourcesRuntime {
         LiveTVSourcesRuntime(
             profileID: "actual-root-owner", store: store,
             approvals: LiveTVSourceApprovalStore(
@@ -548,7 +616,7 @@ private final class SourcesRuntimeFixture {
                 guard let self, self.hasAccess else { return nil }
                 return .init(
                     profile: self.profile, parentalPIN: self.parentalPIN,
-                    activeAccountIDs: self.choices.map(\.id)
+                    activeAccountIDs: activeAccountIDs ?? self.choices.map(\.id)
                 )
             },
             accountAuthorizationID: { [weak self] in self?.accountIdentity ?? "" },

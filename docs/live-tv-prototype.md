@@ -498,6 +498,14 @@ page for enabling, editing, checking and removing that source; guide policy and
 diagnostics sit behind named links rather than expanding every source inline.
 Each tap pushes only its selected destination, and Back returns one level.
 This applies to both Settings and the Live TV toolbar's Sources entry.
+Channel, guide and access failures appear beside the affected enabled source,
+using the shared theme-aware inline error style and naming failed guides.
+Source Retry refreshes only that playlist and its guides, or that server; it
+preserves other sources' channels, errors and in-flight server-guide requests.
+The source detail page offers the same error and Retry. Page-wide storage,
+configuration, enrollment and profile-access failures appear above the source
+list rather than in a duplicate generic footer. Provider access errors are
+reported as received, not interpreted as proof that an IPTV trial expired.
 When embedded in a native List, the iPhone/iPad Sources pane clears its row's
 background, separator, and extra insets, so the shared settings gradient and
 group keylines continue through the whole page rather than an opaque inner panel.

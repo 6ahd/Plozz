@@ -37,6 +37,7 @@ public final class LiveTVSourcesCatalog {
     public let imports: LiveTVPrototypeImportModel
     public let catalog: LiveTVPrototypeModel
     public private(set) var isLoading = false
+    /// Page-wide failures. Individual source failures remain on `imports`.
     public private(set) var issue: Issue?
     public var isCurrent: Bool { admission.isCurrent }
     /// Display-only state. Operations still revalidate `isCurrent` against the
@@ -88,6 +89,8 @@ public final class LiveTVSourcesCatalog {
 
     public func refresh() async { await load(refresh: true) }
 
+    public func refresh(sourceID: String) async { await load(refresh: true, sourceID: sourceID) }
+
     public func requestRefresh() {
         if refreshTask != nil, isLoading, isCurrent { return }
         refreshTask?.cancel()
@@ -111,7 +114,7 @@ public final class LiveTVSourcesCatalog {
         clearCatalog()
     }
 
-    private func load(refresh: Bool) async {
+    private func load(refresh: Bool, sourceID: String? = nil) async {
         guard !Task.isCancelled else { return }
         let authority: LiveTVSourcesCatalogAuthority
         do {
@@ -144,10 +147,13 @@ public final class LiveTVSourcesCatalog {
         let request = revision
         isLoading = true
         activeRefresh = refresh
+        let previousEnrollmentFailure: LiveTVServerImportError?
+        if case .enrollment(let failure) = issue { previousEnrollmentFailure = failure }
+        else { previousEnrollmentFailure = nil }
         issue = nil
         defer { if revision == request { isLoading = false } }
         do {
-            let enrollmentFailure = await prepareSources()
+            let enrollmentFailure = sourceID == nil ? await prepareSources() : previousEnrollmentFailure
             guard revision == request, !Task.isCancelled else { return }
             guard let prepared = try admission.authority(),
                   prepared.authorization.profileID == admission.profileID else {
@@ -163,7 +169,11 @@ public final class LiveTVSourcesCatalog {
                 prepared.authorization.filtering(prepared.configuration), into: catalog
             )
             if refresh {
-                await imports.reload(into: catalog)
+                if let sourceID {
+                    try await imports.reloadSource(sourceID, into: catalog)
+                } else {
+                    await imports.reload(into: catalog)
+                }
             } else {
                 await imports.restoreCachedCatalog(into: catalog, now: catalog.now)
                 guard revision == request, !Task.isCancelled else { return }
@@ -179,12 +189,12 @@ public final class LiveTVSourcesCatalog {
             }
             if let enrollmentFailure {
                 issue = .enrollment(enrollmentFailure)
-            } else if imports.cacheFailure != nil || imports.playlistFailure != nil || imports.guideFailure != nil
-                || imports.serverSources.contains(where: { $0.failure != nil || $0.guideFailure != nil }) {
+            } else if imports.unattributedFailure != nil {
                 issue = .catalog
             }
         } catch {
             guard revision == request else { return }
+            if (Task.isCancelled || error is CancellationError), admission.isCurrent { return }
             let failure: Issue = admission.isCurrent ? .catalog : .authorization
             if failure == .authorization { recordAdmissionFailure(stage: "error") }
             invalidate()

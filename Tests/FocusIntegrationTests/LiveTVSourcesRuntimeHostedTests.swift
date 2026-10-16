@@ -1,6 +1,7 @@
 @testable import AppRuntime
 import CoreModels
 import CoreSecureStore
+import CoreUI
 import FeatureAuthCore
 import FeatureLiveTV
 import FeatureLiveTVCore
@@ -8,9 +9,72 @@ import Observation
 import SwiftUI
 import UIKit
 import XCTest
+#if os(iOS)
+import Vision
+#endif
 
 @MainActor
 final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
+    #if os(iOS)
+    func testSourceErrorAppearsBesideItsSourceWithoutAGenericFooter() async throws {
+        for width in [CGFloat(390), 834] {
+            for (name, palette) in [("dark", ThemePalette.dark), ("black", .pureBlack), ("light", .light)] {
+                let fixture = try Fixture(hasIPTV: true)
+                defer { fixture.close() }
+                fixture.window.frame = CGRect(x: 0, y: 0, width: width, height: 1024)
+                fixture.provider.failure = .unauthorized
+                fixture.show(palette: palette)
+                try await waitUntil { fixture.runtime.catalog.imports.serverSources.first?.failure == .permissionDenied }
+                try await Task.sleep(for: .milliseconds(300))
+                let lines = try recognizedLines(fixture.window, name: "sources-specific-error-\(Int(width))-\(name)")
+                let source = try XCTUnwrap(lines.first { $0.text == "IPTV" })
+                let error = try XCTUnwrap(lines.first { $0.text.lowercased().contains("permission") })
+                let setup = try XCTUnwrap(lines.first { $0.text == "ADD A SOURCE" })
+                XCTAssertLessThan(error.frame.maxY, source.frame.minY)
+                XCTAssertGreaterThan(error.frame.minY, setup.frame.maxY)
+                XCTAssertTrue(lines.contains { $0.text == "Retry" })
+                XCTAssertFalse(lines.contains { $0.text.lowercased().contains("channel and guide data") })
+                XCTAssertNil(fixture.runtime.catalog.issue)
+            }
+        }
+    }
+
+    func testPageWideAccessErrorAppearsBeforeSources() async throws {
+        let fixture = try Fixture(hasIPTV: true)
+        defer { fixture.close() }
+        fixture.state.authorized = false
+        fixture.show()
+        try await waitUntil { fixture.runtime.catalog.issue == .authorization }
+        try await Task.sleep(for: .milliseconds(300))
+        let lines = try recognizedLines(fixture.window, name: "sources-page-error")
+        let error = try XCTUnwrap(lines.first { $0.text.lowercased().contains("profile access") })
+        let sources = try XCTUnwrap(lines.first { $0.text == "YOUR SOURCES" })
+        XCTAssertGreaterThan(error.frame.minY, sources.frame.maxY)
+    }
+
+    private func recognizedLines(
+        _ window: UIWindow, name: String
+    ) throws -> [(text: String, frame: CGRect)] {
+        window.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        request.customWords = ["IPTV"]
+        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        return (request.results ?? []).compactMap {
+            guard let text = $0.topCandidates(1).first?.string else { return nil }
+            return (text, $0.boundingBox)
+        }
+    }
+    #endif
+
     func testSyncedIdentityMarkerDoesNotHideLoadedIPTVSources() async throws {
         let fixture = try Fixture(hasIPTV: true)
         defer { fixture.close() }
@@ -330,11 +394,14 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
             #endif
         }
 
-        func show() {
+        func show(palette: ThemePalette = .dark) {
+            window.overrideUserInterfaceStyle = palette.isLight ? .light : .dark
             window.rootViewController = UIHostingController(rootView: Page(
                 state: state, profiles: profiles, accounts: accounts, cache: cache,
                 profileID: profileID, runtime: runtime
-            ))
+            )
+            .environment(\.themePalette, palette)
+            .environment(\.colorScheme, palette.isLight ? .light : .dark))
             window.makeKeyAndVisible()
         }
 
@@ -357,6 +424,7 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
         private var paused: Bool
         private var waiters: [CheckedContinuation<Void, Never>] = []
         private(set) var catalogReads = 0
+        var failure: AppError?
         var isWaiting: Bool { !waiters.isEmpty }
 
         init(paused: Bool) { self.paused = paused }
@@ -374,6 +442,7 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
                 await withCheckedContinuation { waiters.append($0) }
             }
             try Task.checkCancellation()
+            if let failure { throw failure }
             return .init(channels: [.init(id: "channel", name: "IPTV channel")], supportsGuide: false)
         }
 
