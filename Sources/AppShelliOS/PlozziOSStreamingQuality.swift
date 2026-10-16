@@ -10,16 +10,26 @@ enum PlozziOSStreamingNetwork {
         AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             let monitor = NWPathMonitor()
             monitor.pathUpdateHandler = { path in
+                let interfacePreference: [StreamingNetwork] = path.availableInterfaces.map { interface in
+                    switch interface.type {
+                    case .wifi: .wifi
+                    case .cellular: .cellular
+                    case .wiredEthernet: .wired
+                    default: .unknown
+                    }
+                }
                 let network = StreamingNetwork.classify(
                     isSatisfied: path.status == .satisfied,
                     usesCellular: path.usesInterfaceType(.cellular),
                     usesWiFi: path.usesInterfaceType(.wifi),
-                    usesEthernet: path.usesInterfaceType(.wiredEthernet)
+                    usesEthernet: path.usesInterfaceType(.wiredEthernet),
+                    interfacePreference: interfacePreference
                 )
                 HandoffDiagnostics.emit(
                     "streaming PATH network=\(network) status=\(path.status) "
                         + "wifi=\(path.usesInterfaceType(.wifi)) cellular=\(path.usesInterfaceType(.cellular)) "
                         + "wired=\(path.usesInterfaceType(.wiredEthernet)) other=\(path.usesInterfaceType(.other)) "
+                        + "preference=\(interfacePreference) "
                         + "expensive=\(path.isExpensive) constrained=\(path.isConstrained)"
                 )
                 continuation.yield(network)

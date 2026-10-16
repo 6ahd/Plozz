@@ -248,9 +248,19 @@ public enum StreamingNetwork: Sendable, Equatable {
     /// Cost is not an interface type: Wi-Fi/Ethernet can be expensive too.
     /// Keep those paths eligible for the user's local/remote settings.
     public static func classify(
-        isSatisfied: Bool, usesCellular: Bool, usesWiFi: Bool, usesEthernet: Bool
+        isSatisfied: Bool, usesCellular: Bool, usesWiFi: Bool, usesEthernet: Bool,
+        interfacePreference: [Self] = []
     ) -> Self {
         guard isSatisfied else { return .offline }
+        // A path can permit several interfaces. Eligibility is not preference.
+        for network in interfacePreference {
+            switch network {
+            case .wifi where usesWiFi: return .wifi
+            case .wired where usesEthernet: return .wired
+            case .cellular where usesCellular: return .cellular
+            default: continue
+            }
+        }
         if usesCellular { return .cellular }
         if usesWiFi { return .wifi }
         if usesEthernet { return .wired }

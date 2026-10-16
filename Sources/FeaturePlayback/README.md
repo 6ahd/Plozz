@@ -92,15 +92,18 @@ The community-marker row retains a short disclosure of the services and title
 IDs used for lookups; changing this layout does not change playback preferences.
 
 Quality selection observes `NWPath.usesInterfaceType`, including the physical
-interfaces reported beneath a tunnel. Available interfaces and `isExpensive`
-are not substitutes for that route evidence: an available cellular interface
-does not mean Wi-Fi playback uses it, and Personal Hotspot can be expensive.
+interfaces reported beneath a tunnel. When several types are eligible, it uses
+their `availableInterfaces` preference order rather than always choosing cellular.
+An interface must still pass `usesInterfaceType`: availability alone does not
+establish eligibility. `isExpensive` is not an interface type either; Personal
+Hotspot can be expensive. Missing preference evidence retains the conservative
+cellular fallback when cellular is eligible.
 An offline transition retains the current session's selection rather than
 restarting playback with the cellular limit. A usable new route immediately
 re-evaluates the saved settings and server locality. An initially unresolved
 or explicitly cellular path retains the existing conservative cellular policy;
 no VPN is disabled or bypassed. Diagnostic path records include interface
-booleans, not network names, addresses, or credentials.
+booleans and type preference order, not network names, addresses, or credentials.
 
 Jellyfin/Emby compatibility renditions retain the server's stream-copy decisions
 when the source fits the selected quality and conversion is not forced. Codec
