@@ -31,6 +31,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   keeps visible title-and-icon labels and uses the same `playerGlassButton`
   treatment, including native menus. Only the existing reduced-transparency
   playback path draws the shared frosted fallback.
+- **Grouped settings navigation** — `SettingsDisclosureLabel` supplies a
+  direction-aware disclosure indicator and optional value without adding row
+  padding. `SettingsSectionGroup` owns those insets; do not nest a separately
+  padded `SettingsRowLabel` in it. Inline actions use `plozzActionButton`, not
+  the group's full-width row-button style. Place a standalone native action in
+  a layout container so its accessibility bounds do not include the row's
+  noninteractive space.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than

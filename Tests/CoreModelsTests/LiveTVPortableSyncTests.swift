@@ -5,6 +5,43 @@ import XCTest
 final class LiveTVPortableSyncTests: XCTestCase {
     private let profileID = "profile"
 
+    func testCategoryRulesRegionAndIndividualExceptionsSyncWithoutExpandingFavorites() throws {
+        let sender = try makeFixture()
+        let receiver = try makeFixture()
+        var organization = LiveTVChannelOrganization()
+        let category = LiveTVCategoryRule(sourceID: "playlist", name: "News", visibility: .hidden, isFavorite: true)
+        organization.setCategory(category)
+        organization.region = .init(isEnabled: true, countries: ["US"], languages: ["English"])
+        organization.shownChannelIDs = ["shown"]
+        organization.excludedFavoriteIDs = ["unfavorite"]
+        try sender.preferences.save(.init(organization: organization))
+        let records = try sender.adapter.capture(sourceStore: sender.sources, fallback: [:])
+        XCTAssertEqual(records.count, 4)
+        _ = try receiver.adapter.apply(records.mapValues(Optional.some), sourceStore: receiver.sources)
+        XCTAssertEqual(try receiver.preferences.load().organization, organization)
+        XCTAssertTrue(try receiver.preferences.load().favoriteIDs.isEmpty)
+        XCTAssertEqual(try receiver.adapter.capture(sourceStore: receiver.sources, fallback: records), records)
+        try sender.preferences.save(.empty)
+        let cleared = try sender.adapter.capture(sourceStore: sender.sources, fallback: records)
+        _ = try receiver.adapter.apply(cleared.mapValues(Optional.some), sourceStore: receiver.sources)
+        XCTAssertEqual(try receiver.preferences.load().organization, .init())
+        let bytes = try XCTUnwrap(cleared[recordKey(.category, category.id).recordName])
+        XCTAssertTrue(try LiveTVPortableRecord.decode(bytes, key: recordKey(.category, category.id)).isDeleted)
+    }
+
+    func testCategoryAndRegionRecordsRejectWrongIdentityAndProfile() throws {
+        let fixture = try makeFixture()
+        let category = LiveTVCategoryRule(sourceID: "playlist", name: "News", visibility: .hidden)
+        let invalid = try LiveTVPortableRecord(category: category).encoded()
+        let changes: [String: Data?] = [
+            recordKey(.category, "wrong-id").recordName: invalid,
+            recordKey(.region, "wrong-region").recordName: try LiveTVPortableRecord(region: .init()).encoded(),
+            LiveTVPortableRecordKey(profileID: "different-profile", kind: .category, entityID: category.id).recordName: invalid
+        ]
+        _ = try fixture.adapter.apply(changes, sourceStore: fixture.sources)
+        XCTAssertEqual(try fixture.preferences.load(), .empty)
+    }
+
     @MainActor
     func testCaptureInputsIgnoreRecentsButDetectPreferencesJournalEditsAndEviction() async throws {
         let fixture = try makeFixture()

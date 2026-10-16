@@ -674,7 +674,8 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                 openLibraryItem: onOpenTitle == nil ? nil : {
                     pendingLibraryNavigation = $0
                     sheet = nil
-                }
+                },
+                canMutate: { isActive && isProfileAuthorized() }
             )
             .environment(\.themePalette, palette)
             .tint(palette.accent)
@@ -1482,7 +1483,8 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     restoresCategoryFocus: sidebarRestoresCategoryFocus,
                     search: { if isSearching { closeSearch() } else { openSearch() } },
                     enterGuide: enterGuide,
-                    multiviews: multiviewSelection == nil ? { sheet = .multiviewFavorites } : nil
+                    multiviews: multiviewSelection == nil ? { sheet = .multiviewFavorites } : nil,
+                    manageChannels: { sheet = .organization }
                 )
                 .modifier(LiveTVMultiviewGuideExit(
                     cancel: multiviewSelection == nil ? nil : finishMultiviewSelection))
@@ -1589,6 +1591,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             isLoading: isInitialCatalogLoading,
             loadFailed: imports.catalogPhase == .failed || libraryIssue != nil || libraryGuideIssue != nil,
             reload: { reloadLibrary?(); requestCatalogRefresh() },
+            openChannelManagement: { sheet = .organization },
             hideChannel: hideChannel,
             selectionAction: multiviewSelection?.title,
             selectedChannelIDs: multiviewSelection == nil ? [] : Set(multiview.panes.compactMap { $0.channel?.id }),

@@ -448,10 +448,43 @@ Favorites and recent channels are saved per Plozz profile and restored across
 sessions. Initially empty or temporarily unavailable source catalogs do not
 erase saved IDs. Unreadable preferences are not overwritten, and failed writes
 offer a retry rather than displaying an unsaved change as successful.
-Search/category state remains session-scoped. Playlist addresses, optional guide
+Search text remains session-scoped; browse selections are saved locally with
+the profile. Playlist addresses, optional guide
 addresses and their order, source names, and enabled states are stored securely
 per profile. Server sources store an account reference, not duplicate credentials.
 View preferences and source management live in **Settings > Live TV**.
+
+**Manage IPTV channels** is available from Categories on mobile and Manage
+channels in the TV sidebar. Category choices are scoped to the configured
+source and profile, so equally named groups from different sources stay separate.
+Automatic follows the regional filter, Show overrides it, and Hide excludes the
+category. A hidden membership wins when a channel belongs to several categories;
+an individual Show channel exception wins over category/regional filtering.
+Manual channel hiding and scan exclusions remain separate.
+
+Management links use shared disclosure labels with group-owned padding.
+Visibility uses a native menu on iPhone/iPad and a disclosed selection page
+on TV. Hidden-channel recovery uses native secondary action buttons aligned
+to the trailing edge; narrow widths and large text place the action below the
+description rather than squeezing it.
+
+The optional regional filter includes channels matching **any selected country
+OR language**. It uses supplied tags, normalizing known codes/English names, not
+guesses from channel names. Nonmatching and untagged channels appear in the
+searchable **Hidden channels** page with a reason and a Show channel action.
+Nothing is deleted. Reset category and region visibility retains individual
+hidden channels, scan exclusions, and favorites. Settings also offers this reset.
+Non-IPTV providers are not region-filtered.
+
+Favorite category follows membership after refresh without writing a favorite
+record for every channel. Individual favorites survive unfavoriting a category;
+individually removed favorites remain exceptions. Rules follow new channels in
+the same category, while a renamed category is a new choice. Category, region,
+and individual exception choices participate in the existing profile-scoped
+Live TV sync; browse filters and recent playback remain local. Hidden channels
+are excluded from guide/search, pickers, and Home without stopping playback
+already deliberately started.
+
 On Apple TV, Sources shows the actual source controls in the existing detail
 pane, without an intermediate Manage sources page. Enable/disable and removal
 are available there; playlist/guide editing and server renaming open their

@@ -52,6 +52,7 @@ extension LiveTVPortableSyncBridge {
                 ).load()
                 let mappings = try await cache.mappingOverrides()
                 let channelIDs = preferences.favoriteIDs.union(preferences.hiddenChannelIDs)
+                    .union(preferences.organization.shownChannelIDs).union(preferences.organization.excludedFavoriteIDs)
                     .union(preferences.channelOverrides.keys).union(mappings.keys)
                 return try await cache.portableSyncIdentityHints(
                     configuration: configuration, channelIDs: channelIDs
