@@ -208,20 +208,20 @@ struct PlayerTouchGestureFeedbackContent: View {
     var body: some View {
         GeometryReader { geometry in
             if let skip = state.skip {
-                HStack(spacing: 16) {
+                HStack(spacing: 12) {
                     if skip.direction == .backward {
                         PlayerTouchSkipChevrons(direction: .backward, pulse: skip.pulse, reduceMotion: reduceMotion)
                     }
                     Text(skip.seconds, format: .number.sign(strategy: .always()).precision(.fractionLength(0)))
                         .monospacedDigit()
                         .contentTransition(.numericText())
+                        .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: skip.seconds)
                         .accessibilityIdentifier("player-gesture-skip-total")
                     if skip.direction == .forward {
                         PlayerTouchSkipChevrons(direction: .forward, pulse: skip.pulse, reduceMotion: reduceMotion)
                     }
                 }
-                .font(.system(size: 30, weight: .semibold))
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: skip.seconds)
+                .font(.system(size: 26, weight: .semibold))
                 .position(x: geometry.size.width * (skip.direction == .backward ? 0.22 : 0.78),
                           y: geometry.size.height / 2)
                 .environment(\.layoutDirection, .leftToRight)
@@ -243,22 +243,17 @@ private struct PlayerTouchSkipChevrons: View {
     let direction: PlayerTouchSkipDirection
     let pulse: Int
     let reduceMotion: Bool
-    @State private var phase: Double = 0
-    @State private var cycleBase: Double = 0
-    @State private var isAnimating = false
-    @State private var hasQueuedSkip = false
+    @State private var handover: Double = 0
     @State private var generation = 0
 
     var body: some View {
-        PlayerTouchSkipHandover(phase: phase, cycleBase: cycleBase, reduceMotion: reduceMotion)
+        PlayerTouchSkipHandover(handover: reduceMotion ? 0 : handover)
             .scaleEffect(x: direction == .forward ? 1 : -1, y: 1)
+            // Discard in-flight native interpolation when accessibility motion changes.
+            .id(reduceMotion)
             .onChange(of: pulse, initial: true) {
                 guard !reduceMotion else { return }
-                if isAnimating {
-                    hasQueuedSkip = true
-                } else {
-                    animateSkip()
-                }
+                animateSkip()
             }
             .onChange(of: reduceMotion) {
                 if reduceMotion { cancelAnimation() }
@@ -268,53 +263,38 @@ private struct PlayerTouchSkipChevrons: View {
     }
 
     private func animateSkip() {
-        isAnimating = true
-        hasQueuedSkip = false
         generation &+= 1
         let token = generation
-        cycleBase = phase
-        withAnimation(.spring(response: 0.425, dampingFraction: 0.8),
+        handover = 0
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.8),
                       completionCriteria: .logicallyComplete) {
-            phase = cycleBase + 1
+            handover = 1
         } completion: {
             guard generation == token else { return }
-            if hasQueuedSkip {
-                animateSkip()
-            } else {
-                isAnimating = false
-            }
+            resetHandover()
         }
     }
 
     private func cancelAnimation() {
         generation &+= 1
-        isAnimating = false
-        hasQueuedSkip = false
+        resetHandover()
+    }
+
+    private func resetHandover() {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            phase = 0
-            cycleBase = 0
+            handover = 0
         }
     }
 }
 
 // Adapted from Mozz's TransportGlyph (GPL-3.0), copyright 2026 Mozz contributors.
-private struct PlayerTouchSkipHandover: View, Animatable {
-    var phase: Double
-    let cycleBase: Double
-    let reduceMotion: Bool
-    private let size: CGFloat = 36
+private struct PlayerTouchSkipHandover: View {
+    let handover: Double
+    private let size: CGFloat = 30
 
-    // Evaluate the staged handover at each interpolated spring frame.
-    var animatableData: Double {
-        get { phase }
-        set { phase = newValue }
-    }
-
-    private var handover: Double { reduceMotion ? 0 : min(1, max(0, phase - cycleBase)) }
     private var unit: CGFloat { size / 24 }
-    private var exitProgress: Double { ramp(handover, from: 0, to: 0.55) }
 
     var body: some View {
         Color.clear
@@ -322,20 +302,17 @@ private struct PlayerTouchSkipHandover: View, Animatable {
             .overlay {
                 ZStack {
                     chevron(back: 4)
-                        .scaleEffect(1 - ramp(exitProgress, from: 0.15, to: 0.9),
+                        .scaleEffect(1 - handover,
                                      anchor: UnitPoint(x: 12 / 24, y: 0.5))
-                        .offset(x: 17 * unit * exitProgress)
-                        .opacity(1 - ramp(exitProgress, from: 0.55, to: 0.88))
+                        .offset(x: 17 * unit * handover)
+                        .opacity(1 - handover)
                         .mask(alignment: .leading) {
                             Rectangle().frame(width: 21 * unit)
                         }
                     chevron(back: 4)
-                        .scaleEffect(ramp(handover, from: 0.3, to: 0.94))
-                        .offset(x: -17 * unit * (1 - ramp(handover, from: 0.3, to: 1)))
+                        .scaleEffect(handover)
+                        .offset(x: -17 * unit * (1 - handover))
                     chevron(back: 13)
-                        .scaleEffect(x: 1 - 0.18 * impact, y: 1 + 0.14 * impact,
-                                     anchor: UnitPoint(x: 17 / 24, y: 0.5))
-                        .offset(x: 1.1 * unit * impact)
                 }
             }
     }
@@ -348,16 +325,6 @@ private struct PlayerTouchSkipHandover: View, Animatable {
         }
         .stroke(style: StrokeStyle(lineWidth: 2.4 * unit, lineCap: .round, lineJoin: .round))
         .frame(width: size, height: size)
-    }
-
-    private var impact: Double {
-        let window = ramp(handover, from: 0.05, to: 0.55)
-        guard window > 0, window < 1 else { return 0 }
-        return pow(sin(.pi * window), 1.5)
-    }
-
-    private func ramp(_ value: Double, from start: Double, to end: Double) -> Double {
-        min(1, max(0, (value - start) / (end - start)))
     }
 }
 #endif

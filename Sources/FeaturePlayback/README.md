@@ -89,11 +89,13 @@ chevrons and the signed total replace the main controls, retaining the player's
 actual timeline in its normal position, with its time labels, playhead, buffer
 and segment styling, and scrubbing behavior. The confirmation adapts
 [Mozz's transport handover](https://github.com/brandomoore/Mozz/blob/b45ae53010648a3b1847027a82b479001fbe3956/Sources/MozzApp/Support/PlayerControls.swift):
-an open chevron shrinks into the leading chevron, which reacts to the impact,
-while its replacement grows and sweeps in with the same spring response.
-Open chevrons replace Mozz's track arrow and end bar. Rapid accepted taps preserve
-the active spring and coalesce into at most one pending handover. Once taps stop,
-the chevrons settle beside the signed total; they do not loop while idle.
+an open chevron shrinks into the leading chevron while its replacement grows
+and sweeps in. Like Mozz, SwiftUI directly springs the scale, position, and
+opacity between their endpoints, rather than running a custom per-frame phase.
+The spring response is shortened from Mozz's 0.425 seconds to 0.34 seconds.
+Open chevrons replace Mozz's track arrow and end bar, with a compact 30-point
+glyph and 26-point count. Accepted taps trigger the handover directly; there is
+no queued replay after a burst and no idle loop.
 Reduce Motion keeps them still. Single taps still toggle controls; native controls
 and open menus keep their own touches.
 
