@@ -54,7 +54,7 @@ public struct ProfileSummaryGrid: View {
             ForEach(profiles, id: \.id) { profile in
                 VStack(spacing: avatarSize * 0.11) {
                     ProfileAvatarView(profile: profile, size: avatarSize)
-                    Text(profile.name)
+                    ProfileNameLabel(profile: profile)
                         .font(nameFont)
                         .lineLimit(nameLineLimit)
                         .fixedSize(horizontal: false, vertical: true)
