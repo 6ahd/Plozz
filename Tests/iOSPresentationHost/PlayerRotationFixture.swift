@@ -139,17 +139,20 @@ struct PlayerRotationFixture: View {
 }
 
 private struct RotationProvider: MediaProvider, StreamingQualityProviding {
+    private static var failsPlayback: Bool {
+        ProcessInfo.processInfo.arguments.contains("--failed-player-fixture")
+    }
     private static var embyStreaming: Bool {
         ProcessInfo.processInfo.arguments.contains("--emby-streaming-fixture")
     }
     static var media: MediaItem {
         MediaItem(
-            id: "rotation", title: "Rotation fixture", kind: embyStreaming ? .movie : .video, runtime: 180,
+            id: "rotation", title: "Rotation fixture", kind: embyStreaming || failsPlayback ? .movie : .video, runtime: 180,
             allowsTitleBasedMetadataMatching: false
         )
     }
     let probe: RotationLoadProbe
-    var kind: ProviderKind { Self.embyStreaming ? .emby : .jellyfin }
+    var kind: ProviderKind { Self.failsPlayback ? .silo : Self.embyStreaming ? .emby : .jellyfin }
     var session: UserSession {
         UserSession(
             server: MediaServer(
@@ -170,6 +173,9 @@ private struct RotationProvider: MediaProvider, StreamingQualityProviding {
     func search(query: String, limit: Int) async throws -> [MediaItem] { [] }
     func playbackInfo(for itemID: String) async throws -> PlaybackRequest {
         await MainActor.run { probe.count += 1 }
+        if Self.failsPlayback {
+            throw StreamingQualityError.serverRefusal("Synthetic playback preparation failure.")
+        }
         let file = try await Self.movie()
         let url = try await probe.playbackURL(file: file, streaming: Self.embyStreaming)
         return PlaybackRequest(item: Self.media, streamURL: url)

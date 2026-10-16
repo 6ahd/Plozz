@@ -415,6 +415,9 @@ synthetic Emby-quality fixture serves local HTTP video so quality changes are
 available; cancelling preserves the rendition, and applying a changed selection
 reloads once before X closes the player. This is presentation coverage, not
 evidence for real Emby transcoding or Aether loopback transport.
+The failed-playback fixture also taps the actual Back button inside nested
+navigation and reopens the player, covering the shared error screen's handoff
+to the UIKit presentation owner.
 
 `ProfilePickerPresentationTests` covers compact/adaptive avatar sizing, small
 and large households, themes/gradients, landscape, iPad, accessible names and RTL.

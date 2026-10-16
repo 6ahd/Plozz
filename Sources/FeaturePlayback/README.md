@@ -62,6 +62,9 @@ Orientation is configured only in Settings > Playback, never in the player's
 options menu. Explicitly saved Auto or Portrait choices remain unchanged when
 loading existing profiles; older settings without an orientation use Landscape.
 Episode/version handoffs retain the preference for the active presentation.
+The mobile presentation owner supplies the shared player's dismissal action.
+Failure-screen Back and end-of-playback dismissal use that same owner as the
+mobile X button, rather than a SwiftUI dismiss action outside a SwiftUI cover.
 
 The actual presented UIKit hosting controller owns on-demand orientations.
 Expanded Live TV uses the same policy through a window-scoped owner without
