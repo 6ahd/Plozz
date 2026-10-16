@@ -4,6 +4,8 @@ import CoreModels
 import CoreUI
 import FeatureAuth
 import FeatureHomeCore
+@testable import FeatureLiveTV
+import FeatureLiveTVCore
 import FeatureSettings
 @testable import AppShelliOS
 
@@ -135,6 +137,8 @@ struct PresentationHostApp: App {
                 DownloadsInteractionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--iptv-removal-fixture") {
                 IPTVRemovalFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--source-retry-fixture") {
+                SourceRetryFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--iptv-setup-fixture") {
                 IPTVSetupFixture()
             } else if let interactionModel {
@@ -142,6 +146,81 @@ struct PresentationHostApp: App {
             } else {
                 Color.black
             }
+        }
+    }
+}
+
+private struct SourceRetryFixture: View {
+    @State private var retries = 0
+    @State private var sources: LiveTVSourceManagementModel
+    @State private var imports: LiveTVPrototypeImportModel
+    @State private var catalog = LiveTVPrototypeModel(channels: [])
+    @State private var profiles: ProfilesModel
+    @State private var loader: Loader
+
+    init() {
+        let store = Store()
+        let loader = Loader()
+        _loader = State(initialValue: loader)
+        _sources = State(initialValue: LiveTVSourceManagementModel(store: store, canMutate: { false }))
+        _imports = State(initialValue: LiveTVPrototypeImportModel(
+            configuration: store.load(), loader: loader
+        ))
+        let domain = "SourcesRetryInteractionFixture"
+        let defaults = UserDefaults(suiteName: domain)!
+        defaults.removePersistentDomain(forName: domain)
+        _profiles = State(initialValue: ProfilesModel(store: ProfileStore(defaults: defaults)))
+    }
+
+    var body: some View {
+        VStack {
+            NavigationStack {
+                LiveTVSourcesView(
+                    model: sources, imports: imports, refresh: {},
+                    refreshSource: {
+                        retries += 1
+                        try await imports.reloadSource($0, into: catalog)
+                    }
+                )
+            }
+            Text(verbatim: "Retries: \(retries)").accessibilityIdentifier("fixture-source-retries")
+            Button("Finish retry") { Task { await loader.finishRetry() } }
+                .accessibilityIdentifier("fixture-finish-retry")
+        }
+        .environment(profiles)
+        .environment(\.themePalette, .dark)
+        .environment(\.colorScheme, .dark)
+        .environment(\.locale, Locale(identifier: "en_US"))
+        .task { await imports.reload(into: catalog) }
+    }
+
+    private struct Store: LiveTVSourcesStoring {
+        func load() -> LiveTVSourcesConfiguration {
+            .init(playlists: [.init(
+                id: "source", name: "Test playlist", playlistURL: URL(string: "https://example.test/list.m3u")!
+            )])
+        }
+        func save(_ configuration: LiveTVSourcesConfiguration) throws { throw LiveTVSourcesStoreError.saveFailed }
+    }
+
+    private actor Loader: LiveTVSourceLoading {
+        private var loads = 0
+        private var completedRetries = 0
+
+        func finishRetry() { completedRetries += 1 }
+
+        func loadPlaylist(from url: URL) async throws -> LiveTVPlaylistImport {
+            loads += 1
+            let deadline = ContinuousClock.now.advanced(by: .seconds(30))
+            while completedRetries < loads - 1, ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(50))
+            }
+            throw LiveTVSourceImportError.downloadFailed
+        }
+        func loadGuide(
+            from url: URL, channels: [LiveTVPrototypeChannel], now: Date
+        ) async throws -> LiveTVGuideImport {
+            throw LiveTVSourceImportError.downloadFailed
         }
     }
 }

@@ -50,6 +50,25 @@ and the diagnostics overlay.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## On-demand player clock
+
+The on-demand timeline normally shows elapsed and remaining playback time.
+On tvOS, stationary touchpad taps cycle through controls with playback times,
+current local time at the scrubber and estimated finish time on the right, then
+hidden controls. Clock values replace the two existing numbers in place without
+adding a label or row; the current time keeps following the scrubber.
+Physical clicks retain their transport actions, and swipes begin seeking without waiting for tap
+recognition. Moving, held, cancelled, or clicked contacts cannot toggle the clock.
+iPhone and iPad use native buttons on the two time labels instead of changing
+the video-tap or scrubber gestures.
+
+Scrubbing always shows the media position; hiding the controls resets clock mode.
+Finish estimates use the current position and selected playback speed, and update
+after seeking or pausing. Unknown duration or invalid timing omits the estimate.
+Clock formatting follows the device locale/time-zone conventions. The clock only
+ticks while requested, and mobile label slots retain their width during scrubbing.
+Live TV retains its existing guide-based program times.
+
 ## Mobile player orientation
 
 The iPhone full-screen on-demand and expanded Live TV players read the active profile's
@@ -62,6 +81,9 @@ Orientation is configured only in Settings > Playback, never in the player's
 options menu. Explicitly saved Auto or Portrait choices remain unchanged when
 loading existing profiles; older settings without an orientation use Landscape.
 Episode/version handoffs retain the preference for the active presentation.
+The mobile presentation owner supplies the shared player's dismissal action.
+Failure-screen Back and end-of-playback dismissal use that same owner as the
+mobile X button, rather than a SwiftUI dismiss action outside a SwiftUI cover.
 
 The actual presented UIKit hosting controller owns on-demand orientations.
 Expanded Live TV uses the same policy through a window-scoped owner without
@@ -129,15 +151,18 @@ The community-marker row retains a short disclosure of the services and title
 IDs used for lookups; changing this layout does not change playback preferences.
 
 Quality selection observes `NWPath.usesInterfaceType`, including the physical
-interfaces reported beneath a tunnel. Available interfaces and `isExpensive`
-are not substitutes for that route evidence: an available cellular interface
-does not mean Wi-Fi playback uses it, and Personal Hotspot can be expensive.
+interfaces reported beneath a tunnel. When several types are eligible, it uses
+their `availableInterfaces` preference order rather than always choosing cellular.
+An interface must still pass `usesInterfaceType`: availability alone does not
+establish eligibility. `isExpensive` is not an interface type either; Personal
+Hotspot can be expensive. Missing preference evidence retains the conservative
+cellular fallback when cellular is eligible.
 An offline transition retains the current session's selection rather than
 restarting playback with the cellular limit. A usable new route immediately
 re-evaluates the saved settings and server locality. An initially unresolved
 or explicitly cellular path retains the existing conservative cellular policy;
 no VPN is disabled or bypassed. Diagnostic path records include interface
-booleans, not network names, addresses, or credentials.
+booleans and type preference order, not network names, addresses, or credentials.
 
 Jellyfin/Emby compatibility renditions retain the server's stream-copy decisions
 when the source fits the selected quality and conversion is not forced. Codec

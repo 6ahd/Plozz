@@ -214,6 +214,12 @@ extension SiloProvider: ProviderHTTPResourceResolving {
             installation_id: installationID, file_id: selected.file_id, profile_id: credential.profileID,
             capabilities: capabilitiesSnapshot, forceTranscode: forceTranscode,
             fixedSourceSupported: fixedSourceSupported, streaming: streamingSelection)
+        HandoffDiagnostics.emit(
+            "silo playback request quality=\(body.quality_preference) "
+                + "encoding=\(streamingSelection?.requiresEncoding ?? forceTranscode) "
+                + "hdr10plus=\(selected.video_tracks?.first?.hdr10_plus == true) "
+                + "dvProfile=\(selected.video_tracks?.first?.dv_profile ?? 0)"
+        )
         let encodedBody = try JSONEncoder().encode(body)
         // Finish an admitted negotiation even if the view disappears, so its
         // session ID can be released rather than lost to cancellation.
@@ -387,7 +393,7 @@ struct SiloPlaybackStart: Encodable {
         let subtitles = Subtitles()
         let features: [String] = []
         let auth_header_refresh = false
-        let validated_claims: [String] = []
+        var validated_claims: [String] = []
         let transformations: [String] = []
         var max_channels: Int? = nil
     }
@@ -456,8 +462,11 @@ struct SiloPlaybackStart: Encodable {
             deliveries: [
                 "original_http": Delivery(
                     enabled: streaming.map { !$0.requiresEncoding } ?? !forceTranscode,
-                    containers: containers, video_codecs: video, audio_decode_codecs: audio),
-                "hls": Delivery(enabled: true, containers: ["mp4", "mpegts"], video_codecs: hardwareVideo,
+                    containers: containers, video_codecs: video, audio_decode_codecs: audio,
+                    // The original-file player resolves HDR presentation and
+                    // selects audio locally; neither requires server conversion.
+                    validated_claims: ["client_managed_dynamic_range_v1", "client_selected_audio_track_v1"]),
+                "hls": Delivery(enabled: true, containers: ["hls", "mp4", "mpegts"], video_codecs: hardwareVideo,
                                 audio_decode_codecs: ["aac", "ac3", "eac3", "alac"],
                                 max_channels: streaming.flatMap {
                                     $0.requiresEncoding || $0.options.quality != .original ? 2 : nil

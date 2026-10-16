@@ -119,6 +119,10 @@ These Home and device-login contracts were checked at upstream revision
   bytes are preserved and foreign origins never receive the account bearer.
   Original-file delivery advertises Plozzigen's software codecs (including VP9),
   separately from hardware decode and native remote-HLS capabilities.
+  Its delivery-scoped claims let the local player manage HDR presentation and
+  select source audio tracks without requesting server conversion. They do not
+  claim native HDR10+ output or apply to server-packaged streams. HLS delivery
+  includes Silo's `hls` stream-container token, not only segment containers.
   The provider accepts original HTTP or HLS
   plans with a source-aligned seekable timeline; incompatible plans are released,
   not played with an incorrect clock. Progress samples are sequenced and stop
@@ -177,6 +181,10 @@ resume position.
 The quality contract was verified against Silo server revision
 `8e5ae2f469d36109e28cab3959693236cb503833`; unsupported growing/non-source-aligned
 timelines remain an explicit refusal rather than an incorrect resume clock.
+Original-player claims and HLS container matching were checked against
+`c78d233918ec7297d519fb2702f5473f5109eb9d`. An unspecified negotiation refusal
+does not imply transcoding was requested; diagnostics retain the requested
+quality, encoding requirement, and server refusal code.
 
 ## Subtitle search and download
 

@@ -1167,6 +1167,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             default:
                 LiveTVSourcesView(
                     model: sources, imports: imports, refresh: requestCatalogRefresh,
+                    refreshSource: { try await imports.reloadSource($0, into: model) },
                     serverChoices: serverChoices, serverProviderResolver: serverProviderResolver,
                     connectServer: connectServer == nil ? nil : requestServerConnection,
                     connectIPTV: providerSetupRouter == nil ? nil : requestIPTVConnection,

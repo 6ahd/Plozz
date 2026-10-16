@@ -293,6 +293,8 @@ public struct Profile: Codable, Hashable, Identifiable, Sendable {
     /// Narrowing at the point of USE satisfies both: an account that isn't signed
     /// in has nothing to import from, so it can't leak and mustn't gate; the
     /// question stays on the record and starts gating the moment it arrives.
+    /// Callers must also narrow to providers that support identity selection:
+    /// sync records questions for unknown accounts that may arrive as non-Plex.
     public func awaitsIdentity(amongAccounts accountIDs: some Collection<String>) -> Bool {
         let pending = pendingIdentityAccountIDs
         guard !pending.isEmpty else { return false }

@@ -48,6 +48,7 @@ public struct PlayerView: View {
     private let onChangeQuality: (() -> Void)?
     private let onChangeVersion: (() -> Void)?
     private let onPlaySDRVersion: (() -> Void)?
+    private let onDismiss: (() -> Void)?
 
     public init(
         viewModel: PlayerViewModel,
@@ -56,7 +57,8 @@ public struct PlayerView: View {
         showsSharedControls: Bool = true,
         onChangeQuality: (() -> Void)? = nil,
         onChangeVersion: (() -> Void)? = nil,
-        onPlaySDRVersion: (() -> Void)? = nil
+        onPlaySDRVersion: (() -> Void)? = nil,
+        onDismiss: (() -> Void)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
         self.showDiagnostics = showDiagnostics
@@ -65,6 +67,7 @@ public struct PlayerView: View {
         self.onChangeQuality = onChangeQuality
         self.onChangeVersion = onChangeVersion
         self.onPlaySDRVersion = onPlaySDRVersion
+        self.onDismiss = onDismiss
     }
 
 
@@ -325,10 +328,10 @@ public struct PlayerView: View {
                     if let options = viewModel.streamingOptions { viewModel.changeStreamingOptions(options) }
                 } : nil,
                 onShowDiagnostics: { viewModel.controls.diagnosticsEnabled = true },
-                onDismiss: { dismiss() }
+                onDismiss: { dismissPlayer() }
             )
             #else
-            PlaybackErrorView(message: viewModel.streamingQualityError?.userMessage ?? error.userMessage) { dismiss() }
+            PlaybackErrorView(message: viewModel.streamingQualityError?.userMessage ?? error.userMessage) { dismissPlayer() }
             #endif
         }
     }
@@ -415,6 +418,10 @@ public struct PlayerView: View {
         #endif
     }
 
+    private func dismissPlayer() {
+        if let onDismiss { onDismiss() } else { dismiss() }
+    }
+
     /// Dismiss with a display-aware fade that keeps the screen fully black from the
     /// moment exit begins until **after** the display has physically switched back,
     /// so there is no flash on the player-dismiss → Home handoff — even on TVs whose
@@ -438,7 +445,7 @@ public struct PlayerView: View {
     /// behavior: wait for the in-player settle/timeout before dismissing.
     private func dismissSmoothly() {
         guard let exitKind = viewModel.exitVeilKind else {
-            dismiss()
+            dismissPlayer()
             return
         }
         guard !hdrTransition.isExiting else { return }
@@ -456,12 +463,12 @@ public struct PlayerView: View {
             if windowVeil != nil {
                 // 3. The window veil now owns coverage through the physical switch —
                 //    dismiss straight onto it (black under black, no gap).
-                dismiss()
+                dismissPlayer()
             } else {
                 // No window veil (previews/tests): keep the legacy behavior of
                 // gating the dismiss on the in-player settle (or safety timeout).
                 await hdrTransition.waitForExit()
-                dismiss()
+                dismissPlayer()
             }
         }
     }
