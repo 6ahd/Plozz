@@ -222,20 +222,40 @@ struct PlayerTouchGestureFeedbackContent: View {
                     }
                 }
                 .font(.system(size: 26, weight: .semibold))
+                .modifier(PlayerTouchFeedbackPill())
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("player-gesture-skip-pill")
                 .position(x: geometry.size.width * (skip.direction == .backward ? 0.22 : 0.78),
                           y: geometry.size.height / 2)
                 .environment(\.layoutDirection, .leftToRight)
             }
             if let rate = state.boostRate {
-                Text(verbatim: rate.formatted(.number.precision(.fractionLength(0...2))) + "×")
-                    .font(.title2.weight(.semibold).monospacedDigit())
-                    .accessibilityIdentifier("player-gesture-speed")
-                    .position(x: geometry.size.width / 2, y: 40)
+                HStack(spacing: 8) {
+                    Text(verbatim: rate.formatted(.number.precision(.fractionLength(0...2))) + "×")
+                        .accessibilityIdentifier("player-gesture-speed")
+                    Image(systemName: "forward.fill")
+                        .accessibilityHidden(true)
+                }
+                .font(.title2.weight(.semibold).monospacedDigit())
+                .modifier(PlayerTouchFeedbackPill())
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("player-gesture-speed-pill")
+                .padding(.top, 16)
+                .frame(maxWidth: .infinity)
             }
         }
         .foregroundStyle(.white)
-        .shadow(color: .black.opacity(0.65), radius: 3, y: 1)
         .allowsHitTesting(false)
+    }
+}
+
+private struct PlayerTouchFeedbackPill: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .modifier(PanelGlassBackground(cornerRadius: 999))
+            .environment(\.colorScheme, .dark)
     }
 }
 

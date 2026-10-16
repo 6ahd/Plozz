@@ -1,4 +1,5 @@
 #if os(iOS)
+import CoreUI
 import Observation
 import SwiftUI
 import UIKit
@@ -8,6 +9,7 @@ import XCTest
 @MainActor
 final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     private var capturedImages: [(image: UIImage, name: String)] = []
+    private var glyphBackground: RenderedFrame?
 
     func testFirstForwardChevronTravelsHoldsFadesAndRetriggersWhileCountRemains() async throws {
         try await assertFlight(direction: .forward)
@@ -27,7 +29,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
 
     func testReduceMotionRendersOneSteadyCompactChevronAcrossAdditionalTaps() async throws {
         for direction in [PlayerTouchSkipDirection.forward, .backward] {
-            try await withFeedback(reduceMotion: true) { fixture, window in
+            try await withFeedback(direction: direction, reduceMotion: true) { fixture, window in
                 let interval: TimeInterval = direction == .forward ? 25 : -25
                 fixture.seek(by: interval)
                 try await Task.sleep(for: .milliseconds(120))
@@ -54,7 +56,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
 
     func testEnablingReduceMotionReplacesOverlappingFlightsWithOneSteadyChevron() async throws {
         for direction in [PlayerTouchSkipDirection.forward, .backward] {
-            try await withFeedback { fixture, window in
+            try await withFeedback(direction: direction) { fixture, window in
                 let interval: TimeInterval = direction == .forward ? 25 : -25
                 fixture.seek(by: interval)
                 try await Task.sleep(for: .milliseconds(140))
@@ -76,8 +78,126 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         }
     }
 
+    func testSkipCapsulesContainMovingAndParkedChevronsWithNativeAndReducedGlass() async throws {
+        for reducePanelGlass in [false, true] {
+            if !reducePanelGlass {
+                guard #available(iOS 26.0, *) else { continue }
+            }
+            for direction in [PlayerTouchSkipDirection.forward, .backward] {
+                try await withFeedback(reducePanelGlass: reducePanelGlass) { fixture, window in
+                    let interval: TimeInterval = direction == .forward ? 25 : -25
+                    let startedAt = ContinuousClock.now
+                    fixture.seek(by: interval)
+                    var frames: [Int: RenderedFrame] = [:]
+                    for milliseconds in [60, 300, 720, 1120] {
+                        try await Task.sleep(until: startedAt + .milliseconds(milliseconds), clock: .continuous)
+                        frames[milliseconds] = try self.captureIndicator(
+                            window, direction: direction,
+                            label: "\(reducePanelGlass ? "Reduced" : "Native") glass, \(milliseconds) ms"
+                        )
+                    }
+                    let idle = try XCTUnwrap(frames[1120])
+                    let capsule = try self.assertCapsule(idle, reducePanelGlass: reducePanelGlass)
+                    XCTAssertEqual(capsule.height, 46, accuracy: 3)
+                    XCTAssertGreaterThan(capsule.width, 110, "The capsule must include the existing count and flight slot")
+                    let inset = capsule.insetBy(dx: 2, dy: 2)
+                    let interior = UIBezierPath(roundedRect: inset, cornerRadius: inset.height / 2)
+                    let indicatorRect = self.indicatorRect(direction: direction)
+                    let glyphRect = self.glyphRect(direction: direction)
+                        .offsetBy(dx: -indicatorRect.minX, dy: -indicatorRect.minY)
+                    let idleGlyphs = self.cropped(idle, to: glyphRect)
+                    for milliseconds in [60, 300, 720] {
+                        let glyphs = self.cropped(try XCTUnwrap(frames[milliseconds]), to: glyphRect)
+                        let foreground = self.removingBackground(glyphs, idleGlyphs)
+                        self.assertVisible(foreground)
+                        let glyphBounds = try self.inkBounds(foreground, threshold: 32)
+                        XCTAssertGreaterThanOrEqual(glyphBounds.height, 14, "The actual chevron must be captured")
+                        XCTAssertLessThanOrEqual(glyphBounds.width, 18, "A single native chevron must not be clipped or stretched")
+                        for index in foreground.pixels.indices where foreground.pixels[index] > 32 {
+                            let point = CGPoint(
+                                x: glyphRect.minX + CGFloat(index % foreground.width) + 0.5,
+                                y: glyphRect.minY + CGFloat(index / foreground.width) + 0.5
+                            )
+                            XCTAssertTrue(interior.contains(point), "The entire flight must stay inside the capsule at \(milliseconds) ms")
+                        }
+                    }
+                    XCTAssertEqual(fixture.state.skip?.seconds, interval, "The idle capsule must retain its count")
+                }
+            }
+        }
+    }
+
+    func testSpeedCapsuleShowsRateAndFastForwardThenDisappearsWithNativeAndReducedGlass() async throws {
+        for reducePanelGlass in [false, true] {
+            if !reducePanelGlass {
+                guard #available(iOS 26.0, *) else { continue }
+            }
+            try await withFeedback(
+                reducePanelGlass: reducePanelGlass, colorScheme: reducePanelGlass ? .dark : .light
+            ) { fixture, window in
+                fixture.state.showBoost(rate: 2)
+                try await Task.sleep(for: .milliseconds(150))
+                let rect = CGRect(x: 110, y: 8, width: 180, height: 64)
+                let speed = try self.capture(window, rect: rect, label: "\(reducePanelGlass ? "Reduced" : "Native") glass speed pill")
+                let capsule = try self.assertCapsule(speed, reducePanelGlass: reducePanelGlass)
+                XCTAssertEqual(capsule.minY + rect.minY, 16, accuracy: 2, "The speed pill must respect its top inset")
+                XCTAssertGreaterThanOrEqual(capsule.height, 38)
+                XCTAssertLessThanOrEqual(capsule.height, 50)
+                let backing = self.cropped(speed, to: CGRect(
+                    x: capsule.midX - 8, y: capsule.minY + 5, width: 16, height: 2
+                ))
+                XCTAssertLessThanOrEqual(
+                    self.inkEnergy(backing) / Double(max(backing.pixels.count, 1)), 118,
+                    "White speed feedback must retain a dark capsule even when its parent uses Light appearance"
+                )
+                let label = self.cropped(speed, to: CGRect(
+                    x: capsule.minX + 18, y: capsule.minY + 8,
+                    width: capsule.width / 2 - 18, height: capsule.height - 16
+                ))
+                let icon = self.cropped(speed, to: CGRect(
+                    x: capsule.midX + 3, y: capsule.minY + 8,
+                    width: capsule.width / 2 - 21, height: capsule.height - 16
+                ))
+                XCTAssertEqual(self.componentCount(label, threshold: 160), 2, "The rate must render both 2 and ×")
+                let iconBounds = try self.inkBounds(icon, threshold: 160)
+                XCTAssertGreaterThanOrEqual(iconBounds.width, 18)
+                XCTAssertGreaterThanOrEqual(iconBounds.height, 10)
+                // At this size the native first triangle's tip touches the second base.
+                // Verify two filled right-pointing tapers instead of raster connectivity.
+                let rows = Int(iconBounds.minY)..<Int(iconBounds.maxY)
+                let columns = (Int(iconBounds.minX)..<Int(iconBounds.maxX)).map { x in
+                    rows.filter { icon.pixels[$0 * icon.width + x] > 160 }.count
+                }
+                let midpoint = columns.count / 2
+                for triangle in [Array(columns.prefix(midpoint)), Array(columns.dropFirst(midpoint))] {
+                    let edgeWidth = max(2, triangle.count / 4)
+                    let base = Double(triangle.prefix(edgeWidth).reduce(0, +)) / Double(edgeWidth)
+                    let tip = Double(triangle.suffix(edgeWidth).reduce(0, +)) / Double(edgeWidth)
+                    XCTAssertGreaterThanOrEqual(
+                        base, Double(iconBounds.height) * 0.75,
+                        "Each fast-forward triangle must have a tall filled base on its left"
+                    )
+                    XCTAssertLessThanOrEqual(
+                        tip, Double(iconBounds.height) * 0.35,
+                        "Each fast-forward triangle must taper to its own right-pointing tip"
+                    )
+                }
+                let filledPixels = icon.pixels.filter { $0 > 160 }.count
+                XCTAssertGreaterThan(
+                    Double(filledPixels) / Double(iconBounds.width * iconBounds.height), 0.4,
+                    "The speed symbol must be filled fast-forward triangles, not open skip chevrons"
+                )
+                XCTAssertEqual(fixture.state.boostRate, 2)
+                fixture.state.showBoost(rate: nil)
+                try await Task.sleep(for: .milliseconds(80))
+                let removed = try self.capture(window, rect: rect, label: "Speed pill removed")
+                self.assertAbsent(removed, message: "Ending boost must remove both the rate and its capsule")
+            }
+        }
+    }
+
     private func assertFlight(direction: PlayerTouchSkipDirection) async throws {
-        try await withFeedback { fixture, window in
+        try await withFeedback(direction: direction) { fixture, window in
             let interval: TimeInterval = direction == .forward ? 25 : -25
             XCTAssertNil(fixture.state.skip)
             var lastPulseAt = ContinuousClock.now
@@ -161,7 +281,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     }
 
     private func assertRapidTaps(direction: PlayerTouchSkipDirection) async throws {
-        try await withFeedback { fixture, window in
+        try await withFeedback(direction: direction) { fixture, window in
             let sign = direction == .forward ? 1.0 : -1.0
             let startedAt = ContinuousClock.now
             fixture.seek(by: sign * 25)
@@ -276,8 +396,28 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         XCTAssertLessThanOrEqual(bounds.width, 60)
     }
 
+    private func assertCapsule(_ frame: RenderedFrame, reducePanelGlass: Bool) throws -> CGRect {
+        let bounds = try inkBounds(frame, threshold: 12)
+        XCTAssertGreaterThan(bounds.width, 90, "Feedback must have a padded surface, not just bare foreground")
+        XCTAssertLessThanOrEqual(bounds.width, 160)
+        XCTAssertGreaterThanOrEqual(bounds.height, 38)
+        XCTAssertLessThanOrEqual(bounds.height, 54)
+        let corner = cropped(frame, to: CGRect(x: bounds.minX + 1, y: bounds.minY + 1, width: 2, height: 2))
+        assertAbsent(corner, message: "The feedback surface must have capsule corners rather than a rectangular fill")
+        let interior = cropped(frame, to: CGRect(x: bounds.midX - 8, y: bounds.minY + 5, width: 16, height: 2))
+        XCTAssertGreaterThan(
+            inkEnergy(interior) / Double(max(interior.pixels.count, 1)), 4,
+            reducePanelGlass
+                ? "Reduced glass must render the shared frosted surface behind the foreground"
+                : "Native glass interior was not captured by drawHierarchy; a border alone is not native-glass evidence"
+        )
+        return bounds
+    }
+
     private func withFeedback(
-        reduceMotion: Bool = false, _ operation: (FeedbackFixture, UIWindow) async throws -> Void
+        direction: PlayerTouchSkipDirection? = nil, reduceMotion: Bool = false, reducePanelGlass: Bool = true,
+        colorScheme: ColorScheme = .dark,
+        _ operation: (FeedbackFixture, UIWindow) async throws -> Void
     ) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
@@ -287,7 +427,10 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
         let previous = scene.windows.first(where: \.isKeyWindow)
-        let fixture = FeedbackFixture(reduceMotion: reduceMotion)
+        let fixture = FeedbackFixture(
+            reduceMotion: direction == nil ? reduceMotion : false,
+            reducePanelGlass: reducePanelGlass, colorScheme: colorScheme
+        )
         let host = UIHostingController(rootView: FeedbackFixtureView(fixture: fixture))
         host.safeAreaRegions = []
         let window = UIWindow(windowScene: scene)
@@ -305,9 +448,28 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 add(attachment)
             }
             capturedImages.removeAll()
+            glyphBackground = nil
         }
         window.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(80))
+        if let direction {
+            // Use the real idle pill as the contrast reference. The phase/overlap tests exercise
+            // the supported deterministic frosted path; native glass gets separate rendered coverage.
+            fixture.seek(by: direction == .forward ? 25 : -25)
+            try await Task.sleep(for: .milliseconds(1120))
+            let background = try capture(
+                window, rect: glyphRect(direction: direction), label: "\(direction) — idle pill contrast reference"
+            )
+            XCTAssertLessThanOrEqual(
+                background.pixels.max() ?? 0, 96,
+                "The idle frosted reference must not contain a resting white chevron"
+            )
+            glyphBackground = background
+            fixture.state.cancel()
+            fixture.state = PlayerTouchGestureState()
+            fixture.reduceMotion = reduceMotion
+            try await Task.sleep(for: .milliseconds(60))
+        }
         try await operation(fixture, window)
     }
 
@@ -321,18 +483,26 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         _ window: UIWindow, direction: PlayerTouchSkipDirection, label: String,
         since: ContinuousClock.Instant? = nil
     ) throws -> RenderedFrame {
-        let x: CGFloat = direction == .forward ? 325 : 15
-        return try capture(
-            window, rect: CGRect(x: x, y: 76, width: 60, height: 48), label: "\(direction) — \(label)", since: since
+        let frame = try capture(
+            window, rect: glyphRect(direction: direction), label: "\(direction) — \(label)", since: since
         )
+        return glyphBackground.map { removingBackground(frame, $0) } ?? frame
+    }
+
+    private func glyphRect(direction: PlayerTouchSkipDirection) -> CGRect {
+        CGRect(x: direction == .forward ? 325 : 15, y: 76, width: 60, height: 48)
+    }
+
+    private func indicatorRect(direction: PlayerTouchSkipDirection) -> CGRect {
+        let center: CGFloat = direction == .forward ? 312 : 88
+        return CGRect(x: center - 85, y: 64, width: 170, height: 72)
     }
 
     private func captureIndicator(
         _ window: UIWindow, direction: PlayerTouchSkipDirection, label: String
     ) throws -> RenderedFrame {
-        let center: CGFloat = direction == .forward ? 312 : 88
         return try capture(
-            window, rect: CGRect(x: center - 65, y: 72, width: 130, height: 56),
+            window, rect: indicatorRect(direction: direction),
             label: "\(direction) — \(label)"
         )
     }
@@ -369,6 +539,29 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     private func milliseconds(from start: ContinuousClock.Instant, to end: ContinuousClock.Instant) -> Int {
         let duration = start.duration(to: end).components
         return Int(duration.seconds * 1000 + duration.attoseconds / 1_000_000_000_000_000)
+    }
+
+    private func removingBackground(_ frame: RenderedFrame, _ background: RenderedFrame) -> RenderedFrame {
+        XCTAssertEqual(frame.width, background.width)
+        XCTAssertEqual(frame.height, background.height)
+        let pixels = zip(frame.pixels, background.pixels).map { pixel, base -> UInt8 in
+            let contrast = Int(pixel) - Int(base)
+            guard contrast > 2, base < 255 else { return 0 }
+            return UInt8(min(255, contrast * 255 / (255 - Int(base))))
+        }
+        return RenderedFrame(width: frame.width, height: frame.height, pixels: pixels)
+    }
+
+    private func cropped(_ frame: RenderedFrame, to rect: CGRect) -> RenderedFrame {
+        let minX = max(0, min(frame.width, Int(rect.minX.rounded(.down))))
+        let minY = max(0, min(frame.height, Int(rect.minY.rounded(.down))))
+        let maxX = max(minX, min(frame.width, Int(rect.maxX.rounded(.up))))
+        let maxY = max(minY, min(frame.height, Int(rect.maxY.rounded(.up))))
+        var pixels: [UInt8] = []
+        for y in minY..<maxY {
+            pixels.append(contentsOf: frame.pixels[(y * frame.width + minX)..<(y * frame.width + maxX)])
+        }
+        return RenderedFrame(width: maxX - minX, height: maxY - minY, pixels: pixels)
     }
 
     private func difference(_ lhs: RenderedFrame, _ rhs: RenderedFrame) -> Double {
@@ -412,8 +605,8 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
     }
 
-    private func componentCount(_ frame: RenderedFrame) -> Int {
-        var remaining = Set(frame.pixels.indices.filter { frame.pixels[$0] > 128 })
+    private func componentCount(_ frame: RenderedFrame, threshold: UInt8 = 128) -> Int {
+        var remaining = Set(frame.pixels.indices.filter { frame.pixels[$0] > threshold })
         var count = 0
         while let seed = remaining.first {
             remaining.remove(seed)
@@ -440,10 +633,16 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
 @MainActor
 @Observable
 private final class FeedbackFixture {
-    let state = PlayerTouchGestureState()
+    var state = PlayerTouchGestureState()
     var reduceMotion: Bool
+    let reducePanelGlass: Bool
+    let colorScheme: ColorScheme
 
-    init(reduceMotion: Bool) { self.reduceMotion = reduceMotion }
+    init(reduceMotion: Bool, reducePanelGlass: Bool, colorScheme: ColorScheme) {
+        self.reduceMotion = reduceMotion
+        self.reducePanelGlass = reducePanelGlass
+        self.colorScheme = colorScheme
+    }
 
     func seek(by interval: TimeInterval) {
         _ = state.seek(by: interval, from: 300, within: 0...600)
@@ -460,6 +659,8 @@ private struct FeedbackFixtureView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.black)
             .environment(\.locale, Locale(identifier: "en_US"))
+            .environment(\.colorScheme, fixture.colorScheme)
+            .environment(\.plozzReducePanelGlass, fixture.reducePanelGlass)
             .ignoresSafeArea()
     }
 }

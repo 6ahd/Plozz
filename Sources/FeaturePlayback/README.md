@@ -85,10 +85,11 @@ glass layer. The standalone guide and tvOS grid retain their existing spacing.
 On iPhone and iPad, double-tapping either side skips using the active profile's
 backward/forward interval. Additional taps while the feedback is visible
 accumulate from the requested position, not a lagging playback clock. Directional
-chevrons and the signed total replace the main controls, retaining the player's
-actual timeline in its normal position, with its time labels, playhead, buffer
-and segment styling, and scrubbing behavior. Each accepted skip launches one
-native chevron outward: right for forward, left for backward. It travels 20 points
+chevrons and the signed total share a compact dark glass pill, replacing the main
+controls while retaining the player's actual timeline in its normal position,
+with its time labels, playhead, buffer and segment styling, and scrubbing behavior.
+Each accepted skip launches one native chevron outward: right for forward, left
+for backward. It travels 20 points
 over 0.25 seconds, stops fully visible for half a second, then fades in place over
 0.3 seconds. Rapid taps add independent, overlapping chevrons without restarting
 earlier ones or queuing a replay.
@@ -102,14 +103,18 @@ and open menus keep their own touches.
 Holding on-demand video for at least one second temporarily accelerates moving
 playback to at most 2x when the engine supports it; shorter presses do not boost
 speed. Releasing, pausing, seeking, leaving the player, or backgrounding cancels
-the override without changing the saved speed. Live TV supports skips only
-inside an available rewind window, not speed boosting.
+the override without changing the saved speed. Only a top-centered glass pill
+with the active rate and fast-forward symbol is shown during the hold; the
+timeline and its backdrop stay hidden. Both gesture pills reuse the player's
+shared native Liquid Glass surface and its reduced-transparency/older-system
+fallbacks. They do not intercept touches. Live TV supports skips only inside an
+available rewind window, not speed boosting.
 
 Pinch inward for Normal fitting inside the display's safe area, clear of the
 Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
-uses the existing session-only zoom state without reloading video. Authored
-subtitle geometry follows the displayed picture; ordinary captions retain their
-screen-relative placement. Inline, tvOS, and external playback keep their existing
+uses the existing session-only zoom state without reloading video or revealing
+the timeline. Authored subtitle geometry follows the displayed picture; ordinary
+captions retain their screen-relative placement. Inline, tvOS, and external playback keep their existing
 geometry. Horizontal seeking and brightness/volume swipes are not implemented.
 
 ## Mobile playback settings

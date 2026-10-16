@@ -69,7 +69,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                 )
             }
 
-            if controlsVisible || touchGestures.isActive {
+            if controlsVisible || touchGestures.skip != nil {
                 LinearGradient(
                     colors: [
                         .black.opacity(controlsVisible ? 0.65 : 0), .clear,
@@ -139,7 +139,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                 )
             }
 
-            if controlsVisible || touchGestures.isActive {
+            if controlsVisible || touchGestures.skip != nil {
                 PlozziOSPlayerTransport(
                     viewModel: viewModel,
                     timelineOnly: !controlsVisible,

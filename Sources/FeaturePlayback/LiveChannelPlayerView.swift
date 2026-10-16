@@ -325,7 +325,7 @@ public struct LiveChannelPlayerView: View {
                     }
                     #endif
 
-                    if controlsVisible || touchGestures.isActive,
+                    if controlsVisible || touchGestures.skip != nil,
                        !sourceMatches || model.interruption == nil {
                         LiveChannelOverlay(
                             title: title,
