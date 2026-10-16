@@ -45,6 +45,13 @@ struct SettingsSplitRow: Identifiable {
     var route: SettingsRoute?
     var summary: Text?
     var childRows: (() -> [SettingsSplitRow])?
+    var hasGroupedContent = false
+
+    func groupedContent() -> Self {
+        var row = self
+        row.hasGroupedContent = true
+        return row
+    }
 
     static func page(
         id: String, title: LocalizedStringResource,
@@ -515,7 +522,7 @@ private struct SettingsMasterRowLabel: View {
                     .frame(width: 26)
             }
             row.title
-                .font(.callout.weight(.medium))
+                .font(SettingsRowMetrics.titleFont)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 12)
@@ -591,13 +598,19 @@ struct SettingsDetailGroup<Content: View>: View {
         VStack(alignment: .leading, spacing: 14) {
             Text(title)
                 .settingsSectionHeader()
+                #if os(tvOS)
+                .padding(.horizontal, SettingsFormMetrics.headingInset)
+                #endif
             if let description {
                 Text(description)
                     .settingsSectionDescription()
                     .fixedSize(horizontal: false, vertical: true)
             }
-            content()
-                .padding(.top, 4)
+            #if os(tvOS)
+            SettingsControlGroup(content: content)
+            #else
+            content().padding(.top, 4)
+            #endif
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

@@ -26,7 +26,6 @@ public struct SettingsView: View {
     /// Stable identity owned by MainTabView; only the workspace observes its path.
     private let navigation: SettingsNavigationModel
     @State private var confirmSignOutAll = false
-    @State private var confirmEraseICloud = false
     /// Hidden Developer Mode: reveals the diagnostic rows once unlocked by
     /// selecting the About/Version panel seven times. Off by default in every
     /// build. `showDeveloperUnlockedAlert` confirms the unlock.
@@ -101,7 +100,7 @@ public struct SettingsView: View {
     private let onRescanShare: (String) -> Void
     private let onSignOutAll: () -> Void
     private let onResetToFirstRun: () -> Void
-    private let onEraseICloud: (() -> Void)?
+    private let onReviewSyncErasure: (() -> Void)?
     private let onSetUpAnotherDevice: (() -> Void)?
     /// Current cross-device sync opt-in state, and the setter. When the setter is
     /// nil the row is hidden (e.g. a host that doesn't wire sync).
@@ -207,7 +206,7 @@ public struct SettingsView: View {
         onRescanShare: @escaping (String) -> Void,
         onSignOutAll: @escaping () -> Void,
         onResetToFirstRun: @escaping () -> Void,
-        onEraseICloud: (() -> Void)? = nil,
+        onReviewSyncErasure: (() -> Void)? = nil,
         plexHomeUsersFetcher: @escaping (String) async -> [PlexHomeUser],
         onSelectPlexHomeUser: @escaping (String, PlexHomeUser?) -> Void,
         onSetProfileLock: @escaping (String, ProfileLock?) -> Void = { _, _ in },
@@ -277,7 +276,7 @@ public struct SettingsView: View {
         self.onRescanShare = onRescanShare
         self.onSignOutAll = onSignOutAll
         self.onResetToFirstRun = onResetToFirstRun
-        self.onEraseICloud = onEraseICloud
+        self.onReviewSyncErasure = onReviewSyncErasure
         self.plexHomeUsersFetcher = plexHomeUsersFetcher
         self.onSelectPlexHomeUser = onSelectPlexHomeUser
         self.onSetProfileLock = onSetProfileLock
@@ -396,12 +395,11 @@ public struct SettingsView: View {
                         everyoneSection
                     }
 
-                    VStack(spacing: 8) {
-                        sectionRow("About", icon: "info.circle", route: .about)
-                        sectionRow("Help & Diagnostics", icon: "ladybug", route: .help)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("About").settingsSectionHeader()
+                            .padding(.horizontal, SettingsFormMetrics.headingInset)
+                        aboutAndSignOut
                     }
-                    .padding(12)
-                    .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
                 }
                 .padding(.horizontal, SettingsFormMetrics.pageInset)
                 .padding(.top, SettingsFormMetrics.pageTopInset)
@@ -431,12 +429,6 @@ public struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes every Plex and Jellyfin sign-in on this Apple TV. You'll need to sign in again.")
-        }
-        .alert("Erase everything from iCloud?", isPresented: $confirmEraseICloud) {
-            Button("Erase Household From iCloud", role: .destructive) { onEraseICloud?() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Deletes the whole household — every profile and server — from iCloud (all your devices), wipes this Apple TV to first-run, and turns iCloud Sync OFF here. Use to test a clean cold start (e.g. set up only on this Apple TV, then fresh-install another device). Re-enable Sync when done.")
         }
     }
 
@@ -502,7 +494,7 @@ public struct SettingsView: View {
 
             PlozzDivider().padding(.horizontal, 28)
 
-            VStack(spacing: 14) {
+            SettingsControlRows {
                 // While sealed every row leads to the PIN instead of its own
                 // page. The row still says what it is — the lock is the only
                 // thing that changes.
@@ -524,10 +516,7 @@ public struct SettingsView: View {
     /// Categories inside the active profile's panel; household setup stays separate.
     @ViewBuilder
     private var profileOwnedRows: some View {
-        // Inter-row spacing replaces the previous dividers: it lets the
-        // contained focus lift breathe without crossing into a neighbor row
-        // or sitting on top of a divider line.
-        VStack(spacing: 8) {
+        SettingsControlRows {
             sectionRow("General", icon: "gearshape", route: .general)
             // Per-profile "Your Libraries": who you watch as + what shows on THIS
             // profile's Home. The personal mirror of This Apple TV › Servers.
@@ -545,11 +534,14 @@ public struct SettingsView: View {
                 sectionRow(KidsProfileCopy.nameAndAvatar, icon: "person.crop.circle",
                        route: .profileAppearance(profileID: activeProfile.id))
             }
-            sectionRow("Appearance & Layout", icon: "paintpalette", route: .appearance)
+            sectionRow("Customize Home", icon: "house", route: .customizeHome)
+            sectionRow("Appearance & Layout", icon: "paintpalette",
+                       subtitle: Text("Theme, navigation, and cards"), route: .appearance)
             sectionRow("Playback", icon: "play.rectangle", route: .playback)
             sectionRow("Subtitles", icon: "captions.bubble", route: .subtitles)
             sectionRow("Live TV", icon: "antenna.radiowaves.left.and.right", route: .liveTV)
-            sectionRow("Trackers", icon: "link", route: .integrations)
+            sectionRow("Trackers", icon: "link",
+                       subtitle: Text("Trakt, Simkl, AniList, MyAnimeList, Last.fm"), route: .integrations)
             // The profile's own PIN gate. Belongs to the profile (it travels with
             // it to every device), so it sits here rather than in the shared
             // section — even though "who can open this" reads like a household
@@ -594,7 +586,7 @@ public struct SettingsView: View {
 
             PlozzDivider().padding(.horizontal, 28)
 
-            VStack(spacing: 8) {
+            SettingsControlRows {
                 // Shared server sign-ins (the household's full inventory). The
                 // list screen opens with a prominent Add Server button.
                 sectionRow("Servers", icon: "externaldrive.connected.to.line.below",
@@ -644,11 +636,11 @@ public struct SettingsView: View {
 
     /// About info + Attributions entry + Sign Out, rendered INLINE at the
     /// bottom of the main Settings page. About no longer drills in — only
-    /// "Attributions" pushes one level deeper. Spacing here mirrors
-    /// the roomy cadence of the About panel itself.
+    /// "Attributions" pushes one level deeper; the summary and community
+    /// links stay compact and immediately available at the root.
     @ViewBuilder
     private var aboutAndSignOut: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 12) {
             // App identity, version/build, release notes, and QR. The version row
             // retains the seven-select Developer Mode shortcut.
             SettingsAboutSection(
@@ -660,19 +652,17 @@ public struct SettingsView: View {
                 // Developer Mode, whose "Reset to First Run" wipes the profile
                 // list AND the household Parental PIN — a no-PIN way out of the
                 // very restrictions this profile exists to apply.
-                onActivate: activeProfile.isKids ? nil : handleAboutActivation
+                onActivate: activeProfile.isKids ? nil : handleAboutActivation,
+                compact: true
             )
-            .settingsWorkspaceEntry()
 
-            // The one acceptable deeper page: open-source credits & licensing.
-            navRow(SettingsCopy.attributions, icon: "doc.text.magnifyingglass",
-                   value: nil,
-                   route: .attributions)
-
-            // The only Sign-Out-All entry point now lives here, inline, guarded
-            // by the are-you-sure confirmation alert on the root view.
-            if !accounts.isEmpty, !activeProfile.isKids {
-                signOutAllRow
+            SettingsControlGroup {
+                navRow(SettingsCopy.attributions, icon: "doc.text.magnifyingglass",
+                       value: nil, route: .attributions)
+                sectionRow("Help & Diagnostics", icon: "ladybug", route: .help)
+                if !accounts.isEmpty, !activeProfile.isKids {
+                    signOutAllRow
+                }
             }
 
             // Diagnostic rows, hidden until Developer Mode is unlocked (seven
@@ -712,12 +702,6 @@ public struct SettingsView: View {
                 // next server add reproduces a genuine first run.
                 debugResetFirstRunRow
 
-                // Empty the shared iCloud copy AND this device's local copy and
-                // turn Sync off, so a true cold start can be tested (unlike Reset
-                // to First Run, which only clears local and leaves iCloud intact).
-                if onEraseICloud != nil {
-                    debugEraseICloudRow
-                }
             }
         }
         .alert("Developer Mode Enabled", isPresented: $showDeveloperUnlockedAlert) {
@@ -839,28 +823,6 @@ public struct SettingsView: View {
         .buttonStyle(SettingsFocusButtonStyle())
     }
 
-    /// "Erase Everything From iCloud" row. Empties the shared iCloud household
-    /// copy, wipes this device to first-run, and turns Sync off — for testing a
-    /// genuine cold start. Gated behind Developer Mode like the other debug rows.
-    private var debugEraseICloudRow: some View {
-        Button {
-            confirmEraseICloud = true
-        } label: {
-            HStack(spacing: 16) {
-                Image(systemName: "trash.slash")
-                    .font(.system(size: 22, weight: .regular))
-                    .frame(width: 30, height: 30)
-                Text("Erase Everything From iCloud (Debug)").font(.callout.weight(.medium))
-                Spacer()
-            }
-            .foregroundStyle(.red)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(SettingsFocusButtonStyle())
-    }
-
     /// Destructive "Sign Out of All Accounts" row. Keeps the red tint on both
     /// idle and the inverted focus card (legible on white or black), and arms
     /// the confirmation alert rather than signing out immediately.
@@ -920,7 +882,7 @@ public struct SettingsView: View {
         case .about:
             ScrollView {
                 VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
-                    SettingsPageBackButton()
+                    SettingsPageHeader("About")
                     aboutAndSignOut
                 }
                 .padding(.horizontal, SettingsFormMetrics.pageInset)
@@ -1041,7 +1003,9 @@ public struct SettingsView: View {
             if let syncRepair {
                 SyncTroubleshootingView(
                     repair: syncRepair,
-                    statusProvider: syncStatusSummary
+                    statusProvider: syncStatusSummary,
+                    syncEnabled: syncEnabled,
+                    onReviewErasure: !activeProfile.isKids && !isParentalSealed ? onReviewSyncErasure : nil
                 )
             }
         case let .seerUserPicker(profileID):
@@ -1108,6 +1072,7 @@ public struct SettingsView: View {
                         ))
                         .toggleStyle(SettingsSwitchToggleStyle())
                         .settingsWorkspaceEntry()
+                        .modifier(SyncRecoveryDisabled(provider: syncStatusSummary))
 
                         if syncEnabled, let syncStatusSummary {
                             HStack(spacing: 24) {
@@ -1120,6 +1085,7 @@ public struct SettingsView: View {
                                 if let onSyncNow {
                                     Button("Sync Now", action: onSyncNow)
                                         .buttonStyle(PlozzSeasonTabStyle(isSelected: false))
+                                        .modifier(SyncRecoveryDisabled(provider: syncStatusSummary))
                                 }
                             }
                             .padding(.top, 12)
@@ -1141,7 +1107,7 @@ public struct SettingsView: View {
                         }
                     }
                 }
-                if syncEnabled, syncRepair != nil {
+                if syncRepair != nil {
                     SettingsPanel(contentPadding: .settingsPanelRowContent) {
                         SettingsRouteLink(value: SettingsRoute.syncTroubleshooting) {
                             SettingsRowLabel(
@@ -1333,15 +1299,17 @@ public struct SettingsView: View {
 
     private func sectionRow(
         _ title: LocalizedStringResource, icon: String,
-        value: Text? = nil, route: SettingsRoute
+        value: Text? = nil, subtitle: Text? = nil, route: SettingsRoute
     ) -> some View {
-        SettingsSectionButton(title: Text(title), icon: icon, value: value, route: route)
+        SettingsSectionButton(title: Text(title), icon: icon, value: value, subtitle: subtitle, route: route)
     }
 }
 
 private struct SyncTroubleshootingView: View {
     let repair: SyncRepairActions
     let statusProvider: SyncStatusProvider?
+    let syncEnabled: Bool
+    let onReviewErasure: (() -> Void)?
     @State private var confirmsReset = false
 
     var body: some View {
@@ -1351,6 +1319,7 @@ private struct SyncTroubleshootingView: View {
                 SettingsPageHeader("Troubleshooting")
                 if let statusProvider {
                     SyncComparisonPanel(provider: statusProvider)
+                    SyncDataBreakdown(provider: statusProvider)
                 }
                 SettingsPanel(
                     title: "Recovery",
@@ -1371,7 +1340,7 @@ private struct SyncTroubleshootingView: View {
                             )
                         }
                         .buttonStyle(SettingsFocusButtonStyle())
-                        .disabled(isRecovering)
+                        .disabled(isRecovering || !syncEnabled)
                         .accessibilityIdentifier("cloud-sync-reload")
 
                         Button { confirmsReset = true } label: {
@@ -1386,10 +1355,20 @@ private struct SyncTroubleshootingView: View {
                             )
                         }
                         .buttonStyle(SettingsFocusButtonStyle())
-                        .disabled(isRecovering)
+                        .disabled(isRecovering || !syncEnabled)
                     }
                 }
                 LiveTVPortableSyncPendingSettings()
+                if let onReviewErasure {
+                    SettingsPanel(contentPadding: .settingsPanelRowContent) {
+                        Button(action: onReviewErasure) {
+                            SettingsRowLabel(icon: "trash", title: "Erase Sync Data")
+                        }
+                        .buttonStyle(SettingsFocusButtonStyle())
+                        .disabled(isRecovering)
+                        .accessibilityIdentifier("cloud-sync-erase")
+                    }
+                }
             }
             .frame(maxWidth: 1200, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)

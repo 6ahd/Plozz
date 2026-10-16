@@ -241,9 +241,8 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
             .frame(width: viewport.width, height: viewport.height, alignment: .top)
             .environment(\.settingsPageContext, context)
             .environment(\.settingsPageBackButton, id.map { _ in
-                AnyView(Button(action: context.pop) {
-                    Label("Back", systemImage: "chevron.backward")
-                }.settingsPageEntryFocus().accessibilityIdentifier("settings-workspace-back"))
+                AnyView(SettingsBackButton(action: context.pop)
+                    .settingsPageEntryFocus().accessibilityIdentifier("settings-workspace-back"))
             })
             .environment(\.isEnabled, isEnabled && interactive)
             .allowsHitTesting(interactive)

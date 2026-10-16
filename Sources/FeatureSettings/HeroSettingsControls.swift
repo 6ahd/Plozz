@@ -170,6 +170,8 @@ struct HeroSettingsLink: View {
             .buttonStyle(.plain)
             .navigationDestination(isPresented: $isPresented) {
                 HeroSettingsScreen(page: page, libraries: libraries, accounts: accounts)
+                    .environment(hero)
+                    .environment(background)
             }
             #else
             SettingsDetailLink(pageID: page.rawValue) {

@@ -426,6 +426,43 @@ final class NativePosterButton: UIButton {
     }
 }
 
+private final class NativePosterPresentationKey: NSObject {
+    let source: ObjectIdentifier?
+    let treatment: NativePosterImageTreatment
+    let size: CGSize
+    let scale: CGFloat
+    let indicators: NativePosterArtworkBitmap.IndicatorKey?
+    let artworkBackground: NativePosterArtworkBackground
+
+    init(
+        image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize, scale: CGFloat,
+        indicators: NativePosterArtworkBitmap.IndicatorKey?, artworkBackground: NativePosterArtworkBackground
+    ) {
+        source = image.map(ObjectIdentifier.init)
+        self.treatment = treatment
+        self.size = size
+        self.scale = scale
+        self.indicators = indicators
+        self.artworkBackground = artworkBackground
+    }
+
+    override var hash: Int {
+        var hasher = Hasher()
+        hasher.combine(source)
+        hasher.combine(size.width)
+        hasher.combine(size.height)
+        hasher.combine(scale)
+        return hasher.finalize()
+    }
+
+    override func isEqual(_ object: Any?) -> Bool {
+        guard let other = object as? NativePosterPresentationKey else { return false }
+        return source == other.source && treatment == other.treatment
+            && size == other.size && scale == other.scale && indicators == other.indicators
+            && artworkBackground == other.artworkBackground
+    }
+}
+
 struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     let image: UIImage?
     let treatment: NativePosterImageTreatment
@@ -449,33 +486,41 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         var imageSize = CGSize.zero
         var imageScale: CGFloat = 1
         var prepared: UIImage?
-        private struct PresentationKey: Equatable {
-            let treatment: NativePosterImageTreatment
-            let size: CGSize
-            let scale: CGFloat
-            let indicators: NativePosterArtworkBitmap.IndicatorKey?
-            let artworkBackground: NativePosterArtworkBackground
-        }
-        private var presentationKey: PresentationKey?
+        private var presentationKey: NativePosterPresentationKey?
         private var presentationSource: UIImage?
         private var presentedImage: UIImage?
+        private var presentationTask: Task<Void, Never>?
+        private var presentationGeneration = 0
 
         init(focus: PlozzCardFocus.Binding, action: @escaping () -> Void) {
             self.focus = NativeTVMediaCoordinator(focus: focus, action: action)
         }
 
+        deinit { presentationTask?.cancel() }
+
+        func cancelPresentation() {
+            presentationGeneration &+= 1
+            presentationTask?.cancel()
+            presentationTask = nil
+            presentationKey = nil
+            presentationSource = nil
+            presentedImage = nil
+            original = nil
+            prepared = nil
+        }
+
         func presentationImage(
             _ image: UIImage?, treatment: NativePosterImageTreatment, size: CGSize,
             indicators: NativePosterIndicators?, artworkBackground: NativePosterArtworkBackground,
-            environment: EnvironmentValues
+            environment: EnvironmentValues, onReady: ((UIImage) -> Void)? = nil
         ) -> UIImage {
             let scale = environment.displayScale
             // UIKit's rectangular focus surface requires opaque artwork. A
             // second, baked alpha corner separates from its highlight under tilt.
             let clipsToArtwork = size.height <= size.width
             let backgroundColor: UIColor? = clipsToArtwork ? nil : .darkGray
-            let key = PresentationKey(
-                treatment: treatment, size: size, scale: scale,
+            let key = NativePosterPresentationKey(
+                image: image, treatment: treatment, size: size, scale: scale,
                 indicators: indicators.flatMap {
                     guard $0.hasContent(
                         indicator: environment.plozzWatchStatusIndicator,
@@ -490,46 +535,76 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                 },
                 artworkBackground: artworkBackground
             )
-            if presentationSource === image, presentationKey == key, let presentedImage { return presentedImage }
-            // Ordinary artwork needs only the final surface, not a second
-            // normalized full-size image retained for every Home card.
-            let source = treatment == .original ? image : prepare(image, treatment: treatment, size: size, scale: scale)
-            let result: UIImage?
-            if let indicatorKey = key.indicators {
-                guard let overlay = NativePosterArtworkBitmap.indicatorImage(
-                    key: indicatorKey, size: size, scale: scale, environment: environment
-                ) else {
-                    return NativePosterArtworkBitmap.placeholder(
-                        size: size, scale: scale, clipsToArtwork: clipsToArtwork
-                    )
+            if presentationSource === image, presentationKey == key {
+                if let presentedImage {
+                    onReady?(presentedImage)
+                    return presentedImage
                 }
-                result = NativePosterArtworkBitmap.image(
-                    source: source, overlay: overlay, size: size, scale: scale,
-                    backgroundColor: backgroundColor, clipsToArtwork: clipsToArtwork,
-                    artworkBackground: artworkBackground
-                )
-            } else if let source {
-                // Explicit absence clears old marks without rendering an empty
-                // SwiftUI display list, which can retain its previous pixels.
-                result = NativePosterArtworkBitmap.image(
-                    source: source, size: size, scale: scale,
-                    backgroundColor: backgroundColor, clipsToArtwork: clipsToArtwork,
-                    artworkBackground: artworkBackground
-                )
-            } else {
-                result = NativePosterArtworkBitmap.placeholder(
-                    size: size, scale: scale, clipsToArtwork: clipsToArtwork
-                )
-            }
-            guard let result else {
                 return NativePosterArtworkBitmap.placeholder(
                     size: size, scale: scale, clipsToArtwork: clipsToArtwork
                 )
             }
+            presentationGeneration &+= 1
+            let generation = presentationGeneration
+            presentationTask?.cancel()
             presentationKey = key
             presentationSource = image
-            presentedImage = result
-            return result
+            presentedImage = nil
+            if let cached = NativePosterBitmapCache.cachedImage(source: image, key: key) {
+                presentedImage = cached
+                presentationTask = nil
+                onReady?(cached)
+                return cached
+            }
+            if treatment == .original {
+                original = nil
+                prepared = nil
+            }
+            // Never leave a previous title or an unprotected image visible while
+            // a replacement (including a spoiler-treatment change) is prepared.
+            let placeholder = NativePosterArtworkBitmap.placeholder(
+                size: size, scale: scale, clipsToArtwork: clipsToArtwork
+            )
+            if image == nil, key.indicators == nil {
+                presentedImage = placeholder
+                presentationTask = nil
+                onReady?(placeholder)
+                return placeholder
+            }
+            presentationTask = Task { [weak self] in
+                guard !Task.isCancelled else { return }
+                defer {
+                    if let self, self.presentationGeneration == generation {
+                        self.presentationTask = nil
+                        if self.presentedImage == nil { self.presentationKey = nil }
+                    }
+                }
+                let purgesBefore = NativePosterBitmapCache.observePurges()
+                let source = treatment == .original
+                    ? image : self?.prepare(image, treatment: treatment, size: size, scale: scale)
+                let overlay: UIImage?
+                if let indicatorKey = key.indicators {
+                    guard let rendered = NativePosterArtworkBitmap.indicatorImage(
+                        key: indicatorKey, size: size, scale: scale, environment: environment
+                    ) else { return }
+                    overlay = rendered
+                } else {
+                    overlay = nil
+                }
+                let renderedResult = await NativePosterArtworkBitmap.composite(
+                    source: source, overlay: overlay, size: size, scale: scale,
+                    backgroundColor: backgroundColor, clipsToArtwork: clipsToArtwork,
+                    artworkBackground: artworkBackground
+                )
+                guard let result = renderedResult,
+                      !Task.isCancelled, let self, self.presentationGeneration == generation else { return }
+                if NativePosterBitmapCache.purges == purgesBefore {
+                    NativePosterBitmapCache.store(result, source: image, key: key)
+                }
+                self.presentedImage = result
+                onReady?(result)
+            }
+            return placeholder
         }
 
         func presentationOverlay(
@@ -617,7 +692,12 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         }
         view.onFocus = { [weak coordinator = context.coordinator] in coordinator?.focus.observe($0) }
         view.onAvailable = { [weak coordinator = context.coordinator, weak view] in
-            if let view { coordinator?.focus.requestFocusIfReady(in: view) }
+            guard let view else { return }
+            if view.window == nil {
+                coordinator?.cancelPresentation()
+            } else {
+                coordinator?.focus.requestFocusIfReady(in: view)
+            }
         }
         view.addAction(UIAction { [weak coordinator = context.coordinator] _ in coordinator?.focus.activate() },
                        for: .primaryActionTriggered)
@@ -625,6 +705,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ container: Container, coordinator: Coordinator) {
+        coordinator.cancelPresentation()
         container.poster.prepareArtwork = nil
         container.poster.prepareOverlay = nil
         container.poster.onAvailable = nil
@@ -667,10 +748,11 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
 
     private func configureArtwork(_ view: NativePosterButton, context: Context) {
         let environment = context.environment
-        view.prepareArtwork = { [weak coordinator = context.coordinator, image, treatment, indicators, artworkBackground] size in
+        view.prepareArtwork = { [weak coordinator = context.coordinator, weak view, image, treatment, indicators, artworkBackground] size in
             coordinator?.presentationImage(
                 image, treatment: treatment, size: size, indicators: indicators,
-                artworkBackground: artworkBackground, environment: environment
+                artworkBackground: artworkBackground, environment: environment,
+                onReady: { [weak view] image in view?.updateImage(image) }
             )
         }
         view.prepareOverlay = { [weak coordinator = context.coordinator, indicators] size in

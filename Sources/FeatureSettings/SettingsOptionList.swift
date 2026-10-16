@@ -13,6 +13,13 @@ import CoreUI
 struct SettingsCheckGroup<Content: View>: View {
     var rowSize: SettingsRowSize = .standard
     @ViewBuilder var content: () -> Content
+    private var cornerRadius: CGFloat {
+        #if os(tvOS)
+        rowSize == .contained ? SettingsFormMetrics.groupCornerRadius : PlozzTheme.Metrics.Radius.card
+        #else
+        PlozzTheme.Metrics.Radius.card
+        #endif
+    }
 
     var body: some View {
         content()
@@ -20,11 +27,11 @@ struct SettingsCheckGroup<Content: View>: View {
             .padding(.horizontal, rowSize == .contained ? SettingsRowMetrics.formGroupInset : 22)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Color.primary.opacity(0.05))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
             )
     }

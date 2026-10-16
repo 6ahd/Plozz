@@ -2,6 +2,232 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/056.5",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.5",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Updated",
+          "items": [
+            "More detailed diagnostics for missing IPTV program guides."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Misleading errors when IPTV channels load but their program guide is unavailable."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release/056.4",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.4",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Fixed",
+          "items": [
+            "Some IPTV channels failing to start."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release/056.3",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.3",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "See a grouped breakdown of sync data counts, sizes, and pending changes in Troubleshooting."
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Open iCloud Sync troubleshooting even when sync is turned off.",
+            "Erase Plozz sync data from Troubleshooting, with clear warnings and two-step confirmation."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            {
+              "text": "Home freezes while preparing poster artwork.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Home slowdowns while browsing and updating media information.",
+              "platforms": ["iOS"]
+            },
+            "Delays opening menus for titles with multiple video versions.",
+            "Some WebDAV videos failing to start, including files served through a separate download server."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release/056.2",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.2",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Updated",
+          "items": [
+            "More detailed IPTV playback error reports to help diagnose stream failures."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Plex sign-in getting stuck at the PIN screen because of outdated Plex Home information."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release/056.1",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.1",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Fixed",
+          "items": [
+            {
+              "text": "A crash when opening hero settings from Customize Home.",
+              "platforms": ["iOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release/056",
+      "version": "2026.10.14",
+      "marketingVersion": "2026.9.25",
+      "build": 56,
+      "releasedAt": "2026-10-14",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "Use collections in the Home hero.",
+            {
+              "text": "Add your libraries to the horizontal navigation bar.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "DTS:X height audio on supported Apple TV setups running tvOS 26 or later.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Picture in Picture for supported videos played with Apple's native player.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "View troubleshooting details when Live TV setup or a channel fails.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "View and share troubleshooting details when Live TV setup or a channel fails.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Clearer Home customization, with dedicated ratings and trailers pages.",
+            "Choose all Home libraries or a fixed list for random hero picks.",
+            "Kids profiles no longer show Home Discovery recommendations from outside their libraries.",
+            {
+              "text": "Native On/Off controls and more consistent text, icons and spacing in Settings.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Settings no longer adds a tab by default; open it from your profile or enable its navigation shortcut.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Native iPhone and iPad switches in Settings and Live TV.",
+              "platforms": ["iOS"]
+            },
+            "Dialogs and pop-up pages more consistently follow your theme.",
+            "Less unnecessary video and audio conversion with Plex, Jellyfin and Emby.",
+            "Server-converted videos use normal startup buffering before playback begins.",
+            "Clearer audio processing and output details in Playback Info.",
+            "Better picture adjustment for Dolby Vision Profile 7 videos on screens without Dolby Vision.",
+            "Retry failed Live TV server setup directly from the setup page.",
+            {
+              "text": "Full-screen Live TV on iPhone follows your Landscape, Auto or Portrait playback setting.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "A cleaner Live TV guide on wider iPhone and iPad layouts.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Audio gradually falling out of sync in some AAC videos.",
+            "Some Plex, Jellyfin and Emby retries reusing the video stream that had already failed.",
+            "Jellyfin and Emby playback fallback switching away from your selected video version.",
+            "Old server playback sessions lingering after failed starts or changing streams.",
+            "Plex audio quality limits not being fully applied.",
+            "Plex server-converted streams expiring while paused.",
+            "Plex playback progress not being associated with the active streaming session.",
+            "A crash when changing subtitle appearance in Apple's native player.",
+            "The playback interface becoming unresponsive while video track information loads.",
+            "A crash when stopping some locally converted videos.",
+            "An SDR playback error changing HDR handling for later videos.",
+            {
+              "text": "Some videos losing their picture after a system video-decoder reset.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Some videos staying frozen after returning from screen lock.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Brief connection losses changing an active video's quality to cellular settings.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Playback Info covering TV playback controls.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "TrueHD Atmos receiver activation, brief sound loss after seeking, and incorrect surround or overhead sound placement.",
+              "platforms": ["tvOS"]
+            },
+            "Some redirected IPTV streams repeatedly restarting instead of continuing.",
+            "Some IPTV playlists failing to open when the server does not report a file size.",
+            "Some Live TV reconnects repeating already-played video.",
+            "Repeated connection attempts after a media server asks Plozz to slow down.",
+            "Plex Home asking for an old PIN after its protection changed on the server.",
+            "Canceling a Plex Home switch exposing the pending profile before sign-in completed.",
+            "A completed PIN submitting after you canceled or left the prompt.",
+            "Excessive Live TV storage growth and old temporary files left behind after use.",
+            "Emby server Home sections showing duplicate video rows."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/055.6",
       "version": "2026.10.14",
       "marketingVersion": "2026.9.25",

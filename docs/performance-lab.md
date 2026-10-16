@@ -170,6 +170,25 @@ variant does not start Sentry or upload anything.
 Credits, sort metadata, membership/order, and provider parity
 remain correctness controls; unchanged identity must not hide changed metadata.
 
+For card-activation and menu stalls, `mobile-home-card-routing` updates 24 real
+mobile Home cards against a four-source identity index and counts source
+resolutions without activating a card. Detail routing belongs in the presented
+destination, and direct-play routing in the action, so browsing should resolve
+zero sources. `source-menu-version-presentation` builds 1,024 production version
+rows per sample on either platform and compares every title and supplemental
+fact with the original output.
+
+The tvOS-only `native-poster-composition` converts twelve generated 2160x3240
+extended-range images into native poster surfaces. Each sample changes the
+presentation dimming to require twelve cold compositions despite the shared
+bitmap cache; all twelve real output callbacks must complete. It records total
+and main-thread compositions and synchronous request latency separately from
+whole-workload wall time and CPU. Moving work off-main is not eliminating its
+CPU or temporary memory cost. Generated wide-gamut images exaggerate retained
+memory, and the bounded parallel workers can increase peak working memory.
+Warm first-paint reuse, pixel equivalence, cancellation and focus ownership are
+separate hosted correctness controls, not substitutes for completed cold work.
+
 The matrix uses 500 library items per provider and 1,000 cached IPTV channels
 when enabled. Startup/discovery happens before measurement; each warm sample
 performs ten unchanged refresh/capture cycles. It distinguishes feature

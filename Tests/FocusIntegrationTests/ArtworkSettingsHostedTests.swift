@@ -1,5 +1,6 @@
 import CoreModels
 import CoreUI
+import Observation
 @testable import AppShell
 @testable import FeatureSettings
 import SwiftUI
@@ -9,6 +10,336 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
+    func testIllustratedCardSeparatorAlternatives() async throws {
+        for divider in [false, true] {
+            try await withScreen(content: VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
+                SettingsPageHeader("Cards")
+                    .environment(\.settingsPageBackButton, AnyView(SettingsBackButton {}))
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Labels").settingsSectionHeader()
+                        .padding(.horizontal, SettingsFormMetrics.headingInset)
+                    illustratedPreviewGroup(divider: divider) {
+                        HStack(alignment: .top, spacing: 16) {
+                            ForEach(CardCaptionPreference.allCases) { preference in
+                                PreviewCard(
+                                    title: preference.displayName, isSelected: preference == .recommended,
+                                    accent: ThemePalette.dark.accent, compact: true, swatchHeight: 150,
+                                    titleLineLimit: nil, titleSizeGroup: CardCaptionPreference.allCases.map(\.displayName),
+                                    action: {}
+                                ) {
+                                    CardStyleSwatch(
+                                        style: .borderless, showsCaptions: preference != .hide,
+                                        showsMixedCaptions: preference == .recommended
+                                    )
+                                }
+                            }
+                        }
+                    } control: {
+                        ViewCustomizationLink(isCustomized: false) { EmptyView() }
+                    }
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Watched Indicator").settingsSectionHeader()
+                        .padding(.horizontal, SettingsFormMetrics.headingInset)
+                    illustratedPreviewGroup(divider: divider) {
+                        CompactWatchIndicatorPicker(selection: .constant(.unwatched), swatchHeight: 150)
+                    } control: {
+                        Toggle("Show unwatched episode count", isOn: .constant(true))
+                    }
+                }
+            }
+            .padding(.horizontal, SettingsFormMetrics.pageInset)
+            .padding(.top, SettingsFormMetrics.pageTopInset)
+            .frame(width: SettingsFormMetrics.pageWidth, height: 1000, alignment: .topLeading)) { window in
+                let copy = try await self.capture(
+                    window, name: "settings-native-illustrated-rows-\(divider ? "spaced-divider" : "no-divider")",
+                    includeMaster: true
+                )
+                for label in ["Back", "App default", "Customize by view", "Watched", "Unwatched", "Show unwatched episode count"] {
+                    XCTAssertTrue(copy.contains(label), copy)
+                }
+            }
+        }
+    }
+
+    private func illustratedPreviewGroup<Illustrations: View, Control: View>(
+        divider: Bool, @ViewBuilder illustrations: () -> Illustrations, @ViewBuilder control: () -> Control
+    ) -> some View {
+        VStack(spacing: 0) {
+            illustrations()
+            if divider {
+                PlozzDivider().padding(.vertical, 16)
+            } else {
+                Color.clear.frame(height: 16)
+            }
+            control()
+        }
+        .padding(SettingsFormMetrics.groupInset)
+        .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+        .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
+        .environment(\.settingsFormRowsFlushLeading, false)
+        .environment(\.settingsRowsHaveDividers, true)
+    }
+
+    func testLongSettingsCopyWrapsInsideTheSharedColumn() async throws {
+        let title = "Playback and subtitle preferences"
+        let label = "Preferred subtitle language when the original dialogue is in another language"
+        let value = "Portuguese (Brazil)"
+        for smallerTitle in [false, true] {
+            try await withScreen(content:
+                VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
+                    if smallerTitle {
+                        HStack(spacing: SettingsFormMetrics.controlSpacing) {
+                            SettingsBackButton {}
+                            Text(verbatim: title).font(.system(size: 48, weight: .bold))
+                        }
+                    } else {
+                        SettingsPageHeader(verbatim: title)
+                            .environment(\.settingsPageBackButton, AnyView(SettingsBackButton {}))
+                    }
+                    SettingsControlGroup {
+                        LabeledSettingRow("Preferred language", trailingAlignment: .trailing) {
+                            Button("English") {}.buttonStyle(.bordered)
+                        }
+                        LabeledSettingRow(
+                            LocalizedStringResource(stringLiteral: label),
+                            trailingAlignment: .trailing
+                        ) {
+                            Button {} label: { Text(verbatim: value) }
+                                .buttonStyle(.bordered)
+                        }
+                        ViewCustomizationRow(
+                            id: "long-view-label",
+                            title: "Artwork shown when browsing collections and recommended movies",
+                            value: "Prefer artwork from metadata providers",
+                            cycle: {}
+                        )
+                        Toggle("Show the number of unwatched episodes alongside the series title", isOn: .constant(true))
+                    }
+                    Text("Long-text stress example using the shared native controls; not proposed setting names.")
+                        .settingsHelperText()
+                }
+                .padding(.horizontal, SettingsFormMetrics.pageInset)
+                .frame(width: SettingsFormMetrics.pageWidth)
+            ) { window in
+                let copy = try await self.capture(
+                    window, name: "settings-native-long-copy-\(smallerTitle ? "smaller-title" : "current-title")",
+                    includeMaster: true
+                )
+                XCTAssertTrue(copy.contains("Back"), copy)
+                XCTAssertTrue(copy.contains(title), copy)
+                XCTAssertTrue(copy.contains(label), copy)
+                XCTAssertTrue(copy.contains(value), copy)
+                XCTAssertTrue(copy.contains("Prefer artwork from metadata providers"), copy)
+                let shortLabel = try XCTUnwrap(self.collectionLabelFrames(
+                    in: window, matchingText: "Preferred language"
+                ).first)
+                let shortValue = try XCTUnwrap(self.collectionLabelFrames(
+                    in: window, matchingText: "English"
+                ).first)
+                XCTAssertEqual(shortLabel.frame.midY, shortValue.frame.midY, accuracy: 3,
+                               "Short labels must keep their existing horizontal layout.")
+                let left = (window.bounds.width - SettingsFormMetrics.pageWidth) / 2
+                let right = left + SettingsFormMetrics.pageWidth
+                for item in self.focusItems(in: window) {
+                    let frame = try self.nativeFrame(item, in: window)
+                    XCTAssertGreaterThanOrEqual(frame.minX, left)
+                    XCTAssertLessThanOrEqual(frame.maxX, right)
+                }
+            }
+        }
+    }
+
+    func testCompactSettingsControlsShareRenderedTypeAndRowHeights() async throws {
+        let state = SettingsScaleFixtureState()
+        state.selection = .detailed
+        try await withScreen(content: SettingsScaleFixture(state: state).frame(width: 1000)) { window in
+            let labels = try self.collectionLabelFrames(
+                in: window, attachmentName: "settings-shared-control-scale", matchingText: "Balanced"
+            )
+            let matching = labels.filter { $0.text.contains("Balanced") }.sorted { $0.frame.minY < $1.frame.minY }
+            XCTAssertEqual(matching.count, 6, "\(labels)")
+            let titles = Array(matching.prefix(4))
+            let image = self.renderWindow(window)
+            let reference = try self.textInkBounds(in: image, frame: XCTUnwrap(titles.first).frame)
+            for title in titles {
+                XCTAssertEqual(try self.textInkBounds(in: image, frame: title.frame).height,
+                               reference.height, accuracy: 1, title.text)
+            }
+            let items = self.focusItems(in: window)
+            let frames = try titles.map { title in
+                try XCTUnwrap(items.compactMap { item -> CGRect? in
+                    let frame = try? self.nativeFrame(item, in: window)
+                    return frame?.contains(CGPoint(x: title.frame.midX, y: title.frame.midY)) == true ? frame : nil
+                }.min { $0.width * $0.height < $1.width * $1.height })
+            }
+            let rowHeight = SettingsRowMetrics.minHeight(.primary) + 2 * SettingsRowMetrics.verticalPadding(.primary)
+            XCTAssertEqual(frames[0].height, rowHeight, accuracy: 1)
+            XCTAssertEqual(frames[1].height + 2 * SettingsRowMetrics.segmentedTrackInset, rowHeight, accuracy: 1)
+            XCTAssertEqual(frames[2].height, rowHeight, accuracy: 1)
+            let descriptions = Array(matching.dropFirst(4))
+            XCTAssertEqual(descriptions.count, 2)
+            let controlHeight = reference.height
+            let descriptionHeights = try descriptions.map { try self.textInkBounds(in: image, frame: $0.frame).height }
+            for height in descriptionHeights {
+                XCTAssertLessThan(height, controlHeight)
+                XCTAssertEqual(height, try XCTUnwrap(descriptionHeights.first), accuracy: 1)
+            }
+        }
+    }
+
+    func testNavigationReorderIconsUseTheCompactControlScale() async throws {
+        try await withNavigationReorderScreen { window in
+            let text = try await self.capture(window, name: "settings-navigation-reorder-icons", includeMaster: true)
+            for title in ["Home", "Watchlist", "Live TV", "Search", "Music", "Movies", "TV Shows", "Settings"] {
+                XCTAssertTrue(text.contains(title), text)
+            }
+            let frames = try self.focusItems(in: window).map { try self.nativeFrame($0, in: window) }
+                .filter { $0.minY >= 0 && $0.maxY <= window.bounds.height }
+                .sorted { $0.minY < $1.minY }
+            XCTAssertGreaterThanOrEqual(frames.count, 9)
+            let rowHeight = SettingsRowMetrics.minHeight(.primary) + 2 * SettingsRowMetrics.verticalPadding(.primary)
+            for frame in frames.prefix(9) {
+                XCTAssertEqual(frame.height, rowHeight, accuracy: 1)
+            }
+            for (previous, next) in zip(frames.prefix(8), frames.dropFirst().prefix(8)) {
+                XCTAssertEqual(next.minY - previous.maxY, SettingsRowMetrics.formRowSpacing, accuracy: 1)
+            }
+        }
+    }
+
+    func testSettingsChoiceFamiliesUseTheSameRenderedTitleFont() async throws {
+        try await withScreen(content: VStack(alignment: .leading, spacing: 28) {
+            Button("Balanced") {}.buttonStyle(SettingsFormButtonStyle())
+            SettingsCheckableRow(title: Text("Balanced"), isChecked: false, action: {})
+            SettingsOptionPicker(
+                options: SettingsScaleFixtureState.Option.allCases, selection: .constant(.detailed),
+                title: { $0.title }
+            )
+            SettingsStepper(
+                options: [SettingsScaleFixtureState.Option.balanced], selection: .constant(.balanced),
+                title: { $0.title }
+            )
+            Button {} label: {
+                SettingsRowLabel(icon: nil, title: "Balanced")
+            }
+            .buttonStyle(SettingsFocusButtonStyle())
+        }.padding(40).frame(width: 1000)) { window in
+            let labels = try self.collectionLabelFrames(
+                in: window, attachmentName: "settings-shared-choice-scale", matchingText: "Balanced"
+            )
+            let titles = labels.filter { $0.text.contains("Balanced") }.sorted { $0.frame.minY < $1.frame.minY }
+            XCTAssertEqual(titles.count, 5, "\(labels)")
+            let image = self.renderWindow(window)
+            let reference = try self.textInkBounds(in: image, frame: XCTUnwrap(titles.first).frame)
+            for title in titles {
+                XCTAssertEqual(try self.textInkBounds(in: image, frame: title.frame).height,
+                               reference.height, accuracy: 1, title.text)
+            }
+        }
+    }
+
+    func testNavigationReorderKeepsColumnsAlignedAcrossTwoDigitRanks() async throws {
+        let names = [
+            "Movies", "TV Shows", "Documentaries", "Concerts", "Family", "Animation",
+            "Comedy", "Drama", "Action", "Sci-Fi", "Horror", "Classics", "Short Films",
+            "Stand-Up", "Sports", "Travel", "Music Videos"
+        ]
+        try await withNavigationReorderScreen(libraryNames: names) { window in
+            let first = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: "Home").first)
+            let firstInk = try self.textInkBounds(in: self.renderWindow(window), frame: first.frame)
+            let scroll = try self.verticalScroll(in: window)
+            let rowStride = SettingsRowMetrics.minHeight(.primary)
+                + 2 * SettingsRowMetrics.verticalPadding(.primary) + SettingsRowMetrics.formRowSpacing
+            for (rank, preceding, following) in [(9, "Documentaries", "Concerts"), (19, "Short Films", "Stand-Up")] {
+                scroll.setContentOffset(CGPoint(x: 0, y: CGFloat(rank - 3) * rowStride), animated: false)
+                let text = try await self.capture(
+                    window, name: "settings-navigation-ranks-\(rank)-\(rank + 1)", includeMaster: true
+                )
+                XCTAssertTrue(text.contains(preceding), text)
+                XCTAssertTrue(text.contains(following), text)
+                let image = self.renderWindow(window)
+                for title in [preceding, following] {
+                    let label = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: title).first)
+                    let ink = try self.textInkBounds(in: image, frame: label.frame)
+                    XCTAssertEqual(ink.minX, firstInk.minX, accuracy: 2,
+                                   "Ranks 1–24 must reserve the same number and icon columns: \(title).")
+                }
+            }
+        }
+    }
+
+    func testSegmentFocusOnlyPreviewsAndOnlySelectionUsesCheckmarkSpace() async throws {
+        let state = SettingsScaleFixtureState()
+        try await withScreen(content: SettingsScaleFixture(state: state).frame(width: 1000)) { window in
+            let labels = try self.collectionLabelFrames(in: window)
+            let compact = try XCTUnwrap(labels.first { $0.text == "Compact" })
+            let target = try XCTUnwrap(self.focusItems(in: window).first {
+                (try? self.nativeFrame($0, in: window).contains(CGPoint(x: compact.frame.midX, y: compact.frame.midY))) == true
+            })
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            let host = try XCTUnwrap(window.rootViewController as? ArtworkFocusRequesting)
+            host.artworkFocusTarget = target
+            system.requestFocusUpdate(to: try XCTUnwrap(window.rootViewController))
+            system.updateFocusIfNeeded()
+            host.artworkFocusTarget = nil
+            _ = try await self.capture(window, name: "settings-segment-focus", includeMaster: true)
+            XCTAssertTrue(system.focusedItem === target)
+            XCTAssertEqual(state.focused, .compact)
+            XCTAssertEqual(state.selection, .balanced, "Moving focus must not commit a preference.")
+            let focusedFrame = try self.nativeFrame(target, in: window)
+            let before = try self.focusItems(in: window).map { try self.nativeFrame($0, in: window) }
+                .filter { abs($0.midY - focusedFrame.midY) < 1 }.sorted { $0.minX < $1.minX }
+            XCTAssertEqual(before.count, 3)
+            state.selection = .compact
+            _ = try await self.capture(window, name: "settings-segment-selection", includeMaster: true)
+            let after = try self.focusItems(in: window).map { try self.nativeFrame($0, in: window) }
+                .filter { abs($0.midY - focusedFrame.midY) < 1 }.sorted { $0.minX < $1.minX }
+            XCTAssertEqual(after.count, before.count)
+            guard before.count == 3, after.count == 3 else { return }
+            for (old, new) in zip(before, after) {
+                XCTAssertEqual(old.height, new.height, accuracy: 1)
+            }
+            XCTAssertGreaterThan(before[0].width - after[0].width, 8, "Unselected options must not reserve a checkmark slot.")
+            XCTAssertGreaterThan(after[1].width - before[1].width, 8, "Only the selected option expands for the checkmark.")
+            XCTAssertEqual(before[0].width - after[0].width, after[1].width - before[1].width, accuracy: 1)
+            XCTAssertEqual(before[2].width, after[2].width, accuracy: 1)
+            XCTAssertEqual(before[0].minX, after[0].minX, accuracy: 1)
+            XCTAssertEqual(before[2].maxX, after[2].maxX, accuracy: 1)
+            XCTAssertTrue(system.focusedItem === target)
+        }
+    }
+
+    func testAppearancePreviewCardsAndDescriptionsUseTheSharedScale() async throws {
+        let previews: [(String, AnyView)] = [
+            ("Music Player", AnyView(MusicPlayerStyleDetail(
+                appearance: .constant(.matchTheme), showTrackDetails: .constant(true)
+            ))),
+            ("Cards", AnyView(CompactCardStylePicker(selection: .constant(.borderless), swatchHeight: 124)))
+        ]
+        for (title, preview) in previews {
+            try await withScreen(content: VStack(alignment: .leading, spacing: 32) {
+                Text(verbatim: title).settingsFeatureTitle()
+                Text("How your settings look across the app.").settingsHelperText()
+                preview
+                SettingsDetailGroup(title: "Liquid Glass") {
+                    SettingsSegmentedPicker(
+                        options: TransparencyPreference.allCases, selection: .constant(.system),
+                        title: { $0.displayName }
+                    )
+                    Text(TransparencyPreference.system.detail).settingsHelperText()
+                }
+            }
+            .padding(40)
+            .frame(width: 1100)) { window in
+                let text = try await self.capture(window, name: "settings-scale-\(title)", includeMaster: true)
+                XCTAssertTrue(text.contains(title), text)
+                XCTAssertTrue(text.contains("LIQUID GLASS"), text)
+                XCTAssertTrue(text.contains("tvOS Default"), text)
+            }
+        }
+    }
+
     func testHeroSourceSummaryFollowsLiveLocaleChanges() async throws {
         let namespace = "HeroLocaleHosted.\(UUID())"
         let models = ProfileSettingsModel(namespace: namespace)
@@ -188,8 +519,10 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             let sourceLabels = try self.collectionLabelFrames(in: window, attachmentName: "hero-source-label-metrics")
             let random = try XCTUnwrap(sourceLabels.first { $0.text == "Random from Library" })
             let choose = try XCTUnwrap(sourceLabels.first { $0.text == "Choose libraries" })
-            XCTAssertEqual(random.frame.height, choose.frame.height, accuracy: 4,
-                           "Source switches and their links must use the same text size.")
+            for label in [random, choose] {
+                XCTAssertEqual(label.frame.height, try self.controlInkHeight(label.text), accuracy: 3,
+                               "Source switches and links must use the shared control font, accounting for different glyphs.")
+            }
             XCTAssertEqual(random.frame.minX, choose.frame.minX, accuracy: 2,
                            "Grouped source controls must share a leading text edge.")
             let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
@@ -491,7 +824,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                           "Entry must reach the real source row, not Back: \(focused), label: \(sourceLabel.frame)")
             let heading = try XCTUnwrap(labels.first { $0.text == "Choose collections" })
             XCTAssertGreaterThan(heading.frame.minX, 800)
-            XCTAssertLessThan(heading.frame.height, 60, "Use the pane heading, not full-page navigation chrome.")
+            XCTAssertLessThan(heading.frame.height, 60, "The shared page title must fit the available pane.")
             let text = try await self.capture(window, name: "hero-personal-collection-pane", includeMaster: true)
             XCTAssertTrue(text.contains("Choose collections"), text)
             XCTAssertTrue(text.contains("Back"), "The pane's Back label must remain legible: \(text)")
@@ -554,7 +887,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
     }
 
     private func collectionLabelFrames(
-        in window: UIWindow, attachmentName: String? = nil
+        in window: UIWindow, attachmentName: String? = nil, matchingText: String? = nil
     ) throws -> [(text: String, frame: CGRect)] {
         window.layoutIfNeeded()
         let image = renderWindow(window)
@@ -568,14 +901,66 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-        return (request.results ?? []).compactMap { result in
-            guard let text = result.topCandidates(1).first?.string else { return nil }
-            let bounds = result.boundingBox
+        return try (request.results ?? []).compactMap { result in
+            guard let candidate = result.topCandidates(1).first else { return nil }
+            let text = candidate.string
+            let bounds: CGRect
+            if let matchingText {
+                guard let range = text.range(of: matchingText),
+                      let box = try candidate.boundingBox(for: range) else { return nil }
+                bounds = box.boundingBox
+            } else {
+                bounds = result.boundingBox
+            }
             return (text, CGRect(
                 x: bounds.minX * window.bounds.width, y: (1 - bounds.maxY) * window.bounds.height,
                 width: bounds.width * window.bounds.width, height: bounds.height * window.bounds.height
             ))
         }
+    }
+
+    private func controlInkHeight(_ text: String) throws -> CGFloat {
+        let renderer = ImageRenderer(content: Text(verbatim: text)
+            .font(SettingsRowMetrics.titleFont)
+            .foregroundStyle(.white)
+            .padding(20)
+            .background(.black))
+        renderer.scale = 1
+        let image = try XCTUnwrap(renderer.uiImage)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        return try XCTUnwrap(request.results?.first).boundingBox.height * image.size.height
+    }
+
+    /// OCR locates the label; actual ink avoids contrast-dependent OCR box padding.
+    private func textInkBounds(in image: UIImage, frame: CGRect) throws -> CGRect {
+        let bounds = frame.insetBy(dx: -4, dy: -4).integral
+        let crop = try XCTUnwrap(image.cgImage?.cropping(to: bounds))
+        var pixels = [UInt8](repeating: 0, count: crop.width * crop.height)
+        try pixels.withUnsafeMutableBytes { bytes in
+            let context = try XCTUnwrap(CGContext(
+                data: bytes.baseAddress, width: crop.width, height: crop.height,
+                bitsPerComponent: 8, bytesPerRow: crop.width,
+                space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue
+            ))
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
+        }
+        let threshold = try UInt8((Int(XCTUnwrap(pixels.min())) + Int(XCTUnwrap(pixels.max()))) / 2)
+        let darkText = try XCTUnwrap(pixels.first) > threshold
+        let foreground = pixels.indices.filter {
+            darkText ? pixels[$0] < threshold : pixels[$0] > threshold
+        }
+        let columns = foreground.map { $0 % crop.width }
+        let rows = foreground.map { $0 / crop.width }
+        let minX = try XCTUnwrap(columns.min())
+        let minY = try XCTUnwrap(rows.min())
+        return CGRect(
+            x: bounds.minX + CGFloat(minX), y: bounds.minY + CGFloat(minY),
+            width: CGFloat(try XCTUnwrap(columns.max()) - minX + 1),
+            height: CGFloat(try XCTUnwrap(rows.max()) - minY + 1)
+        )
     }
 
     private func assertConcentricGroup(in window: UIWindow, focusFrame: CGRect) throws {
@@ -1058,6 +1443,11 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 host.artworkFocusTarget = nil
                 let text = try await self.capture(window, name: "artwork-preset-focus-\(index)")
                 XCTAssertTrue(system.focusedItem === target, "Inline help must retain native focus.")
+                if index == 0 {
+                    let title = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: "Recommended").first)
+                    XCTAssertEqual(title.frame.height, try self.controlInkHeight("Recommended"), accuracy: 3,
+                                   "Artwork presets must use the same body-sized font as other settings controls.")
+                }
                 for (snippetIndex, snippet) in snippets.enumerated() {
                     XCTAssertEqual(text.contains(snippet), index == snippetIndex, text)
                 }
@@ -1106,6 +1496,44 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         )
     }
 
+    private func withNavigationReorderScreen(
+        libraryNames: [String] = ["Movies", "TV Shows"],
+        inspect: (UIWindow) async throws -> Void
+    ) async throws {
+        let namespace = "NavigationScaleHosted.\(UUID())"
+        let models = ProfileSettingsModel(namespace: namespace)
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(namespace) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        models.navigationStyleModel.style = .sidebar
+        let libraries = libraryNames.enumerated().map { index, name in
+            AggregatedLibrary(
+                accountID: index.isMultiple(of: 2) ? "plex" : "jellyfin",
+                accountName: "Viewer", serverName: index.isMultiple(of: 2) ? "Plex" : "Jellyfin",
+                providerKind: index.isMultiple(of: 2) ? .plex : .jellyfin,
+                library: MediaLibrary(id: "library-\(index)", title: name, kind: index == 1 ? .series : .movie)
+            )
+        }
+        let scope = ProfileLibrariesScope(
+            accounts: [], activeProfile: .init(id: namespace, name: "Viewer"),
+            discoveredLibraries: .loaded(libraries), refreshingLibraryAccountIDs: [],
+            unreachableLibraryAccountIDs: [], reloadLibraries: {},
+            homeVisibility: models.homeLibraryVisibilityModel,
+            isAccountIncludedInActiveProfile: { _ in true },
+            onSetAccountIncluded: { _, _ in }, onAddAccount: {},
+            plexHomeUsersFetcher: { _ in [] }, onSelectPlexHomeUser: { _, _ in }
+        )
+        try await withScreen(content: ScrollView {
+            VStack(alignment: .leading, spacing: SettingsRowMetrics.formSectionSpacing) {
+                Text("Navigation").settingsFeatureTitle()
+                NavigationLibrariesDetailView(scope: scope, navigation: models.navigationStyleModel)
+            }
+            .padding(48)
+        }.frame(width: 1100), inspect: inspect)
+    }
+
     private func withScreen(
         cards: CardStyleSettingsModel,
         area: ArtworkArea,
@@ -1143,6 +1571,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         window.overrideUserInterfaceStyle = .dark
         let host = ArtworkFocusHost(rootView:
             content
+                .background(ThemePalette.dark.settingsBackground)
                 .environment(\.themePalette, .dark)
                 .environment(\.colorScheme, .dark)
                 .environment(\.locale, Locale(identifier: "en_US"))
@@ -1198,6 +1627,57 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         }
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+    }
+}
+
+@MainActor
+@Observable
+private final class SettingsScaleFixtureState {
+    enum Option: Hashable, CaseIterable {
+        case balanced, compact, detailed
+
+        var title: LocalizedStringResource {
+            switch self {
+            case .balanced: "Balanced"
+            case .compact: "Compact"
+            case .detailed: "Detailed"
+            }
+        }
+    }
+
+    var selection: Option = .balanced
+    var focused: Option?
+}
+
+private struct SettingsScaleFixture: View {
+    let state: SettingsScaleFixtureState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 28) {
+            Button("Balanced") {}
+                .buttonStyle(SettingsFormButtonStyle())
+            SettingsSegmentedPicker(
+                options: SettingsScaleFixtureState.Option.allCases,
+                selection: Binding(get: { state.selection }, set: { state.selection = $0 }),
+                title: { $0.title }, onFocusedOptionChange: { state.focused = $0 }
+            )
+            LiftableReorderList(
+                sections: .init(enabled: ["Balanced"], disabled: []),
+                disabledSectionTitle: "Hidden", disabledPlaceholder: "No hidden rows",
+                isLifting: .constant(false),
+                row: { .init(title: Text(verbatim: $0)) }, onChange: { _ in }
+            )
+            PreviewCard(
+                title: "Balanced", isSelected: false, accent: .purple,
+                compact: true, swatchHeight: 44, action: {}
+            ) {
+                Color.gray
+            }
+            .frame(width: 350)
+            Text("Balanced").settingsHelperText()
+            Text("Balanced").settingsSectionDescription()
+        }
+        .padding(40)
     }
 }
 

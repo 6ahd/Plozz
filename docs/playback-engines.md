@@ -6,12 +6,27 @@ with the best possible quality (Dolby Vision, Atmos, full-timeline seek).
 
 ## IPTV live streams
 
+The [IPTV troubleshooting history](iptv-history.md) links earlier routing,
+redirect and cancellation repairs, including approaches that later changed.
+
 IPTV playlist URLs can declare live output as `ts` or `m3u8` while publishing
 extensionless channel URLs. The provider carries that declaration into its
 encrypted loopback URL without changing the upstream address or opening an
 extra probe connection. This keeps declared MPEG-TS on the ingest/remux path
 instead of the HLS-only native bypass. Explicit stream extensions take
 precedence; the hint never applies to movies, episodes, or HLS child resources.
+
+When neither an extension nor a declaration identifies an HTTP live stream,
+`PlozzigenLiveSourceProbe` examines a bounded response prefix before choosing the
+route. HLS manifest bytes retain native playback, including fMP4; three framed
+MPEG-TS sync bytes select ingest even with a generic MIME type. Undetermined
+non-playlist bytes use Aether's container probe, not its HLS bypass. This adds one
+sequential, cancelled-after-inspection GET for opaque addresses, with a 1,024-byte
+consumption cap and 15-second deadline. It never buffers an entire live stream.
+The authenticated proxy serializes this request with subsequent root playback;
+redirected account headers remain origin-scoped. Stops and replacement loads
+cancel the inspection, and HTTP refusals remain typed rather than triggering
+decoder retries. Declared HLS/raw streams and on-demand playback are unchanged.
 
 Authenticated IPTV relay refusals are retained by exact loopback URL for the
 current live attempt. This preserves HTTP 451 access restrictions, authentication
@@ -27,8 +42,10 @@ fetch: the standard full-holdback gate can wait longer than AVPlayer's initial
 playlist timeout on a long-GOP channel. Fast start permits a shallower initial
 window after two finalized segments and a bounded grace period. It can trade
 some initial buffering protection for earlier playback; it does not remove the
-source's keyframe wait or guarantee instant tuning. Native HLS and unknown-format
-streams keep their existing route and standard join policy; on-demand is unchanged.
+source's keyframe wait or guarantee instant tuning. Native HLS keeps its standard
+join policy; detected raw transport streams use the same fast-start policy as
+explicit `.ts` addresses. Other unclassified containers keep the standard ingest
+join policy; on-demand is unchanged.
 
 On the native HLS route the rewind window is the playlist's own: Plozz reads the
 item's `seekableTimeRanges` (Aether reports `0...edge` there) and, once it spans
@@ -438,7 +455,8 @@ Native handles content the server has already prepared:
 | HDR10 / HLG | ✅ | ✅ |
 | Full-timeline seek | ✅ | ✅ (if not live transcode) |
 | PGS subtitles | ❌ | ❌ |
-| DTS bitstream / DTS:X heights | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
+| DTS:X heights | ✅ (supported lossless DTS:X converted to APAC on tvOS 26+ native/HLS VOD) | ❌ |
+| DTS bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 | TrueHD bitstream | ❌ (eligible Atmos uses APAC; otherwise FLAC/E-AC-3 bridge) | ❌ |
 
 ## AirPlay 2 / HomePod Audio Recovery

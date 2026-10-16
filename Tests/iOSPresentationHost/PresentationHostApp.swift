@@ -4,6 +4,7 @@ import CoreModels
 import CoreUI
 import FeatureAuth
 import FeatureHomeCore
+import FeatureSettings
 @testable import AppShelliOS
 
 @main
@@ -22,6 +23,9 @@ struct PresentationHostApp: App {
         // Seed once per process, not whenever SwiftUI recreates a fixture view.
         let sync = SyncSetupFeatureFlag()
         sync.isEnabled = false
+        if ProcessInfo.processInfo.arguments.contains("--sync-breakdown-fixture") {
+            Self.seedSyncBreakdown()
+        }
         let model = PlozziOSAppModel()
         model.settings.density.density = .standard
         model.settings.cardStyle.captions = .default
@@ -36,6 +40,8 @@ struct PresentationHostApp: App {
         model.settings.spoilers.settings = .default
         model.settings.detailPage.settings = .default
         model.settings.homeVisibility.useRowDefaults(.matchServer)
+        model.settings.hero.settings = .default
+        model.settings.heroBackground.settings = .default
         model.settings.subtitleBehavior.settings = .default
         model.settings.subtitlePolicy.overrides = [:]
         model.settings.subtitleStyle.style = .profileDefault
@@ -69,6 +75,40 @@ struct PresentationHostApp: App {
         interactionModel = model
     }
 
+    private static func seedSyncBreakdown() {
+        struct State: Encodable { let ledger: SyncLedger }
+        do {
+            let folder = try FileManager.default.url(
+                for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
+            ).appendingPathComponent("PlozzSync", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            var records: [SyncRecordID: Data] = [:]
+            for (kind, count, size) in [
+                ("profile", 3, 182), ("membership", 3, 96), ("descriptor", 2, 344),
+                ("setting", 42, 384)
+            ] {
+                for index in 0..<count {
+                    let name = kind == "setting" ? "setting:preview:key-\(index)" : "\(kind):preview-\(index)"
+                    records[name] = Data(repeating: 0, count: size)
+                }
+            }
+            var config = SyncLedger()
+            _ = config.reconcileLocal(desired: records, now: 1)
+            try JSONEncoder().encode(State(ledger: config)).write(
+                to: folder.appendingPathComponent("cloud-config-v3.json"), options: .atomic
+            )
+            var media = SyncLedger()
+            _ = media.reconcileLocal(desired: Dictionary(uniqueKeysWithValues: (0..<18).map { _ in
+                ("watchlist:preview:\(UUID().uuidString)", Data(repeating: 0, count: 312))
+            }), now: 1)
+            try JSONEncoder().encode(media).write(
+                to: folder.appendingPathComponent("cloud-media-state-v1.json"), options: .atomic
+            )
+        } catch {
+            fatalError("Could not prepare isolated sync preview data: \(error)")
+        }
+    }
+
     private final class PresentationOrientationDelegate: NSObject, UIApplicationDelegate {
         func application(
             _ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?
@@ -79,7 +119,11 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--watchlist-feedback-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--iptv-organization-fixture") {
+                IPTVOrganizationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--sync-erasure-fixture") {
+                SyncErasureInteractionFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--watchlist-feedback-fixture") {
                 WatchlistFeedbackFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--touch-feedback-fixture") {
                 TouchFeedbackFixture()
@@ -99,6 +143,34 @@ struct PresentationHostApp: App {
                 Color.black
             }
         }
+    }
+}
+
+private struct SyncErasureInteractionFixture: View {
+    @State private var erasures = 0
+    @State private var recovering = false
+    @State private var showReview = false
+
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text(verbatim: "Erasures: \(erasures)")
+                    .accessibilityIdentifier("fixture-erasure-count")
+                Button("Review Erasure") { showReview = true }
+            }
+        }
+        .plozzSheet(isPresented: $showReview) {
+            SyncEraseDataView(
+                profileID: "fixture",
+                isAllowed: !ProcessInfo.processInfo.arguments.contains("--sync-erasure-denied"),
+                status: SyncStatusProvider {
+                    .init(summary: "Off", isSyncing: false, isRecovering: recovering)
+                },
+                erase: { erasures += 1; recovering = true }
+            )
+        }
+        .environment(\.locale, Locale(identifier: "en_US"))
+        .environment(\.themePalette, .dark)
     }
 }
 

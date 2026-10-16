@@ -453,6 +453,7 @@ targets:
     platform: tvOS
     sources:
       - path: Tests/FocusHost
+      - path: Tests/LiveTVPresentationSupport/IPTVOrganizationFixture.swift
       - path: Tests/AuthPresentationSupport/IPTVSetupFixture.swift
       - path: Tests/FeatureLiveTVRemoteTests/NavigationRailFixture.swift
       - path: App/Resources/Assets.xcassets
@@ -477,6 +478,7 @@ targets:
     platform: iOS
     sources:
       - path: Tests/iOSPresentationHost
+      - path: Tests/LiveTVPresentationSupport/IPTVOrganizationFixture.swift
       - path: Tests/ProviderIPTVTests/IPTVTestHTTPServer.swift
       - path: Tests/SubtitlePresentationSupport/Fixtures/four-three.mp4
         buildPhase: resources
@@ -553,6 +555,7 @@ targets:
     platform: iOS
     sources:
       - path: Tests/iOSInteractionTests
+      - path: Tests/LiveTVPresentationSupport/IPTVOrganizationInteractionTests.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thatcube.Plozz.InteractionTests
@@ -567,6 +570,7 @@ targets:
     platform: tvOS
     sources:
       - path: Tests/HomeRemoteTests
+      - path: Tests/LiveTVPresentationSupport/IPTVOrganizationInteractionTests.swift
       - path: Sources/FeatureHomeCore/LibraryTraversalEvidence.swift
     settings:
       base:

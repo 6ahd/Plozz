@@ -166,6 +166,22 @@ public final class TraktSharedRefresh: @unchecked Sendable {
     public func synchronize(store: any TraktTokenStoring) async throws {
         try await TraktTokenCoordinator.shared.synchronizeShared(store: store.snapshot())
     }
+
+    public func withCloudErasure<Result: Sendable>(
+        stores: [any TraktTokenStoring],
+        operation: @Sendable () async throws -> Result
+    ) async throws -> Result {
+        let coordinator = TraktTokenCoordinator.shared
+        let owner = try await coordinator.beginCloudErasure(stores: stores)
+        do {
+            let result = try await operation()
+            await coordinator.endCloudErasure(owner: owner)
+            return result
+        } catch {
+            await coordinator.endCloudErasure(owner: owner)
+            throw error
+        }
+    }
 }
 
 struct TraktSharedGrant: Codable, Equatable, Sendable {

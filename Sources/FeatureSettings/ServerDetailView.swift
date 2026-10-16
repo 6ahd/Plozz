@@ -48,7 +48,6 @@ struct ServerDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                SettingsPageBackButton()
                 if let group = currentGroup {
                     header(group)
                     // Each panel is its own focus section so directional (up/down)
@@ -70,12 +69,13 @@ struct ServerDetailView: View {
                     // Safety net if the group vanishes while viewing (e.g. a remote
                     // "Remove Everywhere" landed): offer a working way back.
                     VStack(alignment: .leading, spacing: 16) {
+                        SettingsPageHeader("Servers")
                         Text("This server is no longer signed in.")
                             .font(.headline)
                             .plozzForeground(.secondary)
-                        Button { dismiss() } label: {
-                            Label("Go back", systemImage: "chevron.backward")
-                        }
+                        #if !os(tvOS)
+                        SettingsBackButton { dismiss() }
+                        #endif
                     }
                 }
             }
@@ -203,18 +203,12 @@ struct ServerDetailView: View {
 
     private func header(_ group: ServerAccountGroup) -> some View {
         HStack(spacing: 16) {
+            SettingsPageHeader(Text(verbatim: group.serverName), subtitle: headerSubtitle(for: group))
             ProviderIcon(
                 provider: group.providerKind, size: 44, mediaShareTransport: group.transportKind,
                 siteURL: group.accounts.first?.server.baseURL
             )
                 .frame(width: 44)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: group.serverName).font(.largeTitle.bold())
-                headerSubtitle(for: group)
-                    .font(.subheadline)
-                    .plozzForeground(.secondary)
-            }
-            Spacer()
         }
     }
 

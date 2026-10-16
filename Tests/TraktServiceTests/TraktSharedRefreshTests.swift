@@ -19,6 +19,130 @@ private let profileA = "test.tokens\0trakt.oauth.A"
 private let profileB = "test.tokens\0trakt.oauth.B"
 
 final class TraktSharedRefreshTests: XCTestCase {
+    func testCloudErasureAlsoDrainsAnAlreadySupersededOperation() async throws {
+        let cloud = FakeTraktCloud()
+        try await cloud.seed(sharedExpired, scope: profileA)
+        let gate = SharedCloudGate()
+        await cloud.pauseNextSuccessor(using: gate)
+        let device = SharedDevice(cloud: cloud)
+        let access = Task { try await device.access(SharedRefreshHTTP()) }
+        await gate.waitUntilStarted()
+        _ = try await device.coordinator.disconnect(store: device.store)
+        let before = try XCTUnwrap(device.journal.read(scope: profileA))
+
+        let entered = expectation(description: "Erasure entered the coordinator")
+        let erasure = Task {
+            try await device.coordinator.erasureAfterSignaling(
+                store: device.store, entered: { entered.fulfill() }
+            )
+        }
+        await fulfillment(of: [entered], timeout: 5)
+        let current = await device.coordinator.refreshes[profileA]
+        XCTAssertNil(current)
+        XCTAssertEqual(
+            try device.journal.read(scope: profileA), before,
+            "Retirement must wait even when a newer connection operation already removed the old owner slot."
+        )
+        await gate.release()
+        _ = await access.result
+        let owner = try await erasure.value
+        XCTAssertNotEqual(try device.journal.read(scope: profileA), before)
+        await device.coordinator.endCloudErasure(owner: owner)
+    }
+
+    func testCloudErasureDrainsCancelledSuccessorBeforeRetiringCredentials() async throws {
+        let cloud = FakeTraktCloud()
+        try await cloud.seed(sharedExpired, scope: profileA)
+        let gate = SharedCloudGate()
+        await cloud.pauseNextSuccessor(using: gate)
+        let device = SharedDevice(cloud: cloud)
+        let access = Task { try await device.access(SharedRefreshHTTP()) }
+        await gate.waitUntilStarted()
+
+        let entered = expectation(description: "Erasure entered the coordinator")
+        let erasure = Task {
+            try await device.coordinator.erasureAfterSignaling(
+                store: device.store, entered: { entered.fulfill() }
+            )
+        }
+        await fulfillment(of: [entered], timeout: 5)
+        let current = await device.coordinator.refreshes[profileA]
+        XCTAssertNil(current, "Erasure must invalidate the current owner before draining it.")
+        let pending = try JSONDecoder().decode(
+            TraktSharedJournalState.self, from: XCTUnwrap(device.journal.read(scope: profileA))
+        )
+        XCTAssertEqual(pending.pending?.kind, .successor, "Do not retire a still-running exchange.")
+        await gate.release()
+        _ = await access.result
+        let owner = try await erasure.value
+        let retired = try JSONDecoder().decode(
+            TraktSharedJournalState.self, from: XCTUnwrap(device.journal.read(scope: profileA))
+        )
+        XCTAssertNil(retired.pending)
+        XCTAssertNil(retired.accepted?.tokens)
+        XCTAssertNil(device.store.load())
+        await cloud.removeRecord(scope: profileA)
+        await device.coordinator.endCloudErasure(owner: owner)
+        do {
+            try await device.coordinator.synchronizeShared(store: device.store)
+            XCTFail("A drained successor must not be replayed after erasure.")
+        } catch { XCTAssertEqual(error as? TraktSharedRefreshError, .missingRecord) }
+        let remaining = await cloud.recordCount
+        XCTAssertEqual(remaining, 0)
+    }
+
+    func testCloudErasureRetiresReplayStateAndBlocksConcurrentAuthorization() async throws {
+        let cloud = FakeTraktCloud()
+        try await cloud.seed(sharedFresh, scope: profileA)
+        let device = SharedDevice(cloud: cloud)
+        try await device.coordinator.synchronizeShared(store: device.store)
+        let readsBefore = await cloud.readCount
+        let owner = try await device.coordinator.beginCloudErasure(stores: [device.store])
+        XCTAssertNil(device.store.load())
+        let retired = try JSONDecoder().decode(
+            TraktSharedJournalState.self, from: XCTUnwrap(device.journal.read(scope: profileA))
+        )
+        XCTAssertNil(retired.pending)
+        XCTAssertNil(retired.accepted?.tokens)
+        XCTAssertEqual(retired.accepted?.phase, .disconnected)
+        do {
+            try await device.coordinator.synchronizeShared(store: device.store)
+            XCTFail("A sync must not import or recreate grants during erasure.")
+        } catch { XCTAssertEqual(error as? TraktSharedRefreshError, .superseded) }
+        do {
+            _ = try await device.coordinator.prepareConnection(store: device.store)
+            XCTFail("A connection must not race erasure.")
+        } catch { XCTAssertEqual(error as? TraktSharedRefreshError, .superseded) }
+        let readsDuring = await cloud.readCount
+        XCTAssertEqual(readsBefore, readsDuring)
+        await cloud.removeRecord(scope: profileA)
+        await device.coordinator.endCloudErasure(owner: owner)
+        do {
+            try await device.coordinator.synchronizeShared(store: device.store)
+            XCTFail("The erased grant must not be bootstrapped from the local journal.")
+        } catch { XCTAssertEqual(error as? TraktSharedRefreshError, .missingRecord) }
+        XCTAssertNil(device.store.load())
+        let records = await cloud.recordCount
+        XCTAssertEqual(records, 0)
+        _ = try await device.coordinator.prepareConnection(store: device.store)
+    }
+
+    func testCloudErasureCannotReleaseAnotherOwnersPause() async throws {
+        let device = SharedDevice(cloud: FakeTraktCloud())
+        let owner = try await device.coordinator.beginCloudErasure(stores: [device.store])
+        do {
+            _ = try await device.coordinator.beginCloudErasure(stores: [device.store])
+            XCTFail("Overlapping erasure must be rejected.")
+        } catch { XCTAssertEqual(error as? TraktSharedRefreshError, .superseded) }
+        await device.coordinator.endCloudErasure(owner: UUID())
+        do {
+            _ = try await device.coordinator.prepareConnection(store: device.store)
+            XCTFail("A different owner must not release the pause.")
+        } catch { XCTAssertEqual(error as? TraktSharedRefreshError, .superseded) }
+        await device.coordinator.endCloudErasure(owner: owner)
+        _ = try await device.coordinator.prepareConnection(store: device.store)
+    }
+
     func testSuspendedSyncOwnsScopeAndJoinedAccessRenewsExpiredResult() async throws {
         let cloud = FakeTraktCloud()
         try await cloud.seed(sharedExpired, scope: profileA)
@@ -1160,6 +1284,13 @@ private struct SharedDevice {
 }
 
 private extension TraktTokenCoordinator {
+    func erasureAfterSignaling(
+        store: any TraktTokenStoring, entered: @Sendable () -> Void
+    ) async throws -> UUID {
+        entered()
+        return try await beginCloudErasure(stores: [store])
+    }
+
     func accessAfterSignaling(
         store: any TraktTokenStoring, http: SharedRefreshHTTP,
         entered: @Sendable () -> Void

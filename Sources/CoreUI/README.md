@@ -19,9 +19,15 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   focus inset. The contained focus radius is the group's radius minus that
   inset, so the corners remain concentric. Existing checkmark groups keep
   their separate focus-bleed geometry.
+  Standalone page links use the `.navigation` row role: idle and focused surfaces
+  both read the same 28pt radius, with no focus bleed or corner tightening.
+  Adjacent page links have an 8pt gap; separate control sections keep their larger gap.
   Page titles and Back belong inside the scrolling content, not in a fixed
   header strip that shortens the viewport. `SettingsPageHeader` supplies their
-  styling, not a separate pinned container. The full-screen subtitle editor is
+  horizontal Back/title layout, not a separate pinned container. `SettingsBackButton`
+  selects the shared native bordered capsule while callers retain navigation and
+  focus ownership. The full-width header is a native focus section, so Up from
+  right-aligned controls can reach the leading Back button. The full-screen subtitle editor is
   an explicit exception: its stationary heading sits above a scrolling tool pane.
   TV Settings categories and descendants share the centered
   `SettingsFormMetrics.pageWidth`. `SettingsPageStack` keeps that width throughout
@@ -68,6 +74,17 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   3pt `dividerFocusClearance` on each side of the line. Grouped steppers inherit
   the same leading inset as their neighboring rows, with no extra resting chip.
   Mobile keeps its existing stack/native-list presentation.
+- **Long Settings labels** — `LabeledSettingRow` preserves the aligned horizontal
+  layout when it fits. On tvOS, longer copy switches to a wrapping label above
+  its control rather than overlapping it or reducing the shared body font.
+  Mobile retains its existing layout.
+- **Grouped settings navigation** — `SettingsDisclosureLabel` supplies a
+  direction-aware disclosure indicator and optional value without adding row
+  padding. `SettingsSectionGroup` owns those insets; do not nest a separately
+  padded `SettingsRowLabel` in it. Inline actions use `plozzActionButton`, not
+  the group's full-width row-button style. Place a standalone native action in
+  a layout container so its accessibility bounds do not include the row's
+  noninteractive space.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than
@@ -414,7 +431,17 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   native image or trigger artwork/status rendering. A mounted poster prepares
   its latest inputs at the committed UIKit size, with a per-poster autorelease
   pool for temporary raster surfaces. Creation uses shared loading surfaces
-  (evictable cache targets: 8 entries, 4 MiB), not per-item composition.
+  (bounded to 8 entries, 4 MiB), not per-item composition.
+  Cold source-image conversion runs on the same two-operation worker lane as
+  Browse, never synchronously inside native poster layout. The existing native
+  image view receives the finished pixels without replacing its focus owner.
+  Identical pending requests coalesce; replacement, detachment and dismantling
+  cancel work, and generation checks reject stale completions. A replacement
+  shows a safe placeholder rather than the previous title or unprotected artwork.
+  SwiftUI indicator and protected/extended treatment preparation still requires
+  the main actor. Final Home and Browse bitmaps share one memory-budgeted cache;
+  warm returning artwork paints immediately, and a memory warning prevents
+  in-flight work from repopulating a purged cache.
   Ordinary artwork uses one final normalized/composited surface rather than
   retaining an additional unmarked full-size copy per card. Identical status
   presentations share concrete pixels in a separate 24 MiB/64-entry cache;
@@ -428,7 +455,7 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Ordinary watch flags/check badges use opaque white; episode-count tiles keep
   their dark fill and white text.
   This keeps lazy-row estimation out of the expensive rendering path without
-  delaying first paint through another observable loading state.
+  adding another observable loading state to the row.
   Portrait television rows fit six full cards and a quarter of the seventh at
   standard display size. `PlozzMetrics.portraitRowSlotWidth` uses the actual
   navigation-safe viewport and visible card margins, shared by loaded cards,

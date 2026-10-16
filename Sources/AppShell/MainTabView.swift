@@ -66,17 +66,16 @@ private struct LiveTVSettingsSourcesScope<Content: View>: View {
 /// with its owning account so a tapped result routes to the correct provider.
 /// Settings exposes account management, the customizable Home-libraries
 /// checklist, and caption/spoiler/theme settings.
-/// Bundles the DEBUG-only Settings actions into one value so the (very large)
+/// Bundles Settings maintenance actions into one value so the (very large)
 /// `MainTabView` initializer takes a single argument for them rather than several
 /// — keeping the call site within the Swift type-checker's time budget.
 struct DebugSettingsActions {
     let resetToFirstRun: () -> Void
-    /// `nil` where the "Erase Everything From iCloud" test action is unavailable.
-    let eraseICloud: (() -> Void)?
+    let reviewSyncErasure: (() -> Void)?
 
-    init(resetToFirstRun: @escaping () -> Void, eraseICloud: (() -> Void)? = nil) {
+    init(resetToFirstRun: @escaping () -> Void, reviewSyncErasure: (() -> Void)? = nil) {
         self.resetToFirstRun = resetToFirstRun
-        self.eraseICloud = eraseICloud
+        self.reviewSyncErasure = reviewSyncErasure
     }
 }
 
@@ -1095,7 +1094,7 @@ struct MainTabView: View {
                 onRescanShare: onRescanShare,
                 onSignOutAll: onSignOutAll,
                 onResetToFirstRun: debugActions.resetToFirstRun,
-                onEraseICloud: debugActions.eraseICloud,
+                onReviewSyncErasure: debugActions.reviewSyncErasure,
                 plexHomeUsersFetcher: plexHomeUsersFetcher,
                 onSelectPlexHomeUser: onSelectPlexHomeUser,
                 onSetProfileLock: onSetProfileLock,

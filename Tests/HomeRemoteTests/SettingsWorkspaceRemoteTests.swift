@@ -37,8 +37,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(section("myLibraries", in: app).isSelected, app.debugDescription)
 
         for (index, name) in [
-            "myLibraries", "appearance", "playback", "subtitles", "liveTV", "integrations",
-            "servers", "profile", "parentalPIN", "seerr", "syncSetup", "metadata", "about", "help"
+            "myLibraries", "customizeHome", "appearance", "playback", "subtitles", "liveTV", "integrations",
+            "servers", "profile", "parentalPIN", "seerr", "syncSetup", "metadata", "help"
         ].enumerated() {
             let target = section(name, in: app)
             XCTAssertTrue(target.exists, "Missing Settings section: \(name)")
@@ -75,6 +75,35 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testCompactAboutRemainsAtSettingsRoot() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        XCTAssertTrue(section("customizeHome", in: app).exists)
+        XCTAssertTrue(app.staticTexts["Trakt, Simkl, AniList, MyAnimeList, Last.fm"].exists)
+        XCTAssertFalse(section("about", in: app).exists)
+        let version = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Version ")).firstMatch
+        try focus(version, in: app)
+        let summary = app.descendants(matching: .any).matching(identifier: "settings-about-summary").firstMatch
+        XCTAssertTrue(summary.exists)
+        XCTAssertLessThanOrEqual(summary.frame.height, 400, "About should remain a compact root summary.")
+        let attributions = app.buttons["Attributions"]
+        try focus(attributions, in: app)
+        capture("about-inline", in: app)
+        XCUIRemote.shared.press(.select)
+        let back = pageBack("settings-category-back", in: app)
+        XCTAssertTrue(back.waitForExistence(timeout: 5))
+        assertInlineSettingsHeader("Attributions", back: back, in: app)
+        XCUIRemote.shared.press(.menu)
+        let returned = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in self.hasFocus(attributions) }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [returned], timeout: 5), .completed)
+        try focus(section("general", in: app), in: app)
+        #else
+        throw XCTSkip("Never seeds or changes settings on a physical device.")
+        #endif
+    }
+
     func testAppearancePagesAndNavigationStyleChanges() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
@@ -91,7 +120,9 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         capture("theme", in: app)
         assertCenteredSettingsColumn(in: app)
         XCUIRemote.shared.press(.menu)
-        try focus(app.buttons["settings-page-home"], in: app)
+        waitForEnabled(theme)
+        XCUIRemote.shared.press(.menu)
+        try focus(section("customizeHome", in: app), in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.staticTexts["Home Layout"].waitForExistence(timeout: 5), app.debugDescription)
         capture("customize-home", in: app)
@@ -101,9 +132,16 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         capture("home-rows", in: app)
         assertCenteredSettingsColumn(in: app)
         XCUIRemote.shared.press(.menu)
-        XCTAssertTrue(app.buttons["settings-page-home-rows-all"].waitForExistence(timeout: 5))
+        waitForEnabled(app.buttons["settings-page-home-rows-all"])
         XCUIRemote.shared.press(.menu)
+        waitForCategoryFocus("customizeHome", in: app)
+        try focus(section("appearance", in: app), in: app)
+        XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["settings-page-navigation"].waitForExistence(timeout: 5))
+        let displaySize = app.buttons["settings-page-display-size"]
+        let artwork = app.buttons["settings-page-artwork"]
+        XCTAssertEqual(artwork.frame.minY - displaySize.frame.maxY, 8, accuracy: 1)
+        assertInlineSettingsHeader("Appearance & Layout", back: pageBack("settings-category-back", in: app), in: app)
         try focus(app.buttons["settings-page-display-size"], in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["Default"].waitForExistence(timeout: 5), app.debugDescription)
@@ -116,6 +154,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(app.buttons["artwork-customization"], in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["view-customization-back"].waitForExistence(timeout: 5), app.debugDescription)
+        assertInlineSettingsHeader("Artwork by view", back: pageBack("view-customization-back", in: app), in: app)
         capture("artwork-customization", in: app)
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(app.buttons["artwork-customization"].waitForExistence(timeout: 5))
@@ -127,6 +166,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(app.buttons["card-label-customization"], in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["view-customization-back"].waitForExistence(timeout: 5), app.debugDescription)
+        assertInlineSettingsHeader("Labels by view", back: pageBack("view-customization-back", in: app), in: app)
         capture("card-label-customization", in: app)
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(app.buttons["card-label-customization"].waitForExistence(timeout: 5))
@@ -296,9 +336,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
     func testHeroEditorsRemainInsideTheSettingsPane() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
-        try focus(section("appearance", in: app), in: app)
-        XCUIRemote.shared.press(.select)
-        try focus(app.buttons["settings-page-home"], in: app)
+        try focus(section("customizeHome", in: app), in: app)
         XCUIRemote.shared.press(.select)
         let fullscreen = app.buttons["Fullscreen Hero"]
         XCTAssertTrue(fullscreen.waitForExistence(timeout: 5))
@@ -366,9 +404,22 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertEqual(stepper.value as? String, original)
             capture("circadian-stepper-\(label)", in: app)
         }
-        try focus(app.buttons["Off"], in: app)
+        try focus(app.buttons["Always On"], in: app)
+        XCUIRemote.shared.press(.up)
+        let back = pageBack(in: app)
+        let headerFocused = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in self.hasFocus(back) }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [headerFocused], timeout: 5), .completed,
+                       "Up from the rightmost mode must reach Back across the full header width.")
+        capture("circadian-header-back", in: app)
+        XCUIRemote.shared.press(.down)
         XCUIRemote.shared.press(.select)
-        XCTAssertFalse(app.buttons["Darkness"].exists, "Restore the fixture before later visual checks.")
+        let restored = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in !app.buttons["Darkness"].exists }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 5), .completed,
+                       "Restore the fixture before later visual checks.")
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(app.buttons["settings-page-night-shift"].waitForExistence(timeout: 5))
         #else
@@ -477,14 +528,14 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertTrue(heading.waitForExistence(timeout: 5), app.debugDescription)
             XCTAssertFalse(section("subtitles", in: app).exists, app.debugDescription)
             XCTAssertFalse(app.buttons["settings-profile-switch"].exists)
-            XCTAssertLessThan(heading.frame.minX, 200, "The editor must reclaim the sidebar column.")
             let back = pageBack(in: app)
+            XCTAssertLessThan(back.frame.minX, 200, "The editor must reclaim the sidebar column.")
             let controlColumn = app.scrollViews["subtitle-style-editor-card"]
             XCTAssertTrue(controlColumn.waitForExistence(timeout: 5))
             XCTAssertFalse(controlColumn.buttons["settings-workspace-back"].exists)
             XCTAssertFalse(controlColumn.staticTexts[title].exists)
             let headingAtEntry = heading.frame
-            XCTAssertLessThan(back.frame.maxY, heading.frame.minY)
+            assertInlineSettingsHeader(title, back: back, in: app)
             XCTAssertGreaterThan(controlColumn.frame.minY, heading.frame.maxY)
             XCTAssertFalse(app.staticTexts["Appearance"].exists)
             let preview = app.otherElements["subtitle-style-preview"]
@@ -731,6 +782,10 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertEqual(app.state, .runningForeground, "Settings navigation requires the actual foreground app.")
             let settings = app.buttons.matching(NSPredicate(format: "label == %@", "Settings")).firstMatch
             XCTAssertTrue(settings.waitForExistence(timeout: 5), app.debugDescription)
+            if !settings.isEnabled {
+                XCUIRemote.shared.press(.menu)
+                waitForEnabled(settings)
+            }
             try focus(settings, in: app, stoppingWhen: { general.exists })
             if !general.waitForExistence(timeout: 2) { XCUIRemote.shared.press(.select) }
         }
@@ -765,6 +820,10 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
                        "Native focus did not enter \(route). \(app.debugDescription)")
         assertCenteredSettingsColumn(in: app)
         capture("editing-\(route)", in: app)
+        if route == "appearance" {
+            try focus(app.buttons["settings-page-cards"], in: app)
+            capture("appearance-options", in: app)
+        }
         if usingRight {
             try focus(app.buttons["settings-category-back"], in: app)
             XCUIRemote.shared.press(.select)
@@ -778,6 +837,26 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [returned], timeout: 4), .completed,
                        "Native focus did not return from \(route). \(app.debugDescription)")
         assertCenteredSettingsColumn(in: app)
+    }
+
+    private func waitForEnabled(_ element: XCUIElement) {
+        let ready = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in element.exists && element.isEnabled }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
+    }
+
+    private func assertInlineSettingsHeader(_ title: String, back: XCUIElement, in app: XCUIApplication) {
+        let heading = app.staticTexts[title].firstMatch
+        let aligned = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                heading.exists && back.exists
+                    && back.frame.maxX < heading.frame.minX
+                    && abs(back.frame.midY - heading.frame.midY) <= 1
+            }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [aligned], timeout: 5), .completed,
+                       "The shared Back button and title must form one horizontal header. \(app.debugDescription)")
     }
 
     private func assertCenteredSettingsColumn(in app: XCUIApplication) {

@@ -11,6 +11,10 @@ management, guide/search, Multiview, playback and profile-scoped iCloud sync. Ex
 profile authorization, parental approval, account, source and persistence gates
 remain in force.
 
+For past failures, attempted repairs and related tests, see the short
+[IPTV troubleshooting history](iptv-history.md). It is historical context,
+not a specification.
+
 ## Cached Home cards
 
 Normal Live TV use publishes a small, profile-scoped **local** Home snapshot:
@@ -344,8 +348,17 @@ suffixes, never original filenames. The suffix must agree with the encrypted
 upstream URL. Known raw transport-stream URLs use Aether's regular live-source
 path rather than its HLS-only native bypass; HLS retains native playback,
 including fragmented MP4. Hosted tests require a rendered frame and advancing
-time through the authenticated proxy on both platforms. Extensionless raw
-streams are not classified by this suffix-based correction.
+time through the authenticated proxy on both platforms. Opaque or otherwise
+undeclared HTTP addresses receive a bounded content check before engine loading:
+at most 1,024 consumed bytes and a 15-second request/resource deadline. Manifest
+bytes select native HLS (including fragmented MP4); framed MPEG-TS selects raw
+ingest, regardless of a missing or generic MIME type. Other bytes go to Aether's
+container probe rather than being assumed to be HLS. The check closes before
+playback opens its request, so it adds a sequential request for these addresses,
+not a simultaneous provider stream. It applies to legacy direct HTTP channels
+as well as account-backed proxy URLs; declared formats skip the extra check.
+Cancellation or replacement retires the owned check, and an HTTP refusal is
+reported rather than retried on another route.
 The proxy observes player disconnects while waiting for upstream headers or
 body data, cancels its native HTTP tasks, and drains owned request work on close.
 Within one live proxy, root requests are serialized so duplicate player probes
@@ -435,7 +448,8 @@ Favorites and recent channels are saved per Plozz profile and restored across
 sessions. Initially empty or temporarily unavailable source catalogs do not
 erase saved IDs. Unreadable preferences are not overwritten, and failed writes
 offer a retry rather than displaying an unsaved change as successful.
-Search/category state remains session-scoped. Playlist addresses, optional guide
+Search text remains session-scoped; browse selections are saved locally with
+the profile. Playlist addresses, optional guide
 addresses and their order, source names, and enabled states are stored securely
 per profile. Server sources store an account reference, not duplicate credentials.
 View preferences and source management live in **Settings > Live TV**.
@@ -449,7 +463,40 @@ the fixed detail column without overflowing horizontal pills.
 Child pages inherit the workspace background rather than drawing a second
 gradient. Hidden-channel restoration also lives in its detail pane.
 Setup and source pages reuse Plozz's shared settings groups, row labels,
-switches, focus/card styles and page heading. On iPhone/iPad, Sources uses a scroll-based settings
+switches, focus/card styles and page heading.
+
+**Manage IPTV channels** is available from Categories on mobile and Manage
+channels in the TV sidebar. Category choices are scoped to the configured
+source and profile, so equally named groups from different sources stay separate.
+Automatic follows the regional filter, Show overrides it, and Hide excludes the
+category. A hidden membership wins when a channel belongs to several categories;
+an individual Show channel exception wins over category/regional filtering.
+Manual channel hiding and scan exclusions remain separate.
+
+Management links use shared disclosure labels with group-owned padding.
+Visibility uses a native menu on iPhone/iPad and a disclosed selection page
+on TV. Hidden-channel recovery uses native secondary action buttons aligned
+to the trailing edge; narrow widths and large text place the action below the
+description rather than squeezing it.
+
+The optional regional filter includes channels matching **any selected country
+OR language**. It uses supplied tags, normalizing known codes/English names, not
+guesses from channel names. Nonmatching and untagged channels appear in the
+searchable **Hidden channels** page with a reason and a Show channel action.
+Nothing is deleted. Reset category and region visibility retains individual
+hidden channels, scan exclusions, and favorites. Settings also offers this reset.
+Non-IPTV providers are not region-filtered.
+
+Favorite category follows membership after refresh without writing a favorite
+record for every channel. Individual favorites survive unfavoriting a category;
+individually removed favorites remain exceptions. Rules follow new channels in
+the same category, while a renamed category is a new choice. Category, region,
+and individual exception choices participate in the existing profile-scoped
+Live TV sync; browse filters and recent playback remain local. Hidden channels
+are excluded from guide/search, pickers, and Home without stopping playback
+already deliberately started.
+
+On iPhone/iPad, Sources and its grouped detail pages use a scroll-based settings
 surface rather than embedding multiple navigation links in one native List cell.
 Saved sources appear first as compact icon/name/status rows. Each opens its own
 page for enabling, editing, checking and removing that source; guide policy and
@@ -1508,6 +1555,54 @@ tests, separate from the real catalog used by the app. Without supplied channels
 the Release model is empty; imported listings never receive synthetic gap fillers.
 
 ## Live activity and diagnostics
+
+Account-backed IPTV guide batches write `IPTV_GUIDE` events to Recent Activity
+on both platforms. A random batch ID links the source mode, requested channel
+count, Xtream-to-XMLTV fallback counts (empty, malformed, or unavailable), and
+completion outcome. Up to six operation samples retain the first four, first
+failure, and last operation, with the omitted count reported explicitly.
+Samples identify `get_simple_data_table` or XMLTV, lookup/request/download/parse
+stage, observed HTTP status and allowlisted response type, bytes, cache use,
+returned listing count, elapsed time, and a classified failure/network code.
+Cached XMLTV does not invent an HTTP response; cancellation is not a failure
+or success. These diagnostics add no requests or retries and do not change
+fallback selection. They contain no hosts, URLs, account/channel/program
+identities, credentials, raw headers/bodies, or error descriptions.
+
+Guide-only endpoint failures show **Guide unavailable**, not a claim that the
+server's channel API is unsupported. Working channels and previously loaded
+listings remain available. After reproducing, use **Settings > Help & Diagnostics
+> Recent Activity** to copy the log, or enable **Share Crash Reports** and use
+**Send Diagnostics > Send to Developer** with a short identifying note.
+Guide events are local recent activity, not new automatic telemetry; a reporter
+must run a build containing this instrumentation to supply the missing evidence.
+
+Copied playback reports use `plozz-live-tv-2`; `stream_format` is separate from
+the report-format identifier. Both the local report and opt-in failure telemetry
+retain the engine route, first-frame state, up to eight nested native error
+domain/code pairs, and the last four native error-log domain/code pairs. Native
+logs are read off the UI actor with a 500 ms deadline and at most two outstanding
+readers process-wide. Missing items, busy readers, and timed-out captures are
+explicit, not interpreted as an absence of native errors. A replaced or stopped
+playback cannot publish a late capture into its successor.
+
+The authenticated IPTV proxy keeps a bounded, playback-local delivery history:
+the latest completed root GET (or the current attempt until one completes),
+first failed upstream attempt, and eight recent attempts,
+including successful responses. Facts include root/child role, GET/HEAD, relative
+timing, HTTP status, observed format, redirects/cross-origin delivery, range
+presence/validity, expected/received bytes, and network error codes. HLS facts
+include target and maximum segment durations, media sequence, segment count,
+master/end-list flags, byte ranges, initialization maps, and encryption presence.
+They are observations, not a playlist validator or a new retry policy. A child
+404 remains available even if AVFoundation replaces it with a generic failure;
+an earlier recovered request does not become the terminal error.
+
+These reports never include URLs, hosts, IPs, channel names, response bodies,
+raw headers, native descriptions, or native error-log comments. Local copying
+does not enable telemetry; the existing consent-generation, report-count, and
+deduplication gates still apply. Diagnostics make a subsequent failure more
+actionable but cannot reconstruct the missing evidence in an older report.
 
 The centered activity indicator is owned by `LiveChannelPlayerModel` and driven
 by AetherEngine's typed `playbackPhase`, gated on

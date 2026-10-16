@@ -12,10 +12,13 @@ struct SettingsFormLayout: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
                 SettingsFormHeader(title: title, showsBack: showsBack)
-                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                    SettingsFormRow(row: row, isEntry: index == 0)
-                        .disabled(index > 0 && navigation?.focusInDetail == false)
-                        .id(row.id)
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                        SettingsFormRow(row: row, isEntry: index == 0)
+                            .disabled(index > 0 && navigation?.focusInDetail == false)
+                            .padding(.top, rowSpacing(at: index))
+                            .id(row.id)
+                    }
                 }
             }
             .padding(.horizontal, SettingsFormMetrics.pageInset)
@@ -26,6 +29,12 @@ struct SettingsFormLayout: View {
         .toggleStyle(SettingsSwitchToggleStyle())
         .toolbar(.hidden, for: .tabBar)
     }
+
+    private func rowSpacing(at index: Int) -> CGFloat {
+        guard index > 0 else { return 0 }
+        return rows[(index - 1)...index].allSatisfy { $0.route != nil || $0.presentation == .page }
+            ? SettingsFormMetrics.navigationRowSpacing : SettingsFormMetrics.sectionSpacing
+    }
 }
 
 private struct SettingsFormHeader: View {
@@ -33,30 +42,22 @@ private struct SettingsFormHeader: View {
     let showsBack: Bool
     var route: SettingsRoute?
     @SettingsPageDismiss private var dismiss
+    @Environment(\.settingsPageBackButton) private var inheritedBackButton
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
-            if !showsBack {
-                SettingsPageBackButton()
-            }
-            HStack(spacing: SettingsFormMetrics.controlSpacing) {
-                if showsBack {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Label("Back", systemImage: "chevron.backward")
-                    }
-                    .settingsWorkspaceEntry(route: route)
-                    .settingsPageEntryFocus()
-                    .accessibilityIdentifier("settings-workspace-back")
-                }
-                title.font(.largeTitle.bold())
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .focusSection()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.bottom, 8)
+        SettingsPageHeader(title)
+            .environment(\.settingsPageBackButton, backButton)
+            .padding(.bottom, 8)
+    }
+
+    private var backButton: AnyView? {
+        guard showsBack else { return inheritedBackButton }
+        return AnyView(
+            SettingsBackButton { dismiss() }
+                .settingsWorkspaceEntry(route: route)
+                .settingsPageEntryFocus()
+                .accessibilityIdentifier("settings-workspace-back")
+        )
     }
 }
 
@@ -74,7 +75,7 @@ private struct SettingsFormRow: View {
             SettingsRouteLink(value: route) {
                 SettingsFormLinkLabel(row: row)
             }
-            .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+            .buttonStyle(SettingsFocusButtonStyle(size: .navigation))
             .accessibilityIdentifier("settings-page-\(row.id)")
         } else if row.presentation == .page {
             SettingsPageLink {
@@ -82,7 +83,7 @@ private struct SettingsFormRow: View {
             } label: {
                 SettingsFormLinkLabel(row: row)
             }
-            .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+            .buttonStyle(SettingsFocusButtonStyle(size: .navigation))
             .accessibilityIdentifier("settings-page-\(row.id)")
         } else if row.presentation == .compactRow {
             HStack(spacing: 24) {
@@ -91,7 +92,7 @@ private struct SettingsFormRow: View {
                 row.detail()
             }
             .padding(SettingsFormMetrics.groupInset)
-            .settingsGroupSurface(cornerRadius: 28)
+            .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
             .accessibilityIdentifier("settings-group-\(row.id)")
         } else {
             SettingsFormGroup(title: row.title, description: row.description) {
@@ -113,10 +114,7 @@ struct SettingsFormGroup<Content: View>: View {
                 .font(.headline)
                 .padding(.horizontal, SettingsFormMetrics.headingInset)
                 .accessibilityAddTraits(.isHeader)
-            SettingsControlRows(content: content)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(SettingsFormMetrics.groupInset)
-                .settingsGroupSurface(cornerRadius: 28)
+            SettingsControlGroup(content: content)
             if let description {
                 description
                     .settingsHelperText()
@@ -127,13 +125,26 @@ struct SettingsFormGroup<Content: View>: View {
     }
 }
 
+struct SettingsControlGroup<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        SettingsControlRows(content: content)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(SettingsFormMetrics.groupInset)
+            .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+            .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
+            .environment(\.settingsFormRowsFlushLeading, false)
+    }
+}
+
 private struct SettingsFormLinkLabel: View {
     let row: SettingsSplitRow
 
     var body: some View {
         HStack(spacing: 16) {
             row.title
-                .font(.callout.weight(.medium))
+                .font(SettingsRowMetrics.titleFont)
             Spacer(minLength: 16)
             row.summary?.font(.callout).settingsRowSecondary()
             Image(systemName: "chevron.forward")
@@ -142,7 +153,7 @@ private struct SettingsFormLinkLabel: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .settingsGroupSurface(cornerRadius: 20)
+        .settingsGroupSurface(cornerRadius: SettingsRowMetrics.navigationCornerRadius)
     }
 }
 
@@ -176,7 +187,13 @@ private struct SettingsFormRowContent: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SettingsFormMetrics.sectionSpacing) {
                 SettingsFormHeader(title: row.title, showsBack: showsBack, route: route)
-                row.detail()
+                Group {
+                    if row.hasGroupedContent {
+                        row.detail()
+                    } else {
+                        SettingsControlGroup { row.detail() }
+                    }
+                }
                     .environment(\.settingsPageBackButton, nil)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if let description = row.description {

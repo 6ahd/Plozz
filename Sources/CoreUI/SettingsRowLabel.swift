@@ -49,6 +49,14 @@ public struct SettingsRowLabel<Secondary: View, Trailing: View>: View {
     private let secondary: Secondary
     private let trailing: Trailing
 
+    private var titleFont: Font {
+        #if os(tvOS)
+        SettingsRowMetrics.titleFont
+        #else
+        .callout.weight(.medium)
+        #endif
+    }
+
     /// Row label that is app COPY — the common case, so literals work unchanged.
     public init(
         icon: String?,
@@ -106,7 +114,7 @@ public struct SettingsRowLabel<Secondary: View, Trailing: View>: View {
                         .alignmentGuide(.rowTitleIcon) { $0[VerticalAlignment.center] }
                 }
                 VStack(alignment: .leading, spacing: 6) {
-                    title.font(.callout.weight(.medium))
+                    title.font(titleFont)
                         .alignmentGuide(.rowTitleIcon) { $0[VerticalAlignment.center] }
                     secondary
                 }

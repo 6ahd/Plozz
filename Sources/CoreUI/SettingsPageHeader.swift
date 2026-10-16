@@ -7,6 +7,14 @@ import SwiftUI
 public struct SettingsPageHeader: View {
     private let title: Text
     private let subtitle: Text?
+    #if os(tvOS)
+    @Environment(\.settingsPageBackButton) private var backButton
+    #endif
+
+    public init(_ title: Text, subtitle: Text? = nil) {
+        self.title = title
+        self.subtitle = subtitle
+    }
 
     public init(_ title: LocalizedStringResource, subtitle: LocalizedStringResource? = nil) {
         self.title = Text(title)
@@ -19,17 +27,25 @@ public struct SettingsPageHeader: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
-            SettingsPageBackButton()
+        HStack(alignment: .center, spacing: SettingsFormMetrics.controlSpacing) {
+            #if os(tvOS)
+            if let backButton {
+                backButton.fixedSize()
+            }
+            #endif
             heading
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        #if os(tvOS)
+        .focusSection()
+        #endif
     }
 
     private var heading: some View {
         VStack(alignment: .leading, spacing: 6) {
             title
                 .font(.largeTitle.bold())
+                .accessibilityAddTraits(.isHeader)
             if let subtitle {
                 subtitle
                     #if os(tvOS)
@@ -41,6 +57,24 @@ public struct SettingsPageHeader: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+}
+
+public struct SettingsBackButton: View {
+    private let action: () -> Void
+
+    public init(action: @escaping () -> Void) {
+        self.action = action
+    }
+
+    public var body: some View {
+        Button(action: action) {
+            Label("Back", systemImage: "chevron.backward")
+        }
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.capsule)
+        .controlSize(.regular)
+        .fixedSize()
     }
 }
 #endif

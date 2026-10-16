@@ -74,7 +74,7 @@ struct ViewCustomizationLink<Destination: View>: View {
             ViewCustomizationLinkLabel(isCustomized: isCustomized)
         }
         #if os(tvOS)
-        .buttonStyle(SettingsFocusButtonStyle())
+        .buttonStyle(SettingsFocusButtonStyle(size: .contained))
         #endif
     }
 }
@@ -105,9 +105,7 @@ private struct ViewCustomizationLinkLabel: View {
             #endif
         }
         #if os(tvOS)
-        .frame(minHeight: 44)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .settingsFormRowLayout()
         #endif
     }
 }
@@ -133,20 +131,33 @@ struct ViewCustomizationList<Content: View>: View {
         VStack(spacing: 20) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    Button {
-                        if let detailNavigation {
-                            detailNavigation.pop(animated: !reduceMotion)
-                        } else {
-                            dismiss()
+                    SettingsPageHeader(title)
+                        .environment(\.settingsPageBackButton, AnyView(
+                            SettingsBackButton {
+                                if let detailNavigation {
+                                    detailNavigation.pop(animated: !reduceMotion)
+                                } else {
+                                    dismiss()
+                                }
+                            }
+                            .accessibilityIdentifier("view-customization-back")
+                            .disabled(!hasEnteredList && initialRowID != "view-customization-back")
+                            .modifier(ViewCustomizationRowFocus(id: "view-customization-back"))
+                        ))
+                    VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
+                        Group(sections: content()) { sections in
+                            ForEach(sections) { section in
+                                VStack(alignment: .leading, spacing: sectionSpacing) {
+                                    section.header
+                                        .padding(.horizontal, SettingsFormMetrics.headingInset)
+                                    SettingsControlGroup { section.content }
+                                    section.footer
+                                        .settingsHelperText()
+                                        .padding(.horizontal, SettingsFormMetrics.headingInset)
+                                }
+                            }
                         }
-                    } label: {
-                        Label("Back", systemImage: "chevron.left")
                     }
-                    .accessibilityIdentifier("view-customization-back")
-                    .disabled(!hasEnteredList && initialRowID != "view-customization-back")
-                    .modifier(ViewCustomizationRowFocus(id: "view-customization-back"))
-                    Text(title).settingsFeatureTitle()
-                    VStack(alignment: .leading, spacing: sectionSpacing, content: content)
                 }
                 .environment(\.viewCustomizationFocus, $focusedRow)
                 .focusScope(focusScope)
@@ -159,9 +170,9 @@ struct ViewCustomizationList<Content: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 40)
-                .padding(.bottom, 24)
-                .padding(.horizontal, 48)
+                .padding(.top, SettingsFormMetrics.pageTopInset)
+                .padding(.bottom, SettingsFormMetrics.pageBottomInset)
+                .padding(.horizontal, SettingsFormMetrics.pageInset)
             }
             .contentMargins(.bottom, help == nil ? 0 : 40, for: .scrollContent)
             .scrollClipDisabled()
@@ -179,11 +190,11 @@ struct ViewCustomizationList<Content: View>: View {
             .accessibilityIdentifier("view-customization-scroll")
             if let help {
                 ViewCustomizationHelpCard(help: help)
-                    .padding(.horizontal, 48)
+                    .padding(.horizontal, SettingsFormMetrics.pageInset)
                     .padding(.bottom, 24)
             }
         }
-        .buttonStyle(SettingsFocusButtonStyle())
+        .buttonStyle(SettingsFocusButtonStyle(size: .contained))
         .navigationTitle(Text(verbatim: ""))
         #else
         List {
@@ -308,7 +319,7 @@ struct ViewCustomizationRow: View {
             ViewCustomizationRowLabel(title: title, value: value)
         }
         #if os(tvOS)
-        .buttonStyle(SettingsFocusButtonStyle())
+        .buttonStyle(SettingsFocusButtonStyle(size: .contained))
         #else
         .buttonStyle(.plain)
         #endif
@@ -367,8 +378,7 @@ private struct ViewCustomizationRowLabel: View {
         }
         .frame(minHeight: 44)
         #if os(tvOS)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .settingsFormRowLayout()
         #endif
         .contentShape(Rectangle())
     }
@@ -384,7 +394,11 @@ private struct ViewCustomizationRowLabel: View {
 
     private var titleText: some View {
         Text(title)
+            #if os(tvOS)
+            .font(SettingsRowMetrics.titleFont)
+            #else
             .font(.body.weight(.medium))
+            #endif
             .multilineTextAlignment(.leading)
     }
 

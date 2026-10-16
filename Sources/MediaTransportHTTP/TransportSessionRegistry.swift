@@ -36,7 +36,11 @@ final class TransportSession: @unchecked Sendable {
         self.credential.hasSameMaterial(as: credential) && self.trustPolicy == trustPolicy
     }
 
-    func data(for request: URLRequest, maxResponseBytes: Int) async throws -> TransportDataResponse {
+    func data(
+        for request: URLRequest,
+        maxResponseBytes: Int,
+        followRedirects: Bool = true
+    ) async throws -> TransportDataResponse {
         let taskBox = URLSessionTaskBox()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -47,7 +51,7 @@ final class TransportSession: @unchecked Sendable {
                     return
                 }
                 let task = session.dataTask(with: request)
-                delegate.register(task: task, maxResponseBytes: maxResponseBytes) { result in
+                delegate.register(task: task, maxResponseBytes: maxResponseBytes, followRedirects: followRedirects) { result in
                     continuation.resume(with: result)
                 }
                 taskBox.store(task)
@@ -120,7 +124,18 @@ private final class URLSessionTaskBox: @unchecked Sendable {
 /// An `actor` so concurrent callers (a scanner and a playback reader firing
 /// at once) can't race on the backing dictionary.
 public actor TransportSessionRegistry {
-    private var sessions: [TransportSessionKey: TransportSession] = [:]
+    private enum SessionIdentity: Hashable {
+        case account(TransportSessionKey)
+        case media(source: TransportSessionKey, origin: TransportOrigin)
+
+        var sourceKey: TransportSessionKey {
+            switch self {
+            case .account(let key), .media(let key, _): return key
+            }
+        }
+    }
+
+    private var sessions: [SessionIdentity: TransportSession] = [:]
     private let testProtocolClasses: [AnyClass]
 
     /// Max simultaneous connections one managed session opens to its host.
@@ -165,27 +180,46 @@ public actor TransportSessionRegistry {
            revision != key.trustRevision {
             throw TransportError.sessionConfigurationMismatch
         }
-        if let existing = sessions[key] {
+        if let existing = sessions[.account(key)] {
             guard existing.matches(credential: credential, trustPolicy: trustPolicy) else {
                 throw TransportError.sessionConfigurationMismatch
             }
             return existing
         }
         let created = try makeSession(key: key, credential: credential, trustPolicy: trustPolicy)
-        sessions[key] = created
+        sessions[.account(key)] = created
+        return created
+    }
+
+    /// Delivery grants never share cookies, credentials or a certificate override
+    /// with the DAV session, including a redirect that returns to its origin.
+    func mediaSession(for sourceKey: TransportSessionKey, origin: TransportOrigin) throws -> TransportSession {
+        let identity = SessionIdentity.media(source: sourceKey, origin: origin)
+        if let existing = sessions[identity] { return existing }
+        let key = try TransportSessionKey(
+            accountID: sourceKey.accountID,
+            credentialRevision: sourceKey.credentialRevision.rawValue,
+            origin: origin,
+            trustRevision: sourceKey.trustRevision,
+            role: sourceKey.role
+        )
+        let created = try makeSession(
+            key: key, credential: .anonymous, trustPolicy: .system, isAnonymousMediaSession: true
+        )
+        sessions[identity] = created
         return created
     }
 
     /// Immediately cancels and removes the session for `key`, if any.
     public func invalidate(_ key: TransportSessionKey) {
-        sessions.removeValue(forKey: key)?.invalidateAndCancel()
+        invalidateAll { $0 == key }
     }
 
     /// Cancels and removes every session whose key matches `predicate` —
     /// e.g. every session for a given `accountID` when an account is
     /// removed, regardless of which origins/roles/revisions it spun up.
     public func invalidateAll(where predicate: (TransportSessionKey) -> Bool) {
-        for key in sessions.keys where predicate(key) {
+        for key in Array(sessions.keys) where predicate(key.sourceKey) {
             sessions.removeValue(forKey: key)?.invalidateAndCancel()
         }
     }
@@ -208,7 +242,8 @@ public actor TransportSessionRegistry {
     private func makeSession(
         key: TransportSessionKey,
         credential: WebDAVCredential,
-        trustPolicy: TrustPolicy
+        trustPolicy: TrustPolicy,
+        isAnonymousMediaSession: Bool = false
     ) throws -> TransportSession {
         guard let origin = key.origin else {
             throw TransportError.invalidOrigin(reason: "session key is not an HTTP endpoint")
@@ -232,7 +267,8 @@ public actor TransportSessionRegistry {
         let delegate = TransportSessionDelegate(
             credential: credential,
             trustPolicy: trustPolicy,
-            origin: origin
+            origin: origin,
+            isAnonymousMediaSession: isAnonymousMediaSession
         )
         let urlSession = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
         return TransportSession(

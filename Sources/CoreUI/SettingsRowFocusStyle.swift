@@ -4,11 +4,13 @@ import SwiftUI
 /// Size variant for the unified list-row focus style. `.standard` is the
 /// top-level row height; `.prominent` is the taller server-list row that
 /// carries an "In use" badge and needs a larger corner radius / shadow;
-/// `.contained` keeps its highlight inside a shared grouped container.
+/// `.contained` keeps its highlight inside a shared grouped container;
+/// `.navigation` matches the full rounded outline of a standalone page link.
 public enum SettingsRowSize {
     case standard
     case prominent
     case contained
+    case navigation
 }
 
 /// How much weight a list-row *control* carries, and therefore how tall it is.
@@ -32,6 +34,8 @@ public enum SettingsFormMetrics {
     public static let sectionSpacing = PlozzTheme.Spacing.large + PlozzTheme.Spacing.xxSmall
     public static let controlSpacing = PlozzTheme.Spacing.large
     public static let relatedControlSpacing = PlozzTheme.Spacing.small
+    public static let navigationRowSpacing = PlozzTheme.Spacing.xSmall
+    public static let groupCornerRadius = PlozzTheme.Metrics.mediumCardCornerRadius
     public static let dividerFocusClearance: CGFloat = 3
     public static let groupInset = PlozzTheme.Spacing.large
     public static let pageInset = sectionSpacing
@@ -57,17 +61,30 @@ public enum SettingsRowMetrics {
     }
     public static var helperFont: Font {
         #if os(tvOS)
-        .caption2
+        descriptionFont
         #else
         .callout
         #endif
     }
+    public static var descriptionFont: Font {
+        #if os(tvOS)
+        .caption
+        #else
+        .footnote
+        #endif
+    }
+    public static let segmentedTrackInset: CGFloat = 4
 
     public static let formRowSpacing: CGFloat = 8
     public static let formSectionSpacing: CGFloat = 24
     public static let formGroupInset: CGFloat = 10
+    public static let navigationCornerRadius = SettingsFormMetrics.groupCornerRadius
     public static var formRowCornerRadius: CGFloat {
+        #if os(tvOS)
+        SettingsFormMetrics.groupCornerRadius - formGroupInset
+        #else
         PlozzTheme.Metrics.Radius.card - formGroupInset
+        #endif
     }
 
     /// Minimum content height before vertical padding.
@@ -258,6 +275,7 @@ public struct SettingsFocusRow<Content: View>: View {
         case .standard: 16
         case .prominent: 18
         case .contained: SettingsRowMetrics.formRowCornerRadius
+        case .navigation: SettingsRowMetrics.navigationCornerRadius
         }
     }
 
@@ -265,7 +283,7 @@ public struct SettingsFocusRow<Content: View>: View {
         switch size {
         case .standard: 16
         case .prominent: 10
-        case .contained: 0
+        case .contained, .navigation: 0
         }
     }
 
@@ -274,7 +292,7 @@ public struct SettingsFocusRow<Content: View>: View {
         return switch size {
         case .standard: 4
         case .prominent: 6
-        case .contained: 0
+        case .contained, .navigation: 0
         }
     }
 
@@ -453,7 +471,11 @@ public struct SettingsCheckmark: View {
     }
 
     private var glyphFont: Font {
+        #if os(tvOS)
+        SettingsRowMetrics.descriptionFont.weight(.semibold)
+        #else
         prominence == .primary ? .headline.weight(.bold) : .callout.weight(.bold)
+        #endif
     }
 
     public var body: some View {
@@ -492,16 +514,13 @@ public extension View {
 // MARK: - Settings typography scale (10-foot UI)
 
 /// One shared type hierarchy for every Settings detail pane, so the levels never
-/// collide (the "section header looks like a control label" problem). Ranked
-/// biggest → smallest:
+/// collide (the "section header looks like a control label" problem):
 ///
 ///  1. ``settingsFeatureTitle()`` — the pane's feature name (e.g. "Hero").
 ///  2. ``settingsSectionHeader()`` — a group heading within the pane (e.g.
-///     "Sources", "Items"). Clearly larger than a control label so it reads as a
-///     header, not a row.
-///  3. control labels — a control's own text (toggle/checkmark/stepper label);
-///     use ``SettingsRowMetrics/titleFont``, which sits a step *below* the
-///     section header.
+///     "Sources", "Items"). Compact uppercase text distinguishes a group from a row.
+///  3. control labels — use ``SettingsRowMetrics/titleFont`` for toggles,
+///     segments, reorder rows, and compact preview-card captions.
 ///  4. ``settingsHelperText()`` — descriptive/helper copy under a title or header.
 ///
 /// Defining these here (not ad-hoc per view) is what makes the hierarchy
@@ -516,12 +535,19 @@ public extension View {
     /// L2 — a section header inside a detail pane (e.g. "SOURCES"). Uppercase,
     /// tracked, bold and secondary — the classic grouped-list header idiom, so it
     /// reads as a *header* and never collides with the sentence-case, primary
-    /// control labels beneath it, nor with its own (smaller, dimmer) description.
+    /// control labels beneath it, nor with its own regular-weight, dimmer description.
     func settingsSectionHeader() -> some View {
+        #if os(tvOS)
+        font(SettingsRowMetrics.descriptionFont.weight(.semibold))
+            .textCase(.uppercase)
+            .tracking(1.8)
+            .plozzForeground(.secondary)
+        #else
         font(.subheadline.weight(.bold))
             .textCase(.uppercase)
             .tracking(1.8)
             .plozzForeground(.secondary)
+        #endif
     }
 
     /// L3 — a **feature** description: the intro sentence under the pane's feature
@@ -531,15 +557,9 @@ public extension View {
     }
 
     /// L4 — a **section** description: a small, dim note under a section header.
-    /// Deliberately smaller + dimmer than both the header and feature description
-    /// so it reads as a footnote and never competes with the header. Use sparingly
-    /// (only when the header + control aren't self-explanatory).
+    /// Shares the helper-copy size, with quieter emphasis beneath a group heading.
     func settingsSectionDescription() -> some View {
-        #if os(tvOS)
-        font(SettingsRowMetrics.helperFont).plozzForeground(.tertiary)
-        #else
-        font(.footnote).plozzForeground(.tertiary)
-        #endif
+        font(SettingsRowMetrics.descriptionFont).plozzForeground(.tertiary)
     }
 }
 #endif

@@ -96,6 +96,8 @@ public struct LiveChannelOutputPolicy: Equatable, Sendable {
 public protocol LiveChannelEngine: VideoEngine {
     var liveSnapshot: LiveChannelEngineSnapshot { get }
     var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic? { get }
+    /// The engine will publish its terminal failure after a bounded diagnostic read.
+    var isCapturingLiveFailureDiagnostic: Bool { get }
     var onLiveSourceReset: (@MainActor () -> Void)? { get set }
     /// A scheduled media boundary resets tracks/cues, not the channel or decoder owner.
     var onProgrammeChanged: (@MainActor () -> Void)? { get set }
@@ -111,6 +113,7 @@ public protocol LiveChannelEngine: VideoEngine {
 
 public extension LiveChannelEngine {
     var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic? { nil }
+    var isCapturingLiveFailureDiagnostic: Bool { false }
     var supportsConcurrentPlayback: Bool { false }
     var recoverableProgrammeIssue: LibraryChannelError? { nil }
     var currentLibraryItem: LibraryChannelItem? { nil }

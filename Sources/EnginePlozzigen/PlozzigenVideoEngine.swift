@@ -137,6 +137,10 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     public var bufferedPosition: TimeInterval { engine.clock.bufferedPosition }
 
     public var liveSnapshot: LiveChannelEngineSnapshot {
+        let phase: LiveChannelEnginePhase
+        if case .failed = status { phase = .failed }
+        else if liveSourceProbe != nil { phase = .loading }
+        else { phase = Self.livePhase(engine.playbackPhase) }
         let range: ClosedRange<TimeInterval>?
         if engine.videoRoute == .remoteBypass {
             // Aether 6.66 reports 0...edge on the bypass, not the sliding
@@ -151,7 +155,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
             range = engine.clock.seekableLiveRange
         }
         return LiveChannelEngineSnapshot(
-            phase: Self.livePhase(engine.playbackPhase),
+            phase: phase,
             firstFrameReady: engine.hasFirstFrameReadyForDisplay,
             position: engine.clock.currentTime,
             bufferedPosition: engine.clock.bufferedPosition,
@@ -578,7 +582,21 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
         var stage: PlaybackFailureDiagnostic.Stage = .load
         do {
-            var options = Self.liveLoadOptions(httpHeaders: httpHeaders, url: url)
+            var sourceFormat: PlozzigenLiveSourceProbe.Format?
+            if PlozzigenLiveSourceProbe.isRequired(for: url) {
+                engine.stop(resetDisplayCriteria: false)
+                stage = .response
+                let probe = PlozzigenLiveSourceProbe()
+                liveSourceProbe = probe
+                defer {
+                    probe.cancel()
+                    if liveAttemptGate.accepts(liveGeneration) { liveSourceProbe = nil }
+                }
+                sourceFormat = try await probe.format(url: url, headers: httpHeaders)
+                guard liveAttemptGate.accepts(liveGeneration), !Task.isCancelled else { return }
+                stage = .load
+            }
+            var options = Self.liveLoadOptions(httpHeaders: httpHeaders, url: url, sourceFormat: sourceFormat)
             Self.applyLiveOutputPolicy(outputPolicy, to: &options)
             try await engine.load(url: url, options: options)
             guard liveAttemptGate.accepts(liveGeneration) else { return }
@@ -607,7 +625,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         } catch is CancellationError {
             // A stop or replacement load owns the session now.
         } catch {
-            guard liveAttemptGate.accepts(liveGeneration) else { return }
+            guard liveAttemptGate.accepts(liveGeneration), !Task.isCancelled else { return }
             let detail: String
             if stage == .load,
                case .error(let message) = engine.state {
@@ -725,9 +743,12 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     nonisolated static func liveLoadOptions(
-        httpHeaders: [String: String], url: URL? = nil
+        httpHeaders: [String: String], url: URL? = nil,
+        sourceFormat: PlozzigenLiveSourceProbe.Format? = nil
     ) -> LoadOptions {
-        let isTransportStream = ["ts", "m2ts", "mts"].contains(url?.pathExtension.lowercased() ?? "")
+        let suffix = url?.pathExtension.lowercased() ?? ""
+        let format = sourceFormat ?? (["ts", "m2ts", "mts"].contains(suffix)
+            ? .transportStream : suffix == "m3u8" ? .hls : .other)
         // Aether 6.66 gives nativeRemoteHLS its AVPlayer-backed live window
         // without a host-selected DVR duration. Keep nil so an ingest reroute
         // does not silently opt the app into an arbitrary disk timeshift policy.
@@ -737,8 +758,8 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
             dvrWindowSeconds: nil,
             // Raw live sources have no existing HLS window to fill the initial
             // holdback; long GOPs can otherwise outlast AVPlayer's playlist timeout.
-            liveJoinProfile: isTransportStream ? .fastZap : .standard,
-            nativeRemoteHLS: !isTransportStream,
+            liveJoinProfile: format == .transportStream ? .fastZap : .standard,
+            nativeRemoteHLS: format == .hls,
             nativeRemoteHLSIngestFallback: true
         )
     }
@@ -784,12 +805,25 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     private var liveFailureDiagnostic: PlaybackFailureAttempt?
     private var liveDeliveryFailure: PlaybackDeliveryFailure?
+    private var liveFailureCaptureTask: Task<Void, Never>?
+    private var liveSourceProbe: PlozzigenLiveSourceProbe?
 
     public var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic? {
-        liveDeliveryFailure?.diagnostic ?? liveFailureDiagnostic?.diagnostic
+        liveFailureDiagnostic?.diagnostic ?? liveDeliveryFailure?.diagnostic
+    }
+
+    public var isCapturingLiveFailureDiagnostic: Bool {
+        guard liveAttemptGate.activeGeneration != nil, liveFailureDiagnostic?.diagnostic == nil else { return false }
+        // The phase can reach the guide before Combine delivers the error callback.
+        if case .error = engine.state { return true }
+        return liveFailureCaptureTask != nil
     }
 
     private func beginLiveAttempt() -> UInt64 {
+        liveSourceProbe?.cancel()
+        liveSourceProbe = nil
+        liveFailureCaptureTask?.cancel()
+        liveFailureCaptureTask = nil
         let generation = liveAttemptGate.begin()
         liveFailureDiagnostic = PlaybackFailureDiagnostics.shared.begin(
             layer: .liveEngine, content: .live, captureForPresentation: true
@@ -808,6 +842,10 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     private func endLiveAttempt() {
+        liveSourceProbe?.cancel()
+        liveSourceProbe = nil
+        liveFailureCaptureTask?.cancel()
+        liveFailureCaptureTask = nil
         liveAttemptGate.invalidate()
         liveFailureDiagnostic = nil
         liveDeliveryFailure = nil
@@ -824,8 +862,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         guard liveAttemptGate.consumeFailure(for: generation) else { return }
         // A queued state publication may outlive its errorInfo. Never classify
         // an older message using a replacement session's failure.
-        let info = engine.errorInfo.flatMap { $0.message == detail ? $0 : nil }
-        PlozzigenLiveFailure.record(info, attempt: liveFailureDiagnostic, stage: stage, fallbackError: fallbackError)
+        let info = stage == .response ? nil : engine.errorInfo.flatMap { $0.message == detail ? $0 : nil }
         let classification = PlozzigenLiveFailure.diagnostic(info)
         let redacted = HandoffDiagnostics.redactedDetail(detail)
         HandoffDiagnostics.emit(
@@ -834,9 +871,29 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         PlozzLog.playback.error(
             "Plozzigen live playback failed at \(stage): \(classification) \(redacted)"
         )
-        let error = PlozzigenLiveFailure.appError(info, deliveryFailure: liveDeliveryFailure?.error)
-        status = .failed(error)
-        onFailure?(error)
+        let item = stage == .response ? nil : engine.currentAVPlayerItem
+        let route = stage == .response ? nil
+            : PlaybackFailureEvidence.Route(rawValue: Self.liveRoute(engine.videoRoute).rawValue)
+        let firstFrameReady = stage != .response && engine.hasFirstFrameReadyForDisplay
+        let delivery = liveDeliveryFailure
+        liveFailureCaptureTask = Task { [weak self] in
+            var evidence = await PlozzigenNativeFailureCapture.shared.capture(
+                item: item, fallbackError: fallbackError as NSError?
+            )
+            guard let self, !Task.isCancelled, self.liveAttemptGate.accepts(generation) else { return }
+            evidence.route = route
+            evidence.firstFrameReady = firstFrameReady
+            evidence.delivery = delivery?.evidence
+            PlozzigenLiveFailure.record(
+                info, attempt: self.liveFailureDiagnostic, stage: stage, fallbackError: fallbackError,
+                evidence: evidence, deliveryDiagnostic: delivery?.diagnostic
+            )
+            let error = PlozzigenLiveFailure.appError(
+                info, deliveryFailure: delivery?.error, fallbackError: fallbackError
+            )
+            self.status = .failed(error)
+            self.onFailure?(error)
+        }
     }
 
     /// Optional container short-name hint for the demuxer probe, derived from the

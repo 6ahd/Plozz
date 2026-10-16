@@ -72,10 +72,7 @@ struct AppearanceDetailView: View {
                 return allRows.filter { ["language", "spoilers"].contains($0.id) }
             }
             let appearance = allRows.filter { !["language", "theme", "spoilers"].contains($0.id) }
-            return allRows.filter { $0.id == "theme" }.map { $0.page() } + [
-                SettingsSplitRow(id: "home", title: "Customize Home") { EmptyView() }
-                    .destination(.customizeHome)
-            ] + appearance.map { row in
+            return allRows.filter { $0.id == "theme" }.map { $0.page() } + appearance.map { row in
                 switch row.id {
                 case "display-size": row.page(summary: Text(density.density.displayName))
                 case "navigation": row.destination(.navigationLayout)
@@ -108,7 +105,7 @@ struct AppearanceDetailView: View {
                     title: "Theme"
                 ) {
                     themeAndTransparency
-                },
+                }.groupedContent(),
                 SettingsSplitRow(
                     id: "display-size",
                     title: "Display Size",
@@ -132,18 +129,14 @@ struct AppearanceDetailView: View {
                             continueWatchingShowsSeriesArtwork: librariesScope.homeVisibility.continueWatchingShowsSeriesArtwork
                         )
                         if canManageProviders {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Button(action: settingsNavigation.openMetadataProviders) {
-                                    Label("Metadata Providers (TMDB, TheTVDB…)", systemImage: "globe")
-                                }
-                                .accessibilityIdentifier("artwork-metadata-providers")
-                                Text("Shared by all profiles.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
+                            #if os(tvOS)
+                            SettingsControlGroup { metadataProviderLink }
+                            #else
+                            metadataProviderLink
+                            #endif
                         }
                     }
-                },
+                }.groupedContent(),
                 SettingsSplitRow(
                     id: "cards",
                     title: "Cards",
@@ -151,7 +144,7 @@ struct AppearanceDetailView: View {
                     subpage: SettingsDetailSubpage { CardCaptionCustomizationView(cards: cardStyle) }
                 ) {
                     cardsControls
-                },
+                }.groupedContent(),
                 SettingsSplitRow(
                     id: "navigation",
                     title: "Navigation"
@@ -160,7 +153,7 @@ struct AppearanceDetailView: View {
                         navigation: navigation,
                         librariesScope: librariesScope
                     )
-                },
+                }.groupedContent(),
                 SettingsSplitRow(
                     id: "music-player",
                     title: "Music Player",
@@ -183,8 +176,11 @@ struct AppearanceDetailView: View {
     @ViewBuilder private var themeAndTransparency: some View {
         @Bindable var transparency = transparency
         VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
-            CompactThemePicker(selection: $theme.theme)
-            Toggle("Gradient Backgrounds", isOn: $theme.gradientEnabled)
+            #if os(tvOS)
+            SettingsControlGroup { themeControls }
+            #else
+            themeControls
+            #endif
             SettingsDetailGroup(title: "Liquid Glass") {
                 DescribedSegmentedPicker(
                     options: TransparencyPreference.allCases,
@@ -193,6 +189,22 @@ struct AppearanceDetailView: View {
                     detail: { $0.detail }
                 )
             }
+        }
+    }
+
+    @ViewBuilder private var themeControls: some View {
+        CompactThemePicker(selection: $theme.theme)
+        Toggle("Gradient Backgrounds", isOn: $theme.gradientEnabled)
+    }
+
+    private var metadataProviderLink: some View {
+        VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
+            Button(action: settingsNavigation.openMetadataProviders) {
+                Label("Metadata Providers (TMDB, TheTVDB…)", systemImage: "globe")
+            }
+            .buttonStyle(SettingsFormButtonStyle())
+            .accessibilityIdentifier("artwork-metadata-providers")
+            Text("Shared by all profiles.").settingsHelperText()
         }
     }
 
@@ -205,14 +217,13 @@ struct AppearanceDetailView: View {
 
         var body: some View {
             VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
-                CompactNavigationPicker(selection: $navigation.style)
-
                 #if os(tvOS)
-                Toggle(
-                    "Prevent Accidental Exit",
-                    isOn: $navigation.preventsAccidentalExit
-                )
-                .toggleStyle(SettingsSwitchToggleStyle())
+                SettingsControlGroup {
+                    CompactNavigationPicker(selection: $navigation.style)
+                    Toggle("Prevent Accidental Exit", isOn: $navigation.preventsAccidentalExit)
+                }
+                #else
+                CompactNavigationPicker(selection: $navigation.style)
                 #endif
 
                 SettingsDetailGroup(
@@ -1082,7 +1093,7 @@ private struct SeparateSettingRow<Option: Hashable>: View {
             case .above:
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text(title)
-                        .font(.headline.weight(.semibold))
+                        .font(SettingsRowMetrics.titleFont)
                     if let hint {
                         Text(hint)
                             .settingsHelperText()

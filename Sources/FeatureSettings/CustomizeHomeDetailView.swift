@@ -93,7 +93,7 @@ struct CustomizeHomeDetailView: View {
                     libraries: homeVisibleLibraries, accounts: accounts, visibility: homeVisibility
                 )
                 .id(ObjectIdentifier(homeVisibility))
-            }
+            }.groupedContent()
         ]
     }
 
@@ -138,7 +138,7 @@ struct CustomizeHomeDetailView: View {
                     HeroSettingsControls(libraries: homeVisibleLibraries, accounts: accounts)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.groupedContent()
         ]
     }
 }

@@ -9,17 +9,34 @@ final class PlozzMetricsTests: XCTestCase {
         XCTAssertEqual(SettingsRowMetrics.titleFont, Font.body)
         #if os(tvOS)
         XCTAssertEqual(SettingsRowMetrics.optionFont, SettingsRowMetrics.titleFont)
-        XCTAssertEqual(SettingsRowMetrics.helperFont, Font.caption2)
+        XCTAssertEqual(SettingsRowMetrics.helperFont, SettingsRowMetrics.descriptionFont)
+        XCTAssertEqual(SettingsRowMetrics.descriptionFont, Font.caption)
+        #else
+        XCTAssertEqual(SettingsRowMetrics.descriptionFont, Font.footnote)
         #endif
+        XCTAssertGreaterThan(SettingsRowMetrics.segmentedTrackInset, 0)
+        XCTAssertLessThan(SettingsRowMetrics.segmentedTrackInset, SettingsRowMetrics.verticalPadding(.primary))
     }
 
     func testContainedSettingsFocusCornersAreConcentricWithTheirGroup() {
         XCTAssertGreaterThan(SettingsRowMetrics.formGroupInset, 0)
+        #if os(tvOS)
+        let groupRadius = SettingsFormMetrics.groupCornerRadius
+        #else
+        let groupRadius = PlozzTheme.Metrics.Radius.card
+        #endif
         XCTAssertEqual(
             SettingsRowMetrics.formRowCornerRadius + SettingsRowMetrics.formGroupInset,
-            PlozzTheme.Metrics.Radius.card
+            groupRadius
         )
         XCTAssertGreaterThan(SettingsRowMetrics.formSectionSpacing, SettingsRowMetrics.formRowSpacing)
+    }
+
+    func testStandaloneSettingsLinksKeepTheirRoundedContainerShape() {
+        XCTAssertEqual(SettingsRowMetrics.navigationCornerRadius, SettingsFormMetrics.groupCornerRadius)
+        XCTAssertEqual(SettingsRowMetrics.navigationCornerRadius, 28)
+        XCTAssertEqual(SettingsFormMetrics.navigationRowSpacing, 8)
+        XCTAssertEqual(SettingsFormMetrics.dividerFocusClearance, 3)
     }
 
     func testPortraitRowsKeepTheSameVisibleFractionWithEitherNavigation() {

@@ -5,6 +5,28 @@ import XCTest
 
 @MainActor
 final class SettingsControlRowsHostedTests: XCTestCase {
+    func testStandaloneNavigationFocusMatchesTheIdleContainerSilhouette() throws {
+        let focused = ImageRenderer(content:
+            SettingsFocusRow(isFocused: true, size: .navigation) {
+                Color.clear.frame(width: 320, height: 80)
+            }
+            .background(Color.black)
+            .environment(\.colorScheme, .dark)
+        )
+        let idle = ImageRenderer(content:
+            RoundedRectangle(cornerRadius: SettingsRowMetrics.navigationCornerRadius, style: .continuous)
+                .fill(Color.white)
+                .frame(width: 320, height: 80)
+                .background(Color.black)
+        )
+        focused.scale = 1
+        idle.scale = 1
+        let focusedPixels = try pixels(XCTUnwrap(focused.cgImage))
+        let idlePixels = try pixels(XCTUnwrap(idle.cgImage))
+        XCTAssertEqual(focusedPixels.map { $0 > 128 }, idlePixels.map { $0 > 128 },
+                       "Focus must not tighten the standalone card's rounded outline.")
+    }
+
     func testSeparatorsFollowTheWholeRowAndNeverTheLastVisibleItem() throws {
         for count in [3, 1, 2, 0] {
             let renderer = ImageRenderer(content:

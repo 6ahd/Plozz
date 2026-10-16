@@ -2509,7 +2509,8 @@ public final class AppState {
     /// accounts, profiles (collapsed to a single pristine default), the
     /// first-run flag, and the recent-servers list — so the next server add
     /// reproduces a genuine first run. Surfaced from a DEBUG-only Settings row.
-    public func resetToFirstRunForDebugging() {
+    @discardableResult
+    public func resetToFirstRunForDebugging(afterSyncErasure: Bool = false) -> Bool {
         let removedAccounts = accountsProviders.accounts
         let shareAccountKeys = mediaShare.accountService.mediaShareAccountKeys(in: removedAccounts)
         do {
@@ -2534,10 +2535,16 @@ public final class AppState {
         }
         guard accountsProviders.accounts.isEmpty else {
             apply(.accountsChanged(accountsProviders.accounts))
-            return
+            return false
         }
         plexHomeUsers.resetAllForDebug()
-        profilesModel.resetToPristineDefaultForDebugging()
+        do {
+            if afterSyncErasure { try profilesModel.resetToPristineDefaultAfterSyncErasure() }
+            else { profilesModel.resetToPristineDefaultForDebugging() }
+        } catch {
+            PlozzLog.sync.error("First-run reset could not remove every profile")
+            return false
+        }
         resetLiveTVPortableSync()
         appAdmission.resetForDebugging()
         var recents = lastServerStore
@@ -2548,6 +2555,7 @@ public final class AppState {
         profileFlow.dismissPicker()
         rebuildSettingsModels()
         apply(.accountsChanged(accountsProviders.accounts))
+        return true
     }
 
     public func retry() {

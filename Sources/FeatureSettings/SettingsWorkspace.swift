@@ -98,10 +98,8 @@ private struct SettingsWorkspaceDestination<Content: View>: View {
             content()
         } else {
             content()
-                .environment(\.settingsPageBackButton, AnyView(Button {
+                .environment(\.settingsPageBackButton, AnyView(SettingsBackButton {
                     dismiss()
-                } label: {
-                    Label("Back", systemImage: "chevron.backward")
                 }.settingsWorkspaceEntry(route: route)
                     .settingsPageEntryFocus(enabled: !route.usesFullScreenDetail)
                     .accessibilityIdentifier(page?.depth == 1 ? "settings-category-back" : "settings-workspace-back")))
@@ -115,6 +113,7 @@ struct SettingsSectionButton: View {
     let icon: String
     var assetIcon: String?
     var value: Text?
+    var subtitle: Text?
     let route: SettingsRoute
     @Environment(SettingsNavigationModel.self) private var navigation
     @Environment(\.settingsWorkspaceFocusScope) private var scope
@@ -135,7 +134,7 @@ struct SettingsSectionButton: View {
         } label: {
             SettingsSectionLabel(
                 title: title, icon: icon, assetIcon: assetIcon,
-                value: value, selected: navigation.section == route
+                value: value, subtitle: subtitle, selected: navigation.section == route
             )
         }
         .buttonStyle(SettingsFocusButtonStyle(size: .contained))
@@ -184,12 +183,18 @@ private struct SettingsSectionLabel: View {
     let icon: String
     let assetIcon: String?
     let value: Text?
+    let subtitle: Text?
     let selected: Bool
     @Environment(\.settingsRowIsFocused) private var focused
     @Environment(\.themePalette) private var palette
 
     var body: some View {
-        SettingsRowLabel(icon: icon, assetIcon: assetIcon, title: title, trailing: {
+        SettingsRowLabel(icon: icon, assetIcon: assetIcon, title: title, secondary: {
+            subtitle?
+                .font(SettingsRowMetrics.helperFont)
+                .settingsRowSecondary()
+                .lineLimit(2)
+        }, trailing: {
             HStack(spacing: 10) {
                 value?.font(.caption).settingsRowSecondary()
                 Image(systemName: "chevron.forward")
@@ -199,7 +204,8 @@ private struct SettingsSectionLabel: View {
         })
         .background {
             if selected && !focused {
-                RoundedRectangle(cornerRadius: 16).fill(palette.fillSubtle)
+                RoundedRectangle(cornerRadius: SettingsRowMetrics.formRowCornerRadius, style: .continuous)
+                    .fill(palette.fillSubtle)
             }
         }
     }

@@ -64,7 +64,7 @@ struct CardLabelControls: View {
     let style: CardStyle
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        SettingsControlRows(nonTVSpacing: 20) {
             CardCaptionPicker(settings: $settings, style: style)
             ViewCustomizationLink(isCustomized: settings.selectedPreset == nil) {
                 CardCaptionCustomizationContent(settings: $settings, style: style)
@@ -157,8 +157,6 @@ struct CardCaptionCustomizationContent: View {
                 Text("Libraries")
                     #if os(tvOS)
                     .settingsSectionHeader()
-                    .padding(.top, 20)
-                    .padding(.bottom, 6)
                     #endif
             }
             Section {
@@ -169,19 +167,10 @@ struct CardCaptionCustomizationContent: View {
                 Text("Other views")
                     #if os(tvOS)
                     .settingsSectionHeader()
-                    .padding(.top, 20)
-                    .padding(.bottom, 6)
                     #endif
             } footer: {
-                #if !os(tvOS)
                 Text("Choices apply across all libraries. Titles inside collections and playlists use Browse.")
-                #endif
             }
-            #if os(tvOS)
-            Text("Choices apply across all libraries. Titles inside collections and playlists use Browse.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            #endif
         }
     }
 

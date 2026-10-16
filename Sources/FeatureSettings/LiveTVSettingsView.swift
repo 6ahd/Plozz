@@ -264,6 +264,16 @@ private struct LiveTVHiddenChannelsListContent: View {
                 }
             }
         } else {
+            if model.hasVisibilityRules {
+                SettingsSectionGroup {
+                    Text("Category and regional filtering is active. Review filtered channels in Live TV > Manage channels > Hidden channels.")
+                    Button("Reset category and region visibility") {
+                        model.resetVisibility()
+                    }
+                    .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                    .disabled(model.hasPendingChanges)
+                }
+            }
             if let issue = model.issue {
                 LiveTVHiddenChannelsFailureSection(issue: issue) {
                     model.retry()
@@ -273,7 +283,7 @@ private struct LiveTVHiddenChannelsListContent: View {
             if model.hiddenChannels.isEmpty {
                 SettingsSectionGroup {
                     ContentUnavailableView(
-                        "No hidden channels",
+                        model.hasVisibilityRules ? "No individually hidden channels" : "No hidden channels",
                         systemImage: "eye"
                     )
                 }
@@ -343,6 +353,7 @@ final class LiveTVHiddenChannelsSettingsModel {
     private enum PendingMutation: Equatable {
         case restore(String)
         case restoreAll
+        case resetVisibility
     }
 
     @ObservationIgnored
@@ -357,6 +368,7 @@ final class LiveTVHiddenChannelsSettingsModel {
     var hiddenChannels: [LiveTVHiddenChannel] {
         preferences?.hiddenChannels ?? []
     }
+    var hasVisibilityRules: Bool { preferences?.organization.hasVisibilityRules == true }
 
     var hasLoadedPreferences: Bool {
         preferences != nil
@@ -394,6 +406,10 @@ final class LiveTVHiddenChannelsSettingsModel {
         apply(.restoreAll)
     }
 
+    func resetVisibility() {
+        apply(.resetVisibility)
+    }
+
     func retry() {
         reload()
     }
@@ -408,12 +424,15 @@ final class LiveTVHiddenChannelsSettingsModel {
             return
         }
 
-        let updated: LiveTVPreferences
+        var updated: LiveTVPreferences
         switch mutation {
         case let .restore(id):
             updated = current.restoringChannel(id: id)
         case .restoreAll:
             updated = current.restoringAllChannels()
+        case .resetVisibility:
+            updated = current
+            updated.organization = current.organization.resettingVisibility()
         }
 
         guard updated != current else {

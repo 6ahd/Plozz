@@ -30,7 +30,9 @@ actor TraktTokenCoordinator {
 
     var revisions: [String: UInt64] = [:]
     private(set) var refreshes: [String: Refresh] = [:]
+    private var inFlightOperations: [UUID: (key: String, task: Task<String?, Error>)] = [:]
     private var pendingWrites: [String: PendingWrite] = [:]
+    private var erasures: [String: UUID] = [:]
     let sharedConfiguration: TraktSharedRefreshConfiguration?
     var sharedJournalRecovery: [String: TraktSharedJournalState] = [:]
     var preparedConnections: [String: ConnectionContext] = [:]
@@ -51,6 +53,7 @@ actor TraktTokenCoordinator {
     func accessToken(store: any TraktTokenStoring, auth: TraktAuthService) async throws -> String? {
         try Task.checkCancellation()
         let key = store.coordinationID
+        guard erasures[key] == nil else { throw TraktSharedRefreshError.superseded }
         if let configuration = sharedRefresh {
             let revision = revisions[key, default: 0]
             while let refresh = refreshes[key] {
@@ -100,6 +103,7 @@ actor TraktTokenCoordinator {
         let task = Task<String?, Error> {
             defer {
                 if refreshes[key]?.id == id { refreshes[key] = nil }
+                inFlightOperations[id] = nil
             }
             do {
                 let refreshed = try await auth.refresh(previous.refreshToken)
@@ -126,12 +130,14 @@ actor TraktTokenCoordinator {
             }
         }
         refreshes[key] = Refresh(id: id, task: task)
+        inFlightOperations[id] = (key, task)
         return try await task.value
     }
 
     func prepareConnection(store: any TraktTokenStoring) async throws -> ConnectionContext {
         try Task.checkCancellation()
         let key = store.coordinationID
+        guard erasures[key] == nil else { throw TraktSharedRefreshError.superseded }
         let revision = revisions[key, default: 0]
         guard let configuration = sharedRefresh else {
             return ConnectionContext(
@@ -169,6 +175,7 @@ actor TraktTokenCoordinator {
     ) async throws {
         try Task.checkCancellation()
         let key = store.coordinationID
+        guard erasures[key] == nil else { throw TraktSharedRefreshError.superseded }
         if let context {
             guard context.scope == key, context.revision == revisions[key, default: 0] else {
                 throw TraktSharedRefreshError.superseded
@@ -198,6 +205,7 @@ actor TraktTokenCoordinator {
     }
 
     func disconnect(store: any TraktTokenStoring) async throws -> TraktTokens? {
+        guard erasures[store.coordinationID] == nil else { throw TraktSharedRefreshError.superseded }
         let tokens = store.load()
         invalidate(store.coordinationID)
         if let configuration = sharedRefresh {
@@ -219,17 +227,48 @@ actor TraktTokenCoordinator {
     func synchronizeShared(store: any TraktTokenStoring) async throws {
         guard let configuration = sharedRefresh else { return }
         let key = store.coordinationID
+        guard erasures[key] == nil else { throw TraktSharedRefreshError.superseded }
+        let revision = revisions[key, default: 0]
         while let refresh = refreshes[key] {
             _ = try await refresh.task.value
+            try checkSharedRevision(key, revision)
             if refresh.resolvesAccessToken { return }
         }
-        let revision = revisions[key, default: 0]
         let refresh = startSharedOperation(key: key, renewsExpiredTokens: false) {
             try await self.sharedAccess(
                 store: store, configuration: configuration, revision: revision, exchange: nil
             )
         }
         _ = try await refresh.task.value
+    }
+
+    /// Drain single-use exchanges before cloud erasure, then discard local replay
+    /// state. A pending connect/successor must not recreate the just-erased grant.
+    func beginCloudErasure(stores: [any TraktTokenStoring]) async throws -> UUID {
+        let keys = Set(stores.map(\.coordinationID))
+        guard keys.allSatisfy({ erasures[$0] == nil }) else { throw TraktSharedRefreshError.superseded }
+        let owner = UUID()
+        let tasks = inFlightOperations.values.filter { keys.contains($0.key) }.map(\.task)
+        for key in keys {
+            erasures[key] = owner
+            invalidate(key)
+        }
+        do {
+            for task in tasks { _ = await task.result }
+            try Task.checkCancellation()
+            for store in stores {
+                try retireSharedStateForErasure(store: store)
+                try store.clear()
+            }
+            return owner
+        } catch {
+            endCloudErasure(owner: owner)
+            throw error
+        }
+    }
+
+    func endCloudErasure(owner: UUID) {
+        erasures = erasures.filter { $0.value != owner }
     }
 
     private func startSharedOperation(
@@ -240,7 +279,10 @@ actor TraktTokenCoordinator {
     ) -> Refresh {
         let id = UUID()
         let task = Task<String?, Error> {
-            defer { if refreshes[key]?.id == id { refreshes[key] = nil } }
+            defer {
+                if refreshes[key]?.id == id { refreshes[key] = nil }
+                inFlightOperations[id] = nil
+            }
             try Task.checkCancellation()
             return try await operation()
         }
@@ -249,6 +291,7 @@ actor TraktTokenCoordinator {
             resolvesAccessToken: resolvesAccessToken
         )
         refreshes[key] = refresh
+        inFlightOperations[id] = (key, task)
         return refresh
     }
 

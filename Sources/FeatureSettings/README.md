@@ -26,7 +26,10 @@ and the single place caption customization lives.
   **Seconds per item** control share a group without a redundant section heading.
   Mobile source groups use separate native Section rows; grouped-page links
   use independent buttons with native navigation destinations so no link can
-  claim a sibling switch's cell action.
+  claim a sibling switch's cell action. Each mobile destination explicitly receives
+  the link's existing profile-scoped hero and trailer settings models, including
+  nested source pages; page-local environment injection does not cross the native
+  navigation boundary.
   **Discovery** consistently means external recommendations; its
   provider selections and **Show provider labels** attribution toggle live together.
   Ratings, trailers, and the longer source/provider/library/collection lists use subpages. TV uses
@@ -57,7 +60,7 @@ and the single place caption customization lives.
   use one compact label-and-control row without an extra heading or explanatory
   paragraphs. General owns language and spoiler protection.
   Appearance & Layout starts with Theme (including gradient backgrounds and
-  Liquid Glass), followed by Customize Home, display size, artwork, cards,
+  Liquid Glass), followed by display size, artwork, cards,
   navigation, Music Player, Circadian Mode and Detail Page. Playback groups
   audio, autoplay/Up Next, marker skipping, seeking and display fades.
   Subtitles is its own profile category for mode, the shared/Live TV style
@@ -76,7 +79,10 @@ and the single place caption customization lives.
   The navigation history and profile context remain intact, including
   inside the editor's font and appearance subpages.
   Libraries, Live TV and Trackers remain profile-owned. Household setup is
-  separate under Everyone; About and Help & Diagnostics have their own entries.
+  separate under Everyone. Customize Home is a top-level profile category;
+  Appearance and Trackers retain concise explanatory subtitles. About is a compact
+  root summary with version/build, release notes and community QR codes; credits,
+  Help & Diagnostics and the adult-only sign-out action follow in one group.
   `SettingsRowStyle` and `SettingsContext` provide shared controls and dependencies.
   The navigation viewport extends through the vertical safe area, keeping
   the initial top inset inside its scrollable content instead of clipping pages
@@ -87,12 +93,39 @@ and the single place caption customization lives.
   A legacy split-pane gap must not become large empty space between controls
   inside a workspace form. The navigation owner supplies a focus-aware Back
   control through `settingsPageBackButton`; page headers and custom editors
-  host it inside ordinary pages' scrolling content. Full-screen subtitle
-  customization is the explicit exception: Back sits above the stationary title,
+  host it inside ordinary pages' scrolling content. `SettingsBackButton` selects
+  the same native style everywhere, and `SettingsPageHeader` places the title to
+  its right, including Customize by view. Full-screen subtitle
+  customization is the explicit exception: Back sits beside the stationary title,
   and only the bounded left tool pane scrolls beside the large preview.
   Preview controls below the pane expand on focus, smoothly reducing the pane's
   available height instead of scrolling the whole page. There is no redundant
   Appearance heading.
+  Standalone page links use matching 28pt idle/focus corners and compact 8pt gaps.
+  Controls within sections use inset rounded focus geometry instead. The shared
+  `SettingsControlGroup` supplies section surfaces, row separators and insets;
+  `SettingsDetailGroup` uses it for Cards and other multi-group pages. A row marked
+  `groupedContent()` already owns its groups and must not gain another outer box.
+- **iCloud Sync > Troubleshooting** remains reachable with sync off. The grouped
+  breakdown is an on-demand local-ledger snapshot of encoded payload bytes and
+  record counts, not an iCloud quota or network-usage measurement. Pending uploads
+  are included, pending deletions are counted separately, and separately managed
+  iCloud Keychain/Trakt authorization data is explicitly excluded.
+  **Erase Sync Data** needs no Developer Mode. A compact, single-title shared dialog
+  separates iCloud data, local data, and unaffected media, with native buttons
+  for its standalone actions. tvOS presents from the app root to avoid contested
+  nested Settings modal hosts; mobile uses the shared sheet. Choose **Erase Sync Data…**,
+  then confirm the native destructive alert. Cancellation at either
+  step does nothing. Kids profiles cannot execute it, including after a profile
+  switch. Erasure drains the sync engine, switches sync off, enumerates all
+  configured server zones (including unmirrored and direct tracker records),
+  checks every deletion and verifies emptiness before resetting local profiles
+  and servers. In-flight Trakt exchanges are drained and their local replay state
+  retired before remote deletion, including already-cancelled exchanges.
+  Sync cannot be re-enabled while recovery is still running.
+  Failures remain failures, even after a partial erase; no automatic reseed follows.
+  Other devices must stop syncing to avoid republishing. Apple TV cannot remove
+  server logins from iCloud Keychain; the review page directs that step to mobile.
 - `ProfileDetailView` — manage the active profile: rename, recolor,
   switch / sign out of accounts, configure the Plex Home-user mapping
   (`PlexLinkedUserDetailView`).
@@ -112,6 +145,15 @@ and the single place caption customization lives.
   Home-customization preferences. Subtitle *behaviour* (mode, language,
   auto-download) lives here; the subtitle *look* is now adjusted in the
   player while watching.
+- **Send Diagnostics** on TV and mobile uses the existing crash-reporting consent.
+  Each submission appears in Sentry's User Feedback inbox with the optional note
+  (or "User diagnostics report" when blank), linked to the diagnostic event in
+  Issues and its `plozz-recent-activity.log` attachment. No name or email is
+  collected. The privacy filter retains only the feedback message, custom source,
+  and valid associated event ID, not identity or arbitrary feedback fields.
+  Success means SDK handoff, not server acknowledgment; inactive reporting or a
+  rejected event returns failure. Feedback is not submitted when its diagnostic
+  event is rejected. Both events pass through the same privacy hook before upload.
 - `HeroCollectionPickerView` — Customize Home's opt-in **Collections** hero source
   chooses multiple collections across enabled movie and TV libraries, or from accounts'
   personal collections when its provider advertises that capability. The native picker
@@ -163,13 +205,13 @@ and the single place caption customization lives.
 - **Settings surfaces.** Read-only focusable panels use the same adaptive
   gradient surface as ordinary groups, including the opaque Reduce Transparency
   fallback. Their native focus behavior stays unchanged.
-- **TV navigation ownership.** Focusing a category previews its section; Select
-  or Right enters its first control. Left returns to the selected category.
+- **TV navigation ownership.** Focusing a category selects its row; Select
+  or Right opens the equally sized category page.
   Back pops a child, then returns to categories, then leaves Settings for the
   previous available app destination. MainTabView presents the workspace outside
   the navigation-style shell, retaining the hidden shell while excluding it from
-  focus and accessibility. This prevents native sidebar adaptation from expanding
-  a right-pane destination across both columns. Changing navigation style retains
+  focus and accessibility. This prevents native sidebar adaptation from resizing
+  the Settings page. Changing navigation style retains
   the Settings section and typed child path; all three styles restore on exit.
   Focus requests are separate from native focus arrival: competing controls stay
   gated until `NativeFocusRegionObserver` confirms ownership.
@@ -189,6 +231,18 @@ and the single place caption customization lives.
   or normal launches. Attachments include native screenshots and accessibility
   trees, not browser mockups.
 
+- **Shared TV control scale.** Tri-state segments, reorder labels, compact preview-card
+  captions, and form controls use `SettingsRowMetrics.titleFont`. Feature and group
+  descriptions share the smaller `descriptionFont`. Segmented tracks and single-line
+  reorder rows match the shared primary control height. Only the selected segment
+  makes room for a checkmark; that space animates between options without padding
+  unselected labels. Focus still only previews an option: Select commits it.
+  Reorder lift/drop behavior and mobile sizing are unchanged.
+  Checkable choices (including Artwork presets), option chips, stepper values, and
+  navigation labels consume the same title token; inline explanations use the
+  description token. Checklists and segments share `SettingsCheckmark`, rather than
+  styling separate oversized selection indicators. Rank columns reserve the largest
+  enabled number using monospaced digits, including lists with 20 or more items.
 - **Artwork and label presets.** Choosing any preset, including reselecting the
   previous one, replaces the whole configuration through `applyPreset`. Editing
   a view switches to Custom: no preset is selected, and a single badge appears on

@@ -206,12 +206,9 @@ private struct TelevisionSubtitleStyleEditor: View {
         VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
             if screen != .style {
                 HStack(spacing: 16) {
-                    Button {
+                    SettingsBackButton {
                         screen = screen.parent
-                    } label: {
-                        Label("Back", systemImage: "chevron.left")
                     }
-                    .labelStyle(.iconOnly)
                     .focused($focus, equals: .subBack)
                     Text(title).font(.headline)
                     Spacer()

@@ -66,6 +66,7 @@ public struct RootView: View {
     @State private var providerSetupRouter = ManagedProviderSetupRouter()
     @State private var showSyncReceive = false
     @State private var showSyncReceiveFromSettings = false
+    @State private var showSyncErasure = false
     @State private var showsMarkerPreview = false
     /// A just-set-up profile whose PIN is being chosen.
     /// Identifies the server awaiting an identity choice, for `.fullScreenCover(item:)`.
@@ -413,7 +414,7 @@ public struct RootView: View {
 
                     let debugActions = DebugSettingsActions(
                         resetToFirstRun: { appState.resetToFirstRunForDebugging() },
-                        eraseICloud: { appState.eraseEverythingFromICloudForDebugging() }
+                        reviewSyncErasure: { showSyncErasure = true }
                     )
                     let syncRepairActions = SyncRepairActions(
                         redownload: { appState.redownloadCloudSync() },
@@ -538,7 +539,10 @@ public struct RootView: View {
                         // subscribed the ROOT of the app to a model that ticks
                         // through every sync, and a root re-render dirties every
                         // view below it — the widest possible invalidation.
-                        syncStatusSummary: SyncStatusProvider {
+                        syncStatusSummary: SyncStatusProvider(inventory: {
+                            guard let sync = appState.cloudSync else { throw CocoaError(.featureUnsupported) }
+                            return try await sync.dataInventory()
+                        }) {
                             Self.syncStatusPresentation(appState.cloudSyncStatus)
                         },
                         onSyncNow: { appState.syncCloudNow() },
@@ -573,6 +577,19 @@ public struct RootView: View {
             appState: appState, deviceColorScheme: systemColorScheme,
             onAppearanceSelected: completeAppearanceIntroductions
         ))
+        .plozzSheet(isPresented: $showSyncErasure) {
+            AppLanguageScope(model: appState.profileSettings.appLanguageModel) {
+                SyncEraseDataView(
+                    profileID: appState.profilesModel.activeProfileID,
+                    isAllowed: !appState.profilesModel.activeProfile.isKids
+                        && !appState.profileFlow.managementRequiresParentalPIN,
+                    status: SyncStatusProvider {
+                        Self.syncStatusPresentation(appState.cloudSyncStatus)
+                    },
+                    erase: { appState.eraseCloudSyncData() }
+                )
+            }
+        }
         .background { AppBackground(palette: resolvedPalette) }
         .environment(\.themePalette, resolvedPalette)
         .environment(\.managedProviderSetupRouter, providerSetupRouter)

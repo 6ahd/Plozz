@@ -150,18 +150,15 @@ struct LiveTVSettingsPage<Content: View>: View {
         #if os(tvOS)
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if inWorkspace {
-                    Button { dismiss() } label: {
-                        Label("Back", systemImage: "chevron.backward")
-                    }
-                    .settingsPageEntryFocus()
-                    .accessibilityIdentifier("live-tv-settings-back")
-                }
                 Group {
                     if let sourceName { SettingsPageHeader(verbatim: sourceName) }
                     else { SettingsPageHeader(title) }
                 }
-                .environment(\.settingsPageBackButton, nil)
+                .environment(\.settingsPageBackButton, inWorkspace ? AnyView(
+                    SettingsBackButton { dismiss() }
+                        .settingsPageEntryFocus()
+                        .accessibilityIdentifier("live-tv-settings-back")
+                ) : nil)
                 content()
             }
             .frame(maxWidth: PlozzTheme.Metrics.settingsContentMaxWidth, alignment: .leading)
