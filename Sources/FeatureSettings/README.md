@@ -106,6 +106,13 @@ and the single place caption customization lives.
   `SettingsControlGroup` supplies section surfaces, row separators and insets;
   `SettingsDetailGroup` uses it for Cards and other multi-group pages. A row marked
   `groupedContent()` already owns its groups and must not gain another outer box.
+  Illustrated groups use 16pt padding on every side and a 16pt gap without a
+  divider between previews and controls, including Theme, Cards and Navigation.
+  `illustratedContent()` selects that layout for single-group form rows. Ordinary
+  row separators leave 8pt clear of focus on each side; root category separators
+  align with the labels rather than extending under their icons.
+  Compact About community cards keep their QR codes beside wrapping captions and
+  share one equal-height row; mobile and expanded community layouts are unchanged.
 - **iCloud Sync > Troubleshooting** remains reachable with sync off. The grouped
   breakdown is an on-demand local-ledger snapshot of encoded payload bytes and
   record counts, not an iCloud quota or network-usage measurement. Pending uploads

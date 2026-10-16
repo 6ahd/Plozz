@@ -15,10 +15,10 @@ public struct CardAppearanceControls: View {
     public var body: some View {
         #if os(tvOS)
         VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
-            SettingsDetailGroup(title: "Labels") {
+            SettingsDetailGroup(title: "Labels", illustrated: true) {
                 CardLabelControls(settings: $cards.captions, style: cards.style)
             }
-            SettingsDetailGroup(title: "Watched Indicator") {
+            SettingsDetailGroup(title: "Watched Indicator", illustrated: true) {
                 CompactWatchIndicatorPicker(selection: $watchIndicator.indicator, swatchHeight: 150)
                 episodeCountToggle
             }
@@ -27,11 +27,12 @@ public struct CardAppearanceControls: View {
                     "settings.cards.focus",
                     defaultValue: "Focus",
                     comment: "Section header in tvOS Settings > Appearance > Cards, above the picker that chooses what a media card does when the remote's focus lands on it. Not camera focus and not a concentration/Focus mode — this is the on-screen selection highlight."
-                )
+                ),
+                illustrated: true
             ) {
                 CompactCardFocusStylePicker(selection: $cards.focusStyle, swatchHeight: 150)
             }
-            SettingsDetailGroup(title: "Style") {
+            SettingsDetailGroup(title: "Style", illustrated: true) {
                 CompactCardStylePicker(selection: $cards.style, swatchHeight: 150)
             }
         }
@@ -64,13 +65,21 @@ struct CardLabelControls: View {
     let style: CardStyle
 
     var body: some View {
-        SettingsControlRows(nonTVSpacing: 20) {
+        VStack(alignment: .leading, spacing: spacing) {
             CardCaptionPicker(settings: $settings, style: style)
             ViewCustomizationLink(isCustomized: settings.selectedPreset == nil) {
                 CardCaptionCustomizationContent(settings: $settings, style: style)
             }
             .accessibilityIdentifier("card-label-customization")
         }
+    }
+
+    private var spacing: CGFloat {
+        #if os(tvOS)
+        SettingsFormMetrics.illustratedGroupSpacing
+        #else
+        20
+        #endif
     }
 }
 

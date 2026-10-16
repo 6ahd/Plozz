@@ -112,7 +112,7 @@ struct AppearanceDetailView: View {
                     description: "Scales card size, columns and spacing across the app.",
                 ) {
                     CompactDisplaySizePicker(selection: $density.density)
-                },
+                }.illustratedContent(),
                 SettingsSplitRow(
                     id: "artwork",
                     title: "Artwork",
@@ -163,7 +163,7 @@ struct AppearanceDetailView: View {
                         appearance: $musicPlayer.appearance,
                         showTrackDetails: $musicPlayer.showTrackDetails
                     )
-                }
+                }.illustratedContent()
         ] + CircadianRowsBuilder(model: nightShift).rows
             + SpoilerRowsBuilder(spoilers: spoilers).rows
     }
@@ -177,7 +177,7 @@ struct AppearanceDetailView: View {
         @Bindable var transparency = transparency
         VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
             #if os(tvOS)
-            SettingsControlGroup { themeControls }
+            SettingsControlGroup(illustrated: true) { themeControls }
             #else
             themeControls
             #endif
@@ -218,7 +218,7 @@ struct AppearanceDetailView: View {
         var body: some View {
             VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
                 #if os(tvOS)
-                SettingsControlGroup {
+                SettingsControlGroup(illustrated: true) {
                     CompactNavigationPicker(selection: $navigation.style)
                     Toggle("Prevent Accidental Exit", isOn: $navigation.preventsAccidentalExit)
                 }
@@ -273,7 +273,7 @@ struct SpoilerRowsBuilder {
                         isOn: $spoilers.settings.isEnabled,
                         masterLabel: "Hide spoilers for unwatched episodes"
                     ) {
-                        SettingsDetailGroup(title: "Mode") {
+                        SettingsDetailGroup(title: "Mode", illustrated: true) {
                             SpoilerModePicker(mode: $spoilers.settings.mode)
                         }
                     }

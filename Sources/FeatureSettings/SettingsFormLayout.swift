@@ -95,7 +95,7 @@ private struct SettingsFormRow: View {
             .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
             .accessibilityIdentifier("settings-group-\(row.id)")
         } else {
-            SettingsFormGroup(title: row.title, description: row.description) {
+            SettingsFormGroup(title: row.title, description: row.description, illustrated: row.hasIllustratedContent) {
                 row.detail()
             }
             .accessibilityIdentifier("settings-group-\(row.id)")
@@ -106,6 +106,7 @@ private struct SettingsFormRow: View {
 struct SettingsFormGroup<Content: View>: View {
     let title: Text
     var description: Text?
+    var illustrated = false
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -114,7 +115,7 @@ struct SettingsFormGroup<Content: View>: View {
                 .font(.headline)
                 .padding(.horizontal, SettingsFormMetrics.headingInset)
                 .accessibilityAddTraits(.isHeader)
-            SettingsControlGroup(content: content)
+            SettingsControlGroup(illustrated: illustrated, content: content)
             if let description {
                 description
                     .settingsHelperText()
@@ -126,12 +127,20 @@ struct SettingsFormGroup<Content: View>: View {
 }
 
 struct SettingsControlGroup<Content: View>: View {
+    var illustrated = false
+    var dividerLeadingInset: CGFloat = 0
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        SettingsControlRows(content: content)
+        SettingsControlRows(dividerLeadingInset: dividerLeadingInset) {
+            if illustrated {
+                VStack(alignment: .leading, spacing: SettingsFormMetrics.illustratedGroupSpacing, content: content)
+            } else {
+                content()
+            }
+        }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(SettingsFormMetrics.groupInset)
+            .padding(illustrated ? SettingsFormMetrics.illustratedGroupSpacing : SettingsFormMetrics.groupInset)
             .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
             .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
             .environment(\.settingsFormRowsFlushLeading, false)
@@ -191,7 +200,7 @@ private struct SettingsFormRowContent: View {
                     if row.hasGroupedContent {
                         row.detail()
                     } else {
-                        SettingsControlGroup { row.detail() }
+                        SettingsControlGroup(illustrated: row.hasIllustratedContent) { row.detail() }
                     }
                 }
                     .environment(\.settingsPageBackButton, nil)

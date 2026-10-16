@@ -36,7 +36,8 @@ public enum SettingsFormMetrics {
     public static let relatedControlSpacing = PlozzTheme.Spacing.small
     public static let navigationRowSpacing = PlozzTheme.Spacing.xSmall
     public static let groupCornerRadius = PlozzTheme.Metrics.mediumCardCornerRadius
-    public static let dividerFocusClearance: CGFloat = 3
+    public static let dividerFocusClearance = PlozzTheme.Spacing.xSmall
+    public static let illustratedGroupSpacing = PlozzTheme.Spacing.medium
     public static let groupInset = PlozzTheme.Spacing.large
     public static let pageInset = sectionSpacing
     public static let headingInset = PlozzTheme.Spacing.medium
@@ -105,6 +106,11 @@ public enum SettingsRowMetrics {
     /// Horizontal content inset — same at both prominences so a secondary child
     /// list stays aligned under its primary master.
     public static let horizontalPadding: CGFloat = 12
+    public static let iconColumnWidth: CGFloat = 30
+    public static let iconTitleSpacing: CGFloat = 16
+    public static var iconTitleInset: CGFloat {
+        horizontalPadding + iconColumnWidth + iconTitleSpacing
+    }
 
     /// The amount a row pulls its leading edge outward to cancel
     /// ``horizontalPadding`` and sit title-flush-left with a pane heading. Rows

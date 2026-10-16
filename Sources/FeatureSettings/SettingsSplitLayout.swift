@@ -46,6 +46,13 @@ struct SettingsSplitRow: Identifiable {
     var summary: Text?
     var childRows: (() -> [SettingsSplitRow])?
     var hasGroupedContent = false
+    var hasIllustratedContent = false
+
+    func illustratedContent() -> Self {
+        var row = self
+        row.hasIllustratedContent = true
+        return row
+    }
 
     func groupedContent() -> Self {
         var row = self
@@ -592,6 +599,7 @@ struct SettingsRevealSection<Content: View>: View {
 struct SettingsDetailGroup<Content: View>: View {
     let title: LocalizedStringResource
     var description: LocalizedStringResource? = nil
+    var illustrated = false
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -607,7 +615,7 @@ struct SettingsDetailGroup<Content: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             #if os(tvOS)
-            SettingsControlGroup(content: content)
+            SettingsControlGroup(illustrated: illustrated, content: content)
             #else
             content().padding(.top, 4)
             #endif

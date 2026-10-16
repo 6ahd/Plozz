@@ -5,13 +5,16 @@ import SwiftUI
 /// child view so the separator follows both. Conditional rows retain their IDs.
 public struct SettingsControlRows<Content: View>: View {
     private let nonTVSpacing: CGFloat
+    private let dividerLeadingInset: CGFloat
     private let content: Content
 
     public init(
         nonTVSpacing: CGFloat = SettingsFormMetrics.controlSpacing,
+        dividerLeadingInset: CGFloat = 0,
         @ViewBuilder content: () -> Content
     ) {
         self.nonTVSpacing = nonTVSpacing
+        self.dividerLeadingInset = dividerLeadingInset
         self.content = content()
     }
 
@@ -23,6 +26,7 @@ public struct SettingsControlRows<Content: View>: View {
                     row
                     if row.id != rows.last?.id {
                         PlozzDivider()
+                            .padding(.leading, dividerLeadingInset)
                             .padding(.vertical, SettingsFormMetrics.dividerFocusClearance)
                             .accessibilityHidden(true)
                             .allowsHitTesting(false)

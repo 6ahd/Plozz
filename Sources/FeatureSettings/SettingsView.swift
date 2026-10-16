@@ -441,7 +441,8 @@ public struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             profileHeaderInline
             PlozzDivider()
-                .padding(.horizontal, 28)
+                .padding(.leading, 12 + SettingsRowMetrics.iconTitleInset)
+                .padding(.trailing, 28)
             profileOwnedRows
                 .padding(12)
         }
@@ -492,9 +493,11 @@ public struct SettingsView: View {
             }
             .padding(28)
 
-            PlozzDivider().padding(.horizontal, 28)
+            PlozzDivider()
+                .padding(.leading, 28 + SettingsRowMetrics.iconTitleInset)
+                .padding(.trailing, 28)
 
-            SettingsControlRows {
+            SettingsControlRows(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
                 // While sealed every row leads to the PIN instead of its own
                 // page. The row still says what it is — the lock is the only
                 // thing that changes.
@@ -516,7 +519,7 @@ public struct SettingsView: View {
     /// Categories inside the active profile's panel; household setup stays separate.
     @ViewBuilder
     private var profileOwnedRows: some View {
-        SettingsControlRows {
+        SettingsControlRows(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
             sectionRow("General", icon: "gearshape", route: .general)
             // Per-profile "Your Libraries": who you watch as + what shows on THIS
             // profile's Home. The personal mirror of This Apple TV › Servers.
@@ -584,9 +587,11 @@ public struct SettingsView: View {
             }
             .padding(SettingsWorkspaceHeaderMetrics.contentInset)
 
-            PlozzDivider().padding(.horizontal, 28)
+            PlozzDivider()
+                .padding(.leading, 12 + SettingsRowMetrics.iconTitleInset)
+                .padding(.trailing, 28)
 
-            SettingsControlRows {
+            SettingsControlRows(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
                 // Shared server sign-ins (the household's full inventory). The
                 // list screen opens with a prominent Add Server button.
                 sectionRow("Servers", icon: "externaldrive.connected.to.line.below",
@@ -656,7 +661,7 @@ public struct SettingsView: View {
                 compact: true
             )
 
-            SettingsControlGroup {
+            SettingsControlGroup(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
                 navRow(SettingsCopy.attributions, icon: "doc.text.magnifyingglass",
                        value: nil, route: .attributions)
                 sectionRow("Help & Diagnostics", icon: "ladybug", route: .help)

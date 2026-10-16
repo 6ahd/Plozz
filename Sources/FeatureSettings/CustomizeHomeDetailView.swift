@@ -54,13 +54,13 @@ struct CustomizeHomeDetailView: View {
                 }
             ) {
                 layoutForm
-            }
+            }.illustratedContent()
         ]
     }
 
     @ViewBuilder private var layoutForm: some View {
         @Bindable var hero = hero
-        VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
+        VStack(alignment: .leading, spacing: layoutControlSpacing) {
             HomeLayoutPicker(layout: $hero.settings.style)
             if hero.settings.style == .followsFocus {
                 Toggle("Show ratings", isOn: $hero.settings.showsRatings)
@@ -84,6 +84,14 @@ struct CustomizeHomeDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(.easeInOut(duration: 0.22), value: hero.settings.style)
+    }
+
+    private var layoutControlSpacing: CGFloat {
+        #if os(tvOS)
+        SettingsFormMetrics.illustratedGroupSpacing
+        #else
+        SettingsMetrics.sectionSpacing
+        #endif
     }
 
     private var homeRowsRows: [SettingsSplitRow] {
@@ -120,7 +128,7 @@ struct CustomizeHomeDetailView: View {
                         }
                     )
                 )
-            }
+            }.illustratedContent()
         ]
     }
 

@@ -36,7 +36,9 @@ final class PlozzMetricsTests: XCTestCase {
         XCTAssertEqual(SettingsRowMetrics.navigationCornerRadius, SettingsFormMetrics.groupCornerRadius)
         XCTAssertEqual(SettingsRowMetrics.navigationCornerRadius, 28)
         XCTAssertEqual(SettingsFormMetrics.navigationRowSpacing, 8)
-        XCTAssertEqual(SettingsFormMetrics.dividerFocusClearance, 3)
+        XCTAssertEqual(SettingsFormMetrics.dividerFocusClearance, 8)
+        XCTAssertEqual(SettingsFormMetrics.illustratedGroupSpacing, 16)
+        XCTAssertEqual(SettingsRowMetrics.iconTitleInset, 58)
     }
 
     func testPortraitRowsKeepTheSameVisibleFractionWithEitherNavigation() {

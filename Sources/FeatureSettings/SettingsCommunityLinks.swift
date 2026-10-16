@@ -13,6 +13,21 @@ public struct SettingsCommunityLinks: View {
     }
 
     public var body: some View {
+        #if os(tvOS)
+        if compact {
+            HStack(spacing: SettingsFormMetrics.illustratedGroupSpacing) {
+                codes
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+            adaptiveCards
+        }
+        #else
+        adaptiveCards
+        #endif
+    }
+
+    private var adaptiveCards: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .top, spacing: compact ? 12 : 24) {
                 codes
@@ -57,21 +72,37 @@ struct SettingsCommunityCard: View {
         SettingsPanel(contentPadding: compact
                       ? EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16)
                       : .settingsPanelDefault) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: compact ? 16 : 24) {
+            #if os(tvOS)
+            if compact {
+                HStack(spacing: SettingsFormMetrics.illustratedGroupSpacing) {
                     identity(brand: brand, caption: caption)
                     qrCode(url)
                 }
-                VStack(alignment: .leading, spacing: 24) {
-                    identity(brand: brand, caption: caption)
-                    qrCode(url)
-                        .frame(maxWidth: .infinity)
-                }
+                .frame(maxHeight: .infinity)
+            } else {
+                adaptiveContent
             }
+            #else
+            adaptiveContent
+            #endif
         }
         .frame(idealWidth: compact ? 400 : 560, maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var adaptiveContent: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: compact ? 16 : 24) {
+                identity(brand: brand, caption: caption)
+                qrCode(url)
+            }
+            VStack(alignment: .leading, spacing: 24) {
+                identity(brand: brand, caption: caption)
+                qrCode(url)
+                    .frame(maxWidth: .infinity)
+            }
+        }
     }
 
     private func identity(

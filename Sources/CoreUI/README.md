@@ -71,7 +71,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   a control and its helper in one child view; the divider belongs after both.
   Conditional rows keep their SwiftUI identity, and separators add no focus or
   accessibility stops. Focus fills stay within row bounds, with the shared
-  3pt `dividerFocusClearance` on each side of the line. Grouped steppers inherit
+  8pt `dividerFocusClearance` on each side of the line. Icon-led category lists
+  start their dividers at `SettingsRowMetrics.iconTitleInset`, sharing the actual
+  row icon width, gap and content padding; leading alignment also follows RTL.
+  Illustrated Settings groups instead use a 16pt gap and 16pt padding without
+  internal dividers. Grouped steppers inherit
   the same leading inset as their neighboring rows, with no extra resting chip.
   Mobile keeps its existing stack/native-list presentation.
 - **Long Settings labels** — `LabeledSettingRow` preserves the aligned horizontal

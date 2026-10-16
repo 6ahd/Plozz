@@ -89,6 +89,18 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let attributions = app.buttons["Attributions"]
         try focus(attributions, in: app)
         capture("about-inline", in: app)
+        let discord = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@", "Scan to join the Plozz Discord community")
+        ).firstMatch
+        let github = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@", "Scan to view the Plozz GitHub repository")
+        ).firstMatch
+        XCTAssertTrue(discord.exists)
+        XCTAssertTrue(github.exists)
+        XCTAssertEqual(discord.frame.minY, github.frame.minY, accuracy: 1)
+        XCTAssertEqual(discord.frame.height, github.frame.height, accuracy: 1)
+        XCTAssertEqual(discord.frame.width, github.frame.width, accuracy: 1)
+        XCTAssertLessThanOrEqual(github.frame.height, 180, "The QR code must not wrap below its caption.")
         XCUIRemote.shared.press(.select)
         let back = pageBack("settings-category-back", in: app)
         XCTAssertTrue(back.waitForExistence(timeout: 5))
