@@ -9,7 +9,8 @@ import XCTest
 @MainActor
 final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     private var capturedImages: [(image: UIImage, name: String)] = []
-    private var glyphBackground: RenderedFrame?
+    private var idleIndicator: RenderedFrame?
+    private var typographyReferences: [TypographyReference: RenderedFrame] = [:]
 
     func testFirstForwardChevronTravelsHoldsFadesAndRetriggersWhileCountRemains() async throws {
         try await assertFlight(direction: .forward)
@@ -28,30 +29,35 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     }
 
     func testReduceMotionRendersOneSteadyCompactChevronAcrossAdditionalTaps() async throws {
+        var outerClearances: [CGFloat] = []
         for direction in [PlayerTouchSkipDirection.forward, .backward] {
             try await withFeedback(direction: direction, reduceMotion: true) { fixture, window in
                 let interval: TimeInterval = direction == .forward ? 25 : -25
                 fixture.seek(by: interval)
                 try await Task.sleep(for: .milliseconds(120))
-                let first = try self.captureGlyphs(window, direction: direction, label: "Reduce Motion insertion")
+                let first = try self.captureGlyphs(window, direction: direction, reduceMotion: true, label: "Reduce Motion insertion")
                 XCTAssertEqual(self.componentCount(first), 1)
                 try await Task.sleep(for: .milliseconds(160))
-                let later = try self.captureGlyphs(window, direction: direction, label: "Reduce Motion still held")
+                let later = try self.captureGlyphs(window, direction: direction, reduceMotion: true, label: "Reduce Motion still held")
                 XCTAssertTrue(first.pixels == later.pixels, "Reduce Motion must remain exactly static")
 
                 fixture.seek(by: interval)
                 try await Task.sleep(for: .milliseconds(180))
-                let repeated = try self.captureGlyphs(window, direction: direction, label: "Reduce Motion additional tap")
+                let repeated = try self.captureGlyphs(window, direction: direction, reduceMotion: true, label: "Reduce Motion additional tap")
                 XCTAssertTrue(later.pixels == repeated.pixels, "Updating the total must not move the glyphs")
                 XCTAssertEqual(fixture.state.skip?.seconds, interval * 2)
                 XCTAssertEqual(fixture.state.skip?.direction, direction)
                 XCTAssertEqual(fixture.state.skip?.target, 300 + interval * 2)
                 try await Task.sleep(for: .milliseconds(160))
-                let held = try self.captureGlyphs(window, direction: direction, label: "Reduce Motion repeated hold")
+                let held = try self.captureGlyphs(window, direction: direction, reduceMotion: true, label: "Reduce Motion repeated hold")
                 XCTAssertTrue(repeated.pixels == held.pixels, "Additional taps must not start an animation")
-                try self.assertCompactIndicator(held, window: window, direction: direction)
+                outerClearances.append(try self.assertCompactIndicator(
+                    held, indicator: self.captureIndicator(window, direction: direction, label: "Complete compact indicator"),
+                    direction: direction, seconds: interval * 2
+                ))
             }
         }
+        XCTAssertEqual(outerClearances[0], outerClearances[1], accuracy: 1.5, "Reduced-motion edge spacing must mirror in both directions")
     }
 
     func testEnablingReduceMotionReplacesOverlappingFlightsWithOneSteadyChevron() async throws {
@@ -63,17 +69,28 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 let lastPulseAt = ContinuousClock.now
                 fixture.seek(by: interval)
                 try await Task.sleep(for: .milliseconds(60))
-                let moving = try self.captureGlyphs(window, direction: direction, label: "Before Reduce Motion")
-                self.assertVisible(moving)
+                let moving = try self.captureGlyphs(
+                    window, direction: direction, label: "Before Reduce Motion", since: lastPulseAt
+                )
                 fixture.reduceMotion = true
-                try await Task.sleep(for: .milliseconds(80))
-                let stopped = try self.captureGlyphs(window, direction: direction, label: "Reduce Motion activated")
-                XCTAssertEqual(self.componentCount(stopped), 1)
-                try self.assertCompactIndicator(stopped, window: window, direction: direction)
+                // Collect every timed sample before assertions can interrupt the gesture clock.
+                try await Task.sleep(until: lastPulseAt + .milliseconds(240), clock: .continuous)
+                let stopped = try self.captureGlyphs(
+                    window, direction: direction, reduceMotion: true, label: "Reduce Motion activated", since: lastPulseAt
+                )
                 try await Task.sleep(until: lastPulseAt + .milliseconds(1120), clock: .continuous)
-                let later = try self.captureGlyphs(window, direction: direction, label: "Past both flight completions")
+                let later = try self.captureGlyphs(
+                    window, direction: direction, reduceMotion: true, label: "Past both flight completions", since: lastPulseAt
+                )
+                let indicator = try self.captureIndicator(window, direction: direction, label: "Final reduced-motion indicator")
+                let observedSeconds = fixture.state.skip?.seconds
+                let observedAt = ContinuousClock.now
+                self.assertVisible(moving)
+                XCTAssertEqual(self.componentCount(stopped), 1)
+                try self.assertCompactIndicator(later, indicator: indicator, direction: direction, seconds: interval * 2)
                 XCTAssertTrue(stopped.pixels == later.pixels, "Disposed flights must not disturb the steady chevron")
-                XCTAssertEqual(fixture.state.skip?.seconds, interval * 2)
+                XCTAssertLessThan(observedAt, lastPulseAt + .milliseconds(1200), "The final sample must precede feedback expiry")
+                XCTAssertEqual(observedSeconds, interval * 2, "The count must still be present at the final timed sample")
             }
         }
     }
@@ -83,6 +100,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             if !reducePanelGlass {
                 guard #available(iOS 26.0, *) else { continue }
             }
+            var parkedClearances: [CGFloat] = []
             for direction in [PlayerTouchSkipDirection.forward, .backward] {
                 try await withFeedback(reducePanelGlass: reducePanelGlass) { fixture, window in
                     let interval: TimeInterval = direction == .forward ? 25 : -25
@@ -106,13 +124,23 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     let glyphRect = self.glyphRect(direction: direction)
                         .offsetBy(dx: -indicatorRect.minX, dy: -indicatorRect.minY)
                     let idleGlyphs = self.cropped(idle, to: glyphRect)
+                    let reference = try self.typographyReference(kind: .chevron)
                     for milliseconds in [60, 300, 720] {
                         let glyphs = self.cropped(try XCTUnwrap(frames[milliseconds]), to: glyphRect)
                         let foreground = self.removingBackground(glyphs, idleGlyphs)
                         self.assertVisible(foreground)
                         let glyphBounds = try self.inkBounds(foreground, threshold: 32)
-                        XCTAssertGreaterThanOrEqual(glyphBounds.height, 14, "The actual chevron must be captured")
-                        XCTAssertLessThanOrEqual(glyphBounds.width, 18, "A single native chevron must not be clipped or stretched")
+                        if milliseconds == 300 || milliseconds == 720 {
+                            try self.assertTypographyMatches(
+                                foreground, reference: reference, antialiasWeighted: true,
+                                message: "Opened skip chevrons must match PlayerTabButtonStyle's proportional label icons"
+                            )
+                            let clearance = direction == .forward
+                                ? capsule.maxX - (glyphRect.minX + glyphBounds.maxX)
+                                : glyphRect.minX + glyphBounds.minX - capsule.minX
+                            XCTAssertGreaterThanOrEqual(clearance, 16, "A parked chevron must retain at least 16 points of outer padding")
+                            if milliseconds == 720 { parkedClearances.append(clearance) }
+                        }
                         for index in foreground.pixels.indices where foreground.pixels[index] > 32 {
                             let point = CGPoint(
                                 x: glyphRect.minX + CGFloat(index % foreground.width) + 0.5,
@@ -122,8 +150,10 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                         }
                     }
                     XCTAssertEqual(fixture.state.skip?.seconds, interval, "The idle capsule must retain its count")
+                    try self.assertVisibleCompactCount(window, direction: direction, seconds: interval)
                 }
             }
+            XCTAssertEqual(parkedClearances[0], parkedClearances[1], accuracy: 1.5, "Parked edge spacing must mirror in both directions")
         }
     }
 
@@ -141,8 +171,8 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 let speed = try self.capture(window, rect: rect, label: "\(reducePanelGlass ? "Reduced" : "Native") glass speed pill")
                 let capsule = try self.assertCapsule(speed, reducePanelGlass: reducePanelGlass)
                 XCTAssertEqual(capsule.minY + rect.minY, 16, accuracy: 2, "The speed pill must respect its top inset")
-                XCTAssertGreaterThanOrEqual(capsule.height, 38)
-                XCTAssertLessThanOrEqual(capsule.height, 50)
+                XCTAssertGreaterThanOrEqual(capsule.height, 34)
+                XCTAssertLessThanOrEqual(capsule.height, 40)
                 let backing = self.cropped(speed, to: CGRect(
                     x: capsule.midX - 8, y: capsule.minY + 5, width: 16, height: 2
                 ))
@@ -151,14 +181,22 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     "White speed feedback must retain a dark capsule even when its parent uses Light appearance"
                 )
                 let label = self.cropped(speed, to: CGRect(
-                    x: capsule.minX + 18, y: capsule.minY + 8,
-                    width: capsule.width / 2 - 18, height: capsule.height - 16
+                    x: capsule.minX + 14, y: capsule.minY + 6,
+                    width: capsule.width / 2 - 14, height: capsule.height - 12
                 ))
                 let icon = self.cropped(speed, to: CGRect(
-                    x: capsule.midX + 3, y: capsule.minY + 8,
-                    width: capsule.width / 2 - 21, height: capsule.height - 16
+                    x: capsule.midX, y: capsule.minY + 6,
+                    width: capsule.width / 2 - 14, height: capsule.height - 12
                 ))
                 XCTAssertEqual(self.componentCount(label, threshold: 160), 2, "The rate must render both 2 and ×")
+                try self.assertTypographyMatches(
+                    label, reference: self.typographyReference(kind: .rate),
+                    message: "The speed label must match PlayerTabButtonStyle's callout semibold text"
+                )
+                try self.assertTypographyMatches(
+                    icon, reference: self.typographyReference(kind: .fastForward),
+                    message: "The speed symbol must match PlayerTabButtonStyle's proportional label icons"
+                )
                 let iconBounds = try self.inkBounds(icon, threshold: 160)
                 XCTAssertGreaterThanOrEqual(iconBounds.width, 18)
                 XCTAssertGreaterThanOrEqual(iconBounds.height, 10)
@@ -206,17 +244,19 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 lastPulseAt = startedAt
                 fixture.seek(by: interval)
                 var frames: [Int: RenderedFrame] = [:]
-                for milliseconds in [60, 170, 300, 500, 720, 880, 1000, 1120] {
+                for milliseconds in [40, 60, 170, 300, 500, 720, 880, 1000, 1120] {
                     try await Task.sleep(until: startedAt + .milliseconds(milliseconds), clock: .continuous)
                     frames[milliseconds] = try self.captureGlyphs(
                         window, direction: direction, label: "Pulse \(pulse), target \(milliseconds) ms", since: startedAt
                     )
                 }
+                let folded = try XCTUnwrap(frames[40])
                 let early = try XCTUnwrap(frames[60])
                 let traveling = try XCTUnwrap(frames[170])
                 let parked = try XCTUnwrap(frames[300])
                 let fading = try XCTUnwrap(frames[880])
                 let late = try XCTUnwrap(frames[1000])
+                self.assertVisible(folded)
                 self.assertVisible(early)
                 self.assertVisible(traveling)
                 self.assertVisible(parked)
@@ -234,11 +274,36 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 let parkedCenter = self.horizontalCentroid(parked)
                 let fadingEnergy = self.inkEnergy(fading)
                 let lateEnergy = self.inkEnergy(late)
+                let foldedSpread = self.horizontalSpread(folded)
+                let parkedSpread = self.horizontalSpread(parked)
                 XCTAssertGreaterThan(
-                    parkedEnergy, earlyEnergy * 0.85,
-                    "The chevron must arrive at its parked position at full opacity"
+                    foldedSpread, parkedSpread * 0.35,
+                    "The first visible chevron must already be bent rather than starting as a flat stroke"
                 )
-                XCTAssertLessThan(parkedEnergy, earlyEnergy * 1.15, "Travel must not grow or brighten the single glyph")
+                XCTAssertLessThan(
+                    foldedSpread, parkedSpread * 0.8,
+                    "A flight must start partially folded, not translate an already-open chevron"
+                )
+                XCTAssertGreaterThan(
+                    self.horizontalSpread(traveling), foldedSpread * 1.25,
+                    "The chevron must visibly unfold while traveling outward"
+                )
+                XCTAssertEqual(
+                    try self.inkBounds(folded).height, try self.inkBounds(parked).height, accuracy: 1,
+                    "Unfolding must change only horizontal shape, not the icon's proportional height"
+                )
+                try self.assertTypographyMatches(
+                    parked, reference: self.typographyReference(kind: .chevron), antialiasWeighted: true,
+                    message: "Travel must finish at the full native button-label chevron with full opacity"
+                )
+                // Horizontal scaling legitimately increases integrated ink. Divide by its
+                // measured spread to distinguish unfolding from an early opacity fade.
+                let earlyDensity = earlyEnergy / self.horizontalSpread(early)
+                let parkedDensity = parkedEnergy / parkedSpread
+                XCTAssertEqual(
+                    earlyDensity, parkedDensity, accuracy: parkedDensity * 0.15,
+                    "Unfolding must retain opacity instead of fading or brightening during travel"
+                )
                 for milliseconds in [500, 720] {
                     let held = try XCTUnwrap(frames[milliseconds])
                     XCTAssertEqual(
@@ -271,7 +336,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 XCTAssertEqual(fixture.state.skip?.pulse, pulse)
                 XCTAssertEqual(fixture.state.skip?.direction, direction)
                 XCTAssertEqual(fixture.state.skip?.target, 300 + interval * Double(pulse))
-                try self.assertVisibleCompactCount(window, direction: direction)
+                try self.assertVisibleCompactCount(window, direction: direction, seconds: interval * Double(pulse))
             }
             try await Task.sleep(until: lastPulseAt + .milliseconds(1300), clock: .continuous)
             XCTAssertNil(fixture.state.skip, "Flight completion must not change the existing feedback expiry")
@@ -307,12 +372,12 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             XCTAssertLessThan(lastPulseAt, startedAt + .milliseconds(550), "The burst must occur during the first flight")
             let single = try XCTUnwrap(frames[60])
             self.assertVisible(single)
-            let singleBounds = try self.inkBounds(single, threshold: 32)
             let parked = try XCTUnwrap(frames[780])
             self.assertVisible(parked)
             let parkedBounds = try self.inkBounds(parked, threshold: 32)
-            XCTAssertLessThanOrEqual(
-                parkedBounds.width, singleBounds.width + 2,
+            let referenceBounds = try self.inkBounds(self.typographyReference(kind: .chevron), threshold: 32)
+            XCTAssertEqual(
+                parkedBounds.width, referenceBounds.width, accuracy: 2,
                 "Finished travel must bring the parked glyphs to the same position"
             )
             // At each new tap +70 ms, the new glyph is still about 10 points behind the older
@@ -365,42 +430,65 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             XCTAssertEqual(fixture.state.skip?.seconds, sign * 40, "Every accepted tap must contribute to the held total")
             XCTAssertEqual(fixture.state.skip?.direction, direction)
             XCTAssertEqual(fixture.state.skip?.target, 300 + sign * 40)
-            try self.assertVisibleCompactCount(window, direction: direction)
+            try self.assertVisibleCompactCount(window, direction: direction, seconds: sign * 40)
         }
     }
 
+    @discardableResult
     private func assertCompactIndicator(
-        _ glyphs: RenderedFrame, window: UIWindow, direction: PlayerTouchSkipDirection
-    ) throws {
+        _ glyphs: RenderedFrame, indicator: RenderedFrame, direction: PlayerTouchSkipDirection, seconds: TimeInterval
+    ) throws -> CGFloat {
         XCTAssertEqual(componentCount(glyphs), 1, "Reduce Motion must retain exactly one open chevron")
         let glyphBounds = try inkBounds(glyphs)
-        XCTAssertGreaterThanOrEqual(glyphBounds.width, 8)
-        XCTAssertGreaterThanOrEqual(glyphBounds.height, 14)
-        XCTAssertLessThanOrEqual(glyphBounds.width, 18, "The native single chevron must fit the compact 30-point slot")
-        XCTAssertLessThanOrEqual(glyphBounds.height, 26)
-        let indicator = try captureIndicator(window, direction: direction, label: "Complete compact indicator")
-        let indicatorBounds = try inkBounds(indicator)
-        XCTAssertLessThanOrEqual(indicatorBounds.width, 100, "The count and chevrons must retain the compact font and spacing")
-        XCTAssertLessThanOrEqual(indicatorBounds.height, 28)
+        try assertTypographyMatches(
+            glyphs, reference: typographyReference(kind: .chevron), antialiasWeighted: true,
+            message: "Reduced Motion must retain the full proportional button-label chevron"
+        )
+        let capsule = try inkBounds(indicator, threshold: 12)
+        let fullMotionCapsule = try inkBounds(XCTUnwrap(idleIndicator), threshold: 12)
+        XCTAssertEqual(
+            capsule.width, fullMotionCapsule.width - 20, accuracy: 1,
+            "Reduce Motion must remove the entire unused 20-point travel reservation"
+        )
+        XCTAssertEqual(capsule.midX, fullMotionCapsule.midX, accuracy: 0.5, "Removing travel space must keep the pill centered")
+        let origin = glyphRect(direction: direction, reduceMotion: true).minX - indicatorRect(direction: direction).minX
+        let clearance = direction == .forward
+            ? capsule.maxX - (origin + glyphBounds.maxX)
+            : origin + glyphBounds.minX - capsule.minX
+        XCTAssertGreaterThanOrEqual(clearance, 16, "The stationary chevron must retain its outer padding")
+        let count = countRect(direction: direction, reduceMotion: true)
+            .offsetBy(dx: -indicatorRect(direction: direction).minX, dy: -indicatorRect(direction: direction).minY)
+        try assertCompactCount(cropped(indicator, to: count), seconds: seconds)
+        return clearance
     }
 
-    private func assertVisibleCompactCount(_ window: UIWindow, direction: PlayerTouchSkipDirection) throws {
+    private func assertVisibleCompactCount(
+        _ window: UIWindow, direction: PlayerTouchSkipDirection, seconds: TimeInterval
+    ) throws {
         let count = try capture(
-            window, rect: CGRect(x: direction == .forward ? 260 : 75, y: 80, width: 65, height: 40),
-            label: "\(direction) — count remains after flights fade"
+            window, rect: countRect(direction: direction), label: "\(direction) — compact skip count"
         )
+        try assertCompactCount(count, seconds: seconds)
+    }
+
+    private func countRect(direction: PlayerTouchSkipDirection, reduceMotion: Bool = false) -> CGRect {
+        let shift: CGFloat = reduceMotion ? (direction == .forward ? 10 : -10) : 0
+        return CGRect(x: (direction == .forward ? 260 : 94) + shift, y: 82, width: 46, height: 36)
+    }
+
+    private func assertCompactCount(_ count: RenderedFrame, seconds: TimeInterval) throws {
         assertVisible(count, message: "The accumulated count must remain after the chevrons have disappeared")
-        let bounds = try inkBounds(count)
-        XCTAssertGreaterThanOrEqual(bounds.height, 18)
-        XCTAssertLessThanOrEqual(bounds.height, 28, "The count must retain its compact 26-point font")
-        XCTAssertLessThanOrEqual(bounds.width, 60)
+        try assertTypographyMatches(
+            count, reference: typographyReference(kind: .count(seconds)),
+            message: "The skip count must match PlayerTabButtonStyle's callout semibold text"
+        )
     }
 
     private func assertCapsule(_ frame: RenderedFrame, reducePanelGlass: Bool) throws -> CGRect {
         let bounds = try inkBounds(frame, threshold: 12)
-        XCTAssertGreaterThan(bounds.width, 90, "Feedback must have a padded surface, not just bare foreground")
+        XCTAssertGreaterThan(bounds.width, 70, "Feedback must include the smaller player typography and 16-point side insets")
         XCTAssertLessThanOrEqual(bounds.width, 160)
-        XCTAssertGreaterThanOrEqual(bounds.height, 38)
+        XCTAssertGreaterThanOrEqual(bounds.height, 32)
         XCTAssertLessThanOrEqual(bounds.height, 54)
         let corner = cropped(frame, to: CGRect(x: bounds.minX + 1, y: bounds.minY + 1, width: 2, height: 2))
         assertAbsent(corner, message: "The feedback surface must have capsule corners rather than a rectangular fill")
@@ -448,23 +536,26 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                 add(attachment)
             }
             capturedImages.removeAll()
-            glyphBackground = nil
+            idleIndicator = nil
+            typographyReferences.removeAll()
         }
         window.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(80))
+        try await prepareTypographyReferences(fixture, window: window)
         if let direction {
             // Use the real idle pill as the contrast reference. The phase/overlap tests exercise
             // the supported deterministic frosted path; native glass gets separate rendered coverage.
             fixture.seek(by: direction == .forward ? 25 : -25)
             try await Task.sleep(for: .milliseconds(1120))
-            let background = try capture(
-                window, rect: glyphRect(direction: direction), label: "\(direction) — idle pill contrast reference"
-            )
+            let background = try captureIndicator(window, direction: direction, label: "Idle pill contrast reference")
+            let region = glyphRect(direction: direction)
+                .offsetBy(dx: -indicatorRect(direction: direction).minX, dy: -indicatorRect(direction: direction).minY)
+            let backgroundGlyphs = cropped(background, to: region)
             XCTAssertLessThanOrEqual(
-                background.pixels.max() ?? 0, 96,
+                backgroundGlyphs.pixels.max() ?? 0, 96,
                 "The idle frosted reference must not contain a resting white chevron"
             )
-            glyphBackground = background
+            idleIndicator = background
             fixture.state.cancel()
             fixture.state = PlayerTouchGestureState()
             fixture.reduceMotion = reduceMotion
@@ -480,17 +571,27 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     }
 
     private func captureGlyphs(
-        _ window: UIWindow, direction: PlayerTouchSkipDirection, label: String,
+        _ window: UIWindow, direction: PlayerTouchSkipDirection, reduceMotion: Bool = false, label: String,
         since: ContinuousClock.Instant? = nil
     ) throws -> RenderedFrame {
+        let rect = glyphRect(direction: direction, reduceMotion: reduceMotion)
         let frame = try capture(
-            window, rect: glyphRect(direction: direction), label: "\(direction) — \(label)", since: since
+            window, rect: rect, label: "\(direction) — \(label)", since: since
         )
-        return glyphBackground.map { removingBackground(frame, $0) } ?? frame
+        guard let idleIndicator else { return frame }
+        // Removing the directional 20-point reservation moves the outer capsule edge inward
+        // by 10 points. Sample the same real idle surface relative to that mirrored edge.
+        let shift: CGFloat = reduceMotion ? (direction == .forward ? 10 : -10) : 0
+        let referenceRect = rect.offsetBy(
+            dx: shift - indicatorRect(direction: direction).minX,
+            dy: -indicatorRect(direction: direction).minY
+        )
+        return removingBackground(frame, cropped(idleIndicator, to: referenceRect))
     }
 
-    private func glyphRect(direction: PlayerTouchSkipDirection) -> CGRect {
-        CGRect(x: direction == .forward ? 325 : 15, y: 76, width: 60, height: 48)
+    private func glyphRect(direction: PlayerTouchSkipDirection, reduceMotion: Bool = false) -> CGRect {
+        let x: CGFloat = direction == .forward ? 306 : 22
+        return CGRect(x: x + (reduceMotion ? 10 : 0), y: 76, width: reduceMotion ? 52 : 72, height: 48)
     }
 
     private func indicatorRect(direction: PlayerTouchSkipDirection) -> CGRect {
@@ -505,6 +606,73 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             window, rect: indicatorRect(direction: direction),
             label: "\(direction) — \(label)"
         )
+    }
+
+    private enum TypographyReference: Hashable {
+        case count(TimeInterval), rate, chevron, fastForward
+    }
+
+    private func prepareTypographyReferences(_ fixture: FeedbackFixture, window: UIWindow) async throws {
+        let totals: [TimeInterval] = [25, 40, 50, -25, -40, -50]
+        for seconds in totals {
+            fixture.referenceCount = seconds
+            try await Task.sleep(for: .milliseconds(40))
+            typographyReferences[.count(seconds)] = try captureTypographyReference(window, kind: .count(seconds))
+        }
+        for kind in [TypographyReference.rate, .chevron, .fastForward] {
+            typographyReferences[kind] = try captureTypographyReference(window, kind: kind)
+        }
+        fixture.referenceIconsVisible = false
+        try await Task.sleep(for: .milliseconds(40))
+        for kind in [TypographyReference.chevron, .fastForward] {
+            let background = try captureTypographyReference(window, kind: kind, background: true)
+            typographyReferences[kind] = removingBackground(try typographyReference(kind: kind), background)
+        }
+        fixture.showsTypographyReferences = false
+        try await Task.sleep(for: .milliseconds(60))
+    }
+
+    private func typographyReference(kind: TypographyReference) throws -> RenderedFrame {
+        try XCTUnwrap(typographyReferences[kind], "Typography references must be captured before the gesture clock starts")
+    }
+
+    private func captureTypographyReference(
+        _ window: UIWindow, kind: TypographyReference, background: Bool = false
+    ) throws -> RenderedFrame {
+        let rect: CGRect
+        switch kind {
+        case .count: rect = CGRect(x: 30, y: 230, width: 60, height: 40)
+        case .rate: rect = CGRect(x: 150, y: 230, width: 60, height: 40)
+        case .chevron: rect = CGRect(x: 240, y: 226, width: 60, height: 48)
+        case .fastForward: rect = CGRect(x: 300, y: 226, width: 60, height: 48)
+        }
+        return try capture(window, rect: rect, label: "Player typography reference — \(kind)\(background ? " background" : "")")
+    }
+
+    private func assertTypographyMatches(
+        _ actual: RenderedFrame, reference: RenderedFrame, antialiasWeighted: Bool = false, message: String
+    ) throws {
+        let actualBounds = try inkBounds(actual)
+        let referenceBounds = try inkBounds(reference)
+        XCTAssertEqual(actualBounds.width, referenceBounds.width, accuracy: 1, message)
+        XCTAssertEqual(actualBounds.height, referenceBounds.height, accuracy: 1, message)
+        if antialiasWeighted {
+            // Summed antialias coverage preserves thin strokes across fractional origins and
+            // mirroring; a hard threshold can count the same native chevron as 32 or 49 pixels.
+            let actualInk = inkEnergy(actual) / 255
+            let referenceInk = inkEnergy(reference) / 255
+            XCTAssertEqual(
+                actualInk, referenceInk, accuracy: max(1, referenceInk * 0.05),
+                "\(message); antialias-weighted stroke coverage must match"
+            )
+        } else {
+            let actualInk = Double(actual.pixels.filter { $0 > 128 }.count)
+            let referenceInk = Double(reference.pixels.filter { $0 > 128 }.count)
+            XCTAssertEqual(
+                actualInk, referenceInk, accuracy: max(3, referenceInk * 0.15),
+                "\(message); stroke coverage must match as well as bounding size"
+            )
+        }
     }
 
     private func capture(
@@ -580,6 +748,15 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         return Double(moment) / max(energy, 1)
     }
 
+    private func horizontalSpread(_ frame: RenderedFrame) -> Double {
+        let center = horizontalCentroid(frame)
+        let variance = frame.pixels.enumerated().reduce(0.0) { sum, pixel in
+            let distance = Double(pixel.offset % frame.width) - center
+            return sum + distance * distance * Double(pixel.element)
+        }
+        return (variance / max(inkEnergy(frame), 1)).squareRoot()
+    }
+
     private func assertVisible(
         _ frame: RenderedFrame, message: String = "The traveling chevron must be visible",
         file: StaticString = #filePath, line: UInt = #line
@@ -635,6 +812,9 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
 private final class FeedbackFixture {
     var state = PlayerTouchGestureState()
     var reduceMotion: Bool
+    var referenceCount: TimeInterval = 25
+    var referenceIconsVisible = true
+    var showsTypographyReferences = true
     let reducePanelGlass: Bool
     let colorScheme: ColorScheme
 
@@ -658,10 +838,52 @@ private struct FeedbackFixtureView: View {
             .fixedSize()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.black)
+            .overlay(alignment: .topLeading) {
+                if fixture.showsTypographyReferences {
+                    FeedbackTypographyReferenceView(fixture: fixture)
+                        .offset(y: 220)
+                }
+            }
             .environment(\.locale, Locale(identifier: "en_US"))
             .environment(\.colorScheme, fixture.colorScheme)
             .environment(\.plozzReducePanelGlass, fixture.reducePanelGlass)
             .ignoresSafeArea()
+    }
+}
+
+private struct FeedbackTypographyReferenceView: View {
+    let fixture: FeedbackFixture
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Button {} label: {
+                Text(fixture.referenceCount, format: .number.sign(strategy: .always()).precision(.fractionLength(0)))
+                    .monospacedDigit()
+            }
+            .buttonStyle(PlayerTabButtonStyle(focused: false, selected: true))
+            .frame(width: 120, height: 60)
+            Button {} label: {
+                Text(verbatim: "2×").monospacedDigit()
+            }
+            .buttonStyle(PlayerTabButtonStyle(focused: false, selected: true))
+            .frame(width: 120, height: 60)
+            Button {} label: {
+                Image(systemName: "chevron.right")
+                    .opacity(fixture.referenceIconsVisible ? 1 : 0)
+            }
+            .buttonStyle(PlayerTabButtonStyle(focused: false, selected: true))
+            .frame(width: 60, height: 60)
+            Button {} label: {
+                Image(systemName: "forward.fill")
+                    .opacity(fixture.referenceIconsVisible ? 1 : 0)
+            }
+            .buttonStyle(PlayerTabButtonStyle(focused: false, selected: true))
+            .frame(width: 60, height: 60)
+        }
+        .foregroundStyle(.white)
+        .environment(\.plozzReducePanelGlass, true)
+        .environment(\.colorScheme, .dark)
+        .allowsHitTesting(false)
     }
 }
 #endif

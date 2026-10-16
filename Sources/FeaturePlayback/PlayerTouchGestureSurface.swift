@@ -208,7 +208,7 @@ struct PlayerTouchGestureFeedbackContent: View {
     var body: some View {
         GeometryReader { geometry in
             if let skip = state.skip {
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     if skip.direction == .backward {
                         PlayerTouchSkipChevrons(direction: .backward, pulse: skip.pulse, reduceMotion: reduceMotion)
                     }
@@ -221,7 +221,6 @@ struct PlayerTouchGestureFeedbackContent: View {
                         PlayerTouchSkipChevrons(direction: .forward, pulse: skip.pulse, reduceMotion: reduceMotion)
                     }
                 }
-                .font(.system(size: 26, weight: .semibold))
                 .modifier(PlayerTouchFeedbackPill())
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("player-gesture-skip-pill")
@@ -232,11 +231,11 @@ struct PlayerTouchGestureFeedbackContent: View {
             if let rate = state.boostRate {
                 HStack(spacing: 8) {
                     Text(verbatim: rate.formatted(.number.precision(.fractionLength(0...2))) + "×")
+                        .monospacedDigit()
                         .accessibilityIdentifier("player-gesture-speed")
                     Image(systemName: "forward.fill")
                         .accessibilityHidden(true)
                 }
-                .font(.title2.weight(.semibold).monospacedDigit())
                 .modifier(PlayerTouchFeedbackPill())
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("player-gesture-speed-pill")
@@ -252,7 +251,8 @@ struct PlayerTouchGestureFeedbackContent: View {
 private struct PlayerTouchFeedbackPill: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 20)
+            .font(.callout.weight(.semibold))
+            .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .modifier(PanelGlassBackground(cornerRadius: 999))
             .environment(\.colorScheme, .dark)
@@ -281,9 +281,12 @@ private struct PlayerTouchSkipChevrons: View {
                         }
                     }
                 }
-                .font(.system(size: 22, weight: .semibold))
                 .scaleEffect(x: direction == .forward ? 1 : -1, y: 1)
             }
+            .padding(
+                direction == .forward ? .trailing : .leading,
+                reduceMotion ? 0 : PlayerTouchSkipChevronFlight.travelDistance
+            )
             .onChange(of: pulse, initial: true) {
                 guard !reduceMotion else { return }
                 activePulses.append(pulse)
@@ -295,6 +298,7 @@ private struct PlayerTouchSkipChevrons: View {
 }
 
 private struct PlayerTouchSkipChevronFlight: View {
+    static let travelDistance: CGFloat = 20
     private static let travelDuration = 0.25
     private static let holdDuration = 0.5
     private static let fadeDuration = 0.3
@@ -304,7 +308,8 @@ private struct PlayerTouchSkipChevronFlight: View {
 
     var body: some View {
         Image(systemName: "chevron.right")
-            .offset(x: isTraveling ? 20 : 0)
+            .scaleEffect(x: isTraveling ? 1 : 0.45, y: 1)
+            .offset(x: isTraveling ? Self.travelDistance : 0)
             .animation(.easeOut(duration: Self.travelDuration), value: isTraveling)
             .opacity(isTraveling ? 0 : 1)
             .onAppear {
