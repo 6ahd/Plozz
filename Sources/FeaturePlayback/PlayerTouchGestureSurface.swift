@@ -70,7 +70,7 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
         func install(in view: UIView) {
             let tap = UITapGestureRecognizer(target: self, action: #selector(tapped(_:)))
             hold.addTarget(self, action: #selector(held(_:)))
-            hold.minimumPressDuration = 0.45
+            hold.minimumPressDuration = 1
             hold.allowableMovement = 12
             pinch.addTarget(self, action: #selector(pinched(_:)))
             for gesture in [tap, hold, pinch] {
@@ -210,14 +210,14 @@ struct PlayerTouchGestureFeedbackContent: View {
             if let skip = state.skip {
                 HStack(spacing: 16) {
                     if skip.direction == .backward {
-                        PlayerTouchSkipChevrons(direction: .backward, reduceMotion: reduceMotion)
+                        PlayerTouchSkipChevrons(direction: .backward, pulse: skip.pulse, reduceMotion: reduceMotion)
                     }
                     Text(skip.seconds, format: .number.sign(strategy: .always()).precision(.fractionLength(0)))
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .accessibilityIdentifier("player-gesture-skip-total")
                     if skip.direction == .forward {
-                        PlayerTouchSkipChevrons(direction: .forward, reduceMotion: reduceMotion)
+                        PlayerTouchSkipChevrons(direction: .forward, pulse: skip.pulse, reduceMotion: reduceMotion)
                     }
                 }
                 .font(.system(size: 30, weight: .semibold))
@@ -241,22 +241,32 @@ struct PlayerTouchGestureFeedbackContent: View {
 
 private struct PlayerTouchSkipChevrons: View {
     let direction: PlayerTouchSkipDirection
+    let pulse: Int
     let reduceMotion: Bool
     @State private var startedAt = Date()
+    @State private var isAnimating = true
 
     var body: some View {
-        // One clock belongs to this HUD insertion, not to individual tap pulses.
-        TimelineView(.animation(minimumInterval: 1 / 60, paused: reduceMotion)) { context in
+        TimelineView(.animation(minimumInterval: 1 / 60, paused: reduceMotion || !isAnimating)) { context in
             let elapsed = max(0, context.date.timeIntervalSince(startedAt))
             HStack(spacing: -3) {
                 ForEach(0..<2) { index in
                     let order = direction == .forward ? index : 1 - index
-                    let phase = elapsed * (2 * .pi / 0.8) - Double(order) * .pi / 2
+                    let progress = min(1, max(0, (elapsed - Double(order) * 0.04) / 0.24))
+                    let confirmation = reduceMotion || !isAnimating ? 0 : sin(progress * .pi)
                     Image(systemName: direction == .forward ? "chevron.right" : "chevron.left")
-                        .opacity(reduceMotion ? 1 : 0.65 + 0.35 * cos(phase))
-                        .offset(x: reduceMotion ? 0 : 4 * sin(phase) * (direction == .forward ? 1 : -1))
+                        .opacity(1 - 0.35 * confirmation)
+                        .offset(x: 4 * confirmation * (direction == .forward ? 1 : -1))
                 }
             }
+        }
+        .task(id: pulse) {
+            startedAt = Date()
+            isAnimating = !reduceMotion
+            guard isAnimating else { return }
+            do { try await Task.sleep(for: .milliseconds(300)) }
+            catch { return }
+            isAnimating = false
         }
         .transaction { $0.animation = nil }
         .accessibilityHidden(true)

@@ -87,15 +87,17 @@ backward/forward interval. Additional taps while the feedback is visible
 accumulate from the requested position, not a lagging playback clock. Directional
 chevrons and the signed total replace the main controls, retaining the player's
 actual timeline in its normal position, with its time labels, playhead, buffer
-and segment styling, and scrubbing behavior. Two chevrons move smoothly from the
-first double-tap and continue across additional taps; Reduce Motion keeps them
-still. Single taps still toggle controls; native controls and open menus keep
-their own touches.
+and segment styling, and scrubbing behavior. Two chevrons give one brief
+confirmation on the first double-tap and each additional accepted skip, then
+remain still beside the signed total; they do not loop while feedback is visible.
+Reduce Motion keeps them still. Single taps still toggle controls; native
+controls and open menus keep their own touches.
 
-Holding on-demand video temporarily accelerates moving playback to at most 2x
-when the engine supports it. Releasing, pausing, seeking, leaving the player, or
-backgrounding cancels the override without changing the saved speed. Live TV
-supports skips only inside an available rewind window, not speed boosting.
+Holding on-demand video for at least one second temporarily accelerates moving
+playback to at most 2x when the engine supports it; shorter presses do not boost
+speed. Releasing, pausing, seeking, leaving the player, or backgrounding cancels
+the override without changing the saved speed. Live TV supports skips only
+inside an available rewind window, not speed boosting.
 
 Pinch inward for Normal fitting inside the display's safe area, clear of the
 Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This

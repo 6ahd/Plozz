@@ -7,12 +7,12 @@ import XCTest
 
 @MainActor
 final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
-    func testFirstForwardInsertionAnimatesAndAdditionalTapKeepsItsPhase() async throws {
-        try await assertMovingFeedback(direction: .forward)
+    func testFirstForwardInsertionConfirmsOnceAndAdditionalTapRetriggers() async throws {
+        try await assertBriefConfirmation(direction: .forward)
     }
 
-    func testFirstBackwardInsertionAnimatesAndAdditionalTapKeepsItsPhase() async throws {
-        try await assertMovingFeedback(direction: .backward)
+    func testFirstBackwardInsertionConfirmsOnceAndAdditionalTapRetriggers() async throws {
+        try await assertBriefConfirmation(direction: .backward)
     }
 
     func testReduceMotionRendersExactlyTwoSteadyChevronsAcrossAdditionalTaps() async throws {
@@ -46,12 +46,12 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         }
     }
 
-    func testEnablingReduceMotionStopsAnAlreadyVisibleWave() async throws {
+    func testEnablingReduceMotionStopsAnAlreadyVisibleConfirmation() async throws {
         try await withFeedback { fixture, window in
             fixture.seek(by: 25)
-            try await Task.sleep(for: .milliseconds(180))
+            try await Task.sleep(for: .milliseconds(70))
             fixture.reduceMotion = true
-            try await Task.sleep(for: .milliseconds(120))
+            try await Task.sleep(for: .milliseconds(40))
             let stopped = try self.capture(window, direction: .forward)
             XCTAssertEqual(self.componentCount(stopped.subject), 2)
             try await Task.sleep(for: .milliseconds(180))
@@ -62,36 +62,50 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         }
     }
 
-    private func assertMovingFeedback(direction: PlayerTouchSkipDirection) async throws {
+    private func assertBriefConfirmation(direction: PlayerTouchSkipDirection) async throws {
         try await withFeedback { fixture, window in
             let interval: TimeInterval = direction == .forward ? 25 : -25
             XCTAssertNil(fixture.subject.skip)
-            fixture.seek(by: interval)
-            try await Task.sleep(for: .milliseconds(120))
-            let first = try self.capture(window, direction: direction)
-            XCTAssertLessThan(self.difference(first.reference, first.subject), 0.12)
-            try await Task.sleep(for: .milliseconds(160))
-            let later = try self.capture(window, direction: direction)
-            XCTAssertGreaterThan(
-                self.difference(first.subject, later.subject), 0.12,
-                "The first insertion must visibly animate without another tap"
-            )
+            var previousRest: [UInt8]?
+            for pulse in 1...2 {
+                let startedAt = ContinuousClock.now
+                fixture.seek(by: interval)
+                try await Task.sleep(until: startedAt + .milliseconds(60), clock: .continuous)
+                let first = try self.capture(window, direction: direction)
+                try await Task.sleep(until: startedAt + .milliseconds(180), clock: .continuous)
+                let moving = try self.capture(window, direction: direction)
+                XCTAssertGreaterThan(
+                    self.difference(first.subject, moving.subject), 0.12,
+                    "Skip pulse \(pulse) must visibly move during its brief confirmation"
+                )
+                if let previousRest {
+                    XCTAssertGreaterThan(
+                        self.difference(previousRest, first.subject), 0.12,
+                        "An accepted additional tap must restart confirmation from the resting HUD"
+                    )
+                }
 
-            // Both real HUDs started together. Only the lower one receives another tap;
-            // its glyphs must keep matching the untouched upper HUD's animation phase.
-            _ = fixture.subject.seek(by: interval, from: 300, within: 0...600)
-            try await Task.sleep(for: .milliseconds(180))
-            let repeated = try self.capture(window, direction: direction)
-            XCTAssertEqual(fixture.subject.skip?.seconds, interval * 2)
-            XCTAssertEqual(fixture.subject.skip?.pulse, 2)
-            XCTAssertLessThan(
-                self.difference(repeated.reference, repeated.subject), 0.12,
-                "An additional tap must not restart or shift the ongoing wave"
-            )
-            try await Task.sleep(for: .milliseconds(160))
-            let continued = try self.capture(window, direction: direction)
-            XCTAssertGreaterThan(self.difference(repeated.subject, continued.subject), 0.12)
-            XCTAssertLessThan(self.difference(continued.reference, continued.subject), 0.12)
+                // Use pulse-relative deadlines so screenshot work does not accumulate into the waits.
+                try await Task.sleep(until: startedAt + .milliseconds(450), clock: .continuous)
+                let settled = try self.capture(window, direction: direction)
+                try await Task.sleep(until: startedAt + .milliseconds(650), clock: .continuous)
+                let resting = try self.capture(window, direction: direction)
+                XCTAssertTrue(
+                    settled.subject == resting.subject,
+                    "Skip pulse \(pulse) must finish by 450 ms and leave exactly static glyph pixels"
+                )
+                XCTAssertEqual(self.componentCount(resting.subject), 2, "Both chevrons must remain visible at rest")
+                XCTAssertEqual(fixture.subject.skip?.seconds, interval * Double(pulse), "The cumulative HUD must remain visible")
+                XCTAssertEqual(fixture.subject.skip?.pulse, pulse)
+                XCTAssertEqual(fixture.subject.skip?.direction, direction)
+                if let previousRest {
+                    XCTAssertTrue(
+                        previousRest == resting.subject,
+                        "Each confirmation must return to the same HUD's resting glyph pixels"
+                    )
+                }
+                previousRest = resting.subject
+            }
         }
     }
 
@@ -135,7 +149,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
         }
         let attachment = XCTAttachment(image: image)
-        attachment.name = "Skip wave \(direction)"
+        attachment.name = "Skip confirmation \(direction)"
         attachment.lifetime = .keepAlways
         add(attachment)
         let cgImage = try XCTUnwrap(image.cgImage)

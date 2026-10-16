@@ -81,7 +81,11 @@ final class PlayerGestureInteractionTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["gesture-rate"].wait(for: \.label, toEqual: "1.0", timeout: 5),
                       "Verify the actual renderer is playing at 1× before holding. \(app.debugDescription)")
         XCTAssertEqual(app.staticTexts["gesture-maximum-rate"].label, "1.0")
-        point(x: 0.5, y: 0.28).press(forDuration: 1.1)
+        point(x: 0.5, y: 0.28).press(forDuration: 0.85)
+        XCTAssertEqual(app.staticTexts["gesture-maximum-rate"].label, "1.0",
+                       "Releasing before one second must not activate the speed boost.")
+        XCTAssertFalse(app.staticTexts["player-gesture-speed"].exists)
+        point(x: 0.5, y: 0.28).press(forDuration: 1.4)
         XCTAssertTrue(app.staticTexts["gesture-maximum-rate"].wait(for: \.label, toEqual: "2.0", timeout: 3),
                       app.debugDescription)
         XCTAssertTrue(app.staticTexts["gesture-rate"].wait(for: \.label, toEqual: "1.0", timeout: 3),
