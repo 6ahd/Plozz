@@ -541,6 +541,34 @@ struct PlaybackDetailView: View {
 
     // MARK: - Split sections
 
+    private var versionSelectionRows: [SettingsSplitRow] {
+        [
+            SettingsSplitRow(
+                id: "version-selection", title: "Version selection",
+                description: "Ask before each multi-version video, including autoplay, or remember your choice for each movie or series."
+            ) {
+                #if os(tvOS)
+                SettingsControlRows {
+                    if playback.settings.versionSelectionMode == nil {
+                        Text("Choose on first play")
+                            .settingsHelperText()
+                    }
+                    ForEach(PlaybackVersionSelectionMode.allCases, id: \.self) { mode in
+                        SettingsCheckableRow(
+                            title: Text(mode.title), titleLineLimit: nil,
+                            isChecked: playback.settings.versionSelectionMode == mode
+                        ) {
+                            playback.settings.versionSelectionMode = mode
+                        }
+                    }
+                }
+                #else
+                PlaybackVersionPreferencePicker(model: playback)
+                #endif
+            }
+        ]
+    }
+
     private var rows: [SettingsSplitRow] {
         #if os(tvOS)
         if inWorkspace {
@@ -563,7 +591,7 @@ struct PlaybackDetailView: View {
                         ForEach(upNextRows) { $0.detail() }
                     }
                 }
-            ] + skipIntroRows.map { $0.page() } + [
+            ] + versionSelectionRows + skipIntroRows + [
                 SettingsSplitRow(id: "seeking", title: "Seeking") {
                     SettingsControlRows {
                         ForEach(skipIntervalRows) { $0.detail() }
@@ -583,6 +611,7 @@ struct PlaybackDetailView: View {
         #endif
         return subtitleRows
             + audioRows
+            + versionSelectionRows
             + skipIntroRows
             + skipIntervalRows
             + resumeRows

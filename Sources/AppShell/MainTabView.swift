@@ -1866,7 +1866,7 @@ struct MainTabView: View {
             offlinePlaybackResolver: offlinePlaybackResolver,
             behavior: subtitleBehaviorModel.settings,
             style: subtitleStyleModel.style,
-            playbackSettings: playbackModel.settings,
+            playbackSettingsModel: playbackModel,
             spoilerSettings: spoilerModel.settings,
             subtitlePolicy: subtitlePolicyModel.resolvedPolicy(behavior: subtitleBehaviorModel.settings),
             audioPolicy: audioPolicyModel.resolvedPolicy(settings: playbackModel.settings),

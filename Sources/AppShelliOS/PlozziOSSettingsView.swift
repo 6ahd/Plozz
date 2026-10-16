@@ -2280,6 +2280,7 @@ struct PlozziOSPlaybackSettingsView: View {
             }
 
             SettingsSectionGroup("Playback") {
+                PlaybackVersionPreferencePicker(model: model)
                 Toggle("Background Audio", isOn: $model.settings.backgroundAudio)
                 Toggle("Seek without pausing", isOn: $model.settings.seekWithoutPausing)
                 // Autoplay first: whether the next episode starts at all, then

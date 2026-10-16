@@ -82,6 +82,23 @@ glass layer. The standalone guide and tvOS grid retain their existing spacing.
 
 ## Mobile playback settings
 
+Before the first multi-version movie or episode, both platforms ask the profile
+to **Ask every time** or **Remember my choice**, using the shared Live TV
+introduction layout. Both answers lead to the version picker for that video.
+Settings > Playback > Version selection can change the mode later; the existing
+profile settings payload carries it through switching, transfer, and cloud sync.
+Unanswered older profiles retain their per-title memories but still see the
+introduction on their first multi-version playback.
+
+`PlaybackVersionChoiceModel` gates player creation and next-episode/playlist
+handoffs. Ask every time includes autoplay. Remember reuses a movie's exact
+file, or matches all known descriptor facts across a series; it does not silently
+substitute a different resolution, range, or cut. Missing matches ask again,
+including when only one fallback remains. Cancelling does not start playback
+or record an unchosen file. In-player version changes and retry/failover do not
+repeat the introduction. Qualified picker IDs still resolve to original
+account/item/file identities before playback.
+
 Mobile Playback settings keep network quality limits on the main page and move
 codec selection and forced transcoding into Advanced. Only unsupported codec
 selections and enabled forced transcoding show brief contextual notices.

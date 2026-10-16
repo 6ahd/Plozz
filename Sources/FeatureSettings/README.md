@@ -68,6 +68,8 @@ and the single place caption customization lives.
   Music Player. Moving these controls does not change their profile-scoped stores.
   Playback groups
   audio, autoplay/Up Next, marker skipping, seeking and display fades.
+  Marker skipping is inline on the Playback page: the shared mode, per-kind
+  overrides and community-marker switch do not require opening another page.
   Subtitles is its own profile category for mode, the shared/Live TV style
   editors, language, downloading and per-series memory; downloading still
   follows the active profile's provider capabilities.

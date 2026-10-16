@@ -6,6 +6,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **First-use choices** — `FirstUseChoiceView` shares the Live TV preview and
+  playback-version introduction heading, native actions, and Settings reminder.
+  Hosts own persistence and cancellation; dismissing a version prompt never
+  records a mode. Mobile uses a vertically stacked, scrolling adaptation.
+
 - **Settings row typography** — `SettingsRowMetrics.titleFont` is the shared
   body-size label for navigation rows, TV switch variants, and labeled controls.
   Keep headings separate; do not give toggles a larger headline font or add
