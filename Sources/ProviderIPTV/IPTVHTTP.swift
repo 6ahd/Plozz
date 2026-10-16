@@ -62,6 +62,8 @@ final class IPTVHTTP: Sendable {
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
         let diagnostic = IPTVSetupDiagnostics.current
         diagnostic?.willRequest()
+        let guideDiagnostic = IPTVGuideDiagnostics.request
+        guideDiagnostic?.requesting()
         let id = UUID()
         // URLSession.bytes creates its native task asynchronously. Fence that
         // entire startup, not just a cancellation check before calling it.
@@ -95,6 +97,7 @@ final class IPTVHTTP: Sendable {
             throw IPTVError.malformed
         }
         diagnostic?.received(status: response.statusCode, response: .init(mimeType: response.mimeType))
+        guideDiagnostic?.received(response)
         receivedResponse?(response)
         guard (200...299).contains(response.statusCode) else {
             bytes.task.cancel()

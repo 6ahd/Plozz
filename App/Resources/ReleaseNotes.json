@@ -2,6 +2,27 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/056.5",
+      "version": "2026.10.15",
+      "marketingVersion": "2026.9.25",
+      "build": "56.5",
+      "releasedAt": "2026-10-15",
+      "sections": [
+        {
+          "category": "Updated",
+          "items": [
+            "More detailed diagnostics for missing IPTV program guides."
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Misleading errors when IPTV channels load but their program guide is unavailable."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/056.4",
       "version": "2026.10.15",
       "marketingVersion": "2026.9.25",
