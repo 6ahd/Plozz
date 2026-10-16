@@ -69,15 +69,20 @@ struct PlozziOSPlayerControlsOverlay: View {
                 )
             }
 
-            if controlsVisible {
+            if controlsVisible || touchGestures.isActive {
                 LinearGradient(
-                    colors: [.black.opacity(0.65), .clear, .black.opacity(0.82)],
+                    colors: [
+                        .black.opacity(controlsVisible ? 0.65 : 0), .clear,
+                        .black.opacity(controlsVisible ? 0.82 : 0.45)
+                    ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
+            }
 
+            if controlsVisible {
                 // Skip / play / skip, centred — where a thumb reaches on a
                 // held device. Hidden while a card is open, matching tvOS,
                 // where the card owns the screen.
@@ -132,12 +137,15 @@ struct PlozziOSPlayerControlsOverlay: View {
                     },
                     onClose: onClose
                 )
+            }
 
+            if controlsVisible || touchGestures.isActive {
                 PlozziOSPlayerTransport(
                     viewModel: viewModel,
+                    timelineOnly: !controlsVisible,
                     displayedSeconds: isScrubbing
                         ? scrubSeconds
-                        : viewModel.controls.currentSeconds,
+                        : (touchGestures.skip?.target ?? viewModel.controls.currentSeconds),
                     isScrubbing: isScrubbing,
                     scrubPreviewImage: scrubPreviewCoordinator?.image,
                     showsScrubPreview: scrubPreviewCoordinator?.isAvailable == true,
@@ -154,6 +162,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                     onScrubEditingChanged: { editing in
                         isScrubbing = editing
                         if editing {
+                            controlsVisible = true
                             scrubSeconds = viewModel.controls.currentSeconds
                             cancelAutoHide()
                         } else {
@@ -210,10 +219,6 @@ struct PlozziOSPlayerControlsOverlay: View {
 
             if touchGestures.isActive {
                 PlayerTouchGestureFeedbackView(state: touchGestures)
-                PlozziOSGestureTimeline(viewModel: viewModel, gestures: touchGestures)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 30)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
 
             if viewModel.controls.skipButtonVisible, !touchGestures.isActive {
@@ -474,20 +479,6 @@ struct PlozziOSPlayerControlsOverlay: View {
     }
 }
 
-private struct PlozziOSGestureTimeline: View {
-    let viewModel: PlayerViewModel
-    let gestures: PlayerTouchGestureState
-
-    var body: some View {
-        PlayerTouchGestureProgress(
-            position: gestures.skip?.target ?? viewModel.controls.currentSeconds,
-            duration: viewModel.controls.duration,
-            bufferedFraction: viewModel.controls.bufferedFraction
-        )
-        .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .timeline)
-    }
-}
-
 /// The system AirPlay route picker.
 ///
 /// Nothing else is needed to AirPlay a locally-remuxed stream: AetherEngine
@@ -698,6 +689,7 @@ private struct PlozziOSPlaybackOptionsMenu: View {
 
 private struct PlozziOSPlayerTransport: View {
     let viewModel: PlayerViewModel
+    let timelineOnly: Bool
     let displayedSeconds: TimeInterval
     let isScrubbing: Bool
     let scrubPreviewImage: CGImage?
@@ -766,17 +758,24 @@ private struct PlozziOSPlayerTransport: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
-                .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .title, isVisible: !isCardOpen)
+                .reportSubtitleControlsFrame(
+                    in: viewModel.controls.subtitleLayout, region: .title,
+                    isVisible: !isCardOpen && !timelineOnly
+                )
 
                 Spacer(minLength: 12)
 
                 // Keep captions one tap away; secondary choices share one menu.
                 trackControls
-                    .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .trackControls, isVisible: !isCardOpen)
+                    .reportSubtitleControlsFrame(
+                        in: viewModel.controls.subtitleLayout, region: .trackControls,
+                        isVisible: !isCardOpen && !timelineOnly
+                    )
             }
             .foregroundStyle(.white)
-            .opacity(isCardOpen ? 0 : 1)
-            .allowsHitTesting(!isCardOpen)
+            .opacity(isCardOpen || timelineOnly ? 0 : 1)
+            .allowsHitTesting(!isCardOpen && !timelineOnly)
+            .accessibilityHidden(isCardOpen || timelineOnly)
 
             // Times flank the scrubber rather than sitting above it, so the row
             // reads as one timeline instead of three stacked things.
@@ -787,6 +786,7 @@ private struct PlozziOSPlayerTransport: View {
                 // 42-minute episode will never show. A hardcoded width has to
                 // assume the worst case for every video.
                 playbackTimeLabel(playbackTime(displayedSeconds))
+                    .accessibilityIdentifier("player-elapsed-time")
 
                 PlayerTouchScrubBar(
                     currentSeconds: displayedSeconds,
@@ -797,9 +797,13 @@ private struct PlozziOSPlayerTransport: View {
                     onScrubbingChanged: onScrubEditingChanged
                 )
                 .accessibilityLabel("Playback position")
+                .accessibilityIdentifier("player-scrub-bar")
 
                 playbackTimeLabel("-\(playbackTime(max(viewModel.controls.duration - displayedSeconds, 0)))")
+                    .accessibilityIdentifier("player-remaining-time")
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("player-timeline")
             .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .timeline, isVisible: !isCardOpen)
             .opacity(isCardOpen ? 0 : 1)
             .allowsHitTesting(!isCardOpen)
@@ -819,6 +823,9 @@ private struct PlozziOSPlayerTransport: View {
                     }
                 }
             )
+            .opacity(timelineOnly ? 0 : 1)
+            .allowsHitTesting(!timelineOnly)
+            .accessibilityHidden(timelineOnly)
 
             // Deliberately no .font / .foregroundStyle / .buttonStyle here. Those
             // travel through the environment into a Menu's POPUP content, not just
@@ -827,7 +834,7 @@ private struct PlozziOSPlayerTransport: View {
             // open. Each glyph now carries its own styling instead.
         }
         .reportSubtitleControlsFrame(
-            in: viewModel.controls.subtitleLayout, region: .transport, isVisible: !isCardOpen
+            in: viewModel.controls.subtitleLayout, region: .transport, isVisible: !isCardOpen && !timelineOnly
         )
         .padding(.horizontal, 24)
         .padding(.bottom, 18)

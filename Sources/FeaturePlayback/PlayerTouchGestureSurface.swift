@@ -197,15 +197,28 @@ public struct PlayerTouchGestureFeedbackView: View {
     public init(state: PlayerTouchGestureState) { self.state = state }
 
     public var body: some View {
+        PlayerTouchGestureFeedbackContent(state: state, reduceMotion: reduceMotion)
+    }
+}
+
+struct PlayerTouchGestureFeedbackContent: View {
+    let state: PlayerTouchGestureState
+    let reduceMotion: Bool
+
+    var body: some View {
         GeometryReader { geometry in
             if let skip = state.skip {
                 HStack(spacing: 16) {
-                    if skip.direction == .backward { chevrons(skip) }
+                    if skip.direction == .backward {
+                        PlayerTouchSkipChevrons(direction: .backward, reduceMotion: reduceMotion)
+                    }
                     Text(skip.seconds, format: .number.sign(strategy: .always()).precision(.fractionLength(0)))
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .accessibilityIdentifier("player-gesture-skip-total")
-                    if skip.direction == .forward { chevrons(skip) }
+                    if skip.direction == .forward {
+                        PlayerTouchSkipChevrons(direction: .forward, reduceMotion: reduceMotion)
+                    }
                 }
                 .font(.system(size: 30, weight: .semibold))
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: skip.seconds)
@@ -224,55 +237,29 @@ public struct PlayerTouchGestureFeedbackView: View {
         .shadow(color: .black.opacity(0.65), radius: 3, y: 1)
         .allowsHitTesting(false)
     }
-
-    private func chevrons(_ skip: PlayerTouchSkipFeedback) -> some View {
-        HStack(spacing: -3) {
-            ForEach(0..<3) { index in
-                Image(systemName: skip.direction == .forward ? "chevron.right" : "chevron.left")
-                    .phaseAnimator([0, 1, 2, 3], trigger: skip.pulse) { content, phase in
-                        content
-                            .opacity(reduceMotion || phase == index + 1 ? 1 : 0.3)
-                            .offset(x: reduceMotion ? 0 : CGFloat(phase) * (skip.direction == .forward ? 2 : -2))
-                    } animation: { _ in
-                        reduceMotion ? nil : .easeOut(duration: 0.09)
-                    }
-            }
-        }
-        .accessibilityHidden(true)
-    }
 }
 
-/// The existing timeline's played/buffered distinction, without transport chrome or touch handling.
-public struct PlayerTouchGestureProgress: View {
-    let position: TimeInterval
-    let duration: TimeInterval
-    let bufferedFraction: Double
+private struct PlayerTouchSkipChevrons: View {
+    let direction: PlayerTouchSkipDirection
+    let reduceMotion: Bool
+    @State private var startedAt = Date()
 
-    public init(position: TimeInterval, duration: TimeInterval, bufferedFraction: Double) {
-        self.position = position
-        self.duration = duration
-        self.bufferedFraction = bufferedFraction
-    }
-
-    public var body: some View {
-        GeometryReader { geometry in
-            let fraction = duration.isFinite && duration > 0 && position.isFinite
-                ? min(max(position / duration, 0), 1) : 0
-            ZStack(alignment: .leading) {
-                Capsule().fill(.white.opacity(0.25))
-                Capsule().fill(.white.opacity(0.4))
-                    .frame(width: geometry.size.width * (bufferedFraction.isFinite
-                        ? min(max(bufferedFraction, 0), 1) : 0))
-                Capsule().fill(.white)
-                    .frame(width: geometry.size.width * fraction)
+    var body: some View {
+        // One clock belongs to this HUD insertion, not to individual tap pulses.
+        TimelineView(.animation(minimumInterval: 1 / 60, paused: reduceMotion)) { context in
+            let elapsed = max(0, context.date.timeIntervalSince(startedAt))
+            HStack(spacing: -3) {
+                ForEach(0..<2) { index in
+                    let order = direction == .forward ? index : 1 - index
+                    let phase = elapsed * (2 * .pi / 0.8) - Double(order) * .pi / 2
+                    Image(systemName: direction == .forward ? "chevron.right" : "chevron.left")
+                        .opacity(reduceMotion ? 1 : 0.65 + 0.35 * cos(phase))
+                        .offset(x: reduceMotion ? 0 : 4 * sin(phase) * (direction == .forward ? 1 : -1))
+                }
             }
         }
-        .frame(height: 4)
-        .environment(\.layoutDirection, .leftToRight)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Playback position")
-        .accessibilityIdentifier("player-gesture-progress")
-        .allowsHitTesting(false)
+        .transaction { $0.animation = nil }
+        .accessibilityHidden(true)
     }
 }
 #endif

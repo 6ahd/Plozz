@@ -99,6 +99,7 @@ struct LiveChannelOverlay: View {
     let onDismissControls: () -> Void
     var hasTouchGestureSurface = false
     var touchBackgroundTapRevision = 0
+    var touchTimelineOnly = false
 
     @Environment(\.playerCardMetrics) private var metrics
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -1097,13 +1098,22 @@ extension LiveChannelOverlay {
                 if isTouchPortrait, !cardOpen, openMenu == nil {
                     centerTransport
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .opacity(touchTimelineOnly ? 0 : 1)
+                        .allowsHitTesting(!touchTimelineOnly)
+                        .accessibilityHidden(touchTimelineOnly)
                         .transition(.opacity)
                 }
                 VStack(spacing: 0) {
                     topBar
+                        .opacity(touchTimelineOnly ? 0 : 1)
+                        .allowsHitTesting(!touchTimelineOnly)
+                        .accessibilityHidden(touchTimelineOnly)
                     Spacer(minLength: 0)
                     if !isTouchPortrait, !cardOpen, openMenu == nil {
                         centerTransport
+                            .opacity(touchTimelineOnly ? 0 : 1)
+                            .allowsHitTesting(!touchTimelineOnly)
+                            .accessibilityHidden(touchTimelineOnly)
                             .transition(.opacity)
                     }
                     Spacer(minLength: 0)
@@ -1119,7 +1129,10 @@ extension LiveChannelOverlay {
 
     private var touchScrim: some View {
         LinearGradient(
-            colors: [.black.opacity(0.65), .clear, .black.opacity(cardOpen ? 0.9 : 0.82)],
+            colors: [
+                .black.opacity(touchTimelineOnly ? 0 : 0.65), .clear,
+                .black.opacity(touchTimelineOnly ? 0.45 : (cardOpen ? 0.9 : 0.82))
+            ],
             startPoint: .top,
             endPoint: .bottom
         )
@@ -1224,6 +1237,9 @@ extension LiveChannelOverlay {
                         }
                     }
                 }
+                .opacity(touchTimelineOnly ? 0 : 1)
+                .allowsHitTesting(!touchTimelineOnly)
+                .accessibilityHidden(touchTimelineOnly)
                 .transition(.opacity)
                 timeline
                     .accessibilityIdentifier("live-channel-timeline")
@@ -1232,6 +1248,9 @@ extension LiveChannelOverlay {
                     .transition(.opacity)
             }
             touchTabRow
+                .opacity(touchTimelineOnly ? 0 : 1)
+                .allowsHitTesting(!touchTimelineOnly)
+                .accessibilityHidden(touchTimelineOnly)
             if cardOpen {
                 card
                     .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .card)
@@ -1272,7 +1291,7 @@ extension LiveChannelOverlay {
         .shadow(color: .black.opacity(0.4), radius: 4, y: 1)
         .reportSubtitleControlsFrame(
             in: tracks.subtitles.controlsLayout, region: .title,
-            isVisible: !cardOpen
+            isVisible: !cardOpen && !touchTimelineOnly
         )
         .frame(maxWidth: .infinity, alignment: .leading)
         // Hidden under an open track menu when it rises over it; stood up the
@@ -1287,7 +1306,9 @@ extension LiveChannelOverlay {
             touchGoLiveBadge
             touchTrackBadges
         }
-        .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .trackControls)
+        .reportSubtitleControlsFrame(
+            in: tracks.subtitles.controlsLayout, region: .trackControls, isVisible: !touchTimelineOnly
+        )
     }
 
     @ViewBuilder
@@ -1299,7 +1320,9 @@ extension LiveChannelOverlay {
                 prominent: true, action: onGoLive
             )
             .accessibilityIdentifier("live-channel-go-live")
-            .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .trackControls)
+            .reportSubtitleControlsFrame(
+                in: tracks.subtitles.controlsLayout, region: .trackControls, isVisible: !touchTimelineOnly
+            )
         }
     }
 

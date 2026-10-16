@@ -85,9 +85,12 @@ glass layer. The standalone guide and tvOS grid retain their existing spacing.
 On iPhone and iPad, double-tapping either side skips using the active profile's
 backward/forward interval. Additional taps while the feedback is visible
 accumulate from the requested position, not a lagging playback clock. Directional
-chevrons and the signed total replace the main controls, leaving a thin progress
-bar visible. Single taps still toggle controls; native controls and open menus
-keep their own touches.
+chevrons and the signed total replace the main controls, retaining the player's
+actual timeline in its normal position, with its time labels, playhead, buffer
+and segment styling, and scrubbing behavior. Two chevrons move smoothly from the
+first double-tap and continue across additional taps; Reduce Motion keeps them
+still. Single taps still toggle controls; native controls and open menus keep
+their own touches.
 
 Holding on-demand video temporarily accelerates moving playback to at most 2x
 when the engine supports it. Releasing, pausing, seeking, leaving the player, or

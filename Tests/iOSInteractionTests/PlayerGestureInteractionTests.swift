@@ -25,14 +25,30 @@ final class PlayerGestureInteractionTests: XCTestCase {
     }
 
     func testRapidTapsUseConfiguredIntervalsAndLeaveOnlyProgressVisible() {
+        let timeline = app.otherElements["player-timeline"]
+        let scrubBar = app.otherElements["player-scrub-bar"]
+        XCTAssertTrue(timeline.exists, app.debugDescription)
+        XCTAssertTrue(scrubBar.exists, app.debugDescription)
+        let originalFrame = scrubBar.frame
         let forward = point(x: 0.8, y: 0.43)
         forward.doubleTap()
-        for _ in 0..<3 { forward.tap() }
         let feedback = app.staticTexts["player-gesture-skip-total"]
+        XCTAssertTrue(feedback.exists, app.debugDescription)
+        XCTAssertEqual(feedback.label, "+5", "One double-tap starts feedback immediately.")
+        for _ in 0..<3 { forward.tap() }
         XCTAssertTrue(feedback.exists, app.debugDescription)
         XCTAssertEqual(feedback.label, "+20", "The configured forward interval is five seconds.")
         XCTAssertFalse(app.buttons["Pause"].exists, "The main controls must hide during skip feedback.")
-        XCTAssertTrue(app.otherElements["player-gesture-progress"].exists, app.debugDescription)
+        XCTAssertTrue(timeline.exists, app.debugDescription)
+        XCTAssertEqual(app.otherElements.matching(identifier: "player-scrub-bar").count, 1)
+        XCTAssertEqual(scrubBar.frame.minX, originalFrame.minX, accuracy: 1)
+        XCTAssertEqual(scrubBar.frame.minY, originalFrame.minY, accuracy: 1)
+        XCTAssertEqual(scrubBar.frame.width, originalFrame.width, accuracy: 1)
+        XCTAssertEqual(scrubBar.frame.height, 44, accuracy: 1)
+        XCTAssertTrue(app.staticTexts["player-elapsed-time"].exists)
+        XCTAssertTrue(app.staticTexts["player-remaining-time"].exists)
+        XCTAssertFalse(app.buttons["Playback options"].isHittable)
+        XCTAssertFalse(app.buttons["Subtitles"].isHittable)
         capture("forward-cumulative")
         let backward = point(x: 0.2, y: 0.43)
         backward.doubleTap()
@@ -41,6 +57,9 @@ final class PlayerGestureInteractionTests: XCTestCase {
         XCTAssertTrue(feedback.label.hasPrefix("-"), app.debugDescription)
         XCTAssertFalse(app.buttons["Pause"].exists)
         capture("backward-cumulative")
+        scrubBar.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(app.buttons["Pause"].waitForExistence(timeout: 3),
+                      "The retained timeline must still perform its real scrubbing action.")
     }
 
     func testSingleTapRevealsControlsAndNativeButtonsDoNotBecomeShortcuts() {

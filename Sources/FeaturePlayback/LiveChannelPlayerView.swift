@@ -325,7 +325,7 @@ public struct LiveChannelPlayerView: View {
                     }
                     #endif
 
-                    if controlsVisible,
+                    if controlsVisible || touchGestures.isActive,
                        !sourceMatches || model.interruption == nil {
                         LiveChannelOverlay(
                             title: title,
@@ -365,7 +365,8 @@ public struct LiveChannelPlayerView: View {
                             onControlActivity: noteControlNavigation,
                             onDismissControls: dismissControls,
                             hasTouchGestureSurface: true,
-                            touchBackgroundTapRevision: touchBackgroundTapRevision
+                            touchBackgroundTapRevision: touchBackgroundTapRevision,
+                            touchTimelineOnly: !controlsVisible
                         )
                         .onAppear(perform: focusPlaybackControlIfNeeded)
                         .transition(.opacity)
@@ -1039,18 +1040,6 @@ public struct LiveChannelPlayerView: View {
             if touchGestures.isActive {
                 PlayerTouchGestureFeedbackView(state: touchGestures)
                     .modifier(WindowSafeAreaPadding())
-                if let window = model.seekableWindow {
-                    PlayerTouchGestureProgress(
-                        position: (touchGestures.skip?.target ?? model.seekPosition)
-                            - window.lowerBound,
-                        duration: window.duration, bufferedFraction: 0
-                    )
-                    .reportSubtitleControlsFrame(in: model.subtitles.controlsLayout, region: .timeline)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 30)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .modifier(WindowSafeAreaPadding())
-                }
             }
         }
     }
