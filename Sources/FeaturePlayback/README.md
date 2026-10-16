@@ -87,10 +87,12 @@ backward/forward interval. Additional taps while the feedback is visible
 accumulate from the requested position, not a lagging playback clock. Directional
 chevrons and the signed total replace the main controls, retaining the player's
 actual timeline in its normal position, with its time labels, playhead, buffer
-and segment styling, and scrubbing behavior. Two chevrons flow in the skip
-direction, handing off from one slot to the next for a brief confirmation.
-Rapid accepted taps preserve that motion instead of restarting it and coalesce
-into at most one additional cycle beyond the current cycle. Once taps stop,
+and segment styling, and scrubbing behavior. The confirmation adapts
+[Mozz's transport handover](https://github.com/brandomoore/Mozz/blob/b45ae53010648a3b1847027a82b479001fbe3956/Sources/MozzApp/Support/PlayerControls.swift):
+an open chevron shrinks into the leading chevron, which reacts to the impact,
+while its replacement grows and sweeps in with the same spring response.
+Open chevrons replace Mozz's track arrow and end bar. Rapid accepted taps preserve
+the active spring and coalesce into at most one pending handover. Once taps stop,
 the chevrons settle beside the signed total; they do not loop while idle.
 Reduce Motion keeps them still. Single taps still toggle controls; native controls
 and open menus keep their own touches.
