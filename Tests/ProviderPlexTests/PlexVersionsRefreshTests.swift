@@ -32,7 +32,7 @@ final class PlexVersionsRefreshTests: XCTestCase {
         XCTAssertEqual(versions.map(\.id), ["1001", "1002"])
         XCTAssertEqual(versions[0].height, 2160)
         XCTAssertEqual(versions[0].videoCodec, "hevc")
-        XCTAssertEqual(versions[0].audioLabel, "7.1")
+        XCTAssertEqual(versions[0].audioFormatLabel, "Dolby TrueHD 7.1")
         XCTAssertEqual(versions[0].sizeBytes, 12_000_000_000)
         XCTAssertEqual(versions[0].sizeLabel, "12 GB")
         XCTAssertEqual(versions[0].fileName, "Movie.Extended.mkv")
@@ -52,6 +52,32 @@ final class PlexVersionsRefreshTests: XCTestCase {
         """.utf8))
 
         XCTAssertEqual(PlexProvider.versions(from: media)[0].sizeBytes, 10_000_000_000)
+    }
+
+    func testVersionsKeepStreamQualityAndAllAudioLanguagesSourceLocal() throws {
+        let media = try JSONDecoder.plozz.decode([PlexMedia].self, from: Data("""
+        [
+          {"id":1,"container":"mkv","videoCodec":"hevc","width":3840,"height":1600,
+           "audioCodec":"truehd","audioChannels":8,"audioProfile":"Dolby Atmos",
+           "Part":[{"file":"/private/media/Movie.REMUX.mkv","size":42000000000,"Stream":[
+             {"streamType":1,"codec":"hevc","width":3840,"height":1600,"bitDepth":"10","DOVIPresent":true,"DOVIProfile":8,"DOVIBLCompatID":1},
+             {"streamType":2,"codec":"truehd","channels":8,"languageTag":"en","selected":true},
+             {"streamType":2,"codec":"ac3","channels":6,"languageCode":"fra","language":"French"},
+             {"streamType":3,"languageTag":"ja"}
+           ]}]},
+          {"id":2,"container":"mp4","videoCodec":"h264","height":1080,"audioCodec":"aac","audioChannels":2}
+        ]
+        """.utf8))
+        let versions = PlexProvider.versions(from: media)
+        XCTAssertEqual(versions[0].resolutionLabel, "4K")
+        XCTAssertEqual(versions[0].hdrLabel, "Dolby Vision")
+        XCTAssertEqual(versions[0].sourceMetadata?.video?.bitDepth, 10)
+        XCTAssertEqual(versions[0].audioFormatLabel, "Dolby TrueHD + Dolby Atmos")
+        XCTAssertEqual(versions[0].audioLanguageNames(in: Locale(identifier: "en_US")), ["English", "French"])
+        XCTAssertEqual(versions[0].sourceMetadata?.fileSizeBytes, 42_000_000_000)
+        XCTAssertEqual(MediaVersion.PickerPresentation(versions[0]).releaseName, "Movie.REMUX.mkv")
+        XCTAssertNil(versions[1].hdrLabel)
+        XCTAssertTrue(versions[1].audioLanguageNames().isEmpty)
     }
 
     func testSingleMediaElementProducesNoVersions() throws {

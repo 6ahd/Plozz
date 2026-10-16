@@ -144,6 +144,82 @@ final class MediaVersionTests: XCTestCase {
         XCTAssertEqual(version.sizeLabel, "8.5 GB")
     }
 
+    func testPickerPresentationIncludesSourceAudioLanguagesFormatsAndRelease() {
+        let version = MediaVersion(
+            id: "file", name: "Extended Remux", fileName: "Film.Extended.2160p.REMUX-GROUP.mkv",
+            height: 2160, bitrate: 80_000_000, sizeBytes: 42_000_000_000, duration: 7_200,
+            sourceMetadata: .init(
+                video: .init(codec: "hevc", width: 3840, height: 2160, bitDepth: 10, videoRangeType: "DOVIWithHDR10"),
+                audio: .init(codec: "truehd", profile: "Atmos", channels: 8, language: "eng"),
+                audioLanguages: ["eng", "en", "fra", "und", ""]
+            )
+        )
+        let row = MediaVersion.PickerPresentation(version, locale: Locale(identifier: "en_US"))
+        XCTAssertEqual(row.title, "Extended · 4K · Dolby Vision · Remux · 42 GB")
+        XCTAssertEqual(row.supplementalFacts, [
+            "HDR10", "HEVC", "10-bit", "English, French", "Dolby TrueHD + Dolby Atmos", "80 Mbps", "2h"
+        ])
+        XCTAssertEqual(row.releaseName, "Film.Extended.2160p.REMUX-GROUP.mkv")
+        XCTAssertEqual(
+            version.audioLanguageNames(in: Locale(identifier: "es_ES")),
+            ["Inglés", "Francés"]
+        )
+    }
+
+    func testPickerAudioKeepsCodecProfileAndChannelsWithoutGuessingMissingFacts() {
+        XCTAssertEqual(MediaVersion(id: "a", audioCodec: "aac", audioChannels: 2).audioFormatLabel, "AAC Stereo")
+        XCTAssertEqual(
+            MediaVersion(id: "b", audioCodec: "dts", audioChannels: 8, audioProfile: "DTS-HD MA").audioFormatLabel,
+            "DTS-HD MA 7.1"
+        )
+        XCTAssertEqual(
+            MediaVersion(id: "c", audioCodec: "truehd", audioChannels: 6).audioFormatLabel,
+            "Dolby TrueHD 5.1"
+        )
+        XCTAssertEqual(MediaVersion(id: "d", audioCodec: "aac").audioFormatLabel, "AAC")
+        XCTAssertNil(MediaVersion(id: "e").audioFormatLabel)
+        let unknown = MediaVersion.PickerPresentation(.init(id: "unknown", sizeBytes: -1, duration: 0))
+        XCTAssertNil(unknown.title)
+        XCTAssertTrue(unknown.supplementalFacts.isEmpty)
+        XCTAssertNil(unknown.releaseName)
+        XCTAssertNil(MediaVersion(id: "invalid", duration: .infinity).durationLabel)
+        XCTAssertNil(MediaVersion(id: "invalid", duration: .nan).durationLabel)
+    }
+
+    func testPickerReleaseFallbackAndFilenameQualityDoNotChangeVersionIdentity() {
+        let original = MediaVersion(id: "raw", fileName: "Movie.2160p.WEB-DL-GROUP.mkv", height: 2160)
+        let qualified = original.qualified(accountID: "account", itemID: "item")
+        let row = MediaVersion.PickerPresentation(qualified)
+        XCTAssertEqual(row.title, "4K")
+        XCTAssertEqual(row.supplementalFacts, ["WEB-DL"])
+        XCTAssertEqual(row.releaseName, original.fileName)
+        XCTAssertEqual(qualified.playbackMediaSourceID, "raw")
+        XCTAssertNotEqual(qualified.id, "raw")
+        XCTAssertEqual(MediaVersion.PickerPresentation(.init(id: "a", name: "Release", height: 1080)).releaseName, "Release")
+        XCTAssertNil(MediaVersion.PickerPresentation(.init(id: "b", name: "Server Copy")).releaseName)
+    }
+
+    func testCachedMetadataAndSynthesizedVersionsPreserveLanguageFacts() throws {
+        let legacy = try JSONDecoder().decode(
+            MediaSourceMetadata.self, from: Data(#"{"audio":{"codec":"aac","language":"eng"}}"#.utf8)
+        )
+        XCTAssertNil(legacy.audioLanguages)
+        let metadata = MediaSourceMetadata(
+            fileName: "Movie.mkv", audio: legacy.audio, audioLanguages: ["eng", "jpn"]
+        )
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie, mediaInfo: metadata)
+        let version = MediaVersion.synthesized(from: item)
+        let restored = try JSONDecoder().decode(MediaVersion.self, from: JSONEncoder().encode(version))
+        XCTAssertEqual(restored, version)
+        XCTAssertEqual(restored.audioLanguageNames(in: Locale(identifier: "en_US")), ["English", "Japanese"])
+        XCTAssertEqual(MediaVersion.PickerPresentation(restored).releaseName, "Movie.mkv")
+        XCTAssertNil(restored.playbackMediaSourceID)
+        XCTAssertEqual(
+            MediaVersion(id: "legacy", sourceMetadata: legacy).audioLanguageNames(in: Locale(identifier: "en_US")),
+            ["English"]
+        )
+    }
+
     func testFileSizeUsesAtMostOneFractionDigit() {
         let locale = Locale(identifier: "en_US")
         XCTAssertEqual(

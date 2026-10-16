@@ -42,6 +42,17 @@ language every other module speaks.
 | UI state | `LoadState`, `AppError` |
 | Subtitles | `SubtitleBehavior`, `SubtitleStyle` (rendered by `FeaturePlayback`) |
 
+## Version picker facts
+
+`MediaVersion.PickerPresentation` is the shared detail/player summary on TV and
+mobile: edition/quality/size, video format, available audio languages, primary
+audio codec/profile/layout, bitrate, runtime, and a separate release filename.
+Language names use the caller's effective locale. Provider metadata stays scoped
+to that physical file; subtitle languages never become audio languages. Unknown
+facts remain absent, and these source facts do not claim a playback mode or
+active output format. Optional `MediaSourceMetadata.audioLanguages` keeps older
+cached payloads readable and also survives synthesized edition versions.
+
 ## Artwork and profile presentation
 
 `MediaItem.artworkReferences` supplies library artwork: server URLs and local

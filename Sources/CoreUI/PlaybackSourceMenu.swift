@@ -269,22 +269,7 @@ public struct PlaybackSourceMenuButton<Label: View>: View {
     }
 }
 
-struct PlaybackSourceVersionPresentation {
-    let title: String? // l10n:content - provider edition/name and preformatted media facts
-    let supplementalFacts: [String]
-
-    init(_ version: MediaVersion) {
-        title = version.displayLabel
-        let titleFacts = Set((title ?? "").components(separatedBy: " · "))
-        // Resolution, HDR, source quality and size are already in displayLabel.
-        // Rebuilding menuFacts reparses the edition/name without adding a fact.
-        supplementalFacts = [version.audioLabel, version.bitrateLabel, version.durationLabel]
-            .compactMap { $0 }
-            .filter { !titleFacts.contains($0) }
-    }
-}
-
-private struct PlaybackSourceMenuPanel: View {
+struct PlaybackSourceMenuPanel: View {
     @Binding var page: PlaybackSourceMenuButtonPage
     /// Ceiling imposed by the room available on the trigger's chosen side.
     /// Past this the rows scroll rather than the panel running off screen.
@@ -300,6 +285,7 @@ private struct PlaybackSourceMenuPanel: View {
     let onPerformAction: (String) -> Void
 
     @Namespace private var panelFocusScope
+    @Environment(\.locale) private var locale
     #if os(tvOS)
     @Environment(\.resetFocus) private var resetFocus
     #endif
@@ -605,12 +591,7 @@ private struct PlaybackSourceMenuPanel: View {
             #if !os(tvOS)
             if index > 0 { rowSeparator }
             #endif
-            // `displayLabel` is `nil` only when no fact/name is known — used
-            // here just to de-dupe `menuFacts` against whatever the title
-            // already shows; the actual rendered title below branches on the
-            // Optional so the "Version" fallback stays a translatable resource
-            // rather than a `Text(String)` that would always render verbatim.
-            let presentation = PlaybackSourceVersionPresentation(version)
+            let presentation = MediaVersion.PickerPresentation(version, locale: locale)
             menuRowButton(id: "version.\(version.id)") {
                 onSelectVersion(version.id)
             } label: {
@@ -618,26 +599,29 @@ private struct PlaybackSourceMenuPanel: View {
                     VStack(alignment: .leading, spacing: 5) {
                         versionTitleText(presentation.title)
                             .font(rowTitleFont)
+                            .fixedSize(horizontal: false, vertical: true)
                         if !presentation.supplementalFacts.isEmpty {
-                            Text(presentation.supplementalFacts.joined(separator: " · "))
+                            Text(verbatim: presentation.supplementalFacts.joined(separator: " · "))
                                 .font(rowDetailFont)
                                 .settingsRowSecondary()
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        if let fileName = version.fileName {
-                            Text(fileName)
+                        if let fileName = presentation.releaseName {
+                            Text(verbatim: fileName)
                                 .font(fileNameFont)
                                 .settingsRowSecondary()
                                 .lineLimit(2)
                                 .truncationMode(.middle)
                         }
                     }
+                    .multilineTextAlignment(.leading)
                     Spacer(minLength: 12)
                     if version.id == selectedVersionID {
                         Image(systemName: "checkmark")
                             .font(.headline.weight(.bold))
                     }
                 }
+                .accessibilityAddTraits(version.id == selectedVersionID ? .isSelected : [])
             }
         }
     }
@@ -865,7 +849,7 @@ private struct PlaybackSourceMenuRowHeight: ViewModifier {
 }
 
 // The generic button's nested type cannot be named in a non-generic panel.
-private enum PlaybackSourceMenuButtonPage: Hashable {
+enum PlaybackSourceMenuButtonPage: Hashable {
     case root
     case servers
     case versions

@@ -314,7 +314,8 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
 
     /// Runtime of this file in the app's compact duration style.
     public var durationLabel: String? {  // l10n:content — formatted duration, not copy
-        duration?.runtimeBadgeText
+        guard let duration, duration.isFinite, duration > 0 else { return nil }
+        return duration.runtimeBadgeText
     }
 
     /// The edition / cut to surface for this version: the provider's explicit
@@ -385,6 +386,64 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         if let sizeLabel { facts.append(sizeLabel) }
         if let durationLabel { facts.append(durationLabel) }
         return facts
+    }
+
+    /// Shared detail/player picker content. These are source facts, never a
+    /// prediction of decoded output or a direct-play/transcode outcome.
+    public struct PickerPresentation: Equatable, Sendable {
+        public let title: String? // l10n:content — provider edition/name and technical facts
+        public let supplementalFacts: [String]
+        public let releaseName: String? // l10n:content — provider release name or file basename
+
+        public init(_ version: MediaVersion, locale: Locale = .current) {
+            title = version.displayLabel
+            let titleFacts = Set((title ?? "").components(separatedBy: " · "))
+            let video = version.sourceMetadata?.video
+            let languages = version.audioLanguageNames(in: locale)
+            let rangeFacts = version.sourceMetadata?.dynamicRangeBadges.map(\.label) ?? []
+            supplementalFacts = (rangeFacts + [
+                version.sourceQualityLabel ?? EditionParser.sourceQuality(from: version.fileName),
+                PlaybackDiagnostics.friendlyCodecName(video?.codec ?? version.videoCodec),
+                PlaybackDiagnostics.colorDescription(bitDepth: video?.bitDepth, transfer: nil, rangeType: nil),
+                languages.isEmpty ? nil : languages.joined(separator: ", "),
+                version.audioFormatLabel,
+                version.bitrateLabel,
+                version.durationLabel
+            ].compactMap { $0 }).filter { !titleFacts.contains($0) }
+            let release = [version.fileName, version.sourceMetadata?.fileName, version.name]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .first { !$0.isEmpty }
+            releaseName = release == title ? nil : release
+        }
+    }
+
+    public func audioLanguageNames(in locale: Locale = .current) -> [String] {
+        let codes = (sourceMetadata?.audioLanguages ?? [])
+            + [sourceMetadata?.audio?.language].compactMap { $0 }
+        var seen = Set<String>()
+        return codes.compactMap { code -> String? in
+            guard let language = LanguageMatch.normalized(code.trimmingCharacters(in: .whitespacesAndNewlines)),
+                  language != "und", language != "zxx" else { return nil }
+            return TrackLabeling.languageName(forCode: language, in: locale)
+        }
+            .filter { seen.insert($0).inserted }
+    }
+
+    /// Keeps lossless/spatial format and codec information that compact badges omit.
+    public var audioFormatLabel: String? { // l10n:content — audio codec/profile and channel-layout facts
+        let audio = sourceMetadata?.audio
+        let codec = audio?.codec ?? audioCodec
+        let format = PlaybackDiagnostics.friendlyAudioName(codec: codec, profile: audio?.profile ?? audioProfile)
+        if format == "Dolby Atmos" || format == "DTS:X" {
+            let base = PlaybackDiagnostics.friendlyCodecName(codec)
+            return [base == format ? nil : base, format].compactMap { $0 }.joined(separator: " + ")
+        }
+        let layout = audio?.channelLayout?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let channels = layout?.isEmpty == false ? layout : TrackLabeling.audioFormatHint(
+            codec: nil, channels: audio?.channels ?? audioChannels, isAtmos: false
+        )
+        let parts = [format, channels].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     /// A coarse quality score used to order versions and pick a default. Driven
