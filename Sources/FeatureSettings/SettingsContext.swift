@@ -253,12 +253,19 @@ public final class SettingsNavigationModel {
     }
 
     func restoreCategoryFocus() {
+        #if os(tvOS)
+        let categoryAlreadyFocused = !focusInDetail && !enteringDetail && !restoringSidebar
+        #endif
         enteringDetail = false
         focusInDetail = false
-        restoringSidebar = true
         #if os(tvOS)
-        guard pages.returnSourceID == nil else { return }
+        if pages.returnSourceID != nil {
+            // A fading parent can regain native focus before the transition finishes.
+            restoringSidebar = !categoryAlreadyFocused
+            return
+        }
         #endif
+        restoringSidebar = true
         sidebarFocusRequest += 1
     }
 

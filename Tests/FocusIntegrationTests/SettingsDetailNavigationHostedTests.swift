@@ -37,7 +37,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
             previous?.makeKeyAndVisible()
         }
         navigation.push(1)
-        try await Task.sleep(for: .milliseconds(300))
+        try await Task.sleep(for: .milliseconds(600))
         probe.isPresented = true
         let presented = ContinuousClock.now + .seconds(5)
         while probe.dismiss == nil, ContinuousClock.now < presented {
@@ -54,7 +54,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         XCTAssertEqual(navigation.routes, [1], "Closing a dialog must not pop the underlying page.")
     }
 
-    func testSharedStackSlidesRetainsParentsAndMirrorsInRightToLeftLayout() async throws {
+    func testSharedStackMovesAndFadesRetainsParentsAndMirrorsInRightToLeftLayout() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
               ContinuousClock.now < deadline {
@@ -88,21 +88,21 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
             sampler.start()
             defer { sampler.stop() }
             navigation.push(1)
-            try await Task.sleep(for: .milliseconds(350))
+            try await Task.sleep(for: .milliseconds(600))
             let sign: CGFloat = direction == .leftToRight ? 1 : -1
             if !UIAccessibility.isReduceMotionEnabled {
                 assertIntermediatePages(sampler.samples, width: 960, sign: sign)
             }
             navigation.push(2)
-            try await Task.sleep(for: .milliseconds(350))
+            try await Task.sleep(for: .milliseconds(600))
             navigation.pop()
-            try await Task.sleep(for: .milliseconds(350))
+            try await Task.sleep(for: .milliseconds(600))
             XCTAssertEqual(probes.creations["root"], 1)
             XCTAssertEqual(probes.creations["detail"], 1)
             XCTAssertEqual(try XCTUnwrap(probes.frame("detail", in: window)).minX, 0, accuracy: 2)
             sampler.samples.removeAll()
             navigation.pop()
-            try await Task.sleep(for: .milliseconds(350))
+            try await Task.sleep(for: .milliseconds(600))
             if !UIAccessibility.isReduceMotionEnabled {
                 assertIntermediatePages(sampler.samples, width: 960, sign: sign)
             }
@@ -156,7 +156,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
                 sampler.start()
                 defer { sampler.stop() }
                 navigation.enterDetail()
-                try await Task.sleep(for: .milliseconds(350))
+                try await Task.sleep(for: .milliseconds(600))
                 let detail = try XCTUnwrap(probes.frame("detail", in: window))
                 XCTAssertEqual(detail, root)
                 if navigation.pages.animationsEnabled {
@@ -169,13 +169,13 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
                     XCTAssertEqual(sample.detailWidth, SettingsFormMetrics.pageWidth, accuracy: 1)
                 }
                 navigation.pages.push(.artwork)
-                try await Task.sleep(for: .milliseconds(350))
+                try await Task.sleep(for: .milliseconds(600))
                 XCTAssertEqual(try XCTUnwrap(probes.frame("nested", in: window)), root)
                 navigation.pages.pop()
-                try await Task.sleep(for: .milliseconds(350))
+                try await Task.sleep(for: .milliseconds(600))
                 XCTAssertEqual(try XCTUnwrap(probes.frame("detail", in: window)), root)
                 navigation.pages.pop()
-                try await Task.sleep(for: .milliseconds(350))
+                try await Task.sleep(for: .milliseconds(600))
                 XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)), root)
                 XCTAssertEqual(probes.creations["root"], 1, "Returning must retain the category list and its scroll.")
                 XCTAssertFalse(navigation.isCategoryOpen)
@@ -250,11 +250,11 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         }
     }
 
-    func testBothPagesSlideTogetherInBothDirectionsAndRetainTheRoot() async throws {
+    func testBothPagesMoveAndFadeInBothDirectionsAndRetainTheRoot() async throws {
         try await verifySlides(direction: .leftToRight)
     }
 
-    func testBothPagesMirrorTheirSlideInRightToLeftLayout() async throws {
+    func testBothPagesMirrorTheirMovementInRightToLeftLayout() async throws {
         try await verifySlides(direction: .rightToLeft)
     }
 
@@ -262,7 +262,9 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         try await withPages { navigation, probes, window in
             navigation.push(animated: false)
             try await Task.sleep(for: .milliseconds(100))
-            XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)).minX, -window.bounds.width, accuracy: 2)
+            let hiddenX: CGFloat = UIAccessibility.isReduceMotionEnabled ? 0 : -SettingsPageMotion.travelDistance
+            XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)).minX, hiddenX, accuracy: 2)
+            XCTAssertEqual(try XCTUnwrap(probes.opacity("root")), 0, accuracy: 0.01)
             navigation.pop(animated: false)
             try await Task.sleep(for: .milliseconds(100))
             XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)).minX, 0, accuracy: 2)
@@ -272,7 +274,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
             navigation.pop(animated: true)
             navigation.reset()
             navigation.push(animated: false)
-            try await Task.sleep(for: .milliseconds(350))
+            try await Task.sleep(for: .milliseconds(600))
             XCTAssertTrue(navigation.isPresented)
             XCTAssertTrue(navigation.awaitingFocus)
             XCTAssertEqual(navigation.returnFocusGeneration, 0)
@@ -288,7 +290,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
                     navigation.focusArrived()
                     navigation.pop(animated: true)
                 }
-                try await Task.sleep(for: .milliseconds(350))
+                try await Task.sleep(for: .milliseconds(600))
                 window.layoutIfNeeded()
                 let frame = try XCTUnwrap(probes.frame(isDetail ? "detail" : "root", in: window))
                 XCTAssertGreaterThan(frame.minY, 8)
@@ -342,13 +344,14 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
             sampler.start()
             defer { sampler.stop() }
             navigation.push(animated: true)
-            try await Task.sleep(for: .milliseconds(350))
+            try await Task.sleep(for: .milliseconds(600))
             self.assertIntermediatePages(sampler.samples, width: width, sign: sign)
-            XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)).minX, -sign * width, accuracy: 2)
+            let hiddenX: CGFloat = UIAccessibility.isReduceMotionEnabled ? 0 : -sign * SettingsPageMotion.travelDistance
+            XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)).minX, hiddenX, accuracy: 2)
             navigation.focusArrived()
             sampler.samples.removeAll()
             navigation.pop(animated: true)
-            try await Task.sleep(for: .milliseconds(350))
+            try await Task.sleep(for: .milliseconds(600))
             self.assertIntermediatePages(sampler.samples, width: width, sign: sign)
             XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)).minX, 0, accuracy: 2)
             XCTAssertEqual(probes.creations["root"], 1, "The parent page must retain its view/state during navigation.")
@@ -357,16 +360,30 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
     }
 
     private func assertIntermediatePages(_ samples: [PageMotionSampler.Sample], width: CGFloat, sign: CGFloat) {
+        let distance = SettingsPageMotion.travelDistance
         let moving = samples.filter {
             let root = $0.rootX * sign
             let detail = $0.detailX * sign
-            return root < -width * 0.1 && root > -width * 0.9
-                && detail > width * 0.1 && detail < width * 0.9
+            return root < -distance * 0.05 && root > -distance * 0.95
+                && detail > distance * 0.05 && detail < distance * 0.95
         }
-        XCTAssertGreaterThanOrEqual(moving.count, 2, "Both pages must be visible and moving between endpoints: \(samples)")
+        XCTAssertGreaterThanOrEqual(moving.count, 3, "Both pages must move gently between endpoints: \(samples)")
+        if let first = moving.first, let last = moving.last {
+            XCTAssertGreaterThan(last.time - first.time, 0.18, "The transition must not rush through its movement.")
+        }
+        for sample in samples {
+            XCTAssertLessThanOrEqual(abs(sample.rootX), distance + 1)
+            XCTAssertLessThanOrEqual(abs(sample.detailX), distance + 1)
+            XCTAssertEqual(sample.rootWidth, width, accuracy: 1)
+            XCTAssertEqual(sample.detailWidth, width, accuracy: 1)
+        }
         for sample in moving {
-            XCTAssertEqual((sample.detailX - sample.rootX) * sign, width, accuracy: width * 0.03)
+            XCTAssertEqual((sample.detailX - sample.rootX) * sign, distance, accuracy: 2)
         }
+        XCTAssertGreaterThanOrEqual(moving.filter {
+            $0.rootOpacity > 0.01 && $0.rootOpacity < 0.99
+                && $0.detailOpacity > 0.01 && $0.detailOpacity < 0.99
+        }.count, 3, "Both pages must fade, not just move.")
         let attachment = XCTAttachment(string: String(describing: samples))
         attachment.name = "settings-page-motion"
         attachment.lifetime = .keepAlways
@@ -459,6 +476,17 @@ private final class PageMotionProbes {
         let layer = view.layer.presentation() ?? view.layer
         return layer.convert(layer.bounds, to: window.layer.presentation() ?? window.layer)
     }
+
+    func opacity(_ id: String) -> Float? {
+        guard let view = views[id], view.window != nil else { return nil }
+        var opacity: Float = 1
+        var layer: CALayer? = view.layer
+        while let current = layer {
+            opacity *= (current.presentation() ?? current).opacity
+            layer = current.superlayer
+        }
+        return opacity
+    }
 }
 
 private struct PageMotionProbe: UIViewRepresentable {
@@ -479,11 +507,16 @@ private struct PageMotionProbe: UIViewRepresentable {
 @MainActor
 private final class PageMotionSampler: NSObject {
     struct Sample: CustomStringConvertible {
+        let time: CFTimeInterval
         let rootX: CGFloat
         let rootWidth: CGFloat
+        let rootOpacity: Float
         let detailX: CGFloat
         let detailWidth: CGFloat
-        var description: String { "root=\(rootX), detail=\(detailX), width=\(detailWidth)" }
+        let detailOpacity: Float
+        var description: String {
+            "time=\(time), root=\(rootX)/\(rootOpacity), detail=\(detailX)/\(detailOpacity), width=\(detailWidth)"
+        }
     }
 
     var samples: [Sample] = []
@@ -509,8 +542,11 @@ private final class PageMotionSampler: NSObject {
 
     @objc private func sample() {
         guard let root = probes.frame("root", in: window),
-              let detail = probes.frame("detail", in: window) else { return }
-        samples.append(Sample(rootX: root.minX, rootWidth: root.width,
-                              detailX: detail.minX, detailWidth: detail.width))
+              let detail = probes.frame("detail", in: window),
+              let rootOpacity = probes.opacity("root"),
+              let detailOpacity = probes.opacity("detail") else { return }
+        samples.append(Sample(time: CACurrentMediaTime(), rootX: root.minX, rootWidth: root.width,
+                              rootOpacity: rootOpacity, detailX: detail.minX, detailWidth: detail.width,
+                              detailOpacity: detailOpacity))
     }
 }

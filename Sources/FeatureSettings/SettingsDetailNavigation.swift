@@ -44,7 +44,7 @@ final class SettingsDetailNavigation {
     }
 }
 
-/// A retained settings page and its child share one clipped, directional slide.
+/// A retained settings page and its child share the workspace's directional fade.
 struct SettingsDetailPages<Root: View, Detail: View>: View {
     let navigation: SettingsDetailNavigation
     @ViewBuilder var root: () -> Root
@@ -64,11 +64,11 @@ struct SettingsDetailPages<Root: View, Detail: View>: View {
                     .allowsHitTesting(!navigation.isPresented)
                     .accessibilityHidden(navigation.isPresented)
                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-                    .offset(x: navigation.isPresented ? -geometry.size.width : 0)
+                    .settingsPageVisibility(!navigation.isPresented)
                 if navigation.isPresented {
                     detail()
                         .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-                        .transition(.move(edge: .trailing))
+                        .transition(reduceMotion ? .identity : SettingsPageMotion.transition(edge: .trailing))
                         #if os(tvOS)
                         .onExitCommand {
                             navigation.pop(animated: !reduceMotion)

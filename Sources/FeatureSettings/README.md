@@ -41,7 +41,8 @@ and the single place caption customization lives.
 - `SettingsView` / `SettingsWorkspace` — tvOS shows one centered page at a time.
   The root contains profile identity and the category list, without a preview pane.
   Categories and ordinary descendants share `SettingsFormMetrics.pageWidth`;
-  entering and returning slides between those equally sized pages without resizing.
+  entering and returning fades between those equally sized pages with a short
+  directional movement, without resizing or sliding across the screen.
   Back from a category restores its selected row and retained scroll position;
   Back from a child returns one page. General initially owns focus, not a second pane.
   The avatar/name switches profiles; the adjacent
@@ -63,8 +64,8 @@ and the single place caption customization lives.
   live preview; this is the only width exception. The shared
   `SettingsPageStack` retains parents and owns typed routes, local child pages,
   and Back, including IPTV and profile editors. All use the same directional
-  timing as the subtitle editor's internal panels. Reduce Motion changes the
-  layout without the slide.
+  420ms eased fade and 64pt travel as the subtitle editor's internal panels.
+  Reduce Motion changes the layout without animation.
   The incoming and outgoing style destination always lays out at the final
   workspace width; the navigation viewport reveals it without resizing the preview.
   Hidden or focus-ineligible categories also stop observing native focus, so

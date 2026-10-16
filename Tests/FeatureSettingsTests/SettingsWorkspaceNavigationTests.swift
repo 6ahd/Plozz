@@ -33,10 +33,27 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         pages.reset()
         pages.animationsEnabled = false
         pages.push(.about)
-        try await Task.sleep(for: .milliseconds(300))
+        try await Task.sleep(for: .milliseconds(600))
         XCTAssertEqual(pages.routes, [.about])
         XCTAssertEqual(pages.returnGeneration, 0)
         XCTAssertNil(pages.returnSourceID)
+    }
+
+    func testCategoryReturnDoesNotRecloseAnAlreadyRestoredNativeFocusGate() {
+        for focusArrived in [false, true] {
+            let navigation = SettingsNavigationModel()
+            navigation.pages.animationsEnabled = false
+            navigation.select(.myLibraries)
+            let source = UUID()
+            navigation.enterDetail(sourceID: source)
+            navigation.enteringDetail = false
+            navigation.focusInDetail = !focusArrived
+            navigation.pages.pop()
+            navigation.restoreCategoryFocus()
+            XCTAssertEqual(navigation.restoringSidebar, !focusArrived)
+            XCTAssertEqual(navigation.pages.returnSourceID, source)
+            XCTAssertEqual(navigation.sidebarFocusRequest, 0)
+        }
     }
     #endif
 

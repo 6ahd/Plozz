@@ -28,7 +28,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 - **Settings page navigation** — the TV workspace uses `SettingsPageStack` for
   the retained category list and its equally sized child pages. Only the current page owns input,
   accessibility and Back; a pop restores the originating link's focus after the
-  shared directional animation. `SettingsPageLink`, `SettingsPageDismiss` and
+  shared 420ms eased fade with 64pt directional travel, rather than crossing the
+  screen. Retained parents and inserted children use the same motion and keep
+  their final layout sizes throughout. Input and native entry/return focus transfer
+  only after the fade completes, so overlapping pages cannot steal focus.
+  `SettingsPageLink`, `SettingsPageDismiss` and
   boolean destinations retain native navigation outside this workspace,
   including iOS/iPadOS. `SettingsPageMotion` is also used by nested form and
   subtitle panels, with Reduce Motion respected by their hosts.

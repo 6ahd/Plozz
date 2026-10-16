@@ -3,13 +3,40 @@ import Observation
 import SwiftUI
 
 public enum SettingsPageMotion {
-    public static let animation: Animation = .easeInOut(duration: 0.2)
+    public static let travelDistance: CGFloat = 64
+    public static let animation: Animation = .timingCurve(0.22, 0, 0.2, 1, duration: 0.42)
+
+    public static func transition(edge: HorizontalEdge) -> AnyTransition {
+        .modifier(
+            active: SettingsPageVisibility(isVisible: false, hiddenEdge: edge),
+            identity: SettingsPageVisibility(isVisible: true, hiddenEdge: edge)
+        )
+    }
 
     public static func transition(isReturning: Bool) -> AnyTransition {
         .asymmetric(
-            insertion: .move(edge: isReturning ? .leading : .trailing),
-            removal: .move(edge: isReturning ? .trailing : .leading)
+            insertion: transition(edge: isReturning ? .leading : .trailing),
+            removal: transition(edge: isReturning ? .trailing : .leading)
         )
+    }
+}
+
+private struct SettingsPageVisibility: ViewModifier {
+    let isVisible: Bool
+    let hiddenEdge: HorizontalEdge
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .offset(x: isVisible || reduceMotion ? 0
+                : (hiddenEdge == .leading ? -1 : 1) * SettingsPageMotion.travelDistance)
+            .opacity(isVisible ? 1 : 0)
+    }
+}
+
+public extension View {
+    func settingsPageVisibility(_ isVisible: Bool, hiddenEdge: HorizontalEdge = .leading) -> some View {
+        modifier(SettingsPageVisibility(isVisible: isVisible, hiddenEdge: hiddenEdge))
     }
 }
 
@@ -28,6 +55,7 @@ public final class SettingsPageNavigation<Route: Hashable> {
     public private(set) var returnSourceID: UUID?
     public private(set) var returnGeneration = 0
     fileprivate var entryPageID: UUID?
+    fileprivate var isTransitioning = false
     public var animationsEnabled = true
     private var transitionGeneration = 0
 
@@ -92,17 +120,20 @@ public final class SettingsPageNavigation<Route: Hashable> {
         pages.removeAll()
         returnSourceID = nil
         entryPageID = nil
+        isTransitioning = false
         returnGeneration = 0
     }
 
     private func change(isReturning: Bool, _ update: () -> Void) {
         transitionGeneration += 1
         let generation = transitionGeneration
+        isTransitioning = animationsEnabled
         withAnimation(animationsEnabled ? SettingsPageMotion.animation : nil, completionCriteria: .removed) {
             update()
         } completion: {
-            guard self.transitionGeneration == generation, isReturning else { return }
-            self.returnGeneration += 1
+            guard self.transitionGeneration == generation else { return }
+            self.isTransitioning = false
+            if isReturning { self.returnGeneration += 1 }
         }
     }
 }
@@ -173,7 +204,7 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
                             page.content
                         }
                     }
-                    .transition(reduceMotion ? .identity : .move(edge: .trailing))
+                    .transition(reduceMotion ? .identity : SettingsPageMotion.transition(edge: .trailing))
                 }
             }
         }
@@ -187,10 +218,11 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
         id: UUID?, size: CGSize, viewport: CGSize, @ViewBuilder content: () -> Content
     ) -> some View {
         let current = navigation.pages.last?.id == id
+        let interactive = current && !navigation.isTransitioning
         let context = SettingsPageContext(
-            isCurrent: current,
+            isCurrent: interactive,
             depth: id.flatMap { id in navigation.pages.firstIndex { $0.id == id } }.map { $0 + 1 } ?? 0,
-            requestsEntryFocus: current && id != nil && navigation.entryPageID == id,
+            requestsEntryFocus: interactive && id != nil && navigation.entryPageID == id,
             returnSourceID: navigation.returnSourceID,
             returnGeneration: navigation.returnGeneration,
             pageIDs: navigation.pages.map(\.id),
@@ -213,11 +245,11 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
                     Label("Back", systemImage: "chevron.backward")
                 }.settingsPageEntryFocus().accessibilityIdentifier("settings-workspace-back"))
             })
-            .environment(\.isEnabled, isEnabled && current)
-            .allowsHitTesting(current)
-            .accessibilityElement(children: current ? .contain : .ignore)
-            .accessibilityHidden(!current)
-            .offset(x: current ? 0 : -viewport.width)
+            .environment(\.isEnabled, isEnabled && interactive)
+            .allowsHitTesting(interactive)
+            .accessibilityElement(children: interactive ? .contain : .ignore)
+            .accessibilityHidden(!interactive)
+            .settingsPageVisibility(current)
             .onExitCommand { if current { context.pop() } }
     }
 }

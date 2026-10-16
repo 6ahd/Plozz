@@ -120,10 +120,11 @@ struct SettingsSectionButton: View {
     @Environment(\.settingsWorkspaceFocusScope) private var scope
     @Environment(\.resetFocus) private var resetFocus
     @Environment(\.layoutDirection) private var layoutDirection
+    @Environment(\.settingsPageContext) private var page
     @FocusState private var focused: Bool
 
     private var canReceiveFocus: Bool {
-        !navigation.isCategoryOpen && !navigation.enteringDetail
+        page?.isCurrent != false && !navigation.isCategoryOpen && !navigation.enteringDetail
             && (!(navigation.focusInDetail || navigation.restoringSidebar) || navigation.section == route)
     }
 

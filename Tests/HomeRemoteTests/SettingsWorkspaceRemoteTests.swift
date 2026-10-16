@@ -240,6 +240,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
                 XCTAssertTrue(app.buttons["settings-category-back"].exists, "Unlock must stay in the category.")
                 XCTAssertFalse(section("myLibraries", in: app).exists)
                 capture("kids-unlocked", in: app)
+            } else {
+                XCTAssertTrue(app.buttons["settings-category-back"].waitForExistence(timeout: 5))
             }
             XCTAssertFalse(section("metadata", in: app).exists)
             XCTAssertFalse(section("servers", in: app).exists)
@@ -404,7 +406,11 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(section("subtitles", in: app), in: app)
         XCUIRemote.shared.press(.select)
         let primaryStyle = app.buttons["Customize subtitle style"]
-        XCTAssertTrue(primaryStyle.isHittable, "Subtitle style must be visible near the top without scrolling.")
+        let styleVisible = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in primaryStyle.exists && primaryStyle.isHittable }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [styleVisible], timeout: 5), .completed,
+                       "Subtitle style must be visible near the top without scrolling after the transition.")
         XCTAssertLessThan(primaryStyle.frame.minY, app.staticTexts["Subtitle language"].firstMatch.frame.minY)
         for (title, captureName) in [
             ("Customize subtitle style", "subtitle-style"),
@@ -585,8 +591,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertEqual(app.state, .runningForeground, "Settings navigation requires the actual foreground app.")
             let settings = app.buttons.matching(NSPredicate(format: "label == %@", "Settings")).firstMatch
             XCTAssertTrue(settings.waitForExistence(timeout: 5), app.debugDescription)
-            try focus(settings, in: app)
-            XCUIRemote.shared.press(.select)
+            try focus(settings, in: app, stoppingWhen: { general.exists })
+            if !general.exists { XCUIRemote.shared.press(.select) }
         }
         XCTAssertTrue(general.waitForExistence(timeout: 20), app.debugDescription)
         try focus(general, in: app)
@@ -626,7 +632,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCUIRemote.shared.press(.menu)
         }
         let returned = XCTNSPredicateExpectation(
-            predicate: NSPredicate { _, _ in self.hasFocus(selected) && selected.isSelected && other.isEnabled },
+            predicate: NSPredicate { _, _ in self.hasFocus(selected) && selected.isSelected && other.exists && other.isEnabled },
             object: nil
         )
         XCTAssertEqual(XCTWaiter.wait(for: [returned], timeout: 4), .completed,
@@ -650,13 +656,16 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertEqual(scroll.frame.midX, app.frame.midX, accuracy: 1, "Settings pages stay centered.")
     }
 
-    private func focus(_ target: XCUIElement, in app: XCUIApplication) throws {
+    private func focus(
+        _ target: XCUIElement, in app: XCUIApplication, stoppingWhen: () -> Bool = { false }
+    ) throws {
         guard target.waitForExistence(timeout: 5) else {
             XCTFail("Missing focus target. \(app.debugDescription)")
             return
         }
         var requestedNavigation = false
         for _ in 0..<35 {
+            if stoppingWhen() { return }
             if hasFocus(target) { return }
             let nativeFocused = app.descendants(matching: .any)
                 .matching(NSPredicate(format: "hasFocus == true AND enabled == true")).firstMatch
