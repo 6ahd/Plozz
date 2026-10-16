@@ -273,7 +273,7 @@ struct PrototypeSheetPresentation<SheetContent: View>: ViewModifier {
 extension PrototypeSheet {
     var usesManagementPage: Bool {
         switch self {
-        case .sources, .addPlaylist, .serverSetup: true
+        case .sources, .addPlaylist, .serverSetup, .organization: true
         default: false
         }
     }
@@ -293,6 +293,7 @@ struct PrototypeSheetContent: View {
     var channelActionTitle: LocalizedStringResource?
     var sourceManagement: ((PrototypeSheet) -> AnyView)? = nil
     var openLibraryItem: ((LibraryChannelItem) -> Void)?
+    var canMutate: () -> Bool = { true }
     @Environment(\.dismiss) private var dismiss
     @Environment(\.themePalette) private var palette
 
@@ -312,12 +313,14 @@ struct PrototypeSheetContent: View {
         NavigationStack {
             Group {
                 switch destination {
+                case .organization:
+                    LiveTVChannelOrganizationView(model: model, imports: imports, canMutate: canMutate)
                 case .diagnostics(let report):
                     LiveTVDiagnosticDetailsView(report: report)
                 case .multiviewFavorites:
                     LiveTVMultiviewFavoritesView(model: model, open: openMultiview)
                 case .filters:
-                    PrototypeFilterForm(model: model)
+                    PrototypeFilterForm(model: model, imports: imports, canMutate: canMutate)
                         .navigationTitle("Categories")
                 case .guideTime:
                     PrototypeGuideTimeForm(guideOffset: $guideOffset, goToNow: goToNow, guideStart: guideStart)
@@ -410,10 +413,20 @@ private struct PrototypeGuideTimeForm: View {
 
 private struct PrototypeFilterForm: View {
     @Bindable var model: LiveTVPrototypeModel
+    let imports: LiveTVPrototypeImportModel
+    let canMutate: () -> Bool
 
     var body: some View {
         LiveTVSettingsPage(title: "Categories") {
             SettingsSectionGroup {
+                NavigationLink {
+                    LiveTVChannelOrganizationView(model: model, imports: imports, canMutate: canMutate)
+                } label: {
+                    Label("Manage IPTV channels", systemImage: "slider.horizontal.3")
+                }
+                .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+            }
+            SettingsSectionGroup("Browse filters") {
                 PrototypeSelectionLink(
                     title: "Category", selection: $model.category,
                     options: [nil] + model.categories.map(Optional.some)
