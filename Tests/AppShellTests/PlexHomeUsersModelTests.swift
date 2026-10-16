@@ -1,5 +1,6 @@
 import XCTest
 import CoreModels
+import CoreUI
 import FeatureAuth
 import FeatureProfiles
 @testable import AppRuntime
@@ -465,21 +466,23 @@ final class PlexHomeUsersModelTests: XCTestCase {
             XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a")?.requiresPIN, true, "\(failure)")
             XCTAssertEqual(model.pendingPlexPINRequest?.homeUserID, "parent", "\(failure)")
             XCTAssertNil(model.discoverToken(for: "a"), "\(failure)")
-            if failure == .unavailable {
-                XCTAssertNotNil(model.plexPINError)
-            } else {
-                XCTAssertNil(model.plexPINError, "A rejected probe is not an incorrect entered PIN.")
-            }
+            XCTAssertEqual(model.plexPINEntryAvailability, .unavailable)
+            XCTAssertNotNil(model.plexPINError)
+            XCTAssertNotEqual(model.plexPINError, ProfileLockCopy.incorrectPIN)
         }
     }
 
     private enum MetadataState: CaseIterable, Sendable {
-        case unavailable, missingUser, protected, unprotected
+        case unavailable, missingUser, unknownProtection, protected, unprotected
 
         func users() throws -> [PlexHomeUser] {
             switch self {
             case .unavailable: throw URLError(.notConnectedToInternet)
             case .missingUser: return []
+            case .unknownProtection:
+                return [PlexHomeUser(
+                    id: "parent", name: "Parent", requiresPIN: false, pinRequirementVerified: false
+                )]
             case .protected, .unprotected:
                 return [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: self == .protected)]
             }
@@ -509,6 +512,41 @@ final class PlexHomeUsersModelTests: XCTestCase {
         }
     }
 
+    func testSuppliedPINNetworkFailureNeverLeavesUnconfirmedProtectionLoading() async throws {
+        for confirmedProtection in [false, true] {
+            let (model, _, profiles) = try makeModel(accountIDs: ["a"])
+            model.plexHomeUsersFetch = { _, _ in
+                [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+            }
+            model.setPlexHomeUserForActiveProfile(
+                accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+            )
+            if confirmedProtection {
+                await model.waitForPlexPINRequirementCheck()
+                XCTAssertEqual(model.plexPINEntryAvailability, .available)
+            } else {
+                XCTAssertEqual(model.plexPINEntryAvailability, .checking)
+            }
+            model.plexHomeUsersFetch = { _, _ in
+                XCTFail("A network failure must not replace the supplied PIN with a metadata request.")
+                return []
+            }
+            model.plexHomeUserSwitch = { _, pin, _, _ in
+                XCTAssertEqual(pin, "2468")
+                throw URLError(.notConnectedToInternet)
+            }
+            model.prefillPlexPIN("2468", forProfile: profiles.activeProfileID)
+            model.ensurePlexIdentityForActiveProfile()
+            await model.waitForPlexPINRequirementCheck()
+
+            XCTAssertEqual(model.plexPINEntryAvailability, confirmedProtection ? .available : .unavailable)
+            XCTAssertNotNil(model.pendingPlexPINRequest)
+            XCTAssertNotNil(model.plexPINError)
+            XCTAssertFalse(model.isSubmittingPlexPIN)
+            XCTAssertNil(model.discoverToken(for: "a"))
+        }
+    }
+
     func testPINlessSuccessCannotOverrideMissingOrProtectedHomeUserMetadata() async throws {
         for metadata in MetadataState.allCases {
             let (model, _, profiles) = try makeModel(accountIDs: ["a"])
@@ -524,7 +562,12 @@ final class PlexHomeUsersModelTests: XCTestCase {
             model.setPlexHomeUserForActiveProfile(
                 accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
             )
+            XCTAssertEqual(model.plexPINEntryAvailability, .checking)
             await model.waitForPlexPINRequirementCheck()
+            XCTAssertEqual(
+                model.plexPINEntryAvailability,
+                metadata == .protected ? .available : metadata == .unprotected ? .checking : .unavailable
+            )
             if metadata == .unprotected {
                 XCTAssertNil(model.pendingPlexPINRequest)
                 XCTAssertEqual(model.discoverToken(for: "a"), "PARENT-CLOUD")
@@ -558,6 +601,30 @@ final class PlexHomeUsersModelTests: XCTestCase {
         await model.waitForPlexPINRequirementCheck()
         await fulfillment(of: [checked], timeout: 1)
         XCTAssertNotNil(model.pendingPlexPINRequest)
+    }
+
+    func testMetadataRetryCanResolveAnUnprotectedUserWithoutPINEntry() async throws {
+        let (model, _, _) = try makeModel(accountIDs: ["a"])
+        model.setPlexHomeUserForActiveProfile(
+            accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
+        )
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(model.plexPINEntryAvailability, .unavailable)
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: false)]
+        }
+        model.plexHomeUserSwitch = { _, pin, _, _ in
+            XCTAssertNil(pin)
+            await MainActor.run { XCTAssertEqual(model.plexPINEntryAvailability, .checking) }
+            return "PARENT-CLOUD"
+        }
+        model.plexServerTokenResolve = { _, _, _ in "PARENT-SERVER" }
+        model.retryPlexPINRequirement()
+        XCTAssertEqual(model.plexPINEntryAvailability, .checking)
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertNil(model.pendingPlexPINRequest)
+        XCTAssertEqual(model.plexPINEntryAvailability, .checking)
+        XCTAssertEqual(model.discoverToken(for: "a"), "PARENT-CLOUD")
     }
 
     func testStalePINlessProbeCannotChangeNewerAuthorization() async throws {

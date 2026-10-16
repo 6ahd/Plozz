@@ -2596,7 +2596,8 @@ final class PlozziOSAppModel {
             homeUserID: user.id,
             name: user.name,
             avatarURL: user.avatarURL?.absoluteString,
-            requiresPIN: user.requiresPIN
+            requiresPIN: user.requiresPIN,
+            pinRequirementVerified: user.pinRequirementVerified
         )
         var profile = profiles.activeProfile
         for accountID in pending.applyToAccountIDs {

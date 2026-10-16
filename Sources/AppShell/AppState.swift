@@ -1854,7 +1854,8 @@ public final class AppState {
                 homeUserID: user.id,
                 name: user.name,
                 avatarURL: user.avatarURL?.absoluteString,
-                requiresPIN: user.requiresPIN
+                requiresPIN: user.requiresPIN,
+                pinRequirementVerified: user.pinRequirementVerified
             )
             // Apply the chosen Home user to every newly-added Plex account in the
             // batch (they belong to the same Plex account and share Home users),

@@ -155,8 +155,15 @@ switch for the same profile, user and account credential. A successful switch
 using the owner's credential alone is not proof of PIN removal or PIN knowledge.
 Legacy bindings without a verified protection marker cannot restore unprotected
 cached tokens or automatic-sign-in sessions until they are revalidated.
-Plex rejecting that probe leaves the ordinary PIN prompt, without claiming an
-entered PIN was incorrect. An entered PIN goes directly to the switch endpoint;
+Verification is not PIN entry: both shells show a neutral loading state while
+checking and a retryable error when protection cannot be determined. The PIN
+heading, identity badge, and keypad are instantiated only after Plex explicitly
+confirms that the selected Home user is protected. An unprotected user never
+passes through a PIN screen, including while its authorization cover dismisses.
+Plex's account-password flag (`hasPassword`) is not Home PIN protection; only
+the explicit `protected` field establishes that requirement.
+Plex rejecting a PIN-less switch leaves a retryable authentication error, not a
+PIN prompt for an unprotected user. A supplied PIN goes directly to the switch endpoint;
 stale, missing or unavailable Home-user metadata cannot block authentication or
 discard the entered PIN. A rejected entered PIN also permits one authenticated
 PIN-less attempt only after metadata confirms the Plex PIN was removed, including when a separate

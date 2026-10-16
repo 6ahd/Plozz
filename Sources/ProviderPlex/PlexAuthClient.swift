@@ -245,16 +245,17 @@ public struct PlexAuthClient: Sendable {
         let dto = try await http.decode(PlexHomeUsersDTO.self, from: endpoint, baseURL: baseURL)
         return dto.users.compactMap { user -> PlexHomeUser? in
             guard let id = user.uuid ?? user.id.map(String.init) else { return nil }
-            if user.protected == nil && user.hasPassword == nil {
-                PlozzLog.auth.error("Plex Home-user metadata omitted PIN protection; requiring authentication")
+            if user.protected == nil {
+                PlozzLog.auth.error("Plex Home-user metadata omitted PIN protection; leaving its requirement unknown")
             }
             return PlexHomeUser(
                 id: id,
                 name: user.title ?? user.username ?? "Plex User",
-                requiresPIN: user.protected ?? user.hasPassword ?? true,
+                requiresPIN: user.protected ?? false,
                 isAdmin: user.admin ?? false,
                 isRestricted: user.restricted ?? false,
-                avatarURL: user.thumb.flatMap(URL.init(string:))
+                avatarURL: user.thumb.flatMap(URL.init(string:)),
+                pinRequirementVerified: user.protected != nil
             )
         }
     }

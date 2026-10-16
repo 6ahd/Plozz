@@ -1588,9 +1588,12 @@ private struct PlexPINEntryView: View {
             name: Text(verbatim: userName),
             errorMessage: appState.plexHomeUsers.plexPINError,
             isSubmitting: appState.plexHomeUsers.isSubmittingPlexPIN,
+            availability: pendingRequest == nil ? .checking : appState.plexHomeUsers.plexPINEntryAvailability,
+            onRetry: { appState.plexHomeUsers.retryPlexPINRequirement() },
             sequenceStep: sequenceStep,
             onSubmit: { pin in
-                guard appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest else { return }
+                guard appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest,
+                      appState.plexHomeUsers.plexPINEntryAvailability == .available else { return }
                 PlozzLog.auth.debug("PIN auto-submit at 4 digits")
                 onSubmit(pin)
             },
