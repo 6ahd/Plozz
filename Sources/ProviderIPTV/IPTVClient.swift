@@ -596,13 +596,19 @@ actor IPTVClient {
     }
 
     func guideData(from url: URL) async throws -> Data {
-        if let cachedGuide, cachedGuide.url == url, cachedGuide.expires > Date() { return cachedGuide.data }
+        if let cachedGuide, cachedGuide.url == url, cachedGuide.expires > Date() {
+            IPTVGuideDiagnostics.request?.cacheHit(bytes: cachedGuide.data.count)
+            return cachedGuide.data
+        }
         let (bytes, response) = try await http.bytes(url: url, headers: credential.guideHeaders(for: url))
         defer { bytes.task.cancel() }
         let limit = 256 * 1_024 * 1_024
         guard response.expectedContentLength <= limit else { throw LiveTVSourceImportError.guideTooLarge }
         var data = Data()
-        defer { IPTVHTTP.performanceMetrics?.record(bytes: data.count) }
+        defer {
+            IPTVHTTP.performanceMetrics?.record(bytes: data.count)
+            IPTVGuideDiagnostics.request?.consumed(data.count)
+        }
         for try await byte in bytes {
             guard data.count < limit else { throw LiveTVSourceImportError.guideTooLarge }
             data.append(byte)
@@ -679,6 +685,7 @@ actor IPTVClient {
             guard data.count + bytes.count <= 16 * 1_024 * 1_024 else { throw IPTVError.oversizedRecord }
             data.append(bytes)
         }
+        IPTVGuideDiagnostics.request?.parsing()
         do { return try JSONDecoder().decode(IPTVObject.self, from: data) }
         catch { throw IPTVError.malformed }
     }
@@ -688,7 +695,10 @@ actor IPTVClient {
         defer { bytes.task.cancel() }
         var chunk = Data()
         var consumedBytes = 0
-        defer { IPTVHTTP.performanceMetrics?.record(bytes: consumedBytes + chunk.count) }
+        defer {
+            IPTVHTTP.performanceMetrics?.record(bytes: consumedBytes + chunk.count)
+            IPTVGuideDiagnostics.request?.consumed(consumedBytes + chunk.count)
+        }
         for try await byte in bytes {
             chunk.append(byte)
             if chunk.count == 65_536 {

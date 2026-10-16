@@ -1518,6 +1518,27 @@ the Release model is empty; imported listings never receive synthetic gap filler
 
 ## Live activity and diagnostics
 
+Account-backed IPTV guide batches write `IPTV_GUIDE` events to Recent Activity
+on both platforms. A random batch ID links the source mode, requested channel
+count, Xtream-to-XMLTV fallback counts (empty, malformed, or unavailable), and
+completion outcome. Up to six operation samples retain the first four, first
+failure, and last operation, with the omitted count reported explicitly.
+Samples identify `get_simple_data_table` or XMLTV, lookup/request/download/parse
+stage, observed HTTP status and allowlisted response type, bytes, cache use,
+returned listing count, elapsed time, and a classified failure/network code.
+Cached XMLTV does not invent an HTTP response; cancellation is not a failure
+or success. These diagnostics add no requests or retries and do not change
+fallback selection. They contain no hosts, URLs, account/channel/program
+identities, credentials, raw headers/bodies, or error descriptions.
+
+Guide-only endpoint failures show **Guide unavailable**, not a claim that the
+server's channel API is unsupported. Working channels and previously loaded
+listings remain available. After reproducing, use **Settings > Help & Diagnostics
+> Recent Activity** to copy the log, or enable **Share Crash Reports** and use
+**Send Diagnostics > Send to Developer** with a short identifying note.
+Guide events are local recent activity, not new automatic telemetry; a reporter
+must run a build containing this instrumentation to supply the missing evidence.
+
 Copied playback reports use `plozz-live-tv-2`; `stream_format` is separate from
 the report-format identifier. Both the local report and opt-in failure telemetry
 retain the engine route, first-frame state, up to eight nested native error

@@ -130,7 +130,7 @@ extension LiveTVPrototypeImportModel {
                         guard acceptServerResult(
                             source, context: context, request: request, sourceRevision: sourceRevision, into: model
                         ) else { return .cancelled }
-                        let failure = LiveTVServerImportError.sanitized(error, fallback: .serviceUnavailable)
+                        let failure = LiveTVServerImportError.sanitizedGuide(error)
                         result = .failed
                         if failure == .permissionDenied {
                             cachedServerCatalogs[source.id]?.programs = []
