@@ -15,23 +15,31 @@ struct LiveTVChannelOrganizationView: View {
                 NavigationLink {
                     LiveTVCategoryManagementView(model: model, imports: imports, canMutate: canMutate)
                 } label: {
-                    Label("Categories", systemImage: "rectangle.stack")
+                    SettingsDisclosureLabel {
+                        Label("Categories", systemImage: "rectangle.stack")
+                    }
                 }
+                .buttonStyle(SettingsFormButtonStyle())
+                .accessibilityIdentifier("live-tv-manage-categories")
                 NavigationLink {
                     LiveTVRegionManagementView(model: model, canMutate: canMutate)
                 } label: {
-                    Label("Countries and languages", systemImage: "globe")
+                    SettingsDisclosureLabel {
+                        Label("Countries and languages", systemImage: "globe")
+                    }
                 }
+                .buttonStyle(SettingsFormButtonStyle())
+                .accessibilityIdentifier("live-tv-manage-regions")
                 NavigationLink {
                     LiveTVHiddenChannelManagementView(model: model, canMutate: canMutate)
                 } label: {
-                    HStack {
+                    SettingsDisclosureLabel {
                         Label("Hidden channels", systemImage: "eye.slash")
-                        Spacer()
+                    } value: {
                         Text(model.hiddenChannelEntries.count, format: .number)
-                            .foregroundStyle(.secondary)
                     }
                 }
+                .buttonStyle(SettingsFormButtonStyle())
                 .accessibilityIdentifier("live-tv-manage-hidden")
             } footer: {
                 Text("Category choices apply to new channels after a playlist refresh. Hidden channels are kept, not deleted. These choices belong to this profile.")
@@ -91,8 +99,7 @@ private struct LiveTVCategoryManagementRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            PrototypeSelectionLink(
-                title: "Visibility",
+            LiveTVCategoryVisibilityControl(
                 selection: Binding(
                     get: { model.organization.categories[summary.id]?.visibility ?? .automatic },
                     set: { visibility in
@@ -101,14 +108,9 @@ private struct LiveTVCategoryManagementRow: View {
                         rule.visibility = visibility
                         _ = model.setCategoryRule(rule)
                     }
-                ), options: LiveTVCategoryRule.Visibility.allCases
-            ) { value in
-                switch value {
-                case .automatic: Text("Automatic")
-                case .shown: Text("Show")
-                case .hidden: Text("Hide")
-                }
-            }
+                )
+            )
+            .accessibilityIdentifier("live-tv-category-visibility-\(summary.id)")
             Toggle("Favorite category", isOn: Binding(
                 get: { model.organization.categories[summary.id]?.isFavorite == true },
                 set: { favorite in
@@ -119,10 +121,55 @@ private struct LiveTVCategoryManagementRow: View {
                 }
             ))
             .accessibilityLabel("Favorite \(summary.rule.name)")
+            .accessibilityIdentifier("live-tv-category-favorite-\(summary.id)")
         }
         #if os(tvOS)
         .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
         #endif
+    }
+}
+
+private struct LiveTVCategoryVisibilityControl: View {
+    @Binding var selection: LiveTVCategoryRule.Visibility
+
+    var body: some View {
+        #if os(iOS)
+        Menu {
+            Picker("Visibility", selection: $selection) {
+                ForEach(LiveTVCategoryRule.Visibility.allCases, id: \.self) { value in
+                    Text(value.title).tag(value)
+                }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            SettingsMenuLabel("Visibility", value: selection.title)
+        }
+        .buttonStyle(.plain)
+        #else
+        NavigationLink {
+            PrototypeSelectionList(
+                title: "Visibility", selection: $selection,
+                options: LiveTVCategoryRule.Visibility.allCases
+            ) { Text($0.title) }
+        } label: {
+            SettingsDisclosureLabel {
+                Text("Visibility")
+            } value: {
+                Text(selection.title)
+            }
+        }
+        .buttonStyle(SettingsFormButtonStyle())
+        #endif
+    }
+}
+
+private extension LiveTVCategoryRule.Visibility {
+    var title: LocalizedStringResource {
+        switch self {
+        case .automatic: "Automatic"
+        case .shown: "Show"
+        case .hidden: "Hide"
+        }
     }
 }
 
@@ -143,12 +190,21 @@ private struct LiveTVRegionManagementView: View {
                         _ = model.setRegionalFilter(filter)
                     }
                 ))
+                .accessibilityIdentifier("live-tv-region-enabled")
                 NavigationLink {
                     LiveTVRegionChoices(model: model, country: true, canMutate: canMutate)
-                } label: { Label("Countries", systemImage: "globe") }
+                } label: {
+                    SettingsDisclosureLabel { Label("Countries", systemImage: "globe") }
+                }
+                .buttonStyle(SettingsFormButtonStyle())
+                .accessibilityIdentifier("live-tv-region-countries")
                 NavigationLink {
                     LiveTVRegionChoices(model: model, country: false, canMutate: canMutate)
-                } label: { Label("Languages", systemImage: "character.bubble") }
+                } label: {
+                    SettingsDisclosureLabel { Label("Languages", systemImage: "character.bubble") }
+                }
+                .buttonStyle(SettingsFormButtonStyle())
+                .accessibilityIdentifier("live-tv-region-languages")
             } footer: {
                 Text("A channel stays visible if its country OR language matches. Tags come from the playlist; Plozz doesn't guess from channel names. Untagged and nonmatching channels move to Hidden channels, where you can show them again.")
             }
@@ -201,6 +257,7 @@ private struct LiveTVRegionChoices: View {
                             _ = model.setRegionalFilter(filter)
                         }
                     ))
+                    .accessibilityIdentifier("live-tv-region-\(country ? "country" : "language")-\(value)")
                 }
             }
         }
@@ -220,20 +277,34 @@ struct LiveTVHiddenChannelManagementView: View {
     let model: LiveTVPrototypeModel
     var canMutate: () -> Bool = { true }
     @State private var query = ""
+    @FocusState private var focusedControl: LiveTVHiddenChannelControl?
 
     var body: some View {
         LiveTVSettingsPage(title: "Hidden channels") {
             LiveTVOrganizationFailure(model: model)
             SettingsSectionGroup {
                 TextField("Find a hidden channel", text: $query).autocorrectionDisabled()
-                Button("Reset category and region visibility") {
-                    guard canMutate() else { return }
-                    _ = model.resetOrganizationVisibility()
+                // Keep the group's full-row sizing outside the native button's accessibility bounds.
+                HStack {
+                    Button("Reset category and region visibility") {
+                        guard canMutate() else { return }
+                        _ = model.resetOrganizationVisibility()
+                    }
+                    .plozzActionButton(role: .secondary)
+                    #if os(iOS)
+                    .controlSize(.large)
+                    #endif
+                    .accessibilityIdentifier("live-tv-reset-visibility")
+                    .focused($focusedControl, equals: .reset)
                 }
+                .accessibilityElement(children: .contain)
                 Text("Reset keeps individually hidden channels and scan exclusions. Show channel makes an individual exception to category and regional filtering.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+            #if os(tvOS)
+            .focusSection()
+            #endif
             if model.hiddenChannelEntries.isEmpty {
                 ContentUnavailableView("No hidden channels", systemImage: "eye")
             }
@@ -241,27 +312,98 @@ struct LiveTVHiddenChannelManagementView: View {
                 ForEach(model.hiddenChannelEntries.filter {
                     query.isEmpty || $0.name.localizedStandardContains(query)
                 }) { channel in
-                    SettingsSectionGroup {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(channel.name)
-                                Text(channel.reason.explanation).font(.caption).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            if channel.reason != .scan {
-                                Button("Show channel") {
-                                    guard canMutate() else { return }
-                                    _ = model.showChannel(channel.id)
-                                }
-                                .accessibilityLabel("Show \(channel.name)")
-                            }
-                        }
+                    LiveTVHiddenChannelRow(channel: channel, focus: $focusedControl) {
+                        show(channel.id)
                     }
                 }
             }
         }
         .buttonStyle(SettingsFocusButtonStyle(size: .contained))
         .disabled(!canMutate())
+    }
+
+    private func show(_ id: String) {
+        guard canMutate() else { return }
+        let ids = model.hiddenChannelEntries.filter {
+            (query.isEmpty || $0.name.localizedStandardContains(query)) && $0.reason != .scan
+        }.map(\.id)
+        let index = ids.firstIndex(of: id)
+        let next = index.flatMap { position in
+            position + 1 < ids.count ? ids[position + 1] : (position > 0 ? ids[position - 1] : nil)
+        }
+        let ownedFocus = focusedControl == .channel(id)
+        guard model.showChannel(id) else { return }
+        if ownedFocus {
+            focusedControl = next.map(LiveTVHiddenChannelControl.channel) ?? .reset
+        }
+    }
+}
+
+private enum LiveTVHiddenChannelControl: Hashable {
+    case reset
+    case channel(String)
+}
+
+private struct LiveTVHiddenChannelRow: View {
+    let channel: LiveTVHiddenChannelEntry
+    let focus: FocusState<LiveTVHiddenChannelControl?>.Binding
+    let show: () -> Void
+
+    var body: some View {
+        SettingsSectionGroup {
+            if channel.reason == .scan {
+                LiveTVHiddenChannelLabel(channel: channel)
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 16) {
+                        LiveTVHiddenChannelLabel(channel: channel)
+                            .fixedSize(horizontal: true, vertical: false)
+                        Spacer(minLength: 16)
+                        LiveTVShowChannelButton(channel: channel, focus: focus, show: show)
+                            .fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: 12) {
+                        LiveTVHiddenChannelLabel(channel: channel)
+                        LiveTVShowChannelButton(channel: channel, focus: focus, show: show)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+            }
+        }
+        #if os(tvOS)
+        .focusSection()
+        #endif
+    }
+}
+
+private struct LiveTVHiddenChannelLabel: View {
+    let channel: LiveTVHiddenChannelEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(channel.name)
+            Text(channel.reason.explanation).font(.caption).foregroundStyle(.secondary)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("live-tv-hidden-label-\(channel.id)")
+    }
+}
+
+private struct LiveTVShowChannelButton: View {
+    let channel: LiveTVHiddenChannelEntry
+    let focus: FocusState<LiveTVHiddenChannelControl?>.Binding
+    let show: () -> Void
+
+    var body: some View {
+        Button("Show channel", action: show)
+            .plozzActionButton(role: .secondary)
+            #if os(iOS)
+            .controlSize(.large)
+            #endif
+            .accessibilityLabel("Show \(channel.name)")
+            .accessibilityIdentifier("live-tv-show-\(channel.id)")
+            .focused(focus, equals: .channel(channel.id))
     }
 }
 
@@ -284,8 +426,14 @@ private struct LiveTVOrganizationFailure: View {
         if model.preferencesIssue != nil {
             SettingsSectionGroup {
                 Text("Channel choices couldn't be loaded or saved. Your saved choices have not been replaced.")
-                Button("Retry") { model.retryPreferences() }
-                    .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                HStack {
+                    Button("Retry") { model.retryPreferences() }
+                        .plozzActionButton(role: .secondary)
+                        #if os(iOS)
+                        .controlSize(.large)
+                        #endif
+                }
+                .accessibilityElement(children: .contain)
             }
         }
     }

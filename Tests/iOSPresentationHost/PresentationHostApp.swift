@@ -119,7 +119,9 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--sync-erasure-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--iptv-organization-fixture") {
+                IPTVOrganizationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--sync-erasure-fixture") {
                 SyncErasureInteractionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--watchlist-feedback-fixture") {
                 WatchlistFeedbackFixture()

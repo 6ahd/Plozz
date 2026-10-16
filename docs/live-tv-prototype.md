@@ -462,6 +462,12 @@ category. A hidden membership wins when a channel belongs to several categories;
 an individual Show channel exception wins over category/regional filtering.
 Manual channel hiding and scan exclusions remain separate.
 
+Management links use shared disclosure labels with group-owned padding.
+Visibility uses a native menu on iPhone/iPad and a disclosed selection page
+on TV. Hidden-channel recovery uses native secondary action buttons aligned
+to the trailing edge; narrow widths and large text place the action below the
+description rather than squeezing it.
+
 The optional regional filter includes channels matching **any selected country
 OR language**. It uses supplied tags, normalizing known codes/English names, not
 guesses from channel names. Nonmatching and untagged channels appear in the
