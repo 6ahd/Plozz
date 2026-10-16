@@ -45,7 +45,7 @@ final class PlozziOSAppModel {
     var canEnterApp: Bool { admissionContext.canEnterApp }
     var isLiveTVProfileAuthorized: Bool { isActiveProfileAuthorized }
 
-    var liveTVAdmissionDiagnostic: String {
+    var liveTVAdmissionDiagnostic: String { // l10n:content - diagnostic log fields, never display copy.
         guard HandoffDiagnostics.isEnabled else { return "" }
         return "canEnter=\(canEnterApp) chooseProfile=\(mustChooseProfile)"
             + " launchSelectionPending=\(requiresLaunchProfileSelection && !didCompleteLaunchProfileSelection)"
