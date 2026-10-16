@@ -193,10 +193,8 @@ public final class PlexHomeUsersModel {
     private var plexPINVerifiedHomeUser: [String: String] = [:]
     @ObservationIgnored
     private var plexCredentialSources: [String: CredentialSource] = [:]
-    /// Keychain-backed cache of resolved server tokens for **unprotected** Plex
-    /// Home users. Lets `ensurePlexIdentityForActiveProfile` install the right
-    /// identity synchronously at launch/profile-pick (instant, ungated paint),
-    /// then refresh it in the background. PIN-protected users are never cached.
+    /// Retained to purge credentials saved by older builds. A previously
+    /// unprotected Home user may now have a PIN, so this cache cannot grant entry.
     @ObservationIgnored
     private let plexHomeUserTokenCache: PlexHomeUserTokenCache
     @ObservationIgnored private let automaticSignInStore: AutomaticSignInStore
@@ -441,6 +439,10 @@ public final class PlexHomeUsersModel {
     /// Home-user override over the account's stored (admin) token.
     public func resolvedToken(for accountID: String) -> String? {
         guard hasCurrentCredentialSource(for: accountID) else { return nil }
+        if let binding = profilesModel.activeProfile.homeUserBinding(forPlexAccount: accountID) {
+            guard plexResolvedHomeUser[accountID] == binding.homeUserID else { return nil }
+            return plexTokenOverrides[accountID]
+        }
         return plexTokenOverrides[accountID] ?? accountsProviders.accountStore.token(for: accountID)
     }
 
@@ -632,9 +634,9 @@ public final class PlexHomeUsersModel {
 
     /// Aligns the in-memory Plex identity for **every** signed-in Plex account
     /// with the active profile's per-account Home-user bindings:
-    /// - Unprotected bindings switch silently on each account.
-    /// - The first protected binding (in account order) raises a PIN prompt;
-    ///   subsequent ones are processed after the user submits or cancels.
+    /// - Unresolved bindings verify current protection before authenticating.
+    /// - Verification is neutral loading; only confirmed protection shows a PIN.
+    ///   Subsequent accounts are processed after the current one authenticates.
     /// - An account with no binding drops any existing override for that
     ///   account (back to the admin user).
     public func ensurePlexIdentityForActiveProfile() {
@@ -671,8 +673,11 @@ public final class PlexHomeUsersModel {
                 bumpIdentityGeneration(for: account.id, site: "ensure.replacedCredential")
             }
             if let binding = profile.homeUserBinding(forPlexAccount: account.id) {
-                if binding.requiresPIN != false || binding.pinRequirementVerified != true {
-                    // The general switch cache must never unlock a protected user.
+                let hasUnprotectedSession = binding.requiresPIN == false
+                    && binding.pinRequirementVerified == true
+                    && plexTokenOverrides[account.id] != nil
+                    && plexResolvedHomeUser[account.id] == binding.homeUserID
+                if !hasUnprotectedSession {
                     plexHomeUserTokenCache.remove(account: account.id, homeUser: binding.homeUserID)
                     // Already resolved to exactly this user? It's satisfied —
                     // leave it, don't re-prompt. (Was the source of the
@@ -683,7 +688,8 @@ public final class PlexHomeUsersModel {
                        plexPINVerifiedHomeUser[account.id] == binding.homeUserID {
                         continue
                     }
-                    // Stale override for a DIFFERENT user — drop before prompting.
+                    // No authorized identity for this binding; do not expose
+                    // stale credentials while its current protection is checked.
                     if plexTokenOverrides[account.id] != nil || plexResolvedHomeUser[account.id] != nil {
                         setPlexTokenOverride(nil, for: account.id)
                         plexResolvedHomeUser[account.id] = nil
@@ -694,86 +700,11 @@ public final class PlexHomeUsersModel {
                         pinTarget = (account.id, binding)
                     }
                 } else {
-                    // Unprotected Home user. If we're already resolved to exactly
-                    // this user's complete identity, no refresh is needed.
-                    if plexTokenOverrides[account.id] != nil,
-                       plexResolvedHomeUser[account.id] == binding.homeUserID,
-                       discoverToken(for: account.id) != nil {
+                    if discoverToken(for: account.id) != nil {
                         continue
                     }
-                    // Seed the cached token synchronously so the signed-in subtree
-                    // paints immediately with the correct identity. On a cache hit
-                    // this is the whole switch — no network on the launch path, and
-                    // the background refresh below confirms the token (usually
-                    // unchanged → no reload). On a cache miss (first launch for this
-                    // Home user) Home paints fast with the admin token and reloads
-                    // once when the switch lands; that token is then cached so it
-                    // never happens again.
-                    if let cached = plexHomeUserTokenCache.token(account: account.id, homeUser: binding.homeUserID) {
-                        let identityChanged = plexTokenOverrides[account.id] != cached
-                            || plexResolvedHomeUser[account.id] != binding.homeUserID
-                        setPlexTokenOverride(cached, for: account.id)
-                        plexResolvedHomeUser[account.id] = binding.homeUserID
-                        plexCredentialSources[account.id] = CredentialSource(account)
-                        // Restore the Discover credential in the same breath, or
-                        // the watchlist is left without one on every warm start.
-                        //
-                        // Cleared FIRST when the identity changed, unconditionally.
-                        // A cache entry can hold the server token without the
-                        // Discover half — it predates that half being cached, or
-                        // the app died between the two writes — and simply not
-                        // overwriting left the PREVIOUS user's Discover token
-                        // live under the new user's server token. The watchlist
-                        // then found a credential, passed the fail-closed check,
-                        // and read the wrong person's list. No credential is the
-                        // correct state here: that path refuses to act.
-                        if identityChanged {
-                            plexDiscoverTokens.setToken(nil, for: account.id)
-                        }
-                        if let cachedDiscover = plexHomeUserTokenCache.discoverToken(
-                            account: account.id,
-                            homeUser: binding.homeUserID
-                        ) {
-                            plexDiscoverTokens.setToken(cachedDiscover, for: account.id)
-                        }
-                        accountsProviders.registry.invalidate(accountID: account.id)
-                        if identityChanged {
-                            bumpIdentityGeneration(for: account.id, site: "ensure.cachedOverride")
-                        }
-                        PlozzLog.boot("ensure.cachedOverride acct=\(account.id) home=\(binding.homeUserID) — instant paint")
-                    } else {
-                        // Cache miss on a DIFFERENT user than the one currently
-                        // installed. Drop the old credentials now rather than
-                        // leaving them live for the length of the network switch:
-                        // the profile already reads as bound to the new user, so
-                        // a watchlist import in that window sees a binding, finds
-                        // the PREVIOUS user's Discover token, passes the
-                        // fail-closed check, and imports the wrong person's list.
-                        // Better to hold no credential — that path correctly
-                        // refuses to act — than to hold the wrong one.
-                        if plexTokenOverrides[account.id] != nil || plexResolvedHomeUser[account.id] != nil,
-                           plexResolvedHomeUser[account.id] != binding.homeUserID {
-                            setPlexTokenOverride(nil, for: account.id)
-                            plexResolvedHomeUser[account.id] = nil
-                            accountsProviders.registry.invalidate(accountID: account.id)
-                            bumpIdentityGeneration(for: account.id, site: "ensure.missStaleOverride")
-                        }
-                        PlozzLog.boot("ensure.unprotectedSwitch acct=\(account.id) home=\(binding.homeUserID) — cache miss, async")
-                    }
-                    // Refresh in the background to keep the cached token fresh.
-                    // `performPlexSwitch` only bumps the identity generation when the
-                    // resolved token actually changed, so a warm-cache refresh that
-                    // returns the same token triggers no reload. Capture the identity
-                    // generation at spawn and pass it as `expectedGeneration` so a
-                    // stale refresh — one whose profile was switched out from under it
-                    // during the network window — drops its confirming write instead
-                    // of re-installing the OLD Home-user's token under the NEW profile.
-                    // Per-ACCOUNT, not the global counter: two valid cache-miss
-                    // switches on different accounts capture the same global
-                    // generation, and whichever lands first bumps it — rejecting
-                    // the other as "stale" though its own binding is still
-                    // current, leaving that account stuck on the owner token.
-                    // Supersession is an account-level question.
+                    // Repair only an already-authorized in-memory identity.
+                    // Explicit activation clears it before checking Plex again.
                     let refreshGeneration = plexAccountIdentityGenerations[account.id, default: 0]
                     let activation = profileActivationGeneration
                     Task {
@@ -1039,8 +970,8 @@ public final class PlexHomeUsersModel {
         return plexDiscoverTokens.token(for: accountID)
     }
 
-    /// Repairs an unprotected Home user's missing cloud credential through the
-    /// same authenticated switch as startup, without refreshing the library
+    /// Repairs an authorized unprotected Home user's missing cloud credential
+    /// without refreshing the library
     /// session or using an owner credential for cloud requests.
     public func resolveDiscoverToken(for accountID: String) async throws -> String? {
         try Task.checkCancellation()
@@ -1058,8 +989,9 @@ public final class PlexHomeUsersModel {
         let profile = profilesModel.activeProfile
         guard let binding = profile.homeUserBinding(forPlexAccount: accountID) else { return nil }
         if let token = discoverToken(for: accountID) { return token }
-        guard binding.requiresPIN == false, binding.pinRequirementVerified == true else {
-            PlozzLog.auth.info("Missing protected Plex Home cloud credential requires the normal PIN flow")
+        guard binding.requiresPIN == false, binding.pinRequirementVerified == true,
+              hasResolvedWatchMutationIdentity(forAccountID: accountID) else {
+            PlozzLog.auth.info("Missing Plex Home authorization requires the normal profile entry flow")
             HandoffDiagnostics.emit("plex-home CLOUD_RECOVERY rejected=requires-pin")
             throw AppError.unauthorized
         }
@@ -1137,7 +1069,8 @@ public final class PlexHomeUsersModel {
         guard let account = accountsProviders.accounts.first(where: { $0.id == accountID }),
               let binding = change?.binding ?? savedBinding,
               binding.homeUserID == homeUserID,
-              (binding.requiresPIN == false && binding.pinRequirementVerified == true)
+              (binding.requiresPIN == false && binding.pinRequirementVerified == true
+                && hasResolvedWatchMutationIdentity(forAccountID: accountID))
                 || pin?.isEmpty == false || checksWithoutPIN else {
             return .failure(CancellationError())
         }
@@ -1228,18 +1161,7 @@ public final class PlexHomeUsersModel {
             }
             if change != nil { pendingBindingChange = nil }
             HandoffDiagnostics.emit("plex-home SWITCH cloudReady=true serverRefresh=\(refreshServerCredential)")
-            // The general cache is safe for manual switches only when unprotected.
-            if liveBinding.requiresPIN == false && liveBinding.pinRequirementVerified == true {
-                if refreshServerCredential {
-                    plexHomeUserTokenCache.store(token: resolvedToken, account: accountID, homeUser: homeUserID)
-                }
-                // The Discover half of the same identity, so a warm start — which
-                // restores the server token synchronously and skips this switch
-                // entirely — can restore both. Without it the watchlist has no
-                // credential and correctly refuses to act, reading as permanently
-                // empty. Protected credentials only enter the opt-in startup store.
-                plexHomeUserTokenCache.storeDiscoverToken(token, account: accountID, homeUser: homeUserID)
-            }
+            plexHomeUserTokenCache.remove(account: accountID, homeUser: homeUserID)
             if refreshServerCredential {
                 let completedPINRequest = pendingPlexPINRequest?.accountID == accountID
                     && pendingPlexPINRequest?.homeUserID == homeUserID

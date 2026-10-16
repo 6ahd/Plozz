@@ -151,6 +151,13 @@ back to a protected Plex Home user still requires their PIN, including two Plozz
 profiles mapped to the same Plex user. Local Profile Locks and Kids Profile exit
 gates remain in force for manual switching. Disabling automatic sign-in removes
 the stored session without changing any PIN; sign-out invalidates it.
+Every unresolved Plex binding verifies current Home-user protection before entry,
+even if its last saved status said no PIN. Removing and later re-adding a Plex PIN
+must therefore prompt on the next manual switch. Old unprotected token-cache
+entries are purged, not replayed. Until authorization completes, neither server
+nor Discover access may substitute the owner's credentials. Only an already
+authorized in-memory identity may repair a missing Discover credential; that
+repair cannot authorize a new profile activation.
 
 Before clearing a protected Plex Home binding's PIN requirement, Plozz requires
 current Home-user metadata explicitly reporting no PIN and a successful PIN-less

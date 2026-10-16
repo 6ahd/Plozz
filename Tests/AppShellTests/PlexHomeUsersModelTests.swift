@@ -133,9 +133,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
         model.ensurePlexIdentityForActiveProfile()
     }
 
-    /// Binds the active profile to an unprotected Home user on `accountID` and lets
-    /// the confirming background refresh install + cache its token, so a later
-    /// re-scope has an override to move the identity generation off.
+    /// Authenticates an unprotected user so a later re-scope has a live identity.
     private func installUnprotectedOverride(
         _ model: PlexHomeUsersModel,
         accountID: String,
@@ -168,6 +166,9 @@ final class PlexHomeUsersModelTests: XCTestCase {
         //    write) — simulate the active profile's binding being dropped. That bumps
         //    the identity generation, so the in-flight refresh's captured generation
         //    goes stale.
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "new", name: "new", requiresPIN: false)]
+        }
         model.plexHomeUserSwitch = { uuid, _, _, _ in "acct-\(uuid)" }
         model.plexServerTokenResolve = { [weak model] _, _, _ in
             await MainActor.run { model?.setPlexHomeUserForActiveProfile(accountID: "a", user: nil) }
@@ -189,6 +190,9 @@ final class PlexHomeUsersModelTests: XCTestCase {
     /// switch, the background refresh installs/confirms its token normally.
     func testHappyPathRefreshInstallsTokenWhenGenerationStable() async throws {
         let (model, _, profiles) = try makeModel(accountIDs: ["a"])
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "solo", name: "solo", requiresPIN: false)]
+        }
         model.plexHomeUserSwitch = { uuid, _, _, _ in "acct-\(uuid)" }
         model.plexServerTokenResolve = { _, _, _ in "tok-happy" }
         activateSavedUser(model, profiles: profiles,
@@ -201,10 +205,13 @@ final class PlexHomeUsersModelTests: XCTestCase {
         XCTAssertEqual(model.resolvedToken(for: "a"), "tok-happy")
     }
 
-    func testPartialWarmCacheRecoversCloudTokenWhenServerResolutionFails() async throws {
+    func testPartialLegacyCacheDoesNotAuthorizeEntryBeforeFreshAuthentication() async throws {
         let cache = PlexHomeUserTokenCache(store: InMemorySecureStore())
         cache.store(token: "CACHED-CHILD-SERVER", account: "a", homeUser: "child")
         let (model, _, profiles) = try makeModel(accountIDs: ["a"], cache: cache)
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "child", name: "Child", requiresPIN: false)]
+        }
         model.plexHomeUserSwitch = { user, _, _, _ in
             XCTAssertEqual(user, "child")
             return "FRESH-CHILD-CLOUD"
@@ -214,12 +221,15 @@ final class PlexHomeUsersModelTests: XCTestCase {
             accountID: "a", user: PlexHomeUser(id: "child", name: "Child", requiresPIN: false)
         )
         let generation = model.plexIdentityGeneration
+        XCTAssertNotNil(model.pendingPlexPINRequest)
+        XCTAssertNil(model.resolvedToken(for: "a"))
         await drainMainActor()
-        XCTAssertEqual(model.resolvedToken(for: "a"), "CACHED-CHILD-SERVER")
+        XCTAssertEqual(model.resolvedToken(for: "a"), "FRESH-CHILD-CLOUD")
         XCTAssertEqual(model.discoverToken(for: "a"), "FRESH-CHILD-CLOUD",
                        "A failed server-token lookup must not discard the successfully authenticated cloud credential.")
-        XCTAssertEqual(cache.discoverToken(account: "a", homeUser: "child"), "FRESH-CHILD-CLOUD")
-        XCTAssertEqual(model.plexIdentityGeneration, generation, "Repairing cloud access must not rebuild the browsing tree.")
+        XCTAssertNil(cache.token(account: "a", homeUser: "child"))
+        XCTAssertNil(cache.discoverToken(account: "a", homeUser: "child"))
+        XCTAssertGreaterThan(model.plexIdentityGeneration, generation, "Only the newly authorized identity is published.")
     }
 
     func testAlreadyResolvedUnprotectedUserRepairsMissingCloudHalf() async throws {
@@ -261,7 +271,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
         XCTAssertEqual(model.effectiveCredentialRevision(for: hub.accounts[0]), revision)
         XCTAssertEqual(profiles.activeProfile.lock, profile.lock)
         XCTAssertNil(model.pendingPlexPINRequest)
-        XCTAssertEqual(cache.discoverToken(account: "a", homeUser: "child"), token)
+        XCTAssertNil(cache.discoverToken(account: "a", homeUser: "child"))
     }
 
     func testCloudRecoveryCannotSilentlyUnlockProtectedPlexUser() async throws {
@@ -287,55 +297,45 @@ final class PlexHomeUsersModelTests: XCTestCase {
         XCTAssertNil(cache.discoverToken(account: "a", homeUser: "parent"))
     }
 
-    func testCloudOnlyIdentityIsClearedWhenLeavingItsScope() async throws {
-        enum Departure: CaseIterable {
-            case owner, otherUser, protectedUser, activation, forgetAccount
-        }
-        for departure in Departure.allCases {
+    func testCloudRecoveryCannotAuthorizeAnUnresolvedPreviouslyUnprotectedUser() async throws {
+        for explicitActivation in [false, true] {
             let cache = PlexHomeUserTokenCache(store: InMemorySecureStore())
             let (model, _, profiles) = try makeModel(accountIDs: ["a"], cache: cache)
             profiles.update(profiles.activeProfile.settingHomeUserBinding(
                 PlexHomeUserBinding(homeUserID: "child", name: "Child", requiresPIN: false),
                 forPlexAccount: "a"
             ))
-            model.plexHomeUserSwitch = { _, _, _, _ in "CLOUD-ONLY-CHILD" }
-            model.plexServerTokenResolve = { _, _, _ in
-                XCTFail("Cloud recovery must not change the server credential.")
-                return nil
+            cache.store(token: "OLD-SERVER", account: "a", homeUser: "child")
+            cache.storeDiscoverToken("OLD-CLOUD", account: "a", homeUser: "child")
+            model.plexHomeUserSwitch = { _, _, _, _ in
+                XCTFail("Cloud recovery cannot authenticate before profile entry verifies current protection.")
+                return "CLOUD-ONLY-CHILD"
             }
-            _ = try await model.resolveDiscoverToken(for: "a")
-            XCTAssertEqual(model.resolvedToken(for: "a"), "admin-a")
-            XCTAssertEqual(model.discoverToken(for: "a"), "CLOUD-ONLY-CHILD")
-            model.plexHomeUserSwitch = { _, _, _, _ in throw AppError.unauthorized }
-            switch departure {
-            case .owner:
-                model.setPlexHomeUserForActiveProfile(accountID: "a", user: nil)
-            case .otherUser, .protectedUser:
-                activateSavedUser(model, profiles: profiles,
-                    accountID: "a",
-                    user: PlexHomeUser(id: "other", name: "Other", requiresPIN: departure == .protectedUser)
-                )
-            case .activation:
-                model.beginExplicitProfileActivation()
-            case .forgetAccount:
-                model.forgetAccount("a")
-                XCTAssertNil(cache.discoverToken(account: "a", homeUser: "child"))
+            if explicitActivation { model.beginExplicitProfileActivation() }
+            do {
+                _ = try await model.resolveDiscoverToken(for: "a")
+                XCTFail("An unresolved identity must remain gated.")
+            } catch let error as AppError {
+                XCTAssertEqual(error, .unauthorized)
             }
-            await drainMainActor()
-            XCTAssertNil(model.discoverToken(for: "a"), "\(departure) must clear cloud-only identity too.")
+            XCTAssertNil(model.resolvedToken(for: "a"))
+            XCTAssertNil(model.discoverToken(for: "a"))
+            model.ensurePlexIdentityForActiveProfile()
+            await model.waitForPlexPINRequirementCheck()
+            XCTAssertNotNil(model.pendingPlexPINRequest)
+            XCTAssertNil(cache.token(account: "a", homeUser: "child"))
+            XCTAssertNil(cache.discoverToken(account: "a", homeUser: "child"))
         }
     }
 
     func testCloudRecoveryDoesNotDismissAnotherAccountsPINPrompt() async throws {
         let (model, _, profiles) = try makeModel(accountIDs: ["a", "b"])
+        await installUnprotectedOverride(model, accountID: "a", userID: "child", token: "CHILD-SERVER")
         activateSavedUser(model, profiles: profiles,
             accountID: "b", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         await model.waitForPlexPINRequirementCheck()
-        profiles.update(profiles.activeProfile.settingHomeUserBinding(
-            PlexHomeUserBinding(homeUserID: "child", name: "Child", requiresPIN: false),
-            forPlexAccount: "a"
-        ))
+        model.plexDiscoverTokens.setToken(nil, for: "a")
         model.plexHomeUserSwitch = { user, pin, _, _ in
             XCTAssertEqual(user, "child")
             XCTAssertNil(pin)
@@ -450,13 +450,15 @@ final class PlexHomeUsersModelTests: XCTestCase {
         XCTAssertEqual(profiles.activeProfile.name, "Renamed during authentication")
         XCTAssertEqual(model.resolvedToken(for: "a"), "PARENT-SERVER")
         XCTAssertEqual(model.discoverToken(for: "a"), "PARENT-CLOUD")
-        XCTAssertEqual(cache.token(account: "a", homeUser: "parent"), "PARENT-SERVER")
+        XCTAssertNil(cache.token(account: "a", homeUser: "parent"))
         model.plexHomeUserSwitch = { _, _, _, _ in "PARENT-CLOUD" }
         model.beginExplicitProfileActivation()
         model.ensurePlexIdentityForActiveProfile()
-        XCTAssertNil(model.pendingPlexPINRequest, "The corrected binding must survive another activation.")
+        XCTAssertNotNil(model.pendingPlexPINRequest, "Each activation must check for a newly added PIN.")
+        XCTAssertEqual(model.plexPINEntryAvailability, .checking)
         XCTAssertFalse(model.isAutomaticallySignedIn(profiles.activeProfile))
         await drainMainActor()
+        XCTAssertNil(model.pendingPlexPINRequest, "A still-unprotected user must authenticate without PIN entry.")
     }
 
     func testPlexPINRefreshFailsClosedWithoutPositiveAuthentication() async throws {
@@ -704,18 +706,23 @@ final class PlexHomeUsersModelTests: XCTestCase {
 
     func testUnrelatedServerRefreshCannotDismissProtectedAccountsPrompt() async throws {
         let (model, _, profiles) = try makeModel(accountIDs: ["a", "b"])
+        await installUnprotectedOverride(model, accountID: "a", userID: "child", token: "CHILD-SERVER")
         profiles.update(profiles.activeProfile.settingHomeUserBinding(
-            .init(homeUserID: "child", name: "Child", requiresPIN: false), forPlexAccount: "a"
-        ).settingHomeUserBinding(
             .init(homeUserID: "parent", name: "Parent", requiresPIN: true), forPlexAccount: "b"
         ))
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+        }
         model.plexHomeUserSwitch = { user, _, _, _ in
             guard user == "child" else { throw AppError.unauthorized }
             return "CHILD-CLOUD"
         }
         model.plexServerTokenResolve = { _, _, _ in "CHILD-SERVER" }
         model.ensurePlexIdentityForActiveProfile()
+        await model.waitForPlexPINRequirementCheck()
         let request = model.pendingPlexPINRequest
+        model.plexDiscoverTokens.setToken(nil, for: "a")
+        model.ensurePlexIdentityForActiveProfile()
         await drainMainActor()
         XCTAssertEqual(model.discoverToken(for: "a"), "CHILD-CLOUD")
         XCTAssertEqual(model.pendingPlexPINRequest, request)
@@ -772,15 +779,18 @@ final class PlexHomeUsersModelTests: XCTestCase {
         XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a")?.requiresPIN, true)
     }
 
-    func testLegacyFalseRequirementCannotRestoreCachedProtectedCredentials() async throws {
-        for metadata in MetadataState.allCases {
+    func testSavedFalseRequirementCannotRestoreCachedProtectedCredentials() async throws {
+        for (metadata, previouslyVerified) in MetadataState.allCases.flatMap({ state in
+            [false, true].map { (state, $0) }
+        }) {
             let cache = PlexHomeUserTokenCache(store: InMemorySecureStore())
             cache.store(token: "UNVERIFIED-SERVER", account: "a", homeUser: "parent")
             cache.storeDiscoverToken("UNVERIFIED-CLOUD", account: "a", homeUser: "parent")
             let (model, _, profiles) = try makeModel(accountIDs: ["a"], cache: cache)
-            let legacy = try JSONDecoder().decode(PlexHomeUserBinding.self, from: Data(
+            var legacy = try JSONDecoder().decode(PlexHomeUserBinding.self, from: Data(
                 #"{"homeUserID":"parent","name":"Parent","requiresPIN":false}"#.utf8
             ))
+            legacy.pinRequirementVerified = previouslyVerified ? true : nil
             profiles.update(profiles.activeProfile.settingHomeUserBinding(legacy, forPlexAccount: "a"))
             model.plexHomeUsersFetch = { _, _ in try metadata.users() }
             model.plexHomeUserSwitch = { _, pin, _, _ in
@@ -791,6 +801,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             model.plexServerTokenResolve = { _, _, _ in "CONFIRMED-SERVER" }
             model.ensurePlexIdentityForActiveProfile()
             XCTAssertNotNil(model.pendingPlexPINRequest)
+            XCTAssertNil(model.resolvedToken(for: "a"))
             XCTAssertNil(model.discoverToken(for: "a"))
             XCTAssertNil(cache.token(account: "a", homeUser: "parent"))
             await model.waitForPlexPINRequirementCheck()
@@ -799,6 +810,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
                 XCTAssertEqual(model.discoverToken(for: "a"), "CONFIRMED-CLOUD")
             } else {
                 XCTAssertNotNil(model.pendingPlexPINRequest)
+                XCTAssertNil(model.resolvedToken(for: "a"))
                 XCTAssertNil(model.discoverToken(for: "a"))
             }
         }

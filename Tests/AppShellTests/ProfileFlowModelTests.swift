@@ -189,6 +189,9 @@ final class ProfileFlowModelTests: XCTestCase {
     /// Installs a live unprotected Plex Home-user override for the ACTIVE profile on
     /// `accountID`, so a later re-scope has an override to drop.
     private func installActiveOverride(_ env: Env, accountID: String) async {
+        env.plex.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "hu-\(accountID)", name: "HU", requiresPIN: false)]
+        }
         env.plex.plexHomeUserSwitch = { uuid, _, _, _ in "acct-\(uuid)" }
         env.plex.plexServerTokenResolve = { _, _, _ in "override-\(accountID)" }
         env.profiles.update(env.profiles.activeProfile.settingHomeUserBinding(

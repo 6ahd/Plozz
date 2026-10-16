@@ -28,7 +28,7 @@ final class PINRequirementPresentationTests: XCTestCase {
                     profiles.update(profiles.activeProfile.settingHomeUserBinding(
                         .init(
                             homeUserID: "viewer", name: "Viewer", requiresPIN: cachedRequirement,
-                            pinRequirementVerified: nil
+                            pinRequirementVerified: true
                         ),
                         forPlexAccount: "plex"
                     ))

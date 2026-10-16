@@ -227,6 +227,73 @@ final class AutomaticSignInTests: XCTestCase {
         XCTAssertNil(next.plex.pendingPlexPINRequest)
     }
 
+    func testReaddedPlexPINRequiresFreshProofOnManualSwitchWithOrWithoutAutomaticSignIn() async throws {
+        for automaticallySignIn in [false, true] {
+            let house = try household()
+            let env = launch(house)
+            let parent = env.profiles.activeProfileID
+            let other = env.profiles.add(name: "Other", avatarSymbol: "person", colorIndex: 1)
+            await authenticatePlex(env)
+            if automaticallySignIn { env.flow.setAutomaticallySignIn(true) }
+
+            env.plex.plexHomeUsersFetch = { _, _ in
+                [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: false)]
+            }
+            env.plex.plexHomeUserSwitch = { _, pin, _, _ in
+                XCTAssertNil(pin)
+                return "UNPROTECTED-CLOUD"
+            }
+            env.flow.switchProfile(to: other.id)
+            env.flow.switchProfile(to: parent)
+            await drain()
+            XCTAssertNil(env.plex.pendingPlexPINRequest)
+            XCTAssertEqual(env.profiles.activeProfile.homeUserBinding(forPlexAccount: "account")?.requiresPIN, false)
+            XCTAssertEqual(env.plex.discoverToken(for: "account"), "UNPROTECTED-CLOUD")
+            env.switchCache.store(token: "OLD-SERVER", account: "account", homeUser: "parent")
+            env.switchCache.storeDiscoverToken("OLD-CLOUD", account: "account", homeUser: "parent")
+
+            env.plex.plexHomeUsersFetch = { _, _ in
+                [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+            }
+            env.plex.plexHomeUserSwitch = { _, pin, _, _ in
+                XCTAssertNotNil(pin, "The owner's token can switch without a PIN; that must not authorize entry.")
+                guard pin == "1357" else { throw AppError.unauthorized }
+                return "REPROTECTED-CLOUD"
+            }
+            env.flow.switchProfile(to: other.id)
+            env.flow.switchProfile(to: parent)
+            XCTAssertNotNil(env.plex.pendingPlexPINRequest)
+            XCTAssertEqual(env.plex.plexPINEntryAvailability, .checking)
+            XCTAssertNil(env.plex.resolvedToken(for: "account"))
+            XCTAssertNil(env.plex.discoverToken(for: "account"))
+            await drain()
+            XCTAssertEqual(env.plex.plexPINEntryAvailability, .available)
+            XCTAssertEqual(env.profiles.activeProfile.homeUserBinding(forPlexAccount: "account")?.requiresPIN, true)
+            XCTAssertNil(try house.startup.load())
+            XCTAssertNil(env.switchCache.token(account: "account", homeUser: "parent"))
+            do {
+                _ = try await env.plex.resolveDiscoverToken(for: "account")
+                XCTFail("Cloud recovery must not bypass pending profile authorization.")
+            } catch let error as AppError {
+                XCTAssertEqual(error, .unauthorized)
+            }
+            env.plex.submitPlexPIN("2468")
+            await drain()
+            XCTAssertNotNil(env.plex.pendingPlexPINRequest)
+            XCTAssertNil(try house.startup.load())
+            env.plex.submitPlexPIN("1357")
+            await drain()
+            XCTAssertNil(env.plex.pendingPlexPINRequest)
+            XCTAssertEqual(env.plex.discoverToken(for: "account"), "REPROTECTED-CLOUD")
+
+            let next = launch(house)
+            XCTAssertEqual(next.plex.restoreAutomaticSignInAtLaunch(), automaticallySignIn)
+            next.flow.switchProfile(to: parent)
+            XCTAssertNotNil(next.plex.pendingPlexPINRequest, "Startup trust never authorizes an explicit selection.")
+            XCTAssertNil(next.plex.discoverToken(for: "account"))
+        }
+    }
+
     func testJellyfinAndLocalProfileLockUseStartupOnlyUnlockCredit() throws {
         let house = try household(provider: .jellyfin)
         let first = launch(house)
