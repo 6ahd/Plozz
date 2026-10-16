@@ -438,7 +438,8 @@ Native handles content the server has already prepared:
 | HDR10 / HLG | ✅ | ✅ |
 | Full-timeline seek | ✅ | ✅ (if not live transcode) |
 | PGS subtitles | ❌ | ❌ |
-| DTS bitstream / DTS:X heights | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
+| DTS:X heights | ✅ (supported lossless DTS:X converted to APAC on tvOS 26+ native/HLS VOD) | ❌ |
+| DTS bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 | TrueHD bitstream | ❌ (eligible Atmos uses APAC; otherwise FLAC/E-AC-3 bridge) | ❌ |
 
 ## AirPlay 2 / HomePod Audio Recovery
