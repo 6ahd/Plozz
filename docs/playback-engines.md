@@ -6,6 +6,9 @@ with the best possible quality (Dolby Vision, Atmos, full-timeline seek).
 
 ## IPTV live streams
 
+The [IPTV troubleshooting history](iptv-history.md) links earlier routing,
+redirect and cancellation repairs, including approaches that later changed.
+
 IPTV playlist URLs can declare live output as `ts` or `m3u8` while publishing
 extensionless channel URLs. The provider carries that declaration into its
 encrypted loopback URL without changing the upstream address or opening an

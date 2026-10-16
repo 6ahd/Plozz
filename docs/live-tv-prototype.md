@@ -11,6 +11,10 @@ management, guide/search, Multiview, playback and profile-scoped iCloud sync. Ex
 profile authorization, parental approval, account, source and persistence gates
 remain in force.
 
+For past failures, attempted repairs and related tests, see the short
+[IPTV troubleshooting history](iptv-history.md). It is historical context,
+not a specification.
+
 ## Cached Home cards
 
 Normal Live TV use publishes a small, profile-scoped **local** Home snapshot:
