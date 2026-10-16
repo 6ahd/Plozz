@@ -11,6 +11,26 @@ import XCTest
 
 @MainActor
 final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
+    func testSyncedIdentityMarkerDoesNotHideLoadedIPTVSources() async throws {
+        let fixture = try Fixture(hasIPTV: true)
+        defer { fixture.close() }
+        fixture.show()
+        try await waitUntil { fixture.runtime.catalog.catalog.channels.count == 1 }
+        fixture.profiles.noteIdentityQuestions(
+            for: ["iptv"], forProfile: fixture.profileID, knownNonPlexAccountIDs: []
+        )
+
+        try await waitUntil {
+            fixture.runtime.isCurrent && fixture.runtime.catalog.catalog.channels.count == 1
+        }
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(fixture.profiles.activeProfile.pendingIdentityAccountIDs, ["iptv"])
+        XCTAssertFalse(fixture.accounts.activeProfileAwaitsIdentity)
+        XCTAssertTrue(fixture.runtime.isCurrent)
+        XCTAssertEqual(fixture.runtime.catalog.catalog.channels.count, 1)
+        XCTAssertNil(fixture.runtime.catalog.issue)
+    }
+
     func testSourceUpdateDuringIPTVRestoreDoesNotLeaveProfileAccessFailure() async throws {
         let fixture = try Fixture(hasIPTV: true, pausesCatalog: true)
         defer { fixture.close() }
@@ -246,10 +266,22 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
             profiles = ProfilesModel(store: ProfileStore(defaults: defaults))
             profileID = profiles.add(name: "Sources fixture").id
             profiles.select(profileID)
+            let accountStore = AccountStore(secureStore: InMemorySecureStore())
+            if hasIPTV {
+                try accountStore.add(Account(
+                    id: "iptv",
+                    server: MediaServer(
+                        id: "server", name: "IPTV",
+                        baseURL: URL(string: "https://iptv.example")!, provider: .iptv
+                    ),
+                    userID: "viewer", userName: "Viewer", deviceID: "device"
+                ), token: "fixture")
+            }
             accounts = AccountsProvidersModel(
-                accountStore: AccountStore(secureStore: InMemorySecureStore()),
+                accountStore: accountStore,
                 registry: ProviderRegistry(), profilesModel: profiles
             )
+            accounts.reloadAccounts()
             directory = FileManager.default.temporaryDirectory.appendingPathComponent(domain)
             cache = LiveTVIndexedCache(
                 url: directory.appendingPathComponent("catalog.sqlite"),
@@ -264,6 +296,7 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
             }
             let state = state
             let profiles = profiles
+            let accounts = accounts
             let provider = provider
             let approvals = LiveTVSourceApprovalStore(
                 defaults: defaults, profileID: profileID, namespace: profileID
@@ -278,9 +311,10 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
                     store: LiveTVChannelHealthStore(defaults: defaults, namespace: profileID)
                 ),
                 context: {
-                    state.authorized ? LiveTVSourceApprovalContext(profiles: profiles) : nil
+                    state.authorized && !accounts.activeProfileAwaitsIdentity
+                        ? LiveTVSourceApprovalContext(profiles: profiles) : nil
                 },
-                accountAuthorizationID: { "fixture" },
+                accountAuthorizationID: { accounts.liveTVAuthorizationID },
                 serverProviderResolver: { id in
                     guard hasIPTV, id == "iptv" else { return nil }
                     return .init(accountID: id, authorizationID: "fixture", kind: .iptv, provider: provider)

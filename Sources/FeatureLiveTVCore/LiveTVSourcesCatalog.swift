@@ -117,6 +117,7 @@ public final class LiveTVSourcesCatalog {
         do {
             guard let current = try admission.authority(),
                   current.authorization.profileID == admission.profileID else {
+                recordAdmissionFailure(stage: "initial")
                 invalidate()
                 issue = .authorization
                 return
@@ -124,6 +125,7 @@ public final class LiveTVSourcesCatalog {
             try current.configuration.validate()
             authority = current
         } catch {
+            recordAdmissionFailure(stage: "configuration")
             invalidate()
             issue = .configuration
             return
@@ -149,6 +151,7 @@ public final class LiveTVSourcesCatalog {
             guard revision == request, !Task.isCancelled else { return }
             guard let prepared = try admission.authority(),
                   prepared.authorization.profileID == admission.profileID else {
+                recordAdmissionFailure(stage: "prepared")
                 invalidate()
                 issue = .authorization
                 return
@@ -169,6 +172,7 @@ public final class LiveTVSourcesCatalog {
             guard revision == request else { return }
             guard !Task.isCancelled, admission.isCurrent else {
                 let authorizationChanged = !admission.isCurrent
+                if authorizationChanged { recordAdmissionFailure(stage: "completed") }
                 invalidate()
                 if authorizationChanged { issue = .authorization }
                 return
@@ -182,9 +186,30 @@ public final class LiveTVSourcesCatalog {
         } catch {
             guard revision == request else { return }
             let failure: Issue = admission.isCurrent ? .catalog : .authorization
+            if failure == .authorization { recordAdmissionFailure(stage: "error") }
             invalidate()
             issue = failure
         }
+    }
+
+    private func recordAdmissionFailure(stage: String) {
+        guard HandoffDiagnostics.isEnabled else { return }
+        let state: String
+        do {
+            if let current = try admission.authority() {
+                state = "authorityPresent=true profileMatches=\(current.authorization.profileID == admission.profileID)"
+                    + " configurationMatches=\(current.configuration == admission.snapshot?.configuration)"
+                    + " authorizationMatches=\(current.authorization == admission.snapshot?.authorization)"
+            } else {
+                state = "authorityPresent=false"
+            }
+        } catch {
+            state = "authorityReadFailed=true"
+        }
+        HandoffDiagnostics.emit(
+            "SOURCES event=rejected stage=\(stage) snapshotPresent=\(admission.snapshot != nil)"
+            + " presentationAuthorized=\(admission.presentationIsAuthorized()) \(state)"
+        )
     }
 
     @discardableResult
