@@ -39,25 +39,28 @@ struct PlozziOSPlayerControlsOverlay: View {
     @State private var backwardSpins = 0
     @State private var forwardSpins = 0
     @State private var autoHideTask: Task<Void, Never>?
+    @State private var touchGestures = PlayerTouchGestureState()
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pictureInPicture = PlozziOSPictureInPictureController()
 
     var body: some View {
         ZStack {
-            Color.clear
+            PlayerTouchGestureSurface(
+                state: touchGestures,
+                shortcutsEnabled: touchShortcutsEnabled,
+                canSeek: viewModel.controls.duration.isFinite && viewModel.controls.duration > 0,
+                canBoost: !viewModel.controls.intendsPause
+                    && viewModel.controls.engineCapabilities.contains(.playbackSpeed),
+                canZoom: viewModel.controls.engineCapabilities.contains(.videoZoom),
+                onTap: backgroundTapped,
+                onSkip: touchSkip,
+                onBoostChanged: touchBoostChanged,
+                onZoom: { fillsScreen in
+                    viewModel.controls.videoZoom.settings.mode = fillsScreen ? .fill : .fit
+                },
+                onGestureStarted: beginTouchInteraction
+            )
                 .ignoresSafeArea()
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // An open card is what a tap out here means to dismiss.
-                    // Hiding the whole transport instead would take the card
-                    // with it and leave nothing to tap back — and the gesture
-                    // reads as "put that away", not "hide everything".
-                    if isCardOpen {
-                        isCardOpen = false
-                        noteInteraction()
-                    } else {
-                        toggleControls()
-                    }
-                }
 
             if isPlayingElsewhere {
                 PlozziOSExternalPlaybackPlaceholder(
@@ -205,7 +208,15 @@ struct PlozziOSPlayerControlsOverlay: View {
                 )
             }
 
-            if viewModel.controls.skipButtonVisible {
+            if touchGestures.isActive {
+                PlayerTouchGestureFeedbackView(state: touchGestures)
+                PlozziOSGestureTimeline(viewModel: viewModel, gestures: touchGestures)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 30)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            }
+
+            if viewModel.controls.skipButtonVisible, !touchGestures.isActive {
                 Button {
                     let canSkip = viewModel.controls.activeSkipSegment != nil
                     viewModel.skipActiveSegment()
@@ -252,13 +263,24 @@ struct PlozziOSPlayerControlsOverlay: View {
         .onDisappear { pictureInPicture.detach() }
         .onDisappear {
             cancelAutoHide()
+            cancelTouchInteraction()
             scrubPreviewCoordinator?.clear()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { cancelTouchInteraction() }
+        }
+        .onChange(of: touchShortcutsEnabled) { _, enabled in
+            if !enabled { cancelTouchInteraction() }
+        }
+        .onChange(of: viewModel.temporarySpeedBoostRate) { _, rate in
+            touchGestures.showBoost(rate: rate)
         }
         .onChange(of: viewModel.scrubPreview) {
             configureScrubPreview()
         }
         .onChange(of: viewModel.controls.intendsPause) { _, paused in
             if paused {
+                cancelTouchInteraction()
                 controlsVisible = true
                 cancelAutoHide()
             } else {
@@ -304,6 +326,60 @@ struct PlozziOSPlayerControlsOverlay: View {
         } else {
             cancelAutoHide()
         }
+
+    }
+
+    private var touchShortcutsEnabled: Bool {
+        !isPlayingElsewhere && presentedSheet == nil && !optionsMenuPresented
+            && !versionsPresented && !isCardOpen && !isScrubbing
+            && !viewModel.controls.upNextCard.isPresenting && scenePhase == .active
+    }
+
+    private func backgroundTapped() {
+        touchGestures.clearSkip()
+        if isCardOpen {
+            isCardOpen = false
+            noteInteraction()
+        } else {
+            toggleControls()
+        }
+    }
+
+    private func beginTouchInteraction() {
+        cancelAutoHide()
+        controlsVisible = false
+    }
+
+    private func touchSkip(_ direction: PlayerTouchSkipDirection) {
+        let duration = viewModel.controls.duration
+        guard touchShortcutsEnabled, duration.isFinite, duration > 0 else { return }
+        let interval = direction == .forward
+            ? viewModel.controls.skipGesture.forwardInterval.seconds
+            : -viewModel.controls.skipGesture.backwardInterval.seconds
+        guard let target = touchGestures.seek(
+            by: interval,
+            from: viewModel.controls.pendingSeekTarget ?? viewModel.controls.currentSeconds,
+            within: 0...max(0, duration - 1)
+        ) else { return }
+        beginTouchInteraction()
+        viewModel.requestSeek(to: target, origin: "touchSkip")
+        TouchFeedback.shared.emit(.selection)
+    }
+
+    private func touchBoostChanged(_ held: Bool) {
+        if held {
+            guard touchShortcutsEnabled, let rate = viewModel.beginTemporarySpeedBoost() else { return }
+            beginTouchInteraction()
+            touchGestures.showBoost(rate: rate)
+        } else {
+            viewModel.endTemporarySpeedBoost()
+            touchGestures.showBoost(rate: nil)
+        }
+    }
+
+    private func cancelTouchInteraction() {
+        viewModel.endTemporarySpeedBoost()
+        touchGestures.cancel()
     }
 
     private func seek(by interval: TimeInterval) {
@@ -353,10 +429,12 @@ struct PlozziOSPlayerControlsOverlay: View {
               !optionsMenuPresented,
               !viewModel.controls.diagnosticsEnabled,
               !isScrubbing,
-              !isCardOpen
+              !isCardOpen,
+              !touchGestures.isActive
         else {
             return
         }
+
         // Auto-hide exists to get the chrome out of the way of the video. With
         // the video on a TV or in a PiP window there is nothing to reveal, and
         // hiding leaves the user staring at a placeholder with no way to pause
@@ -393,6 +471,20 @@ struct PlozziOSPlayerControlsOverlay: View {
         scrubPreviewCoordinator?.clear()
         scrubPreviewCoordinator = viewModel.makeScrubPreviewCoordinator()
         scrubPreviewCoordinator?.prefetch()
+    }
+}
+
+private struct PlozziOSGestureTimeline: View {
+    let viewModel: PlayerViewModel
+    let gestures: PlayerTouchGestureState
+
+    var body: some View {
+        PlayerTouchGestureProgress(
+            position: gestures.skip?.target ?? viewModel.controls.currentSeconds,
+            duration: viewModel.controls.duration,
+            bufferedFraction: viewModel.controls.bufferedFraction
+        )
+        .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .timeline)
     }
 }
 

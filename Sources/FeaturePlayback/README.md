@@ -80,6 +80,27 @@ inset, aligning the ruler with the current-program column. That column uses the
 shared raised content surface inside the single outer glass panel, not another
 glass layer. The standalone guide and tvOS grid retain their existing spacing.
 
+## Mobile player gestures
+
+On iPhone and iPad, double-tapping either side skips using the active profile's
+backward/forward interval. Additional taps while the feedback is visible
+accumulate from the requested position, not a lagging playback clock. Directional
+chevrons and the signed total replace the main controls, leaving a thin progress
+bar visible. Single taps still toggle controls; native controls and open menus
+keep their own touches.
+
+Holding on-demand video temporarily accelerates moving playback to at most 2x
+when the engine supports it. Releasing, pausing, seeking, leaving the player, or
+backgrounding cancels the override without changing the saved speed. Live TV
+supports skips only inside an available rewind window, not speed boosting.
+
+Pinch inward for Normal fitting inside the display's safe area, clear of the
+Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
+uses the existing session-only zoom state without reloading video. Authored
+subtitle geometry follows the displayed picture; ordinary captions retain their
+screen-relative placement. Inline, tvOS, and external playback keep their existing
+geometry. Horizontal seeking and brightness/volume swipes are not implemented.
+
 ## Mobile playback settings
 
 Mobile Playback settings keep network quality limits on the main page and move

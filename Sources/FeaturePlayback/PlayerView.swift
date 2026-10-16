@@ -297,7 +297,10 @@ public struct PlayerView: View {
             // surface. The bring-up spinner is a top-level overlay
             // (`showBringUpSpinner`) so it spans this and the `.ready`-but-
             // awaiting-first-frame window as one continuous indicator.
-            VideoSurfaceContainer(engine: viewModel.videoEngine, zoom: viewModel.controls.videoZoom.settings)
+            VideoSurfaceContainer(
+                engine: viewModel.videoEngine, zoom: viewModel.controls.videoZoom.settings,
+                fitsInsideSafeArea: fitsVideoInsideSafeArea
+            )
                 .id(viewModel.engineToken)
                 .ignoresSafeArea()
 
@@ -367,6 +370,7 @@ public struct PlayerView: View {
                 viewModel.authenticatedHTTPResolver,
             makeGeneratedScrubStills: { viewModel.makeGeneratedScrubStills() },
             showsSharedControls: showsSharedControls,
+            fitsInsideSafeArea: fitsVideoInsideSafeArea,
             themePalette: ThemePaletteBox(
                 makeControls: { model, actions, onExitToSurface in
                     AnyView(PlayerControls(
@@ -401,6 +405,14 @@ public struct PlayerView: View {
         // fallback) so it re-hosts the new engine's bare video surface.
         .id(viewModel.engineToken)
         .ignoresSafeArea()
+    }
+
+    private var fitsVideoInsideSafeArea: Bool {
+        #if os(iOS)
+        true
+        #else
+        false
+        #endif
     }
 
     /// Dismiss with a display-aware fade that keeps the screen fully black from the

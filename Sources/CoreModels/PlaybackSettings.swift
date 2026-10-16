@@ -22,10 +22,10 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// id to those databases. The server's own markers always win.
     public var useCommunityMarkers: Bool
 
-    /// How many seconds a left-press on the Siri Remote skips backward.
+    /// How many seconds a remote left-press or mobile backward gesture skips.
     public var skipBackwardInterval: SkipInterval
 
-    /// How many seconds a right-press on the Siri Remote skips forward.
+    /// How many seconds a remote right-press or mobile forward gesture skips.
     public var skipForwardInterval: SkipInterval
 
     /// How many seconds *earlier* than the saved resume point a partially-watched

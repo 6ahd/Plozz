@@ -97,6 +97,8 @@ struct LiveChannelOverlay: View {
     let onControlActivity: () -> Void
     /// Touch only: a tap on the bare video with nothing open to put away.
     let onDismissControls: () -> Void
+    var hasTouchGestureSurface = false
+    var touchBackgroundTapRevision = 0
 
     @Environment(\.playerCardMetrics) private var metrics
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -1071,10 +1073,12 @@ extension LiveChannelOverlay {
 
     var touchLayout: some View {
         ZStack(alignment: .top) {
-            Color.clear
-                .contentShape(Rectangle())
-                .ignoresSafeArea()
-                .onTapGesture(perform: backgroundTapped)
+            if !hasTouchGestureSurface {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+                    .onTapGesture(perform: backgroundTapped)
+            }
             touchScrim
             ZStack(alignment: .top) {
                 // Measured as a sibling so it is the same box the menu layer is
@@ -1110,6 +1114,7 @@ extension LiveChannelOverlay {
             .modifier(WindowSafeAreaPadding())
         }
         .environment(\.playerCardMetrics, touchMetrics)
+        .onChange(of: touchBackgroundTapRevision) { _, _ in backgroundTapped() }
     }
 
     private var touchScrim: some View {
