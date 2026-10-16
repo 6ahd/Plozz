@@ -220,6 +220,77 @@ final class MediaVersionTests: XCTestCase {
         )
     }
 
+    func testPortsydeTorrentNamesAreDecodedWithoutChangingStoredSourceOrIdentity() throws {
+        let query = "torrent_name=Film%20%26%20Friends.Extended.2160p.REMUX-GROUP.mkv&id=tt123&media_type=movie"
+        for rawName in [
+            "https://media.example/stream?\(query)",
+            "n?\n\(query)",
+            query
+        ] {
+            let version = MediaVersion(
+                id: "raw-source", fileName: rawName, height: 2160,
+                sourceMetadata: .init(fileName: rawName)
+            ).qualified(accountID: "account", itemID: "item")
+            let cached = try JSONDecoder().decode(MediaVersion.self, from: JSONEncoder().encode(version))
+            let row = MediaVersion.PickerPresentation(cached)
+            XCTAssertEqual(row.title, "Extended · 4K")
+            XCTAssertEqual(row.supplementalFacts, ["Remux"])
+            XCTAssertEqual(row.releaseName, "Film & Friends.Extended.2160p.REMUX-GROUP.mkv")
+            XCTAssertEqual(cached.fileName, rawName)
+            XCTAssertEqual(cached.sourceMetadata?.fileName, rawName)
+            XCTAssertEqual(cached.playbackMediaSourceID, "raw-source")
+            XCTAssertEqual(cached.id, version.id)
+            XCTAssertTrue(cached.audioLanguageNames().isEmpty)
+            XCTAssertNil(cached.audioFormatLabel)
+        }
+    }
+
+    func testURLBackedProviderNameCannotLeakQueryTextIntoPickerTitles() {
+        let version = MediaVersion(
+            id: "source", name: "https://media.example/stream?torrent_name=Release%20Name&id=tt123"
+        )
+        XCTAssertEqual(version.displayLabel, "Release Name")
+        XCTAssertEqual(version.menuTitle, "Release Name")
+        XCTAssertNil(MediaVersion.PickerPresentation(version).releaseName)
+
+        let endpoint = MediaVersion(
+            id: "endpoint",
+            name: "https://media.example/stream?token=Extended.REMUX",
+            fileName: "stream?token=Extended.REMUX"
+        )
+        let row = MediaVersion.PickerPresentation(endpoint)
+        XCTAssertNil(row.title)
+        XCTAssertTrue(row.supplementalFacts.isEmpty)
+        XCTAssertNil(row.releaseName)
+    }
+
+    func testSourceDisplayNamesDecodeOnlyURLValuesAndPreserveOrdinaryNames() {
+        let cases: [(String, String?)] = [
+            ("torrent_name=%E6%8C%87%E7%8E%AF%E7%8E%8B.mkv&id=tt123", "指环王.mkv"),
+            ("torrent_name=Film%20%26%20Friends%2BPlus.mkv&id=tt123", "Film & Friends+Plus.mkv"),
+            ("torrent_name=Film+Plus.mkv&id=tt123", "Film+Plus.mkv"),
+            ("torrent_name=Film%2520Name.mkv&id=tt123", "Film%20Name.mkv"),
+            ("https://media.example/Film%20Name.mkv?token=fixture#fragment", "Film Name.mkv"),
+            ("Film.mkv?token=fixture#fragment", "Film.mkv"),
+            ("/movies/Film%20Name.mkv", "Film%20Name.mkv"),
+            (#"C:\Movies\Film.mkv"#, "Film.mkv"),
+            ("Film & Friends+Plus.mkv", "Film & Friends+Plus.mkv"),
+            ("https://media.example/stream?torrent_name=&id=tt123", nil),
+            ("torrent_name=%E6%8C&id=tt123", nil),
+            ("https://media.example/stream?token=fixture", nil),
+            ("?token=fixture", nil),
+            ("torrent_name=https%3A%2F%2Fmedia.example%2Fstream%3Ftoken%3Dfixture", nil)
+        ]
+        for (input, expected) in cases {
+            XCTAssertEqual(MediaSourceDisplayName.fileName(from: input), expected, input)
+        }
+        XCTAssertEqual(MediaSourceDisplayName.name(from: "Theatrical / Original"), "Theatrical / Original")
+        let fallback = MediaVersion.PickerPresentation(.init(
+            id: "fallback", name: "Server copy", fileName: "stream?token=fixture", height: 1080
+        ))
+        XCTAssertEqual(fallback.releaseName, "Server copy")
+    }
+
     func testFileSizeUsesAtMostOneFractionDigit() {
         let locale = Locale(identifier: "en_US")
         XCTAssertEqual(

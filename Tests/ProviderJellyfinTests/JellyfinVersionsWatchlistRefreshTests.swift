@@ -76,6 +76,23 @@ final class JellyfinVersionsWatchlistRefreshTests: XCTestCase {
         XCTAssertEqual(item.versions, [])
     }
 
+    func testTorrentSourcePathOnlyChangesTheDisplayFilename() throws {
+        let path = "https://media.example/stream?torrent_name=Film%20%26%20Friends.Extended.REMUX.mkv&id=tt123&media_type=movie"
+        let sources = try JSONDecoder.plozz.decode([MediaSourceInfo].self, from: Data("""
+        [
+          {"Id":"torrent","Name":"4K Remux","Path":"\(path)"},
+          {"Id":"local","Path":"/movies/Film.mkv"}
+        ]
+        """.utf8))
+        let versions = JellyfinProvider.versions(from: sources)
+        XCTAssertEqual(versions[0].fileName, "Film & Friends.Extended.REMUX.mkv")
+        XCTAssertEqual(versions[0].sourceMetadata?.fileName, versions[0].fileName)
+        XCTAssertEqual(MediaVersion.PickerPresentation(versions[0]).releaseName, versions[0].fileName)
+        XCTAssertEqual(versions[0].playbackMediaSourceID, "torrent")
+        XCTAssertEqual(sources[0].Path, path)
+        XCTAssertEqual(versions[1].fileName, "Film.mkv")
+    }
+
     // MARK: - Feature B: Favorites-backed watchlist
 
     func testSetWatchlistedPostsFavorite() async throws {

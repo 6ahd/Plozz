@@ -2215,10 +2215,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
     }
 
     static func fileName(from media: PlexMedia) -> String? {
-        guard let file = media.Part?.first?.file, !file.isEmpty else { return nil }
-        let base = (file as NSString).lastPathComponent
-        let trimmed = base.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        MediaSourceDisplayName.fileName(from: media.Part?.first?.file)
     }
 
     /// Maps Plex `Guid` values (`imdb://...`, `tmdb://...`, …) into the shared

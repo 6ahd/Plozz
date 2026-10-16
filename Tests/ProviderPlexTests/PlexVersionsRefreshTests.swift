@@ -88,6 +88,23 @@ final class PlexVersionsRefreshTests: XCTestCase {
         XCTAssertEqual(PlexProvider.versions(from: nil), [])
     }
 
+    func testTorrentSourcePathOnlyChangesTheDisplayFilename() throws {
+        let path = "https://media.example/stream?torrent_name=Film%20%26%20Friends.Extended.REMUX.mkv&id=tt123&media_type=movie"
+        let media = try JSONDecoder.plozz.decode([PlexMedia].self, from: Data("""
+        [
+          {"id":1001,"Part":[{"file":"\(path)"}]},
+          {"id":1002,"Part":[{"file":"/movies/Film.mkv"}]}
+        ]
+        """.utf8))
+        let versions = PlexProvider.versions(from: media)
+        XCTAssertEqual(versions[0].fileName, "Film & Friends.Extended.REMUX.mkv")
+        XCTAssertEqual(versions[0].sourceMetadata?.fileName, versions[0].fileName)
+        XCTAssertEqual(MediaVersion.PickerPresentation(versions[0]).releaseName, versions[0].fileName)
+        XCTAssertEqual(versions[0].playbackMediaSourceID, "1001")
+        XCTAssertEqual(media[0].Part?.first?.file, path)
+        XCTAssertEqual(versions[1].fileName, "Film.mkv")
+    }
+
     // MARK: - Feature C: metadata refresh
 
     func testRefreshMetadataIssuesPut() async throws {

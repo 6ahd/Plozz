@@ -52,6 +52,11 @@ to that physical file; subtitle languages never become audio languages. Unknown
 facts remain absent, and these source facts do not claim a playback mode or
 active output format. Optional `MediaSourceMetadata.audioLanguages` keeps older
 cached payloads readable and also survives synthesized edition versions.
+`MediaSourceDisplayName` extracts a readable `torrent_name` from URL/query-backed
+sources (including percent-encoded names) before taking a basename. It also
+cleans cached locator-like names at presentation time. Only the decoded name,
+not unrelated query parameters, supplies release text or edition/quality hints;
+playback locators and source IDs remain unchanged.
 
 ## Artwork and profile presentation
 

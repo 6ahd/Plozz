@@ -2323,9 +2323,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     private static func fileName(fromPath path: String) -> String? {
-        let base = (path as NSString).lastPathComponent
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return base.isEmpty ? nil : base
+        MediaSourceDisplayName.fileName(from: path)
     }
 
     private static func sourceRevision(

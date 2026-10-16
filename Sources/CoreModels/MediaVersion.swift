@@ -328,14 +328,15 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
             let trimmed = edition.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }
-        return EditionParser.edition(from: name) ?? EditionParser.edition(from: fileName)
+        return EditionParser.edition(from: MediaSourceDisplayName.name(from: name))
+            ?? EditionParser.edition(from: MediaSourceDisplayName.fileName(from: fileName))
     }
 
     /// The source-quality token parsed from `name` (Remux, BluRay, WEB-DL, …), or
     /// `nil` when the name names no recognised source. Distinguishes a lossless
     /// Remux from a re-encoded WEB-DL that would otherwise read identically.
     public var sourceQualityLabel: String? {  // l10n:content — parsed source/edition token (Remux, BluRay, WEB-DL, …), brand/format-like, never translated
-        EditionParser.sourceQuality(from: name)
+        EditionParser.sourceQuality(from: MediaSourceDisplayName.name(from: name))
     }
 
     /// The primary user-facing label for a picker row. Leads with the **edition**
@@ -356,8 +357,7 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         if let sourceQualityLabel { parts.append(sourceQualityLabel) }
         if let sizeLabel { parts.append(sizeLabel) }
         if !parts.isEmpty { return parts.joined(separator: " · ") }
-        if let name, !name.trimmingCharacters(in: .whitespaces).isEmpty { return name }
-        return nil
+        return MediaSourceDisplayName.name(from: name)
     }
 
     /// First line of a rich version row. The edition/cut is the strongest
@@ -367,11 +367,7 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
     public var menuTitle: String? {  // l10n:content — edition/resolution fact, or the provider's source name; nil means "no facts known", so the caller supplies the (copy) "Version" fallback itself
         if let editionLabel { return editionLabel }
         if let resolutionLabel { return resolutionLabel }
-        if let name {
-            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        return nil
+        return MediaSourceDisplayName.name(from: name)
     }
 
     /// Technical facts that help distinguish files without claiming a playback
@@ -396,13 +392,15 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         public let releaseName: String? // l10n:content — provider release name or file basename
 
         public init(_ version: MediaVersion, locale: Locale = .current) {
+            let fileName = MediaSourceDisplayName.fileName(from: version.fileName)
+                ?? MediaSourceDisplayName.fileName(from: version.sourceMetadata?.fileName)
             title = version.displayLabel
             let titleFacts = Set((title ?? "").components(separatedBy: " · "))
             let video = version.sourceMetadata?.video
             let languages = version.audioLanguageNames(in: locale)
             let rangeFacts = version.sourceMetadata?.dynamicRangeBadges.map(\.label) ?? []
             supplementalFacts = (rangeFacts + [
-                version.sourceQualityLabel ?? EditionParser.sourceQuality(from: version.fileName),
+                version.sourceQualityLabel ?? EditionParser.sourceQuality(from: fileName),
                 PlaybackDiagnostics.friendlyCodecName(video?.codec ?? version.videoCodec),
                 PlaybackDiagnostics.colorDescription(bitDepth: video?.bitDepth, transfer: nil, rangeType: nil),
                 languages.isEmpty ? nil : languages.joined(separator: ", "),
@@ -410,9 +408,7 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
                 version.bitrateLabel,
                 version.durationLabel
             ].compactMap { $0 }).filter { !titleFacts.contains($0) }
-            let release = [version.fileName, version.sourceMetadata?.fileName, version.name]
-                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .first { !$0.isEmpty }
+            let release = fileName ?? MediaSourceDisplayName.name(from: version.name)
             releaseName = release == title ? nil : release
         }
     }

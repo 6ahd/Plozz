@@ -11,7 +11,8 @@ final class VersionPickerPresentationTests: XCTestCase {
     private var versions: [MediaVersion] {
         [
             MediaVersion(
-                id: "remux", fileName: "Movie.Extended.2160p.REMUX.HEVC.TrueHD-GROUP.mkv",
+                id: "remux",
+                fileName: "https://media.example/stream?torrent_name=Movie.Extended.2160p.REMUX.HEVC.TrueHD-GROUP.mkv&id=tt123&media_type=movie",
                 edition: "Extended", height: 2160, bitrate: 80_000_000, sizeBytes: 42_000_000_000,
                 duration: 7_200, videoCodec: "hevc", videoRange: "SDR", audioCodec: "truehd", audioChannels: 8,
                 sourceMetadata: .init(
@@ -99,6 +100,8 @@ final class VersionPickerPresentationTests: XCTestCase {
         for fact in ["Extended", "4K", "42 GB", "English", "French", "HEVC", "TrueHD", "80 Mbps", "2h", "GROUP.mkv"] {
             XCTAssertTrue(visible.contains(fact), "Missing \(fact) in \(name) at \(width): \(visible)")
         }
+        XCTAssertFalse(visible.contains("torrent_name"))
+        XCTAssertFalse(visible.contains("media_type"))
     }
 
     private func scrollView(in view: UIView) -> UIScrollView? {
