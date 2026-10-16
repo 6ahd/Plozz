@@ -78,6 +78,15 @@ and the single place caption customization lives.
   Home-customization preferences. Subtitle *behaviour* (mode, language,
   auto-download) lives here; the subtitle *look* is now adjusted in the
   player while watching.
+- **Send Diagnostics** on TV and mobile uses the existing crash-reporting consent.
+  Each submission appears in Sentry's User Feedback inbox with the optional note
+  (or "User diagnostics report" when blank), linked to the diagnostic event in
+  Issues and its `plozz-recent-activity.log` attachment. No name or email is
+  collected. The privacy filter retains only the feedback message, custom source,
+  and valid associated event ID, not identity or arbitrary feedback fields.
+  Success means SDK handoff, not server acknowledgment; inactive reporting or a
+  rejected event returns failure. Feedback is not submitted when its diagnostic
+  event is rejected. Both events pass through the same privacy hook before upload.
 - `HeroCollectionPickerView` — Customize Home's opt-in **Collections** hero source
   chooses multiple collections across enabled movie and TV libraries, or from accounts'
   personal collections when its provider advertises that capability. The native picker
