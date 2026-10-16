@@ -65,6 +65,8 @@ final class LibraryFailureRecoveryHostedTests: XCTestCase {
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
         window.rootViewController = UIHostingController(rootView:
             MyLibrariesDetailView(scope: scope)
+                .frame(width: SettingsFormMetrics.pageWidth)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .environment(status)
                 .environment(\.settingsInWorkspace, true)
                 .environment(\.themePalette, ThemePalette.dark)

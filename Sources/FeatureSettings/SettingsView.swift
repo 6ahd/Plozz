@@ -21,7 +21,7 @@ public struct SyncRepairActions {
     }
 }
 
-/// Fixed profile/category column and independently navigable settings pane.
+/// Centered categories and detail pages sharing one navigation stack.
 public struct SettingsView: View {
     /// Stable identity owned by MainTabView; only the workspace observes its path.
     private let navigation: SettingsNavigationModel
@@ -403,7 +403,9 @@ public struct SettingsView: View {
                     .padding(12)
                     .settingsGroupSurface(cornerRadius: PlozzTheme.Metrics.mediumCardCornerRadius)
                 }
-                .padding(.bottom, 48)
+                .padding(.horizontal, SettingsFormMetrics.pageInset)
+                .padding(.top, SettingsFormMetrics.pageTopInset)
+                .padding(.bottom, SettingsFormMetrics.pageBottomInset)
             }
             .scrollClipDisabled()
         } detail: { route in
@@ -893,12 +895,10 @@ public struct SettingsView: View {
         case .parentalPIN:
             GrownUpsUnlockView(
                 context: context,
-                onCancel: {
-                    if navigation.path.isEmpty { navigation.returnToSidebar() }
-                    else { navigation.path.removeLast() }
-                },
-                onUnlock: navigation.enterDetail
+                onCancel: { navigation.pages.pop() },
+                onUnlock: { navigation.enterDetail() }
             )
+            .settingsPageEntryFocus()
         case .adultProfile:
             SettingsPanel {
                 Text("Switch to an adult profile to manage these settings.")
@@ -1082,8 +1082,8 @@ public struct SettingsView: View {
         SettingsWorkspaceProfileHeader(
             profile: activeProfile, canEdit: !isParentalSealed,
             onSwitch: onSwitchProfile,
-            onEdit: {
-                navigation.path.append(.profileSettings(profileID: activeProfile.id))
+            onEdit: { source in
+                navigation.pages.push(.profileSettings(profileID: activeProfile.id), sourceID: source)
                 navigation.enterDetail()
             }
         )

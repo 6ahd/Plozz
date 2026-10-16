@@ -28,6 +28,7 @@ public enum SettingsRowProminence {
 
 /// Spacing for settings pages, distinct from the clearance around individual focusable rows.
 public enum SettingsFormMetrics {
+    public static let pageWidth: CGFloat = 960
     public static let sectionSpacing = PlozzTheme.Spacing.large + PlozzTheme.Spacing.xxSmall
     public static let controlSpacing = PlozzTheme.Spacing.large
     public static let relatedControlSpacing = PlozzTheme.Spacing.small

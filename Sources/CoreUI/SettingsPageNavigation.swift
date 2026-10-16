@@ -109,6 +109,7 @@ public final class SettingsPageNavigation<Route: Hashable> {
 
 public struct SettingsPageContext {
     public let isCurrent: Bool
+    public let depth: Int
     let requestsEntryFocus: Bool
     let returnSourceID: UUID?
     let returnGeneration: Int
@@ -134,6 +135,7 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
     let navigation: SettingsPageNavigation<Route>
     let pageWidth: CGFloat
     let onRootBack: () -> Void
+    let fullWidthDestination: (Route) -> Bool
     let root: () -> Root
     let destination: (Route) -> Destination
     @Environment(\.isEnabled) private var isEnabled
@@ -142,22 +144,29 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
     public init(
         navigation: SettingsPageNavigation<Route>, pageWidth: CGFloat,
         onRootBack: @escaping () -> Void,
+        fullWidthDestination: @escaping (Route) -> Bool = { _ in false },
         @ViewBuilder root: @escaping () -> Root,
         @ViewBuilder destination: @escaping (Route) -> Destination
     ) {
         self.navigation = navigation
         self.pageWidth = pageWidth
         self.onRootBack = onRootBack
+        self.fullWidthDestination = fullWidthDestination
         self.root = root
         self.destination = destination
     }
 
     public var body: some View {
         GeometryReader { geometry in
+            let columnSize = CGSize(width: min(pageWidth, geometry.size.width), height: geometry.size.height)
             ZStack(alignment: .topLeading) {
-                layer(id: nil, size: geometry.size, content: root)
+                layer(id: nil, size: columnSize, viewport: geometry.size, content: root)
                 ForEach(navigation.pages) { page in
-                    layer(id: page.id, size: CGSize(width: pageWidth, height: geometry.size.height)) {
+                    layer(
+                        id: page.id,
+                        size: page.route.map(fullWidthDestination) == true ? geometry.size : columnSize,
+                        viewport: geometry.size
+                    ) {
                         if let route = page.route {
                             destination(route)
                         } else {
@@ -175,11 +184,12 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
     }
 
     private func layer<Content: View>(
-        id: UUID?, size: CGSize, @ViewBuilder content: () -> Content
+        id: UUID?, size: CGSize, viewport: CGSize, @ViewBuilder content: () -> Content
     ) -> some View {
         let current = navigation.pages.last?.id == id
         let context = SettingsPageContext(
             isCurrent: current,
+            depth: id.flatMap { id in navigation.pages.firstIndex { $0.id == id } }.map { $0 + 1 } ?? 0,
             requestsEntryFocus: current && id != nil && navigation.entryPageID == id,
             returnSourceID: navigation.returnSourceID,
             returnGeneration: navigation.returnGeneration,
@@ -196,6 +206,7 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
         )
         return content()
             .frame(width: size.width, height: size.height, alignment: .topLeading)
+            .frame(width: viewport.width, height: viewport.height, alignment: .top)
             .environment(\.settingsPageContext, context)
             .environment(\.settingsPageBackButton, id.map { _ in
                 AnyView(Button(action: context.pop) {
@@ -206,7 +217,7 @@ public struct SettingsPageStack<Route: Hashable, Root: View, Destination: View>:
             .allowsHitTesting(current)
             .accessibilityElement(children: current ? .contain : .ignore)
             .accessibilityHidden(!current)
-            .offset(x: current ? 0 : -size.width)
+            .offset(x: current ? 0 : -viewport.width)
             .onExitCommand { if current { context.pop() } }
     }
 }
@@ -235,6 +246,7 @@ public extension View {
 }
 
 public struct SettingsPageActionLink<Label: View>: View {
+    let openOnMove: MoveCommandDirection?
     let action: (UUID) -> Void
     let label: () -> Label
     @State private var sourceID = UUID()
@@ -242,7 +254,11 @@ public struct SettingsPageActionLink<Label: View>: View {
     @Environment(\.settingsPageContext) private var context
     @Environment(\.isEnabled) private var isEnabled
 
-    public init(action: @escaping (UUID) -> Void, @ViewBuilder label: @escaping () -> Label) {
+    public init(
+        openOnMove: MoveCommandDirection? = nil,
+        action: @escaping (UUID) -> Void, @ViewBuilder label: @escaping () -> Label
+    ) {
+        self.openOnMove = openOnMove
         self.action = action
         self.label = label
     }
@@ -252,6 +268,9 @@ public struct SettingsPageActionLink<Label: View>: View {
         Button { action(sourceID) } label: { label() }
             .focused($focused)
             .disabled(!eligible)
+            .onMoveCommand { direction in
+                if eligible, direction == openOnMove { action(sourceID) }
+            }
             .task(id: context?.returnGeneration) {
                 guard let context, context.isCurrent, context.returnGeneration > 0,
                       context.returnSourceID == sourceID else { return }

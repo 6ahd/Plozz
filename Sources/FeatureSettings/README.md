@@ -38,12 +38,13 @@ and the single place caption customization lives.
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing
   its watched/unwatched style.
-- `SettingsView` / `SettingsWorkspace` — tvOS previews categories in two columns:
-  profile identity and categories on the left, the selected section on the right.
-  Entering a category slides the sidebar away and gives the section the full
-  workspace. Back from the category restores its sidebar selection; Back from
-  a child returns one page without reopening the sidebar.
-  General is initially visible. The avatar/name switches profiles; the adjacent
+- `SettingsView` / `SettingsWorkspace` — tvOS shows one centered page at a time.
+  The root contains profile identity and the category list, without a preview pane.
+  Categories and ordinary descendants share `SettingsFormMetrics.pageWidth`;
+  entering and returning slides between those equally sized pages without resizing.
+  Back from a category restores its selected row and retained scroll position;
+  Back from a child returns one page. General initially owns focus, not a second pane.
+  The avatar/name switches profiles; the adjacent
   Edit action uses the same `ProfileActionsList` as the profile picker.
   Profile and Everyone headers share title weight/size, icon width, label gap
   and content insets so their icons and names align.
@@ -58,7 +59,8 @@ and the single place caption customization lives.
   Subtitles is its own profile category for mode, the shared/Live TV style
   editors, language, downloading and per-series memory; downloading still
   follows the active profile's provider capabilities.
-  Both subtitle-style editors keep the category's full width. The shared
+  Both subtitle-style editors deliberately use the full workspace for their large
+  live preview; this is the only width exception. The shared
   `SettingsPageStack` retains parents and owns typed routes, local child pages,
   and Back, including IPTV and profile editors. All use the same directional
   timing as the subtitle editor's internal panels. Reduce Motion changes the
@@ -72,11 +74,11 @@ and the single place caption customization lives.
   Libraries, Live TV and Trackers remain profile-owned. Household setup is
   separate under Everyone; About and Help & Diagnostics have their own entries.
   `SettingsRowStyle` and `SettingsContext` provide shared controls and dependencies.
-  The right navigation viewport extends through the vertical safe area, keeping
+  The navigation viewport extends through the vertical safe area, keeping
   the initial top inset inside its scrollable content instead of clipping pages
   at that inset. Segmented choices share the body-sized control font; explanatory
   copy uses the smaller shared helper style.
-  `SettingsFormMetrics` in CoreUI owns page insets, group padding and the gaps
+  `SettingsFormMetrics` in CoreUI owns the centered page width, page insets, group padding and the gaps
   between sections, controls and related content, using `PlozzTheme.Spacing`.
   A legacy split-pane gap must not become large empty space between controls
   inside a workspace form. The navigation owner supplies a focus-aware Back

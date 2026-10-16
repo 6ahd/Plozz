@@ -18,10 +18,10 @@ final class MetadataProviderListLogicTests: XCTestCase {
         navigation.appearanceRowID = "theme"
         navigation.openArtwork()
         XCTAssertEqual(navigation.section, .appearance)
-        XCTAssertEqual(navigation.path, [.artwork])
+        XCTAssertEqual(navigation.path, [.appearance, .artwork])
         XCTAssertEqual(navigation.appearanceRowID, "artwork")
         navigation.openArtwork()
-        XCTAssertEqual(navigation.path, [.artwork])
+        XCTAssertEqual(navigation.path, [.appearance, .artwork])
     }
 
     @MainActor
@@ -31,11 +31,11 @@ final class MetadataProviderListLogicTests: XCTestCase {
         for _ in 0..<3 {
             navigation.openArtwork()
             XCTAssertEqual(navigation.section, .appearance)
-            XCTAssertEqual(navigation.path, [.artwork])
+            XCTAssertEqual(navigation.path, [.appearance, .artwork])
             XCTAssertEqual(navigation.appearanceRowID, "artwork")
             navigation.openMetadataProviders()
             XCTAssertEqual(navigation.section, .metadata)
-            XCTAssertTrue(navigation.path.isEmpty)
+            XCTAssertEqual(navigation.path, [.metadata])
         }
     }
 

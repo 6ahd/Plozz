@@ -22,8 +22,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Page titles and Back belong inside the scrolling content, not in a fixed
   header strip that shortens the viewport. `SettingsPageHeader` supplies their
   styling, not a separate pinned container.
+  TV Settings categories and descendants share the centered
+  `SettingsFormMetrics.pageWidth`. `SettingsPageStack` keeps that width throughout
+  navigation; only explicitly full-width destinations use the whole viewport.
 - **Settings page navigation** — the TV workspace uses `SettingsPageStack` for
-  retained, full-width child pages. Only the current page owns input,
+  the retained category list and its equally sized child pages. Only the current page owns input,
   accessibility and Back; a pop restores the originating link's focus after the
   shared directional animation. `SettingsPageLink`, `SettingsPageDismiss` and
   boolean destinations retain native navigation outside this workspace,

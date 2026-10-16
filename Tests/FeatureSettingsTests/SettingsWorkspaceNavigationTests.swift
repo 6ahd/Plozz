@@ -46,7 +46,7 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         XCTAssertTrue(navigation.path.isEmpty)
         XCTAssertTrue(navigation.restoringSidebar)
         XCTAssertFalse(navigation.focusInDetail)
-        XCTAssertFalse(navigation.usesFullScreenDetail)
+        XCTAssertFalse(navigation.isCategoryOpen)
     }
 
     func testChangingSectionClearsItsChildrenButRefocusingItDoesNot() {
@@ -79,21 +79,21 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
     func testSubtitlesOwnTheirStyleDestinationAndResetWithTheProfile() {
         let navigation = SettingsNavigationModel()
         navigation.select(.subtitles)
-        XCTAssertFalse(navigation.usesFullScreenDetail)
+        XCTAssertFalse(navigation.isCategoryOpen)
         navigation.path = [.subtitleStyle(liveTV: false)]
-        XCTAssertTrue(navigation.usesFullScreenDetail)
+        XCTAssertTrue(navigation.isCategoryOpen)
         navigation.path = [.subtitleStyle(liveTV: true)]
-        XCTAssertTrue(navigation.usesFullScreenDetail)
+        XCTAssertTrue(navigation.isCategoryOpen)
         navigation.select(.subtitles)
         XCTAssertEqual(navigation.path, [.subtitleStyle(liveTV: true)])
         navigation.select(.playback)
         XCTAssertTrue(navigation.path.isEmpty)
-        XCTAssertFalse(navigation.usesFullScreenDetail)
+        XCTAssertFalse(navigation.isCategoryOpen)
         navigation.select(.subtitles)
         navigation.path = [.subtitleStyle(liveTV: false)]
         navigation.resetForProfile()
         XCTAssertEqual(navigation.section, .general)
-        XCTAssertFalse(navigation.usesFullScreenDetail)
+        XCTAssertFalse(navigation.isCategoryOpen)
         XCTAssertEqual(SettingsRoute.subtitles.access(
             activeProfileID: "child", isKids: true, isParentalSealed: true
         ), .allowed)
@@ -113,25 +113,27 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         XCTAssertFalse(navigation.focusInDetail)
     }
 
-    func testEveryCategoryRemainsFullScreenUntilExplicitReturn() {
+    func testEveryCategoryIsTheFirstPageUntilExplicitReturn() {
         let navigation = SettingsNavigationModel()
         for route: SettingsRoute in [.general, .myLibraries, .appearance, .subtitles, .liveTV, .metadata, .about] {
             navigation.select(route)
             navigation.enterDetail()
-            XCTAssertTrue(navigation.usesFullScreenDetail)
+            XCTAssertEqual(navigation.path, [route])
+            XCTAssertTrue(navigation.isCategoryOpen)
             navigation.focusInDetail = false
             navigation.enteringDetail = false
-            XCTAssertTrue(navigation.usesFullScreenDetail, "Transient native focus loss must not reopen categories.")
+            XCTAssertTrue(navigation.isCategoryOpen, "Transient native focus loss must not reopen categories.")
             navigation.path.append(.about)
-            XCTAssertTrue(navigation.usesFullScreenDetail)
+            XCTAssertTrue(navigation.isCategoryOpen)
             navigation.path.removeLast()
-            XCTAssertTrue(navigation.usesFullScreenDetail)
+            XCTAssertEqual(navigation.path, [route])
+            XCTAssertTrue(navigation.isCategoryOpen)
             navigation.returnToSidebar()
-            XCTAssertFalse(navigation.usesFullScreenDetail)
+            XCTAssertFalse(navigation.isCategoryOpen)
             XCTAssertEqual(navigation.section, route)
         }
         navigation.path = [.artwork, .navigationLayout]
-        XCTAssertTrue(navigation.usesFullScreenDetail)
+        XCTAssertTrue(navigation.isCategoryOpen)
     }
 
     func testHouseholdRoutesRemainUnavailableToKidsEvenAfterUnlock() {

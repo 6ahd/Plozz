@@ -115,6 +115,74 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         try await verifyWorkspaceStyleWidth()
     }
 
+    func testCategoriesAndNestedPagesKeepOneCenteredWidthThroughoutMotion() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            for reducedMotion in [false, true] {
+                let window = UIWindow(windowScene: scene)
+                window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+                let navigation = SettingsNavigationModel()
+                let probes = PageMotionProbes()
+                window.rootViewController = UIHostingController(rootView:
+                    SettingsWorkspace(navigation: navigation) {
+                        PageMotionProbe(id: "root", probes: probes)
+                    } detail: { route in
+                        PageMotionProbe(id: route == .general ? "detail" : "nested", probes: probes)
+                    }
+                    .padding(.horizontal, 80)
+                    .environment(\.layoutDirection, direction)
+                    .ignoresSafeArea()
+                )
+                window.makeKeyAndVisible()
+                defer {
+                    window.isHidden = true
+                    window.rootViewController = nil
+                    previous?.makeKeyAndVisible()
+                }
+                try await Task.sleep(for: .milliseconds(200))
+                navigation.pages.animationsEnabled = !reducedMotion && !UIAccessibility.isReduceMotionEnabled
+                XCTAssertNil(probes.frame("detail", in: window), "The category list must not preload a second pane.")
+                let root = try XCTUnwrap(probes.frame("root", in: window))
+                XCTAssertEqual(root.width, SettingsFormMetrics.pageWidth, accuracy: 1)
+                XCTAssertEqual(root.midX, window.bounds.midX, accuracy: 1)
+                let sampler = PageMotionSampler(probes: probes, window: window)
+                sampler.start()
+                defer { sampler.stop() }
+                navigation.enterDetail()
+                try await Task.sleep(for: .milliseconds(350))
+                let detail = try XCTUnwrap(probes.frame("detail", in: window))
+                XCTAssertEqual(detail, root)
+                if navigation.pages.animationsEnabled {
+                    XCTAssertGreaterThan(sampler.samples.filter {
+                        abs($0.rootX - root.minX) > 5 && abs($0.detailX - detail.minX) > 5
+                    }.count, 1, "Both centered pages must move, not switch abruptly.")
+                }
+                for sample in sampler.samples {
+                    XCTAssertEqual(sample.rootWidth, SettingsFormMetrics.pageWidth, accuracy: 1)
+                    XCTAssertEqual(sample.detailWidth, SettingsFormMetrics.pageWidth, accuracy: 1)
+                }
+                navigation.pages.push(.artwork)
+                try await Task.sleep(for: .milliseconds(350))
+                XCTAssertEqual(try XCTUnwrap(probes.frame("nested", in: window)), root)
+                navigation.pages.pop()
+                try await Task.sleep(for: .milliseconds(350))
+                XCTAssertEqual(try XCTUnwrap(probes.frame("detail", in: window)), root)
+                navigation.pages.pop()
+                try await Task.sleep(for: .milliseconds(350))
+                XCTAssertEqual(try XCTUnwrap(probes.frame("root", in: window)), root)
+                XCTAssertEqual(probes.creations["root"], 1, "Returning must retain the category list and its scroll.")
+                XCTAssertFalse(navigation.isCategoryOpen)
+            }
+        }
+    }
+
     private func verifyWorkspaceStyleWidth() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
@@ -160,7 +228,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         for liveTV in [false, true] {
             for opening in [true, false] {
                 sampler.samples.removeAll()
-                navigation.path = opening ? [.subtitleStyle(liveTV: liveTV)] : []
+                navigation.path = opening ? [.subtitles, .subtitleStyle(liveTV: liveTV)] : [.subtitles]
                 try await Task.sleep(for: .milliseconds(650))
                 if opening {
                     XCTAssertEqual(try XCTUnwrap(probes.frame("detail", in: window)).width,
@@ -412,6 +480,7 @@ private struct PageMotionProbe: UIViewRepresentable {
 private final class PageMotionSampler: NSObject {
     struct Sample: CustomStringConvertible {
         let rootX: CGFloat
+        let rootWidth: CGFloat
         let detailX: CGFloat
         let detailWidth: CGFloat
         var description: String { "root=\(rootX), detail=\(detailX), width=\(detailWidth)" }
@@ -441,6 +510,7 @@ private final class PageMotionSampler: NSObject {
     @objc private func sample() {
         guard let root = probes.frame("root", in: window),
               let detail = probes.frame("detail", in: window) else { return }
-        samples.append(Sample(rootX: root.minX, detailX: detail.minX, detailWidth: detail.width))
+        samples.append(Sample(rootX: root.minX, rootWidth: root.width,
+                              detailX: detail.minX, detailWidth: detail.width))
     }
 }

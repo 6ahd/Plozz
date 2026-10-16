@@ -193,7 +193,13 @@ public final class SettingsNavigationModel {
     var path: [SettingsRoute] = []
     #endif
     var section: SettingsRoute = .general
-    var isCategoryOpen = false
+    var isCategoryOpen: Bool {
+        #if os(tvOS)
+        !pages.pages.isEmpty
+        #else
+        !path.isEmpty
+        #endif
+    }
     var focusInDetail = false
     var restoringSidebar = true
     var enteringDetail = false
@@ -204,16 +210,12 @@ public final class SettingsNavigationModel {
     /// but the exact feature row the viewer was editing inside it.
     var appearanceRowID: String?
 
-    var usesFullScreenDetail: Bool {
-        isCategoryOpen || !path.isEmpty
-    }
-
     public init() {}
 
     func openArtwork() {
         appearanceRowID = "artwork"
         select(.appearance)
-        path = [.artwork]
+        path = [.appearance, .artwork]
         enterDetail()
     }
 
@@ -229,23 +231,34 @@ public final class SettingsNavigationModel {
     func select(_ route: SettingsRoute) {
         guard section != route else { return }
         resetPages()
-        isCategoryOpen = false
         section = route
     }
 
-    func enterDetail() {
-        isCategoryOpen = true
+    func enterDetail(sourceID: UUID? = nil) {
         restoringSidebar = false
         enteringDetail = true
         detailFocusRequest += 1
+        if !isCategoryOpen {
+            #if os(tvOS)
+            pages.push(section, sourceID: sourceID)
+            #else
+            path = [section]
+            #endif
+        }
     }
 
     func returnToSidebar() {
         resetPages()
-        isCategoryOpen = false
+        restoreCategoryFocus()
+    }
+
+    func restoreCategoryFocus() {
         enteringDetail = false
         focusInDetail = false
         restoringSidebar = true
+        #if os(tvOS)
+        guard pages.returnSourceID == nil else { return }
+        #endif
         sidebarFocusRequest += 1
     }
 
