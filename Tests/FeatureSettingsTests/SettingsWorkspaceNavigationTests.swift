@@ -57,9 +57,9 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
     }
     #endif
 
-    func testGeneralIsTheInitialSectionAndSidebarOwnsEntry() {
+    func testPlaybackIsTheInitialSectionAndSidebarOwnsEntry() {
         let navigation = SettingsNavigationModel()
-        XCTAssertEqual(navigation.section, .general)
+        XCTAssertEqual(navigation.section, .playback)
         XCTAssertTrue(navigation.path.isEmpty)
         XCTAssertTrue(navigation.restoringSidebar)
         XCTAssertFalse(navigation.focusInDetail)
@@ -109,7 +109,7 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         navigation.select(.subtitles)
         navigation.path = [.subtitleStyle(liveTV: false)]
         navigation.resetForProfile()
-        XCTAssertEqual(navigation.section, .general)
+        XCTAssertEqual(navigation.section, .playback)
         XCTAssertFalse(navigation.isCategoryOpen)
         XCTAssertEqual(SettingsRoute.subtitles.access(
             activeProfileID: "child", isKids: true, isParentalSealed: true
@@ -123,7 +123,7 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
         navigation.appearanceRowID = "artwork"
         navigation.enterDetail()
         navigation.resetForProfile()
-        XCTAssertEqual(navigation.section, .general)
+        XCTAssertEqual(navigation.section, .playback)
         XCTAssertTrue(navigation.path.isEmpty)
         XCTAssertNil(navigation.appearanceRowID)
         XCTAssertTrue(navigation.restoringSidebar)
@@ -132,7 +132,7 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
 
     func testEveryCategoryIsTheFirstPageUntilExplicitReturn() {
         let navigation = SettingsNavigationModel()
-        for route: SettingsRoute in [.general, .myLibraries, .appearance, .subtitles, .liveTV, .metadata, .about] {
+        for route: SettingsRoute in [.playback, .myLibraries, .appearance, .screensNavigation, .subtitles, .liveTV, .metadata, .about] {
             navigation.select(route)
             navigation.enterDetail()
             XCTAssertEqual(navigation.path, [route])
@@ -168,6 +168,25 @@ final class SettingsWorkspaceNavigationTests: XCTestCase {
             XCTAssertEqual(route.access(activeProfileID: "adult", isKids: false, isParentalSealed: false),
                            .allowed, "\(route)")
         }
+    }
+
+    func testScreensKeepTheirNestedDestinationsAndProfileScope() {
+        let navigation = SettingsNavigationModel()
+        navigation.select(.screensNavigation)
+        navigation.enterDetail()
+        for route: SettingsRoute in [.customizeHome, .navigationLayout, .detailPage] {
+            navigation.path.append(route)
+            XCTAssertEqual(navigation.section, .screensNavigation)
+            XCTAssertEqual(navigation.path, [.screensNavigation, route])
+            XCTAssertEqual(route.access(activeProfileID: "child", isKids: true, isParentalSealed: true), .allowed)
+            navigation.path.removeLast()
+        }
+        navigation.resetForProfile()
+        XCTAssertTrue(navigation.path.isEmpty)
+        XCTAssertEqual(navigation.section, .playback)
+        XCTAssertEqual(SettingsRoute.language.access(
+            activeProfileID: "child", isKids: true, isParentalSealed: true
+        ), .allowed)
     }
 
     func testOnlySealedKidsRequirePINForTheirOwnRestrictedSettings() {

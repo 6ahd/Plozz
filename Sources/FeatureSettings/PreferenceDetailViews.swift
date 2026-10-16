@@ -4,7 +4,7 @@ import CoreModels
 import CoreUI
 
 enum AppearanceSettingsSection {
-    case general, appearance, artwork, navigation
+    case appearance, screensNavigation, artwork, navigation
 }
 
 struct AppearanceDetailView: View {
@@ -19,7 +19,7 @@ struct AppearanceDetailView: View {
     /// Circadian Mode (night-warming) settings, folded in as sections here — it's
     /// a display concern, so it no longer earns its own top-level row.
     @Bindable var nightShift: NightShiftSettingsModel
-    /// Browsing protection, grouped under General in the tvOS workspace.
+    /// Browsing protection belongs to this profile's Appearance preferences.
     @Bindable var spoilers: SpoilerSettingsModel
     var section: AppearanceSettingsSection = .appearance
     #if os(tvOS)
@@ -48,7 +48,7 @@ struct AppearanceDetailView: View {
                 SettingsFormRowPage(row: row, route: section == .artwork ? .artwork : .navigationLayout)
             } else {
                 SettingsSplitLayout(
-                    title: section == .general ? "General" : "Appearance & Layout",
+                    title: section == .screensNavigation ? "Screens & Navigation" : "Appearance",
                     rows: rows,
                     selection: $settingsNavigation.appearanceRowID
                 )
@@ -66,26 +66,26 @@ struct AppearanceDetailView: View {
     }
 
     private var rows: [SettingsSplitRow] {
+        let availableRows = allRows
         #if os(tvOS)
         if inWorkspace {
-            if section == .general {
-                return allRows.filter { ["language", "spoilers"].contains($0.id) }
+            if section == .screensNavigation {
+                return [
+                    SettingsSplitRow(id: "customize-home", title: "Customize Home") { EmptyView() }
+                        .destination(.customizeHome)
+                ] + availableRows.filter { $0.id == "navigation" }.map { $0.destination(.navigationLayout) } + [
+                    SettingsSplitRow(id: "title-details", title: "Detail Page") { EmptyView() }
+                        .destination(.detailPage)
+                ] + availableRows.filter { $0.id == "music-player" }.map { $0.page() }
             }
-            let appearance = allRows.filter { !["language", "theme", "spoilers"].contains($0.id) }
-            return allRows.filter { $0.id == "theme" }.map { $0.page() } + appearance.map { row in
-                switch row.id {
-                case "display-size": row.page(summary: Text(density.density.displayName))
-                case "navigation": row.destination(.navigationLayout)
-                case "artwork": row.destination(.artwork)
-                default: row.page()
+            return ["theme", "cards", "artwork", "spoilers", "night-shift"].flatMap { id in
+                availableRows.filter { $0.id == id }.map { row in
+                    id == "artwork" ? row.destination(.artwork) : row.page()
                 }
-            } + [
-                SettingsSplitRow(id: "title-details", title: "Detail Page") { EmptyView() }
-                    .destination(.detailPage)
-            ]
+            }
         }
         #endif
-        return allRows
+        return availableRows
     }
 
     private var allRows: [SettingsSplitRow] {
@@ -239,7 +239,7 @@ struct AppearanceDetailView: View {
     }
 
     @ViewBuilder private var cardsControls: some View {
-        CardAppearanceControls(cards: cardStyle, watchIndicator: watchStatusIndicator)
+        CardAppearanceControls(cards: cardStyle, watchIndicator: watchStatusIndicator, density: density)
     }
 }
 
@@ -251,7 +251,7 @@ struct SpoilersDetailView: View {
     }
 }
 
-/// Shared spoiler controls for General on tvOS and the legacy detail layout.
+/// Shared spoiler controls for Appearance on tvOS and the legacy detail layout.
 @MainActor
 struct SpoilerRowsBuilder {
     let spoilers: SpoilerSettingsModel
@@ -261,7 +261,7 @@ struct SpoilerRowsBuilder {
         return [
             SettingsSplitRow(
                 id: "spoilers",
-                title: "Spoilers",
+                title: title,
                 description: LocalizedStringResource(
                     "settings.spoilers.description",
                     defaultValue: "Hide unwatched episodes and ratings until you've seen them. Blurred ratings reveal when you press them.",
@@ -283,6 +283,14 @@ struct SpoilerRowsBuilder {
                 }
             }
         ]
+    }
+
+    private var title: LocalizedStringResource {
+        #if os(tvOS)
+        "Spoiler Protection"
+        #else
+        "Spoilers"
+        #endif
     }
 }
 /// Detail-page customization (a sibling to Customize Home): what plays behind the

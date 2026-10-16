@@ -116,16 +116,7 @@ struct SettingsSectionButton: View {
     var subtitle: Text?
     let route: SettingsRoute
     @Environment(SettingsNavigationModel.self) private var navigation
-    @Environment(\.settingsWorkspaceFocusScope) private var scope
-    @Environment(\.resetFocus) private var resetFocus
     @Environment(\.layoutDirection) private var layoutDirection
-    @Environment(\.settingsPageContext) private var page
-    @FocusState private var focused: Bool
-
-    private var canReceiveFocus: Bool {
-        page?.isCurrent != false && !navigation.isCategoryOpen && !navigation.enteringDetail
-            && (!(navigation.focusInDetail || navigation.restoringSidebar) || navigation.section == route)
-    }
 
     var body: some View {
         SettingsPageActionLink(openOnMove: layoutDirection == .leftToRight ? .right : .left) { source in
@@ -138,6 +129,31 @@ struct SettingsSectionButton: View {
             )
         }
         .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+        .settingsCategoryFocus(route)
+    }
+}
+
+extension View {
+    func settingsCategoryFocus(_ route: SettingsRoute) -> some View {
+        modifier(SettingsCategoryFocus(route: route))
+    }
+}
+
+private struct SettingsCategoryFocus: ViewModifier {
+    let route: SettingsRoute
+    @Environment(SettingsNavigationModel.self) private var navigation
+    @Environment(\.settingsWorkspaceFocusScope) private var scope
+    @Environment(\.resetFocus) private var resetFocus
+    @Environment(\.settingsPageContext) private var page
+    @FocusState private var focused: Bool
+
+    private var canReceiveFocus: Bool {
+        page?.isCurrent != false && !navigation.isCategoryOpen && !navigation.enteringDetail
+            && (!(navigation.focusInDetail || navigation.restoringSidebar) || navigation.section == route)
+    }
+
+    func body(content: Content) -> some View {
+        content
         .focused($focused)
         .modifier(SettingsSectionFocusPreference(scope: scope, selected: navigation.section == route))
         .disabled(!canReceiveFocus)
@@ -178,13 +194,14 @@ private struct SettingsSectionFocusPreference: ViewModifier {
     }
 }
 
-private struct SettingsSectionLabel: View {
+struct SettingsSectionLabel: View {
     let title: Text
     let icon: String
     let assetIcon: String?
     let value: Text?
     let subtitle: Text?
     let selected: Bool
+    var accessorySymbol = "chevron.forward"
     @Environment(\.settingsRowIsFocused) private var focused
     @Environment(\.themePalette) private var palette
 
@@ -197,7 +214,7 @@ private struct SettingsSectionLabel: View {
         }, trailing: {
             HStack(spacing: 10) {
                 value?.font(.caption).settingsRowSecondary()
-                Image(systemName: "chevron.forward")
+                Image(systemName: accessorySymbol)
                     .font(.caption.weight(.semibold))
                     .settingsRowSecondary()
             }

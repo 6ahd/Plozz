@@ -6,38 +6,28 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
         defer { capture("final-state", in: app) }
-        let general = section("general", in: app)
-        XCTAssertTrue(general.isSelected, app.debugDescription)
+        let playback = section("playback", in: app)
+        XCTAssertTrue(playback.isSelected, app.debugDescription)
         XCTAssertTrue(app.buttons["settings-profile-switch"].exists)
         XCTAssertTrue(app.buttons["settings-profile-edit"].exists)
         XCTAssertFalse(app.buttons["settings-group-language"].exists,
                        "Categories must not preview a second page beside the list.")
         assertCenteredSettingsColumn(in: app)
-        capture("01-general", in: app)
-        XCUIRemote.shared.press(.select)
-        let language = app.staticTexts["Language"].firstMatch
-        let languageMenu = app.buttons["settings-group-language"].firstMatch
-        XCTAssertTrue(languageMenu.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertEqual(language.frame.midY, languageMenu.frame.midY, accuracy: 3)
-        XCTAssertLessThanOrEqual(languageMenu.frame.height, 80, "Language must remain a compact single row.")
-        XCTAssertFalse(app.staticTexts["Theme"].exists)
+        capture("01-playback", in: app)
+        XCTAssertFalse(section("general", in: app).exists)
+        XCTAssertFalse(section("customizeHome", in: app).exists)
         XCTAssertFalse(app.buttons["settings-page-theme"].exists)
-        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
-            format: "label BEGINSWITH %@", "System prompts and the player's own"
-        )).firstMatch.exists)
-        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
-            format: "label BEGINSWITH %@", "The language Plozz uses for its own labels"
-        )).firstMatch.exists)
-        assertCenteredSettingsColumn(in: app)
-        capture("editing-general", in: app)
-        XCUIRemote.shared.press(.menu)
-        try focus(section("general", in: app), in: app)
-        try enterAndReturn("general", in: app)
+        let profileRows = ["playback", "subtitles", "liveTV", "myLibraries", "appearance",
+                           "screensNavigation", "integrations", "language"].map { section($0, in: app) }
+        XCTAssertTrue(profileRows.allSatisfy(\.exists), app.debugDescription)
+        let positions = profileRows.map(\.frame.minY)
+        XCTAssertEqual(positions, positions.sorted())
+        try enterAndReturn("playback", in: app)
         XCUIRemote.shared.press(.down)
-        XCTAssertTrue(section("myLibraries", in: app).isSelected, app.debugDescription)
+        XCTAssertTrue(section("subtitles", in: app).isSelected, app.debugDescription)
 
         for (index, name) in [
-            "myLibraries", "customizeHome", "appearance", "playback", "subtitles", "liveTV", "integrations",
+            "subtitles", "liveTV", "myLibraries", "appearance", "screensNavigation", "integrations",
             "servers", "profile", "parentalPIN", "seerr", "syncSetup", "metadata", "help"
         ].enumerated() {
             let target = section(name, in: app)
@@ -53,7 +43,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertFalse(app.buttons["settings-page-subtitles"].exists)
         XCTAssertFalse(app.staticTexts["Show subtitles"].exists)
         capture("19-playback-entered", in: app)
-        XCTAssertFalse(section("general", in: app).exists, app.debugDescription)
+        XCTAssertFalse(section("screensNavigation", in: app).exists, app.debugDescription)
         XCUIRemote.shared.press(.menu)
         try focus(section("subtitles", in: app), in: app)
         XCUIRemote.shared.press(.select)
@@ -75,10 +65,71 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testLanguageOpensItsPickerDirectlyAndKeepsFeedbackReachable() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        let language = section("language", in: app)
+        try focus(language, in: app)
+        if language.value as? String != "System", language.value as? String != "English" {
+            XCUIRemote.shared.press(.select)
+            try focus(app.cells.containing(.any, identifier: "English").firstMatch, in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(language, in: app)
+        }
+        capture("language-row", in: app)
+        XCTAssertEqual(language.label, "Language")
+        let originalValue = try XCTUnwrap(language.value as? String)
+        XCTAssertTrue(originalValue.contains("System") || originalValue.contains("English"), originalValue)
+        let originalOption = originalValue.contains("System") ? "System" : "English"
+        XCTAssertLessThanOrEqual(language.frame.height, 80)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.cells.containing(.any, identifier: "English").firstMatch.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(app.buttons["settings-category-back"].exists)
+        capture("language-picker", in: app)
+        XCUIRemote.shared.press(.menu)
+        waitForCategoryFocus("language", in: app)
+
+        XCUIRemote.shared.press(.select)
+        try focus(app.cells.containing(.any, identifier: "Français").firstMatch, in: app)
+        XCUIRemote.shared.press(.select)
+        let updated = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                language.exists && (language.value as? String)?.contains("Français") == true
+            }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [updated], timeout: 5), .completed)
+        try focus(language, in: app)
+        XCUIRemote.shared.press(.select)
+        let feedback = app.cells.containing(.any, identifier: "settings-language-feedback").firstMatch
+        for _ in 0..<50 where !feedback.exists { XCUIRemote.shared.press(.down) }
+        XCTAssertTrue(feedback.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(feedback, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["settings-language-feedback-close"].waitForExistence(timeout: 5), app.debugDescription)
+        capture("language-feedback", in: app)
+        XCUIRemote.shared.press(.menu)
+        waitForCategoryFocus("language", in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.cells.containing(.any, identifier: "English").firstMatch, in: app)
+        XCUIRemote.shared.press(.select)
+        if originalOption == "System" {
+            try focus(language, in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(app.cells.containing(.any, identifier: "System").firstMatch, in: app)
+            XCUIRemote.shared.press(.select)
+        }
+        XCTAssertTrue(language.waitForExistence(timeout: 5))
+        XCTAssertEqual(language.value as? String, originalValue)
+        try focus(section("playback", in: app), in: app)
+        #else
+        throw XCTSkip("Never changes language on a physical device.")
+        #endif
+    }
+
     func testCompactAboutRemainsAtSettingsRoot() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
-        XCTAssertTrue(section("customizeHome", in: app).exists)
+        XCTAssertTrue(section("screensNavigation", in: app).exists)
         XCTAssertTrue(app.staticTexts["Trakt, Simkl, AniList, MyAnimeList, Last.fm"].exists)
         XCTAssertFalse(section("about", in: app).exists)
         let version = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Version ")).firstMatch
@@ -110,7 +161,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             predicate: NSPredicate { _, _ in self.hasFocus(attributions) }, object: nil
         )
         XCTAssertEqual(XCTWaiter.wait(for: [returned], timeout: 5), .completed)
-        try focus(section("general", in: app), in: app)
+        try focus(section("playback", in: app), in: app)
         #else
         throw XCTSkip("Never seeds or changes settings on a physical device.")
         #endif
@@ -122,6 +173,16 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         defer { capture("appearance-final-state", in: app) }
         try focus(section("appearance", in: app), in: app)
         XCUIRemote.shared.press(.select)
+        assertInlineSettingsHeader("Appearance", back: pageBack("settings-category-back", in: app), in: app)
+        for id in ["theme", "cards", "artwork", "spoilers", "night-shift"] {
+            XCTAssertTrue(app.buttons["settings-page-\(id)"].exists)
+        }
+        for id in ["display-size", "navigation", "music-player", "title-details", "customize-home"] {
+            XCTAssertFalse(app.buttons["settings-page-\(id)"].exists)
+        }
+        let cards = app.buttons["settings-page-cards"]
+        let artwork = app.buttons["settings-page-artwork"]
+        XCTAssertEqual(artwork.frame.minY - cards.frame.maxY, 8, accuracy: 1)
         let theme = app.buttons["settings-page-theme"]
         XCTAssertTrue(theme.waitForExistence(timeout: 5), app.debugDescription)
         try focus(theme, in: app)
@@ -133,32 +194,6 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         assertCenteredSettingsColumn(in: app)
         XCUIRemote.shared.press(.menu)
         waitForEnabled(theme)
-        XCUIRemote.shared.press(.menu)
-        try focus(section("customizeHome", in: app), in: app)
-        XCUIRemote.shared.press(.select)
-        XCTAssertTrue(app.staticTexts["Home Layout"].waitForExistence(timeout: 5), app.debugDescription)
-        capture("customize-home", in: app)
-        assertCenteredSettingsColumn(in: app)
-        try focus(app.buttons["settings-page-home-rows-all"], in: app)
-        XCUIRemote.shared.press(.select)
-        capture("home-rows", in: app)
-        assertCenteredSettingsColumn(in: app)
-        XCUIRemote.shared.press(.menu)
-        waitForEnabled(app.buttons["settings-page-home-rows-all"])
-        XCUIRemote.shared.press(.menu)
-        waitForCategoryFocus("customizeHome", in: app)
-        try focus(section("appearance", in: app), in: app)
-        XCUIRemote.shared.press(.select)
-        XCTAssertTrue(app.buttons["settings-page-navigation"].waitForExistence(timeout: 5))
-        let displaySize = app.buttons["settings-page-display-size"]
-        let artwork = app.buttons["settings-page-artwork"]
-        XCTAssertEqual(artwork.frame.minY - displaySize.frame.maxY, 8, accuracy: 1)
-        assertInlineSettingsHeader("Appearance & Layout", back: pageBack("settings-category-back", in: app), in: app)
-        try focus(app.buttons["settings-page-display-size"], in: app)
-        XCUIRemote.shared.press(.select)
-        XCTAssertTrue(app.buttons["Default"].waitForExistence(timeout: 5), app.debugDescription)
-        capture("display-size", in: app)
-        XCUIRemote.shared.press(.menu)
         try focus(app.buttons["settings-page-artwork"], in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["artwork-customization"].waitForExistence(timeout: 5))
@@ -173,6 +208,9 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.menu)
         try focus(app.buttons["settings-page-cards"], in: app)
         XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["Default"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["DISPLAY SIZE"].waitForExistence(timeout: 5), app.debugDescription)
+        capture("display-size", in: app)
         XCTAssertTrue(app.buttons["card-label-customization"].waitForExistence(timeout: 5))
         capture("cards", in: app)
         try focus(app.buttons["card-label-customization"], in: app)
@@ -183,6 +221,40 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(app.buttons["card-label-customization"].waitForExistence(timeout: 5))
         XCUIRemote.shared.press(.menu)
+        for (page, heading) in [("spoilers", "Spoiler Protection"), ("night-shift", "Circadian Mode")] {
+            let link = app.buttons["settings-page-\(page)"]
+            try focus(link, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(app.staticTexts[heading].waitForExistence(timeout: 5), app.debugDescription)
+            capture(page, in: app)
+            XCUIRemote.shared.press(.menu)
+            XCTAssertTrue(link.waitForExistence(timeout: 5), app.debugDescription)
+        }
+        XCUIRemote.shared.press(.menu)
+        waitForCategoryFocus("appearance", in: app)
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        assertInlineSettingsHeader("Screens & Navigation", back: pageBack("settings-category-back", in: app), in: app)
+        for id in ["customize-home", "navigation", "title-details", "music-player"] {
+            XCTAssertTrue(app.buttons["settings-page-\(id)"].exists)
+        }
+        XCTAssertFalse(app.buttons["settings-page-cards"].exists)
+        capture("screens-navigation", in: app)
+        let home = app.buttons["settings-page-customize-home"]
+        try focus(home, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.staticTexts["Home Layout"].waitForExistence(timeout: 5), app.debugDescription)
+        capture("customize-home", in: app)
+        assertCenteredSettingsColumn(in: app)
+        try focus(app.buttons["settings-page-home-rows-all"], in: app)
+        XCUIRemote.shared.press(.select)
+        capture("home-rows", in: app)
+        assertCenteredSettingsColumn(in: app)
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(app.buttons["settings-page-home-rows-all"])
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(home)
+        XCTAssertTrue(hasFocus(home))
         try focus(app.buttons["settings-page-navigation"], in: app)
         XCUIRemote.shared.press(.select)
         for style in ["Top Bar", "Sidebar", "Pinned Sidebar"] {
@@ -191,13 +263,13 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             try focus(choice, in: app)
             XCUIRemote.shared.press(.select)
             XCTAssertTrue(app.staticTexts["Prevent Accidental Exit"].waitForExistence(timeout: 5), app.debugDescription)
-            XCTAssertFalse(section("appearance", in: app).exists)
+            XCTAssertFalse(section("screensNavigation", in: app).exists)
             capture("navigation-\(style)", in: app)
         }
         XCUIRemote.shared.press(.menu)
         XCTAssertTrue(app.buttons["settings-page-navigation"].waitForExistence(timeout: 5), app.debugDescription)
         for (page, heading) in [
-            ("music-player", "Music Player"), ("night-shift", "Circadian Mode"),
+            ("music-player", "Music Player"),
             ("title-details", "Detail Page")
         ] {
             let link = app.buttons["settings-page-\(page)"]
@@ -208,6 +280,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCUIRemote.shared.press(.menu)
             XCTAssertTrue(link.waitForExistence(timeout: 5), app.debugDescription)
         }
+        XCUIRemote.shared.press(.menu)
+        waitForCategoryFocus("screensNavigation", in: app)
         #else
         throw XCTSkip("Simulator-only Settings review.")
         #endif
@@ -217,14 +291,14 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #if targetEnvironment(simulator)
         for style in ["sidebar", "tabBar"] {
             let app = try launchSettings(style: style)
-            XCTAssertTrue(section("general", in: app).isSelected)
+            XCTAssertTrue(section("playback", in: app).isSelected)
             capture("entry-\(style)", in: app)
-            try enterAndReturn("general", in: app)
+            try enterAndReturn("playback", in: app)
             XCUIRemote.shared.press(.menu)
-            XCTAssertFalse(section("general", in: app).exists, app.debugDescription)
+            XCTAssertFalse(section("playback", in: app).exists, app.debugDescription)
             capture("exit-\(style)", in: app)
             try openSettingsIfNeeded(in: app)
-            try enterAndReturn("general", in: app)
+            try enterAndReturn("playback", in: app)
             app.terminate()
         }
         #else
@@ -240,7 +314,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["How this profile looks, and who can open it."].waitForExistence(timeout: 5))
         capture("profile-edit", in: app)
         XCUIRemote.shared.press(.menu)
-        XCTAssertTrue(section("general", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(section("playback", in: app).waitForExistence(timeout: 5))
         let returned = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in app.buttons["settings-profile-switch"].isEnabled }, object: nil
         )
@@ -254,7 +328,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.select)
         try openSettingsIfNeeded(in: app)
         XCTAssertEqual(app.buttons["settings-profile-switch"].value as? String, "Sam")
-        XCTAssertTrue(section("general", in: app).isSelected)
+        XCTAssertTrue(section("playback", in: app).isSelected)
         capture("profile-switched", in: app)
         #else
         throw XCTSkip("Simulator-only Settings review.")
@@ -268,6 +342,14 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertFalse(section("servers", in: app).exists)
             XCTAssertFalse(section("metadata", in: app).exists)
             capture("kids-\(mode)", in: app)
+            for personal in ["appearance", "screensNavigation", "language"] {
+                XCTAssertTrue(section(personal, in: app).exists)
+            }
+            for household in ["metadata", "servers", "profile", "parentalPIN", "seerr", "syncSetup"] {
+                XCTAssertFalse(section(household, in: app).exists)
+            }
+            try focus(section("screensNavigation", in: app), in: app)
+            try enterAndReturn("screensNavigation", in: app)
             try focus(section("myLibraries", in: app), in: app)
             XCUIRemote.shared.press(.select)
             if mode == "pin" {
@@ -298,7 +380,9 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             XCTAssertFalse(section("metadata", in: app).exists)
             XCTAssertFalse(section("servers", in: app).exists)
             XCUIRemote.shared.press(.menu)
-            XCTAssertTrue(section("general", in: app).waitForExistence(timeout: 5))
+            XCTAssertTrue(section("playback", in: app).waitForExistence(timeout: 5))
+            XCTAssertFalse(section("metadata", in: app).exists)
+            XCTAssertFalse(section("servers", in: app).exists)
             app.terminate()
         }
         #else
@@ -339,7 +423,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
     func testUninstrumentedSettingsEntry() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings(diagnostics: false)
-        try enterAndReturn("general", in: app)
+        try enterAndReturn("playback", in: app)
         #else
         throw XCTSkip("Simulator-only Settings review.")
         #endif
@@ -348,7 +432,9 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
     func testHeroEditorsRemainInsideTheSettingsPane() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
-        try focus(section("customizeHome", in: app), in: app)
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-customize-home"], in: app)
         XCUIRemote.shared.press(.select)
         let fullscreen = app.buttons["Fullscreen Hero"]
         XCTAssertTrue(fullscreen.waitForExistence(timeout: 5))
@@ -698,7 +784,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertLessThanOrEqual(profile.frame.height, 46)
         capture("aligned-settings-headers", in: app)
 
-        try focus(section("appearance", in: app), in: app)
+        try focus(section("screensNavigation", in: app), in: app)
         XCUIRemote.shared.press(.select)
         try focus(app.buttons["settings-page-title-details"], in: app)
         XCUIRemote.shared.press(.select)
@@ -789,20 +875,22 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
     }
 
     private func openSettingsIfNeeded(in app: XCUIApplication) throws {
-        let general = section("general", in: app)
-        if !general.waitForExistence(timeout: 3) {
+        let playback = section("playback", in: app)
+        if !playback.waitForExistence(timeout: 3) {
             XCTAssertEqual(app.state, .runningForeground, "Settings navigation requires the actual foreground app.")
-            let settings = app.buttons.matching(NSPredicate(format: "label == %@", "Settings")).firstMatch
+            let settings = app.buttons.matching(NSPredicate(
+                format: "label IN %@", ["Settings", "Réglages"]
+            )).firstMatch
             XCTAssertTrue(settings.waitForExistence(timeout: 5), app.debugDescription)
             if !settings.isEnabled {
                 XCUIRemote.shared.press(.menu)
                 waitForEnabled(settings)
             }
-            try focus(settings, in: app, stoppingWhen: { general.exists })
-            if !general.waitForExistence(timeout: 2) { XCUIRemote.shared.press(.select) }
+            try focus(settings, in: app, stoppingWhen: { playback.exists })
+            if !playback.waitForExistence(timeout: 2) { XCUIRemote.shared.press(.select) }
         }
-        XCTAssertTrue(general.waitForExistence(timeout: 20), app.debugDescription)
-        try focus(general, in: app)
+        XCTAssertTrue(playback.waitForExistence(timeout: 20), app.debugDescription)
+        try focus(playback, in: app)
     }
 
     private func section(_ route: String, in app: XCUIApplication) -> XCUIElement {
@@ -820,7 +908,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
 
     private func enterAndReturn(_ route: String, in app: XCUIApplication, usingRight: Bool = false) throws {
         let selected = section(route, in: app)
-        let other = section(route == "general" ? "playback" : "general", in: app)
+        let other = section(route == "playback" ? "subtitles" : "playback", in: app)
         XCUIRemote.shared.press(usingRight ? .right : .select)
         let arrived = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in
@@ -913,11 +1001,11 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             }
             let from = focused.frame
             let to = target.frame
-            let general = section("general", in: app)
+            let playback = section("playback", in: app)
             let fullWidthSettings = pageBack("settings-category-back", in: app).exists
                 || pageBack(in: app).exists || pageBack("live-tv-settings-back", in: app).exists
             let sameDetail = fullWidthSettings
-                || (general.exists && from.minX > general.frame.maxX && to.minX > general.frame.maxX)
+                || (playback.exists && from.minX > playback.frame.maxX && to.minX > playback.frame.maxX)
             if sameDetail && to.maxY <= from.minY {
                 XCUIRemote.shared.press(.up)
             } else if sameDetail && to.minY >= from.maxY {

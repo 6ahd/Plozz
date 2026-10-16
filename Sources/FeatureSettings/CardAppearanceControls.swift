@@ -6,15 +6,26 @@ import SwiftUI
 public struct CardAppearanceControls: View {
     @Bindable private var cards: CardStyleSettingsModel
     @Bindable private var watchIndicator: WatchStatusIndicatorSettingsModel
+    private let density: UIDensitySettingsModel?
 
-    public init(cards: CardStyleSettingsModel, watchIndicator: WatchStatusIndicatorSettingsModel) {
+    public init(
+        cards: CardStyleSettingsModel, watchIndicator: WatchStatusIndicatorSettingsModel,
+        density: UIDensitySettingsModel? = nil
+    ) {
         self.cards = cards
         self.watchIndicator = watchIndicator
+        self.density = density
     }
 
     public var body: some View {
         #if os(tvOS)
         VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
+            if let density {
+                @Bindable var density = density
+                SettingsDetailGroup(title: "Display Size", illustrated: true) {
+                    CompactDisplaySizePicker(selection: $density.density)
+                }
+            }
             SettingsDetailGroup(title: "Labels", illustrated: true) {
                 CardLabelControls(settings: $cards.captions, style: cards.style)
             }

@@ -134,7 +134,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
                     SettingsWorkspace(navigation: navigation) {
                         PageMotionProbe(id: "root", probes: probes)
                     } detail: { route in
-                        PageMotionProbe(id: route == .general ? "detail" : "nested", probes: probes)
+                        PageMotionProbe(id: route == .playback ? "detail" : "nested", probes: probes)
                     }
                     .padding(.horizontal, 80)
                     .environment(\.layoutDirection, direction)

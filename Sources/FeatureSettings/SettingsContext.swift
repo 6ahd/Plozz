@@ -95,7 +95,8 @@ struct SettingsContext {
 /// this to drill from a server summary row into `ServerDetailView`, and a
 /// future per-account flow can do the same without re-plumbing closures.
 public enum SettingsRoute: Hashable {
-    case general
+    case language
+    case screensNavigation
     case about
     case artwork
     case navigationLayout
@@ -192,7 +193,7 @@ public final class SettingsNavigationModel {
     #else
     var path: [SettingsRoute] = []
     #endif
-    var section: SettingsRoute = .general
+    var section: SettingsRoute = .playback
     var isCategoryOpen: Bool {
         #if os(tvOS)
         !pages.pages.isEmpty
@@ -271,7 +272,7 @@ public final class SettingsNavigationModel {
 
     func resetForProfile() {
         resetPages()
-        section = .general
+        section = .playback
         appearanceRowID = nil
         returnToSidebar()
     }

@@ -14,7 +14,12 @@ import CoreUI
 /// DEBUG this also offers in-progress languages for review.
 struct AppLanguagePicker: View {
     @Bindable var model: AppLanguageSettingsModel
+    var isCategoryRow = false
     @Environment(\.locale) private var locale
+    #if os(tvOS)
+    @State private var showingFeedback = false
+    @Environment(SettingsNavigationModel.self) private var navigation: SettingsNavigationModel?
+    #endif
 
     private var languages: [AppLanguage] { AppLanguage.available() }
 
@@ -77,14 +82,39 @@ struct AppLanguagePicker: View {
                     label(for: language).tag(language)
                 }
             }
-        } label: {
-            Label {
-                label(for: model.language)
-            } icon: {
-                Image(systemName: "globe")
+            #if os(tvOS)
+            if isCategoryRow, translationIssueURL != nil {
+                Button("Send Feedback") {
+                    showingFeedback = true
+                }
+                .accessibilityIdentifier("settings-language-feedback")
             }
+            #endif
+        } label: {
+            #if os(tvOS)
+            if isCategoryRow {
+                SettingsSectionLabel(
+                    title: Text("Language"), icon: "globe", assetIcon: nil,
+                    value: label(for: model.language), subtitle: nil,
+                    selected: navigation?.section == .language,
+                    accessorySymbol: "chevron.up.chevron.down"
+                )
+            } else {
+                menuLabel
+            }
+            #else
+            menuLabel
+            #endif
         }
         .menuStyle(.button)
+    }
+
+    private var menuLabel: some View {
+        Label {
+            label(for: model.language)
+        } icon: {
+            Image(systemName: "globe")
+        }
     }
 
     /// An endonym ("Español") is a proper noun and must read identically whatever
@@ -106,6 +136,34 @@ struct AppLanguagePicker: View {
     }
 
     var body: some View {
+        #if os(tvOS)
+        if isCategoryRow {
+            languageMenu
+                .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                .settingsCategoryFocus(.language)
+                .accessibilityLabel(Text("Language"))
+                .accessibilityValue(label(for: model.language))
+                .plozzSheet(isPresented: $showingFeedback, onDismiss: {
+                    navigation?.restoreCategoryFocus()
+                }) {
+                    VStack(spacing: 24) {
+                        if let translationIssueURL {
+                            translationFeedback(for: translationIssueURL)
+                        }
+                        Button("Close") { showingFeedback = false }
+                            .accessibilityIdentifier("settings-language-feedback-close")
+                    }
+                    .padding(36)
+                }
+        } else {
+            detailContent
+        }
+        #else
+        detailContent
+        #endif
+    }
+
+    private var detailContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             languageMenu
 
@@ -116,15 +174,7 @@ struct AppLanguagePicker: View {
 
             if let translationIssueURL {
                 #if os(tvOS)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Send Feedback")
-                        .font(.headline)
-                    SettingsQRCode(
-                        string: translationIssueURL.absoluteString,
-                        correctionLevel: .medium
-                    )
-                    .frame(width: 180, height: 180)
-                }
+                translationFeedback(for: translationIssueURL)
                 #else
                 Link(destination: translationIssueURL) {
                     Label("Send Feedback", systemImage: "exclamationmark.bubble")
@@ -133,5 +183,16 @@ struct AppLanguagePicker: View {
             }
         }
     }
+
+    #if os(tvOS)
+    private func translationFeedback(for url: URL) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Send Feedback")
+                .font(.headline)
+            SettingsQRCode(string: url.absoluteString, correctionLevel: .medium)
+                .frame(width: 180, height: 180)
+        }
+    }
+    #endif
 }
 #endif

@@ -50,7 +50,7 @@ and the single place caption customization lives.
   entering and returning fades between those equally sized pages with a short
   directional movement, without resizing or sliding across the screen.
   Back from a category restores its selected row and retained scroll position;
-  Back from a child returns one page. General initially owns focus, not a second pane.
+  Back from a child returns one page. Playback initially owns focus, not a second pane.
   The avatar/name switches profiles; the adjacent
   Edit action uses the same `ProfileActionsList` as the profile picker.
   Profile and Everyone headers share title weight/size, icon width, label gap
@@ -58,10 +58,15 @@ and the single place caption customization lives.
   `SettingsFormLayout` groups related controls into one vertical form, retaining
   child pages for longer editors. Single-control preferences such as Language
   use one compact label-and-control row without an extra heading or explanatory
-  paragraphs. General owns language and spoiler protection.
-  Appearance & Layout starts with Theme (including gradient backgrounds and
-  Liquid Glass), followed by display size, artwork, cards,
-  navigation, Music Player, Circadian Mode and Detail Page. Playback groups
+  paragraphs. Language is a native menu directly on the root, after Trackers,
+  showing the current selection. A translation-feedback QR dialog remains
+  available from that menu for non-English languages and restores focus on dismissal. It shares the category
+  focus/return behavior without opening an intermediate General page.
+  Appearance contains Theme (including gradient backgrounds and Liquid Glass),
+  Cards (with Display Size first), Artwork, Spoiler Protection and Circadian Mode.
+  Screens & Navigation contains Customize Home, Navigation, Detail Page and
+  Music Player. Moving these controls does not change their profile-scoped stores.
+  Playback groups
   audio, autoplay/Up Next, marker skipping, seeking and display fades.
   Subtitles is its own profile category for mode, the shared/Live TV style
   editors, language, downloading and per-series memory; downloading still
@@ -79,8 +84,12 @@ and the single place caption customization lives.
   The navigation history and profile context remain intact, including
   inside the editor's font and appearance subpages.
   Libraries, Live TV and Trackers remain profile-owned. Household setup is
-  separate under Everyone. Customize Home is a top-level profile category;
-  Appearance and Trackers retain concise explanatory subtitles. About is a compact
+  separate under Everyone. Profile categories start with Playback, Subtitles,
+  Live TV and Libraries, then Appearance, Screens & Navigation, Trackers and Language.
+  Appearance, Screens & Navigation and Trackers retain concise explanatory subtitles.
+  Artwork remains profile-owned; Metadata Providers remains shared under Everyone.
+  Kids profiles retain their existing parental authorization and household restrictions.
+  About is a compact
   root summary with version/build, release notes and community QR codes; credits,
   Help & Diagnostics and the adult-only sign-out action follow in one group.
   `SettingsRowStyle` and `SettingsContext` provide shared controls and dependencies.

@@ -32,6 +32,7 @@ public struct SettingsView: View {
     private var developerMode: DeveloperModeModel { .shared }
     @State private var showDeveloperUnlockedAlert = false
     @Environment(\.themePalette) private var palette
+    @Environment(AppLanguageSettingsModel.self) private var appLanguage
     /// App-wide media-share scan/enrich status. Optional so previews/tests that
     /// don't inject it don't crash. Drives the status card at the top of this
     /// page — the home for progress that used to float over Home's top-right.
@@ -520,7 +521,9 @@ public struct SettingsView: View {
     @ViewBuilder
     private var profileOwnedRows: some View {
         SettingsControlRows(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
-            sectionRow("General", icon: "gearshape", route: .general)
+            sectionRow("Playback", icon: "play.rectangle", route: .playback)
+            sectionRow("Subtitles", icon: "captions.bubble", route: .subtitles)
+            sectionRow("Live TV", icon: "antenna.radiowaves.left.and.right", route: .liveTV)
             // Per-profile "Your Libraries": who you watch as + what shows on THIS
             // profile's Home. The personal mirror of This Apple TV › Servers.
             // Its second line glances the household's server sign-ins.
@@ -537,14 +540,13 @@ public struct SettingsView: View {
                 sectionRow(KidsProfileCopy.nameAndAvatar, icon: "person.crop.circle",
                        route: .profileAppearance(profileID: activeProfile.id))
             }
-            sectionRow("Customize Home", icon: "house", route: .customizeHome)
-            sectionRow("Appearance & Layout", icon: "paintpalette",
-                       subtitle: Text("Theme, navigation, and cards"), route: .appearance)
-            sectionRow("Playback", icon: "play.rectangle", route: .playback)
-            sectionRow("Subtitles", icon: "captions.bubble", route: .subtitles)
-            sectionRow("Live TV", icon: "antenna.radiowaves.left.and.right", route: .liveTV)
+            sectionRow("Appearance", icon: "paintpalette",
+                       subtitle: Text("Theme, cards, artwork, and spoilers"), route: .appearance)
+            sectionRow("Screens & Navigation", icon: "rectangle.3.group",
+                       subtitle: Text("Home, navigation, detail pages, and music"), route: .screensNavigation)
             sectionRow("Trackers", icon: "link",
                        subtitle: Text("Trakt, Simkl, AniList, MyAnimeList, Last.fm"), route: .integrations)
+            AppLanguagePicker(model: appLanguage, isCategoryRow: true)
             // The profile's own PIN gate. Belongs to the profile (it travels with
             // it to every device), so it sits here rather than in the shared
             // section — even though "who can open this" reads like a household
@@ -879,10 +881,20 @@ public struct SettingsView: View {
     @ViewBuilder
     private func authorizedDestination(for route: SettingsRoute) -> some View {
         switch route {
-        case .general:
+        case .language:
+            ScrollView {
+                VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
+                    SettingsPageHeader("Language")
+                    SettingsControlGroup { AppLanguagePicker(model: appLanguage) }
+                }
+                .padding(.horizontal, SettingsFormMetrics.pageInset)
+                .padding(.bottom, SettingsFormMetrics.pageBottomInset)
+            }
+            .scrollClipDisabled()
+        case .screensNavigation:
             AppearanceDetailView(
                 librariesScope: context.librariesScope, settingsNavigation: navigation,
-                theme: theme, nightShift: nightShift, spoilers: spoilers, section: .general
+                theme: theme, nightShift: nightShift, spoilers: spoilers, section: .screensNavigation
             )
         case .about:
             ScrollView {
