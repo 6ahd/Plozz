@@ -158,6 +158,7 @@ struct PlozziOSSyncSetupSettingsView: View {
                 )) {
                     Label("iCloud Sync", systemImage: "icloud")
                 }
+                .disabled(appModel.cloudSyncStatus.isRecovering)
                 if appModel.syncSetup.isEnabled {
                     HStack {
                         SyncStatusLine(provider: syncStatusProvider)
@@ -166,6 +167,7 @@ struct PlozziOSSyncSetupSettingsView: View {
                         Spacer()
                         Button("Sync Now") { appModel.syncCloudNow() }
                             .font(.footnote.weight(.semibold))
+                            .disabled(appModel.cloudSyncStatus.isRecovering)
                     }
                 }
             } footer: {
@@ -254,16 +256,14 @@ struct PlozziOSSyncSetupSettingsView: View {
                 }
             }
 
-            if appModel.syncSetup.isEnabled {
-                SettingsSectionGroup {
-                    NavigationLink {
-                        PlozziOSSyncTroubleshootingView(appModel: appModel)
-                    } label: {
-                        Label(
-                            "Troubleshooting",
-                            systemImage: "wrench.and.screwdriver"
-                        )
-                    }
+            SettingsSectionGroup {
+                NavigationLink {
+                    PlozziOSSyncTroubleshootingView(appModel: appModel)
+                } label: {
+                    Label(
+                        "Troubleshooting",
+                        systemImage: "wrench.and.screwdriver"
+                    )
                 }
             }
         }
@@ -286,7 +286,10 @@ struct PlozziOSSyncSetupSettingsView: View {
     }
 
     private var syncStatusProvider: SyncStatusProvider {
-        SyncStatusProvider {
+        SyncStatusProvider(inventory: {
+            guard let sync = appModel.cloudSync else { throw CocoaError(.featureUnsupported) }
+            return try await sync.dataInventory()
+        }) {
             SyncStatusPresentation(
                 summary: appModel.cloudSyncStatus.summary,
                 isSyncing: appModel.cloudSyncStatus.phase == .syncing,
@@ -301,6 +304,7 @@ struct PlozziOSSyncSetupSettingsView: View {
 private struct PlozziOSSyncTroubleshootingView: View {
     let appModel: PlozziOSAppModel
     @State private var showResetConfirm = false
+    @State private var showErasureReview = false
 
     var body: some View {
         SettingsPageList {
@@ -319,6 +323,8 @@ private struct PlozziOSSyncTroubleshootingView: View {
                 Text("These should match on every device.")
             }
 
+            SyncDataBreakdown(provider: statusProvider)
+
             SettingsSectionGroup("Recovery") {
                 SyncRecoveryWarning()
                 Button {
@@ -326,19 +332,37 @@ private struct PlozziOSSyncTroubleshootingView: View {
                 } label: {
                     Label("Reload From iCloud", systemImage: "arrow.down.circle")
                 }
-                .disabled(appModel.cloudSyncStatus.isRecovering)
+                .disabled(appModel.cloudSyncStatus.isRecovering || !appModel.syncSetup.isEnabled)
                 .accessibilityIdentifier("cloud-sync-reload")
                 Button(role: .destructive) {
                     showResetConfirm = true
                 } label: {
                     Label("Reset Sync", systemImage: "arrow.counterclockwise.icloud")
                 }
-                .disabled(appModel.cloudSyncStatus.isRecovering)
+                .disabled(appModel.cloudSyncStatus.isRecovering || !appModel.syncSetup.isEnabled)
             }
             LiveTVPortableSyncPendingSettings()
+            if !appModel.profiles.activeProfile.isKids, !appModel.managementRequiresParentalPIN {
+                SettingsSectionGroup {
+                    Button { showErasureReview = true } label: {
+                        Label("Erase Sync Data", systemImage: "trash")
+                            .foregroundStyle(.red)
+                    }
+                    .disabled(appModel.cloudSyncStatus.isRecovering)
+                    .accessibilityIdentifier("cloud-sync-erase")
+                }
+            }
         }
         .navigationTitle("Troubleshooting")
         .navigationBarTitleDisplayMode(.inline)
+        .plozzSheet(isPresented: $showErasureReview) {
+            SyncEraseDataView(
+                profileID: appModel.profiles.activeProfileID,
+                isAllowed: !appModel.profiles.activeProfile.isKids && !appModel.managementRequiresParentalPIN,
+                status: statusProvider,
+                erase: { appModel.eraseCloudSyncData() }
+            )
+        }
         .confirmationDialog(
             "Reset synced data?",
             isPresented: $showResetConfirm,
@@ -350,6 +374,20 @@ private struct PlozziOSSyncTroubleshootingView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Replaces iCloud data with this device’s copy. Other devices keep their logins.")
+        }
+    }
+
+    private var statusProvider: SyncStatusProvider {
+        SyncStatusProvider(inventory: {
+            guard let sync = appModel.cloudSync else { throw CocoaError(.featureUnsupported) }
+            return try await sync.dataInventory()
+        }) {
+            SyncStatusPresentation(
+                summary: appModel.cloudSyncStatus.summary,
+                isSyncing: appModel.cloudSyncStatus.phase == .syncing,
+                accountTag: appModel.cloudSyncStatus.accountTag,
+                isRecovering: appModel.cloudSyncStatus.isRecovering
+            )
         }
     }
 }

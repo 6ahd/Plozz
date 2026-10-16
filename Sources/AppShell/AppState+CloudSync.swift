@@ -312,35 +312,53 @@ extension AppState {
         }
     }
 
-    /// DEBUG: nuke the ENTIRE household from iCloud so you can test a true cold start
-    /// (e.g. "set up only on this Apple TV, then fresh-install another device"). Unlike
-    /// `resetCloudSync` (which deletes then immediately RE-uploads from this device),
-    /// this deletes and does NOT republish, then takes this device out of sync so it
-    /// can't refill iCloud. It:
-    ///   1. deletes every CloudKit config + removal-tombstone record (flushed to peers
-    ///      as normal deletions, so their synced view empties too);
-    ///   2. wipes this device's local roster/profiles/sync bookkeeping (first-run);
-    ///   3. turns iCloud Sync OFF here so this device stays out of the household until
-    ///      you re-enable it — leaving iCloud genuinely empty for the next publisher.
-    /// tvOS holds no synchronizable iCloud-Keychain logins (that channel is iOS-only),
-    /// so there are none to purge here.
-    public func eraseEverythingFromICloudForDebugging() {
-        let config = cloudSync
+    public func eraseCloudSyncData() {
+        let profileID = profilesModel.activeProfileID
         Task { @MainActor in
-            await config?.deleteAllServerData()
-            resetLiveTVPortableSync()
-            for profileID in profilesModel.profiles.map(\.id) {
-                do {
-                    try await mediaAliasLedger.removeProfile(profileID)
-                    try universalWatchlist.removeProfile(profileID)
-                } catch {
-                    PlozzLog.sync.error(
-                        "Media aliases: debug reset failed for one profile: \(error.localizedDescription)"
-                    )
-                }
+            await CloudSyncRecoveryFeedback.run(.erase, status: cloudSyncStatus, presenter: transientStatusPresenter) {
+                await self.performCloudSyncErasure(profileID: profileID)
             }
-            resetToFirstRunForDebugging()         // step 2
-            setSyncSetupEnabled(false)            // step 3
+        }
+    }
+
+    private func performCloudSyncErasure(profileID: String) async -> CloudSyncRecoveryResult {
+        let authorized: @Sendable () async -> Bool = { @MainActor [weak self] in
+            guard let self else { return false }
+            return self.profilesModel.activeProfileID == profileID
+                && !self.profilesModel.activeProfile.isKids
+                && !self.profileFlow.managementRequiresParentalPIN
+        }
+        guard await authorized(), let config = cloudSync else { return .unavailable }
+        let result = await config.eraseAllServerData(
+            trackerStores: TrackerTokenSyncBridge.erasureStores(profileNamespaces: profilesModel.profiles.map {
+                $0.settingsNamespace(isDefault: profilesModel.isDefault($0))
+            }),
+            authorized: authorized,
+            stopSync: { @MainActor in self.setSyncSetupEnabled(false) }
+        )
+        guard result == .completed else { return result }
+        guard await authorized() else { return .interrupted }
+        do {
+            try TrackerTokenSyncBridge.eraseLocalTokens()
+            try LiveTVSourceStorage.eraseAllSources()
+            for id in profilesModel.profiles.map(\.id) {
+                guard await authorized() else { return .interrupted }
+                try await mediaAliasLedger.removeProfile(id)
+                try universalWatchlist.removeProfile(id)
+            }
+            guard await authorized() else { return .interrupted }
+            resetLiveTVPortableSync()
+            var pending = PendingSyncedServersStore()
+            pending.removeAll()
+            var removed = RemovedAccountsStore()
+            removed.removeAll()
+            HouseholdDevicesStore().removeAll()
+            cloudSyncUI.pendingSyncedServers = []
+            cloudSyncUI.pendingServerPrompt = nil
+            return resetToFirstRunForDebugging(afterSyncErasure: true) ? .completed : .failed
+        } catch {
+            PlozzLog.sync.error("iCloud data erased, but local reset failed (code \((error as NSError).code))")
+            return .failed
         }
     }
 
@@ -772,6 +790,10 @@ extension AppState {
     /// starts observing; disabling stops publishing but NEVER deletes the shared
     /// cloud config (other devices keep syncing).
     public func setSyncSetupEnabled(_ on: Bool) {
+        guard !on || !cloudSyncStatus.isRecovering else {
+            PlozzLog.sync.info("iCloud Sync cannot be enabled during recovery")
+            return
+        }
         syncSetup.setEnabled(on)
         let config = cloudSync
         guard let config else { return }

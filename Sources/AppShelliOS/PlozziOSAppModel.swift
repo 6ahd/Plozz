@@ -1066,7 +1066,15 @@ final class PlozziOSAppModel {
 
     /// Debug-only: clear all accounts + profiles so the app returns to the
     /// first-run / onboarding empty state (used to test Sync & Setup receive).
-    func resetToFirstRunForDebugging() {
+    @discardableResult
+    func resetToFirstRunForDebugging(afterSyncErasure: Bool = false) -> Bool {
+        do {
+            try accountStore.clearAll()
+        } catch {
+            PlozzLog.auth.error("First-run reset could not remove every account")
+            accountError = error.localizedDescription
+            return false
+        }
         // Clear cross-device sync state too, so a debug reset is a truly clean slate
         // for re-testing "new server from another device": pull each account's
         // iCloud-Keychain portable credential (stops auto-connect) and wipe the
@@ -1079,10 +1087,17 @@ final class PlozziOSAppModel {
         HouseholdDevicesStore().removeAll()
         pendingSyncedServers = []
         pendingSyncedServerPrompt = nil
-        try? accountStore.clearAll()
         accountsProviders.reloadAccounts()
+        guard accountsProviders.accounts.isEmpty else { return false }
         plexHomeUsers.resetAllForDebug()
-        profiles.resetToPristineDefaultForDebugging()
+        do {
+            if afterSyncErasure { try profiles.resetToPristineDefaultAfterSyncErasure() }
+            else { profiles.resetToPristineDefaultForDebugging() }
+        } catch {
+            PlozzLog.sync.error("First-run reset could not remove every profile")
+            accountError = error.localizedDescription
+            return false
+        }
         resetLiveTVPortableSync()
         if accountsProviders.accounts.isEmpty { appAdmission.resetForDebugging() }
         pendingLibrarySelection = nil
@@ -1091,6 +1106,7 @@ final class PlozziOSAppModel {
         // Bypass the lock gate deliberately: this is the debug "reset to first
         // run" path and it has just wiped the profiles back to a pristine default.
         performSelectProfile(profiles.activeProfileID)
+        return true
     }
 
     /// Everything guarding entry to a profile, in ONE observable property.

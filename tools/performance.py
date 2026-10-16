@@ -167,6 +167,27 @@ SCENARIOS = {
         "description": "Production media-row updates reusing existing media values with complete metadata.",
         "counters": ["rootUpdates", "parentBodies", "cardInputBuilds", "rowItems", "metadataPeople"],
     },
+    "mobile-home-card-routing": {
+        "suite": "ui", "platforms": ["iOS"],
+        "test": "HomeCardRoutingTests/testPerformanceHomeCardUpdates",
+        "file": "Tests/iOSPresentationTests/HomeCardRoutingTests.swift",
+        "description": "Update 24 production mobile Home cards against a four-source identity index without activating a card.",
+        "counters": ["rootUpdates", "cards", "sourceResolutions", "observedRevision"],
+    },
+    "source-menu-version-presentation": {
+        "suite": "ui",
+        "test": "PlaybackSourceMenuPerformanceTests/testPerformanceVersionPresentation",
+        "file": "Tests/PerformancePresentationSupport/PlaybackSourceMenuPerformanceTests.swift",
+        "description": "Build actual source-menu version presentations, preserving every displayed title and supplemental fact.",
+        "counters": ["versions", "menuUpdates", "presentedRows"],
+    },
+    "native-poster-composition": {
+        "suite": "ui", "platforms": ["tvOS"],
+        "test": "NativePosterCompositionTests/testPerformanceNativePosterComposition",
+        "file": "Tests/FocusIntegrationTests/NativePosterCompositionTests.swift",
+        "description": "Complete twelve native Home poster conversions, separating request latency from finished bitmap work.",
+        "counters": ["completedPosters", "compositions", "mainThreadCompositions", "requestMicroseconds"],
+    },
     "runtime-matrix": {
         "suite": "matrix", "target": "AppRuntimeTests",
         "test": "LiveTVAutomaticChannelsRuntimeTests/testPerformanceConfigurationMatrix",
