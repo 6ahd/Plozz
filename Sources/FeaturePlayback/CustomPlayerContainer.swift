@@ -872,6 +872,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
         pan.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirect.rawValue)]
         pan.allowedPressTypes = []
         pan.delegate = self
+        pan.onStationaryTap = { [weak self] in self?.handleSurfaceTap() }
         view.addGestureRecognizer(pan)
         surfaceRecognizers.append(pan)
         surfacePan = pan
@@ -900,6 +901,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive press: UIPress) -> Bool {
+        surfacePan?.cancelTap()
         if gestureRecognizer === selectRecognizer, press.type == .select, focusContext == .surface {
             var position: RemoteClickInterpreter.Position?
 #if os(tvOS)
@@ -1149,6 +1151,19 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     }
 
     // MARK: Button handlers
+
+    func handleSurfaceTap() {
+        guard focusContext == .surface, !model.isScrubbing else { return }
+        if !model.controlsVisible {
+            model.timelineClock.isEnabled = false
+            flashControls()
+        } else if !model.timelineClock.isEnabled {
+            model.timelineClock.isEnabled = true
+            flashControls()
+        } else {
+            hideControls()
+        }
+    }
 
     @objc private func handleSelect() {
         guard focusContext == .surface else { return }
