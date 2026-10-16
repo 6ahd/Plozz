@@ -2656,6 +2656,7 @@
     "Silo can’t force conversion of this file at original quality. Choose a supported quality limit.": "d0c28aee5fa662546ae90fe640c6899b4d797aa8b784a9bf96a301e74b980c58",
     "Silo can’t honor the selected bitrate limit.": "22e950f60c0cd9980b34ee27df9ef6434aa235fbc43674438b636afdd50470cb",
     "Silo couldn't create a sign-in code. Try again. If this continues, check that device pairing is enabled and Silo is up to date.": "c88718c96d6f68f37f81bcc81b4a8f63de8ad12465bd78e82b1152edd198d01c",
+    "Silo couldn’t prepare a playable stream for this file. Check the server’s playback log for details.": "24ec23536c087bedc9d633245b1b4e134dcb3fe75835beb8ff3dde13d043da58",
     "Silo couldn’t prepare the selected stream. Check its transcoding permissions and server settings.": "01c1956f7c088cfc7c5af8e054107f82a3e0a8dcfae8e3ed228671bb654ff770",
     "Silo currently converts to H.264 at 480p, 720p, 1080p, or 4K. Resolution limits use the video height. Unsupported choices are unavailable.": "6af8c228ef8a1e190f895ff76c2b999f16e0d64c6cf834b8087533e11ce942db",
     "Silo has no available video encoder for these settings.": "0fe971df4af006b463bcd254010cdd519635015b55940ab07dfb0a2c5522deec",

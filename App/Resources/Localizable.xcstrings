@@ -665545,7 +665545,228 @@
         }
       }
     },
+    "Silo couldn’t prepare a playable stream for this file. Check the server’s playback log for details." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذر على Silo تجهيز بث قابل للتشغيل لهذا الملف. راجع سجل التشغيل على الخادم للاطلاع على التفاصيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo не успя да подготви възпроизводим поток за този файл. Проверете дневника за възпроизвеждане на сървъра за подробности."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo no ha pogut preparar un flux reproduïble per a aquest fitxer. Consulta el registre de reproducció del servidor per obtenir-ne més detalls."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nedokázalo pro tento soubor připravit přehratelný stream. Podrobnosti najdete v protokolu přehrávání serveru."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo kunne ikke forberede en stream, der kan afspilles, til denne fil. Se serverens afspilningslog for flere oplysninger."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo konnte für diese Datei keinen abspielbaren Stream vorbereiten. Weitere Informationen findest du im Wiedergabeprotokoll des Servers."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το Silo δεν μπόρεσε να προετοιμάσει μια ροή με δυνατότητα αναπαραγωγής για αυτό το αρχείο. Για λεπτομέρειες, ελέγξτε το αρχείο καταγραφής αναπαραγωγής του διακομιστή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo no ha podido preparar un flujo reproducible para este archivo. Consulta el registro de reproducción del servidor para obtener más información."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo نتوانست جریانی قابل پخش برای این فایل آماده کند. برای جزئیات، گزارش پخش سرور را بررسی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo ei voinut valmistella tälle tiedostolle toistettavaa mediavirtaa. Katso lisätietoja palvelimen toistolokista."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo n’a pas pu préparer un flux lisible pour ce fichier. Consultez le journal de lecture du serveur pour plus de détails."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo לא הצליח להכין זרם שניתן לנגן עבור הקובץ הזה. לפרטים, יש לעיין ביומן הניגון של השרת."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo इस फ़ाइल के लिए चलाने योग्य स्ट्रीम तैयार नहीं कर सका। विवरण के लिए सर्वर का प्लेबैक लॉग देखें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nije mogao pripremiti tok koji se može reproducirati za ovu datoteku. Pojedinosti potražite u zapisniku reprodukcije poslužitelja."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A Silo nem tudott lejátszható adatfolyamot előkészíteni ehhez a fájlhoz. A részleteket a szerver lejátszási naplójában találja."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo tidak dapat menyiapkan stream yang dapat diputar untuk file ini. Periksa log pemutaran server untuk detailnya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo non è riuscito a preparare uno stream riproducibile per questo file. Consulta il registro di riproduzione del server per i dettagli."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Siloはこのファイルの再生可能なストリームを準備できませんでした。詳しくはサーバの再生ログを確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo가 이 파일의 재생 가능한 스트림을 준비하지 못했습니다. 자세한 내용은 서버의 재생 로그를 확인하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo tidak dapat menyediakan strim yang boleh dimainkan untuk fail ini. Semak log main balik pelayan untuk butiran."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo kunne ikke klargjøre en avspillbar strøm for denne filen. Se serverens avspillingslogg for detaljer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo kon geen afspeelbare stream voor dit bestand voorbereiden. Bekijk het afspeellogboek van de server voor meer informatie."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nie mógł przygotować dla tego pliku strumienia nadającego się do odtworzenia. Szczegóły znajdziesz w dzienniku odtwarzania serwera."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Silo não conseguiu preparar um fluxo reproduzível para este arquivo. Consulte o log de reprodução do servidor para obter detalhes."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nu a putut pregăti un flux redabil pentru acest fișier. Consultă jurnalul de redare al serverului pentru detalii."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo не удалось подготовить для этого файла поток, пригодный для воспроизведения. Подробности см. в журнале воспроизведения сервера."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nedokázalo pre tento súbor pripraviť prehrateľný stream. Podrobnosti nájdete v protokole prehrávania servera."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo za to datoteko ni mogel pripraviti toka, ki ga je mogoče predvajati. Za podrobnosti preverite dnevnik predvajanja strežnika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nije uspeo da pripremi strim koji se može reprodukovati za ovu datoteku. Detalje potražite u dnevniku reprodukcije servera."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo kunde inte förbereda en spelbar ström för den här filen. Se serverns uppspelningslogg för mer information."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo ไม่สามารถเตรียมสตรีมที่เล่นได้สำหรับไฟล์นี้ ดูรายละเอียดในบันทึกการเล่นของเซิร์ฟเวอร์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo, bu dosya için oynatılabilir bir akış hazırlayamadı. Ayrıntılar için sunucunun oynatma günlüğünü kontrol edin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo не вдалося підготувати придатний для відтворення потік для цього файлу. Докладні відомості дивіться в журналі відтворення сервера."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo không thể chuẩn bị luồng có thể phát cho tệp này. Hãy xem nhật ký phát của máy chủ để biết chi tiết."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo 无法为此文件准备可播放的流。请查看服务器的播放日志以了解详情。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo 無法為此檔案準備可播放的串流。請查看伺服器的播放記錄以瞭解詳情。"
+          }
+        }
+      }
+    },
     "Silo couldn’t prepare the selected stream. Check its transcoding permissions and server settings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

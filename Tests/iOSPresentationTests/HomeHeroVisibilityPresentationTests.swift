@@ -2,7 +2,7 @@
 import CoreModels
 import CoreUI
 import FeatureHomeCore
-import MetadataKit
+@testable import MetadataKit
 import Observation
 import SwiftUI
 import UIKit
@@ -11,6 +11,41 @@ import XCTest
 
 @MainActor
 final class HomeHeroVisibilityPresentationTests: XCTestCase {
+    func testPortraitAndLandscapeFirstPaintIdentitiesCannotReuseEachOthersPinnedArtwork() {
+        let identity = "home:movie"
+        XCTAssertEqual(PlozziOSHeroArtworkFallback.cacheIdentity(identity, style: .landscape), identity)
+        XCTAssertNotEqual(
+            PlozziOSHeroArtworkFallback.cacheIdentity(identity, style: .compactPortrait),
+            PlozziOSHeroArtworkFallback.cacheIdentity(identity, style: .landscape)
+        )
+        XCTAssertEqual(PlozziOSHeroArtworkFallback.cacheIdentity(identity, style: .compactPortrait),
+                       "\(identity)|portrait-hero-v1")
+    }
+
+    func testOnlyCompactHeroesRequestThePortraitSelectionRegardlessOfLogoTiming() async throws {
+        let portrait = try XCTUnwrap(URL(string: "https://metadata.example.test/clean-portrait.jpg"))
+        let landscape = try XCTUnwrap(URL(string: "https://metadata.example.test/clean-landscape.jpg"))
+        let cache = MetadataDiskCache(directory: nil)
+        let router = heroArtworkRouter(settings: HeroArtworkProviderSettings(), cache: cache)
+        var item = MediaItem(id: "movie", title: "Movie", kind: .movie, providerIDs: ["Tmdb": "42"])
+        for (prefersPortrait, artwork) in [(true, portrait), (false, landscape)] {
+            await cache.store(artwork, for: ArtworkRouter.providerCacheKey(
+                query: MetadataQuery(item), kind: .hero, source: .tmdb, prefersPortraitHero: prefersPortrait
+            ))
+        }
+        for hasLogo in [false, true] {
+            item.logoURL = hasLogo ? URL(string: "https://library.example.test/logo.png") : nil
+            for surfaceRole in [HeroTrailerSurfaceRole.home, .detail] {
+                for style in [HeroArtworkStyle.compactPortrait, .landscape] {
+                    let resolved = await PlozziOSHeroArtworkFallback.resolve(
+                        for: item, style: style, surfaceRole: surfaceRole, router: router
+                    )
+                    XCTAssertEqual(resolved, style == .compactPortrait ? portrait : landscape)
+                }
+            }
+        }
+    }
+
     func testExternalHeroFallbackPlacementsMatchTheLibraryArtworkLadder() throws {
         let poster = try XCTUnwrap(URL(string: "https://library.example.test/poster.jpg"))
         let backdrop = try XCTUnwrap(URL(string: "https://library.example.test/backdrop.jpg"))
@@ -26,13 +61,11 @@ final class HomeHeroVisibilityPresentationTests: XCTestCase {
                         item: item, artworkStyle: style, surface: surfaceRole == .home ? .home : .detail
                     )
                     let placements = PlozziOSHeroArtworkFallback.placements(
-                        style: style, surfaceRole: surfaceRole,
-                        drawsLogoOverArtwork: !presentation.logoReferences.isEmpty
+                        surfaceRole: surfaceRole
                     )
                     let backdropPlacement: ArtworkPlacement = surfaceRole == .home ? .homeHero : .detailBackdrop
-                    let posterFirst = style == .compactPortrait && !hasLogo
                     XCTAssertEqual(
-                        placements, posterFirst ? [.poster, backdropPlacement] : [backdropPlacement, .poster]
+                        placements, [backdropPlacement, .poster]
                     )
                     XCTAssertEqual(
                         presentation.artworkReferences,
@@ -60,19 +93,19 @@ final class HomeHeroVisibilityPresentationTests: XCTestCase {
                 XCTAssertTrue(presentation.artworkReferences.isEmpty, "External art must not bypass the router.")
                 settings.save(.init(orderMode: .custom, enabledOrder: ["tmdb"]))
                 let resolved = await PlozziOSHeroArtworkFallback.resolve(
-                    for: item, presentation: presentation, style: style, surfaceRole: surfaceRole, router: router
+                    for: item, style: style, surfaceRole: surfaceRole, router: router
                 )
                 XCTAssertEqual(resolved, poster)
                 settings.save(.init(orderMode: .custom, disabledOrder: ["tmdb"]))
                 let disabled = await PlozziOSHeroArtworkFallback.resolve(
-                    for: item, presentation: presentation, style: style, surfaceRole: surfaceRole, router: router
+                    for: item, style: style, surfaceRole: surfaceRole, router: router
                 )
                 XCTAssertNil(disabled, "Do not restore disabled-provider posters through a raw URL fallback.")
             }
         }
     }
 
-    func testExternalHeroFallbackKeepsPosterFirstOnlyForCompactHeroesWithoutLogos() async throws {
+    func testExternalHeroFallbackIsIndependentOfWhetherTheLogoHasResolved() async throws {
         let poster = try XCTUnwrap(URL(string: "https://metadata.example.test/poster.jpg"))
         let backdrop = try XCTUnwrap(URL(string: "https://metadata.example.test/backdrop.jpg"))
         let logo = try XCTUnwrap(URL(string: "https://library.example.test/logo.png"))
@@ -91,9 +124,9 @@ final class HomeHeroVisibilityPresentationTests: XCTestCase {
                     )
                     XCTAssertTrue(presentation.artworkReferences.isEmpty)
                     let resolved = await PlozziOSHeroArtworkFallback.resolve(
-                        for: item, presentation: presentation, style: style, surfaceRole: surfaceRole, router: router
+                        for: item, style: style, surfaceRole: surfaceRole, router: router
                     )
-                    XCTAssertEqual(resolved, style == .compactPortrait && !hasLogo ? poster : backdrop)
+                    XCTAssertEqual(resolved, backdrop)
                 }
             }
         }
@@ -108,21 +141,20 @@ final class HomeHeroVisibilityPresentationTests: XCTestCase {
         let router = heroArtworkRouter(settings: HeroArtworkProviderSettings())
         for surfaceRole in [HeroTrailerSurfaceRole.home, .detail] {
             for style in [HeroArtworkStyle.compactPortrait, .landscape] {
-                let presentation = HeroPresentation(
-                    item: item, artworkStyle: style, surface: surfaceRole == .home ? .home : .detail
-                )
                 let resolved = await PlozziOSHeroArtworkFallback.resolve(
-                    for: item, presentation: presentation, style: style, surfaceRole: surfaceRole, router: router
+                    for: item, style: style, surfaceRole: surfaceRole, router: router
                 )
                 XCTAssertNil(resolved, "A show-level hero fallback must never reinterpret an episode still as a poster.")
             }
         }
     }
 
-    private func heroArtworkRouter(settings: HeroArtworkProviderSettings) -> ArtworkRouter {
+    private func heroArtworkRouter(
+        settings: HeroArtworkProviderSettings, cache: MetadataDiskCache = MetadataDiskCache(directory: nil)
+    ) -> ArtworkRouter {
         ArtworkRouter(
             config: .init(tmdb: .disabled),
-            cache: MetadataDiskCache(directory: nil),
+            cache: cache,
             enrichmentBaseline: .init(order: [.tmdb], priority: .init(rules: [])),
             settingsStore: settings
         )
