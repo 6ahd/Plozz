@@ -61,7 +61,18 @@ final class PlayerControlsRenderingHostedTests: XCTestCase {
 
             model.timelineClock.isEnabled = true
             let clockPattern = #"\d{1,2}:\d{2}\s*(AM|PM).*\d{1,2}:\d{2}\s*(AM|PM)"#
-            _ = try await captureTimeline(in: window, matching: clockPattern)
+            let initialClockImage = try await captureTimeline(in: window, matching: clockPattern)
+            let clockLabels = try recognizedTimelineText(in: initialClockImage)
+                .filter { $0.topCandidates(1).first?.string.range(of: #"\d+:\d{2}"#, options: .regularExpression) != nil }
+                .sorted { $0.boundingBox.minX < $1.boundingBox.minX }
+            XCTAssertEqual(clockLabels.count, 2, "Clock values must replace the existing two timeline numbers.")
+            let currentClock = try XCTUnwrap(clockLabels.first).boundingBox
+            let endClock = try XCTUnwrap(clockLabels.last).boundingBox
+            let knobX = initial.minX + initial.width * CGFloat(model.progressFraction)
+            XCTAssertEqual(currentClock.midX * window.bounds.width, knobX, accuracy: 8,
+                           "The current clock must stay under the scrubber instead of moving to the left edge.")
+            XCTAssertEqual(endClock.maxX * window.bounds.width, initial.maxX, accuracy: 8,
+                           "The finish clock must replace the trailing remaining-time label.")
             XCTAssertEqual(model.subtitleLayout.frame(for: .timeline), initial,
                            "Clock mode must reuse the existing timeline without adding a row.")
             model.isScrubbing = true
@@ -141,15 +152,20 @@ private func captureTimeline(in window: UIWindow, matching expected: String) asy
         rendered = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
-        let recognition = VNRecognizeTextRequest()
-        recognition.recognitionLevel = .accurate
-        recognition.recognitionLanguages = ["en-US"]
-        try VNImageRequestHandler(cgImage: XCTUnwrap(rendered.cgImage)).perform([recognition])
-        text = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        text = try recognizedTimelineText(in: rendered)
+            .compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         if text.range(of: expected, options: .regularExpression) != nil { return rendered }
     } while ContinuousClock.now < deadline
     XCTFail("Timeline did not render \(expected): \(text)")
     return rendered
+}
+
+private func recognizedTimelineText(in image: UIImage) throws -> [VNRecognizedTextObservation] {
+    let recognition = VNRecognizeTextRequest()
+    recognition.recognitionLevel = .accurate
+    recognition.recognitionLanguages = ["en-US"]
+    try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([recognition])
+    return recognition.results ?? []
 }
 
 private struct InfoFocusFixture: View {

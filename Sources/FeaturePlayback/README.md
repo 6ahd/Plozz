@@ -54,8 +54,9 @@ and the diagnostics overlay.
 
 The on-demand timeline normally shows elapsed and remaining playback time.
 On tvOS, stationary touchpad taps cycle through controls with playback times,
-current local time on the left and estimated finish time on the right, then
-hidden controls. Clock values replace the numbers without adding a label or row.
+current local time at the scrubber and estimated finish time on the right, then
+hidden controls. Clock values replace the two existing numbers in place without
+adding a label or row; the current time keeps following the scrubber.
 Physical clicks retain their transport actions, and swipes begin seeking without waiting for tap
 recognition. Moving, held, cancelled, or clicked contacts cannot toggle the clock.
 iPhone and iPad use native buttons on the two time labels instead of changing

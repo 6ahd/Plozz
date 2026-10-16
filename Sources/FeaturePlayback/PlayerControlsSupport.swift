@@ -196,7 +196,7 @@ struct PlayerTimelineTimes: View {
             let midY = geo.size.height / 2
             let knobX = width * CGFloat(model.progressFraction)
             let halfCur = curW / 2
-            let centerX = clock == nil ? min(max(knobX, halfCur), max(halfCur, width - halfCur)) : halfCur
+            let centerX = min(max(knobX, halfCur), max(halfCur, width - halfCur))
             let currentRightEdge = centerX + halfCur
             let remainingLeftEdge = width - remW
             let glyphShown = !model.isScrubbing
