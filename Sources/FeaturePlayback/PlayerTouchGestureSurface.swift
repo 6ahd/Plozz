@@ -243,88 +243,52 @@ private struct PlayerTouchSkipChevrons: View {
     let direction: PlayerTouchSkipDirection
     let pulse: Int
     let reduceMotion: Bool
-    @State private var handover: Double = 0
-    @State private var generation = 0
-
-    var body: some View {
-        PlayerTouchSkipHandover(handover: reduceMotion ? 0 : handover)
-            .scaleEffect(x: direction == .forward ? 1 : -1, y: 1)
-            // Discard in-flight native interpolation when accessibility motion changes.
-            .id(reduceMotion)
-            .onChange(of: pulse, initial: true) {
-                guard !reduceMotion else { return }
-                animateSkip()
-            }
-            .onChange(of: reduceMotion) {
-                if reduceMotion { cancelAnimation() }
-            }
-            .onDisappear { cancelAnimation() }
-            .accessibilityHidden(true)
-    }
-
-    private func animateSkip() {
-        generation &+= 1
-        let token = generation
-        handover = 0
-        withAnimation(.spring(response: 0.34, dampingFraction: 0.8),
-                      completionCriteria: .logicallyComplete) {
-            handover = 1
-        } completion: {
-            guard generation == token else { return }
-            resetHandover()
-        }
-    }
-
-    private func cancelAnimation() {
-        generation &+= 1
-        resetHandover()
-    }
-
-    private func resetHandover() {
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            handover = 0
-        }
-    }
-}
-
-// Adapted from Mozz's TransportGlyph (GPL-3.0), copyright 2026 Mozz contributors.
-private struct PlayerTouchSkipHandover: View {
-    let handover: Double
-    private let size: CGFloat = 30
-
-    private var unit: CGFloat { size / 24 }
+    @State private var activePulses: [Int] = []
 
     var body: some View {
         Color.clear
-            .frame(width: size, height: size)
+            .frame(width: 30, height: 30)
             .overlay {
                 ZStack {
-                    chevron(back: 4)
-                        .scaleEffect(1 - handover,
-                                     anchor: UnitPoint(x: 12 / 24, y: 0.5))
-                        .offset(x: 17 * unit * handover)
-                        .opacity(1 - handover)
-                        .mask(alignment: .leading) {
-                            Rectangle().frame(width: 21 * unit)
+                    if reduceMotion {
+                        Image(systemName: "chevron.right")
+                    } else {
+                        ForEach(activePulses, id: \.self) { id in
+                            PlayerTouchSkipChevronFlight {
+                                activePulses.removeAll { $0 == id }
+                            }
+                            .transition(.identity)
                         }
-                    chevron(back: 4)
-                        .scaleEffect(handover)
-                        .offset(x: -17 * unit * (1 - handover))
-                    chevron(back: 13)
+                    }
+                }
+                .font(.system(size: 22, weight: .semibold))
+                .scaleEffect(x: direction == .forward ? 1 : -1, y: 1)
+            }
+            .onChange(of: pulse, initial: true) {
+                guard !reduceMotion else { return }
+                activePulses.append(pulse)
+            }
+            .onChange(of: reduceMotion) { activePulses.removeAll() }
+            .onDisappear { activePulses.removeAll() }
+            .accessibilityHidden(true)
+    }
+}
+
+private struct PlayerTouchSkipChevronFlight: View {
+    let onCompletion: () -> Void
+    @State private var isTraveling = false
+
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .offset(x: isTraveling ? 20 : 0)
+            .opacity(isTraveling ? 0 : 1)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.4), completionCriteria: .removed) {
+                    isTraveling = true
+                } completion: {
+                    onCompletion()
                 }
             }
-    }
-
-    private func chevron(back: CGFloat) -> some View {
-        Path { path in
-            path.move(to: CGPoint(x: back * unit, y: 4.5 * unit))
-            path.addLine(to: CGPoint(x: (back + 8) * unit, y: 12 * unit))
-            path.addLine(to: CGPoint(x: back * unit, y: 19.5 * unit))
-        }
-        .stroke(style: StrokeStyle(lineWidth: 2.4 * unit, lineCap: .round, lineJoin: .round))
-        .frame(width: size, height: size)
     }
 }
 #endif

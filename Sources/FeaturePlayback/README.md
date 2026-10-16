@@ -87,16 +87,14 @@ backward/forward interval. Additional taps while the feedback is visible
 accumulate from the requested position, not a lagging playback clock. Directional
 chevrons and the signed total replace the main controls, retaining the player's
 actual timeline in its normal position, with its time labels, playhead, buffer
-and segment styling, and scrubbing behavior. The confirmation adapts
-[Mozz's transport handover](https://github.com/brandomoore/Mozz/blob/b45ae53010648a3b1847027a82b479001fbe3956/Sources/MozzApp/Support/PlayerControls.swift):
-an open chevron shrinks into the leading chevron while its replacement grows
-and sweeps in. Like Mozz, SwiftUI directly springs the scale, position, and
-opacity between their endpoints, rather than running a custom per-frame phase.
-The spring response is shortened from Mozz's 0.425 seconds to 0.34 seconds.
-Open chevrons replace Mozz's track arrow and end bar, with a compact 30-point
-glyph and 26-point count. Accepted taps trigger the handover directly; there is
-no queued replay after a burst and no idle loop.
-Reduce Motion keeps them still. Single taps still toggle controls; native controls
+and segment styling, and scrubbing behavior. Each accepted skip launches one
+native chevron outward: right for forward, left for backward. It travels 20 points
+and fades away over 0.4 seconds. Rapid taps add independent, overlapping chevrons
+without restarting earlier ones or queuing a replay. Each chevron is removed
+after its own animation finishes; the signed total retains its existing feedback
+lifetime. The indicator keeps a compact 30-point glyph slot and 26-point count.
+Reduce Motion shows one steady chevron instead, and enabling it removes any
+moving chevrons immediately. Single taps still toggle controls; native controls
 and open menus keep their own touches.
 
 Holding on-demand video for at least one second temporarily accelerates moving
