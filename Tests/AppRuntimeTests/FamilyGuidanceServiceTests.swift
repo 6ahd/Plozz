@@ -29,7 +29,9 @@ final class FamilyGuidanceServiceTests: XCTestCase {
             let store = ProfileStore(defaults: defaults)
             store.saveProfiles([
                 Profile(id: "owner", name: "Owner"),
-                Profile(id: "child", name: "Child", plexHomeUserID: "child-user", plexHomeUserAccountID: "account")
+                Profile(id: "child", name: "Child").settingHomeUserBinding(
+                    .init(homeUserID: "child-user", name: "Child", requiresPIN: false), forPlexAccount: "account"
+                )
             ])
             store.setActiveProfileID(homeUser ? "child" : "owner")
             profiles = ProfilesModel(store: store)

@@ -141,6 +141,9 @@ missing or changed state returns to the normal gates, never the owner's identity
 Protected Plex credentials also require a device-local record of successful,
 nonempty PIN authentication. Enabling the preference alone never grants this
 proof. Older startup sessions without it must authenticate again on that device.
+Resolved credentials and PIN proof also belong to the originating account
+credential revision, server identity, and server user. Replacing that source
+cannot reuse old proof or save old tokens under a new automatic-sign-in session.
 
 Only the startup entry point can restore this session, once per process. Manual
 profile activation discards startup unlock credit and Plex overrides, so switching
@@ -171,6 +174,14 @@ Plozz lock supplied its former matching PIN. Network errors and rejected switche
 never unlock the profile. Cancellation and superseded profile/account/lock state invalidate the
 attempt. A successful switch cannot dismiss another account's PIN prompt,
 and cancelling retains the gate unless an authorized fallback profile activates.
+That activation gate is distinct from editing an existing profile's Plex user.
+A requested "watching as" change remains an in-memory proposal: the saved
+binding, current server/Discover credentials, and other accounts stay unchanged
+through verification, wrong PINs, and connection errors. Successful authentication
+publishes the new binding and credentials together; Cancel discards the proposal.
+Stale completions after another selection, profile/lock change, credential
+replacement, or account removal cannot commit it. Account owners use the same
+verification path as other Home users, not an unauthenticated clear-binding row.
 The shared keypad cancels its final-digit display delay before cancellation or
 disappearance, so an abandoned entry cannot submit afterward. Mobile PIN sheets
 also block interactive dismissal while the gate remains unresolved.

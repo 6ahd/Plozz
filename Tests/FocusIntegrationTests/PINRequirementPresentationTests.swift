@@ -13,16 +13,26 @@ final class PINRequirementPresentationTests: XCTestCase {
     }
 
     func testPINContentMountsOnlyAfterConfirmedProtection() async throws {
+        try await verifyPINContent(isChangingSelection: false)
+    }
+
+    func testProposedSelectionNeverMountsPINBeforeConfirmedProtection() async throws {
+        try await verifyPINContent(isChangingSelection: true)
+    }
+
+    private func verifyPINContent(isChangingSelection: Bool) async throws {
         for cachedRequirement in [false, true] {
             for outcome in Outcome.allCases {
                 let (model, profiles) = try makeModel()
-                profiles.update(profiles.activeProfile.settingHomeUserBinding(
-                    .init(
-                        homeUserID: "viewer", name: "Viewer", requiresPIN: cachedRequirement,
-                        pinRequirementVerified: nil
-                    ),
-                    forPlexAccount: "plex"
-                ))
+                if !isChangingSelection {
+                    profiles.update(profiles.activeProfile.settingHomeUserBinding(
+                        .init(
+                            homeUserID: "viewer", name: "Viewer", requiresPIN: cachedRequirement,
+                            pinRequirementVerified: nil
+                        ),
+                        forPlexAccount: "plex"
+                    ))
+                }
                 let responses = AsyncThrowingStream<[PlexHomeUser], Error>.makeStream()
                 defer { responses.continuation.finish() }
                 model.plexHomeUsersFetch = { _, _ in
@@ -35,7 +45,16 @@ final class PINRequirementPresentationTests: XCTestCase {
                     return "VIEWER-CLOUD"
                 }
                 model.plexServerTokenResolve = { _, _, _ in "VIEWER-SERVER" }
-                model.ensurePlexIdentityForActiveProfile()
+                if isChangingSelection {
+                    model.setPlexHomeUserForActiveProfile(
+                        accountID: "plex", user: PlexHomeUser(
+                            id: "viewer", name: "Viewer", requiresPIN: cachedRequirement,
+                            pinRequirementVerified: nil
+                        )
+                    )
+                } else {
+                    model.ensurePlexIdentityForActiveProfile()
+                }
 
                 let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
                 let previous = scene.windows.first(where: \.isKeyWindow)
@@ -85,6 +104,12 @@ final class PINRequirementPresentationTests: XCTestCase {
                 } else {
                     XCTAssertEqual(model.plexPINEntryAvailability, .unavailable)
                     XCTAssertNotNil(model.pendingPlexPINRequest, "Unknown authorization must not expose the app.")
+                }
+                if isChangingSelection, outcome != .unprotected {
+                    XCTAssertNil(profiles.activeProfile.homeUserBinding(forPlexAccount: "plex"))
+                    model.cancelPlexPIN()
+                    XCTAssertNil(model.pendingPlexPINRequest)
+                    XCTAssertNil(profiles.activeProfile.homeUserBinding(forPlexAccount: "plex"))
                 }
             }
         }

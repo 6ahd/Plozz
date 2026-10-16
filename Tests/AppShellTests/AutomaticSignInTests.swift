@@ -339,7 +339,26 @@ final class AutomaticSignInTests: XCTestCase {
         XCTAssertNil(try house.startup.load())
     }
 
-    func testSignOutAndPINCancelRemoveSavedSession() async throws {
+    func testChangedAccountSourceRejectsSavedIdentityWithoutReusingPINProof() async throws {
+        for changesServer in [false, true] {
+            let house = try household()
+            let env = launch(house)
+            await authenticatePlex(env)
+            env.flow.setAutomaticallySignIn(true)
+            var account = try XCTUnwrap(env.hub.accounts.first)
+            if changesServer {
+                account.server.id = "replacement-server"
+            } else {
+                account.userID = "replacement-user"
+            }
+            try house.accounts.add(account, token: "owner-token")
+            let next = launch(house)
+            XCTAssertFalse(next.plex.restoreAutomaticSignInAtLaunch())
+            XCTAssertNil(next.plex.discoverToken(for: "account"))
+        }
+    }
+
+    func testSignOutClearsSessionButLatePINCancelPreservesAuthenticatedSession() async throws {
         let house = try household()
         let env = launch(house)
         await authenticatePlex(env)
@@ -349,16 +368,16 @@ final class AutomaticSignInTests: XCTestCase {
         await authenticatePlex(env)
         XCTAssertNotNil(try house.startup.load())
         env.plex.cancelPlexPIN()
-        XCTAssertNil(try house.startup.load())
+        XCTAssertNotNil(try house.startup.load())
     }
 
     func testQueuedPINCannotUnlockLaterManualActivation() async throws {
         let house = try household()
         let env = launch(house)
-        env.plex.setPlexHomeUserForActiveProfile(
-            accountID: "account",
-            user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
-        )
+        env.profiles.update(env.profiles.activeProfile.settingHomeUserBinding(
+            .init(homeUserID: "parent", name: "Parent", requiresPIN: true), forPlexAccount: "account"
+        ))
+        env.plex.ensurePlexIdentityForActiveProfile()
         env.plex.submitPlexPIN("2468")
         env.flow.switchProfile(to: env.profiles.activeProfileID)
         await drain()
@@ -431,10 +450,10 @@ final class AutomaticSignInTests: XCTestCase {
             await MainActor.run { flow.switchProfile(to: profileID) }
             return "stale-server-token"
         }
-        env.plex.setPlexHomeUserForActiveProfile(
-            accountID: "account",
-            user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
-        )
+        env.profiles.update(env.profiles.activeProfile.settingHomeUserBinding(
+            .init(homeUserID: "parent", name: "Parent", requiresPIN: true), forPlexAccount: "account"
+        ))
+        env.plex.ensurePlexIdentityForActiveProfile()
         env.plex.submitPlexPIN("2468")
         await drain()
         XCTAssertNotNil(env.plex.pendingPlexPINRequest)

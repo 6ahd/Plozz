@@ -19,7 +19,10 @@ struct PlozziOSPlexPINView: View {
             errorMessage: model.plexPINError,
             isSubmitting: model.isSubmittingPlexPIN,
             availability: pendingRequest == nil ? .checking : model.plexPINEntryAvailability,
-            onRetry: { model.retryPlexPINRequirement() },
+            onRetry: {
+                guard model.pendingPlexPINRequest == request else { return }
+                model.retryPlexPINRequirement()
+            },
             sequenceStep: sequenceStep,
             onSubmit: { pin in
                 guard model.pendingPlexPINRequest == request,
@@ -27,6 +30,7 @@ struct PlozziOSPlexPINView: View {
                 model.submitPlexPIN(pin)
             },
             onCancel: {
+                guard model.pendingPlexPINRequest == request else { return }
                 onCancel()
                 model.cancelPlexPIN()
                 if dismissOnSuccess, model.pendingPlexPINRequest == nil { dismiss() }

@@ -550,19 +550,27 @@ final class PlozziOSAppModel {
 
     var accountError: String?
 
-    init(appAdmissionStore: any AppAdmissionStoring = AppAdmissionStore()) {
+    init(
+        appAdmissionStore: any AppAdmissionStoring = AppAdmissionStore(),
+        accountStore suppliedAccountStore: AccountStore? = nil,
+        profileStore: (any ProfilePersisting)? = nil
+    ) {
         let appAdmission = AppAdmissionModel(store: appAdmissionStore)
         self.appAdmission = appAdmission
         let authenticatedHTTPResolver = ManagedAuthenticatedHTTPResolver()
         let accountStore: AccountStore
         var launchErrors: [String] = []
-        do {
-            accountStore = try DefaultAccountStoreFactory.make()
-        } catch {
-            accountStore = DefaultAccountStoreFactory.makeCredentialOnlyFallback()
-            launchErrors.append(
-                "Network-share credential storage is unavailable: \(error.localizedDescription)"
-            )
+        if let suppliedAccountStore {
+            accountStore = suppliedAccountStore
+        } else {
+            do {
+                accountStore = try DefaultAccountStoreFactory.make()
+            } catch {
+                accountStore = DefaultAccountStoreFactory.makeCredentialOnlyFallback()
+                launchErrors.append(
+                    "Network-share credential storage is unavailable: \(error.localizedDescription)"
+                )
+            }
         }
         let mediaShareRuntime = DefaultMediaShareRuntime.make(
             accountStore: accountStore,
@@ -588,7 +596,7 @@ final class PlozziOSAppModel {
             durableLocalStateStore: durableLocalStateStore
         )
         let profiles = ProfilesModel(
-            store: ProfileStore(
+            store: profileStore ?? ProfileStore(
                 secureStore: KeychainStore(service: "com.plozz.app.household")
             ),
             defaultActiveAccountIDs: accountStore.activeAccountIDs()
@@ -743,7 +751,6 @@ final class PlozziOSAppModel {
         )
         accountsProviders.tokenResolver = { [weak self] accountID in
             self?.plexHomeUsers.resolvedToken(for: accountID)
-                ?? accountStore.token(for: accountID)
         }
         accountsProviders.onAccountsInvalidated = { [weak self] in
             self?.mediaItemActionHandler.invalidateAccountCaches()

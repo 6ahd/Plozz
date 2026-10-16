@@ -1603,12 +1603,14 @@ struct PlozziOSPlexHomeUserSettingsView: View {
     var body: some View {
         List {
             SettingsSectionGroup("Account owner") {
+                let owner = users.first(where: \.isAdmin)
                 userButton(
-                    name: account.userName.isEmpty ? "Plex Account Owner" : account.userName,
-                    avatarURL: nil,
-                    requiresPIN: false,
-                    user: nil
+                    name: owner?.name ?? (account.userName.isEmpty ? "Plex Account Owner" : account.userName),
+                    avatarURL: owner?.avatarURL,
+                    requiresPIN: owner?.requiresPIN ?? false,
+                    user: owner
                 )
+                .disabled(owner == nil)
             }
 
             SettingsSectionGroup("Home users") {
@@ -1691,7 +1693,7 @@ struct PlozziOSPlexHomeUserSettingsView: View {
             forPlexAccount: account.id
         )
         if let user {
-            return binding?.homeUserID == user.id
+            return binding?.homeUserID == user.id || (binding == nil && user.isAdmin)
         }
         return binding == nil
     }

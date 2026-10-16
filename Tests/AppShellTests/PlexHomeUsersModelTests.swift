@@ -121,6 +121,18 @@ final class PlexHomeUsersModelTests: XCTestCase {
         for _ in 0..<iterations { await Task.yield() }
     }
 
+    private func activateSavedUser(
+        _ model: PlexHomeUsersModel, profiles: ProfilesModel, accountID: String, user: PlexHomeUser?
+    ) {
+        profiles.update(profiles.activeProfile.settingHomeUserBinding(user.map {
+            .init(
+                homeUserID: $0.id, name: $0.name, requiresPIN: $0.requiresPIN,
+                pinRequirementVerified: $0.pinRequirementVerified
+            )
+        }, forPlexAccount: accountID))
+        model.ensurePlexIdentityForActiveProfile()
+    }
+
     /// Binds the active profile to an unprotected Home user on `accountID` and lets
     /// the confirming background refresh install + cache its token, so a later
     /// re-scope has an override to move the identity generation off.
@@ -130,6 +142,9 @@ final class PlexHomeUsersModelTests: XCTestCase {
         userID: String,
         token: String
     ) async {
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: userID, name: userID, requiresPIN: false)]
+        }
         model.plexHomeUserSwitch = { uuid, _, _, _ in "acct-\(uuid)" }
         model.plexServerTokenResolve = { _, _, _ in token }
         model.setPlexHomeUserForActiveProfile(
@@ -143,7 +158,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
     /// identity generation moved during its network window) must NOT re-install the
     /// old Home-user's token — the staleness guard drops the confirming write.
     func testStaleBackgroundRefreshDoesNotOverwriteNewerIdentity() async throws {
-        let (model, _, _) = try makeModel(accountIDs: ["a"])
+        let (model, _, profiles) = try makeModel(accountIDs: ["a"])
         // 1) Establish a live override for "old" (generation now > 0, override present).
         await installUnprotectedOverride(model, accountID: "a", userID: "old", token: "tok-old")
         XCTAssertEqual(model.resolvedToken(for: "a"), "tok-old")
@@ -158,7 +173,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             await MainActor.run { model?.setPlexHomeUserForActiveProfile(accountID: "a", user: nil) }
             return "tok-new-STALE"
         }
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a",
             user: PlexHomeUser(id: "new", name: "new", requiresPIN: false)
         )
@@ -173,10 +188,10 @@ final class PlexHomeUsersModelTests: XCTestCase {
     /// The guard must NOT false-abort the common case: with no interleaving profile
     /// switch, the background refresh installs/confirms its token normally.
     func testHappyPathRefreshInstallsTokenWhenGenerationStable() async throws {
-        let (model, _, _) = try makeModel(accountIDs: ["a"])
+        let (model, _, profiles) = try makeModel(accountIDs: ["a"])
         model.plexHomeUserSwitch = { uuid, _, _, _ in "acct-\(uuid)" }
         model.plexServerTokenResolve = { _, _, _ in "tok-happy" }
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a",
             user: PlexHomeUser(id: "solo", name: "solo", requiresPIN: false)
         )
@@ -189,13 +204,13 @@ final class PlexHomeUsersModelTests: XCTestCase {
     func testPartialWarmCacheRecoversCloudTokenWhenServerResolutionFails() async throws {
         let cache = PlexHomeUserTokenCache(store: InMemorySecureStore())
         cache.store(token: "CACHED-CHILD-SERVER", account: "a", homeUser: "child")
-        let (model, _, _) = try makeModel(accountIDs: ["a"], cache: cache)
+        let (model, _, profiles) = try makeModel(accountIDs: ["a"], cache: cache)
         model.plexHomeUserSwitch = { user, _, _, _ in
             XCTAssertEqual(user, "child")
             return "FRESH-CHILD-CLOUD"
         }
         model.plexServerTokenResolve = { _, _, _ in nil }
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a", user: PlexHomeUser(id: "child", name: "Child", requiresPIN: false)
         )
         let generation = model.plexIdentityGeneration
@@ -253,12 +268,12 @@ final class PlexHomeUsersModelTests: XCTestCase {
         let cache = PlexHomeUserTokenCache(store: InMemorySecureStore())
         cache.store(token: "PROTECTED-SERVER", account: "a", homeUser: "parent")
         cache.storeDiscoverToken("PROTECTED-CLOUD", account: "a", homeUser: "parent")
-        let (model, _, _) = try makeModel(accountIDs: ["a"], cache: cache)
+        let (model, _, profiles) = try makeModel(accountIDs: ["a"], cache: cache)
         model.plexHomeUserSwitch = { _, pin, _, _ in
             XCTAssertNil(pin)
             throw AppError.unauthorized
         }
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         do {
@@ -296,7 +311,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             case .owner:
                 model.setPlexHomeUserForActiveProfile(accountID: "a", user: nil)
             case .otherUser, .protectedUser:
-                model.setPlexHomeUserForActiveProfile(
+                activateSavedUser(model, profiles: profiles,
                     accountID: "a",
                     user: PlexHomeUser(id: "other", name: "Other", requiresPIN: departure == .protectedUser)
                 )
@@ -313,7 +328,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
 
     func testCloudRecoveryDoesNotDismissAnotherAccountsPINPrompt() async throws {
         let (model, _, profiles) = try makeModel(accountIDs: ["a", "b"])
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "b", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         await model.waitForPlexPINRequirementCheck()
@@ -420,7 +435,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             return "PARENT-CLOUD"
         }
         model.plexServerTokenResolve = { _, _, _ in "PARENT-SERVER" }
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         model.prefillPlexPIN("2468", forProfile: profile.id)
@@ -459,7 +474,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
                 case .emptyToken: return ""
                 }
             }
-            model.setPlexHomeUserForActiveProfile(
+            activateSavedUser(model, profiles: profiles,
                 accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
             )
             await model.waitForPlexPINRequirementCheck()
@@ -518,7 +533,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             model.plexHomeUsersFetch = { _, _ in
                 [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
             }
-            model.setPlexHomeUserForActiveProfile(
+            activateSavedUser(model, profiles: profiles,
                 accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
             )
             if confirmedProtection {
@@ -559,7 +574,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
                 return "PARENT-CLOUD"
             }
             model.plexServerTokenResolve = { _, _, _ in "PARENT-SERVER" }
-            model.setPlexHomeUserForActiveProfile(
+            activateSavedUser(model, profiles: profiles,
                 accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
             )
             XCTAssertEqual(model.plexPINEntryAvailability, .checking)
@@ -672,7 +687,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
                 }
                 return "STALE-CLOUD"
             }
-            model.setPlexHomeUserForActiveProfile(
+            activateSavedUser(model, profiles: profiles,
                 accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
             )
             await model.waitForPlexPINRequirementCheck()
@@ -748,7 +763,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             XCTFail("Cancelled metadata must not authorize a later switch.")
             return "STALE-CLOUD"
         }
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         await model.waitForPlexPINRequirementCheck()
@@ -799,7 +814,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             XCTFail("A rejected PIN must not trigger an owner-authorized PIN-less switch.")
             return "UNVERIFIED-CLOUD"
         }
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         model.submitPlexPIN("0000")
@@ -811,8 +826,8 @@ final class PlexHomeUsersModelTests: XCTestCase {
     }
 
     func testCancellingDefaultProfilePINRetainsTheUnresolvedGate() async throws {
-        let (model, _, _) = try makeModel(accountIDs: ["a"])
-        model.setPlexHomeUserForActiveProfile(
+        let (model, _, profiles) = try makeModel(accountIDs: ["a"])
+        activateSavedUser(model, profiles: profiles,
             accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         let request = model.pendingPlexPINRequest
@@ -824,7 +839,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
     }
 
     func testCancelledSubmissionLeavesRetainedGateReadyForAnotherPIN() async throws {
-        let (model, _, _) = try makeModel(accountIDs: ["a"])
+        let (model, _, profiles) = try makeModel(accountIDs: ["a"])
         model.plexHomeUserSwitch = { _, pin, _, _ in
             XCTAssertEqual(pin, "2468")
             await MainActor.run {
@@ -833,7 +848,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             }
             return "CANCELLED-CLOUD"
         }
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         model.submitPlexPIN("2468")
@@ -869,7 +884,7 @@ final class PlexHomeUsersModelTests: XCTestCase {
             audioController: .init(),
             updateTrackersForActiveProfile: {}, discardWatchReconciler: { _ in }
         )
-        model.setPlexHomeUserForActiveProfile(
+        activateSavedUser(model, profiles: profiles,
             accountID: "a", user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)
         )
         let request = model.pendingPlexPINRequest
