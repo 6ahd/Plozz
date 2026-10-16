@@ -26,7 +26,7 @@ final class PlayerGestureInteractionTests: XCTestCase {
 
     func testRapidTapsUseConfiguredIntervalsAndLeaveOnlyProgressVisible() {
         let timeline = app.otherElements["player-timeline"]
-        let scrubBar = app.otherElements["player-scrub-bar"]
+        let scrubBar = app.otherElements["player-timeline-scrubber"]
         XCTAssertTrue(timeline.exists, app.debugDescription)
         XCTAssertTrue(scrubBar.exists, app.debugDescription)
         let originalFrame = scrubBar.frame
@@ -40,13 +40,13 @@ final class PlayerGestureInteractionTests: XCTestCase {
         XCTAssertEqual(feedback.label, "+20", "The configured forward interval is five seconds.")
         XCTAssertFalse(app.buttons["Pause"].exists, "The main controls must hide during skip feedback.")
         XCTAssertTrue(timeline.exists, app.debugDescription)
-        XCTAssertEqual(app.otherElements.matching(identifier: "player-scrub-bar").count, 1)
+        XCTAssertEqual(app.otherElements.matching(identifier: "player-timeline-scrubber").count, 1)
         XCTAssertEqual(scrubBar.frame.minX, originalFrame.minX, accuracy: 1)
         XCTAssertEqual(scrubBar.frame.minY, originalFrame.minY, accuracy: 1)
         XCTAssertEqual(scrubBar.frame.width, originalFrame.width, accuracy: 1)
         XCTAssertEqual(scrubBar.frame.height, 44, accuracy: 1)
-        XCTAssertTrue(app.staticTexts["player-elapsed-time"].exists)
-        XCTAssertTrue(app.staticTexts["player-remaining-time"].exists)
+        XCTAssertTrue(app.buttons["player-timeline-current-time"].exists)
+        XCTAssertTrue(app.buttons["player-timeline-end-time"].exists)
         XCTAssertFalse(app.buttons["Playback options"].isHittable)
         XCTAssertFalse(app.buttons["Subtitles"].isHittable)
         capture("forward-cumulative")
@@ -63,6 +63,13 @@ final class PlayerGestureInteractionTests: XCTestCase {
     }
 
     func testSingleTapRevealsControlsAndNativeButtonsDoNotBecomeShortcuts() {
+        let currentTime = app.buttons["player-timeline-current-time"]
+        XCTAssertEqual(currentTime.label, "Elapsed time")
+        currentTime.tap()
+        XCTAssertEqual(currentTime.label, "Current time")
+        XCTAssertFalse(app.staticTexts["player-gesture-skip-total"].exists)
+        currentTime.tap()
+        XCTAssertEqual(currentTime.label, "Elapsed time")
         point(x: 0.5, y: 0.28).tap()
         XCTAssertTrue(app.buttons["Pause"].waitForNonExistence(timeout: 3))
         point(x: 0.5, y: 0.28).tap()

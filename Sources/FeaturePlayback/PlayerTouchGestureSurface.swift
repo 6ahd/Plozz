@@ -208,7 +208,7 @@ struct PlayerTouchGestureFeedbackContent: View {
     var body: some View {
         GeometryReader { geometry in
             if let skip = state.skip {
-                HStack(spacing: 8) {
+                HStack(spacing: 4) {
                     if skip.direction == .backward {
                         PlayerTouchSkipChevrons(direction: .backward, pulse: skip.pulse, reduceMotion: reduceMotion)
                     }
@@ -266,8 +266,9 @@ private struct PlayerTouchSkipChevrons: View {
     @State private var activePulses: [Int] = []
 
     var body: some View {
-        Color.clear
-            .frame(width: 30, height: 30)
+        Image(systemName: "chevron.right")
+            .hidden()
+            .frame(height: 30)
             .overlay {
                 ZStack {
                     if reduceMotion {

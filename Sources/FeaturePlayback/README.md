@@ -115,7 +115,9 @@ for backward. It starts partially folded, not flat, and opens to its normal shap
 while traveling 20 points over 0.25 seconds. It then stops fully visible for half
 a second and fades in place over 0.3 seconds. The pill reserves that travel
 inside its layout before adding a 16-point outer inset, mirrored for backward
-skips; Reduce Motion needs no travel space. Rapid taps add independent,
+skips. The number-to-icon layout gap is 4 points, and the icon slot uses its
+native width rather than extra blank space. Reduce Motion needs no travel space.
+Rapid taps add independent,
 overlapping chevrons without restarting earlier ones or queuing a replay.
 Each chevron is removed after its own animation finishes; the signed total
 retains its existing feedback lifetime. Reduce Motion shows one steady chevron

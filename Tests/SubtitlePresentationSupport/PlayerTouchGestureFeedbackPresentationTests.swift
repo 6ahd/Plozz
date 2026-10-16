@@ -117,7 +117,8 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     let idle = try XCTUnwrap(frames[1120])
                     let capsule = try self.assertCapsule(idle, reducePanelGlass: reducePanelGlass)
                     XCTAssertEqual(capsule.height, 46, accuracy: 3)
-                    XCTAssertGreaterThan(capsule.width, 110, "The capsule must include the existing count and flight slot")
+                    XCTAssertGreaterThan(capsule.width, 85, "The capsule must include the count, native icon width, travel, and outer insets")
+                    XCTAssertLessThan(capsule.width, 105, "The chevron must not retain the oversized blank slot")
                     let inset = capsule.insetBy(dx: 2, dy: 2)
                     let interior = UIBezierPath(roundedRect: inset, cornerRadius: inset.height / 2)
                     let indicatorRect = self.indicatorRect(direction: direction)
@@ -139,6 +140,10 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                                 ? capsule.maxX - (glyphRect.minX + glyphBounds.maxX)
                                 : glyphRect.minX + glyphBounds.minX - capsule.minX
                             XCTAssertGreaterThanOrEqual(clearance, 16, "A parked chevron must retain at least 16 points of outer padding")
+                            try self.assertNumberChevronGap(
+                                glyphBounds.offsetBy(dx: glyphRect.minX, dy: glyphRect.minY),
+                                indicator: idle, direction: direction, seconds: interval, reduceMotion: false
+                            )
                             if milliseconds == 720 { parkedClearances.append(clearance) }
                         }
                         for index in foreground.pixels.indices where foreground.pixels[index] > 32 {
@@ -456,6 +461,10 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             ? capsule.maxX - (origin + glyphBounds.maxX)
             : origin + glyphBounds.minX - capsule.minX
         XCTAssertGreaterThanOrEqual(clearance, 16, "The stationary chevron must retain its outer padding")
+        try assertNumberChevronGap(
+            glyphBounds.offsetBy(dx: origin, dy: 0),
+            indicator: indicator, direction: direction, seconds: seconds, reduceMotion: true
+        )
         let count = countRect(direction: direction, reduceMotion: true)
             .offsetBy(dx: -indicatorRect(direction: direction).minX, dy: -indicatorRect(direction: direction).minY)
         try assertCompactCount(cropped(indicator, to: count), seconds: seconds)
@@ -473,7 +482,29 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
 
     private func countRect(direction: PlayerTouchSkipDirection, reduceMotion: Bool = false) -> CGRect {
         let shift: CGFloat = reduceMotion ? (direction == .forward ? 10 : -10) : 0
-        return CGRect(x: (direction == .forward ? 260 : 94) + shift, y: 82, width: 46, height: 36)
+        return CGRect(x: (direction == .forward ? 278 : 86) + shift, y: 82, width: 36, height: 36)
+    }
+
+    private func assertNumberChevronGap(
+        _ glyphBounds: CGRect, indicator: RenderedFrame, direction: PlayerTouchSkipDirection,
+        seconds: TimeInterval, reduceMotion: Bool
+    ) throws {
+        let region = countRect(direction: direction, reduceMotion: reduceMotion)
+            .offsetBy(dx: -indicatorRect(direction: direction).minX, dy: -indicatorRect(direction: direction).minY)
+        let count = try inkBounds(cropped(indicator, to: region))
+            .offsetBy(dx: region.minX, dy: region.minY)
+        let gap = direction == .forward ? glyphBounds.minX - count.maxX : count.minX - glyphBounds.maxX
+        let travel: CGFloat = reduceMotion ? 0 : 20
+        let reference = try typographyReference(kind: .spacing(seconds))
+        let columns = (0..<reference.width).filter { x in
+            (0..<reference.height).contains { reference.pixels[$0 * reference.width + x] > 128 }
+        }
+        let nativeGap = zip(columns, columns.dropFirst()).map { $1 - $0 - 1 }.max() ?? 0
+        XCTAssertGreaterThanOrEqual(nativeGap, 4)
+        XCTAssertEqual(
+            gap, CGFloat(nativeGap) + travel, accuracy: 1.5,
+            "The gap must match a native 4-point label/icon stack plus active travel, including glyph bearings"
+        )
     }
 
     private func assertCompactCount(_ count: RenderedFrame, seconds: TimeInterval) throws {
@@ -590,8 +621,8 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     }
 
     private func glyphRect(direction: PlayerTouchSkipDirection, reduceMotion: Bool = false) -> CGRect {
-        let x: CGFloat = direction == .forward ? 306 : 22
-        return CGRect(x: x + (reduceMotion ? 10 : 0), y: 76, width: reduceMotion ? 52 : 72, height: 48)
+        let x: CGFloat = direction == .forward ? 312 : 36
+        return CGRect(x: x + (reduceMotion ? 10 : 0), y: 76, width: reduceMotion ? 32 : 52, height: 48)
     }
 
     private func indicatorRect(direction: PlayerTouchSkipDirection) -> CGRect {
@@ -609,7 +640,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     }
 
     private enum TypographyReference: Hashable {
-        case count(TimeInterval), rate, chevron, fastForward
+        case count(TimeInterval), spacing(TimeInterval), rate, chevron, fastForward
     }
 
     private func prepareTypographyReferences(_ fixture: FeedbackFixture, window: UIWindow) async throws {
@@ -618,6 +649,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
             fixture.referenceCount = seconds
             try await Task.sleep(for: .milliseconds(40))
             typographyReferences[.count(seconds)] = try captureTypographyReference(window, kind: .count(seconds))
+            typographyReferences[.spacing(seconds)] = try captureTypographyReference(window, kind: .spacing(seconds))
         }
         for kind in [TypographyReference.rate, .chevron, .fastForward] {
             typographyReferences[kind] = try captureTypographyReference(window, kind: kind)
@@ -642,6 +674,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         let rect: CGRect
         switch kind {
         case .count: rect = CGRect(x: 30, y: 230, width: 60, height: 40)
+        case .spacing: rect = CGRect(x: 0, y: 280, width: 120, height: 60)
         case .rate: rect = CGRect(x: 150, y: 230, width: 60, height: 40)
         case .chevron: rect = CGRect(x: 240, y: 226, width: 60, height: 48)
         case .fastForward: rect = CGRect(x: 300, y: 226, width: 60, height: 48)
@@ -884,6 +917,18 @@ private struct FeedbackTypographyReferenceView: View {
         .environment(\.plozzReducePanelGlass, true)
         .environment(\.colorScheme, .dark)
         .allowsHitTesting(false)
+        .overlay(alignment: .topLeading) {
+            HStack(spacing: 4) {
+                if fixture.referenceCount < 0 { Image(systemName: "chevron.left").frame(height: 30) }
+                Text(fixture.referenceCount, format: .number.sign(strategy: .always()).precision(.fractionLength(0)))
+                    .monospacedDigit()
+                if fixture.referenceCount > 0 { Image(systemName: "chevron.right").frame(height: 30) }
+            }
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(width: 120, height: 60)
+            .offset(y: 60)
+        }
     }
 }
 #endif
