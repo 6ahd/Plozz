@@ -34,6 +34,17 @@ fallback when the user's server has no attached trailer.
   Global rows say **All libraries**; native server and library rows identify their
   source. All can be freely interleaved. Changing presets requires confirmation;
   selecting the already active preset does nothing.
+  **Merge Next Up rows** is a separate profile-scoped Continue Watching setting,
+  available in Customize Home and beside the row arranger on every platform.
+  It uses the provider's combined resume/next-episode feed without changing the
+  preset, library exclusions, or other row choices. Separate Next Up rows are
+  neither requested nor presented while merged; the arranger omits them rather
+  than treating them as explicitly hidden. Their previous visibility and positions
+  survive other row edits and return when merging is turned off. Hiding Continue
+  Watching suspends the merge so Next Up does not disappear with it. Preset changes
+  retain the merge preference, and older profiles keep their existing behavior.
+  Providers whose native feed already combines next episodes retain that behavior
+  when the override is off. This does not synthesize Next Up for network shares.
   Jellyfin uses its saved web Home preferences, Emby its native Home sections
   with an older-server fallback, and Plex its promoted hubs—not another client's
   private sidebar pins. Unsupported providers retain their normal default rows.

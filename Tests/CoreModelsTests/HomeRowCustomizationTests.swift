@@ -105,6 +105,120 @@ final class HomeRowCustomizationTests: XCTestCase {
         XCTAssertTrue(visibility.separatesNextUp)
     }
 
+    func testNextUpMergeWorksWithEveryPresetAndRestoresSavedRows() throws {
+        let shows = library("a", "shows", kind: .series)
+        let next = HomeServerRowDefinition(
+            accountID: "a", serverName: "Server", providerKind: .jellyfin,
+            section: .init(id: "native-next", kind: .nextUp)
+        )
+        let choices = HomeRowChoice.shared + HomeRowChoice.baseRows(for: shows)
+            + [HomeRowChoice(serverRow: next)]
+        for preset in HomeRowCustomization.Defaults.allCases {
+            var customization = HomeRowCustomization(
+                defaults: preset, order: [next.id, .global(.continueWatching), .libraries],
+                shown: [next.id, .global(.continueWatching)],
+                serverRows: [next]
+            )
+            if preset == .matchServer {
+                customization.resolvedDefaults = .init(
+                    mode: .server, order: customization.order, serverRows: [next]
+                )
+            }
+            var visibility = HomeLibraryVisibility(rowCustomization: customization)
+            let before = visibility.rowSections(choices: choices)
+            let requests = visibility.requestedRowKinds(for: shows)
+            visibility.mergeNextUpIntoContinueWatching = true
+            XCTAssertFalse(visibility.separatesNextUp, preset.rawValue)
+            XCTAssertFalse(visibility.requestedRowKinds(for: shows).contains(.nextUp))
+            XCTAssertFalse(visibility.rowSections(choices: choices).enabled.contains(next.id))
+            XCTAssertEqual(visibility.rowCustomization, customization, "Merging must not replace the preset")
+            XCTAssertEqual(
+                visibility.rowSections(choices: choices).enabled,
+                before.enabled.filter { $0 != next.id && $0.libraryKind != .nextUp }
+            )
+            let decoded = try JSONDecoder().decode(
+                HomeLibraryVisibility.self, from: JSONEncoder().encode(visibility)
+            )
+            XCTAssertTrue(decoded.mergeNextUpIntoContinueWatching)
+            visibility.mergeNextUpIntoContinueWatching = false
+            XCTAssertEqual(visibility.rowSections(choices: choices), before)
+            XCTAssertEqual(visibility.requestedRowKinds(for: shows), requests)
+        }
+    }
+
+    func testEditingWhileMergedPreservesNativeAndLibraryNextUpPositionsAndHiddenChoices() {
+        let shows = library("a", "shows", kind: .series)
+        let next = HomeServerRowDefinition(
+            accountID: "a", serverName: "Server", providerKind: .jellyfin,
+            section: .init(id: "native-next", kind: .nextUp)
+        )
+        let libraryNext = HomeRowID.library(shows.key, kind: .nextUp)
+        let latest = HomeRowID.library(shows.key, kind: .recentlyAdded)
+        let choices = HomeRowChoice.shared + HomeRowChoice.baseRows(for: shows)
+            + [HomeRowChoice(serverRow: next)]
+        for preset: HomeRowCustomization.Defaults in [.matchServer, .custom] {
+            var customization = HomeRowCustomization(
+                defaults: preset,
+                order: [.global(.continueWatching), next.id, latest, .libraries, libraryNext],
+                hidden: [libraryNext, .global(.watchlist), .global(.recentlyAdded), .liveTV],
+                shown: [.global(.continueWatching), next.id, latest, .libraries], serverRows: [next]
+            )
+            if preset == .matchServer {
+                customization.resolvedDefaults = .init(
+                    mode: .server, order: customization.order, serverRows: [next]
+                )
+            }
+            var visibility = HomeLibraryVisibility(
+                rowCustomization: customization, mergeNextUpIntoContinueWatching: true
+            )
+            let editable = choices.filter { !visibility.isMergedHomeRow($0) }
+            var edited = visibility.rowSections(choices: editable)
+            edited.enabled = [.libraries, latest, .global(.continueWatching)]
+            visibility.applyRows(edited, choices: choices)
+            XCTAssertEqual(visibility.rowSections(choices: editable).enabled, edited.enabled)
+            visibility.mergeNextUpIntoContinueWatching = false
+            let restored = visibility.rowSections(choices: choices)
+            XCTAssertEqual(restored.enabled, [.libraries, next.id, latest, .global(.continueWatching)])
+            XCTAssertTrue(restored.disabled.contains(libraryNext))
+            XCTAssertEqual(visibility.rowCustomization?.serverRows, [next])
+        }
+    }
+
+    func testHidingContinueWatchingSuspendsMergeWithoutLosingThePreference() {
+        let shows = library("a", "shows", kind: .series)
+        var visibility = HomeLibraryVisibility(
+            rowCustomization: .init(defaults: .provider), mergeNextUpIntoContinueWatching: true
+        )
+        XCTAssertFalse(visibility.requestedRowKinds(for: shows).contains(.nextUp))
+        visibility.setGlobalRowEnabled(false, for: .continueWatching)
+        XCTAssertTrue(visibility.mergeNextUpIntoContinueWatching)
+        XCTAssertFalse(visibility.mergesNextUpRows)
+        XCTAssertTrue(visibility.requestedRowKinds(for: shows).contains(.nextUp))
+        visibility.setGlobalRowEnabled(true, for: .continueWatching)
+        XCTAssertTrue(visibility.mergesNextUpRows)
+    }
+
+    @MainActor
+    func testNextUpMergeIsProfileScopedAndSurvivesPresetChanges() throws {
+        let suite = "HomeNextUp.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let primary = HomeLibraryVisibilityStore(defaults: defaults)
+        let other = HomeLibraryVisibilityStore(defaults: defaults, namespace: "other")
+        let model = HomeLibraryVisibilityModel(store: primary)
+        XCTAssertFalse(model.visibility.mergeNextUpIntoContinueWatching)
+        model.setMergeNextUpIntoContinueWatching(true)
+        for preset: HomeRowCustomization.Defaults in [.combined, .matchServer] {
+            model.useRowDefaults(preset)
+            XCTAssertTrue(model.visibility.mergeNextUpIntoContinueWatching)
+            XCTAssertTrue(HomeLibraryVisibilityModel(store: primary).visibility.mergeNextUpIntoContinueWatching)
+        }
+        XCTAssertFalse(HomeLibraryVisibilityModel(store: other).visibility.mergeNextUpIntoContinueWatching)
+        let legacy = try JSONDecoder().decode(HomeLibraryVisibility.self, from: Data("{}".utf8))
+        XCTAssertFalse(legacy.mergeNextUpIntoContinueWatching)
+        XCTAssertFalse(legacy.separatesNextUp)
+    }
+
     func testOneOrderFreelyMixesSharedAndIndividualRowsAcrossLibraries() {
         let a = library("a", "movies")
         let b = library("b", "shows", kind: .series)

@@ -283,6 +283,12 @@ public final class HomeLibraryVisibilityModel {
         store.save(visibility)
     }
 
+    public func setMergeNextUpIntoContinueWatching(_ merge: Bool) {
+        guard visibility.mergeNextUpIntoContinueWatching != merge else { return }
+        visibility.mergeNextUpIntoContinueWatching = merge
+        store.save(visibility)
+    }
+
     // MARK: - Per-library Home rows (unmerged, opt-in)
 
     /// Whether a per-library row is opted in to Home (default off).

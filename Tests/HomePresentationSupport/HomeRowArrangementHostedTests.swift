@@ -14,7 +14,76 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testMergeNextUpControlIsReadableAndReflectsHiddenContinueWatching() async throws {
+        let suite = "HomeNextUpControl.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(
+            store: HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        )
+        for scheme: ColorScheme in [.light, .dark] {
+            for size: DynamicTypeSize in [.large, .accessibility3] {
+                visibility.setGlobalRowEnabled(true, for: .continueWatching)
+                try await withWindow {
+                    ScrollView {
+                        ContinueWatchingNextUpControl(visibility: visibility)
+                            .padding(32)
+                    }
+                    .environment(\.dynamicTypeSize, size)
+                    .environment(\.themePalette, scheme == .light ? ThemePalette.light : .dark)
+                    .environment(\.colorScheme, scheme)
+                    .background(scheme == .light ? Color.white : Color.black)
+                    #if os(tvOS)
+                    .frame(width: 900, height: 650)
+                    #endif
+                } inspect: { window in
+                    let lines = try await self.capture(window, name: "Merge Next Up \(scheme) \(size)")
+                    let text = lines.map(\.0).joined(separator: " ")
+                    XCTAssertTrue(text.contains("Merge Next Up rows"), text)
+                    XCTAssertTrue(text.contains("other rows stay unchanged"), text)
+                    visibility.setGlobalRowEnabled(false, for: .continueWatching)
+                    let disabled = try await self.capture(window, name: "Merge Next Up with hidden Continue Watching")
+                    XCTAssertTrue(disabled.map(\.0).joined(separator: " ").contains("Rows on Home"), text)
+                }
+            }
+        }
+    }
+
     #if os(iOS)
+    func testMobileHomeMergeSwitchPersistsWithoutActivatingNeighboringNavigation() async throws {
+        let suite = "MobileHomeNextUp.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        let visibility = HomeLibraryVisibilityModel(store: store)
+        visibility.useRowDefaults(.combined)
+        try await withWindow {
+            NavigationStack {
+                PlozziOSHomeSettingsView(
+                    hero: HeroSettingsModel(store: InMemoryHeroSettingsStore()),
+                    heroBackground: HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()),
+                    visibility: visibility, accounts: []
+                )
+            }
+        } inspect: { window in
+            _ = try await self.capture(window, name: "Mobile Continue Watching settings")
+            func switches(_ view: UIView) -> [UISwitch] {
+                (view as? UISwitch).map { [$0] } ?? view.subviews.flatMap(switches)
+            }
+            let control = try XCTUnwrap(switches(window).first)
+            XCTAssertFalse(control.isOn)
+            control.setOn(true, animated: false)
+            control.sendActions(for: .valueChanged)
+            let lines = try await self.capture(window, name: "Mobile merged Continue Watching")
+            XCTAssertTrue(store.load().mergeNextUpIntoContinueWatching)
+            XCTAssertEqual(visibility.visibility.rowCustomization?.defaults, .combined)
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Artwork"), text)
+            XCTAssertTrue(text.contains("Merge Next Up rows"), text)
+            XCTAssertFalse(text.contains("Presets"), "The neighboring Rows on Home action must not activate")
+        }
+    }
+
     func testNativeReorderPreviewHasRoundedCorners() async throws {
         try await withWindow {
             LiftableReorderList(
@@ -321,8 +390,25 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 )
                 XCTAssertGreaterThan(
                     try self.y("Combined rows", in: lines),
-                    try self.y("ROWS", in: lines)
+                    try self.y("CONTINUE", in: lines)
                 )
+                func scrollViews(_ view: UIView) -> [UIScrollView] {
+                    (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap(scrollViews)
+                }
+                var visible = lines
+                if !visible.contains(where: { $0.0 == "ROWS" }) {
+                    let scroll = try XCTUnwrap(scrollViews(window).first {
+                        $0.contentSize.height > $0.bounds.height
+                    })
+                    for step in 1...4 {
+                        scroll.setContentOffset(
+                            CGPoint(x: 0, y: CGFloat(step) * scroll.bounds.height * 0.4), animated: false
+                        )
+                        visible = try await self.capture(window, name: "Home rows scrolled at \(size)")
+                        if visible.contains(where: { $0.0 == "ROWS" }) { break }
+                    }
+                }
+                XCTAssertTrue(visible.contains { $0.0 == "ROWS" }, "The row arranger must remain reachable by scrolling.")
             }
         }
     }

@@ -1915,13 +1915,13 @@ struct PlozziOSHomeSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                // Nested under the row it belongs to, and only while that row is
-                // on — a preference for a hidden row is noise. A picker rather
-                // than a switch: both options put artwork on the card, so an
-                // on/off label would imply that "off" leaves it blank.
+            }
+
+            SettingsSectionGroup("Continue Watching") {
+                ContinueWatchingNextUpControl(visibility: visibility)
                 if visibility.isGlobalRowEnabled(.continueWatching) {
                     Picker(
-                        "Continue Watching",
+                        "Artwork",
                         selection: Binding<ContinueWatchingArtworkStyle>(
                             get: {
                                 visibility.continueWatchingShowsSeriesArtwork

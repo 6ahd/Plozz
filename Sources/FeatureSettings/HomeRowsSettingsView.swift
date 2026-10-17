@@ -64,6 +64,11 @@ public struct HomeRowsSettingsView: View {
             )
             .disabled(isLifting)
             VStack(alignment: .leading, spacing: 8) {
+                Text("Continue Watching").settingsSectionHeader()
+                ContinueWatchingNextUpControl(visibility: visibility)
+            }
+            .disabled(isLifting)
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Rows").settingsSectionHeader()
                 Text("Tap and hold a row for options, or move it to Hidden to hide it.")
                     .font(.footnote)
@@ -71,9 +76,10 @@ public struct HomeRowsSettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             let choices = choices
-            let byID = Dictionary(choices.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let editableChoices = choices.filter { !visibility.visibility.isMergedHomeRow($0) }
+            let byID = Dictionary(editableChoices.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             LiftableReorderList(
-                sections: visibility.visibility.rowSections(choices: choices),
+                sections: visibility.visibility.rowSections(choices: editableChoices),
                 disabledSectionTitle: "Hidden",
                 disabledPlaceholder: "No hidden rows",
                 isLifting: $isLifting,
