@@ -396,6 +396,41 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testRootCategoriesOnlyStaySelectedWhileFocused() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        let playback = section("playback", in: app)
+        for identifier in ["settings-profile-switch", "settings-profile-edit"] {
+            try focus(playback, in: app)
+            XCTAssertTrue(playback.isSelected)
+            try focus(app.buttons[identifier], in: app)
+            XCTAssertFalse(playback.isSelected, "Remembering Playback for Back must not keep it highlighted.")
+            capture("selection-\(identifier)", in: app)
+        }
+        try focus(playback, in: app)
+        try enterAndReturn("playback", in: app)
+        XCTAssertTrue(playback.isSelected)
+
+        let language = section("language", in: app)
+        try focus(language, in: app)
+        XCTAssertTrue(language.isSelected)
+        try focus(app.buttons["settings-profile-switch"], in: app)
+        XCTAssertFalse(language.isSelected, "Native menu rows must release their selected state too.")
+
+        let help = section("help", in: app)
+        try focus(help, in: app)
+        try enterAndReturn("help", in: app)
+        XCTAssertTrue(help.isSelected)
+        try focus(app.buttons.containing(.staticText, identifier: "Attributions").firstMatch, in: app)
+        XCTAssertFalse(help.isSelected)
+        XCTAssertFalse(playback.isSelected)
+        capture("selection-after-help", in: app)
+        #else
+        throw XCTSkip("Simulator-only Settings review.")
+        #endif
+    }
+
     func testProfileEditorAndSwitcherShareTheWorkspace() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()

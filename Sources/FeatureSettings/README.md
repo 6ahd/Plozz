@@ -83,6 +83,9 @@ and the single place caption customization lives.
   directional movement, without resizing or sliding across the screen.
   Back from a category restores its selected row and retained scroll position;
   Back from a child returns one page. Playback initially owns focus, not a second pane.
+  The remembered category only restores navigation: native focus owns the row's
+  highlight and selected accessibility trait. Moving to profile actions, credits,
+  or any other root control must not leave an inactive category highlighted.
   The avatar/name switches profiles; the adjacent
   Edit action uses the same `ProfileActionsList` as the profile picker.
   Profile and Everyone headers share title weight/size, icon width, label gap

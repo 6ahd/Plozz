@@ -8,7 +8,6 @@ struct SettingsMenuRow<Options: View>: View {
     let value: Text
     var subtitle: LocalizedStringResource? = nil
     var icon: String? = nil
-    var selected = false
     @ViewBuilder var options: () -> Options
 
     var body: some View {
@@ -16,7 +15,7 @@ struct SettingsMenuRow<Options: View>: View {
         Menu(content: options) {
             SettingsSectionLabel(
                 title: Text(title), icon: icon, assetIcon: nil,
-                value: value, subtitle: subtitle.map(Text.init), selected: selected,
+                value: value, subtitle: subtitle.map(Text.init),
                 accessorySymbol: "chevron.up.chevron.down"
             )
         }
