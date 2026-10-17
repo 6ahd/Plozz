@@ -6,6 +6,15 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Setup presentation** — `ConnectionCodeView` shares the readable monospaced
+  code panel across server sign-in and device pairing. `SetupCodeComparisonView`
+  keeps both devices' confirmation copy and code treatment consistent while
+  callers retain confirmation and cancellation ownership. `SetupSectionCard`
+  groups methods and counted summaries without styling native controls.
+  `SetupSummaryView` scrolls the heading, full server names, and supplied profile
+  grid while keeping Done/Continue reachable. TV rows and profile tiles provide
+  native focus targets so the remote can reach long summaries.
+
 - **First-use choices** — `FirstUseChoiceView` shares the Live TV preview and
   playback-version introduction heading, native actions, and Settings reminder.
   Hosts own persistence and cancellation; dismissing a version prompt never

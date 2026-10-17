@@ -158,9 +158,7 @@ struct PlozziOSSyncSetupReceiveView: View {
                 VStack(spacing: 4) {
                     Text("or enter this code").font(.subheadline)
                         .foregroundStyle(palette.secondaryText)
-                    Text(SyncPairingCode.grouped(code))
-                        .font(.system(size: 32, weight: .bold, design: .rounded)).monospaced()
-                        .foregroundStyle(palette.primaryText)
+                    ConnectionCodeView(SyncPairingCode.grouped(code), size: 32)
                 }
                 Text("You can also scan this from the other device’s iCloud Sync settings.")
                     .font(.footnote).foregroundStyle(palette.secondaryText)
@@ -184,22 +182,7 @@ struct PlozziOSSyncSetupReceiveView: View {
     // confirm it matches the sending device before trusting the transfer.
 
     private func sasCompare(_ code: String) -> some View {
-        VStack(spacing: 18) {
-            Spacer(minLength: 0)
-            Image(systemName: "checkmark.shield")
-                .font(.system(size: 44)).foregroundStyle(palette.accent)
-            Text("Check this code").font(.title2.bold())
-                .foregroundStyle(palette.primaryText)
-            Text(SyncPairingSAS.grouped(code))
-                .font(.system(size: 56, weight: .bold, design: .rounded)).monospaced()
-                .lineLimit(1).minimumScaleFactor(0.5)
-                .foregroundStyle(palette.primaryText)
-            Text("Make sure the same number shows on your other device, then confirm there.")
-                .font(.callout).foregroundStyle(palette.secondaryText)
-                .multilineTextAlignment(.center).padding(.horizontal, 24)
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        SetupCodeComparisonView(code: SyncPairingSAS.grouped(code))
     }
 
     // MARK: Applied summary (received servers + profiles, on-brand)
@@ -257,110 +240,24 @@ private struct PlozziOSSetupScrollContent<Content: View>: View {
                 .frame(maxWidth: .infinity)
                 .padding(24)
         }
+        .defaultScrollAnchor(.center, for: .alignment)
     }
 }
 
 struct PlozziOSSyncSetupSummary: View {
     @Environment(\.themePalette) private var palette
+    @ScaledMetric(relativeTo: .caption) private var itemWidth = 90.0
     let serverGroups: [SyncedServerAccountGroup]
     let pendingIDs: Set<String>
     let profiles: [Profile]
     let onContinue: () -> Void
 
     var body: some View {
-        PlozziOSSetupScrollContent {
-            VStack(spacing: 22) {
-                if pendingIDs.isEmpty {
-                    Text("You’re all set")
-                        .font(.title.bold())
-                        .foregroundStyle(palette.primaryText)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if !serverGroups.isEmpty {
-                    SyncSetupSummaryCard(title: serverGroups.count == 1 ? "Server" : "Servers") {
-                        LazyVStack(alignment: .leading, spacing: 16) {
-                            ForEach(serverGroups) { group in
-                                SyncSetupSummaryServer(
-                                    group: group,
-                                    needsSignIn: group.accounts.contains { pendingIDs.contains($0.id) }
-                                )
-                            }
-                        }
-                    }
-                }
-                if !profiles.isEmpty {
-                    SyncSetupSummaryProfiles(profiles: profiles)
-                }
-                if !pendingIDs.isEmpty {
-                    Text("Finish signing in to the remaining servers in Settings > iCloud Sync.")
-                        .font(.footnote)
-                        .foregroundStyle(palette.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            Button(action: onContinue) {
-                Text(pendingIDs.isEmpty ? "Start Watching" : "Continue")
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity)
-            }
-            .syncPrimaryButtonStyle()
-            .controlSize(.large)
-            .accessibilityIdentifier("sync-setup-continue")
-            .frame(maxWidth: 640)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity)
-            .background(palette.backgroundBase)
-        }
-    }
-}
-
-private struct SyncSetupSummaryServer: View {
-    @Environment(\.themePalette) private var palette
-    let group: SyncedServerAccountGroup
-    let needsSignIn: Bool
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            ProviderBrandMark(
-                provider: group.provider, size: 32,
-                mediaShareTransport: group.mediaShareTransportKind
-            )
-            VStack(alignment: .leading, spacing: 2) {
-                Text(group.serverName)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(palette.primaryText)
-                Group {
-                    if needsSignIn {
-                        Text("Needs sign-in")
-                    } else if group.userNames.isEmpty {
-                        Text("Signed in")
-                    } else {
-                        Text("Signed in as \(group.userNames.formatted(.list(type: .and)))")
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(palette.secondaryText)
-            }
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct SyncSetupSummaryProfiles: View {
-    @Environment(\.themePalette) private var palette
-    @ScaledMetric(relativeTo: .caption) private var itemWidth = 90.0
-    let profiles: [Profile]
-
-    var body: some View {
-        SyncSetupSummaryCard(title: profiles.count == 1 ? "Profile" : "Profiles") {
+        SetupSummaryView(
+            title: pendingIDs.isEmpty ? "You’re all set" : "Set Up This Device",
+            serverGroups: serverGroups, pendingIDs: pendingIDs, profileCount: profiles.count,
+            actionTitle: pendingIDs.isEmpty ? "Start Watching" : "Continue", onAction: onContinue
+        ) {
             ProfileSummaryGrid(
                 profiles: profiles, avatarSize: 56,
                 itemWidth: min(itemWidth, 200), spacing: 14, nameFont: .caption,
@@ -368,26 +265,6 @@ private struct SyncSetupSummaryProfiles: View {
             )
             .foregroundStyle(palette.primaryText)
         }
-    }
-}
-
-private struct SyncSetupSummaryCard<Content: View>: View {
-    @Environment(\.themePalette) private var palette
-    let title: LocalizedStringResource
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title).textCase(.uppercase).font(.caption2.weight(.semibold)).tracking(1.2)
-                .foregroundStyle(palette.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-            content
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(palette.cardSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .strokeBorder(palette.cardBorder, lineWidth: 1))
     }
 }
 #endif

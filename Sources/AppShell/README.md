@@ -57,7 +57,14 @@ registry.
   confirmation before sending credentials. This request has no
   credentials or public-key trust shortcut and cannot decode as the original
   receiver QR. Nearby-device labels inherit native button foregrounds so their
-  codes remain readable when focus inverts the surface.
+  codes remain readable when focus inverts the surface. The QR, nearby devices,
+  and manual code entry stay on one page in distinct sections.
+
+- **Bounded setup summaries.** Both sending and receiving use CoreUI's shared
+  scrolling summary on TV and mobile. Group accounts by physical server, retain
+  per-server transfer scope and pending sign-in state, and wrap full server and
+  profile names. Headers scroll; Done/Continue remains reachable independently
+  of the number of servers or profiles.
 
 - **Composition root, not a feature.** This is the **only** module
   allowed to import all the others. Feature modules don't import

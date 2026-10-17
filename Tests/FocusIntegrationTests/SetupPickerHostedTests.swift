@@ -9,6 +9,25 @@ import XCTest
 
 @MainActor
 final class SetupPickerHostedTests: XCTestCase {
+    func testMatchingCodePresentationFitsBothRolesAndThemes() async throws {
+        for (name, scheme, palette) in appearances {
+            for sending in [false, true] {
+                try await withWindow(scheme: scheme) { window in
+                    window.rootViewController = UIHostingController(rootView:
+                        SetupCodeComparisonView(code: "123 456", onResult: sending ? { _ in } : nil)
+                            .padding(70)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(palette.settingsBackground)
+                            .environment(\.themePalette, palette)
+                    )
+                    window.makeKeyAndVisible()
+                    try await Task.sleep(for: .milliseconds(700))
+                    attach(snapshot(window), name: "matching-code-\(name)-sending-\(sending)")
+                }
+            }
+        }
+    }
+
     func testSourceQRCodeIsScannableInEveryTheme() async throws {
         let invite = SyncSetupSourceInvite()
         for (name, scheme, palette) in appearances {
@@ -37,13 +56,14 @@ final class SetupPickerHostedTests: XCTestCase {
                     let bitmap = try XCTUnwrap(image.cgImage)
                     codes = detector.features(in: CIImage(cgImage: bitmap)).compactMap { $0 as? CIQRCodeFeature }
                     if codes.map(\.messageString) == [invite.encoded()] || ContinuousClock.now >= deadline {
-                        attach(image, name: "setup-picker-\(name)")
+                        try await Task.sleep(for: .milliseconds(700))
+                        attach(snapshot(window), name: "setup-picker-\(name)")
                         break
                     }
                     try await Task.sleep(for: .milliseconds(50))
                 } while true
                 XCTAssertEqual(codes.map(\.messageString), [invite.encoded()])
-                XCTAssertGreaterThan(try XCTUnwrap(codes.first).bounds.width, 230)
+                XCTAssertGreaterThan(try XCTUnwrap(codes.first).bounds.width, 300)
             }
         }
     }

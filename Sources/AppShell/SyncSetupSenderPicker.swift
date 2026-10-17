@@ -15,32 +15,37 @@ struct SyncSetupSenderPicker: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 40) {
-                VStack(spacing: 14) {
-                    Text("Set up another device").font(.largeTitle.bold())
-                        .plozzForeground(.primary)
-                    Text("Scan with your iPhone or iPad camera, or choose a nearby device.")
-                        .font(.title3).plozzForeground(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                HStack(alignment: .top, spacing: 80) {
+            VStack(spacing: 32) {
+                OnboardingHeader(Text("Set up another device"))
+                HStack(alignment: .top, spacing: 36) {
                     SyncSetupSourceQR(invite: invite, expired: inviteExpired, onRefresh: onRefresh)
-                        .frame(width: 420)
-                    VStack(alignment: .leading, spacing: 32) {
-                        SyncSetupNearbyDevices(devices: devices, onSelect: onSelect)
-                        SyncSetupManualCodeEntry(code: $code, onSend: onSendCode)
+                        .frame(width: 520)
+                    SetupSectionCard("Nearby devices") {
+                        VStack(alignment: .leading, spacing: 28) {
+                            SyncSetupNearbyDevices(devices: devices, onSelect: onSelect)
+                                .frame(minHeight: 140, alignment: .topLeading)
+                            Divider()
+                            SyncSetupManualCodeEntry(code: $code, onSend: onSendCode)
+                        }
                     }
-                    .frame(width: 620)
+                    .frame(maxWidth: .infinity)
                 }
-                Button("Cancel", role: .cancel, action: onClose)
-                    .plozzActionButton(role: .secondary)
+                Text("Keep both devices on the same Wi-Fi.")
+                    .font(.caption).plozzForeground(.secondary)
             }
-            .frame(maxWidth: 1240)
+            .frame(maxWidth: 1400)
             .frame(maxWidth: .infinity)
             .padding(24)
         }
         .scrollClipDisabled()
         .defaultScrollAnchor(.center, for: .alignment)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button("Cancel", role: .cancel, action: onClose)
+                .plozzActionButton(role: .secondary)
+                .padding(.top, 20)
+                .frame(maxWidth: .infinity)
+                .focusSection()
+        }
     }
 }
 
@@ -50,27 +55,28 @@ private struct SyncSetupSourceQR: View {
     let onRefresh: () -> Void
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("iPhone or iPad").font(.headline).plozzForeground(.primary)
-            if let invite, !expired {
-                QRCodeView(invite.encoded())
-                    .frame(width: 264, height: 264)
-                    .padding(20)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 18))
-                    .accessibilityLabel("Scan to set up your iPhone or iPad")
-            } else {
-                VStack(spacing: 20) {
-                    Image(systemName: "qrcode").font(.system(size: 64))
-                        .plozzForeground(.secondary)
-                    Text("This QR code expired.").plozzForeground(.secondary)
-                    Button("New QR Code", action: onRefresh)
-                        .plozzActionButton(role: .secondary)
+        SetupSectionCard("iPhone or iPad") {
+            VStack(spacing: 20) {
+                if let invite, !expired {
+                    QRCodeView(invite.encoded())
+                        .frame(width: 340, height: 340)
+                        .padding(20)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 18))
+                        .accessibilityLabel("Scan to set up your iPhone or iPad")
+                } else {
+                    VStack(spacing: 20) {
+                        Image(systemName: "qrcode").font(.system(size: 64))
+                            .plozzForeground(.secondary)
+                        Text("This QR code expired.").plozzForeground(.secondary)
+                        Button("New QR Code", action: onRefresh)
+                            .plozzActionButton(role: .secondary)
+                    }
+                    .frame(height: 380)
                 }
-                .frame(height: 304)
+                Text("Scan with Camera")
+                    .font(.caption).plozzForeground(.secondary)
             }
-            Text("Use the same Wi-Fi, then confirm the matching code on this TV.")
-                .font(.caption).plozzForeground(.secondary)
-                .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
         }
     }
 }
@@ -81,14 +87,10 @@ private struct SyncSetupNearbyDevices: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Nearby devices").font(.headline).plozzForeground(.primary)
-            Text("On the other device, choose “Set Up from Another Device” in Plozz.")
-                .font(.caption).plozzForeground(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
             if devices.isEmpty {
                 HStack(spacing: 16) {
                     ProgressView()
-                    Text("Looking for a device…").plozzForeground(.secondary)
+                    Text("Looking for devices…").plozzForeground(.secondary)
                 }
                 .padding(.vertical, 20)
             } else {
@@ -114,7 +116,7 @@ struct SyncSetupNearbyDeviceLabel: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 // Inherit the native button's foreground, including focus inversion.
-                Text("Code \(SyncPairingCode.grouped(device.serviceName))")
+                Text(verbatim: SyncPairingCode.grouped(device.serviceName))
                     .font(.caption.monospacedDigit())
             }
             Spacer(minLength: 0)
@@ -129,9 +131,10 @@ private struct SyncSetupManualCodeEntry: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Or enter a code").font(.headline).plozzForeground(.primary)
+            Text("Enter a code").font(.headline).plozzForeground(.primary)
             HStack(spacing: 20) {
                 TextField("Code", text: $code)
+                    .font(.system(.body, design: .monospaced))
                     .textInputAutocapitalization(.characters)
                     .disableAutocorrection(true)
                     .frame(maxWidth: .infinity)

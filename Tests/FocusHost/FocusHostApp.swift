@@ -8,7 +8,11 @@ import FeaturePlayback
 struct FocusHostApp: App {
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--player-presentation-back-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--setup-picker-fixture") {
+                SetupPickerFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--setup-summary-fixture") {
+                SetupSummaryFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--player-presentation-back-fixture") {
                 PlayerPresentationBackFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--server-address-fixture") {
                 ServerAddressNavigationFixture()

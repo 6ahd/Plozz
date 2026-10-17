@@ -163,101 +163,34 @@ struct SyncSetupSendView: View {
 
     @ViewBuilder
     private func sasConfirm(_ code: String) -> some View {
-        VStack(spacing: 28) {
-            Text("Does this code match?").font(.largeTitle.bold())
-                .foregroundStyle(palette.primaryText)
-            Text(SyncPairingSAS.grouped(code))
-                .font(.system(size: 84, weight: .bold, design: .rounded)).monospaced()
-                .foregroundStyle(palette.primaryText)
-            Text("Check the other device shows the same number before continuing.")
-                .font(.headline).foregroundStyle(palette.secondaryText)
-                .multilineTextAlignment(.center).frame(maxWidth: 900)
-            HStack(spacing: 24) {
-                Button("Yes, they match") { model.confirmSASMatch(true) }
-                    .font(.title3.weight(.semibold))
-                Button("No", role: .cancel) { model.confirmSASMatch(false) }
-                    .font(.title3)
+        ScrollView {
+            SetupCodeComparisonView(code: SyncPairingSAS.grouped(code)) {
+                model.confirmSASMatch($0)
             }
-            .padding(.top, 8)
+            .padding(24)
         }
+        .defaultScrollAnchor(.center, for: .alignment)
     }
 
     // MARK: Sent success (what this Apple TV sent)
 
     private var sentSummary: some View {
         let requestedID = offer?.requestedAccountID
-        let servers = uniqueServers(appState.accountsProviders.accounts.filter {
+        let accounts = appState.accountsProviders.accounts.filter {
             requestedID == nil || $0.id == requestedID
-        })
+        }
+        let groups = SyncedServerAccountGroup.groups(from: accounts.map { SyncedAccountDescriptor(account: $0) })
         let profiles = requestedID == nil ? appState.profilesModel.profiles : []
-        return VStack(spacing: 40) {
-            VStack(spacing: 12) {
-                Text("The other device is set up").font(.largeTitle.bold())
-                    .foregroundStyle(palette.primaryText)
-            }
-            HStack(alignment: .top, spacing: 56) {
-                if !servers.isEmpty {
-                    section(title: servers.count == 1 ? "Server" : "Servers") {
-                        VStack(alignment: .leading, spacing: 18) {
-                            ForEach(servers, id: \.id) { account in
-                                HStack(spacing: 18) {
-                                    ProviderBrandMark(
-                                        provider: account.server.provider, size: 44,
-                                        mediaShareTransport: MediaShareTransportKind(
-                                            mediaShareScheme: account.server.baseURL.scheme))
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(account.server.name).font(.title3.weight(.semibold))
-                                            .foregroundStyle(palette.primaryText)
-                                        Text("Signed in").font(.callout)
-                                            .foregroundStyle(palette.secondaryText)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if !profiles.isEmpty {
-                    section(title: profiles.count == 1 ? "Profile" : "Profiles") {
-                        // Wraps, for the same reason as iPhone — there's just
-                        // more room here before it bites. A definite width is
-                        // needed because this sits in an HStack beside the
-                        // servers column, which offers the grid no width to wrap
-                        // within.
-                        ProfileSummaryGrid(
-                            profiles: profiles,
-                            avatarSize: 92,
-                            itemWidth: 132,
-                            spacing: 24,
-                            nameFont: .callout
-                        )
-                        .foregroundStyle(palette.primaryText)
-                        .frame(width: 624)
-                    }
-                }
-            }
-            Button("Done") { onClose() }.font(.title3.weight(.semibold))
+        return SetupSummaryView(
+            title: "Your other device is set up", serverGroups: groups,
+            profileCount: profiles.count, actionTitle: "Done", onAction: onClose
+        ) {
+            ProfileSummaryGrid(
+                profiles: profiles, avatarSize: 80, itemWidth: 152, spacing: 24,
+                nameFont: .caption, nameLineLimit: nil, focusableProfiles: true
+            )
+            .foregroundStyle(palette.primaryText)
         }
-    }
-
-    private func uniqueServers(_ accounts: [Account]) -> [Account] {
-        var seen = Set<String>()
-        return accounts.filter { seen.insert($0.server.id).inserted }
-    }
-
-    @ViewBuilder
-    private func section<Content: View>(title: LocalizedStringResource, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // `.textCase` rather than `String.uppercased()`: casing is applied at
-            // render time using the view's locale, which matters in languages
-            // whose uppercase rules differ (Turkish dotless i, German ß).
-            Text(title).textCase(.uppercase).font(.caption.weight(.semibold)).tracking(1.5)
-                .foregroundStyle(palette.secondaryText)
-            content()
-        }
-        .padding(28)
-        .background(palette.cardSurface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .strokeBorder(palette.cardBorder, lineWidth: 1))
     }
 }
 #endif
