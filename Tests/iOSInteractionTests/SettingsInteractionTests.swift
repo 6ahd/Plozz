@@ -675,6 +675,17 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertEqual(force.value as? String, "1")
     }
 
+    func testStreamingQualityMakesShareOnlyRestrictionExplicit() {
+        launchPlayback("--share-only-playback")
+        XCTAssertTrue(app.staticTexts["Original quality only"].exists)
+        XCTAssertFalse(app.buttons["Original quality only"].exists)
+        XCTAssertFalse(button("Local network").exists)
+        XCTAssertFalse(button("Remote Wi-Fi / Ethernet").exists)
+        XCTAssertFalse(button("Cellular").exists)
+        XCTAssertFalse(app.buttons["streaming-advanced"].exists)
+        capture("playback-original-quality-only")
+    }
+
     func testPlaybackAdvancedKeepsUnsupportedCodecsDisabled() {
         launchPlayback("--silo-streaming")
         app.buttons["streaming-advanced"].tap()
@@ -734,10 +745,49 @@ final class SettingsInteractionTests: XCTestCase {
         capture("playback-large-text")
     }
 
-    private func launchPlayback(_ argument: String? = nil) {
+    func testReadAheadPresetsPersistForShareOnlyPlayback() {
+        launchPlayback("--share-only-playback", "--reset-read-ahead")
+        let picker = app.buttons["playback-read-ahead"]
+        reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.staticTexts["Automatic"].exists)
+        for choice in ["1 minute", "5 minutes", "10 minutes", "Maximum available", "Automatic", "10 minutes"] {
+            picker.tap()
+            XCTAssertTrue(app.buttons[choice].waitForExistence(timeout: 3))
+            app.buttons[choice].tap()
+            XCTAssertTrue(picker.staticTexts[choice].exists)
+        }
+        capture("read-ahead-share-only")
+        app.terminate()
+        launchPlayback("--share-only-playback")
+        reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.staticTexts["10 minutes"].exists)
+        picker.tap()
+        app.buttons["Automatic"].tap()
+    }
+
+    func testReadAheadMaximumRemainsEditableAtAccessibilitySize() {
+        launchPlayback("--large-text", "--reset-read-ahead")
+        let picker = app.buttons["playback-read-ahead"]
+        reveal(picker, fullyVisible: true)
+        picker.tap()
+        XCTAssertTrue(app.buttons["Maximum available"].waitForExistence(timeout: 3))
+        app.buttons["Maximum available"].tap()
+        XCTAssertTrue(picker.staticTexts["Maximum available"].exists)
+        let explanation = app.staticTexts[
+            "Larger buffers use more storage. Applies to new Plozzigen playback."
+        ]
+        reveal(explanation, fullyVisible: true)
+        XCTAssertTrue(explanation.isHittable)
+        capture("read-ahead-maximum-large-text")
+        reveal(picker, fullyVisible: true)
+        picker.tap()
+        app.buttons["Automatic"].tap()
+    }
+
+    private func launchPlayback(_ arguments: String...) {
         app.launchArguments = [
             "--playback-settings-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
-        ] + (argument.map { [$0] } ?? [])
+        ] + arguments
         app.launch()
         XCTAssertTrue(app.navigationBars["Playback"].waitForExistence(timeout: 5))
     }

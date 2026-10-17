@@ -178,6 +178,8 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Custom value menus use `SettingsMenuLabel` to show
   the selected value with up/down chevrons, matching editable pickers rather
   than read-only `LabeledContent`. Navigation keeps its right-facing chevron.
+  Fixed source capabilities, such as share-only original streaming quality,
+  stay static and are labeled as fixed rather than given a misleading edit arrow.
   A visual group occupies one native List cell; automatic
   pickers can promote their menu to that whole cell and intercept neighboring
   navigation links or controls. Keep picker activation local without replacing

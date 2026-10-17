@@ -485,6 +485,11 @@ struct PlaybackDetailView: View {
             + skipIntroRows
             + skipIntervalRows
             + resumeRows
+            + [
+                SettingsSplitRow(id: "read-ahead", title: "Read-ahead buffer") {
+                    PlaybackReadAheadControl()
+                }
+            ]
             + scrubbingRows
             + displayFadeRows
             + upNextRows

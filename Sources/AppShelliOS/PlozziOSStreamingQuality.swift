@@ -76,7 +76,7 @@ struct PlozziOSStreamingSettings: View {
                 }
                 .accessibilityIdentifier("streaming-advanced")
             } else {
-                Text("Original quality")
+                Text("Original quality only")
             }
         }
     }
