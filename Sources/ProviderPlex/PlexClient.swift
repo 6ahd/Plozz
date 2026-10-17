@@ -517,7 +517,10 @@ public struct PlexClient: Sendable {
     func metadata(ratingKey: String) async throws -> PlexMetadata {
         let endpoint = Endpoint(
             path: "/library/metadata/\(ratingKey)",
-            queryItems: [URLQueryItem(name: "includeGuids", value: "1")],
+            queryItems: [
+                URLQueryItem(name: "includeGuids", value: "1"),
+                URLQueryItem(name: "includePreferences", value: "1")
+            ],
             headers: headers
         )
         let container = try await decode(PlexMediaContainerResponse.self, endpoint, using: interactiveHTTP).MediaContainer

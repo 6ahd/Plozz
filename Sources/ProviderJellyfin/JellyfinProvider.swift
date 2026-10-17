@@ -2135,6 +2135,19 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         )
     }
 
+    static func episodeOrdering(_ value: String?) -> EpisodeOrdering? {
+        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        switch value.lowercased().filter({ !" -_".contains($0) }) {
+        case "default", "defaultorder": return .tvdbDefault
+        case "aired", "airedorder", "official", "officialorder": return .aired
+        case "dvd", "dvdorder", "altdvd": return .dvd
+        case "absolute", "absoluteorder", "abso": return .absolute
+        case "alternate", "alternateorder", "alttwo", "streaming", "streamingorder": return .alternate
+        case "regional", "regionalorder", "production", "productionorder": return .regional
+        default: return .unknown
+        }
+    }
+
     func map(item dto: BaseItemDto) -> MediaItem {
         let kind = Self.kind(forItemType: dto.`Type`)
         if self.kind == .emby {
@@ -2204,6 +2217,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             seasonNumber: kind == .season ? dto.IndexNumber : dto.ParentIndexNumber,
             episodeNumber: dto.IndexNumber,
             episodeNumberEnd: kind == .episode ? dto.IndexNumberEnd : nil,
+            episodeOrdering: Self.episodeOrdering(dto.DisplayOrder),
             productionYear: dto.ProductionYear,
             // Snapped, not taken at face value: Jellyfin transmits a bare premiere
             // DAY as an instant already shifted by the server's own zone, so an

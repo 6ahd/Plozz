@@ -225,6 +225,10 @@ fallback when the user's server has no attached trailer.
   A spring's logical completion leaves
   several points of upward travel after the apparent landing, even when the
   outer page never scrolls.
+  Reduce Motion keeps the same resting hero placement and browser geometry:
+  the resting content offset is structural, not optional animation travel.
+  Movie hero focus restoration likewise skips its animated scroll under
+  Reduce Motion instead of changing the hero's dimensions or artwork crop.
   When pinned navigation hides on detail pages, horizontal rows draw through
   the empty side gutter to the screen edge, including focused episode artwork.
   The sidebar's mask changes without replacing the scroll view, preserving
