@@ -110,6 +110,18 @@ sync and transfer must not overwrite this local storage/network choice.
 Missing or invalid values use `PlaybackReadAhead.default` (Automatic); invalid
 persisted values are logged without their contents.
 
+## Season request status
+
+Season request labels distinguish approved requests awaiting a known future
+season premiere from Seerr's generic processing state. `SeasonRequestPresentation`
+and per-season statuses share the calendar-day policy, independent of the release
+badge. Pending approval, missing dates, release-day/past premieres, failures,
+declines, library coverage, and download-queue evidence never claim that release
+is the only remaining wait. Seerr's existing TV detail response supplies the
+premiere date; this presentation needs no additional metadata requests.
+TV uses the full confirmation and wait in one label; touch heroes stack those
+same two facts to preserve space for adjacent actions without truncating either.
+
 ## Watch-state replay identity
 
 New shell watch intents carry `WatchMutationServerScope`: the originating Plozz

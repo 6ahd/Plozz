@@ -3,6 +3,8 @@ import Foundation
 /// Shared presentation for every season-request affordance.
 public struct SeasonRequestPresentation: Equatable, Sendable {
     public let title: LocalizedStringResource
+    /// Optional first line when a touch layout stacks confirmation above "Awaiting Release".
+    public let awaitingReleaseConfirmation: LocalizedStringResource?
     public let systemImage: String
     public let detail: LocalizedStringResource?
     public let hasActiveRequests: Bool
@@ -11,29 +13,46 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
 
     public init(
         availability: MediaRequestAvailability,
-        isSubmitting: Bool = false
+        isSubmitting: Bool = false,
+        now: Date = Date(),
+        calendar: Calendar = .current
     ) {
         let seasons = availability.canonicalNumberedSeasons
         let pending = seasons.filter { $0.effectiveRequestStatus == .pending }
-        let processing = seasons.filter { $0.effectiveRequestStatus == .processing }
+        let awaitingRelease = seasons.filter {
+            availability.downloadProgress == nil && $0.isAwaitingRelease(now: now, calendar: calendar)
+        }
+        let awaitingNumbers = Set(awaitingRelease.map(\.number))
+        let processing = seasons.filter {
+            $0.effectiveRequestStatus == .processing && !awaitingNumbers.contains($0.number)
+        }
         let failures = seasons.filter { $0.effectiveRequestStatus == .failed }
         let declined = seasons.filter { $0.effectiveRequestStatus == .declined }
         let requestableCount = seasons.filter(\.isMissingSeasonRequestable).count
-        let activeCount = pending.count + processing.count
+        let activeCount = pending.count + processing.count + awaitingRelease.count
+        let activeDetail = Self.detail(
+            pending: pending.count, processing: processing.count,
+            failures: failures.count, declined: declined.count,
+            awaitingRelease: awaitingRelease.count
+        )
 
         hasActiveRequests = activeCount > 0
         hasFailures = !failures.isEmpty || !declined.isEmpty
         requestAllTitle = "Request All Missing (\(requestableCount))"
+        if !isSubmitting, !hasFailures, activeCount > 0, awaitingRelease.count == activeCount {
+            if activeCount == 1, let season = awaitingRelease.first {
+                awaitingReleaseConfirmation = "S\(season.number) Requested"
+            } else {
+                awaitingReleaseConfirmation = "\(activeCount) Seasons Requested"
+            }
+        } else {
+            awaitingReleaseConfirmation = nil
+        }
 
         if isSubmitting {
             title = "Requesting…"
             systemImage = "clock.arrow.circlepath"
-            detail = Self.detail(
-                pending: pending.count,
-                processing: processing.count,
-                failures: failures.count,
-                declined: declined.count
-            )
+            detail = activeDetail
         } else if seasons.isEmpty {
             title = "Seasons Unavailable"
             systemImage = "exclamationmark.circle"
@@ -45,12 +64,7 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
                 title = "\(failures.count) Season Requests Failed"
             }
             systemImage = "exclamationmark.triangle.fill"
-            detail = Self.detail(
-                pending: pending.count,
-                processing: processing.count,
-                failures: failures.count,
-                declined: declined.count
-            )
+            detail = activeDetail
         } else if !declined.isEmpty {
             if declined.count == 1, let season = declined.first {
                 title = "S\(season.number) Request Declined"
@@ -58,15 +72,13 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
                 title = "\(declined.count) Season Requests Declined"
             }
             systemImage = "exclamationmark.triangle.fill"
-            detail = Self.detail(
-                pending: pending.count,
-                processing: processing.count,
-                failures: 0,
-                declined: declined.count
-            )
+            detail = activeDetail
         } else if activeCount > 0 {
             // One request identifies its season; multiple requests summarize their count.
-            if processing.count == activeCount {
+            if let awaitingReleaseConfirmation {
+                title = "\(awaitingReleaseConfirmation) · Awaiting Release"
+                systemImage = "calendar"
+            } else if processing.count == activeCount {
                 if activeCount == 1, let season = processing.first {
                     title = "S\(season.number) Processing"
                 } else {
@@ -81,14 +93,8 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
                 }
                 systemImage = "clock"
             }
-            detail = pending.isEmpty || processing.isEmpty
-                ? nil
-                : Self.detail(
-                    pending: pending.count,
-                    processing: processing.count,
-                    failures: 0,
-                    declined: 0
-                )
+            let stateCount = [pending.count, processing.count, awaitingRelease.count].filter { $0 > 0 }.count
+            detail = stateCount > 1 ? activeDetail : nil
         } else if requestableCount > 0 {
             title = "Request Seasons"
             systemImage = "plus.circle"
@@ -106,9 +112,10 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
         pending: Int,
         processing: Int,
         failures: Int,
-        declined: Int
+        declined: Int,
+        awaitingRelease: Int = 0
     ) -> LocalizedStringResource? {
-        switch (pending, processing, failures, declined) {
+        let workflow: LocalizedStringResource? = switch (pending, processing, failures, declined) {
         case (0, 0, 0, 0):
             nil
         case let (pending, 0, 0, 0):
@@ -142,5 +149,10 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
         case let (pending, processing, failures, declined):
             "\(pending) Requested, \(processing) Processing, \(failures) Failed, \(declined) Declined"
         }
+        guard awaitingRelease > 0 else { return workflow }
+        if let workflow {
+            return "\(workflow) · \(awaitingRelease) Awaiting Release"
+        }
+        return "\(awaitingRelease) Awaiting Release"
     }
 }

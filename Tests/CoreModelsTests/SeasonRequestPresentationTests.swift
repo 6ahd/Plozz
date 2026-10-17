@@ -2,6 +2,129 @@ import XCTest
 @testable import CoreModels
 
 final class SeasonRequestPresentationTests: XCTestCase {
+    func testFuturePremiereConfirmsRequestAndExplainsTheWait() throws {
+        let premiere = try XCTUnwrap(MediaItem.calendarDayReleaseDate(from: "2099-10-20"))
+        let now = premiere.addingTimeInterval(-86_400)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+        let requested = MediaSeasonRequestState(
+            number: 1, title: "Season 1", status: .processing, premiereDate: premiere
+        )
+        let result = SeasonRequestPresentation(
+            availability: availability([requested]), now: now, calendar: calendar
+        )
+        XCTAssertEqual(english(result.title), "S1 Requested · Awaiting Release")
+        XCTAssertEqual(result.awaitingReleaseConfirmation.map(english), "S1 Requested")
+        XCTAssertEqual(result.systemImage, "calendar")
+        XCTAssertTrue(result.hasActiveRequests)
+        XCTAssertNil(result.detail)
+        XCTAssertFalse(requested.isRequestable)
+        XCTAssertEqual(english(requested.statusTitle(now: now, calendar: calendar)), "Requested · Awaiting Release")
+        XCTAssertEqual(requested.statusSystemImage, "calendar")
+
+        let next = MediaSeasonRequestState(
+            number: 2, title: "Season 2", status: .processing, premiereDate: premiere
+        )
+        XCTAssertEqual(english(SeasonRequestPresentation(
+            availability: availability([requested, next]), now: now, calendar: calendar
+        ).title), "2 Seasons Requested · Awaiting Release")
+        XCTAssertEqual(english(SeasonRequestPresentation(
+            availability: availability([season(1, .available), next]), now: now, calendar: calendar
+        ).title), "S2 Requested · Awaiting Release")
+    }
+
+    func testReleaseDayUsesTheUsersCalendarDayNotUTCMidnight() throws {
+        let premiere = try XCTUnwrap(MediaItem.calendarDayReleaseDate(from: "2099-10-20"))
+        var calendar = Calendar(identifier: .gregorian)
+        for offset in [-8 * 3_600, 14 * 3_600] {
+            calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: offset))
+            let releaseDay = try XCTUnwrap(calendar.date(from: DateComponents(year: 2099, month: 10, day: 20)))
+            let requested = MediaSeasonRequestState(
+                number: 1, title: "Season 1", status: .processing, premiereDate: premiere
+            )
+            XCTAssertTrue(requested.isAwaitingRelease(now: releaseDay.addingTimeInterval(-1), calendar: calendar))
+            for now in [releaseDay, releaseDay.addingTimeInterval(86_400)] {
+                XCTAssertFalse(requested.isAwaitingRelease(now: now, calendar: calendar))
+                XCTAssertEqual(english(requested.statusTitle(now: now, calendar: calendar)), "Processing")
+            }
+        }
+        XCTAssertFalse(season(1, .processing).isAwaitingRelease())
+    }
+
+    func testReleaseWaitNeverOverridesWorkflowOrContradictoryEvidence() throws {
+        let premiere = try XCTUnwrap(MediaItem.calendarDayReleaseDate(from: "2099-10-20"))
+        let now = premiere.addingTimeInterval(-7 * 86_400)
+        let base = MediaSeasonRequestState(
+            number: 1, title: "Season 1", status: .processing, premiereDate: premiere
+        )
+        var variants: [MediaSeasonRequestState] = []
+        for workflow in [MediaSeasonRequestStatus.pending, .failed, .declined, .completed] {
+            var variant = base
+            variant.requestStatus = workflow
+            variants.append(variant)
+        }
+        for coverage in [MediaAvailabilityStatus.available, .partiallyAvailable] {
+            var variant = base
+            variant.status = coverage
+            variants.append(variant)
+        }
+        var local = base
+        local.isPresentInLibrary = true
+        variants.append(local)
+        var downloading = base
+        downloading.hasDownloadActivity = true
+        variants.append(downloading)
+        var failed = base
+        failed.requestFailed = true
+        variants.append(failed)
+        for variant in variants {
+            XCTAssertFalse(variant.isAwaitingRelease(now: now), "\(variant)")
+            XCTAssertFalse(english(variant.statusTitle(now: now)).contains("Awaiting Release"))
+            XCTAssertFalse(english(SeasonRequestPresentation(
+                availability: availability([variant]), now: now
+            ).title).contains("Awaiting Release"))
+        }
+        XCTAssertEqual(english(SeasonRequestPresentation(
+            availability: .init(status: .processing, downloadProgress: 0.25, seasons: [base]), now: now
+        ).title), "S1 Processing")
+    }
+
+    func testMixedReleaseWaitCountsDoNotCallEverySeasonUnreleased() throws {
+        let premiere = try XCTUnwrap(MediaItem.calendarDayReleaseDate(from: "2099-10-20"))
+        let future = MediaSeasonRequestState(
+            number: 3, title: "Season 3", status: .processing, premiereDate: premiere
+        )
+        let now = premiere.addingTimeInterval(-7 * 86_400)
+        let mixed = [season(1, .processing), season(2, .pending), future]
+        let presentation = SeasonRequestPresentation(availability: availability(mixed), now: now)
+        XCTAssertEqual(english(presentation.title), "3 Seasons Requested")
+        XCTAssertNil(presentation.awaitingReleaseConfirmation)
+        XCTAssertEqual(presentation.detail.map(english), "1 Requested, 1 Processing · 1 Awaiting Release")
+        let failure = SeasonRequestPresentation(
+            availability: availability(mixed + [season(4, .pending, failed: true)]), now: now
+        )
+        XCTAssertEqual(english(failure.title), "S4 Request Failed")
+        XCTAssertEqual(failure.detail.map(english), "1 Requested, 1 Processing, 1 Failed · 1 Awaiting Release")
+    }
+
+    func testDuplicateAndOptimisticSeasonStatesPreserveReleaseEvidence() throws {
+        let premiere = try XCTUnwrap(MediaItem.calendarDayReleaseDate(from: "2099-10-20"))
+        let future = MediaSeasonRequestState(
+            number: 1, title: "Season 1", status: .processing,
+            premiereDate: premiere, hasDownloadActivity: true
+        )
+        let canonical = try XCTUnwrap(availability([season(1, .unknown), future]).canonicalNumberedSeasons.first)
+        XCTAssertEqual(canonical.premiereDate, premiere)
+        XCTAssertTrue(canonical.hasDownloadActivity)
+        let previous = availability([future]).markingRequested([1])
+        let reconciled = availability([season(1, .unknown)]).reconcilingAccepted([1], previous: previous)
+        XCTAssertEqual(reconciled.seasons.first?.premiereDate, premiere)
+        XCTAssertEqual(reconciled.seasons.first?.hasDownloadActivity, true)
+        var older = future
+        older.premiereDate = premiere.addingTimeInterval(-86_400)
+        XCTAssertEqual(availability([future, older]).canonicalNumberedSeasons.first?.premiereDate, older.premiereDate)
+    }
+
     func testPendingLabelsCoverOneArbitraryAndAllSeasons() {
         XCTAssertEqual(
             english(presentation(pending: [1], total: 20).title),

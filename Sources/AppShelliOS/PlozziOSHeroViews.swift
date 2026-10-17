@@ -443,8 +443,14 @@ struct PlozziOSSeasonRequestSummaryLabel: View {
         HStack(spacing: 8) {
             Image(systemName: presentation.systemImage)
             VStack(alignment: .leading, spacing: 1) {
-                Text(presentation.title)
+                Text(presentation.awaitingReleaseConfirmation ?? presentation.title)
                     .fixedSize(horizontal: false, vertical: true)
+                if presentation.awaitingReleaseConfirmation != nil {
+                    Text("Awaiting Release")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let detail = presentation.detail {
                     Text(detail)
                         .font(.caption2)

@@ -6,6 +6,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Touch hero actions** — `HeroActionRow` preserves readable intrinsic widths
+  before falling back to a vertical arrangement. `TouchHeroActionButtonStyle`
+  lets labels wrap and uses bounded 24pt corners so tall accessibility-size
+  content stays inside the button surface; icon-only actions remain circular.
+
 - **First-use choices** — `FirstUseChoiceView` shares the Live TV preview and
   playback-version introduction heading, native actions, and Settings reminder.
   Hosts own persistence and cancellation; dismissing a version prompt never
