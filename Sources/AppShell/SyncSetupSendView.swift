@@ -17,11 +17,46 @@ struct SyncSetupSendView: View {
     @State private var model: SyncSetupPairingModel
     @State private var code = ""
     @State private var handled = false
+    @State private var offer: SyncPairingRendezvous?
+    @State private var authorization: Authorization
+    @State private var sendTask: Task<Void, Never>?
 
-    init(appState: AppState, onClose: @escaping () -> Void) {
+    private struct Authorization: Equatable {
+        let profileID: String
+        let accountScope: String
+        let plexIdentity: String
+
+        @MainActor
+        init(_ appState: AppState) {
+            let accounts = appState.accountsProviders.accounts
+            let profile = appState.profilesModel.activeProfile
+            profileID = profile.id
+            accountScope = HomeRuntimeScope.accountScopeKey(accounts)
+            plexIdentity = profile.plexPlaybackIdentityKey(for: accounts)
+        }
+
+        @MainActor
+        func isCurrent(in appState: AppState) -> Bool {
+            self == Authorization(appState)
+                && appState.isActiveProfileAuthorized
+                && !appState.profileFlow.managementRequiresParentalPIN
+        }
+    }
+
+    init(appState: AppState, offer: SyncPairingRendezvous? = nil, onClose: @escaping () -> Void) {
         self.appState = appState
         self.onClose = onClose
-        _model = State(initialValue: SyncSetupPairingModel(service: appState.syncSetup))
+        _offer = State(initialValue: offer)
+        let authorization = Authorization(appState)
+        _authorization = State(initialValue: authorization)
+        _model = State(initialValue: SyncSetupPairingModel(
+            service: appState.syncSetup,
+            isAuthorized: { authorization.isCurrent(in: appState) }
+        ))
+    }
+
+    private var isAuthorized: Bool {
+        authorization.isCurrent(in: appState)
     }
 
     var body: some View {
@@ -29,20 +64,32 @@ struct SyncSetupSendView: View {
             AppBackground(palette: palette)
             content.frame(maxWidth: .infinity, maxHeight: .infinity).padding(70)
         }
-        .onAppear { model.startDiscovery() }
-        .onDisappear { model.stopDiscovery() }
+        .onAppear { if offer == nil { model.startDiscovery() } }
+        .onChange(of: isAuthorized, initial: true) { _, _ in model.authorizationDidChange() }
+        .onDisappear {
+            sendTask?.cancel()
+            model.cancelSending()
+            model.stopDiscovery()
+        }
+        .onExitCommand { onClose() }
+        .interactiveDismissDisabled()
     }
 
     @ViewBuilder
     private var content: some View {
         switch model.phase {
         case .idle:
-            picker
+            if let offer {
+                offerConfirmation(offer)
+            } else {
+                picker
+            }
         case .connecting, .sending:
             VStack(spacing: 18) {
                 ProgressView().controlSize(.large)
                 Text("Setting up the other device…").font(.title2)
                     .foregroundStyle(palette.secondaryText)
+                Button("Cancel", role: .cancel, action: onClose)
             }
         case .sent:
             sentSummary
@@ -54,12 +101,50 @@ struct SyncSetupSendView: View {
                     .foregroundStyle(palette.secondaryText)
                 Text("Setup didn’t finish").font(.title2.bold())
                 Text(message).foregroundStyle(palette.secondaryText).multilineTextAlignment(.center)
-                Button("Try Again") { handled = false; model.reset(); model.startDiscovery() }
+                Button("Try Again") {
+                    handled = false
+                    model.reset()
+                    if offer == nil { model.startDiscovery() }
+                }
+                .disabled(!isAuthorized)
                 Button("Cancel", role: .cancel) { onClose() }
             }
         default:
             ProgressView()
         }
+    }
+
+    private func startSending(_ action: @escaping @MainActor () async -> Void) {
+        guard !handled, isAuthorized else { return }
+        handled = true
+        sendTask = Task { await action() }
+    }
+
+    private func offerConfirmation(_ offer: SyncPairingRendezvous) -> some View {
+        let server = offer.requestedAccountID.flatMap { id in
+            appState.accountsProviders.accounts.first { $0.id == id }?.server.name
+        }
+        let title: LocalizedStringResource = if let server {
+            "Set up “\(server)” on “\(offer.deviceName)”?"
+        } else {
+            "Set up “\(offer.deviceName)”?"
+        }
+        let message: LocalizedStringResource = if let server {
+            "Sign this device in to “\(server)”."
+        } else {
+            "Send your servers and sign-in so it’s ready to watch."
+        }
+        return VStack(spacing: 28) {
+            Text(title).font(.largeTitle.bold()).foregroundStyle(palette.primaryText)
+            Text(message)
+                .foregroundStyle(palette.secondaryText)
+            HStack(spacing: 24) {
+                Button("Set Up") { startSending { await model.adopt(offer) } }
+                    .disabled(!isAuthorized)
+                Button("Not Now", role: .cancel, action: onClose)
+            }
+        }
+        .multilineTextAlignment(.center)
     }
 
     // MARK: Picker (nearby + code)
@@ -96,9 +181,7 @@ struct SyncSetupSendView: View {
             } else {
                 ForEach(model.nearbyDevices) { device in
                     Button {
-                        guard !handled else { return }
-                        handled = true
-                        Task { await model.pair(with: device) }
+                        startSending { await model.pair(with: device) }
                     } label: {
                         HStack(spacing: 16) {
                             Image(systemName: "iphone").font(.title2)
@@ -125,9 +208,7 @@ struct SyncSetupSendView: View {
                 .disableAutocorrection(true)
                 .frame(width: 300)
             Button("Set Up") {
-                guard !handled else { return }
-                handled = true
-                Task { await model.send(code: code) }
+                startSending { await model.send(code: code) }
             }
             .disabled(SyncPairingCode.normalize(code).count < 4)
         }
@@ -161,8 +242,11 @@ struct SyncSetupSendView: View {
     // MARK: Sent success (what this Apple TV sent)
 
     private var sentSummary: some View {
-        let servers = uniqueServers(appState.accountsProviders.accounts)
-        let profiles = appState.profilesModel.profiles
+        let requestedID = offer?.requestedAccountID
+        let servers = uniqueServers(appState.accountsProviders.accounts.filter {
+            requestedID == nil || $0.id == requestedID
+        })
+        let profiles = requestedID == nil ? appState.profilesModel.profiles : []
         return VStack(spacing: 40) {
             VStack(spacing: 12) {
                 Text("The other device is set up").font(.largeTitle.bold())

@@ -74,6 +74,11 @@ public enum PlozzSheetStyle {
 }
 
 public extension View {
+    /// The existing sheet surface when several flows share one native presenter.
+    func plozzDialogSurface(style: PlozzSheetStyle = .standard) -> some View {
+        PlozzDialogContent(content: self, style: style)
+    }
+
     func plozzSheet<SheetContent: View>(
         isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil,
         style: PlozzSheetStyle = .standard,

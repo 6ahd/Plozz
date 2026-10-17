@@ -68,13 +68,12 @@ public struct RootView: View {
     @State private var showSyncReceiveFromSettings = false
     @State private var showSyncErasure = false
     @State private var showsMarkerPreview = false
-    /// A just-set-up profile whose PIN is being chosen.
-    /// Identifies the server awaiting an identity choice, for `.fullScreenCover(item:)`.
-    private struct PendingIdentityAccount: Identifiable { let id: String }
-
     /// Library discovery for the setup step's cover.
     @State private var setupLibraries = ProfileSetupLibrariesLoader()
     @State private var showSyncSend = false
+    @State private var rootPresentation = RootPresentationCoordinator()
+    @State private var startupNotesPrepared = false
+    @State private var presentedSetupOffer: SyncPairingRendezvous?
     /// Home's view model, owned here because this is the highest view whose
     /// identity is genuinely stable for the signed-in session. Kept out of the
     /// tab tree so a `TabView` re-host cannot discard it mid-load; see
@@ -135,25 +134,6 @@ public struct RootView: View {
         #endif
         self.featureIntroductionStore =
             featureIntroductionStore ?? FeatureIntroductionStore()
-    }
-
-    /// The name THIS device holds for the offer's requested account. Since a per-server
-    /// offer is only surfaced when this device has that account, this resolves the name
-    /// locally rather than trusting the rendezvous-supplied string.
-    private var syncSetupOfferServerName: String? {
-        guard let requested = appState.cloudSyncUI.pendingSyncSetupOffer?.requestedAccountID else { return nil }
-        return appState.accountsProviders.accounts.first(where: { $0.id == requested })?.server.name
-    }
-
-    /// Title for the same-Apple-ID setup offer alert. Names the specific server when
-    /// the offering device asked for just one (per-server "set up with other device"),
-    /// else falls back to the device-level framing.
-    private var syncSetupOfferTitle: LocalizedStringResource {
-        let device = appState.cloudSyncUI.pendingSyncSetupOffer?.deviceName ?? "your device"
-        if let server = syncSetupOfferServerName {
-            return "Set up “\(server)” on “\(device)”?"
-        }
-        return "Set up “\(device)”?"
     }
 
     private func setUpPendingServer(_ descriptor: SyncedAccountDescriptor) {
@@ -275,6 +255,193 @@ public struct RootView: View {
         pendingFeatureIntroduction = nil
     }
 
+    private var presentationRequests: [RootPresentationCoordinator.Destination] {
+        var requests: [RootPresentationCoordinator.Destination] = []
+        let flow = appState.profileFlow
+        if flow.pendingLockedProfile != nil || flow.pendingParentalSwitch != nil
+            || (flow.pendingSetupProfile == nil && appState.plexHomeUsers.pendingPlexPINRequest != nil) {
+            requests.append(.accessGate)
+        }
+        if flow.pendingIdentityAccountID != nil { requests.append(.serverIdentity) }
+        if flow.pendingLockOfferProfile != nil { requests.append(.profileLock) }
+        if flow.isPickingAppearanceForNewProfile { requests.append(.profileAppearance) }
+        if pendingFeatureIntroduction != nil { requests.append(.introduction) }
+        if releaseNotes.hasPendingStartupNotes { requests.append(.releaseNotes) }
+        if showSyncSend || rootPresentation.active == .sendSetup
+            || (startupPresentationReady && nextFeatureIntroduction == nil && startupNotesPrepared
+                && appState.cloudSyncUI.pendingSyncSetupOffer != nil) {
+            requests.append(.sendSetup)
+        }
+        if showSyncReceive || showSyncReceiveFromSettings { requests.append(.receiveSetup) }
+        if showSyncErasure { requests.append(.syncErasure) }
+        if providerSetupRouter.addressAccount != nil { requests.append(.serverAddresses) }
+        if startupPresentationReady && nextFeatureIntroduction == nil && startupNotesPrepared,
+           appState.cloudSyncUI.pendingServerPrompt != nil {
+            requests.append(.newServer)
+        }
+        return requests
+    }
+
+    private func rootPresentationDidDismiss() {
+        switch rootPresentation.active {
+        case .accessGate:
+            if rootPresentation.wasDismissedByUser {
+                appState.profileFlow.cancelProfileLockPrompt()
+                appState.profileFlow.cancelParentalSwitch()
+                appState.plexHomeUsers.dismissPlexPINIfPresented()
+            }
+        case .serverIdentity:
+            if rootPresentation.wasDismissedByUser, let id = appState.profileFlow.pendingIdentityAccountID {
+                appState.profileFlow.declineIdentityPrompt(for: id)
+            }
+        case .profileLock:
+            if rootPresentation.wasDismissedByUser { appState.profileFlow.dismissLockOffer() }
+        case .introduction:
+            if let introduction = pendingFeatureIntroduction {
+                featureIntroductionStore.markCompleted(introduction)
+            }
+            pendingFeatureIntroduction = nil
+            isDismissingFeatureIntroduction = false
+        case .releaseNotes:
+            releaseNotes.dismissStartupNotes()
+        case .profileAppearance:
+            appState.finishNewProfileAppearanceSelection()
+            appState.profileFlow.presentPostAppearanceStep()
+        case .sendSetup:
+            showSyncSend = false
+            if let offer = presentedSetupOffer { appState.declineSyncSetupOffer(offer) }
+            presentedSetupOffer = nil
+            appState.isPresentingSyncSetup = false
+        case .receiveSetup:
+            showSyncReceive = false
+            showSyncReceiveFromSettings = false
+            appState.refreshPendingSyncedServers()
+        case .syncErasure:
+            showSyncErasure = false
+        case .serverAddresses:
+            providerSetupRouter.addressAccount = nil
+        case .newServer:
+            if rootPresentation.wasDismissedByUser { appState.clearPendingServerPrompt() }
+        case nil:
+            break
+        }
+        // Re-evaluate after the source callbacks, not from the pre-dismissal queue.
+        rootPresentation.didDismiss()
+        updateRootPresentation()
+    }
+
+    private func updateRootPresentation() {
+        let requests = presentationRequests
+        if rootPresentation.active == nil, requests.first == .sendSetup {
+            presentedSetupOffer = showSyncSend ? nil : appState.cloudSyncUI.pendingSyncSetupOffer
+            appState.isPresentingSyncSetup = true
+        }
+        rootPresentation.update(requests)
+    }
+
+    @ViewBuilder
+    private var rootPresentationContent: some View {
+        switch rootPresentation.active {
+        case .accessGate:
+            ProfileAccessGateView(appState: appState)
+        case .serverIdentity:
+            if let id = appState.profileFlow.pendingIdentityAccountID {
+                ProfileServerIdentityPromptView(
+                    appState: appState, accountID: id,
+                    onFinish: { appState.profileFlow.resolveIdentityPrompt(for: id) },
+                    onDecline: { appState.profileFlow.declineIdentityPrompt(for: id) }
+                )
+            }
+        case .profileLock:
+            if let profile = appState.profileFlow.pendingLockOfferProfile {
+                ProfileLockOfferView(
+                    profile: profile, syncEnabled: SyncSetupFeatureFlag().isEnabled,
+                    validatePlexPIN: { await appState.plexHomeUsers.validatePlexPIN($0, forProfile: profile.id) },
+                    onComplete: {
+                        appState.setLock($0, forProfile: profile.id)
+                        appState.profileFlow.dismissLockOffer()
+                    },
+                    onSkip: { appState.profileFlow.dismissLockOffer() }
+                )
+            }
+        case .introduction:
+            if let introduction = pendingFeatureIntroduction {
+                switch introduction {
+                case .navigationStyles:
+                    SelectNavigationStyleView(appState: appState) { dismissFeatureIntroduction(introduction) }
+                case .homeLayout:
+                    SelectHomeLayoutView(hero: appState.profileSettings.heroSettingsModel) {
+                        dismissFeatureIntroduction(introduction)
+                    }
+                default:
+                    EmptyView()
+                }
+            }
+        case .releaseNotes:
+            ReleaseNotesStartupView(model: releaseNotes)
+        case .profileAppearance:
+            NewProfileAppearanceFlowView(
+                appState: appState, deviceColorScheme: systemColorScheme,
+                onComplete: {
+                    completeAppearanceIntroductions()
+                    appState.finishNewProfileAppearanceSelection()
+                }
+            )
+        case .sendSetup:
+            SyncSetupSendView(
+                appState: appState,
+                offer: presentedSetupOffer,
+                onClose: rootPresentation.dismiss
+            )
+        case .receiveSetup:
+            SyncSetupReceiveView(appState: appState, onClose: rootPresentation.dismiss)
+        case .syncErasure:
+            AppLanguageScope(model: appState.profileSettings.appLanguageModel) {
+                SyncEraseDataView(
+                    profileID: appState.profilesModel.activeProfileID,
+                    isAllowed: !appState.profilesModel.activeProfile.isKids
+                        && !appState.profileFlow.managementRequiresParentalPIN,
+                    status: SyncStatusProvider { Self.syncStatusPresentation(appState.cloudSyncStatus) },
+                    erase: { appState.eraseCloudSyncData() }
+                )
+            }
+            .plozzDialogSurface()
+        case .serverAddresses:
+            if let account = providerSetupRouter.addressAccount {
+                let profileID = appState.profilesModel.activeProfileID
+                ServerAddressesView(
+                    account: account, store: appState.accountsProviders.accountStore,
+                    isAuthorized: {
+                        appState.profilesModel.activeProfileID == profileID
+                            && !appState.profileFlow.managementRequiresParentalPIN
+                    },
+                    onChanged: { appState.accountsProviders.reloadAccounts(updatingServerAddressesFor: account.id) }
+                )
+                .plozzDialogSurface()
+            }
+        case .newServer:
+            if let descriptor = appState.cloudSyncUI.pendingServerPrompt {
+                VStack(spacing: 24) {
+                    Text("New server from your other device").font(.title2.bold())
+                    Text("“\(descriptor.serverName)” is set up on another device. Sign in to watch it here — your login stays private to each device. You can also find it later under Settings ▸ iCloud Sync.")
+                        .multilineTextAlignment(.center)
+                    HStack(spacing: 24) {
+                        Button("Set Up") {
+                            appState.clearPendingServerPrompt()
+                            setUpPendingServer(descriptor)
+                        }
+                        Button("Ignore", role: .destructive) { appState.ignorePendingSyncedServer(descriptor.id) }
+                        Button("Not Now", role: .cancel) { appState.clearPendingServerPrompt() }
+                    }
+                }
+                .padding(60).frame(maxWidth: 1100)
+                .plozzDialogSurface()
+            }
+        case nil:
+            EmptyView()
+        }
+    }
+
     private func makeLibraryChannelCompletionHandler(
         profileID: String
     ) -> @MainActor @Sendable (MediaItem, UUID) throws -> Void {
@@ -321,17 +488,8 @@ public struct RootView: View {
 
     public var body: some View {
         let _ = plozzPrintChanges { Self._printChanges() }
-        // Read the PIN request HERE so the @Observable system registers it
-        // as a dependency of body. The sheet's Binding closures aren't
-        // tracked, so without this body never re-evaluates when the request
-        // clears and the sheet stays up after a successful PIN.
-        // Profile setup renders Plex PIN entry inside its own full-page flow.
-        // Letting this root-level cover compete with the setup cover tears the
-        // latter down and briefly exposes Home between "Watching as" and the PIN.
-        let pinRequest = appState.profileFlow.pendingSetupProfile == nil
-            ? appState.plexHomeUsers.pendingPlexPINRequest
-            : nil
-        return Group {
+        let requests = presentationRequests
+        return ZStack {
             // Profile setup outranks the global session machine. Add-user auth
             // temporarily moves that machine to `.onboarding`, but setup must
             // remain mounted underneath so its exact NavigationStack path
@@ -366,9 +524,6 @@ public struct RootView: View {
                     onSetUpFromAnotherDevice: canReturnToApp ? nil : { showSyncReceive = true },
                     onAppearanceSelected: completeAppearanceIntroductions
                 )
-                .plozzFullScreenCover(isPresented: $showSyncReceive) {
-                    SyncSetupReceiveView(appState: appState) { showSyncReceive = false }
-                }
 
             case .ready:
                 ZStack {
@@ -577,33 +732,9 @@ public struct RootView: View {
             appState: appState, deviceColorScheme: systemColorScheme,
             onAppearanceSelected: completeAppearanceIntroductions
         ))
-        .plozzSheet(isPresented: $showSyncErasure) {
-            AppLanguageScope(model: appState.profileSettings.appLanguageModel) {
-                SyncEraseDataView(
-                    profileID: appState.profilesModel.activeProfileID,
-                    isAllowed: !appState.profilesModel.activeProfile.isKids
-                        && !appState.profileFlow.managementRequiresParentalPIN,
-                    status: SyncStatusProvider {
-                        Self.syncStatusPresentation(appState.cloudSyncStatus)
-                    },
-                    erase: { appState.eraseCloudSyncData() }
-                )
-            }
-        }
         .background { AppBackground(palette: resolvedPalette) }
         .environment(\.themePalette, resolvedPalette)
         .environment(\.managedProviderSetupRouter, providerSetupRouter)
-        .plozzSheet(item: $providerSetupRouter.addressAccount) { account in
-            let profileID = appState.profilesModel.activeProfileID
-            ServerAddressesView(
-                account: account, store: appState.accountsProviders.accountStore,
-                isAuthorized: {
-                    appState.profilesModel.activeProfileID == profileID
-                        && !appState.profileFlow.managementRequiresParentalPIN
-                },
-                onChanged: { appState.accountsProviders.reloadAccounts(updatingServerAddressesFor: account.id) }
-            )
-        }
         .onChange(of: appState.profilesModel.activeProfileID) { _, _ in
             providerSetupRouter.addressAccount = nil
         }
@@ -667,184 +798,40 @@ public struct RootView: View {
             presenter: appState.transientStatusPresenter,
             palette: resolvedPalette
         )
-        // One cover for the whole access gate. Two separate covers dismissed the
-        // profile PIN to Home, then presented the Plex PIN — flashing Home as if
-        // access had been granted. This cover stays opaque and switches its
-        // content in place.
-        .plozzFullScreenCover(isPresented: Binding(
-            get: {
-                appState.profileFlow.pendingLockedProfile != nil
-                    || appState.profileFlow.pendingParentalSwitch != nil
-                    || pinRequest != nil
-            },
-            set: { presented in
-                if !presented {
-                    appState.profileFlow.cancelProfileLockPrompt()
-                    appState.profileFlow.cancelParentalSwitch()
-                    appState.plexHomeUsers.dismissPlexPINIfPresented()
-                }
-            }
-        )) {
-            ProfileAccessGateView(appState: appState)
-        }
-        // Turning a server ON for a profile asks the same question setup asks:
-        // who does this profile watch as there? Without it the watchlist reads
-        // that server as the account owner and quietly shows their list in, say,
-        // a child's profile. Backing out declines rather than consenting.
-        .plozzFullScreenCover(item: Binding(
-            get: { appState.profileFlow.pendingIdentityAccountID.map(PendingIdentityAccount.init(id:)) },
-            set: { if $0 == nil { appState.profileFlow.declineIdentityPrompt(for: appState.profileFlow.pendingIdentityAccountID ?? "") } }
-        )) { pending in
-            ProfileServerIdentityPromptView(
-                appState: appState,
-                accountID: pending.id,
-                onFinish: { appState.profileFlow.resolveIdentityPrompt(for: pending.id) },
-                onDecline: { appState.profileFlow.declineIdentityPrompt(for: pending.id) }
-            )
-        }
         // Resumes setup that was abandoned part-way — quit mid-flow, or synced
         // from a device where it was never finished. The gate is persisted, so a
         // profile left behind it would otherwise never import a watchlist at all.
         .task { appState.profileFlow.resumeSetupIfNeeded() }
-        // Last onboarding step stays full-screen. An alert here exposed Home
-        // underneath an unrelated setup question, making the flow feel finished
-        // before it actually was.
-        .plozzFullScreenCover(
-            item: Binding(
-                get: { appState.profileFlow.pendingLockOfferProfile },
-                set: { if $0 == nil { appState.profileFlow.dismissLockOffer() } }
-            )
-        ) { profile in
-            ProfileLockOfferView(
-                profile: profile,
-                syncEnabled: SyncSetupFeatureFlag().isEnabled,
-                validatePlexPIN: {
-                    await appState.plexHomeUsers.validatePlexPIN(
-                        $0,
-                        forProfile: profile.id
-                    )
-                },
-                onComplete: { lock in
-                    appState.setLock(lock, forProfile: profile.id)
-                    appState.profileFlow.dismissLockOffer()
-                },
-                onSkip: { appState.profileFlow.dismissLockOffer() }
-            )
-        }
         .task(id: featureIntroductionStartupReady) {
             if featureIntroductionStartupReady {
                 pendingFeatureIntroduction = nextFeatureIntroduction
             }
         }
-        .plozzFullScreenCover(
-            item: $pendingFeatureIntroduction,
-            onDismiss: { isDismissingFeatureIntroduction = false }
-        ) { introduction in
-            switch introduction {
-            case .navigationStyles:
-                SelectNavigationStyleView(
-                    appState: appState,
-                    onContinue: {
-                        dismissFeatureIntroduction(introduction)
-                    }
-                )
-            case .homeLayout:
-                SelectHomeLayoutView(
-                    hero: appState.profileSettings.heroSettingsModel,
-                    onContinue: {
-                        dismissFeatureIntroduction(introduction)
-                    }
-                )
-            default:
-                EmptyView()
-            }
-        }
         .task(id: releaseNotesStartupReady) {
             if releaseNotesStartupReady {
                 releaseNotes.prepareForStartup()
+                startupNotesPrepared = true
             }
+        }
+        .onChange(of: requests, initial: true) { _, _ in
+            updateRootPresentation()
         }
         .plozzFullScreenCover(
             isPresented: Binding(
-                get: { releaseNotes.hasPendingStartupNotes },
-                set: { presented in
-                    if !presented {
-                        releaseNotes.dismissStartupNotes()
-                    }
-                }
+                get: { rootPresentation.isPresented },
+                set: { if !$0 { rootPresentation.dismiss() } }
             ),
-            onDismiss: { releaseNotes.dismissStartupNotes() }
+            onDismiss: rootPresentationDidDismiss
         ) {
-            ReleaseNotesStartupView(model: releaseNotes)
-        }
-        // One-time appearance flow for a profile just created in-app. The app has
-        // already switched profiles, so all choices write to its namespace.
-        .plozzFullScreenCover(
-            isPresented: Binding(
-                get: { appState.profileFlow.isPickingAppearanceForNewProfile },
-                set: { newValue in
-                    if !newValue { appState.finishNewProfileAppearanceSelection() }
-                }
-            ),
-            onDismiss: { appState.profileFlow.presentPostAppearanceStep() }
-        ) {
-            NewProfileAppearanceFlowView(
-                appState: appState,
-                deviceColorScheme: systemColorScheme,
-                onComplete: {
-                    completeAppearanceIntroductions()
-                    appState.finishNewProfileAppearanceSelection()
-                }
-            )
-        }
-        .plozzFullScreenCover(isPresented: $showSyncSend) {
-            SyncSetupSendView(appState: appState) { showSyncSend = false }
-        }
-        .plozzFullScreenCover(isPresented: $showSyncReceiveFromSettings) {
-            SyncSetupReceiveView(appState: appState) {
-                showSyncReceiveFromSettings = false
-                appState.refreshPendingSyncedServers()
-            }
-        }
-        .alert(
-            "New server from your other device",
-            isPresented: Binding(
-                get: { appState.cloudSyncUI.pendingServerPrompt != nil },
-                set: { if !$0 { appState.clearPendingServerPrompt() } }
-            ),
-            presenting: appState.cloudSyncUI.pendingServerPrompt
-        ) { descriptor in
-            Button("Set Up") {
-                appState.clearPendingServerPrompt()
-                setUpPendingServer(descriptor)
-            }
-            Button("Ignore", role: .destructive) {
-                appState.ignorePendingSyncedServer(descriptor.id)
-            }
-            Button("Not Now", role: .cancel) {
-                appState.clearPendingServerPrompt()
-            }
-        } message: { descriptor in
-            Text("“\(descriptor.serverName)” is set up on another device. Sign in to watch it here — your login stays private to each device. You can also find it later under Settings ▸ iCloud Sync.")
-        }
-        .alert(
-            syncSetupOfferTitle,
-            isPresented: Binding(
-                // Presentation is driven purely by pendingSyncSetupOffer; the two
-                // buttons own confirm/decline, so the setter must NOT have a side
-                // effect (that would double-fire and race the button action). tvOS
-                // routes the Menu button to the .cancel role, so decline still runs.
-                get: { appState.cloudSyncUI.pendingSyncSetupOffer != nil },
-                set: { _ in }
-            ),
-            presenting: appState.cloudSyncUI.pendingSyncSetupOffer
-        ) { _ in
-            Button("Set Up") { appState.confirmSyncSetupOffer() }
-            Button("Not Now", role: .cancel) { appState.declineSyncSetupOffer() }
-        } message: { _ in
-            Text(syncSetupOfferServerName != nil
-                 ? "Sign this device in to “\(syncSetupOfferServerName!)”."
-                 : "Send your servers and sign-in so it’s ready to watch.")
+            rootPresentationContent
+                .environment(\.themePalette, resolvedPalette)
+                .environment(\.gradientBackgroundsEnabled, appState.profileSettings.themeModel.gradientEnabled)
+                .environment(\.colorScheme, resolvedPalette.isLight ? .light : .dark)
+                .environment(\.plozzReduceTransparency,
+                    appState.profileSettings.transparencyModel.preference.reducesTransparency(
+                        systemReduceTransparency: systemReduceTransparency
+                    ))
+                .environment(appState.profilesModel)
         }
         .task {
             while case .launching = appState.state {

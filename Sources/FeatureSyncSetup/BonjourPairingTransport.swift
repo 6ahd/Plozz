@@ -158,22 +158,29 @@ public final class BonjourPairingGuest: @unchecked Sendable {
     public init(serviceName: String) { self.serviceName = serviceName }
 
     public func connect() async throws -> PairingLink {
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<PairingLink, Error>) in
-            let once = Once()
-            let endpoint = NWEndpoint.service(name: serviceName, type: kPlozzPairingServiceType, domain: "local.", interface: nil)
-            let params = NWParameters.tcp
-            params.includePeerToPeer = true
-            let conn = NWConnection(to: endpoint, using: params)
-            conn.stateUpdateHandler = { st in
-                switch st {
-                case .ready:
-                    once.run { cont.resume(returning: NWConnectionPairingLink(connection: conn)) }
-                case .failed, .cancelled:
-                    once.run { cont.resume(throwing: BonjourPairingError.connectionFailed) }
-                default: break
+        let endpoint = NWEndpoint.service(name: serviceName, type: kPlozzPairingServiceType, domain: "local.", interface: nil)
+        let params = NWParameters.tcp
+        params.includePeerToPeer = true
+        let conn = NWConnection(to: endpoint, using: params)
+        return try await withTaskCancellationHandler {
+            try await withPairingTimeout(seconds: SyncPairingSession.phaseTimeout, onTimeout: { conn.cancel() }) {
+                try Task.checkCancellation()
+                return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<PairingLink, Error>) in
+                    let once = Once()
+                    conn.stateUpdateHandler = { st in
+                        switch st {
+                        case .ready:
+                            once.run { cont.resume(returning: NWConnectionPairingLink(connection: conn)) }
+                        case .failed, .cancelled:
+                            once.run { cont.resume(throwing: BonjourPairingError.connectionFailed) }
+                        default: break
+                        }
+                    }
+                    conn.start(queue: self.queue)
                 }
             }
-            conn.start(queue: queue)
+        } onCancel: {
+            conn.cancel()
         }
     }
 }

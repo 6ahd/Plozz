@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import CoreModels
+import OSLog
 
 // MARK: - Pairing view model (drives both roles)
 //
@@ -38,6 +39,10 @@ public final class SyncSetupPairingModel {
     public private(set) var hostSASCode: String?
 
     private let service: SyncSetupService
+    private let isAuthorized: @MainActor () -> Bool
+    private var sendGeneration = 0
+    private var sendingLink: (any PairingLink)?
+    private static let logger = Logger(subsystem: "com.plozz.app", category: "sync")
     private let existingAuthorizations: @MainActor () -> [String: LocalAuthorization]
     private let makeHostLink: @MainActor (SyncSetupService.HostPairing) -> any PairingLinkHosting
     private let makeGuestLink: @MainActor (String) -> any PairingLinkConnecting
@@ -58,6 +63,7 @@ public final class SyncSetupPairingModel {
 
     public init(
         service: SyncSetupService,
+        isAuthorized: @escaping @MainActor () -> Bool = { true },
         existingAuthorizations: @escaping @MainActor () -> [String: LocalAuthorization] = { [:] },
         makeHostLink: @escaping @MainActor (SyncSetupService.HostPairing) -> any PairingLinkHosting = {
             BonjourPairingHost(serviceName: $0.invite.serviceName, displayName: $0.displayName)
@@ -66,6 +72,7 @@ public final class SyncSetupPairingModel {
         makeBrowser: @escaping @MainActor () -> any PairingBrowsing = { BonjourPairingBrowser() }
     ) {
         self.service = service
+        self.isAuthorized = isAuthorized
         self.existingAuthorizations = existingAuthorizations
         self.makeHostLink = makeHostLink
         self.makeGuestLink = makeGuestLink
@@ -176,6 +183,10 @@ public final class SyncSetupPairingModel {
     /// user has confirmed. Pins the offer's public key ⇒ no SAS, no typing. If the
     /// offer requested a single server, only that account is transferred.
     public func adopt(_ rendezvous: SyncPairingRendezvous) async {
+        guard rendezvous.isUsable() else {
+            phase = .failed("The setup code expired. Try again.")
+            return
+        }
         let restrict = rendezvous.requestedAccountID.map { Set([$0]) }
         await send(
             serviceName: rendezvous.serviceName,
@@ -186,6 +197,7 @@ public final class SyncSetupPairingModel {
 
     /// Begin listing nearby devices waiting to be set up.
     public func startDiscovery() {
+        stopDiscovery()
         let browser = makeBrowser()
         browser.start { [weak self] devices in
             Task { @MainActor in self?.nearbyDevices = devices }
@@ -250,30 +262,66 @@ public final class SyncSetupPairingModel {
         expectedPublicKey: Data?,
         restrictToAccountIDs: Set<String>? = nil
     ) async {
+        cancelSending()
+        let generation = sendGeneration
         phase = .connecting
-        let guest = makeGuestLink(serviceName)
         do {
+            try validateSend(generation: generation)
+            let guest = makeGuestLink(serviceName)
             let link = try await guest.connect()
             defer { link.close() }   // signal the peer promptly on success OR abort
+            try validateSend(generation: generation)
+            sendingLink = link
+            defer { if generation == sendGeneration { sendingLink = nil } }
+            let authorizedLink = AuthorizedSetupLink(base: link) { [weak self] in
+                guard let self else { throw CancellationError() }
+                try await self.validateSend(generation: generation)
+            }
             phase = .sending
             try await service.sendSetup(
-                over: link,
+                over: authorizedLink,
                 expectedPublicKey: expectedPublicKey,
                 restrictToAccountIDs: restrictToAccountIDs,
                 confirmSAS: { [weak self] code in
                     await self?.awaitSASConfirmation(code: code) ?? false
                 }
             )
+            try validateSend(generation: generation)
             phase = .sent
         } catch {
+            guard generation == sendGeneration else { return }
+            Self.logger.error("Device setup did not finish")
             phase = .failed(Self.describe(error))
         }
+    }
+
+    private func validateSend(generation: Int) throws {
+        try Task.checkCancellation()
+        guard generation == sendGeneration else { throw CancellationError() }
+        guard isAuthorized() else { throw SetupAuthorizationError.changed }
+    }
+
+    public func cancelSending() {
+        sendGeneration += 1
+        sendingLink?.close()
+        sendingLink = nil
+        sasContinuation?.resume(returning: false)
+        sasContinuation = nil
+    }
+
+    public func authorizationDidChange() {
+        guard phase != .sent else { return }
+        guard !isAuthorized() else { return }
+        cancelSending()
+        Self.logger.warning("Device setup stopped because its profile authorization changed")
+        phase = .failed("Setup didn't complete. Please try again.")
     }
 
     /// Transition to the SAS-confirmation phase and suspend until the user taps
     /// "Matches" / "Doesn't match" (`confirmSASMatch`). Called from the send task
     /// on the non-QR path only.
     private func awaitSASConfirmation(code: String) async -> Bool {
+        let generation = sendGeneration
         // Resolve any prior dangling continuation defensively.
         sasContinuation?.resume(returning: false)
         sasContinuation = nil
@@ -281,6 +329,7 @@ public final class SyncSetupPairingModel {
         let confirmed = await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
             sasContinuation = cont
         }
+        guard generation == sendGeneration else { return false }
         if confirmed { phase = .sending }
         return confirmed
     }
@@ -293,9 +342,29 @@ public final class SyncSetupPairingModel {
     }
 
     public func reset() {
-        sasContinuation?.resume(returning: false)
-        sasContinuation = nil
+        cancelSending()
         phase = .idle
+    }
+
+    private enum SetupAuthorizationError: Error {
+        case changed
+    }
+
+    private struct AuthorizedSetupLink: PairingLink {
+        let base: any PairingLink
+        let validate: @Sendable () async throws -> Void
+
+        func send(_ data: Data) async throws {
+            try await validate()
+            try await base.send(data)
+        }
+
+        func receive() async throws -> Data {
+            try await validate()
+            return try await base.receive()
+        }
+
+        func close() { base.close() }
     }
 
     private static func describe(_ error: Error) -> LocalizedStringResource {

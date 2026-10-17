@@ -42,6 +42,14 @@ registry.
 
 ## Invariants
 
+- **One root presentation at a time.** `RootPresentationCoordinator` retains the
+  current native cover until its dismissal completes. Startup introductions,
+  release notes, identity gates, synced-server prompts, and device setup wait
+  rather than replacing one another. Automatic device offers wait for startup
+  preparation; once visible, setup keeps confirmation, progress, errors, and
+  success in that same cover until the user closes it. A profile authorization
+  change stops credential transfer and leaves the error visible.
+
 - **Composition root, not a feature.** This is the **only** module
   allowed to import all the others. Feature modules don't import
   `AppShell`.
