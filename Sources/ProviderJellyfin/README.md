@@ -27,6 +27,11 @@ supported capability remains at parity.
 
 ## Invariants
 
+- Approved alternate addresses share one resolver across ordinary and interactive
+  API requests. Artwork and newly resolved playback resources use the selected
+  origin, including its reverse-proxy prefix. Public identity probes carry no
+  bearer. Single-address accounts retain their existing zero-probe behavior.
+  Jellyfin and Emby use the same route selection and fallback policy.
 - **No UI imports.** Pure logic + DTOs. Compiles on Linux.
 - **Never logs tokens.** All `Authorization` / `X-MediaBrowser-Token` headers
   flow through `CoreNetworking` redaction.

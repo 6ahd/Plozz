@@ -562,6 +562,9 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     public func loadLive(url: URL, httpHeaders: [String: String]) async {
         guard let outputGeneration = await beginOutputLoad() else { return }
+        liveScrubThumbnails = LiveHLSScrubThumbnails(playlistURL: url, headers: httpHeaders) { [weak self] in
+            (self?.engine.currentAVPlayer?.currentItem?.accessLog()?.events.last?.uri).flatMap(URL.init(string:))
+        }
         let outputPolicy = liveOutputPolicy
         defer { finishOutputLoad(outputGeneration, policy: outputPolicy) }
         let liveGeneration = beginLiveAttempt()
@@ -637,6 +640,15 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
                 fallbackError: error
             )
         }
+    }
+
+    /// Scrub previews for the native HLS route, built for the source `loadLive`
+    /// was given (the playlist AVPlayer plays, with its headers).
+    private var liveScrubThumbnails: LiveHLSScrubThumbnails?
+
+    public func liveScrubThumbnail(secondsIntoWindow seconds: TimeInterval, maxWidth: Int) async -> CGImage? {
+        guard engine.videoRoute == .remoteBypass, let liveScrubThumbnails else { return nil }
+        return await liveScrubThumbnails.thumbnail(secondsIntoWindow: seconds, maxWidth: maxWidth)
     }
 
     public func seekToLiveEdge() async {
@@ -1067,6 +1079,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     private func stopEngine(resetDisplayCriteria: Bool) {
+        liveScrubThumbnails = nil
         bypassAudioTask?.cancel()
         bypassAudioTask = nil
         bypassAudio = BypassAudio()

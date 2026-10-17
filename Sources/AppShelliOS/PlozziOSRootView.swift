@@ -1498,7 +1498,7 @@ struct PlozziOSTabShell: View {
     /// within that scope, then a real profile or credential change replaces it.
     private var homeContentIdentity: String {
         let credentials = appModel.accounts
-            .map { "\($0.id):\($0.credentialRevision)" }
+            .map(\.connectionScopeKey)
             .sorted()
             .joined(separator: "|")
         let active = appModel.accountsProviders.activeAccountIDs
@@ -1756,7 +1756,7 @@ private struct PlozziOSDestinationView: View {
 
     private var activeAccountsIdentity: String {
         let credentials = appModel.accounts
-            .map { "\($0.id):\($0.credentialRevision)" }
+            .map(\.connectionScopeKey)
             .joined(separator: "|")
         let active = appModel.accountsProviders.activeAccountIDs
             .sorted()

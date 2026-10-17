@@ -1267,7 +1267,9 @@ public final class AppState {
                 credentialRevision: self.plexHomeUsers.effectiveCredentialRevision(for: account),
                 baseURL: baseURL,
                 token: token,
-                resourceResolver: self.accountsProviders.provider(forAccountID: account.id) as? any ProviderHTTPResourceResolving
+                resourceResolver: self.accountsProviders.provider(forAccountID: account.id) as? any ProviderHTTPResourceResolving,
+                originProvider: self.accountsProviders.provider(forAccountID: account.id) as? any AuthenticatedHTTPOriginProviding,
+                connectionScopeKey: account.connectionScopeKey
             )
         }
 

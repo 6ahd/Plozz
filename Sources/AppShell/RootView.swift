@@ -32,7 +32,7 @@ enum HomeRuntimeScope {
 
     static func accountScopeKey(_ accounts: [Account]) -> String {
         accounts
-            .map { "\($0.id)#\($0.credentialRevision.rawValue.uuidString)" }
+            .map(\.connectionScopeKey)
             .sorted()
             .joined(separator: "|")
     }
@@ -593,6 +593,20 @@ public struct RootView: View {
         .background { AppBackground(palette: resolvedPalette) }
         .environment(\.themePalette, resolvedPalette)
         .environment(\.managedProviderSetupRouter, providerSetupRouter)
+        .plozzSheet(item: $providerSetupRouter.addressAccount) { account in
+            let profileID = appState.profilesModel.activeProfileID
+            ServerAddressesView(
+                account: account, store: appState.accountsProviders.accountStore,
+                isAuthorized: {
+                    appState.profilesModel.activeProfileID == profileID
+                        && !appState.profileFlow.managementRequiresParentalPIN
+                },
+                onChanged: { appState.accountsProviders.reloadAccounts(updatingServerAddressesFor: account.id) }
+            )
+        }
+        .onChange(of: appState.profilesModel.activeProfileID) { _, _ in
+            providerSetupRouter.addressAccount = nil
+        }
         .onChange(of: providerSetupRouter.request?.id) { _, _ in
             guard let request = providerSetupRouter.request else { return }
             providerSetupRouter.request = nil

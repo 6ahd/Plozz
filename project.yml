@@ -455,6 +455,7 @@ targets:
       - path: Tests/FocusHost
       - path: Tests/LiveTVPresentationSupport/IPTVOrganizationFixture.swift
       - path: Tests/AuthPresentationSupport/IPTVSetupFixture.swift
+      - path: Tests/AuthPresentationSupport/ServerAddressNavigationFixture.swift
       - path: Tests/FeatureLiveTVRemoteTests/NavigationRailFixture.swift
       - path: App/Resources/Assets.xcassets
       - path: App/Resources/CommunityAssets.xcassets
@@ -484,6 +485,7 @@ targets:
         buildPhase: resources
       - path: Tests/AuthPresentationSupport/IPTVSetupFixture.swift
       - path: App/Resources/Localizable.xcstrings
+      - path: Tests/AuthPresentationSupport/ServerAddressNavigationFixture.swift
       - path: App/PlozziOS/Assets.xcassets
       - path: App/Resources/CommunityAssets.xcassets
       - path: App/Resources/ReleaseNotes.json
@@ -557,6 +559,7 @@ targets:
     sources:
       - path: Tests/iOSInteractionTests
       - path: Tests/LiveTVPresentationSupport/IPTVOrganizationInteractionTests.swift
+      - path: Tests/HomeRemoteTests/ServerAddressNavigationInteractionTests.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thatcube.Plozz.InteractionTests

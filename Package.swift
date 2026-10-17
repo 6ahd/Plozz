@@ -1080,7 +1080,7 @@ let package = Package(
         ),
         .testTarget(
             name: "ProviderPlaybackIntegrationTests",
-            dependencies: ["AppRuntime", "FeaturePlayback", "ProviderJellyfin", "ProviderPlex", "ProviderSilo", "CoreNetworking", "CoreModels"]
+            dependencies: ["AppRuntime", "FeaturePlayback", "FeatureAuthCore", "ProviderJellyfin", "ProviderPlex", "ProviderSilo", "CoreNetworking", "CoreModels", "TestSupportNetworking"]
         ),
         .testTarget(
             name: "ProviderShareTests",
@@ -1097,7 +1097,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MediaTransportHTTPTests",
-            dependencies: ["MediaTransportHTTP", "MediaTransportCore", "TestSupportNetworking"],
+            dependencies: ["MediaTransportHTTP", "MediaTransportCore", "TestSupportNetworking", "TestSupportPerformance"],
             swiftSettings: [.unsafeFlags(["-strict-concurrency=complete"])]
         ),
         .testTarget(
@@ -1117,6 +1117,7 @@ let package = Package(
                 "MediaTransportHTTP",
                 "MediaTransportWebDAV",
                 "TestSupportNetworking",
+                "TestSupportPerformance",
             ],
             swiftSettings: [.unsafeFlags(["-strict-concurrency=complete"])]
         ),
@@ -1163,6 +1164,10 @@ let package = Package(
                 "CoreModels",
                 "EnginePlozzigen",
                 "MediaTransportCore",
+                "MediaTransportHTTP",
+                "MediaTransportWebDAV",
+                "TestSupportNetworking",
+                "TestSupportPerformance",
                 .product(name: "AetherEngine", package: "AetherEngine"),
             ]
         ),

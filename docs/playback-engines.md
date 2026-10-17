@@ -4,6 +4,109 @@ Plozz uses two playback engines, automatically selected per-item based on
 container, codecs, and subtitle requirements. The goal is maximum format coverage
 with the best possible quality (Dolby Vision, Atmos, full-timeline seek).
 
+## Media-share disc images
+
+Media-share folder browsing and indexed libraries recognize `.iso` files
+case-insensitively. Classifier version 16 forces one complete directory rewalk
+for existing catalogs, including unchanged leaf folders, without resetting
+external metadata enrichment. ISO items retain the same path-based identity
+and credential-scoped network-file locator as other share videos.
+
+Plozzigen detects decrypted DVD-Video and Blu-ray images through the existing
+random-access `TransportIOReader`, with no forced ordinary-container hint.
+The engine selects the main title by default. WebDAV still requires validated
+byte ranges and stable representation identity; external HTTPS delivery never
+receives the share's credentials.
+
+WebDAV advertises efficient 32 MiB reads to the shared transport reader.
+Scattered reads start with a 64 KiB window (or the caller's larger request);
+contiguous window exhaustion grows read-ahead fourfold, capped at 32 MiB and
+the file's remaining bytes. Cached seeks stay local; random misses and cloned
+readers start small again. This avoids fetching megabytes for tiny disc probes
+and amortizes HTTP latency during sequential playback.
+Transports using the default preference retain 4 MiB windows assembled from
+requests no larger than 1 MiB. Range and representation checks are unchanged.
+Demand-only adaptive buffers are released before replacement.
+
+Adaptive readers also retain up to eight previously validated windows no larger
+than 64 KiB each (512 KiB total) for alternating disc-directory probes. Cache hits
+refresh recency; misses evict the least recently used window when full. Large
+sequential windows are never added to that cache. It is local to the reader and
+its pinned source lease, starts empty in clones, and is released on close.
+
+Once half of a large adaptive window (at least 16 MiB) has been consumed, the
+reader may fetch **one** next window, capped at 32 MiB and EOF. It overlaps
+network work with consumption rather than splitting a window into concurrent
+HTTP requests. Each WebDAV window uses one validated range; its full
+representation, range and body-length checks still precede delivery to the
+demuxer. The demand read adopts the pending window instead of requesting it
+again. Sparse probes and default-size transports do not speculate.
+
+The current and pending windows retain at most 64 MiB of logical payload per
+adaptive reader, plus the 512 KiB probe cache. This is not a process/peak-memory
+cap: clones, HTTP, decoder and HLS buffers have their own memory costs. Stopping
+consumption can leave up to one unused 32 MiB window; no further work is started
+until the consumer advances. Seeks within the current or pending window preserve
+that same read: cached back-and-forth probes must not cancel and refetch it.
+Seeks outside both windows, explicit cancellation and close cancel it, and lease
+shutdown drains it. A failed pending window
+returns an error, not EOF or an implicit retry; cancel or a seek outside that
+cached/pending region resets it.
+
+HTTP 429 responses establish a cooldown in the affected ephemeral HTTP session.
+`Retry-After` accepts delta-seconds or an HTTP date; absent/malformed hints use
+five seconds. New calls during that interval fail with the same terminal 429
+classification without making a request, queuing sleepers or retrying
+automatically. Existing in-flight requests are not retried. The cooldown does
+not cross account/session boundaries or block DAV metadata just because a
+separate anonymous delivery origin was throttled.
+
+The full media-probe budget and default sealed HLS segment delivery remain
+unchanged; shortening analysis without track-completeness checks can lose sparse
+audio/subtitle tracks.
+
+Related upstream designs separate request sizing from buffered consumption:
+[FFmpeg HTTP](https://github.com/FFmpeg/FFmpeg/blob/b7e835e06913e4374a4567003fe8c75cebfffb98/libavformat/http.c)
+supports separate initial/steady request sizes and short-seek read-ahead;
+[VLC prefetch](https://github.com/videolan/vlc/blob/11bcb6f56d59b43cf589556f426c7a5cbd460fdd/modules/stream_filter/prefetch.c)
+uses a bounded producer/consumer buffer; and
+[mpv demux](https://github.com/mpv-player/mpv/blob/dde0671072723c311df874a32dc4e48b5197ca62/demux/demux.c)
+keeps bounded forward/backward packet caches. These are architectural references,
+not measurements of those players on Plozz's test service or copied implementations.
+
+This does not add CSS/AACS decryption, disc menus, BD-J, multi-angle playback,
+or a disc-title picker. An ISO extension alone does not guarantee a supported
+video disc; unsupported or encrypted images follow the normal playback error
+path. No full image download is required.
+
+`WebDAVDiscPlaybackHostedTests` exercises the production folder browser,
+playback request, WebDAV adapter, source resolver, and displayed video frames,
+including forward/backward seeks. Its ordinary test serves an original ten-second
+MPEG-2 test pattern in a DVD ISO over loopback WebDAV. The fixture contains no
+third-party media and was generated with the commands below. A separate MP4
+fixture exercises ordinary-container playback through the same path.
+
+```sh
+mkdir -p /tmp/plozz-disc-fixture/VIDEO_TS
+ffmpeg -f lavfi -i 'testsrc2=size=320x240:rate=25' -t 10 -an \
+  -c:v mpeg2video -g 12 -q:v 8 -f vob /tmp/plozz-disc-fixture/VIDEO_TS/VTS_01_1.VOB
+hdiutil makehybrid -iso -udf -default-volume-name PLOZZ_DISC_FIXTURE \
+  -o dvd-test-pattern.iso /tmp/plozz-disc-fixture
+```
+
+The separate live test is opt-in: set the test process's
+`PLOZZ_WEBDAV_PLAYBACK_INPUT` to a private JSON file (or `cache:<filename>` in
+the test host's cache directory) containing `baseURL`, `username`, `password`,
+`relativePath`, and one to three `seekPositions` in seconds. Use a credential-free
+HTTPS base URL, a decrypted ISO the tester is authorized to access, and a file
+owned by the tester with mode `0600`, outside Git. Remove staged simulator
+credentials after the run. Missing configuration skips only that live test;
+it is not evidence of remote playback. Each load/seek has a 120-second deadline
+and frame/progress waits are bounded separately.
+After the final seek, the live test observes another 60 seconds and requires
+more than 58 seconds of playhead advancement. This is a bounded continued-playback
+check, not proof of complete-film playback or physical-device frame smoothness.
+
 ## IPTV live streams
 
 The [IPTV troubleshooting history](iptv-history.md) links earlier routing,

@@ -1,4 +1,5 @@
 import XCTest
+import Synchronization
 import CoreModels
 import FeatureAuth
 @testable import AppShell
@@ -74,6 +75,29 @@ final class AccountsProvidersModelTests: XCTestCase {
         XCTAssertEqual(hookAccountsCount, 2)
         // The resolved active set is a subset of the known accounts.
         XCTAssertTrue(model.activeAccountIDs.isSubset(of: ["a", "b"]))
+    }
+
+    func testAddressOnlyReloadUpdatesRetainedProviderWithoutEvictingOtherSignIns() throws {
+        let (model, store, _) = try makeModel(accountIDs: [("a", "a.test"), ("b", "b.test")])
+        model.registry.register(.jellyfin) { LiveTVAccountsTestProvider(session: $0.session) }
+        model.tokenResolver = { _ in "fixture-token" }
+        model.reloadAccounts()
+        let first = try XCTUnwrap(model.provider(forAccountID: "a") as? LiveTVAccountsTestProvider)
+        let unrelated = try XCTUnwrap(model.provider(forAccountID: "b") as? LiveTVAccountsTestProvider)
+        let account = try XCTUnwrap(model.accounts.first { $0.id == "a" })
+        let alias = URL(string: "http://192.168.1.50:8096")!
+        try store.updateServerAddresses(expected: account, alternatives: [alias])
+        model.reloadAccounts(updatingServerAddressesFor: account.id)
+        XCTAssertTrue(try XCTUnwrap(model.provider(forAccountID: "a") as? LiveTVAccountsTestProvider) === first)
+        XCTAssertTrue(try XCTUnwrap(model.provider(forAccountID: "b") as? LiveTVAccountsTestProvider) === unrelated)
+        XCTAssertEqual(first.alternatives, [alias])
+        XCTAssertTrue(unrelated.alternatives.isEmpty)
+        XCTAssertEqual(model.accounts.first { $0.id == "a" }?.credentialRevision, account.credentialRevision)
+        let updated = try XCTUnwrap(model.accounts.first { $0.id == "a" })
+        try store.updateServerAddresses(expected: updated, alternatives: [])
+        model.reloadAccounts(updatingServerAddressesFor: account.id)
+        XCTAssertTrue(first.alternatives.isEmpty)
+        XCTAssertTrue(try XCTUnwrap(model.provider(forAccountID: "a") as? LiveTVAccountsTestProvider) === first)
     }
 
     func testUnknownSyncedIdentityOnlyGatesWhenAnActivePlexAccountArrives() throws {
@@ -252,9 +276,12 @@ final class AccountsProvidersModelTests: XCTestCase {
     }
 }
 
-private final class LiveTVAccountsTestProvider: MediaProvider, ServerLiveTVProviding, Sendable {
+private final class LiveTVAccountsTestProvider: MediaProvider, ServerLiveTVProviding, ServerAddressUpdating, Sendable {
     let kind: ProviderKind = .jellyfin
     let session: UserSession
+    private let routes = Mutex<[URL]>([])
+    var alternatives: [URL] { routes.withLock { $0 } }
+    func updateServerAddresses(_ alternatives: [URL]) { routes.withLock { $0 = alternatives } }
 
     init(session: UserSession) { self.session = session }
     func libraries() async throws -> [MediaLibrary] { [] }

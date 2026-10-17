@@ -92,7 +92,7 @@ actor IPTVTestHTTPServer {
     private func serve(_ connection: NWConnection, id: UUID) async {
         do {
             var request = Data()
-            while request.range(of: Data("\r\n\r\n".utf8)) == nil {
+            while true {
                 let part: Data = try await withCheckedThrowingContinuation { continuation in
                     connection.receive(minimumIncompleteLength: 1, maximumLength: 16_384) { data, _, _, error in
                         if let error { continuation.resume(throwing: error) }
@@ -101,6 +101,26 @@ actor IPTVTestHTTPServer {
                 }
                 guard !part.isEmpty, request.count < 32_768 else { throw URLError(.badServerResponse) }
                 request.append(part)
+                guard let separator = request.range(of: Data("\r\n\r\n".utf8)) else { continue }
+                let head = String(decoding: request[..<separator.lowerBound], as: UTF8.self)
+                let lengthField = head.components(separatedBy: "\r\n").first {
+                    $0.lowercased().hasPrefix("content-length:")
+                }
+                let bodyLength: Int
+                if let lengthField {
+                    guard let length = Int(lengthField.dropFirst("content-length:".count)
+                        .trimmingCharacters(in: .whitespaces)), length >= 0 else {
+                        throw URLError(.badServerResponse)
+                    }
+                    bodyLength = length
+                } else {
+                    bodyLength = 0
+                }
+                guard bodyLength <= 32_768 - separator.upperBound else {
+                    throw URLError(.badServerResponse)
+                }
+                // PROPFIND's XML can arrive after its headers; it is not a disconnect.
+                if request.count >= separator.upperBound + bodyLength { break }
             }
             requestCount += 1
             activeRequestCount += 1

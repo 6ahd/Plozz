@@ -24,6 +24,25 @@ and every provider/feature that talks to a remote server.
 
 ## Invariants
 
+- **Approved address routing is bounded and demand-driven.**
+  `ServerAddressResolver` shares concurrent credential-free probe sweeps and gives
+  local routes a 300 ms head start. Providers use the short discovery timeout;
+  successful choices are reused for 30 seconds, then reconsidered on demand.
+  Failed connections invalidate the choice immediately. No network monitoring or
+  background polling is added. Retry sweeps exclude the failed address even if
+  another caller is resolving concurrently.
+  Route edits update the existing resolver and fence superseded probe results.
+  Ordinary successful traffic confirms reachability without extending the
+  selection's lifetime indefinitely; returning to LAN remains discoverable.
+  `ServerAddressHTTPClient` blocks cross-origin redirects and retries a failed
+  GET once on another approved route, never an uncertain mutation. Authentication
+  failures are not connection failures. A preflight resolution failure preserves
+  proof that a one-time exchange was not transmitted.
+  `AlternateAddressHTTPIntegrationTests` uses loopback TCP listeners and the
+  production URLSession transport for outages, redirects, cancellation,
+  transmitted mutations, proxy paths, and retained-client address edits across
+  all four managed providers. These controlled protocol fixtures are not live
+  upstream-server interoperability tests.
 - **Secret-safe by default.** `Authorization`, Quick Connect codes, Plex
   tokens, etc. must not reach `PlozzLog` — pass redacted strings or omit.
 - **Provider-agnostic.** No Jellyfin/Plex specifics here. Provider modules
