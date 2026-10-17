@@ -21,6 +21,9 @@ and the single place caption customization lives.
   excludes unsupported individual library tabs and Music/All Libraries entries.
   Everyone uses the TV order, with mobile-only Downloads last. Version/build,
   release notes, and community links are inline on both mobile root layouts.
+  Mobile Community uses standard-height, single-line Discord and GitHub links
+  with small brand icons, without subtitles or QR codes. TV keeps its scannable
+  community cards.
   Kids-profile gates and profile/household storage ownership are unchanged.
   `SettingsLibrarySourcesSummary` shares configured source grouping and profile
   inclusion with TV. Mobile keeps the source icons/names on one horizontal line,

@@ -120,25 +120,52 @@ final class SettingsCommunityPresentationTests: XCTestCase {
         }
     }
 
-    func testExpandedCommunityCodesRemainScannableOnNarrowPhone() async throws {
-        let content = ScrollView {
-            PlozziOSCommunitySettingsSection(showsQRCodes: true)
-        }
-        .settingsPageSurface()
-        _ = try await renderedText(
-            content, size: CGSize(width: 320, height: 568),
-            light: false, name: "compact-expanded-community"
-        )
+    func testMobileCommunityUsesCompactSingleLineLinksWithoutSubtitlesOrQRCodes() async throws {
         let detector = try XCTUnwrap(CIDetector(
             ofType: CIDetectorTypeQRCode,
             context: CIContext(options: [.useSoftwareRenderer: true]),
             options: [CIDetectorAccuracy: CIDetectorAccuracyHigh]
         ))
-        let urls = capturedImages.flatMap { image in
-            detector.features(in: CIImage(cgImage: image))
-                .compactMap { ($0 as? CIQRCodeFeature)?.messageString }
+        for light in [false, true] {
+            for width: CGFloat in [320, 390, 768] {
+                for textSize in [DynamicTypeSize.large, .accessibility3] {
+                    capturedImages.removeAll(keepingCapacity: true)
+                    let content = ScrollView {
+                        PlozziOSCommunitySettingsSection()
+                    }
+                    .settingsPageSurface()
+                    .environment(\.dynamicTypeSize, textSize)
+                    let text = try await renderedText(
+                        content, size: CGSize(width: width, height: 568),
+                        light: light, name: "compact-community-\(Int(width))-\(light)-\(textSize)",
+                        initialOnly: true
+                    )
+                    assertCommunity(in: text)
+                    let image = try XCTUnwrap(capturedImages.last)
+                    XCTAssertTrue(detector.features(in: CIImage(cgImage: image)).isEmpty,
+                                  "Mobile Settings should offer direct links, not scannable codes.")
+                    let request = VNRecognizeTextRequest()
+                    request.recognitionLevel = .accurate
+                    request.recognitionLanguages = ["en-US"]
+                    try VNImageRequestHandler(cgImage: image).perform([request])
+                    func bounds(for label: String) throws -> CGRect {
+                        let candidate = try XCTUnwrap(request.results?.compactMap {
+                            $0.topCandidates(1).first
+                        }.first { $0.string.contains(label) })
+                        let range = try XCTUnwrap(candidate.string.range(of: label))
+                        return try XCTUnwrap(candidate.boundingBox(for: range)).boundingBox
+                    }
+                    let discord = try bounds(for: "Discord")
+                    let github = try bounds(for: "GitHub")
+                    XCTAssertGreaterThan(discord.minY, github.maxY, "Each link must occupy its own readable row.")
+                    if textSize == .large {
+                        let rowSpacing = (discord.midY - github.midY) * CGFloat(image.height)
+                        XCTAssertGreaterThanOrEqual(rowSpacing, 44, "Keep a usable native touch target.")
+                        XCTAssertLessThanOrEqual(rowSpacing, 56, "Community links should be standard-height rows.")
+                    }
+                }
+            }
         }
-        XCTAssertEqual(Set(urls), [AppLinks.discord.absoluteString, AppLinks.repository.absoluteString])
     }
 
     func testCommunityArtworkIsAvailableInMobileAppResources() throws {
@@ -309,8 +336,11 @@ final class SettingsCommunityPresentationTests: XCTestCase {
     }
 
     private func assertCommunity(in text: String, file: StaticString = #filePath, line: UInt = #line) {
-        for label in ["Discord", "GitHub", "QR Codes"] {
+        for label in ["Discord", "GitHub"] {
             XCTAssertTrue(text.contains(label), "Missing \(label): \(text)", file: file, line: line)
+        }
+        for label in ["QR Codes", "Join the community", "Source code and issues"] {
+            XCTAssertFalse(text.contains(label), "Remove redundant mobile community content: \(text)", file: file, line: line)
         }
     }
 

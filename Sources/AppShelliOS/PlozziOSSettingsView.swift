@@ -817,47 +817,44 @@ private struct PlozziOSSettingsSplitView: View {
 }
 
 struct PlozziOSCommunitySettingsSection: View {
-    @State var showsQRCodes = false
+    @ScaledMetric(relativeTo: .body) private var iconSize = 22
 
     var body: some View {
         SettingsSectionGroup("Community") {
             communityLink(
-                Text(verbatim: "Discord"), brand: .discord, caption: "Join the community",
+                Text(verbatim: "Discord"), icon: "DiscordMark",
                 url: AppLinks.discord
             )
             communityLink(
-                Text(verbatim: "GitHub"), brand: .github, caption: "Source code and issues",
+                Text(verbatim: "GitHub"), icon: "GitHubMark",
                 url: AppLinks.repository
             )
-            DisclosureGroup("QR Codes", isExpanded: $showsQRCodes) {
-                SettingsCommunityLinks()
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
         }
     }
 
     private func communityLink(
-        _ title: Text, brand: SettingsCommunityLogo.Brand, caption: LocalizedStringKey, url: URL
+        _ title: Text, icon: String, url: URL
     ) -> some View {
         Link(destination: url) {
             HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    SettingsCommunityLogo(brand: brand, height: 32)
-                    Text(caption)
-                        .font(.subheadline)
-                        .plozzForeground(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                Label {
+                    title
+                } icon: {
+                    Image(icon)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: iconSize, height: iconSize)
+                        .accessibilityHidden(true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "arrow.up.forward")
                     .font(.subheadline.weight(.semibold))
                     .plozzForeground(.secondary)
+                    .accessibilityHidden(true)
             }
-            .padding(.vertical, 4)
         }
         .accessibilityLabel(title)
-        .accessibilityHint(Text(caption))
     }
 }
 
