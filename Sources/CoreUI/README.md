@@ -241,6 +241,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Custom value menus use `SettingsMenuLabel` to show
   the selected value with up/down chevrons, matching editable pickers rather
   than read-only `LabeledContent`. Navigation keeps its right-facing chevron.
+  Unavailable settings use a natively disabled control with a short explanation.
+  Share-only streaming quality shows a disabled **Original quality** picker with
+  **Unavailable for network shares.** beneath it; saved server-quality preferences
+  are left untouched. Compatible-server quality menus remain enabled.
   A visual group occupies one native List cell; automatic
   pickers can promote their menu to that whole cell and intercept neighboring
   navigation links or controls. Keep picker activation local without replacing

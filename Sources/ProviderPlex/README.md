@@ -203,6 +203,13 @@ that request's identity as `X-Plex-Session-Identifier`. `ratingKey` and `key`
 continue to identify the library item for watch state, not the playback session.
 There is no provider-wide "current session" lookup.
 
+Timeline reports include the known playback duration in milliseconds; unknown,
+non-finite, nonpositive, or unrepresentable durations are omitted, not replaced
+with zero. End reporting retains the final position and duration captured before
+engine teardown. Plozz's optimistic watched flag and queued `/:/scrobble` write
+are separate from Plex's playback history: neither a local checkmark nor a
+successful timeline response proves that a history entry was recorded.
+
 Direct files also own a reporting identity but do not acquire a transcoder
 session or receive transcoder ping/stop calls. Callers without a playback identity,
 including the current music reporter, still omit the optional header rather than

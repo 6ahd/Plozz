@@ -75831,54 +75831,6 @@
     },
     "%lld of %lld channels visible" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%#@arg1@ of %#@arg2@ visible"
-          },
-          "substitutions" : {
-            "arg1" : {
-              "argNum" : 1,
-              "formatSpecifier" : "lld",
-              "variations" : {
-                "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
-                  "other" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  }
-                }
-              }
-            },
-            "arg2" : {
-              "argNum" : 2,
-              "formatSpecifier" : "lld",
-              "variations" : {
-                "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld channel"
-                    }
-                  },
-                  "other" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld channels"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -75890,24 +75842,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "zero" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
-                  "two" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -75920,7 +75854,25 @@
                       "value" : "%lld"
                     }
                   },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
                   "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "two" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "zero" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -75934,24 +75886,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "zero" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
-                  "two" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -75964,7 +75898,25 @@
                       "value" : "%lld"
                     }
                   },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
                   "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "two" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "zero" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76034,13 +75986,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "many" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76060,13 +76012,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "many" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76094,12 +76046,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -76107,6 +76053,12 @@
                     }
                   },
                   "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76126,12 +76078,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -76139,6 +76085,12 @@
                     }
                   },
                   "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76299,10 +76251,10 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Canales visibles: %#@arg1@ de %#@arg2@"
+            "value" : "%#@arg1@ of %#@arg2@ visible"
           },
           "substitutions" : {
             "arg1" : {
@@ -76311,12 +76263,6 @@
               "variations" : {
                 "plural" : {
                   "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
-                  "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76339,10 +76285,64 @@
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
+                      "value" : "%lld channel"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld channels"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Canales visibles: %#@arg1@ de %#@arg2@"
+          },
+          "substitutions" : {
+            "arg1" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  }
+                }
+              }
+            },
+            "arg2" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
                   "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76466,13 +76466,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "many" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76492,13 +76492,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "many" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76532,13 +76532,13 @@
                       "value" : "%lld"
                     }
                   },
-                  "two" : {
+                  "other" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "other" : {
+                  "two" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76558,13 +76558,13 @@
                       "value" : "%lld"
                     }
                   },
-                  "two" : {
+                  "other" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "other" : {
+                  "two" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76634,13 +76634,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "few" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76660,13 +76660,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld kanala"
                     }
                   },
-                  "few" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld kanala"
@@ -76778,13 +76778,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "many" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -76804,16 +76804,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld canale"
-                    }
-                  },
                   "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld canali"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld canale"
                     }
                   },
                   "other" : {
@@ -77042,12 +77042,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -77055,6 +77049,12 @@
                     }
                   },
                   "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77074,12 +77074,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld kanału"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -77090,6 +77084,12 @@
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld kanałów"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld kanału"
                     }
                   },
                   "other" : {
@@ -77114,13 +77114,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "many" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77140,13 +77140,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "many" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77174,13 +77174,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "few" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77200,16 +77200,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld canal"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld canale"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld canal"
                     }
                   },
                   "other" : {
@@ -77234,12 +77234,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -77247,6 +77241,12 @@
                     }
                   },
                   "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77266,12 +77266,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld канала"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -77282,6 +77276,12 @@
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld каналов"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld канала"
                     }
                   },
                   "other" : {
@@ -77306,12 +77306,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -77319,6 +77313,12 @@
                     }
                   },
                   "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77338,12 +77338,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld kanála"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -77351,6 +77345,12 @@
                     }
                   },
                   "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld kanála"
+                    }
+                  },
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld kanála"
@@ -77378,25 +77378,25 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
-                  "two" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
                   "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "two" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77410,25 +77410,25 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld kanala"
-                    }
-                  },
-                  "two" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld kanalov"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld kanalov"
                     }
                   },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld kanala"
+                    }
+                  },
                   "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld kanalov"
+                    }
+                  },
+                  "two" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld kanalov"
@@ -77450,13 +77450,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
                     }
                   },
-                  "few" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77476,13 +77476,13 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
+                  "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld kanala"
                     }
                   },
-                  "few" : {
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld kanala"
@@ -77642,12 +77642,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -77655,6 +77649,12 @@
                     }
                   },
                   "many" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld"
+                    }
+                  },
+                  "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld"
@@ -77674,12 +77674,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld каналу"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -77690,6 +77684,12 @@
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld каналів"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld каналу"
                     }
                   },
                   "other" : {
@@ -92146,6 +92146,226 @@
         }
       }
     },
+    "1 minute" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "دقيقة واحدة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 минута"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minut"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuta"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minut"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 Minute"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 λεπτό"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuto"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "۱ دقیقه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuutti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minute"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "דקה אחת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 मिनट"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuta"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 perc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 menit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1分"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1분"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minit"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minutt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuut"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuta"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuto"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minut"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 минута"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minúta"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minuta"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minut"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 minut"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 นาที"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 dakika"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 хвилина"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 phút"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 分钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1 分鐘"
+          }
+        }
+      }
+    },
     "10 Mbps" : {
       "localizations" : {
         "ar" : {
@@ -92362,6 +92582,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "10 Mbps"
+          }
+        }
+      }
+    },
+    "10 minutes" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 دقائق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 минути"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minuts"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minut"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minutter"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 Minuten"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 λεπτά"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minutos"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "۱۰ دقیقه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minuuttia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minutes"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 דקות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 मिनट"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minuta"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 perc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 menit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minuti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10分"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10분"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minit"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minutter"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minuten"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minut"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minutos"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minute"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 минут"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minút"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minut"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minuta"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 minuter"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 นาที"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 dakika"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 хвилин"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 phút"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 分钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 分鐘"
           }
         }
       }
@@ -94122,6 +94562,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "5 Mbps"
+          }
+        }
+      }
+    },
+    "5 minutes" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 دقائق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 минути"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minuts"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minut"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minutter"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 Minuten"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 λεπτά"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minutos"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "۵ دقیقه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minuuttia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minutes"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 דקות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 मिनट"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minuta"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 perc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 menit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minuti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5分"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5분"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minit"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minutter"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minuten"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minut"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minutos"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minute"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 минут"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minút"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minut"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minuta"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 minuter"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 นาที"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 dakika"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 хвилин"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 phút"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 分钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "5 分鐘"
           }
         }
       }
@@ -232297,6 +232957,226 @@
         }
       }
     },
+    "Current time" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الوقت الحالي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Текущ час"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hora actual"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktuální čas"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktuelt klokkeslæt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktuelle Uhrzeit"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Τρέχουσα ώρα"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hora actual"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ساعت فعلی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nykyinen kellonaika"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Heure actuelle"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "השעה הנוכחית"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "वर्तमान समय"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trenutačno vrijeme"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pontos idő"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Waktu saat ini"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ora attuale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "現在の時刻"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "현재 시각"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Waktu semasa"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gjeldende klokkeslett"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Huidige tijd"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktualna godzina"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hora atual"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ora curentă"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Текущее время"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktuálny čas"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trenutni čas"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trenutno vreme"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktuellt klockslag"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เวลาปัจจุบัน"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Şu anki saat"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Поточний час"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Giờ hiện tại"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "当前时间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "目前時間"
+          }
+        }
+      }
+    },
     "Currently at %@" : {
       "comment" : "Subtitle in the WebDAV folder picker showing the current path being browsed. %@ is the current folder path.",
       "localizations" : {
@@ -274979,6 +275859,226 @@
         }
       }
     },
+    "Elapsed time" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الوقت المنقضي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изминало време"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Temps transcorregut"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uplynulý čas"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Forløbet tid"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verstrichene Zeit"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρόνος που πέρασε"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tiempo transcurrido"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "زمان سپری‌شده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kulunut aika"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Temps écoulé"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הזמן שחלף"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "बीता हुआ समय"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Proteklo vrijeme"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eltelt idő"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Waktu yang berlalu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tempo trascorso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "経過時間"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "경과 시간"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Masa berlalu"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Forløpt tid"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verstreken tijd"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Czas, który upłynął"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tempo decorrido"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Timp scurs"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Прошедшее время"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uplynutý čas"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pretečeni čas"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Proteklo vreme"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Förfluten tid"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เวลาที่ผ่านไป"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Geçen süre"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Час, що минув"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Thời gian đã phát"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "已播放时间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "已播放時間"
+          }
+        }
+      }
+    },
     "Emby returned incompatible HDR video. Enable HDR-to-SDR tone mapping in the server’s transcoding settings (requires Emby Premiere), or choose an SDR version." : {
       "localizations" : {
         "ar" : {
@@ -278504,6 +279604,227 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "結束時間依下一個節目估算。"
+          }
+        }
+      }
+    },
+    "Ends at %@" : {
+      "comment" : "Estimated playback completion time on the clock, for example Ends at 11:42 PM.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ينتهي الساعة %@"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Завършва в %@"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Finalització: %@"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Končí v %@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slutter kl. %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Endet um %@"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Τελειώνει στις %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Termina a las %@"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پایان در ساعت %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Päättyy klo %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se termine à %@"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מסתיים ב־%@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समाप्ति: %@"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Završava u %@"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Befejezés: %@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selesai pukul %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fine: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@に終了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@에 종료"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tamat pada %@"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slutter kl. %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eindigt om %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kończy się o %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Término: %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se termină la %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Завершится в %@"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Končí o %@"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Konča se ob %@"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Završava se u %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slutar kl. %@"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "สิ้นสุดเวลา %@"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bitiş: %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Завершиться о %@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kết thúc lúc %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "于 %@ 结束"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "於 %@ 結束"
           }
         }
       }
@@ -290405,6 +291726,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "預估位元率"
+          }
+        }
+      }
+    },
+    "Estimated end time" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "وقت الانتهاء المتوقع"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Очакван час на приключване"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hora de finalització estimada"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odhadovaný čas konce"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Forventet sluttidspunkt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voraussichtliche Endzeit"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Εκτιμώμενη ώρα λήξης"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hora de finalización estimada"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ساعت تخمینی پایان"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Arvioitu päättymisaika"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Heure de fin estimée"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שעת סיום משוערת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "अनुमानित समाप्ति समय"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Procijenjeno vrijeme završetka"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Becsült befejezési idő"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Perkiraan waktu selesai"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ora di fine stimata"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "終了予定時刻"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "예상 종료 시각"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anggaran waktu tamat"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beregnet sluttidspunkt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Geschatte eindtijd"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Przewidywana godzina zakończenia"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Horário previsto de término"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ora estimată de încheiere"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ожидаемое время окончания"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odhadovaný čas konca"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Predvideni čas konca"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Procenjeno vreme završetka"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beräknad sluttid"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เวลาสิ้นสุดโดยประมาณ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tahmini bitiş saati"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Орієнтовний час завершення"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Giờ kết thúc dự kiến"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "预计结束时间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "預計結束時間"
           }
         }
       }
@@ -366726,6 +368267,226 @@
         }
       }
     },
+    "Larger buffers use more storage. Unavailable with Apple’s native player." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تستهلك المخازن المؤقتة الأكبر مساحة تخزين أكبر. غير متاح مع مشغّل Apple المدمج."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "По-големите буфери използват повече място за съхранение. Недостъпно с вградения плейър на Apple."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les memòries intermèdies més grans ocupen més espai d’emmagatzematge. No disponible amb el reproductor natiu d’Apple."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Větší vyrovnávací paměti zabírají více místa v úložišti. Není k dispozici s vestavěným přehrávačem Apple."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Større buffere bruger mere lagerplads. Ikke tilgængelig med Apples indbyggede afspiller."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Größere Puffer benötigen mehr Speicherplatz. Nicht mit Apples integriertem Player verfügbar."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η μεγαλύτερη προσωρινή μνήμη απαιτεί περισσότερο αποθηκευτικό χώρο. Δεν διατίθεται με τον ενσωματωμένο αναπαραγωγέα της Apple."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los búferes más grandes usan más almacenamiento. No disponible con el reproductor nativo de Apple."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بافرهای بزرگ‌تر فضای ذخیره‌سازی بیشتری مصرف می‌کنند. با پخش‌کنندهٔ داخلی Apple در دسترس نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suuremmat puskurit käyttävät enemmän tallennustilaa. Ei käytettävissä Applen omalla soittimella."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Une mémoire tampon plus grande utilise plus d’espace de stockage. Indisponible avec le lecteur natif d’Apple."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מאגרי ביניים גדולים יותר צורכים יותר שטח אחסון. לא זמין עם הנגן המובנה של Apple."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "बड़े बफ़र ज़्यादा स्टोरेज इस्तेमाल करते हैं। Apple के बिल्ट-इन प्लेयर के साथ उपलब्ध नहीं है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veći međuspremnici zauzimaju više prostora za pohranu. Nije dostupno uz Appleov ugrađeni reproduktor."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A nagyobb pufferek több tárhelyet használnak. Az Apple beépített lejátszójával nem érhető el."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer yang lebih besar menggunakan lebih banyak ruang penyimpanan. Tidak tersedia dengan pemutar bawaan Apple."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "I buffer più grandi occupano più spazio di archiviazione. Non disponibile con il lettore integrato di Apple."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "バッファが大きいほど、ストレージを多く使用します。Apple標準のプレーヤーでは利用できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "버퍼가 클수록 저장 공간을 더 많이 사용합니다. Apple 기본 플레이어에서는 사용할 수 없습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penimbal yang lebih besar menggunakan lebih banyak ruang storan. Tidak tersedia dengan pemain terbina dalam Apple."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Større buffere bruker mer lagringsplass. Ikke tilgjengelig med Apples innebygde avspiller."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grotere buffers gebruiken meer opslagruimte. Niet beschikbaar met de ingebouwde speler van Apple."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Większe bufory zajmują więcej miejsca na dysku. Funkcja niedostępna w natywnym odtwarzaczu Apple."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffers maiores usam mais espaço de armazenamento. Indisponível no reprodutor nativo da Apple."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memoriile tampon mai mari ocupă mai mult spațiu de stocare. Opțiunea nu este disponibilă cu playerul nativ Apple."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Больший буфер занимает больше места в хранилище. Недоступно во встроенном плеере Apple."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Väčšia vyrovnávacia pamäť zaberá viac miesta v úložisku. Nie je dostupná so vstavaným prehrávačom Apple."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Večji medpomnilniki porabijo več prostora za shranjevanje. Ni na voljo z vgrajenim predvajalnikom družbe Apple."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veći baferi zauzimaju više prostora za skladištenje. Nije dostupno uz ugrađeni plejer kompanije Apple."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Större buffertar använder mer lagringsutrymme. Inte tillgängligt med Apples inbyggda spelare."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "บัฟเฟอร์ขนาดใหญ่ใช้พื้นที่จัดเก็บมากขึ้น ใช้ไม่ได้กับตัวเล่นในตัวของ Apple"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Daha büyük arabellekler daha fazla depolama alanı kullanır. Apple’ın yerleşik oynatıcısında kullanılamaz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Більший буфер займає більше місця в сховищі. Недоступно у вбудованому програвачі Apple."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bộ đệm lớn hơn dùng nhiều dung lượng lưu trữ hơn. Không dùng được với trình phát tích hợp của Apple."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "缓冲越大，占用的存储空间越多。不适用于 Apple 内置播放器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "緩衝越大，使用的儲存空間越多。不適用於 Apple 內建播放器。"
+          }
+        }
+      }
+    },
     "Last Watched" : {
       "localizations" : {
         "ar" : {
@@ -404261,6 +406022,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "最高解析度：%lldp"
+          }
+        }
+      }
+    },
+    "Maximum available" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الحد الأقصى المتاح"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Максимален наличен размер"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Màxim disponible"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostupné maximum"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maksimalt tilgængeligt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maximal verfügbar"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μέγιστο διαθέσιμο"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Máximo disponible"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "حداکثر موجود"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suurin käytettävissä oleva"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maximum disponible"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "המקסימום הזמין"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "अधिकतम उपलब्ध"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostupni maksimum"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elérhető maximum"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maksimum yang tersedia"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Massimo disponibile"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "利用可能な最大容量"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "사용 가능한 최대치"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maksimum yang tersedia"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maksimalt tilgjengelig"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maximaal beschikbaar"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maksymalny dostępny"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Máximo disponível"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maximul disponibil"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доступный максимум"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostupné maximum"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Največ, kar je na voljo"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostupni maksimum"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maximalt tillgängligt"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "สูงสุดตามพื้นที่ว่าง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kullanılabilir maksimum"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доступний максимум"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tối đa theo dung lượng trống"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可用上限"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "可用上限"
           }
         }
       }
@@ -554524,6 +556505,226 @@
         }
       }
     },
+    "Remaining time" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الوقت المتبقي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Оставащо време"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Temps restant"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zbývající čas"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Resterende tid"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verbleibende Zeit"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Υπολειπόμενος χρόνος"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tiempo restante"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "زمان باقی‌مانده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jäljellä oleva aika"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Temps restant"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הזמן שנותר"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "बचा हुआ समय"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preostalo vrijeme"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hátralévő idő"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sisa waktu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tempo rimanente"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "残り時間"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "남은 시간"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Baki masa"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gjenstående tid"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Resterende tijd"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pozostały czas"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tempo restante"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Timp rămas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Оставшееся время"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zostávajúci čas"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preostali čas"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preostalo vreme"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Återstående tid"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เวลาที่เหลือ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kalan süre"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Час, що залишився"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Thời gian còn lại"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "剩余时间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "剩餘時間"
+          }
+        }
+      }
+    },
     "Remember audio per series" : {
       "localizations" : {
         "ar" : {
@@ -664444,7 +666645,228 @@
         }
       }
     },
+    "Silo couldn’t prepare a playable stream for this file. Check the server’s playback log for details." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذر على Silo تجهيز بث قابل للتشغيل لهذا الملف. راجع سجل التشغيل على الخادم للاطلاع على التفاصيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo не успя да подготви възпроизводим поток за този файл. Проверете дневника за възпроизвеждане на сървъра за подробности."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo no ha pogut preparar un flux reproduïble per a aquest fitxer. Consulta el registre de reproducció del servidor per obtenir-ne més detalls."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nedokázalo pro tento soubor připravit přehratelný stream. Podrobnosti najdete v protokolu přehrávání serveru."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo kunne ikke forberede en stream, der kan afspilles, til denne fil. Se serverens afspilningslog for flere oplysninger."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo konnte für diese Datei keinen abspielbaren Stream vorbereiten. Weitere Informationen findest du im Wiedergabeprotokoll des Servers."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το Silo δεν μπόρεσε να προετοιμάσει μια ροή με δυνατότητα αναπαραγωγής για αυτό το αρχείο. Για λεπτομέρειες, ελέγξτε το αρχείο καταγραφής αναπαραγωγής του διακομιστή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo no ha podido preparar un flujo reproducible para este archivo. Consulta el registro de reproducción del servidor para obtener más información."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo نتوانست جریانی قابل پخش برای این فایل آماده کند. برای جزئیات، گزارش پخش سرور را بررسی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo ei voinut valmistella tälle tiedostolle toistettavaa mediavirtaa. Katso lisätietoja palvelimen toistolokista."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo n’a pas pu préparer un flux lisible pour ce fichier. Consultez le journal de lecture du serveur pour plus de détails."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo לא הצליח להכין זרם שניתן לנגן עבור הקובץ הזה. לפרטים, יש לעיין ביומן הניגון של השרת."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo इस फ़ाइल के लिए चलाने योग्य स्ट्रीम तैयार नहीं कर सका। विवरण के लिए सर्वर का प्लेबैक लॉग देखें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nije mogao pripremiti tok koji se može reproducirati za ovu datoteku. Pojedinosti potražite u zapisniku reprodukcije poslužitelja."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A Silo nem tudott lejátszható adatfolyamot előkészíteni ehhez a fájlhoz. A részleteket a szerver lejátszási naplójában találja."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo tidak dapat menyiapkan stream yang dapat diputar untuk file ini. Periksa log pemutaran server untuk detailnya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo non è riuscito a preparare uno stream riproducibile per questo file. Consulta il registro di riproduzione del server per i dettagli."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Siloはこのファイルの再生可能なストリームを準備できませんでした。詳しくはサーバの再生ログを確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo가 이 파일의 재생 가능한 스트림을 준비하지 못했습니다. 자세한 내용은 서버의 재생 로그를 확인하세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo tidak dapat menyediakan strim yang boleh dimainkan untuk fail ini. Semak log main balik pelayan untuk butiran."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo kunne ikke klargjøre en avspillbar strøm for denne filen. Se serverens avspillingslogg for detaljer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo kon geen afspeelbare stream voor dit bestand voorbereiden. Bekijk het afspeellogboek van de server voor meer informatie."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nie mógł przygotować dla tego pliku strumienia nadającego się do odtworzenia. Szczegóły znajdziesz w dzienniku odtwarzania serwera."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Silo não conseguiu preparar um fluxo reproduzível para este arquivo. Consulte o log de reprodução do servidor para obter detalhes."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nu a putut pregăti un flux redabil pentru acest fișier. Consultă jurnalul de redare al serverului pentru detalii."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo не удалось подготовить для этого файла поток, пригодный для воспроизведения. Подробности см. в журнале воспроизведения сервера."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nedokázalo pre tento súbor pripraviť prehrateľný stream. Podrobnosti nájdete v protokole prehrávania servera."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo za to datoteko ni mogel pripraviti toka, ki ga je mogoče predvajati. Za podrobnosti preverite dnevnik predvajanja strežnika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo nije uspeo da pripremi strim koji se može reprodukovati za ovu datoteku. Detalje potražite u dnevniku reprodukcije servera."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo kunde inte förbereda en spelbar ström för den här filen. Se serverns uppspelningslogg för mer information."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo ไม่สามารถเตรียมสตรีมที่เล่นได้สำหรับไฟล์นี้ ดูรายละเอียดในบันทึกการเล่นของเซิร์ฟเวอร์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo, bu dosya için oynatılabilir bir akış hazırlayamadı. Ayrıntılar için sunucunun oynatma günlüğünü kontrol edin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo не вдалося підготувати придатний для відтворення потік для цього файлу. Докладні відомості дивіться в журналі відтворення сервера."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo không thể chuẩn bị luồng có thể phát cho tệp này. Hãy xem nhật ký phát của máy chủ để biết chi tiết."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo 无法为此文件准备可播放的流。请查看服务器的播放日志以了解详情。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Silo 無法為此檔案準備可播放的串流。請查看伺服器的播放記錄以瞭解詳情。"
+          }
+        }
+      }
+    },
     "Silo couldn’t prepare the selected stream. Check its transcoding permissions and server settings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -694633,6 +697055,226 @@
         }
       }
     },
+    "Switch between playback and clock times" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "التبديل بين مدة التشغيل ووقت الساعة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Превключване между времето на възпроизвеждане и часа"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Canvia entre el temps de reproducció i l'hora del rellotge"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Přepíná mezi časem přehrávání a časem na hodinách"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skift mellem afspilningstid og klokkeslæt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zwischen Wiedergabezeit und Uhrzeit wechseln"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Εναλλαγή μεταξύ χρόνου αναπαραγωγής και ώρας"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alternar entre el tiempo de reproducción y la hora"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جابه‌جایی بین زمان پخش و ساعت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vaihda toistoajan ja kellonajan välillä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Basculer entre le temps de lecture et l’heure"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מעבר בין זמן הניגון לשעה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्लेबैक की अवधि और घड़ी के समय के बीच बदलें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prebaci između trajanja reprodukcije i vremena na satu"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Váltás a lejátszási idő és a pontos idő között"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beralih antara durasi pemutaran dan waktu pada jam"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alterna tra il tempo di riproduzione e l'ora"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "再生時間と時刻の表示を切り替えます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "재생 시간과 시각 표시를 전환합니다"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tukar antara masa main balik dan waktu pada jam"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bytt mellom avspillingstid og klokkeslett"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wissel tussen afspeeltijd en kloktijd"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Przełącz między czasem odtwarzania a godziną"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alternar entre o tempo de reprodução e o horário"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Comută între timpul de redare și ora de pe ceas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Переключение между временем воспроизведения и временем на часах"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prepnúť medzi časom prehrávania a časom na hodinách"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Preklopi med časom predvajanja in uro"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prebacuj se između vremena reprodukcije i vremena na satu"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Växla mellan uppspelningstid och klockslag"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "สลับระหว่างระยะเวลาการเล่นกับเวลาตามนาฬิกา"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oynatma süresi ile saat arasında geçiş yap"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Перемикайтеся між тривалістю відтворення та часом на годиннику"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chuyển giữa thời lượng phát và giờ trên đồng hồ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在播放时长与时钟时间之间切换"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在播放時間與時鐘時間之間切換"
+          }
+        }
+      }
+    },
     "Switches to this profile" : {
       "localizations" : {
         "ar" : {
@@ -713142,6 +715784,7 @@
       }
     },
     "The account owner is the main Plex account holder; the others are managed/family users under it and may need a PIN. Plozz asks for the PIN on playback and never stores it." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -791297,6 +793940,226 @@
         }
       }
     },
+    "Unavailable for network shares." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "غير متاح للمجلدات المشتركة على الشبكة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Недостъпно за споделени мрежови папки."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No disponible per als recursos compartits de xarxa."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Není k dispozici pro síťová sdílení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikke tilgængelig for netværksdelinger."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nicht für Netzwerkfreigaben verfügbar."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν διατίθεται για κοινόχρηστους φακέλους δικτύου."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No disponible para recursos compartidos de red."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "برای پوشه‌های اشتراکی شبکه در دسترس نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ei käytettävissä verkkojaoissa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Indisponible pour les partages réseau."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא זמין לתיקיות רשת משותפות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "नेटवर्क फ़ाइल शेयरों के लिए उपलब्ध नहीं है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije dostupno za mrežne dijeljene mape."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hálózati megosztásoknál nem érhető el."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak tersedia untuk folder bersama di jaringan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Non disponibile per le condivisioni di rete."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ネットワーク共有では利用できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "네트워크 파일 공유에서는 사용할 수 없습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak tersedia untuk perkongsian fail rangkaian."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikke tilgjengelig for nettverksdelinger."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Niet beschikbaar voor netwerkshares."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Niedostępne dla udziałów sieciowych."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Indisponível para compartilhamentos de rede."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Indisponibil pentru resursele de rețea."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Недоступно для сетевых ресурсов."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nedostupné pre sieťové zdieľania."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ni na voljo za omrežne souporabe."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije dostupno za mrežne resurse."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inte tillgängligt för nätverksdelningar."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้ไม่ได้กับไฟล์ที่แชร์ผ่านเครือข่าย"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ağ paylaşımlarında kullanılamaz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Недоступно для мережевих ресурсів."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không dùng được với thư mục chia sẻ mạng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "不适用于网络共享文件夹。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "不適用於網路共享資料夾。"
+          }
+        }
+      }
+    },
     "Unavailable in this build" : {
       "localizations" : {
         "ar" : {
@@ -815099,6 +817962,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "影片與音訊詳細資訊描述的是目前串流。原始檔案的詳細資訊會另外顯示。"
+          }
+        }
+      }
+    },
+    "Video buffer" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "المخزن المؤقت للفيديو"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Видео буфер"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memòria intermèdia de vídeo"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyrovnávací paměť videa"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Videobuffer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Videopuffer"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Προσωρινή μνήμη βίντεο"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Búfer de vídeo"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بافر ویدیو"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Videopuskuri"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mémoire tampon vidéo"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מאגר ביניים לווידאו"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "वीडियो बफ़र"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Međuspremnik videozapisa"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Videópuffer"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer video"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer video"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "動画バッファ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "비디오 버퍼"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penimbal video"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Videobuffer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Videobuffer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bufor wideo"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer de vídeo"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memorie tampon video"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Видеобуфер"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyrovnávacia pamäť videa"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Medpomnilnik za video"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Video-bafer"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Videobuffert"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "บัฟเฟอร์วิดีโอ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Video arabelleği"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Відеобуфер"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bộ đệm video"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "视频缓冲"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "影片緩衝"
           }
         }
       }

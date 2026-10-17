@@ -299,6 +299,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     private let engine: AEEngine
     private let networkFileResolver: (any MediaTransportNetworkFileResolving)?
     private let authenticatedHTTPResolver: (any AuthenticatedHTTPResourceResolving)?
+    private let readAheadPreference: @MainActor () -> PlaybackReadAhead
     private var liveOutputPolicy = LiveChannelOutputPolicy()
     private var outputPolicyReload: Task<Void, Never>?
     private var outputLoadGeneration = UUID()
@@ -327,7 +328,8 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     public init(
         networkFileResolver: (any MediaTransportNetworkFileResolving)? = nil,
-        authenticatedHTTPResolver: (any AuthenticatedHTTPResourceResolving)? = nil
+        authenticatedHTTPResolver: (any AuthenticatedHTTPResourceResolving)? = nil,
+        readAheadPreference: @escaping @MainActor () -> PlaybackReadAhead = { .default }
     ) throws {
         self.engine = try AEEngine()
         // Plozz owns its audio session, and on an E-AC-3/Atmos bitstream-passthrough route the HDMI sink
@@ -337,6 +339,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         engine.deactivatesAudioSessionOnStop = true
         self.networkFileResolver = networkFileResolver
         self.authenticatedHTTPResolver = authenticatedHTTPResolver
+        self.readAheadPreference = readAheadPreference
         #if canImport(UIKit)
         let surface = AetherPlayerView()
         engine.bind(view: surface)
@@ -426,13 +429,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         intendsPause = false
         furthestObservedPosition = startPosition
 
-        let channels = request.localRemuxSource?.sourceMetadata.audio?.channels
-            ?? request.sourceMetadata?.audio?.channels ?? 0
-        var options = Self.onDemandLoadOptions(
-            audioChannels: channels,
-            trueHDAtmosEnabled: request.trueHDAtmosEnabled,
-            outputPolicy: outputPolicy
-        )
+        var options = onDemandLoadOptions(for: request, outputPolicy: outputPolicy)
         // Build the native WebVTT renditions so subtitles can travel into a
         // Picture in Picture window, where our own overlay cannot follow: it is a
         // view in this app's hierarchy and the window only carries what is in the
@@ -719,16 +716,48 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         #endif
     }
 
+    func onDemandLoadOptions(
+        for request: PlaybackRequest, outputPolicy: LiveChannelOutputPolicy = .init()
+    ) -> LoadOptions {
+        let source = request.localRemuxSource?.originalSource ?? request.playbackSource
+        let isLocalFile: Bool
+        if case .networkFile = request.playbackSource {
+            isLocalFile = false
+        } else if case .authenticatedHTTP = source {
+            isLocalFile = false
+        } else {
+            isLocalFile = (request.streamURL ?? source?.publicURL)?.isFileURL == true
+        }
+        return Self.onDemandLoadOptions(
+            audioChannels: request.localRemuxSource?.sourceMetadata.audio?.channels
+                ?? request.sourceMetadata?.audio?.channels ?? 0,
+            trueHDAtmosEnabled: request.trueHDAtmosEnabled,
+            outputPolicy: outputPolicy,
+            readAhead: isLocalFile || request.suppressOrdinaryWatchReporting
+                ? .default : readAheadPreference()
+        )
+    }
+
     nonisolated static func onDemandLoadOptions(
         audioChannels: Int,
         trueHDAtmosEnabled: Bool = PlaybackSettings.default.trueHDAtmosEnabled,
-        outputPolicy: LiveChannelOutputPolicy = .init()
+        outputPolicy: LiveChannelOutputPolicy = .init(),
+        readAhead: PlaybackReadAhead = .default
     ) -> LoadOptions {
         // Keep the full 7.1 fallback: the compatibility EAC3 bridge caps at 5.1.
         var options = LoadOptions(
             matchContentEnabled: true,
             audioBridgeMode: audioChannels > 6 ? .lossless : .surroundCompat
         )
+        // Aether uses approximately four-second segments and clamps the maximum
+        // to 2,700, retaining its free-space budget and producer backpressure.
+        switch readAhead {
+        case .automatic: options.forwardBufferSegments = nil
+        case .oneMinute: options.forwardBufferSegments = 15
+        case .fiveMinutes: options.forwardBufferSegments = 75
+        case .tenMinutes: options.forwardBufferSegments = 150
+        case .maximumAvailable: options.forwardBufferSegments = 2_700
+        }
         #if os(tvOS)
         if #available(tvOS 26.0, *), trueHDAtmosEnabled,
            outputPolicy.isAudible, !outputPolicy.sharesAudioSession {
@@ -1892,7 +1921,8 @@ public enum PlozzigenVideoEngineFactory {
     ) -> (any VideoEngine)? {
         try? PlozzigenVideoEngine(
             networkFileResolver: networkFileResolver,
-            authenticatedHTTPResolver: authenticatedHTTPResolver
+            authenticatedHTTPResolver: authenticatedHTTPResolver,
+            readAheadPreference: { PlaybackReadAheadStore().load() }
         )
     }
 }

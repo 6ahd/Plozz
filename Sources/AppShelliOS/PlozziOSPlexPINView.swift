@@ -18,12 +18,19 @@ struct PlozziOSPlexPINView: View {
             name: Text(verbatim: request.homeUserName),
             errorMessage: model.plexPINError,
             isSubmitting: model.isSubmittingPlexPIN,
+            availability: pendingRequest == nil ? .checking : model.plexPINEntryAvailability,
+            onRetry: {
+                guard model.pendingPlexPINRequest == request else { return }
+                model.retryPlexPINRequirement()
+            },
             sequenceStep: sequenceStep,
             onSubmit: { pin in
-                guard model.pendingPlexPINRequest == request else { return }
+                guard model.pendingPlexPINRequest == request,
+                      model.plexPINEntryAvailability == .available else { return }
                 model.submitPlexPIN(pin)
             },
             onCancel: {
+                guard model.pendingPlexPINRequest == request else { return }
                 onCancel()
                 model.cancelPlexPIN()
                 if dismissOnSuccess, model.pendingPlexPINRequest == nil { dismiss() }

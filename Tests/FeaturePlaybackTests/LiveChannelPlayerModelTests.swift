@@ -771,6 +771,37 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertEqual(engine.goLiveCount, 0)
     }
 
+    func testTouchRewindStartsFromActualLiveHoldbackAndKeepsPendingTarget() async throws {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        engine.liveSnapshot.seekableRange = 0...600
+        engine.liveSnapshot.position = 590
+        engine.liveSnapshot.behindLiveSeconds = 10
+        model.refreshFromEngine()
+        XCTAssertEqual(model.behindLiveSeconds, 0, "The live badge hides normal stream delay.")
+        XCTAssertEqual(model.seekPosition, 590)
+
+        let gestures = PlayerTouchGestureState()
+        defer { gestures.cancel() }
+        let window = try XCTUnwrap(model.seekableWindow)
+        let floor = LiveChannelPlayerModel.windowSeekTarget(window.lowerBound, window: window)
+        for expected in [585.0, 580.0] {
+            let target = try XCTUnwrap(gestures.seek(
+                by: -5, from: model.seekPosition, within: floor...window.upperBound
+            ))
+            XCTAssertEqual(target, expected)
+            model.seek(behindLive: window.upperBound - target)
+            XCTAssertEqual(model.seekPosition, expected)
+        }
+        XCTAssertEqual(gestures.skip?.seconds, -10)
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertEqual(engine.genericSeekCount, 1)
+        XCTAssertEqual(try XCTUnwrap(engine.lastSeekTarget), 580)
+        XCTAssertEqual(engine.goLiveCount, 0)
+    }
+
     func testWindowSeekPastTheEdgeGoesLive() async throws {
         let engine = LiveEngineSpy()
         let model = makeModel(engine: engine)

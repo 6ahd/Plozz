@@ -1608,25 +1608,26 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
         default: state = "playing"
         }
         let timeMS = PlexTime.milliseconds(fromSeconds: progress.positionSeconds)
+        let durationMS = progress.durationSeconds.flatMap { seconds -> Int? in
+            guard seconds.isFinite, seconds > 0,
+                  let milliseconds = Int(exactly: (seconds * 1_000).rounded()),
+                  milliseconds > 0 else { return nil }
+            return milliseconds
+        }
+        let detail = "state=\(state) time=\(timeMS)ms duration=\(durationMS.map(String.init) ?? "unknown")"
         do {
             try await client.reportTimeline(
                 ratingKey: progress.itemID,
                 playSessionID: progress.playSessionID,
                 state: state,
                 timeMs: timeMS,
-                // NOTE (diagnostics): Plex is told the position but never the
-                // runtime, so it cannot compute a completion percentage from this
-                // call alone and will not promote the title to "watched" on its
-                // own. Plozz relies on its own 90% threshold + `/:/scrobble`
-                // instead — which means a finish that never produces a scrobble
-                // leaves the title sitting in the resume feed forever.
-                durationMs: nil
+                durationMs: durationMS
             )
             ContinueWatchingDiagnostics.emit(ContinueWatchingDiagnostics.writeLine(
                 provider: "plex",
                 endpoint: "/:/timeline",
                 itemID: progress.itemID,
-                detail: "state=\(state) time=\(timeMS)ms duration=nil",
+                detail: detail,
                 ok: true
             ))
         } catch {
@@ -1634,7 +1635,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
                 provider: "plex",
                 endpoint: "/:/timeline",
                 itemID: progress.itemID,
-                detail: "state=\(state) time=\(timeMS)ms duration=nil",
+                detail: detail,
                 ok: false,
                 error: String(describing: error)
             ))

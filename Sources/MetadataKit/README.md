@@ -110,6 +110,15 @@ Already identified, owned, unsupported, and personal-media items skip this work.
 
 ## Invariants
 
+- **Portrait hero artwork is opt-in.** Compact mobile heroes prefer a
+  language-neutral portrait, then a language-neutral landscape, then usable
+  fallback artwork. TMDB and TheTVDB rank the image lists already returned by
+  their usual hero request; there is no OCR, additional endpoint, or image-download
+  fan-out. Neutral-language metadata is evidence, not a guarantee of textless
+  pixels. Providers without this metadata retain their existing hero lookup.
+  Hero-specific URL cache keys leave ordinary posters and landscape heroes
+  unchanged. Live provider preferences, library-first settings, series identity,
+  and the separate overlaid hero logo remain in force.
 - **No required user subscription or user-supplied key.** App credentials and
   keyless endpoints coexist; missing credentials disable only their provider.
 - **No UI imports.** Provider and composition logic stay outside the shells.

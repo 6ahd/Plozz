@@ -104,6 +104,7 @@ public final class LiveTVSourcesRuntime {
     public func activate() {
         let identity = admission.currentIdentity
         guard !admission.isActive || identity != admission.acceptedIdentity else { return }
+        HandoffDiagnostics.emit("SOURCES event=activate authorityPresent=\(identity != nil)")
         invalidate()
         admission.isActive = true
         admission.acceptedIdentity = identity
@@ -117,6 +118,9 @@ public final class LiveTVSourcesRuntime {
     }
 
     public func invalidate() {
+        HandoffDiagnostics.emit(
+            "SOURCES event=invalidate active=\(admission.isActive) accepted=\(admission.acceptedIdentity != nil)"
+        )
         admission.isActive = false
         admission.acceptedIdentity = nil
         enrollment.invalidate()

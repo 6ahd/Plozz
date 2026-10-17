@@ -78,7 +78,6 @@ public final class AppState {
 
     var isActiveProfileAuthorized: Bool {
         guard canEnterApp, case .ready = state else { return false }
-        let profile = profilesModel.activeProfile
         return !profileFlow.isChoosingProfile
             && profileFlow.pendingLockedProfile == nil
             && profileFlow.pendingParentalSwitch == nil
@@ -89,7 +88,7 @@ public final class AppState {
             && !profileFlow.hasResumableSetup
             && plexHomeUsers.pendingPlexPINRequest == nil
             && !profileFlow.activeProfileAwaitsUnlock
-            && !profile.awaitsIdentity(amongAccounts: accountsProviders.activeAccountIDs)
+            && !accountsProviders.activeProfileAwaitsIdentity
     }
     public var allowsStandalonePlayback: Bool { admissionContext.explicitStandaloneChoice }
     public var pendingStandaloneLiveTVEntry: Bool { appAdmission.pendingLiveTVEntry }
@@ -1854,7 +1853,8 @@ public final class AppState {
                 homeUserID: user.id,
                 name: user.name,
                 avatarURL: user.avatarURL?.absoluteString,
-                requiresPIN: user.requiresPIN
+                requiresPIN: user.requiresPIN,
+                pinRequirementVerified: user.pinRequirementVerified
             )
             // Apply the chosen Home user to every newly-added Plex account in the
             // batch (they belong to the same Plex account and share Home users),

@@ -90,7 +90,8 @@ struct PlozziOSPlayerView: View {
                     onPlaySDRVersion: viewModel.streamingHasHDRConversionError
                         && !PlayerVersionSelection.sdrAlternatives(
                             for: versionItem, mediaSourceID: viewModel.currentMediaSourceID
-                        ).isEmpty ? { showVersions(onlySDR: true) } : nil
+                        ).isEmpty ? { showVersions(onlySDR: true) } : nil,
+                    onDismiss: orientation.close
                 )
                 .id(playerIdentity)
                 if viewModel.phase == .ready, !viewModel.showBringUpSpinner {

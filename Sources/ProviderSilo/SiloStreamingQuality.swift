@@ -154,7 +154,7 @@ struct SiloStreamingSelection {
         case "hdr_transcode_unsupported":
             .serverRefusal("Silo can’t convert this HDR file with its current tone-mapping configuration.")
         default:
-            .serverRefusal("Silo couldn’t prepare the selected stream. Check its transcoding permissions and server settings.")
+            .serverRefusal("Silo couldn’t prepare a playable stream for this file. Check the server’s playback log for details.")
         }
     }
 }

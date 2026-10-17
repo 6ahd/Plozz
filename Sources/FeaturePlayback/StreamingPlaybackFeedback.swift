@@ -98,6 +98,7 @@ struct MobilePlaybackFailureView: View {
                     if let onRetry { Button("Try again", action: onRetry).buttonStyle(.bordered) }
                     Button("Playback Diagnostics", action: onShowDiagnostics).buttonStyle(.bordered)
                     Button("Back", action: onDismiss).buttonStyle(.bordered)
+                        .accessibilityIdentifier("player-failed-back")
                 }
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)

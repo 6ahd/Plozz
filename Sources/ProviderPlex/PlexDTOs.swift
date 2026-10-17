@@ -573,7 +573,7 @@ struct PlexHomeUsersDTO: Decodable {
     let users: [PlexHomeUserDTO]
 }
 
-/// One Plex Home user. `protected`/`hasPassword` mean a PIN is needed to switch.
+/// One Plex Home user. Only `protected` describes its Home PIN, not its account password.
 struct PlexHomeUserDTO: Decodable {
     let id: Int?
     let uuid: String?
@@ -582,7 +582,6 @@ struct PlexHomeUserDTO: Decodable {
     let admin: Bool?
     let restricted: Bool?
     let protected: Bool?
-    let hasPassword: Bool?
     let thumb: String?
 }
 

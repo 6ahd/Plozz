@@ -50,6 +50,69 @@ and the diagnostics overlay.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## Playback completion reporting
+
+Playback lifecycle reports capture the request, position, duration, and tracker
+percentage before suspension and drain in order. At most one unsent heartbeat
+is retained, with newer progress replacing its snapshot; lifecycle events
+discard that obsolete heartbeat. Ending a session rejects new heartbeats/state
+changes; its single stop report follows in-flight reports and queued lifecycle
+events, not a backlog of old progress. Rendition replacement resets start/deferred-state admission without
+relabeling queued events. Teardown and reporting are owned tasks, so cancelling
+a presentation handoff does not cancel the final network request, and repeated
+stop callers await the same teardown. Reports remain best-effort on real server
+failures; final-report failures are logged explicitly, not retried as potentially
+duplicate watched/scrobble writes.
+
+## On-demand read-ahead
+
+Playback's device-local read-ahead setting controls Plozzigen's existing disk
+buffer, not the transport reader's byte window. The on-demand factory injects a
+preference reader, sampled once for each new load and shared by its probe retry.
+Automatic leaves `forwardBufferSegments` unset (about 40 seconds); 1, 5 and
+10 minutes request 15, 75 and 150 segments. Maximum available requests the
+pinned engine's ceiling of 2,700 segments (about 3 hours). These are approximate
+targets, not guaranteed durations or an extra startup wait.
+
+Aether retains its free-space budget, process-wide retention claims and producer
+backpressure. Maximum relaxes the ordinary 2 GiB retention cap, but is not
+unlimited and does not reserve a fixed number of bytes. Storage and network use
+depend on bitrate and playback path, and may include unwatched material.
+The cache remains temporary; this does not implement downloads or next-episode
+preloading. Changing the preference does not reload active playback.
+
+Direct engine constructors used by previews and Live TV retain Automatic;
+scheduled library-channel requests and local downloaded files also keep the
+default. Native AVPlayer buffering and Live TV/DVR options are unchanged.
+
+`PlaybackReadAheadBufferingHostedTests` uses the real engine with synthetic
+H.264/AAC media and a range-serving loopback source. It compares Automatic with
+5 minutes across the same 45-second supply outage at 2x playback, checks actual
+displayed-frame changes (the clock alone is not playback proof), recovery,
+source-byte growth and cancellation before server teardown. This is a controlled
+simulator regression, not a reproduction of a particular rclone installation.
+A buffer can absorb temporary shortfalls after it fills; it cannot make a source
+whose sustained throughput is below the media bitrate keep up indefinitely.
+
+## On-demand player clock
+
+The on-demand timeline normally shows elapsed and remaining playback time.
+On tvOS, stationary touchpad taps cycle through controls with playback times,
+current local time at the scrubber and estimated finish time on the right, then
+hidden controls. Clock values replace the two existing numbers in place without
+adding a label or row; the current time keeps following the scrubber.
+Physical clicks retain their transport actions, and swipes begin seeking without waiting for tap
+recognition. Moving, held, cancelled, or clicked contacts cannot toggle the clock.
+iPhone and iPad use native buttons on the two time labels instead of changing
+the video-tap or scrubber gestures.
+
+Scrubbing always shows the media position; hiding the controls resets clock mode.
+Finish estimates use the current position and selected playback speed, and update
+after seeking or pausing. Unknown duration or invalid timing omits the estimate.
+Clock formatting follows the device locale/time-zone conventions. The clock only
+ticks while requested, and mobile label slots retain their width during scrubbing.
+Live TV retains its existing guide-based program times.
+
 ## Mobile player orientation
 
 The iPhone full-screen on-demand and expanded Live TV players read the active profile's
@@ -62,6 +125,9 @@ Orientation is configured only in Settings > Playback, never in the player's
 options menu. Explicitly saved Auto or Portrait choices remain unchanged when
 loading existing profiles; older settings without an orientation use Landscape.
 Episode/version handoffs retain the preference for the active presentation.
+The mobile presentation owner supplies the shared player's dismissal action.
+Failure-screen Back and end-of-playback dismissal use that same owner as the
+mobile X button, rather than a SwiftUI dismiss action outside a SwiftUI cover.
 
 The actual presented UIKit hosting controller owns on-demand orientations.
 Expanded Live TV uses the same policy through a window-scoped owner without
@@ -79,6 +145,48 @@ The mobile in-player Guide reuses the guide grid without its standalone top
 inset, aligning the ruler with the current-program column. That column uses the
 shared raised content surface inside the single outer glass panel, not another
 glass layer. The standalone guide and tvOS grid retain their existing spacing.
+
+## Mobile player gestures
+
+On iPhone and iPad, double-tapping either side skips using the active profile's
+backward/forward interval. Additional taps while the feedback is visible
+accumulate from the requested position, not a lagging playback clock. Directional
+chevrons and the signed total share a compact dark glass pill, replacing the main
+controls while retaining the player's actual timeline in its normal position,
+with its time labels, playhead, buffer and segment styling, and scrubbing behavior.
+Each accepted skip launches one native chevron outward: right for forward, left
+for backward. It starts partially folded, not flat, and opens to its normal shape
+while traveling 20 points over 0.25 seconds. It then stops fully visible for half
+a second and fades in place over 0.3 seconds. The pill reserves that travel
+inside its layout before adding a 16-point outer inset, mirrored for backward
+skips. The number-to-icon layout gap is 4 points, and the icon slot uses its
+native width rather than extra blank space. Reduce Motion needs no travel space.
+Rapid taps add independent,
+overlapping chevrons without restarting earlier ones or queuing a replay.
+Each chevron is removed after its own animation finishes; the signed total
+retains its existing feedback lifetime. Reduce Motion shows one steady chevron
+instead, and enabling it removes any moving chevrons immediately. Single taps
+still toggle controls; native controls and open menus keep their own touches.
+
+Holding on-demand video for at least one second temporarily accelerates moving
+playback to at most 2x when the engine supports it; shorter presses do not boost
+speed. Releasing, pausing, seeking, leaving the player, or backgrounding cancels
+the override without changing the saved speed. Only a top-centered glass pill
+with the active rate and fast-forward symbol is shown during the hold; the
+timeline and its backdrop stay hidden. Both gesture pills reuse the player's
+shared native Liquid Glass surface and its reduced-transparency/older-system
+fallbacks. Text and native icons inherit the Info/Cast buttons' semibold callout
+style together, keeping symbols proportional to their labels as text size changes.
+They do not intercept touches. Live TV supports skips only inside an available
+rewind window, not speed boosting.
+
+Pinch inward for Normal fitting inside the display's safe area, clear of the
+Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
+uses the existing session-only zoom state without reloading video or revealing
+the timeline. Authored subtitle geometry follows the displayed picture; ordinary
+captions retain their screen-relative placement. Inline, tvOS, and external
+playback keep their existing geometry. Horizontal seeking and brightness/volume
+swipes are not implemented.
 
 ## Mobile playback settings
 
@@ -106,15 +214,18 @@ The community-marker row retains a short disclosure of the services and title
 IDs used for lookups; changing this layout does not change playback preferences.
 
 Quality selection observes `NWPath.usesInterfaceType`, including the physical
-interfaces reported beneath a tunnel. Available interfaces and `isExpensive`
-are not substitutes for that route evidence: an available cellular interface
-does not mean Wi-Fi playback uses it, and Personal Hotspot can be expensive.
+interfaces reported beneath a tunnel. When several types are eligible, it uses
+their `availableInterfaces` preference order rather than always choosing cellular.
+An interface must still pass `usesInterfaceType`: availability alone does not
+establish eligibility. `isExpensive` is not an interface type either; Personal
+Hotspot can be expensive. Missing preference evidence retains the conservative
+cellular fallback when cellular is eligible.
 An offline transition retains the current session's selection rather than
 restarting playback with the cellular limit. A usable new route immediately
 re-evaluates the saved settings and server locality. An initially unresolved
 or explicitly cellular path retains the existing conservative cellular policy;
 no VPN is disabled or bypassed. Diagnostic path records include interface
-booleans, not network names, addresses, or credentials.
+booleans and type preference order, not network names, addresses, or credentials.
 
 Jellyfin/Emby compatibility renditions retain the server's stream-copy decisions
 when the source fits the selected quality and conversion is not forced. Codec

@@ -65,6 +65,9 @@ struct PlozziOSSettingsView: View {
         }
         .environment(appModel.profiles)
         .environment(\.managedProviderSetupRouter, providerSetupRouter)
+        .onChange(of: appModel.liveTVAdmissionDiagnostic, initial: true) { _, diagnostic in
+            HandoffDiagnostics.emit("SOURCES event=appAdmission \(diagnostic)")
+        }
         .onChange(of: providerSetupRouter.request?.id) { _, _ in
             guard let request = providerSetupRouter.request else { return }
             iptvSetup = request
@@ -1547,12 +1550,14 @@ struct PlozziOSPlexHomeUserSettingsView: View {
     var body: some View {
         List {
             SettingsSectionGroup("Account owner") {
+                let owner = users.first(where: \.isAdmin)
                 userButton(
-                    name: account.userName.isEmpty ? "Plex Account Owner" : account.userName,
-                    avatarURL: nil,
-                    requiresPIN: false,
-                    user: nil
+                    name: owner?.name ?? (account.userName.isEmpty ? "Plex Account Owner" : account.userName),
+                    avatarURL: owner?.avatarURL,
+                    requiresPIN: owner?.requiresPIN ?? false,
+                    user: owner
                 )
+                .disabled(owner == nil)
             }
 
             SettingsSectionGroup("Home users") {
@@ -1635,7 +1640,7 @@ struct PlozziOSPlexHomeUserSettingsView: View {
             forPlexAccount: account.id
         )
         if let user {
-            return binding?.homeUserID == user.id
+            return binding?.homeUserID == user.id || (binding == nil && user.isAdmin)
         }
         return binding == nil
     }
@@ -2210,6 +2215,7 @@ struct PlozziOSPlaybackSettingsView: View {
                 support: streamingSupport,
                 onShowAdvanced: { showsAdvancedStreaming = true }
             )
+            PlaybackReadAheadControl()
             if UIDevice.current.userInterfaceIdiom == .phone {
                 SettingsSectionGroup {
                     Picker("Player orientation", selection: $model.settings.orientation) {

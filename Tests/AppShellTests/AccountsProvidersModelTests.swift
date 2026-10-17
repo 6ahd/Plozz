@@ -20,14 +20,14 @@ final class AccountsProvidersModelTests: XCTestCase {
         return defaults
     }
 
-    private func account(id: String, host: String) -> Account {
+    private func account(id: String, host: String, provider: ProviderKind = .jellyfin) -> Account {
         Account(
             id: id,
             server: MediaServer(
                 id: "srv-\(id)",
                 name: host,
-                baseURL: URL(string: "https://\(host)")!,
-                provider: .jellyfin
+                baseURL: URL(string: provider == .mediaShare ? "smb://\(host)/media" : "https://\(host)")!,
+                provider: provider
             ),
             userID: "user-\(id)",
             userName: "User \(id)",
@@ -36,7 +36,13 @@ final class AccountsProvidersModelTests: XCTestCase {
     }
 
     private func makeModel(accountIDs: [(String, String)]) throws -> (AccountsProvidersModel, AccountStore, ProfilesModel) {
-        let store = AccountStore(secureStore: InMemorySecureStore())
+        let secrets = InMemorySecureStore()
+        let store = AccountStore(
+            secureStore: secrets, mediaCredentialVault: MediaCredentialVault(secureStore: secrets),
+            credentialJournal: try CredentialMutationJournal(
+                store: DurableLocalStateStore(secureStore: InMemorySecureStore())
+            )
+        )
         for (id, host) in accountIDs {
             try store.add(account(id: id, host: host), token: "token-\(id)")
         }
@@ -68,6 +74,51 @@ final class AccountsProvidersModelTests: XCTestCase {
         XCTAssertEqual(hookAccountsCount, 2)
         // The resolved active set is a subset of the known accounts.
         XCTAssertTrue(model.activeAccountIDs.isSubset(of: ["a", "b"]))
+    }
+
+    func testUnknownSyncedIdentityOnlyGatesWhenAnActivePlexAccountArrives() throws {
+        for provider in [ProviderKind.plex, .iptv, .jellyfin, .emby, .silo, .mediaShare] {
+            let (model, store, profiles) = try makeModel(accountIDs: [])
+            let profileID = profiles.activeProfileID
+            profiles.applySyncedMembership(
+                ["arriving"], forProfile: profileID, knownNonPlexAccountIDs: []
+            )
+            model.tokenResolver = { _ in
+                XCTFail("Admission must not resolve credentials or construct providers.")
+                return nil
+            }
+            model.reloadAccounts()
+            XCTAssertFalse(model.activeProfileAwaitsIdentity)
+
+            try store.add(
+                account(id: "arriving", host: "server.example", provider: provider),
+                token: "fixture"
+            )
+            model.reloadAccounts()
+            XCTAssertEqual(model.activeAccountIDs, ["arriving"])
+            XCTAssertEqual(model.activeProfileAwaitsIdentity, provider == .plex)
+            XCTAssertEqual(profiles.activeProfile.pendingIdentityAccountIDs, ["arriving"])
+
+            profiles.setActiveAccountIDs([], for: profileID)
+            model.reloadAccounts()
+            XCTAssertFalse(model.activeProfileAwaitsIdentity)
+            profiles.setActiveAccountIDs(["arriving"], for: profileID)
+            model.reloadAccounts()
+            XCTAssertEqual(model.activeProfileAwaitsIdentity, provider == .plex)
+
+            let other = profiles.add(name: "Other", activeAccountIDs: ["arriving"])
+            profiles.select(other.id)
+            model.reloadAccounts()
+            XCTAssertFalse(model.activeProfileAwaitsIdentity)
+            profiles.select(profileID)
+            model.reloadAccounts()
+            XCTAssertEqual(model.activeProfileAwaitsIdentity, provider == .plex)
+
+            var answered = profiles.activeProfile
+            answered.resolveAccountAwaitingIdentity("arriving")
+            profiles.update(answered)
+            XCTAssertFalse(model.activeProfileAwaitsIdentity)
+        }
     }
 
     func testProviderResolutionGatesOnTokenSeam() throws {

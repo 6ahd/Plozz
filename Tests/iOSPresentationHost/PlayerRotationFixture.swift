@@ -13,6 +13,9 @@ import UIKit
 final class RotationLoadProbe {
     var count = 0
     var interfaceOrientation = 0
+    var playbackRate: Double?
+    var maximumRate: Double?
+    var videoFit = ""
     private var server: IPTVTestHTTPServer?
     private var streamingURL: URL?
 
@@ -58,6 +61,10 @@ struct PlayerRotationFixture: View {
         model.settings.playback.settings.useCommunityMarkers = false
         model.settings.playback.settings.syncWatchAcrossServers = false
         let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--gesture-player-fixture") {
+            model.settings.playback.settings.skipForwardInterval = .five
+            model.settings.playback.settings.skipBackwardInterval = .thirty
+        }
         if arguments.contains("--auto") { model.settings.playback.settings.orientation = .auto }
         if arguments.contains("--portrait") { model.settings.playback.settings.orientation = .portrait }
         _model = State(initialValue: model)
@@ -91,7 +98,8 @@ struct PlayerRotationFixture: View {
         VStack {
             Button("Open rotation player") {
                 request = .init(
-                    item: RotationProvider.media, startPosition: 0,
+                    item: RotationProvider.media,
+                    startPosition: ProcessInfo.processInfo.arguments.contains("--gesture-player-fixture") ? 60 : 0,
                     versionPreferences: model.versionPreferences
                 )
             }
@@ -106,10 +114,27 @@ struct PlayerRotationFixture: View {
         PlozziOSPlayerView(
             request: request, provider: RotationProvider(probe: probe), orientation: orientation
         )
+        .overlay {
+            if ProcessInfo.processInfo.arguments.contains("--gesture-player-fixture") {
+                Color.clear
+                    .frame(width: 280, height: 160)
+                    .accessibilityElement()
+                    .accessibilityLabel("Video pinch area")
+                    .accessibilityIdentifier("gesture-pinch-area")
+                    .allowsHitTesting(false)
+            }
+        }
         .overlay(alignment: .topTrailing) {
             VStack {
                 Text("Loads \(probe.count)").accessibilityIdentifier("rotation-load-count")
                 Text("\(probe.interfaceOrientation)").accessibilityIdentifier("rotation-interface-orientation")
+                if ProcessInfo.processInfo.arguments.contains("--gesture-player-fixture") {
+                    Text(verbatim: probe.playbackRate.map { String($0) } ?? "unavailable")
+                        .accessibilityIdentifier("gesture-rate")
+                    Text(verbatim: probe.maximumRate.map { String($0) } ?? "unavailable")
+                        .accessibilityIdentifier("gesture-maximum-rate")
+                    Text(verbatim: probe.videoFit).accessibilityIdentifier("gesture-video-fit")
+                }
             }
             .foregroundStyle(.white)
         }
@@ -130,26 +155,53 @@ struct PlayerRotationFixture: View {
 
     @MainActor
     private func markVideo(in view: UIView) {
-        if view is VideoPresentationView {
+        if let presentation = view as? VideoPresentationView {
             view.isAccessibilityElement = true
             view.accessibilityIdentifier = "rotation-video-surface"
+            if ProcessInfo.processInfo.arguments.contains("--gesture-player-fixture") {
+                let rate = playbackRate(in: presentation.layer)
+                probe.playbackRate = rate
+                if let rate { probe.maximumRate = max(probe.maximumRate ?? rate, rate) }
+                if let rect = presentation.videoRect, let window = view.window {
+                    let safe = view.convert(window.safeAreaLayoutGuide.layoutFrame, from: window)
+                    probe.videoFit = safe.insetBy(dx: -1, dy: -1).contains(rect) ? "safe" : "cropped"
+                }
+            }
         }
         for child in view.subviews { markVideo(in: child) }
+    }
+
+    @MainActor
+    private func playbackRate(in layer: CALayer) -> Double? {
+        if let player = (layer as? AVPlayerLayer)?.player { return Double(player.rate) }
+        if let display = layer as? AVSampleBufferDisplayLayer {
+            // Plozzigen's software route renders against its synchronizer, not an AVPlayer.
+            // The renderer's own rate can remain 1 while its source timebase runs at 2.
+            let rate = CMTimebaseGetEffectiveRate(display.sampleBufferRenderer.timebase)
+            return rate.isFinite ? rate : nil
+        }
+        for child in layer.sublayers ?? [] {
+            if let rate = playbackRate(in: child) { return rate }
+        }
+        return nil
     }
 }
 
 private struct RotationProvider: MediaProvider, StreamingQualityProviding {
+    private static var failsPlayback: Bool {
+        ProcessInfo.processInfo.arguments.contains("--failed-player-fixture")
+    }
     private static var embyStreaming: Bool {
         ProcessInfo.processInfo.arguments.contains("--emby-streaming-fixture")
     }
     static var media: MediaItem {
         MediaItem(
-            id: "rotation", title: "Rotation fixture", kind: embyStreaming ? .movie : .video, runtime: 180,
+            id: "rotation", title: "Rotation fixture", kind: embyStreaming || failsPlayback ? .movie : .video, runtime: 180,
             allowsTitleBasedMetadataMatching: false
         )
     }
     let probe: RotationLoadProbe
-    var kind: ProviderKind { Self.embyStreaming ? .emby : .jellyfin }
+    var kind: ProviderKind { Self.failsPlayback ? .silo : Self.embyStreaming ? .emby : .jellyfin }
     var session: UserSession {
         UserSession(
             server: MediaServer(
@@ -170,6 +222,9 @@ private struct RotationProvider: MediaProvider, StreamingQualityProviding {
     func search(query: String, limit: Int) async throws -> [MediaItem] { [] }
     func playbackInfo(for itemID: String) async throws -> PlaybackRequest {
         await MainActor.run { probe.count += 1 }
+        if Self.failsPlayback {
+            throw StreamingQualityError.serverRefusal("Synthetic playback preparation failure.")
+        }
         let file = try await Self.movie()
         let url = try await probe.playbackURL(file: file, streaming: Self.embyStreaming)
         return PlaybackRequest(item: Self.media, streamURL: url)

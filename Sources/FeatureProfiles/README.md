@@ -20,6 +20,10 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   and hit target. Palette resolution lives here, not in Foundation-only `CoreModels`.
 - `ProfileTileColor` — the colour palette and the deterministic
   `colorIndex → Color` resolution used by avatar / tile / picker.
+- `ProfileNameLabel` — shared picker and summary name with an inline lock
+  for profiles with a Plozz Profile Lock. The indicator and VoiceOver value
+  describe the configured lock, not temporary unlock state, Plex PINs, or Kids
+  restrictions. Settings lists retain their existing lock indicators.
 - `ProfilePhotoCandidate` — value type for profile photos borrowed from
   connected accounts and Plex Home users.
 

@@ -725,6 +725,9 @@ final class SettingsInteractionTests: XCTestCase {
         capture("playback-simplified")
 
         let local = button("Local network")
+        XCTAssertTrue(local.isEnabled)
+        XCTAssertFalse(app.buttons["streaming-unavailable"].exists)
+        XCTAssertFalse(app.staticTexts["Unavailable for network shares."].exists)
         local.tap()
         XCTAssertTrue(app.buttons["1080p · 8 Mbps"].waitForExistence(timeout: 3))
         app.buttons["1080p · 8 Mbps"].tap()
@@ -761,6 +764,33 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(codec.waitForExistence(timeout: 5))
         XCTAssertEqual(codec.value as? String, "Prefer H.264")
         XCTAssertEqual(force.value as? String, "1")
+    }
+
+    func testStreamingQualityMakesShareOnlyRestrictionExplicit() {
+        launchPlayback("--share-only-playback")
+        let quality = app.buttons["streaming-unavailable"]
+        XCTAssertTrue(quality.waitForExistence(timeout: 5))
+        XCTAssertFalse(quality.isEnabled)
+        XCTAssertTrue(quality.staticTexts["Original quality"].exists)
+        XCTAssertTrue(app.staticTexts["Unavailable for network shares."].exists)
+        XCTAssertFalse(button("Local network").exists)
+        XCTAssertFalse(button("Remote Wi-Fi / Ethernet").exists)
+        XCTAssertFalse(button("Cellular").exists)
+        XCTAssertFalse(app.buttons["streaming-advanced"].exists)
+        XCTAssertTrue(app.buttons["playback-read-ahead"].isEnabled)
+        capture("playback-quality-unavailable")
+    }
+
+    func testUnavailableStreamingQualityExplanationRemainsVisibleAtAccessibilitySize() {
+        launchPlayback("--share-only-playback", "--large-text")
+        let quality = app.buttons["streaming-unavailable"]
+        reveal(quality, fullyVisible: true)
+        XCTAssertFalse(quality.isEnabled)
+        XCTAssertTrue(quality.staticTexts["Original quality"].exists)
+        let explanation = app.staticTexts["Unavailable for network shares."]
+        reveal(explanation, fullyVisible: true)
+        XCTAssertTrue(explanation.isHittable)
+        capture("playback-quality-unavailable-large-text")
     }
 
     func testPlaybackAdvancedKeepsUnsupportedCodecsDisabled() {
@@ -822,10 +852,50 @@ final class SettingsInteractionTests: XCTestCase {
         capture("playback-large-text")
     }
 
-    private func launchPlayback(_ argument: String? = nil) {
+    func testReadAheadPresetsPersistForShareOnlyPlayback() {
+        launchPlayback("--share-only-playback", "--reset-read-ahead")
+        let picker = app.buttons["playback-read-ahead"]
+        reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.staticTexts["Automatic"].exists)
+        for choice in ["1 minute", "5 minutes", "10 minutes", "Maximum available", "Automatic", "10 minutes"] {
+            picker.tap()
+            XCTAssertTrue(app.buttons[choice].waitForExistence(timeout: 3))
+            app.buttons[choice].tap()
+            XCTAssertTrue(picker.staticTexts[choice].exists)
+        }
+        capture("read-ahead-share-only")
+        app.terminate()
+        launchPlayback("--share-only-playback")
+        reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.staticTexts["10 minutes"].exists)
+        picker.tap()
+        app.buttons["Automatic"].tap()
+    }
+
+    func testReadAheadMaximumRemainsEditableAtAccessibilitySize() {
+        launchPlayback("--large-text", "--reset-read-ahead")
+        let picker = app.buttons["playback-read-ahead"]
+        reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.label.contains("Video buffer"))
+        picker.tap()
+        XCTAssertTrue(app.buttons["Maximum available"].waitForExistence(timeout: 3))
+        app.buttons["Maximum available"].tap()
+        XCTAssertTrue(picker.staticTexts["Maximum available"].exists)
+        let explanation = app.staticTexts[
+            "Larger buffers use more storage. Unavailable with Apple’s native player."
+        ]
+        reveal(explanation, fullyVisible: true)
+        XCTAssertTrue(explanation.isHittable)
+        capture("read-ahead-maximum-large-text")
+        reveal(picker, fullyVisible: true)
+        picker.tap()
+        app.buttons["Automatic"].tap()
+    }
+
+    private func launchPlayback(_ arguments: String...) {
         app.launchArguments = [
             "--playback-settings-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
-        ] + (argument.map { [$0] } ?? [])
+        ] + arguments
         app.launch()
         XCTAssertTrue(app.navigationBars["Playback"].waitForExistence(timeout: 5))
     }
