@@ -590,7 +590,7 @@ struct PlaybackDetailView: View {
                         ForEach(upNextRows) { $0.detail() }
                     }
                 }
-            ] + versionSelectionRows + skipIntroRows + [
+            ] + versionSelectionRows + readAheadRows + skipIntroRows + [
                 SettingsSplitRow(id: "seeking", title: "Seeking") {
                     SettingsControlRows {
                         ForEach(skipIntervalRows) { $0.detail() }
@@ -614,14 +614,18 @@ struct PlaybackDetailView: View {
             + skipIntroRows
             + skipIntervalRows
             + resumeRows
-            + [
-                SettingsSplitRow(id: "read-ahead", title: "Video buffer") {
-                    PlaybackReadAheadControl()
-                }
-            ]
+            + readAheadRows
             + scrubbingRows
             + displayFadeRows
             + upNextRows
+    }
+
+    private var readAheadRows: [SettingsSplitRow] {
+        [
+            SettingsSplitRow(id: "read-ahead", title: "Video buffer") {
+                PlaybackReadAheadControl()
+            }
+        ]
     }
 
     private var subtitleRows: [SettingsSplitRow] {

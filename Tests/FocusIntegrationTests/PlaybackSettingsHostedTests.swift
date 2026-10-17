@@ -144,7 +144,8 @@ final class PlaybackSettingsHostedTests: XCTestCase {
             }
             for label in [
                 "Version selection", "Choose on first play", "Ask every time", "Remember my choice",
-                "Skip intros, credits", "Set each marker separately", "Use community markers"
+                "Skip intros, credits", "Set each marker separately", "Use community markers",
+                "Video buffer", "1 minute", "5 minutes", "10 minutes", "Maximum available"
             ] {
                 XCTAssertTrue(visible.contains(label), "Missing inline control \(label): \(visible)")
             }
