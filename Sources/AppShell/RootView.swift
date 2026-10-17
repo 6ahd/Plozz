@@ -928,6 +928,7 @@ public struct RootView: View {
         // model is rebuilt on profile switch by AppState, so each profile gets its
         // own tint without re-architecting this call site.
         .installNightShiftOverlay(appState.profileSettings.nightShiftModel)
+        .modifier(ReducedMotion())
     }
 
     /// Keeps status reads inside the leaf view that renders them. Reading the

@@ -770,6 +770,9 @@ final class PlozziOSAppModel {
             self?.universalWatchlistShouldResumeAuthentication = true
             Task { await self?.prepareUniversalWatchlist() }
         }
+        accountsProviders.onActiveAccountsChanged = { [weak self] _, _ in
+            self?.plexHomeUsers.activeAccountsDidChange()
+        }
         accountsProviders.credentialRevision = { [weak self] account in
             self?.plexHomeUsers.effectiveCredentialRevision(for: account)
                 ?? account.credentialRevision
@@ -1624,6 +1627,12 @@ final class PlozziOSAppModel {
             await Task.yield()
             resumeProfileOnboardingIfNeeded()
         }
+        refreshActiveProfileConfiguration()
+    }
+
+    /// Reapply settings and reconcile sources without granting a new profile
+    /// activation or discarding an unchanged Plex authentication in progress.
+    func refreshActiveProfileConfiguration() {
         settings = PlozziOSSettingsModel(
             namespace: profiles.activeNamespace,
             allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
@@ -1635,8 +1644,8 @@ final class PlozziOSAppModel {
             namespace: profiles.activeNamespace
         )
         transitionDownloads(to: profiles.activeProfileID)
-        plexHomeUsers.ensurePlexIdentityForActiveProfile()
         reloadAccountsAndCrashContext()
+        plexHomeUsers.ensurePlexIdentityForActiveProfile()
         identityIndex.reset()
         identityIndex.warmIdentityIndex()
         drainWatchOutbox()
@@ -2422,9 +2431,11 @@ final class PlozziOSAppModel {
                 namespace: profiles.activeNamespace
             )
             transitionDownloads(to: profiles.activeProfileID)
-            plexHomeUsers.ensurePlexIdentityForActiveProfile()
         }
         reloadAccountsAndCrashContext()
+        if profiles.activeProfileID != previousActiveProfileID {
+            plexHomeUsers.ensurePlexIdentityForActiveProfile()
+        }
         identityIndex.reset()
         identityIndex.warmIdentityIndex()
         drainWatchOutbox()

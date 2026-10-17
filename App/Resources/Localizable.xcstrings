@@ -668072,6 +668072,226 @@
         }
       }
     },
+    "Sign in to the last-used profile automatically on this device." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تسجيل الدخول تلقائيًا إلى آخر ملف شخصي استُخدم على هذا الجهاز."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Автоматично влизане в последно използвания профил на това устройство."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inicia sessió automàticament amb l'últim perfil utilitzat en aquest dispositiu."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automaticky se přihlásit do naposledy použitého profilu na tomto zařízení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log automatisk ind på den senest brugte profil på denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Auf diesem Gerät automatisch mit dem zuletzt verwendeten Profil anmelden."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αυτόματη σύνδεση στο προφίλ που χρησιμοποιήθηκε τελευταίο σε αυτήν τη συσκευή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Iniciar sesión automáticamente con el último perfil usado en este dispositivo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "در این دستگاه به‌طور خودکار وارد آخرین نمایهٔ استفاده‌شده شوید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kirjaudu tällä laitteella automaattisesti viimeksi käytettyyn profiiliin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se connecter automatiquement au dernier profil utilisé sur cet appareil."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "התחברות אוטומטית לפרופיל האחרון שהיה בשימוש במכשיר הזה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "इस डिवाइस पर पिछली बार इस्तेमाल की गई प्रोफ़ाइल में स्वचालित रूप से साइन इन करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatski se prijavite u posljednji korišteni profil na ovom uređaju."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatikus bejelentkezés az eszközön legutóbb használt profilba."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Masuk secara otomatis ke profil yang terakhir digunakan di perangkat ini."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Accedi automaticamente all'ultimo profilo utilizzato su questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このデバイスで最後に使用したプロファイルに自動でサインインします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 기기에서 마지막으로 사용한 프로필로 자동 로그인합니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Log masuk secara automatik ke profil yang terakhir digunakan pada peranti ini."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logg automatisk på profilen som sist ble brukt på denne enheten."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Meld je op dit apparaat automatisch aan met het laatst gebruikte profiel."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatycznie loguj się do ostatnio używanego profilu na tym urządzeniu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Entre automaticamente no último perfil usado neste dispositivo."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conectează-te automat la ultimul profil folosit pe acest dispozitiv."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Автоматически входить в последний использованный профиль на этом устройстве."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na tomto zariadení sa automaticky prihlásiť do naposledy použitého profilu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Samodejno se prijavi v nazadnje uporabljeni profil na tej napravi."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Automatski se prijavite na poslednji korišćeni profil na ovom uređaju."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logga automatiskt in på den senast använda profilen på den här enheten."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ลงชื่อเข้าใช้โปรไฟล์ที่ใช้ล่าสุดบนอุปกรณ์นี้โดยอัตโนมัติ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu cihazda son kullanılan profille otomatik olarak oturum aç."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Автоматично входити в останній використаний профіль на цьому пристрої."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tự động đăng nhập vào hồ sơ được dùng gần nhất trên thiết bị này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在此设备上自动登录上次使用的个人资料。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在此裝置上自動登入上次使用的個人檔案。"
+          }
+        }
+      }
+    },
     "Sign in with username & password" : {
       "localizations" : {
         "ar" : {

@@ -1291,6 +1291,7 @@ public final class AppState {
             Task { await self?.prepareUniversalWatchlist() }
         }
         accountsProviders.onActiveAccountsChanged = { [weak self] resolved, accounts in
+            self?.plexHomeUsers.activeAccountsDidChange()
             self?.mediaShare.setActiveShareAccounts(resolved, accounts: accounts)
         }
         mediaShareWorkScope.start()

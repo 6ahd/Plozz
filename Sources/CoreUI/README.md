@@ -19,6 +19,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   bottom above the fixed action while more content remains; the final rows stay
   undimmed at the end.
 
+- **Reduce Motion** — `ReducedMotion` suppresses explicit and implicit SwiftUI
+  animations at the TV app root without removing layout offsets or replacing
+  view identity. Native hero artwork uses a crossfade instead of a parallax wipe;
+  changing the system preference finishes an in-flight wipe. Timeline-driven
+  liquid backgrounds and player-menu marquees also stop their decorative motion.
+  Native focus feedback and meaningful playback/countdown progress remain available.
+
 - **First-use choices** — `FirstUseChoiceView` shares the Live TV preview and
   playback-version introduction heading, native actions, and Settings reminder.
   Hosts own persistence and cancellation; dismissing a version prompt never
@@ -422,6 +429,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   The alpha-derived highlight mask produced an offset crescent at extreme tilt.
   Continue Watching, landscape/square artwork, transparent landscape library
   covers keep their no-internal-zoom alpha-masked path.
+  Alpha-masked images arm native enlargement only on actual focus and release
+  it after the native defocus animation. This keeps newly mounted episode
+  previews at their 480pt artwork width with 40pt gaps, rather than painting
+  every preview at its enlarged focus width. Portraits keep UIKit's mask active
+  at rest so opaque artwork retains its native rounded corners.
   Portrait artwork and placeholders are opaque rectangles; UIKit alone rounds
   the visible surface. Pre-rounded alpha pixels beneath that native mask create
   a second corner silhouette that can separate from the highlight. Transparent

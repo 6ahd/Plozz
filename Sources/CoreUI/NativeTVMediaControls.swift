@@ -296,12 +296,18 @@ final class NativePosterImageView: UIImageView {
     let indicatorView = UIImageView()
     private var indicatorPlacement: NativePosterOverlayPlacement?
     private var indicatorLayoutDirection = LayoutDirection.leftToRight
-    private var artworkFocused = false
+    private var artworkFocused = false {
+        didSet {
+            // Alpha-masked artwork can mount at its lifted size if armed
+            // before real focus, consuming the episode rail's gaps.
+            if artworkFocused { adjustsImageWhenAncestorFocused = true }
+        }
+    }
 
     init(masksFocusEffectToContents: Bool) {
         super.init(frame: .zero)
-        adjustsImageWhenAncestorFocused = true
         self.masksFocusEffectToContents = masksFocusEffectToContents
+        adjustsImageWhenAncestorFocused = !masksFocusEffectToContents
         clipsToBounds = false
         isUserInteractionEnabled = false
         indicatorView.isUserInteractionEnabled = false
@@ -319,6 +325,9 @@ final class NativePosterImageView: UIImageView {
         artworkFocused = focused
         coordinator.addCoordinatedAnimations { [weak self] in
             self?.layoutIndicator()
+        } completion: { [weak self] in
+            guard let self, !artworkFocused, masksFocusEffectToContents else { return }
+            adjustsImageWhenAncestorFocused = false
         }
     }
 
@@ -733,6 +742,7 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
         container.aspectRatio = aspectRatio
         if view.artworkView.masksFocusEffectToContents != (aspectRatio >= 1) {
             view.artworkView.masksFocusEffectToContents = aspectRatio >= 1
+            view.artworkView.adjustsImageWhenAncestorFocused = view.isFocused || aspectRatio < 1
         }
         configureArtwork(view, context: context)
         view.isEnabled = context.environment.isEnabled
