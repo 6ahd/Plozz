@@ -523,31 +523,25 @@ public struct SettingsView: View {
     @ViewBuilder
     private var profileOwnedRows: some View {
         SettingsControlRows(dividerLeadingInset: SettingsRowMetrics.iconTitleInset) {
-            sectionRow("Playback", icon: "play.rectangle", route: .playback)
-            sectionRow("Subtitles", icon: "captions.bubble", route: .subtitles)
-            sectionRow("Live TV", icon: "antenna.radiowaves.left.and.right", route: .liveTV)
-            // On a Kids Profile this moves to `parentalControlsSection` instead:
-            // it's a parent's setting, and grouping it with the child's own
-            // preferences made the two look equally theirs.
-            if !showsParentalControlsSection {
-                SettingsLibrariesRow(
-                    accounts: accounts,
-                    isAccountIncluded: isAccountIncludedInActiveProfile
-                )
+            ForEach(ProfileSettingsCategory.allCases) { category in
+                switch category {
+                case .libraries:
+                    if showsParentalControlsSection {
+                        sectionRow(KidsProfileCopy.nameAndAvatar, icon: "person.crop.circle",
+                                   route: .profileAppearance(profileID: activeProfile.id))
+                    } else {
+                        SettingsLibrariesRow(
+                            accounts: accounts,
+                            isAccountIncluded: isAccountIncludedInActiveProfile
+                        )
+                    }
+                case .language:
+                    AppLanguagePicker(model: appLanguage, isCategoryRow: true)
+                default:
+                    sectionRow(category.title, icon: category.symbol,
+                               subtitle: category.summary.map { Text($0) }, route: category.settingsRoute)
+                }
             }
-            // Only when Parental Controls has taken the management page away.
-            // Otherwise this would duplicate the Appearance row inside it.
-            if showsParentalControlsSection {
-                sectionRow(KidsProfileCopy.nameAndAvatar, icon: "person.crop.circle",
-                       route: .profileAppearance(profileID: activeProfile.id))
-            }
-            sectionRow("Appearance", icon: "paintpalette",
-                       subtitle: Text("Theme, cards, artwork, and spoilers"), route: .appearance)
-            sectionRow("Screens & Navigation", icon: "rectangle.3.group",
-                       subtitle: Text("Home, navigation, detail pages, and music"), route: .screensNavigation)
-            sectionRow("Trackers", icon: "link",
-                       subtitle: Text("Trakt, Simkl, AniList, MyAnimeList, Last.fm"), route: .integrations)
-            AppLanguagePicker(model: appLanguage, isCategoryRow: true)
             // The profile's own PIN gate. Belongs to the profile (it travels with
             // it to every device), so it sits here rather than in the shared
             // section — even though "who can open this" reads like a household
@@ -1317,6 +1311,21 @@ public struct SettingsView: View {
         value: Text? = nil, subtitle: Text? = nil, route: SettingsRoute
     ) -> some View {
         SettingsSectionButton(title: Text(title), icon: icon, value: value, subtitle: subtitle, route: route)
+    }
+}
+
+private extension ProfileSettingsCategory {
+    var settingsRoute: SettingsRoute {
+        switch self {
+        case .playback: .playback
+        case .subtitles: .subtitles
+        case .liveTV: .liveTV
+        case .libraries: .myLibraries
+        case .appearance: .appearance
+        case .screensNavigation: .screensNavigation
+        case .trackers: .integrations
+        case .language: .language
+        }
     }
 }
 

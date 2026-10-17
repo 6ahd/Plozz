@@ -101,17 +101,21 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertFalse(app.buttons["Huge"].exists)
     }
 
-    func testDisplaySizeRemainsAnIndependentMenu() {
+    func testDisplaySizeIsLastInCardsAndRemainsAnIndependentMenu() {
         launch()
+        XCTAssertFalse(app.buttons["appearance-display-size"].exists)
+        app.buttons["appearance-cards"].tap()
         let size = app.buttons["appearance-display-size"]
-        XCTAssertTrue(size.waitForExistence(timeout: 5), app.debugDescription)
+        reveal(size, fullyVisible: true)
+        let style = app.staticTexts["STYLE"].firstMatch
+        XCTAssertTrue(style.exists)
+        XCTAssertLessThan(style.frame.minY, size.frame.minY)
         size.tap()
         XCTAssertTrue(app.buttons["Small"].waitForExistence(timeout: 3), app.debugDescription)
         app.buttons["Small"].tap()
-        XCTAssertTrue(app.navigationBars["Appearance"].exists)
+        XCTAssertTrue(app.navigationBars["Cards"].exists)
         XCTAssertTrue(size.staticTexts["Small"].exists, app.debugDescription)
-        app.buttons["appearance-cards"].tap()
-        XCTAssertTrue(app.navigationBars["Cards"].waitForExistence(timeout: 3), app.debugDescription)
+        capture("cards-display-size-last")
     }
 
     func testCardsOpenFromTheFullSettingsNavigation() {
@@ -120,6 +124,86 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Cards"].waitForExistence(timeout: 3), app.debugDescription)
         assertInlineTitle("Cards")
         XCTAssertFalse(app.buttons["Micro"].exists)
+    }
+
+    func testRootOrganizationMatchesAcrossAdaptiveLayouts() {
+        let titles = [
+            "Playback", "Subtitles", "Live TV", "Libraries", "Appearance",
+            "Screens & Navigation", "Trackers", "Language"
+        ]
+        for arguments in [[], ["--compact-settings"], ["--large-text"]] {
+            launch(settingsRoot: true, arguments: arguments)
+            capture("settings-root-\(arguments.joined())")
+            for title in titles {
+                let row = categoryButton(title)
+                reveal(row, settingsMenu: true)
+                XCTAssertTrue(row.isHittable, title)
+            }
+            XCTAssertTrue(categoryButton("Language").staticTexts["Language"].exists,
+                          "The native menu must include the setting's label, not only its current language.")
+            capture("settings-language-\(arguments.joined())")
+            XCTAssertFalse(button("Customize Home").exists)
+            XCTAssertFalse(button("Detail Page").exists)
+            XCTAssertFalse(button("Circadian Mode").exists)
+            XCTAssertFalse(button("Spoiler Protection").exists)
+            categoryButton("Language").tap()
+            XCTAssertTrue(app.buttons["English"].waitForExistence(timeout: 3), app.debugDescription)
+            app.buttons["English"].tap()
+            XCTAssertTrue(categoryButton("Language").isHittable)
+            for title in ["Servers", "Profiles", "Parental PIN", "Seerr", "iCloud Sync", "Metadata Providers", "Downloads"] {
+                let row = button(title)
+                reveal(row, settingsMenu: true)
+                XCTAssertTrue(row.isHittable)
+            }
+            capture("settings-everyone-\(arguments.joined())")
+            reveal(button("Help & Diagnostics"), settingsMenu: true)
+            XCTAssertTrue(app.staticTexts["Version"].exists)
+            XCTAssertTrue(app.links["Discord"].exists || app.buttons["Discord"].exists)
+            capture("settings-community-\(arguments.joined())")
+            app.terminate()
+        }
+    }
+
+    func testNestedAppearanceAndScreensKeepIndependentNavigation() {
+        for title in ["Appearance", "Screens & Navigation"] {
+            openSettingsPage(title)
+            let children = title == "Appearance"
+                ? ["Theme", "Cards", "Artwork", "Spoiler Protection", "Circadian Mode"]
+                : ["Customize Home", "Navigation", "Detail Page"]
+            for child in children {
+                let row = button(child)
+                reveal(row)
+                row.tap()
+                XCTAssertTrue(app.navigationBars[child].waitForExistence(timeout: 5), app.debugDescription)
+                capture("settings-child-\(child)")
+                app.navigationBars.buttons["BackButton"].tap()
+                XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
+            }
+            app.terminate()
+        }
+    }
+
+    func testKidsLibrariesRemainGatedWithTheAlignedCategories() {
+        for arguments in [["--kids-settings", "--parental-pin"],
+                          ["--kids-settings", "--parental-pin", "--compact-settings"]] {
+            launch(settingsRoot: true, arguments: arguments)
+            XCTAssertTrue(categoryButton("Playback").exists)
+            XCTAssertFalse(categoryButton("Libraries").exists)
+            XCTAssertFalse(button("Servers").exists)
+            let library = button("Libraries")
+            reveal(library, settingsMenu: true)
+            library.tap()
+            XCTAssertTrue(app.staticTexts["Enter the Parental PIN"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(app.buttons["Add Server"].exists)
+            capture("settings-kids-parental-gate-\(arguments.joined())")
+            app.terminate()
+        }
+        launch(settingsRoot: true, arguments: ["--kids-settings"])
+        let library = categoryButton("Libraries")
+        reveal(library, settingsMenu: true)
+        library.tap()
+        XCTAssertTrue(app.navigationBars["Libraries"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(app.staticTexts["Enter the Parental PIN"].exists)
     }
 
     func testSyncBreakdownAndReviewPreview() {
@@ -256,7 +340,11 @@ final class SettingsInteractionTests: XCTestCase {
 
     func testThemeMenusAndToggleKeepSeparateActions() {
         launch()
-        let appearance = button("Appearance")
+        app.buttons["appearance-theme"].tap()
+        XCTAssertTrue(app.navigationBars["Theme"].waitForExistence(timeout: 5))
+        let appearance = app.collectionViews.buttons.matching(NSPredicate(
+            format: "label == %@ OR label BEGINSWITH %@", "Appearance", "Appearance,"
+        )).firstMatch
         appearance.tap()
         XCTAssertTrue(app.buttons["Light"].waitForExistence(timeout: 3), app.debugDescription)
         app.buttons["Light"].tap()
@@ -271,7 +359,7 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(app.buttons["System"].waitForExistence(timeout: 3), app.debugDescription)
         XCTAssertFalse(app.buttons["Light"].exists)
         app.buttons["System"].tap()
-        XCTAssertTrue(app.navigationBars["Appearance"].exists)
+        XCTAssertTrue(app.navigationBars["Theme"].exists)
     }
 
     func testLabelEditsEnterCustomAndPresetsReplaceAllViews() {
@@ -559,8 +647,8 @@ final class SettingsInteractionTests: XCTestCase {
 
     func testSettingsSectionsOpenTheirOwnDestinations() {
         for title in [
-            "Trackers", "Appearance", "Customize Home", "Live TV", "Detail Page",
-            "Playback", "Subtitles", "Spoilers", "Circadian Mode",
+            "Playback", "Subtitles", "Live TV", "Libraries", "Appearance", "Screens & Navigation",
+            "Trackers", "Customize Home", "Navigation", "Detail Page", "Theme", "Spoiler Protection", "Circadian Mode",
             "Profiles", "Servers", "Downloads", "Seerr", "Metadata Providers", "Help & Diagnostics", "Attributions"
         ] {
             openSettingsPage(title)
@@ -743,7 +831,7 @@ final class SettingsInteractionTests: XCTestCase {
     }
 
     func testSpoilerSwitchesAndMenuRemainIndependent() {
-        openSettingsPage("Spoilers", verifyTitleLayout: false)
+        openSettingsPage("Spoiler Protection", verifyTitleLayout: false)
         let protection = app.switches["Protect unwatched episodes"]
         let ratings = app.switches["Hide ratings until watched"]
         let treatment = button("Thumbnail treatment")
@@ -1006,17 +1094,20 @@ final class SettingsInteractionTests: XCTestCase {
         _ title: String, verifyTitleLayout: Bool = true, arguments: [String] = []
     ) {
         launch(settingsRoot: true, arguments: arguments)
-        let usesAboutPage = app.windows.firstMatch.frame.width >= 600
-            && ["Help & Diagnostics", "Attributions"].contains(title)
-        if usesAboutPage {
-            let about = button("About")
-            reveal(about, settingsMenu: true)
-            about.tap()
-            XCTAssertTrue(app.navigationBars["About"].waitForExistence(timeout: 3), app.debugDescription)
+        let parent: String? = switch title {
+        case "Customize Home", "Navigation", "Detail Page": "Screens & Navigation"
+        case "Theme", "Spoiler Protection", "Circadian Mode": "Appearance"
+        default: nil
+        }
+        if let parent {
+            let row = categoryButton(parent)
+            reveal(row, settingsMenu: true)
+            row.tap()
+            XCTAssertTrue(app.navigationBars[parent].waitForExistence(timeout: 3), app.debugDescription)
         }
 
-        let row = button(title)
-        reveal(row, settingsMenu: !usesAboutPage)
+        let row = parent == nil ? categoryButton(title) : button(title)
+        reveal(row, settingsMenu: parent == nil)
         row.tap()
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3), app.debugDescription)
         if verifyTitleLayout { assertInlineTitle(title) }
@@ -1038,11 +1129,13 @@ final class SettingsInteractionTests: XCTestCase {
         let sidebar = app.navigationBars["Settings"]
         // iPad reports a full-window bar, but centers its title in the detail column.
         if sidebar.exists, sidebar.frame.width < bar.frame.width {
-            if sidebar.frame.minX <= bar.frame.minX {
-                titleRegion.origin.x = sidebar.frame.maxX
-                titleRegion.size.width = bar.frame.maxX - sidebar.frame.maxX
+            // Floating iPad sidebars have an outer inset and the same gap on their inner edge.
+            if sidebar.frame.midX < bar.frame.midX {
+                titleRegion.origin.x = sidebar.frame.maxX + max(0, sidebar.frame.minX - bar.frame.minX)
+                titleRegion.size.width = bar.frame.maxX - titleRegion.minX
             } else {
                 titleRegion.size.width = sidebar.frame.minX - bar.frame.minX
+                    - max(0, bar.frame.maxX - sidebar.frame.maxX)
             }
         }
         XCTAssertEqual(heading.frame.midX, titleRegion.midX, accuracy: 4, app.debugDescription)
@@ -1060,6 +1153,18 @@ final class SettingsInteractionTests: XCTestCase {
         app.buttons.matching(NSPredicate(
             format: "label == %@ OR label BEGINSWITH %@", title, title + ","
         )).firstMatch
+    }
+
+    private func categoryButton(_ title: String) -> XCUIElement {
+        let identifiers = [
+            "Playback": "playback", "Subtitles": "subtitles", "Live TV": "liveTV",
+            "Libraries": "libraries", "Appearance": "appearance",
+            "Screens & Navigation": "screensNavigation", "Trackers": "trackers", "Language": "language"
+        ]
+        if let identifier = identifiers[title] {
+            return app.buttons["settings-category-\(identifier)"]
+        }
+        return button(title)
     }
 
     private func seconds(_ count: Int) -> String {

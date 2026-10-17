@@ -5,6 +5,22 @@ and the single place caption customization lives.
 
 ## Responsibility
 
+- `ProfileSettingsCategory` in CoreUI owns the cross-platform profile category
+  order, names, icons, and summaries: Playback, Subtitles, Live TV, Libraries,
+  Appearance, Screens & Navigation, Trackers, Language. iPhone and compact iPad
+  use native push navigation; regular-width iPad uses a sidebar and detail stack.
+  Both mobile layouts share their category section and destinations. Appearance
+  groups Theme, Cards, Artwork, Spoiler Protection, and Circadian Mode; Display
+  Size is last inside Cards. Screens & Navigation groups Customize Home,
+  Navigation, and Detail Page; Music Player remains TV-only because mobile does
+  not implement those presentation choices. Mobile navigation editing still
+  excludes unsupported individual library tabs and Music/All Libraries entries.
+  Everyone uses the TV order, with mobile-only Downloads last. Version/build,
+  release notes, and community links are inline on both mobile root layouts.
+  Kids-profile gates and profile/household storage ownership are unchanged.
+  `SettingsLibrarySourcesSummary` shares configured source grouping and profile
+  inclusion with TV; mobile stacks the source icons/names to fit a narrow sidebar
+  and Dynamic Type rather than truncating them into a TV-sized horizontal strip.
 - `HeroSettingsControls` — Hero keeps content selection, watched filtering, item
   count, and automatic changes together, shared by TV and mobile. **Ratings** and
   **Trailers** each show their current On/Off state and open their detailed

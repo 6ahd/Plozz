@@ -59,6 +59,21 @@ public struct CardAppearanceControls: View {
             SettingsSectionGroup("Style") {
                 CompactCardStylePicker(selection: $cards.style, swatchHeight: 112)
             }
+            if let density {
+                @Bindable var density = density
+                SettingsSectionGroup("Display Size") {
+                    Picker("Display Size", selection: $density.density) {
+                        ForEach(UIDensity.allCases) { density in
+                            Label(density.displayName, systemImage: density.symbolName)
+                                .tag(density)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("appearance-display-size")
+                } footer: {
+                    Text("Scales card size, columns and spacing across the app.")
+                }
+            }
         }
         .settingsPageSurface()
         .navigationTitle("Cards")
