@@ -188,11 +188,19 @@ Uploads, internal availability, and pending review are not advertised as ready.
 The public beta link must still be enabled for that group.
 
 Each Apple version/build has one bot-owned message with its available platforms,
-Plozz display version when present in the catalog, TestFlight link, and published
-GitHub release-notes link when available. A platform that becomes available later
-updates that message instead of creating another announcement. Without a GitHub
-release, the message directs readers to TestFlight's notes and adds the link on
-a later check. Dotted hotfix builds remain distinct and sort numerically.
+Plozz display version, TestFlight link, and published GitHub release-notes link
+when available. Published releases read the catalog from their exact release tag
+and validate its release ID, build, and Apple version against TestFlight. The
+public date does not depend on the release entry already being merged into `main`.
+An unreadable or mismatched tagged catalog fails visibly rather than substituting
+Apple's retained marketing version.
+
+Before a GitHub release is published, the bot uses a matching entry from `main`
+if present; otherwise it announces only the build number, without inventing a
+public date. It directs readers to TestFlight's notes and adds the public date
+and release link on a later check. Platform availability and label corrections
+update the same message instead of creating another announcement. Dotted hotfix
+builds remain distinct and sort numerically.
 
 Setup:
 
@@ -215,6 +223,7 @@ Setup:
 
 Live jobs always execute the code on `main`, including release-triggered jobs;
 they do not run scripts from a release tag or a manually selected feature branch.
+Only release-catalog JSON is read from release tags; tagged code is never executed.
 They share a single concurrency group. Message footers and deterministic nonces
 provide retry deduplication without a database or expiring Actions cache. Existing
 bot messages are verified before writing; human copies of markers are ignored.

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import importlib.util
 import json
 import os
@@ -179,6 +180,40 @@ def inspect_channel(discord):
     return channel
 
 
+def published_release(build, github_releases):
+    matches = [
+        item for item in github_releases
+        if item.get("tag_name") == NOTES.release_tag(build) and item.get("draft") is False
+    ]
+    if len(matches) > 1:
+        raise Error("Duplicate published GitHub releases have the same release tag.")
+    return matches[0] if matches else None
+
+
+def announcement_catalog(release, catalog, github_releases, github):
+    if published_release(release["build"], github_releases) is None:
+        return catalog
+    tag = NOTES.release_tag(release["build"])
+    response = github.call(
+        "GET", f"/repos/{BRIDGE.REPO}/contents/App/Resources/ReleaseNotes.json",
+        query={"ref": f"refs/tags/{tag}"},
+    )
+    if (
+        not isinstance(response, dict) or response.get("type") != "file"
+        or response.get("encoding") != "base64" or not isinstance(response.get("content"), str)
+    ):
+        raise Error("GitHub returned an invalid tagged release catalog.")
+    try:
+        content = base64.b64decode("".join(response["content"].split()), validate=True)
+        tagged = NOTES.validate_catalog(json.loads(content.decode("utf-8")))
+        entry = NOTES.selected_release(tagged, tag, release["marketing"], None)
+        if NOTES.build_parts(entry["build"]) != NOTES.build_parts(release["build"]):
+            raise ValueError("Tagged build does not match TestFlight.")
+    except (ValueError, KeyError, TypeError):
+        raise Error("The tagged release catalog is invalid or does not match the TestFlight build.") from None
+    return tagged
+
+
 def announcement(release, catalog, github_releases):
     build, marketing = release["build"], release["marketing"]
     entries = [
@@ -186,17 +221,16 @@ def announcement(release, catalog, github_releases):
         if NOTES.build_parts(entry["build"]) == NOTES.build_parts(build)
         and NOTES.marketing_version(entry) == marketing
     ]
-    version = entries[0]["version"] if entries else marketing
+    label = f"{entries[0]['version']} ({build})" if entries else f"build {build}"
     tag = NOTES.release_tag(build)
     platforms = " and ".join(f"**{label}**" for platform, label in PLATFORMS.items() if platform in release["platforms"])
     description = f"Available now for {platforms}.\n\n[Update in TestFlight]({TESTFLIGHT})"
-    published = [item for item in github_releases if item.get("tag_name") == tag and item.get("draft") is False]
-    if published:
+    if published_release(build, github_releases) is not None:
         description += f" | [Release notes](https://github.com/{BRIDGE.REPO}/releases/tag/{tag})"
     else:
         description += "\nRelease notes are available in TestFlight."
     return {
-        "title": f"Plozz {version} ({build}) is on TestFlight",
+        "title": f"Plozz {label} is on TestFlight",
         "description": description,
         "url": TESTFLIGHT,
     }
@@ -208,7 +242,8 @@ def synchronize(discord, apple, github, catalog, minimum, *, publish=False):
     github_releases = github.pages(f"/repos/{BRIDGE.REPO}/releases")
     messages = BRIDGE.thread_messages(discord, CHANNEL)
     for release in releases:
-        embed = announcement(release, catalog, github_releases)
+        selected_catalog = announcement_catalog(release, catalog, github_releases, github)
+        embed = announcement(release, selected_catalog, github_releases)
         key = f"testflight:{release['marketing']}:{'.'.join(map(str, NOTES.build_parts(release['build'])))}"
         if publish:
             BRIDGE.discord_upsert(discord, channel, messages, key, embed)
