@@ -198,7 +198,7 @@ final class SettingsCommunityPresentationTests: XCTestCase {
         }
     }
 
-    func testLibrarySourceNamesFitNarrowRowsAndAccessibilityText() async throws {
+    func testLibrarySourceNamesStayInlineWithAdaptiveOverflow() async throws {
         let accounts: [Account] = [
             ("plex", "Family Plex", ProviderKind.plex),
             ("jellyfin", "Cinema Server", .jellyfin),
@@ -214,7 +214,10 @@ final class SettingsCommunityPresentationTests: XCTestCase {
                 userID: id, userName: id, deviceID: "test"
             )
         }
-        for (width, typeSize) in [(320.0, DynamicTypeSize.large), (320.0, .accessibility3), (390.0, .large)] {
+        for (width, typeSize) in [
+            (320.0, DynamicTypeSize.large), (320.0, .accessibility3),
+            (390.0, .large), (768.0, .large)
+        ] {
             let label = ScrollView {
                 SettingsSectionGroup {
                     PlozziOSSettingsCategoryLabel(
@@ -228,10 +231,18 @@ final class SettingsCommunityPresentationTests: XCTestCase {
                 label, size: CGSize(width: width, height: 844), light: false,
                 name: "library-sources-\(width)-\(typeSize)", initialOnly: true
             )
-            for name in ["Family Plex", "Cinema Server", "Archive NAS", "+1 more"] {
-                XCTAssertTrue(text.contains(name), text)
+            if typeSize.isAccessibilitySize {
+                XCTAssertTrue(text.contains("Fam"), "Keep part of the source name, not only an ellipsis: \(text)")
+                XCTAssertTrue(text.contains("+3"), text)
+            } else {
+                XCTAssertTrue(text.contains("Family Plex"), text)
+                let visibleCount = ["Family Plex", "Cinema Server", "Archive NAS"]
+                    .filter { text.contains($0) }.count
+                XCTAssertTrue(text.contains("+\(4 - visibleCount) more"), text)
+                if width == 768 { XCTAssertEqual(visibleCount, 3, text) }
             }
             XCTAssertFalse(text.contains("Weekend Silo"), text)
+            try assertLibrarySourcesShareOneLine()
         }
         let label = ScrollView {
             SettingsSectionGroup {
@@ -247,6 +258,25 @@ final class SettingsCommunityPresentationTests: XCTestCase {
         )
         XCTAssertTrue(text.contains("Weekend Silo"), text)
         XCTAssertFalse(text.contains("Family Plex"), text)
+        XCTAssertFalse(text.contains("more"), text)
+        try assertLibrarySourcesShareOneLine()
+    }
+
+    private func assertLibrarySourcesShareOneLine(file: StaticString = #filePath, line: UInt = #line) throws {
+        let image = try XCTUnwrap(capturedImages.last)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: image).perform([request])
+        let sources = (request.results ?? []).filter {
+            $0.topCandidates(1).first?.string.contains("Libraries") == false
+        }
+        let midpoints = sources.map { $0.boundingBox.midY * CGFloat(image.height) }
+        let first = try XCTUnwrap(midpoints.first, file: file, line: line)
+        for midpoint in midpoints {
+            XCTAssertEqual(midpoint, first, accuracy: 5,
+                           "Source names and overflow must share one line.", file: file, line: line)
+        }
     }
 
     private func assertJoinButtonFill(in image: CGImage, light: Bool) throws {

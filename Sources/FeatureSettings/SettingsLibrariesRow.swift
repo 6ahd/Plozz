@@ -70,21 +70,18 @@ public struct SettingsLibrarySourcesSummary: View {
             }
             .accessibilityElement(children: .combine)
             #else
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(groups.prefix(3)), id: \.serverKey) { group in
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        ProviderIcon(
-                            provider: group.providerKind, size: 16,
-                            mediaShareTransport: group.transportKind
-                        )
-                        .accessibilityHidden(true)
-                        Text(verbatim: group.serverName)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            ViewThatFits(in: .horizontal) {
+                if groups.count >= 3 {
+                    MobileLibrarySourcesStrip(groups: groups, visibleCount: 3)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
-                if groups.count > 3 {
-                    Text("+\(groups.count - 3) more")
+                if groups.count >= 2 {
+                    MobileLibrarySourcesStrip(groups: groups, visibleCount: 2)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+                MobileLibrarySourcesStrip(groups: groups, visibleCount: 1)
+                    .fixedSize(horizontal: true, vertical: false)
+                MobileLibrarySourcesStrip(groups: groups, visibleCount: 1, compactOverflow: true)
             }
             .accessibilityElement(children: .combine)
             #endif
@@ -99,4 +96,40 @@ public struct SettingsLibrarySourcesSummary: View {
         }
     }
 }
+
+#if !os(tvOS)
+private struct MobileLibrarySourcesStrip: View {
+    let groups: [ServerAccountGroup]
+    let visibleCount: Int
+    var compactOverflow = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(groups.prefix(visibleCount).enumerated()), id: \.element.serverKey) { index, group in
+                if index > 0 { Text(verbatim: "·") }
+                HStack(spacing: 6) {
+                    ProviderIcon(
+                        provider: group.providerKind, size: 16,
+                        mediaShareTransport: group.transportKind
+                    )
+                    .accessibilityHidden(true)
+                    Text(verbatim: group.serverName)
+                }
+            }
+            if groups.count > visibleCount {
+                Group {
+                    if compactOverflow {
+                        Text("+\(groups.count - visibleCount)")
+                            .accessibilityLabel(Text("+\(groups.count - visibleCount) more"))
+                    } else {
+                        Text("· +\(groups.count - visibleCount) more")
+                    }
+                }
+                .fixedSize()
+            }
+        }
+        .lineLimit(1)
+    }
+}
+#endif
 #endif

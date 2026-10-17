@@ -19,8 +19,10 @@ and the single place caption customization lives.
   release notes, and community links are inline on both mobile root layouts.
   Kids-profile gates and profile/household storage ownership are unchanged.
   `SettingsLibrarySourcesSummary` shares configured source grouping and profile
-  inclusion with TV; mobile stacks the source icons/names to fit a narrow sidebar
-  and Dynamic Type rather than truncating them into a TV-sized horizontal strip.
+  inclusion with TV. Mobile keeps the source icons/names on one horizontal line,
+  showing up to three names when they fit and counting the rest in `+N more`.
+  Narrow sidebars and larger text show fewer names; an oversized first name
+  truncates beside a compact `+N` count rather than wrapping or hiding the count.
 - `HeroSettingsControls` — Hero keeps content selection, watched filtering, item
   count, and automatic changes together, shared by TV and mobile. **Ratings** and
   **Trailers** each show their current On/Off state and open their detailed
