@@ -64,6 +64,30 @@ load-bearing.
 - `MetadataDiscoveryHTTPClient` — identifying User-Agent, explicit HTTP/decode
   failures, bounded request admission, and response-size checks for discovery.
 
+## Community skip markers
+
+`CommunitySkipMarkerService` uses IntroDB (`introdb.app`) and TheIntroDB
+[`GET /v4/media`](https://theintrodb.org/openapi.yaml), not the retired v3
+endpoint. Server markers retain priority by segment kind on TV and mobile.
+Lookups remain optional and cancellation prevents late publication.
+
+TheIntroDB prefers TVDB identity, then TMDB/IMDb. An episode's own TVDB ID
+is sent as `tvdb_episode_id`, never as the show's ID. Series IDs and explicit
+episode ordering come from the owning provider; an exact episode record takes
+precedence over coordinate conversion. Known TVDB orders use `mapping`, while
+TMDB-numbered episodes without an exact record use TMDB addressing. Missing
+ordering leaves the API's documented default unchanged; an explicitly
+unrecognized order is not silently relabeled as default. IntroDB has no
+conversion parameter, so known non-aired orders bypass it.
+
+Finite positive runtime is sent as `duration_ms` to select the nearest release
+cluster; unknown runtime is omitted, not sent as the special zero-duration
+group. The optional episode-name hint is omitted for TMDB addressing, where the
+API ignores it. Movies never send TV-only parameters. Combined-episode files
+do not use single-episode community markers. Empty/episode-list/version-list
+responses yield no timestamps; open ends need a known runtime, and negative,
+reversed or out-of-runtime segments are discarded.
+
 ## Discovery sources
 
 Featured defaults to a two-calendar-year release window. Full dates use a rolling

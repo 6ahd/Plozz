@@ -44,6 +44,19 @@ first-class backends; co-equal with `ProviderJellyfin`.
   rewrites the stored admin account's token; per-user tokens live in a
   short-lived override map.
 
+## Episode identity and order
+
+Full item metadata requests include GUIDs and preferences. The series'
+`Preferences.Setting` entry named `episodeOrdering` supplies the explicit
+TVDB aired/DVD/absolute or TMDB aired numbering system. Unrecognized values
+stay unknown, and an absent/inherited order is not guessed from the library
+agent or title. Episode `Guid` TVDB IDs remain episode IDs, separate from
+the parent's TVDB identity; community markers can pin that exact episode.
+Preference retrieval follows
+[PlexAPI's advanced-settings contract](https://github.com/pushingkarmaorg/python-plexapi/blob/master/plexapi/mixins/advanced_settings.py);
+Plex's [metadata-provider schema](https://developer.plex.tv/pms/) documents
+the `SeasonType` identifiers.
+
 ## Home recommendations
 
 `homeHubs` reads `/hubs/promoted` for the current user's Home-promoted rows,

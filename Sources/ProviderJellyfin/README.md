@@ -42,6 +42,14 @@ supported capability remains at parity.
 - **Co-equal with `ProviderPlex`.** Any new `MediaProvider` capability must be
   implemented here whenever it's implemented for Plex (and vice versa).
 
+## Episode identity and order
+
+`DisplayOrder` is retained as `MediaItem.episodeOrdering` for community-marker
+coordinate conversion, including Jellyfin/Emby's DVD (`altdvd`) and alternate
+(`alttwo`) spellings. Missing order stays absent; unrecognized values stay
+unknown. Episode `ProviderIds.Tvdb` identifies the episode, not its series.
+The owning series provides its separate TVDB ID and order during playback.
+
 ## Library recommendations
 
 Emby's native Home section endpoint owns each section's media selection. Requests

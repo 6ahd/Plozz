@@ -126,6 +126,7 @@ struct BaseItemDto: Decodable {
     let IndexNumber: Int?
     let IndexNumberEnd: Int?
     let ParentIndexNumber: Int?
+    let DisplayOrder: String?
     let ProductionYear: Int?
     /// Original release / first-air timestamp (ISO-8601, UTC). Jellyfin returns
     /// it by default — it is not one of the optional `Fields` — so every item
