@@ -4,6 +4,49 @@ Plozz uses two playback engines, automatically selected per-item based on
 container, codecs, and subtitle requirements. The goal is maximum format coverage
 with the best possible quality (Dolby Vision, Atmos, full-timeline seek).
 
+## Media-share disc images
+
+Media-share folder browsing and indexed libraries recognize `.iso` files
+case-insensitively. Classifier version 16 forces one complete directory rewalk
+for existing catalogs, including unchanged leaf folders, without resetting
+external metadata enrichment. ISO items retain the same path-based identity
+and credential-scoped network-file locator as other share videos.
+
+Plozzigen detects decrypted DVD-Video and Blu-ray images through the existing
+random-access `TransportIOReader`, with no forced ordinary-container hint.
+The engine selects the main title by default. WebDAV still requires validated
+byte ranges and stable representation identity; external HTTPS delivery never
+receives the share's credentials.
+
+This does not add CSS/AACS decryption, disc menus, BD-J, multi-angle playback,
+or a disc-title picker. An ISO extension alone does not guarantee a supported
+video disc; unsupported or encrypted images follow the normal playback error
+path. No full image download is required.
+
+`WebDAVDiscPlaybackHostedTests` exercises the production folder browser,
+playback request, WebDAV adapter, source resolver, and displayed video frames,
+including forward/backward seeks. Its ordinary test serves an original ten-second
+MPEG-2 test pattern in a DVD ISO over loopback WebDAV. The fixture contains no
+third-party media and was generated with:
+
+```sh
+mkdir -p /tmp/plozz-disc-fixture/VIDEO_TS
+ffmpeg -f lavfi -i 'testsrc2=size=320x240:rate=25' -t 10 -an \
+  -c:v mpeg2video -g 12 -q:v 8 -f vob /tmp/plozz-disc-fixture/VIDEO_TS/VTS_01_1.VOB
+hdiutil makehybrid -iso -udf -default-volume-name PLOZZ_DISC_FIXTURE \
+  -o dvd-test-pattern.iso /tmp/plozz-disc-fixture
+```
+
+The separate live test is opt-in: set the test process's
+`PLOZZ_WEBDAV_PLAYBACK_INPUT` to a private JSON file (or `cache:<filename>` in
+the test host's cache directory) containing `baseURL`, `username`, `password`,
+`relativePath`, and one to three `seekPositions` in seconds. Use a credential-free
+HTTPS base URL, a decrypted ISO the tester is authorized to access, and a file
+owned by the tester with mode `0600`, outside Git. Remove staged simulator
+credentials after the run. Missing configuration skips only that live test;
+it is not evidence of remote playback. Each load/seek has a 120-second deadline
+and frame/progress waits are bounded separately.
+
 ## IPTV live streams
 
 The [IPTV troubleshooting history](iptv-history.md) links earlier routing,

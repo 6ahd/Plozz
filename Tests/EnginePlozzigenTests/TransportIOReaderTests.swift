@@ -368,6 +368,8 @@ final class TransportIOReaderTests: XCTestCase {
         let primary = TransportIOReader(source: source)
         let independent = try XCTUnwrap(primary.makeIndependentReader())
 
+        XCTAssertTrue(primary.discImageProbeEnabled)
+        XCTAssertTrue(independent.discImageProbeEnabled)
         primary.close()
         primary.close()
         XCTAssertEqual(source.closeCount, 0)
