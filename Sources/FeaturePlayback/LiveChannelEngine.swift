@@ -1,4 +1,5 @@
 #if canImport(AVFoundation)
+import CoreGraphics
 import CoreModels
 import Foundation
 
@@ -109,6 +110,9 @@ public protocol LiveChannelEngine: VideoEngine {
     func loadChannel(_ input: LiveChannelInput) async throws
     func loadLive(url: URL, httpHeaders: [String: String]) async
     func seekToLiveEdge() async
+    /// A scrub preview `seconds` into the seekable window (from its oldest end),
+    /// or nil when the engine can't produce one.
+    func liveScrubThumbnail(secondsIntoWindow seconds: TimeInterval, maxWidth: Int) async -> CGImage?
 }
 
 public extension LiveChannelEngine {
@@ -123,6 +127,7 @@ public extension LiveChannelEngine {
     }
     func configureLiveOutput(_ policy: LiveChannelOutputPolicy) {}
     func setWatching(_ isWatching: Bool) {}
+    func liveScrubThumbnail(secondsIntoWindow seconds: TimeInterval, maxWidth: Int) async -> CGImage? { nil }
     func loadChannel(_ input: LiveChannelInput) async throws {
         switch input {
         case .stream(let url, let headers):

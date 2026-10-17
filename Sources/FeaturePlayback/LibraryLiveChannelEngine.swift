@@ -497,6 +497,10 @@ public final class LibraryLiveChannelEngine: LiveChannelEngine {
     public var bufferedPosition: TimeInterval { underlyingEngine.bufferedPosition }
     public var liveTelemetry: EngineLiveTelemetry? { underlyingEngine.liveTelemetry }
     public var probedSourceFacts: EngineProbedSourceFacts? { underlyingEngine.probedSourceFacts }
+    public func liveScrubThumbnail(secondsIntoWindow seconds: TimeInterval, maxWidth: Int) async -> CGImage? {
+        guard librarySession == nil else { return nil }
+        return await underlyingEngine.liveScrubThumbnail(secondsIntoWindow: seconds, maxWidth: maxWidth)
+    }
     /// Playback Info reads the stream's variant, tracks and HLS logs off this.
     public var nowPlayingPlayer: AVPlayer? { underlyingEngine.nowPlayingPlayer }
     public var videoAspectRatio: Double? { underlyingEngine.videoAspectRatio }

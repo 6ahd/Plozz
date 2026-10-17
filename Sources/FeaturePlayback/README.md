@@ -50,6 +50,24 @@ and the diagnostics overlay.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## Live rewind scrubbing
+
+The live timeline previews a pending seek without moving playback. On tvOS,
+horizontal Siri Remote swipes move the pending position; Select confirms it,
+while Back, focus loss, or five seconds without input cancels it. iPhone/iPad
+drags seek on release. Channel/source changes and overlay teardown cancel pending
+preview work and discard outgoing frames.
+
+Native HLS previews use bounded segment prefixes, not a second persistent player.
+Channel headers are restricted to their original origin; foreign-origin redirects
+and unsupported encryption/layouts omit the preview without affecting playback.
+Byte-range playlists and playlists switching initialization maps currently omit
+previews. Segments are capped at 2 MiB, playlists at 512 KiB, initialization files
+at 2 MiB, and identity keys at 16 bytes. Truncated frames are never intentionally
+shown; unsupported or oversized resources leave the preview unavailable.
+The decoded-image cache holds 32 entries; init and key caches each hold at most
+eight. Reduced-transparency/performance presentation retains the non-glass frame.
+
 ## Playback completion reporting
 
 Playback lifecycle reports capture the request, position, duration, and tracker
