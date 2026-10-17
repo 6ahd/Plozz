@@ -216,6 +216,11 @@ profile settings payload carries it through switching, transfer, and cloud sync.
 Unanswered older profiles retain their per-title memories but still see the
 introduction on their first multi-version playback.
 
+On tvOS, the introduction and version list stay in the player's existing overlay
+as centered, content-sized cards, up to 1,100 points wide and 860 points tall.
+Longer content scrolls within the available safe-area height; shorter content
+must not stretch the card or push Cancel to the screen edge.
+
 `PlaybackVersionChoiceModel` gates player creation and next-episode/playlist
 handoffs. Ask every time includes autoplay. Remember reuses a movie's exact
 file, or matches all known descriptor facts across a series; it does not silently

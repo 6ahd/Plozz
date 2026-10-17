@@ -20,7 +20,15 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         }
     }
 
-    private func exercise(width: CGFloat, typeSize: DynamicTypeSize) async throws {
+    #if os(tvOS)
+    func testLongVersionListStaysBoundedWithReducedTransparencyAndLargerText() async throws {
+        try await exercise(width: 1920, typeSize: .accessibility1, versionCount: 12, reduceTransparency: true)
+    }
+    #endif
+
+    private func exercise(
+        width: CGFloat, typeSize: DynamicTypeSize, versionCount: Int = 2, reduceTransparency: Bool = false
+    ) async throws {
         try await waitUntil {
             UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
         }
@@ -33,12 +41,16 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         let settings = PlaybackSettingsModel(store: PlaybackSettingsStore(defaults: defaults))
         let preferences = VersionPreferenceStore(defaults: defaults)
         let model = PlaybackVersionChoiceModel()
-        let item = MediaItem(id: "movie", title: "Version fixture", kind: .movie, versions: [
+        var versions: [MediaVersion] = [
             .init(id: "4k", fileName: "Example.2160p.REMUX-GROUP.mkv", height: 2160, sizeBytes: 42_000_000_000,
                   duration: 7_200, videoCodec: "hevc", videoRange: "HDR10",
                   audioCodec: "truehd", sourceMetadata: .init(audioLanguages: ["eng", "fra"])),
             .init(id: "1080", height: 1080, videoRange: "SDR")
-        ])
+        ]
+        for index in 2..<versionCount {
+            versions.append(.init(id: "extra-\(index)", fileName: "Alternative-\(index).mkv", height: 1080))
+        }
+        let item = MediaItem(id: "movie", title: "Version fixture", kind: .movie, versions: versions)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: width, height: width >= 768 ? 1080 : 844)
         window.overrideUserInterfaceStyle = .dark
@@ -49,6 +61,7 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
             .environment(\.themePalette, .dark)
             .environment(\.locale, Locale(identifier: "en_US"))
             .environment(\.dynamicTypeSize, typeSize)
+            .environment(\.plozzReduceTransparency, reduceTransparency)
         )
         window.makeKeyAndVisible()
         defer {
@@ -70,6 +83,7 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         }
         #if os(tvOS)
         XCTAssertNotNil(UIFocusSystem(for: window)?.focusedItem, "An introduction action must own native focus.")
+        try assertCompactCard(in: window, maximumHeight: typeSize.isAccessibilitySize ? 860 : 800)
         #endif
         let id = try XCTUnwrap(model.prompt?.id)
         model.chooseMode(.rememberChoice, promptID: id)
@@ -82,6 +96,13 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         }
         #if os(tvOS)
         XCTAssertNotNil(UIFocusSystem(for: window)?.focusedItem, "The version picker must receive native focus.")
+        try assertCompactCard(in: window, maximumHeight: versionCount > 2 ? 860 : 600)
+        if versionCount > 2 {
+            let scroll = try XCTUnwrap(scrollViews(in: window).first { $0.contentSize.height > $0.bounds.height + 1 })
+            XCTAssertGreaterThan(scroll.contentOffset.y, 0, "The long list must actually scroll.")
+            let lastFile = try XCTUnwrap(model.prompt?.versions.last?.fileName)
+            XCTAssertTrue(choices.contains(lastFile), "The final version must remain reachable.")
+        }
         #endif
         model.chooseVersion("4k", promptID: id)
         try await waitUntil { probe.selected != nil }
@@ -90,6 +111,39 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertFalse(probe.disappeared)
         XCTAssertNil(probe.error)
     }
+
+    #if os(tvOS)
+    private func assertCompactCard(in window: UIWindow, maximumHeight: CGFloat) throws {
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let cgImage = try XCTUnwrap(image.cgImage)
+        let width = cgImage.width
+        let height = cgImage.height
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        try pixels.withUnsafeMutableBytes { bytes in
+            let context = try XCTUnwrap(CGContext(
+                data: bytes.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+            ))
+            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        func isSurface(x: Int, y: Int) -> Bool {
+            let offset = (y * width + x) * 4
+            return pixels[offset..<offset + 3].contains { $0 > 12 }
+        }
+        let horizontal = (0..<width).filter { isSurface(x: $0, y: height / 2) }
+        let vertical = (0..<height).filter { isSurface(x: width / 2, y: $0) }
+        let left = try XCTUnwrap(horizontal.first), right = try XCTUnwrap(horizontal.last)
+        let top = try XCTUnwrap(vertical.first), bottom = try XCTUnwrap(vertical.last)
+        let scale = image.scale
+        XCTAssertLessThanOrEqual(CGFloat(right - left + 1) / scale, 1_104, "The card, not only its text, must be width-bounded.")
+        XCTAssertLessThanOrEqual(CGFloat(bottom - top + 1) / scale, maximumHeight + 4, "Short content must not fill the screen.")
+        XCTAssertEqual(CGFloat(left + right) / (2 * scale), window.bounds.midX, accuracy: 4)
+        XCTAssertEqual(CGFloat(top + bottom) / (2 * scale), window.bounds.midY, accuracy: 4)
+    }
+    #endif
 
     private func visibleText(in window: UIWindow, name: String) async throws -> String {
         var result = ""
