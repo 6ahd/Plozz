@@ -108,44 +108,56 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
         declined: Int,
         awaitingRelease: Int = 0
     ) -> LocalizedStringResource? {
-        let workflow: LocalizedStringResource? = switch (pending, processing, failures, declined) {
-        case (0, 0, 0, 0):
-            nil
-        case let (pending, 0, 0, 0):
-            LocalizedStringResource("\(pending) Requested")
-        case let (0, processing, 0, 0):
-            LocalizedStringResource("\(processing) Processing")
-        case let (0, 0, failures, 0):
-            LocalizedStringResource("\(failures) Failed")
-        case let (0, 0, 0, declined):
-            LocalizedStringResource("\(declined) Declined")
-        case let (pending, processing, 0, 0):
-            LocalizedStringResource("\(pending) Requested, \(processing) Processing")
-        case let (pending, 0, failures, 0):
-            LocalizedStringResource("\(pending) Requested, \(failures) Failed")
-        case let (0, processing, failures, 0):
-            LocalizedStringResource("\(processing) Processing, \(failures) Failed")
-        case let (pending, processing, failures, 0):
-            LocalizedStringResource("\(pending) Requested, \(processing) Processing, \(failures) Failed")
-        case let (pending, 0, 0, declined):
-            LocalizedStringResource("\(pending) Requested, \(declined) Declined")
-        case let (0, processing, 0, declined):
-            LocalizedStringResource("\(processing) Processing, \(declined) Declined")
-        case let (pending, processing, 0, declined):
-            LocalizedStringResource("\(pending) Requested, \(processing) Processing, \(declined) Declined")
-        case let (0, 0, failures, declined):
-            LocalizedStringResource("\(failures) Failed, \(declined) Declined")
-        case let (pending, 0, failures, declined):
-            LocalizedStringResource("\(pending) Requested, \(failures) Failed, \(declined) Declined")
-        case let (0, processing, failures, declined):
-            LocalizedStringResource("\(processing) Processing, \(failures) Failed, \(declined) Declined")
-        case let (pending, processing, failures, declined):
-            LocalizedStringResource("\(pending) Requested, \(processing) Processing, \(failures) Failed, \(declined) Declined")
-        }
+        let workflow = workflowDetail(
+            pending: pending, processing: processing, failures: failures, declined: declined
+        )
         guard awaitingRelease > 0 else { return workflow }
         if let workflow {
             return "\(workflow) · \(awaitingRelease) Unreleased"
         }
         return "\(awaitingRelease) Unreleased"
+    }
+
+    private static func workflowDetail(
+        pending: Int,
+        processing: Int,
+        failures: Int,
+        declined: Int
+    ) -> LocalizedStringResource? {
+        // Returning the switch directly keeps every branch visible to localization extraction.
+        switch (pending, processing, failures, declined) {
+        case (0, 0, 0, 0):
+            nil
+        case let (pending, 0, 0, 0):
+            "\(pending) Requested"
+        case let (0, processing, 0, 0):
+            "\(processing) Processing"
+        case let (0, 0, failures, 0):
+            "\(failures) Failed"
+        case let (0, 0, 0, declined):
+            "\(declined) Declined"
+        case let (pending, processing, 0, 0):
+            "\(pending) Requested, \(processing) Processing"
+        case let (pending, 0, failures, 0):
+            "\(pending) Requested, \(failures) Failed"
+        case let (0, processing, failures, 0):
+            "\(processing) Processing, \(failures) Failed"
+        case let (pending, processing, failures, 0):
+            "\(pending) Requested, \(processing) Processing, \(failures) Failed"
+        case let (pending, 0, 0, declined):
+            "\(pending) Requested, \(declined) Declined"
+        case let (0, processing, 0, declined):
+            "\(processing) Processing, \(declined) Declined"
+        case let (pending, processing, 0, declined):
+            "\(pending) Requested, \(processing) Processing, \(declined) Declined"
+        case let (0, 0, failures, declined):
+            "\(failures) Failed, \(declined) Declined"
+        case let (pending, 0, failures, declined):
+            "\(pending) Requested, \(failures) Failed, \(declined) Declined"
+        case let (0, processing, failures, declined):
+            "\(processing) Processing, \(failures) Failed, \(declined) Declined"
+        case let (pending, processing, failures, declined):
+            "\(pending) Requested, \(processing) Processing, \(failures) Failed, \(declined) Declined"
+        }
     }
 }

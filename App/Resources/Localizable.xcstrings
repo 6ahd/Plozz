@@ -7783,34 +7783,6 @@
     },
     "%@ · %lld Unreleased" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%1$@ · %#@arg2@"
-          },
-          "substitutions" : {
-            "arg2" : {
-              "argNum" : 2,
-              "formatSpecifier" : "lld",
-              "variations" : {
-                "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld Unreleased"
-                    }
-                  },
-                  "other" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld Unreleased"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -7822,24 +7794,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "zero" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "مواسم لم تُعرض بعد: %lld"
-                    }
-                  },
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "موسم لم يُعرض بعد: %lld"
-                    }
-                  },
-                  "two" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "موسمان لم يُعرضا بعد: %lld"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -7852,7 +7806,25 @@
                       "value" : "مواسم لم تُعرض بعد: %lld"
                     }
                   },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "موسم لم يُعرض بعد: %lld"
+                    }
+                  },
                   "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "مواسم لم تُعرض بعد: %lld"
+                    }
+                  },
+                  "two" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "موسمان لم يُعرضا بعد: %lld"
+                    }
+                  },
+                  "zero" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "مواسم لم تُعرض بعد: %lld"
@@ -7902,16 +7874,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld temporada encara no estrenada"
-                    }
-                  },
                   "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld temporades encara no estrenades"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld temporada encara no estrenada"
                     }
                   },
                   "other" : {
@@ -7936,12 +7908,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld sezóna před premiérou"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -7952,6 +7918,12 @@
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld sezóny před premiérou"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld sezóna před premiérou"
                     }
                   },
                   "other" : {
@@ -8049,7 +8021,7 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "%1$@ · %#@arg2@"
@@ -8063,13 +8035,41 @@
                   "one" : {
                     "stringUnit" : {
                       "state" : "needs_review",
-                      "value" : "%lld pendiente de estreno"
+                      "value" : "%lld Unreleased"
                     }
                   },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld Unreleased"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%1$@ · %#@arg2@"
+          },
+          "substitutions" : {
+            "arg2" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
                   "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld pendientes de estreno"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld pendiente de estreno"
                     }
                   },
                   "other" : {
@@ -8150,16 +8150,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld saison à venir"
-                    }
-                  },
                   "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld saisons à venir"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld saison à venir"
                     }
                   },
                   "other" : {
@@ -8184,25 +8184,25 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "עונות לפני הבכורה: %lld"
-                    }
-                  },
-                  "two" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "עונות לפני הבכורה: %lld"
-                    }
-                  },
                   "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "עונות לפני הבכורה: %lld"
                     }
                   },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "עונות לפני הבכורה: %lld"
+                    }
+                  },
                   "other" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "עונות לפני הבכורה: %lld"
+                    }
+                  },
+                  "two" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "עונות לפני הבכורה: %lld"
@@ -8252,16 +8252,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld sezona čeka premijeru"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld sezone čekaju premijeru"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld sezona čeka premijeru"
                     }
                   },
                   "other" : {
@@ -8336,16 +8336,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld stagione non ancora uscita"
-                    }
-                  },
                   "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld stagioni non ancora uscite"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld stagione non ancora uscita"
                     }
                   },
                   "other" : {
@@ -8492,12 +8492,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld sezon przed premierą"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -8508,6 +8502,12 @@
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld sezonów przed premierą"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld sezon przed premierą"
                     }
                   },
                   "other" : {
@@ -8532,16 +8532,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld temporada ainda não estreou"
-                    }
-                  },
                   "many" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld temporadas ainda não estrearam"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld temporada ainda não estreou"
                     }
                   },
                   "other" : {
@@ -8566,16 +8566,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld sezon înainte de premieră"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld sezoane înainte de premieră"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld sezon înainte de premieră"
                     }
                   },
                   "other" : {
@@ -8600,12 +8600,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld сезон ожидает премьеры"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -8616,6 +8610,12 @@
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld сезонов ожидают премьеры"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld сезон ожидает премьеры"
                     }
                   },
                   "other" : {
@@ -8640,12 +8640,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld sezóna pred premiérou"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -8656,6 +8650,12 @@
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld sezóny pred premiérou"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld sezóna pred premiérou"
                     }
                   },
                   "other" : {
@@ -8680,28 +8680,28 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld sezona pred premiero"
-                    }
-                  },
-                  "two" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld sezoni pred premiero"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld sezone pred premiero"
                     }
                   },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld sezona pred premiero"
+                    }
+                  },
                   "other" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld sezon pred premiero"
+                    }
+                  },
+                  "two" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld sezoni pred premiero"
                     }
                   }
                 }
@@ -8720,16 +8720,16 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld sezona pre premijere"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld sezone pre premijere"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld sezona pre premijere"
                     }
                   },
                   "other" : {
@@ -8832,12 +8832,6 @@
               "formatSpecifier" : "lld",
               "variations" : {
                 "plural" : {
-                  "one" : {
-                    "stringUnit" : {
-                      "state" : "needs_review",
-                      "value" : "%lld сезон очікує прем’єри"
-                    }
-                  },
                   "few" : {
                     "stringUnit" : {
                       "state" : "needs_review",
@@ -8848,6 +8842,12 @@
                     "stringUnit" : {
                       "state" : "needs_review",
                       "value" : "%lld сезонів очікують прем’єри"
+                    }
+                  },
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "needs_review",
+                      "value" : "%lld сезон очікує прем’єри"
                     }
                   },
                   "other" : {
@@ -10503,7 +10503,6 @@
       }
     },
     "%lld Declined" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -11252,7 +11251,6 @@
       }
     },
     "%lld Failed" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -12001,7 +11999,6 @@
       }
     },
     "%lld Failed, %lld Declined" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -14894,7 +14891,6 @@
       }
     },
     "%lld Processing" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -15643,7 +15639,6 @@
       }
     },
     "%lld Processing, %lld Declined" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -17580,7 +17575,6 @@
       }
     },
     "%lld Processing, %lld Failed" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -19517,7 +19511,6 @@
       }
     },
     "%lld Processing, %lld Failed, %lld Declined" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -23020,7 +23013,6 @@
       }
     },
     "%lld Requested, %lld Declined" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -24957,7 +24949,6 @@
       }
     },
     "%lld Requested, %lld Failed" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -26894,7 +26885,6 @@
       }
     },
     "%lld Requested, %lld Failed, %lld Declined" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -29649,7 +29639,6 @@
       }
     },
     "%lld Requested, %lld Processing" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -31586,7 +31575,6 @@
       }
     },
     "%lld Requested, %lld Processing, %lld Declined" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -34341,7 +34329,6 @@
       }
     },
     "%lld Requested, %lld Processing, %lld Failed" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -37096,7 +37083,6 @@
       }
     },
     "%lld Requested, %lld Processing, %lld Failed, %lld Declined" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -43662,45 +43648,9 @@
     },
     "%lld Seasons Requested · Unreleased" : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld Season Requested · Unreleased"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld Seasons Requested · Unreleased"
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "variations" : {
             "plural" : {
-              "zero" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "مواسم تم طلبها: %lld · لم تُعرض بعد"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "موسم تم طلبه: %lld · لم يُعرض بعد"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "موسمان تم طلبهما: %lld · لم يُعرضا بعد"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -43713,7 +43663,25 @@
                   "value" : "مواسم تم طلبها: %lld · لم تُعرض بعد"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "موسم تم طلبه: %lld · لم يُعرض بعد"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "مواسم تم طلبها: %lld · لم تُعرض بعد"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "موسمان تم طلبهما: %lld · لم يُعرضا بعد"
+                }
+              },
+              "zero" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "مواسم تم طلبها: %lld · لم تُعرض بعد"
@@ -43743,16 +43711,16 @@
         "ca" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld temporada sol·licitada · Encara no estrenada"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld temporades sol·licitades · Encara no estrenades"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld temporada sol·licitada · Encara no estrenada"
                 }
               },
               "other" : {
@@ -43767,12 +43735,6 @@
         "cs" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld vyžádaná sezóna · Před premiérou"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -43783,6 +43745,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld vyžádané sezóny · Před premiérou"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld vyžádaná sezóna · Před premiérou"
                 }
               },
               "other" : {
@@ -43848,19 +43816,37 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "variations" : {
             "plural" : {
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
-                  "value" : "%lld temporada solicitada · Pendiente de estreno"
+                  "value" : "%lld Season Requested · Unreleased"
                 }
               },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Seasons Requested · Unreleased"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld temporadas solicitadas · Pendientes de estreno"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld temporada solicitada · Pendiente de estreno"
                 }
               },
               "other" : {
@@ -43911,16 +43897,16 @@
         "fr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld saison demandée · À venir"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld saisons demandées · À venir"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld saison demandée · À venir"
                 }
               },
               "other" : {
@@ -43935,25 +43921,25 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "עונות שהתבקשו: %lld · לפני הבכורה"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "עונות שהתבקשו: %lld · לפני הבכורה"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "עונות שהתבקשו: %lld · לפני הבכורה"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "עונות שהתבקשו: %lld · לפני הבכורה"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "עונות שהתבקשו: %lld · לפני הבכורה"
+                }
+              },
+              "two" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "עונות שהתבקשו: %lld · לפני הבכורה"
@@ -43983,16 +43969,16 @@
         "hr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld zatražena sezona · Premijera tek slijedi"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld zatražene sezone · Premijera tek slijedi"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld zatražena sezona · Premijera tek slijedi"
                 }
               },
               "other" : {
@@ -44037,16 +44023,16 @@
         "it" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld stagione richiesta · In attesa di uscita"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld stagioni richieste · In attesa di uscita"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld stagione richiesta · In attesa di uscita"
                 }
               },
               "other" : {
@@ -44133,12 +44119,6 @@
         "pl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Zgłoszono %lld sezon · Przed premierą"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -44149,6 +44129,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "Zgłoszono %lld sezonów · Przed premierą"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Zgłoszono %lld sezon · Przed premierą"
                 }
               },
               "other" : {
@@ -44163,16 +44149,16 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld temporada solicitada · Ainda não estreou"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld temporadas solicitadas · Ainda não estrearam"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld temporada solicitada · Ainda não estreou"
                 }
               },
               "other" : {
@@ -44187,16 +44173,16 @@
         "ro" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezon solicitat · Înainte de premieră"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezoane solicitate · Înainte de premieră"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezon solicitat · Înainte de premieră"
                 }
               },
               "other" : {
@@ -44211,12 +44197,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld сезон запрошен · Премьера впереди"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -44227,6 +44207,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld сезонов запрошено · Премьера впереди"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld сезон запрошен · Премьера впереди"
                 }
               },
               "other" : {
@@ -44241,12 +44227,6 @@
         "sk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld vyžiadaná sezóna · Pred premiérou"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -44257,6 +44237,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld vyžiadanej sezóny · Pred premiérou"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld vyžiadaná sezóna · Pred premiérou"
                 }
               },
               "other" : {
@@ -44271,28 +44257,28 @@
         "sl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld zahtevana sezona · Pred premiero"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld zahtevani sezoni · Pred premiero"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld zahtevane sezone · Pred premiero"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld zahtevana sezona · Pred premiero"
+                }
+              },
               "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld zahtevanih sezon · Pred premiero"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld zahtevani sezoni · Pred premiero"
                 }
               }
             }
@@ -44301,16 +44287,16 @@
         "sr-Latn" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld zatražena sezona · Pre premijere"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld zatražene sezone · Pre premijere"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld zatražena sezona · Pre premijere"
                 }
               },
               "other" : {
@@ -44373,12 +44359,6 @@
         "uk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "Запит надіслано: %lld сезон · Прем’єра попереду"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -44389,6 +44369,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "Запит надіслано: %lld сезонів · Прем’єра попереду"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Запит надіслано: %lld сезон · Прем’єра попереду"
                 }
               },
               "other" : {
@@ -44440,45 +44426,9 @@
     },
     "%lld Unreleased" : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld Unreleased"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld Unreleased"
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "variations" : {
             "plural" : {
-              "zero" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "مواسم لم تُعرض بعد: %lld"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "موسم لم يُعرض بعد: %lld"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "موسمان لم يُعرضا بعد: %lld"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -44491,7 +44441,25 @@
                   "value" : "مواسم لم تُعرض بعد: %lld"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "موسم لم يُعرض بعد: %lld"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "مواسم لم تُعرض بعد: %lld"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "موسمان لم يُعرضا بعد: %lld"
+                }
+              },
+              "zero" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "مواسم لم تُعرض بعد: %lld"
@@ -44521,16 +44489,16 @@
         "ca" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld temporada encara no estrenada"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld temporades encara no estrenades"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld temporada encara no estrenada"
                 }
               },
               "other" : {
@@ -44545,12 +44513,6 @@
         "cs" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezóna před premiérou"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -44561,6 +44523,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezóny před premiérou"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezóna před premiérou"
                 }
               },
               "other" : {
@@ -44626,19 +44594,37 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "variations" : {
             "plural" : {
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
-                  "value" : "%lld pendiente de estreno"
+                  "value" : "%lld Unreleased"
                 }
               },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld Unreleased"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld pendientes de estreno"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld pendiente de estreno"
                 }
               },
               "other" : {
@@ -44689,16 +44675,16 @@
         "fr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld saison à venir"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld saisons à venir"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld saison à venir"
                 }
               },
               "other" : {
@@ -44713,25 +44699,25 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "עונות לפני הבכורה: %lld"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "עונות לפני הבכורה: %lld"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "עונות לפני הבכורה: %lld"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "עונות לפני הבכורה: %lld"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "עונות לפני הבכורה: %lld"
+                }
+              },
+              "two" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "עונות לפני הבכורה: %lld"
@@ -44761,16 +44747,16 @@
         "hr" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezona čeka premijeru"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezone čekaju premijeru"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezona čeka premijeru"
                 }
               },
               "other" : {
@@ -44815,16 +44801,16 @@
         "it" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld stagione non ancora uscita"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld stagioni non ancora uscite"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld stagione non ancora uscita"
                 }
               },
               "other" : {
@@ -44911,12 +44897,6 @@
         "pl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezon przed premierą"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -44927,6 +44907,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezonów przed premierą"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezon przed premierą"
                 }
               },
               "other" : {
@@ -44941,16 +44927,16 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld temporada ainda não estreou"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld temporadas ainda não estrearam"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld temporada ainda não estreou"
                 }
               },
               "other" : {
@@ -44965,16 +44951,16 @@
         "ro" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezon înainte de premieră"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezoane înainte de premieră"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezon înainte de premieră"
                 }
               },
               "other" : {
@@ -44989,12 +44975,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld сезон ожидает премьеры"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -45005,6 +44985,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld сезонов ожидают премьеры"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld сезон ожидает премьеры"
                 }
               },
               "other" : {
@@ -45019,12 +45005,6 @@
         "sk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezóna pred premiérou"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -45035,6 +45015,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezóny pred premiérou"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezóna pred premiérou"
                 }
               },
               "other" : {
@@ -45049,28 +45035,28 @@
         "sl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezona pred premiero"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezoni pred premiero"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezone pred premiero"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezona pred premiero"
+                }
+              },
               "other" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezon pred premiero"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezoni pred premiero"
                 }
               }
             }
@@ -45079,16 +45065,16 @@
         "sr-Latn" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld sezona pre premijere"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld sezone pre premijere"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld sezona pre premijere"
                 }
               },
               "other" : {
@@ -45151,12 +45137,6 @@
         "uk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "%lld сезон очікує прем’єри"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -45167,6 +45147,12 @@
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "%lld сезонів очікують прем’єри"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "%lld сезон очікує прем’єри"
                 }
               },
               "other" : {
@@ -611350,45 +611336,9 @@
     },
     "S%lld Requested · Unreleased" : {
       "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld Requested · Unreleased"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld Requested · Unreleased"
-                }
-              }
-            }
-          }
-        },
         "ar" : {
           "variations" : {
             "plural" : {
-              "zero" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "الموسم %lld: تم الطلب · لم يُعرض بعد"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "الموسم %lld: تم الطلب · لم يُعرض بعد"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "الموسم %lld: تم الطلب · لم يُعرض بعد"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -611401,7 +611351,25 @@
                   "value" : "الموسم %lld: تم الطلب · لم يُعرض بعد"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "الموسم %lld: تم الطلب · لم يُعرض بعد"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "الموسم %lld: تم الطلب · لم يُعرض بعد"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "الموسم %lld: تم الطلب · لم يُعرض بعد"
+                }
+              },
+              "zero" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "الموسم %lld: تم الطلب · لم يُعرض بعد"
@@ -611431,13 +611399,13 @@
         "ca" : {
           "variations" : {
             "plural" : {
-              "one" : {
+              "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "T%lld sol·licitada · Encara no estrenada"
                 }
               },
-              "many" : {
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "T%lld sol·licitada · Encara no estrenada"
@@ -611455,12 +611423,6 @@
         "cs" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld · Požádáno · Před premiérou"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -611468,6 +611430,12 @@
                 }
               },
               "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S%lld · Požádáno · Před premiérou"
+                }
+              },
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Požádáno · Před premiérou"
@@ -611536,16 +611504,34 @@
             }
           }
         },
-        "es" : {
+        "en" : {
           "variations" : {
             "plural" : {
               "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
+                  "value" : "S%lld Requested · Unreleased"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S%lld Requested · Unreleased"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
                   "value" : "T%lld solicitada · Pendiente de estreno"
                 }
               },
-              "many" : {
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "T%lld solicitada · Pendiente de estreno"
@@ -611599,13 +611585,13 @@
         "fr" : {
           "variations" : {
             "plural" : {
-              "one" : {
+              "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld demandée · À venir"
                 }
               },
-              "many" : {
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld demandée · À venir"
@@ -611623,25 +611609,25 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "עונה %lld: הוגשה בקשה · לפני הבכורה"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "עונה %lld: הוגשה בקשה · לפני הבכורה"
-                }
-              },
               "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "עונה %lld: הוגשה בקשה · לפני הבכורה"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "עונה %lld: הוגשה בקשה · לפני הבכורה"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "עונה %lld: הוגשה בקשה · לפני הבכורה"
+                }
+              },
+              "two" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "עונה %lld: הוגשה בקשה · לפני הבכורה"
@@ -611671,13 +611657,13 @@
         "hr" : {
           "variations" : {
             "plural" : {
-              "one" : {
+              "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Zatraženo · Premijera tek slijedi"
                 }
               },
-              "few" : {
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Zatraženo · Premijera tek slijedi"
@@ -611725,13 +611711,13 @@
         "it" : {
           "variations" : {
             "plural" : {
-              "one" : {
+              "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld richiesta · Non ancora uscita"
                 }
               },
-              "many" : {
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld richiesta · Non ancora uscita"
@@ -611821,12 +611807,6 @@
         "pl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld · Wysłano prośbę · Przed premierą"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -611834,6 +611814,12 @@
                 }
               },
               "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S%lld · Wysłano prośbę · Przed premierą"
+                }
+              },
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Wysłano prośbę · Przed premierą"
@@ -611851,13 +611837,13 @@
         "pt-BR" : {
           "variations" : {
             "plural" : {
-              "one" : {
+              "many" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "T%lld solicitada · Ainda não estreou"
                 }
               },
-              "many" : {
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "T%lld solicitada · Ainda não estreou"
@@ -611875,13 +611861,13 @@
         "ro" : {
           "variations" : {
             "plural" : {
-              "one" : {
+              "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld solicitat · Înainte de premieră"
                 }
               },
-              "few" : {
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld solicitat · Înainte de premieră"
@@ -611899,12 +611885,6 @@
         "ru" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld · Запрошено · Премьера впереди"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -611912,6 +611892,12 @@
                 }
               },
               "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S%lld · Запрошено · Премьера впереди"
+                }
+              },
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Запрошено · Премьера впереди"
@@ -611929,12 +611915,6 @@
         "sk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld · Vyžiadané · Pred premiérou"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -611942,6 +611922,12 @@
                 }
               },
               "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S%lld · Vyžiadané · Pred premiérou"
+                }
+              },
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Vyžiadané · Pred premiérou"
@@ -611959,25 +611945,25 @@
         "sl" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld · Zahtevano · Pred premiero"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld · Zahtevano · Pred premiero"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Zahtevano · Pred premiero"
                 }
               },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S%lld · Zahtevano · Pred premiero"
+                }
+              },
               "other" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S%lld · Zahtevano · Pred premiero"
+                }
+              },
+              "two" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Zahtevano · Pred premiero"
@@ -611989,13 +611975,13 @@
         "sr-Latn" : {
           "variations" : {
             "plural" : {
-              "one" : {
+              "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Zatraženo · Pre premijere"
                 }
               },
-              "few" : {
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Zatraženo · Pre premijere"
@@ -612061,12 +612047,6 @@
         "uk" : {
           "variations" : {
             "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "needs_review",
-                  "value" : "S%lld · Запит надіслано · Прем’єра попереду"
-                }
-              },
               "few" : {
                 "stringUnit" : {
                   "state" : "needs_review",
@@ -612074,6 +612054,12 @@
                 }
               },
               "many" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "S%lld · Запит надіслано · Прем’єра попереду"
+                }
+              },
+              "one" : {
                 "stringUnit" : {
                   "state" : "needs_review",
                   "value" : "S%lld · Запит надіслано · Прем’єра попереду"
