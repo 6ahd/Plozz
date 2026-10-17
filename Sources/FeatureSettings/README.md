@@ -1,5 +1,9 @@
 # FeatureSettings
 
+Mobile customization lists apply the shared native switch style to both standard
+sections and grouped cards. Enabled switches keep the system green appearance
+instead of inheriting the page's monochrome navigation tint.
+
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 

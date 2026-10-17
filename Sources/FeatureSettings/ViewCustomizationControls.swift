@@ -210,6 +210,7 @@ struct ViewCustomizationList<Content: View>: View {
                 .listRowSeparatorTint(palette.separator)
         }
         .listStyle(.insetGrouped)
+        .toggleStyle(SettingsSwitchToggleStyle())
         .scrollContentBackground(.hidden)
         .background { palette.settingsBackground.ignoresSafeArea() }
         .toolbarBackground(palette.settingsBackground, for: .navigationBar)
