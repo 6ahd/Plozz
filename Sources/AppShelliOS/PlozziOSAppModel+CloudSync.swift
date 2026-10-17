@@ -377,9 +377,13 @@ extension PlozziOSAppModel {
             return
         }
 
-        // Rebuild the active profile's settings model so applied preferences take
-        // effect immediately.
-        selectProfile(profiles.activeProfileID)
+        // Cosmetic sync is not a manual selection: reactivating the unchanged
+        // profile would discard its Plex PIN proof, including an in-flight entry.
+        if outgoingProfile.id != profiles.activeProfileID {
+            selectProfile(profiles.activeProfileID)
+        } else {
+            refreshActiveProfileConfiguration()
+        }
 
         // If synced profiles just established an already-set-up household, dismiss any
         // first-run onboarding step that a race queued before they arrived — the user

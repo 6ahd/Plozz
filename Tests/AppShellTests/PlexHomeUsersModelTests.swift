@@ -113,6 +113,129 @@ final class PlexHomeUsersModelTests: XCTestCase {
         XCTAssertEqual(model.resolvedToken(for: "a"), "admin-a")
     }
 
+    func testDisabledPlexBindingsDoNotRequestAuthorization() async throws {
+        let (model, hub, profiles) = try makeModel(accountIDs: ["a", "b"])
+        for id in ["a", "b"] {
+            profiles.update(profiles.activeProfile.settingHomeUserBinding(
+                .init(homeUserID: "parent", name: "Parent", requiresPIN: true), forPlexAccount: id
+            ))
+        }
+        profiles.setActiveAccountIDs(["b"], for: profiles.activeProfileID)
+        hub.reloadAccounts()
+        model.plexHomeUsersFetch = { token, _ in
+            XCTAssertEqual(token, "admin-b", "A disabled source must not contact Plex.")
+            return [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+        }
+        model.ensurePlexIdentityForActiveProfile()
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(model.pendingPlexPINRequest?.accountID, "b")
+        XCTAssertEqual(model.plexPINEntryAvailability, .available)
+        XCTAssertNil(model.resolvedToken(for: "a"))
+        XCTAssertFalse(model.hasResolvedWatchMutationIdentity(forAccountID: "a"))
+        XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a")?.homeUserID, "parent")
+
+        profiles.setActiveAccountIDs([], for: profiles.activeProfileID)
+        hub.reloadAccounts()
+        model.ensurePlexIdentityForActiveProfile()
+        XCTAssertNil(model.pendingPlexPINRequest)
+        XCTAssertNil(model.plexPINError)
+    }
+
+    func testDisablingAnAuthorizedSourceRevokesCredentialsAndRequiresPINOnReenable() async throws {
+        let (model, hub, profiles) = try makeModel(accountIDs: ["a"])
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+        }
+        model.plexHomeUserSwitch = { _, pin, _, _ in
+            XCTAssertEqual(pin, "2468")
+            return "parent-cloud"
+        }
+        model.plexServerTokenResolve = { _, _, _ in "parent-server" }
+        activateSavedUser(model, profiles: profiles, accountID: "a",
+                          user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true))
+        model.submitPlexPIN("2468")
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(model.resolvedToken(for: "a"), "parent-server")
+        let binding = profiles.activeProfile.homeUserBinding(forPlexAccount: "a")
+
+        profiles.setActiveAccountIDs([], for: profiles.activeProfileID)
+        hub.reloadAccounts()
+        model.ensurePlexIdentityForActiveProfile()
+        XCTAssertNil(model.pendingPlexPINRequest)
+        XCTAssertNil(model.resolvedToken(for: "a"))
+        XCTAssertNil(model.discoverToken(for: "a"))
+        XCTAssertNil(model.plexDiscoverTokens.token(for: "a"))
+        XCTAssertFalse(model.hasResolvedWatchMutationIdentity(forAccountID: "a"))
+        XCTAssertEqual(profiles.activeProfile.homeUserBinding(forPlexAccount: "a"), binding)
+
+        profiles.setActiveAccountIDs(["a"], for: profiles.activeProfileID)
+        hub.reloadAccounts()
+        model.ensurePlexIdentityForActiveProfile()
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(model.pendingPlexPINRequest?.accountID, "a")
+        XCTAssertEqual(model.plexPINEntryAvailability, .available)
+        XCTAssertNil(model.resolvedToken(for: "a"), "Old PIN proof must not survive disabling the source.")
+        model.submitPlexPIN("2468")
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(model.resolvedToken(for: "a"), "parent-server")
+    }
+
+    func testDisabledOwnerSourceCannotResolveCredentialsWithoutABinding() throws {
+        let (model, hub, profiles) = try makeModel(accountIDs: ["a"])
+        profiles.setActiveAccountIDs([], for: profiles.activeProfileID)
+        hub.reloadAccounts()
+        model.ensurePlexIdentityForActiveProfile()
+        XCTAssertNil(model.resolvedToken(for: "a"))
+        XCTAssertFalse(model.hasResolvedWatchMutationIdentity(forAccountID: "a"))
+    }
+
+    func testDisablingDuringMetadataCheckCannotRestoreThePINPrompt() async throws {
+        let (model, hub, profiles) = try makeModel(accountIDs: ["a"])
+        model.plexHomeUsersFetch = { _, _ in
+            await MainActor.run {
+                profiles.setActiveAccountIDs([], for: profiles.activeProfileID)
+                hub.reloadAccounts()
+                model.ensurePlexIdentityForActiveProfile()
+            }
+            return [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+        }
+        activateSavedUser(model, profiles: profiles, accountID: "a",
+                          user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true))
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertNil(model.pendingPlexPINRequest)
+        XCTAssertNil(model.plexPINError)
+        XCTAssertNil(model.discoverToken(for: "a"))
+    }
+
+    func testDisableAndReenableDuringPINSubmissionRejectsTheOldResponse() async throws {
+        let (model, hub, profiles) = try makeModel(accountIDs: ["a"])
+        model.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+        }
+        model.plexHomeUserSwitch = { _, _, _, _ in "stale-cloud" }
+        model.plexServerTokenResolve = { _, _, _ in
+            await MainActor.run {
+                profiles.setActiveAccountIDs([], for: profiles.activeProfileID)
+                hub.reloadAccounts()
+                model.ensurePlexIdentityForActiveProfile()
+                profiles.setActiveAccountIDs(["a"], for: profiles.activeProfileID)
+                hub.reloadAccounts()
+                model.ensurePlexIdentityForActiveProfile()
+            }
+            return "stale-server"
+        }
+        activateSavedUser(model, profiles: profiles, accountID: "a",
+                          user: PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true))
+        model.submitPlexPIN("2468")
+        await model.waitForPlexPINRequirementCheck()
+        await model.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(model.pendingPlexPINRequest?.accountID, "a")
+        XCTAssertEqual(model.plexPINEntryAvailability, .available)
+        XCTAssertNil(model.resolvedToken(for: "a"))
+        XCTAssertNil(model.discoverToken(for: "a"))
+        XCTAssertFalse(model.isSubmittingPlexPIN)
+    }
+
     // MARK: Generation-guard regression (stale background-refresh race)
 
     /// Drains queued main-actor work so a `Task { … }` spawned by the model runs to

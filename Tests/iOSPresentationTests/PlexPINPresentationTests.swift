@@ -25,6 +25,62 @@ final class PlexPINPresentationTests: XCTestCase {
         try await verifyShellTokenDenial(afterCredentialReplacement: false)
     }
 
+    func testDisabledPlexSourceSkipsPINUntilReenabledOnMobile() async throws {
+        let suite = "DisabledPlexSourceTests.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = AccountStore(secureStore: InMemorySecureStore())
+        try store.add(Account(
+            id: "plex", server: MediaServer(
+                id: "fixture", name: "Fixture", baseURL: URL(string: "https://plex.example")!, provider: .plex
+            ), userID: "owner", userName: "Owner", deviceID: "fixture"
+        ), token: "FIXTURE-OWNER")
+        let profileStore = ProfileStore(defaults: defaults)
+        let profiles = ProfilesModel(store: profileStore)
+        let enabledID = profiles.activeProfileID
+        let disabled = profiles.add(name: "Disabled source", avatarSymbol: "person", colorIndex: 1)
+        let binding = PlexHomeUserBinding(homeUserID: "parent", name: "Parent", requiresPIN: true,
+                                         pinRequirementVerified: true)
+        for profile in profiles.profiles {
+            profiles.update(profile.settingHomeUserBinding(binding, forPlexAccount: "plex"))
+        }
+        profiles.setActiveAccountIDs(["plex"], for: enabledID)
+        profiles.setActiveAccountIDs([], for: disabled.id)
+        profiles.select(enabledID)
+        let app = PlozziOSAppModel(accountStore: store, profileStore: profileStore)
+        app.plexHomeUsers.plexHomeUsersFetch = { _, _ in
+            [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: true)]
+        }
+        app.plexHomeUsers.plexHomeUserSwitch = { _, pin, _, _ in
+            XCTAssertEqual(pin, "2468")
+            return "FIXTURE-CLOUD"
+        }
+        app.plexHomeUsers.plexServerTokenResolve = { _, _, _ in "FIXTURE-SERVER" }
+        app.selectProfile(disabled.id)
+        XCTAssertNil(app.plexHomeUsers.pendingPlexPINRequest)
+        XCTAssertTrue(app.accountsProviders.activeAccountIDs.isEmpty)
+        XCTAssertNil(app.accountsProviders.tokenResolver("plex"))
+
+        app.setAccount("plex", enabled: true, for: disabled.id)
+        XCTAssertEqual(app.plexHomeUsers.pendingPlexPINRequest?.accountID, "plex")
+        XCTAssertNil(app.accountsProviders.provider(forAccountID: "plex"))
+        await app.plexHomeUsers.waitForPlexPINRequirementCheck()
+        app.plexHomeUsers.submitPlexPIN("2468")
+        await app.plexHomeUsers.waitForPlexPINRequirementCheck()
+        XCTAssertEqual(app.accountsProviders.tokenResolver("plex"), "FIXTURE-SERVER")
+
+        app.setAccount("plex", enabled: false, for: disabled.id)
+        XCTAssertNil(app.plexHomeUsers.pendingPlexPINRequest)
+        XCTAssertNil(app.plexHomeUsers.plexDiscoverTokens.token(for: "plex"))
+        XCTAssertNil(app.accountsProviders.tokenResolver("plex"))
+        XCTAssertEqual(app.profiles.activeProfile.homeUserBinding(forPlexAccount: "plex"), binding)
+        app.selectProfile(enabledID)
+        XCTAssertEqual(app.plexHomeUsers.pendingPlexPINRequest?.accountID, "plex")
+        app.selectProfile(disabled.id)
+        XCTAssertNil(app.plexHomeUsers.pendingPlexPINRequest)
+        XCTAssertNil(app.accountsProviders.tokenResolver("plex"))
+    }
+
     private func verifyShellTokenDenial(afterCredentialReplacement: Bool) async throws {
         let suite = "PlexPINSourceTests.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

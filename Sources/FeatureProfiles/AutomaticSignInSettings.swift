@@ -1,3 +1,4 @@
+import CoreUI
 import SwiftUI
 
 public struct AutomaticSignInSettings {
@@ -21,8 +22,16 @@ public struct AutomaticSignInToggle: View {
     }
 
     public var body: some View {
-        Toggle("Automatically Sign In", isOn: settings.isEnabled)
-            .accessibilityIdentifier("profiles.automaticallySignIn")
+        Toggle(isOn: settings.isEnabled) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Automatically Sign In")
+                Text("Sign in to the last-used profile automatically on this device.")
+                    .font(.footnote)
+                    .settingsRowSecondary()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityIdentifier("profiles.automaticallySignIn")
     }
 }
 

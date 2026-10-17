@@ -2,6 +2,7 @@ import XCTest
 import CoreModels
 import FeatureAuth
 import FeatureMusic
+import FeatureProfiles
 import FeatureSettings
 @testable import AppRuntime
 @testable import AppShell
@@ -506,6 +507,73 @@ final class AutomaticSignInTests: XCTestCase {
         XCTAssertFalse(incomplete.plex.restoreAutomaticSignInAtLaunch())
         XCTAssertNil(incomplete.plex.discoverToken(for: "account"), "No partial restore")
         XCTAssertNil(incomplete.plex.discoverToken(for: second.id))
+    }
+
+    func testAutomaticSignInExcludesDisabledPlexBindingsAndRejectsReenabledSources() throws {
+        let house = try household()
+        let env = launch(house)
+        env.profiles.update(env.profiles.activeProfile.settingHomeUserBinding(
+            .init(homeUserID: "parent", name: "Parent", requiresPIN: true), forPlexAccount: "account"
+        ))
+        env.profiles.setActiveAccountIDs([], for: env.profiles.activeProfileID)
+        env.hub.reloadAccounts()
+        env.plex.ensurePlexIdentityForActiveProfile()
+        env.flow.setAutomaticallySignIn(true)
+        XCTAssertTrue(env.plex.automaticallySignIn)
+        let saved = try XCTUnwrap(house.startup.load())
+        XCTAssertTrue(saved.accounts.isEmpty)
+        XCTAssertTrue(saved.plexCredentials.isEmpty)
+
+        let next = launch(house)
+        XCTAssertTrue(next.plex.restoreAutomaticSignInAtLaunch())
+        next.plex.ensurePlexIdentityForActiveProfile()
+        XCTAssertNil(next.plex.pendingPlexPINRequest)
+        XCTAssertNil(next.plex.resolvedToken(for: "account"))
+        XCTAssertNil(next.plex.discoverToken(for: "account"))
+
+        next.profiles.setActiveAccountIDs(["account"], for: next.profiles.activeProfileID)
+        let reenabled = launch(house)
+        XCTAssertFalse(reenabled.plex.restoreAutomaticSignInAtLaunch())
+        reenabled.plex.ensurePlexIdentityForActiveProfile()
+        XCTAssertNotNil(reenabled.plex.pendingPlexPINRequest)
+        XCTAssertNil(reenabled.plex.resolvedToken(for: "account"))
+    }
+
+    func testDisabledPlexSourceDoesNotBypassSeparateProfileLock() throws {
+        let house = try household()
+        let env = launch(house)
+        var profile = env.profiles.activeProfile.settingHomeUserBinding(
+            .init(homeUserID: "parent", name: "Parent", requiresPIN: true), forPlexAccount: "account"
+        )
+        profile.replaceLock(with: ProfileLock.make(pin: "1357", iterations: 1))
+        env.profiles.update(profile)
+        env.profiles.setActiveAccountIDs([], for: profile.id)
+        env.hub.reloadAccounts()
+        env.flow.switchProfile(to: profile.id)
+        XCTAssertTrue(env.flow.activeProfileAwaitsUnlock)
+        XCTAssertFalse(env.flow.submitProfileLockPIN("0000"))
+        XCTAssertTrue(env.flow.submitProfileLockPIN("1357"))
+        XCTAssertFalse(env.flow.activeProfileAwaitsUnlock)
+        XCTAssertNil(env.plex.pendingPlexPINRequest)
+        XCTAssertNil(env.plex.resolvedToken(for: "account"))
+    }
+
+    func testDisablingPlexSourceRemovesTrustedStartupCredentials() async throws {
+        let house = try household()
+        let env = launch(house)
+        await authenticatePlex(env)
+        env.flow.setAutomaticallySignIn(true)
+        XCTAssertNotNil(try house.startup.load()?.plexCredentials["account"])
+        env.profiles.setActiveAccountIDs([], for: env.profiles.activeProfileID)
+        env.hub.reloadAccounts()
+        env.plex.ensurePlexIdentityForActiveProfile()
+        let saved = try XCTUnwrap(house.startup.load())
+        XCTAssertTrue(saved.plexCredentials.isEmpty)
+        XCTAssertTrue(saved.accounts.isEmpty)
+        let next = launch(house)
+        XCTAssertTrue(next.plex.restoreAutomaticSignInAtLaunch())
+        XCTAssertNil(next.plex.resolvedToken(for: "account"))
+        XCTAssertNil(next.plex.discoverToken(for: "account"))
     }
 
     func testInFlightPINCannotUnlockAReactivatedProfile() async throws {

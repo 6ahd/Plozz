@@ -144,16 +144,34 @@ session persistence.
 
 ## Automatically Sign In
 
-Settings → Profiles offers an off-by-default, device-only startup preference on
+Individual profile settings and Everyone → Profiles expose the same
+off-by-default, device-only startup preference on
 tvOS and iOS/iPadOS. When enabled from an authenticated profile, the next launch
 opens the last successfully used profile without the profile picker or PIN.
 This is the only startup control. When disabled, households with multiple
 profiles see the picker and protected profiles require their PIN as usual.
 The retired ask-on-startup preference is ignored, not converted into consent
-to bypass a PIN. The toggle has no helper text; only errors appear beneath it.
+to bypass a PIN. The description explains that it signs in to the last-used
+profile automatically on this device; this is not a per-profile or synced preference.
+
+On mobile, applying configuration sync refreshes the unchanged active profile
+without starting a new explicit activation. Cosmetic updates preserve a successful
+or in-flight Plex PIN entry. Synced profile changes and locks still pass the
+profile gates, and source membership/credential changes still reconcile or revoke
+Plex access. Deliberate selection, even of the current profile, remains a fresh
+authorization boundary.
 Automatic sign-in applies to Plozz profiles regardless of their providers,
 including profiles without server accounts. Plex Home token restoration is the
 provider-specific part, not a restriction on who can use the setting.
+
+Plex authorization follows the profile's enabled sources, not individual library
+visibility. Disabling an entire Plex source preserves its saved Home-user binding
+but clears its live credentials, PIN proof, and pending authorization. It no longer
+prompts when entering the profile or participates in automatic sign-in. Re-enabling
+the source verifies current protection and requires its PIN before content access;
+neither old credentials nor an in-flight response can authorize it. Hiding libraries
+within an enabled source does not waive authentication. Separate Plozz Profile Locks
+and Kids Profile exit gates are unchanged.
 
 `AppRuntime.AutomaticSignInStore` retains one session in a non-synchronizable,
 ThisDeviceOnly Keychain item (per Apple TV system user). It stores authenticated
