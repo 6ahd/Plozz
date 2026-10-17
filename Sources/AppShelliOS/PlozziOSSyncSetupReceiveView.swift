@@ -19,6 +19,7 @@ struct PlozziOSSyncSetupReceiveView: View {
     /// "set up with other device" entry): advertise just that server so the source
     /// transfers only it and names it in its confirm prompt.
     let requestedServer: SyncedAccountDescriptor?
+    let sourceInvite: SyncSetupSourceInvite?
     @State private var model: SyncSetupPairingModel
     @State private var didApply = false
     @State private var applyError: String?
@@ -26,10 +27,12 @@ struct PlozziOSSyncSetupReceiveView: View {
     init(
         appModel: PlozziOSAppModel,
         requestedServer: SyncedAccountDescriptor? = nil,
+        sourceInvite: SyncSetupSourceInvite? = nil,
         onClose: @escaping () -> Void
     ) {
         self.appModel = appModel
         self.requestedServer = requestedServer
+        self.sourceInvite = sourceInvite
         self.onClose = onClose
         _model = State(initialValue: SyncSetupPairingModel(service: appModel.syncSetup))
     }
@@ -62,7 +65,8 @@ struct PlozziOSSyncSetupReceiveView: View {
         .task {
             await model.startReceiving(
                 requestedAccountID: requestedServer?.id,
-                requestedServerName: requestedServer?.serverName
+                requestedServerName: requestedServer?.serverName,
+                sourceInvite: sourceInvite
             )
         }
         .onDisappear { model.stopReceiving() }
@@ -72,7 +76,18 @@ struct PlozziOSSyncSetupReceiveView: View {
     private var content: some View {
         switch model.phase {
         case .waitingForPeer(let code, let invite):
-            waiting(code: code, invite: invite)
+            if sourceInvite != nil {
+                centered {
+                    ProgressView().controlSize(.large)
+                    Text("Check your Apple TV").font(.title2.bold())
+                        .foregroundStyle(palette.primaryText)
+                    Text("Confirm the matching code on your TV to set up this device.")
+                        .foregroundStyle(palette.secondaryText)
+                        .multilineTextAlignment(.center)
+                }
+            } else {
+                waiting(code: code, invite: invite)
+            }
         case .applying:
             if let sas = model.hostSASCode {
                 sasCompare(sas)
@@ -91,15 +106,18 @@ struct PlozziOSSyncSetupReceiveView: View {
                 Text("Setup didn’t finish").font(.title3.bold())
                 Text(message).foregroundStyle(palette.secondaryText)
                     .multilineTextAlignment(.center)
-                Button("Try Again") {
-                    Task {
-                        await model.startReceiving(
-                            requestedAccountID: requestedServer?.id,
-                            requestedServerName: requestedServer?.serverName
-                        )
+                if sourceInvite?.isUsable() != false {
+                    Button("Try Again") {
+                        Task {
+                            await model.startReceiving(
+                                requestedAccountID: requestedServer?.id,
+                                requestedServerName: requestedServer?.serverName,
+                                sourceInvite: sourceInvite
+                            )
+                        }
                     }
-                }
                     .syncPrimaryButtonStyle()
+                }
             }
         default:
             centered { ProgressView() }

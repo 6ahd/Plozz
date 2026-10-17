@@ -64,7 +64,10 @@ struct SyncSetupSendView: View {
             AppBackground(palette: palette)
             content.frame(maxWidth: .infinity, maxHeight: .infinity).padding(70)
         }
-        .onAppear { if offer == nil { model.startDiscovery() } }
+        .onAppear { if offer == nil { model.startDiscovery(offeringSetup: true) } }
+        .onChange(of: model.sourceReceiver) { _, device in
+            if let device { startSending { await model.sendToSourceReceiver(device) } }
+        }
         .onChange(of: isAuthorized, initial: true) { _, _ in model.authorizationDidChange() }
         .onDisappear {
             sendTask?.cancel()
@@ -82,7 +85,14 @@ struct SyncSetupSendView: View {
             if let offer {
                 offerConfirmation(offer)
             } else {
-                picker
+                SyncSetupSenderPicker(
+                    invite: model.sourceInvite, inviteExpired: model.sourceInviteExpired,
+                    devices: model.nearbyDevices, code: $code,
+                    onRefresh: { model.startDiscovery(offeringSetup: true) },
+                    onSelect: { device in startSending { await model.pair(with: device) } },
+                    onSendCode: { startSending { await model.send(code: code) } },
+                    onClose: onClose
+                )
             }
         case .connecting, .sending:
             VStack(spacing: 18) {
@@ -104,7 +114,7 @@ struct SyncSetupSendView: View {
                 Button("Try Again") {
                     handled = false
                     model.reset()
-                    if offer == nil { model.startDiscovery() }
+                    if offer == nil { model.startDiscovery(offeringSetup: true) }
                 }
                 .disabled(!isAuthorized)
                 Button("Cancel", role: .cancel) { onClose() }
@@ -145,73 +155,6 @@ struct SyncSetupSendView: View {
             }
         }
         .multilineTextAlignment(.center)
-    }
-
-    // MARK: Picker (nearby + code)
-
-    private var picker: some View {
-        VStack(spacing: 40) {
-            VStack(spacing: 10) {
-                Text("Set up another device").font(.largeTitle.bold())
-                    .foregroundStyle(palette.primaryText)
-                Text("On the device you want to set up, open Plozz and choose “Set up from another device.” It’ll appear here.")
-                    .font(.title3).foregroundStyle(palette.secondaryText)
-                    .multilineTextAlignment(.center).frame(maxWidth: 1000)
-            }
-
-            HStack(alignment: .top, spacing: 48) {
-                nearbyColumn
-                codeColumn
-            }
-
-            Button("Cancel", role: .cancel) { onClose() }.padding(.top, 8)
-        }
-    }
-
-    private var nearbyColumn: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("NEARBY").font(.caption.weight(.semibold)).tracking(1.5)
-                .foregroundStyle(palette.secondaryText)
-            if model.nearbyDevices.isEmpty {
-                HStack(spacing: 14) {
-                    ProgressView()
-                    Text("Looking for a device…").foregroundStyle(palette.secondaryText)
-                }
-                .frame(width: 460, alignment: .leading)
-            } else {
-                ForEach(model.nearbyDevices) { device in
-                    Button {
-                        startSending { await model.pair(with: device) }
-                    } label: {
-                        HStack(spacing: 16) {
-                            Image(systemName: "iphone").font(.title2)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(device.displayName).font(.title3.weight(.semibold))
-                                Text("Code \(SyncPairingCode.grouped(device.serviceName))")
-                                    .font(.callout).foregroundStyle(palette.secondaryText)
-                            }
-                            Spacer()
-                        }
-                        .frame(width: 460)
-                    }
-                }
-            }
-        }
-    }
-
-    private var codeColumn: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("OR ENTER CODE").font(.caption.weight(.semibold)).tracking(1.5)
-                .foregroundStyle(palette.secondaryText)
-            TextField("Code", text: $code)
-                .textInputAutocapitalization(.characters)
-                .disableAutocorrection(true)
-                .frame(width: 300)
-            Button("Set Up") {
-                startSending { await model.send(code: code) }
-            }
-            .disabled(SyncPairingCode.normalize(code).count < 4)
-        }
     }
 
     // MARK: Verification code (SAS) confirmation — the sender gates the transfer

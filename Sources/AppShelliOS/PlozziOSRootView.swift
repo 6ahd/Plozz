@@ -6,6 +6,7 @@ import CrashReporting
 import FeatureHomeCore
 import FeatureProfiles
 import FeatureSettings
+import FeatureSyncSetup
 import Foundation
 import SwiftUI
 import UIKit
@@ -387,11 +388,20 @@ public struct PlozziOSRootView: View {
             }
         }
         .plozzSheet(item: pendingPairingBinding) { pairing in
-            PlozziOSSyncSetupDeepLinkView(
-                appModel: appModel,
-                invite: pairing.invite,
-                onClose: { appModel.pendingPairingInvite = nil }
-            )
+            Group {
+                if let invite = SyncSetupSourceInvite.decode(pairing.invite) {
+                    PlozziOSSyncSetupReceiveView(
+                        appModel: appModel, sourceInvite: invite,
+                        onClose: { appModel.pendingPairingInvite = nil }
+                    )
+                } else {
+                    PlozziOSSyncSetupDeepLinkView(
+                        appModel: appModel,
+                        invite: pairing.invite,
+                        onClose: { appModel.pendingPairingInvite = nil }
+                    )
+                }
+            }
             .preferredColorScheme(resolvedPalette.isLight ? .light : .dark)
         }
         .environment(\.themePalette, resolvedPalette)

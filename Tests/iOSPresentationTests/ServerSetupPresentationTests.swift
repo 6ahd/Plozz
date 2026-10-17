@@ -1,6 +1,7 @@
 #if os(iOS)
 import CoreModels
 import CoreUI
+import FeatureSyncSetup
 import SwiftUI
 import UIKit
 import Vision
@@ -9,6 +10,45 @@ import XCTest
 
 @MainActor
 final class ServerSetupPresentationTests: XCTestCase {
+    func testTVSourceLinkOpensReceivingInstructionsOnPhoneAndPad() async throws {
+        let app = PlozziOSAppModel()
+        let invite = SyncSetupSourceInvite()
+        XCTAssertTrue(app.handleIncomingURL(try XCTUnwrap(URL(string: invite.encoded()))))
+        XCTAssertEqual(app.pendingPairingInvite, invite.encoded())
+        XCTAssertFalse(app.handleIncomingURL(try XCTUnwrap(URL(string: "https://example.com/pair#invalid"))))
+        XCTAssertEqual(app.pendingPairingInvite, invite.encoded())
+        defer { app.pendingPairingInvite = nil }
+        for size in [CGSize(width: 320, height: 568), CGSize(width: 768, height: 1024)] {
+            let image = try await render(
+                PlozziOSSyncSetupReceiveView(appModel: app, sourceInvite: invite, onClose: {})
+                    .environment(\.themePalette, ThemePalette.dark),
+                size: size, light: false
+            )
+            let text = try recognize(image).joined(separator: " ")
+            XCTAssertTrue(text.contains("Check your Apple TV"), text)
+            XCTAssertTrue(text.contains("matching code"), text)
+            XCTAssertTrue(text.contains("Cancel"), text)
+            XCTAssertFalse(text.contains("Scan this QR"), text)
+            attach(image, name: "TV source scan \(size)")
+        }
+    }
+
+    func testExpiredTVSourceLinkAsksForANewScanWithoutOfferingBrokenRetry() async throws {
+        let app = PlozziOSAppModel()
+        let invite = SyncSetupSourceInvite(now: Date().addingTimeInterval(-300))
+        let image = try await render(
+            PlozziOSSyncSetupReceiveView(appModel: app, sourceInvite: invite, onClose: {})
+                .environment(\.themePalette, ThemePalette.light),
+            size: .init(width: 390, height: 844), light: true
+        )
+        let text = try recognize(image).joined(separator: " ")
+        XCTAssertTrue(text.contains("expired"), text)
+        XCTAssertTrue(text.contains("Scan a new code"), text)
+        XCTAssertTrue(text.contains("Cancel"), text)
+        XCTAssertFalse(text.contains("Try Again"), text)
+        attach(image, name: "Expired TV source scan")
+    }
+
     func testReceivedSetupKeepsContinueVisibleWithManyServersAndProfiles() async throws {
         let accounts = (0..<25).flatMap { server in
             (0..<3).map { user in

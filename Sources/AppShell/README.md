@@ -50,6 +50,15 @@ registry.
   success in that same cover until the user closes it. A profile authorization
   change stops credential transfer and leaves the error visible.
 
+- **TV-to-phone setup QR.** The sender screen shows a three-minute
+  `SyncSetupSourceInvite`. Scanning it opens the phone's existing receive flow,
+  advertising the request UUID in Bonjour instead of broadcasting an iCloud
+  offer. The TV matches that live request, then requires matching-code
+  confirmation before sending credentials. This request has no
+  credentials or public-key trust shortcut and cannot decode as the original
+  receiver QR. Nearby-device labels inherit native button foregrounds so their
+  codes remain readable when focus inverts the surface.
+
 - **Composition root, not a feature.** This is the **only** module
   allowed to import all the others. Feature modules don't import
   `AppShell`.

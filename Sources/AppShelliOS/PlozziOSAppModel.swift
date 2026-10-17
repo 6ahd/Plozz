@@ -401,8 +401,8 @@ final class PlozziOSAppModel {
     /// the capture environment seeded this launch — see ``PlozziOSScreenshotSeed``.
     let screenshotDirector = PlozziOSScreenshotDirector()
     /// A pairing invite captured from a Sync & Setup universal link
-    /// (`https://plozz.app/pair#…`). When set, the root presents the pairing send
-    /// flow and auto-sends this device's setup to the device that showed the QR.
+    /// (`https://plozz.app/pair#…`). The invite type selects receiving from a TV
+    /// or the existing send flow; either direction requires its own confirmation.
     var pendingPairingInvite: String?
     @ObservationIgnored
     private(set) var plexHomeUsers: PlexHomeUsersModel!
@@ -1075,7 +1075,8 @@ final class PlozziOSAppModel {
     /// presentation via `pendingPairingInvite`.
     @discardableResult
     func handleIncomingURL(_ url: URL) -> Bool {
-        guard SyncPairingInvite.decode(url.absoluteString) != nil else { return false }
+        guard SyncPairingInvite.decode(url.absoluteString) != nil
+            || SyncSetupSourceInvite.decode(url.absoluteString) != nil else { return false }
         // Following a pairing link sends this household's servers, profiles and
         // credentials to the device that produced it, and that device opens in a
         // grown-up profile — so it's withheld inside an enforced Kids Profile.

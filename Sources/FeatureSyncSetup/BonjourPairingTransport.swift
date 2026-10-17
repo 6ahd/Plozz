@@ -63,12 +63,14 @@ public final class NWConnectionPairingLink: PairingLink, @unchecked Sendable {
 public final class BonjourPairingHost: @unchecked Sendable {
     public let serviceName: String
     public let displayName: String
+    public let sourceRequestID: UUID?
     private let queue = DispatchQueue(label: "plozz.pair.host")
     private var listener: NWListener?
 
-    public init(serviceName: String, displayName: String = "") {
+    public init(serviceName: String, displayName: String = "", sourceRequestID: UUID? = nil) {
         self.serviceName = serviceName
         self.displayName = displayName
+        self.sourceRequestID = sourceRequestID
     }
 
     /// Advertise and wait for the first connection, returning a link over it.
@@ -79,7 +81,9 @@ public final class BonjourPairingHost: @unchecked Sendable {
                 let params = NWParameters.tcp
                 params.includePeerToPeer = true
                 let l = try NWListener(using: params)
-                let txt = NWTXTRecord(["name": displayName])
+                var values = ["name": displayName]
+                if let sourceRequestID { values["sourceRequest"] = sourceRequestID.uuidString }
+                let txt = NWTXTRecord(values)
                 l.service = NWListener.Service(name: serviceName, type: kPlozzPairingServiceType, txtRecord: txt)
                 l.stateUpdateHandler = { st in
                     switch st {
@@ -115,10 +119,12 @@ public struct DiscoveredPairingDevice: Identifiable, Hashable, Sendable {
     public var id: String { serviceName }
     public let serviceName: String   // == the short code
     public let displayName: String   // friendly name from the TXT record
+    public let sourceRequestID: UUID?
 
-    public init(serviceName: String, displayName: String) {
+    public init(serviceName: String, displayName: String, sourceRequestID: UUID? = nil) {
         self.serviceName = serviceName
         self.displayName = displayName
+        self.sourceRequestID = sourceRequestID
     }
 }
 
@@ -138,8 +144,14 @@ public final class BonjourPairingBrowser: @unchecked Sendable {
             let devices: [DiscoveredPairingDevice] = results.compactMap { result in
                 guard case let .service(name, _, _, _) = result.endpoint else { return nil }
                 var display = name
-                if case let .bonjour(txt) = result.metadata, let n = txt["name"], !n.isEmpty { display = n }
-                return DiscoveredPairingDevice(serviceName: name, displayName: display)
+                var sourceRequestID: UUID?
+                if case let .bonjour(txt) = result.metadata {
+                    if let n = txt["name"], !n.isEmpty { display = n }
+                    sourceRequestID = txt["sourceRequest"].flatMap(UUID.init(uuidString:))
+                }
+                return DiscoveredPairingDevice(
+                    serviceName: name, displayName: display, sourceRequestID: sourceRequestID
+                )
             }
             onChange(devices)
         }
