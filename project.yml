@@ -78,6 +78,8 @@ targets:
       - path: App/Resources/LibTrueHDNotices.txt
       - path: App/Resources/LibTrueHDLicense.txt
       - path: App/Resources/LibTrueHDApacheLicense.txt
+      - path: App/Resources/LibDTSXNotices.txt
+      - path: App/Resources/LibDTSXLicense.txt
     info:
       path: App/Resources/Info.plist
       properties:
@@ -328,6 +330,8 @@ targets:
       - path: App/Resources/LibTrueHDNotices.txt
       - path: App/Resources/LibTrueHDLicense.txt
       - path: App/Resources/LibTrueHDApacheLicense.txt
+      - path: App/Resources/LibDTSXNotices.txt
+      - path: App/Resources/LibDTSXLicense.txt
     info:
       path: App/PlozziOS/Info.plist
       properties:
@@ -449,10 +453,12 @@ targets:
     platform: tvOS
     sources:
       - path: Tests/FocusHost
+      - path: Tests/LiveTVPresentationSupport/IPTVOrganizationFixture.swift
       - path: Tests/AuthPresentationSupport/IPTVSetupFixture.swift
       - path: Tests/FeatureLiveTVRemoteTests/NavigationRailFixture.swift
       - path: App/Resources/Assets.xcassets
       - path: App/Resources/CommunityAssets.xcassets
+      - path: App/Resources/Localizable.xcstrings
       - path: App/Resources/ReleaseNotes.json
     settings:
       base:
@@ -472,6 +478,7 @@ targets:
     platform: iOS
     sources:
       - path: Tests/iOSPresentationHost
+      - path: Tests/LiveTVPresentationSupport/IPTVOrganizationFixture.swift
       - path: Tests/ProviderIPTVTests/IPTVTestHTTPServer.swift
       - path: Tests/SubtitlePresentationSupport/Fixtures/four-three.mp4
         buildPhase: resources
@@ -486,6 +493,7 @@ targets:
         BGTaskSchedulerPermittedIdentifiers:
           - "$(PRODUCT_BUNDLE_IDENTIFIER).downloads.*"
         UIBackgroundModes:
+          - audio
           - processing
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
@@ -518,11 +526,13 @@ targets:
     sources:
       - path: Tests/iOSPresentationTests
       - path: Tests/FocusIntegrationTests/LiveTVSourcesRuntimeHostedTests.swift
+      - path: Tests/FocusIntegrationTests/PINRequirementPresentationTests.swift
       - path: Tests/HomePresentationSupport
       - path: Tests/TestSupportPerformance
       - path: Tests/PerformancePresentationSupport
       - path: Tests/ProviderIPTVTests/IPTVTestHTTPServer.swift
       - path: Tests/AppearancePresentationSupport
+      - path: Tests/CoreUITests/DialogSurfaceTests.swift
       - path: Tests/AuthPresentationSupport
       - path: Tests/SubtitlePresentationSupport
         excludes: ["Fixtures"]
@@ -546,6 +556,7 @@ targets:
     platform: iOS
     sources:
       - path: Tests/iOSInteractionTests
+      - path: Tests/LiveTVPresentationSupport/IPTVOrganizationInteractionTests.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thatcube.Plozz.InteractionTests
@@ -560,6 +571,8 @@ targets:
     platform: tvOS
     sources:
       - path: Tests/HomeRemoteTests
+      - path: Tests/LiveTVPresentationSupport/IPTVOrganizationInteractionTests.swift
+      - path: Sources/FeatureHomeCore/LibraryTraversalEvidence.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thatcube.Plozz.HomeRemoteTests
@@ -576,6 +589,7 @@ targets:
       - path: Tests/ProviderIPTVTests/IPTVTestHTTPServer.swift
       - path: Tests/FeatureLiveTVTests/LiveTVGuideFocusTests.swift
       - path: Tests/AppearancePresentationSupport
+      - path: Tests/CoreUITests/DialogSurfaceTests.swift
       - path: Tests/AuthPresentationSupport
       - path: Tests/SubtitlePresentationSupport
         excludes: ["Fixtures"]

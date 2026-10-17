@@ -317,6 +317,8 @@ struct PlaybackInfoBody: Encodable {
     let EnableDirectStream: Bool?
     let EnableTranscoding: Bool
     let DeviceProfile: JellyfinCapabilityProfile
+    var AllowVideoStreamCopy: Bool? = nil
+    var AllowAudioStreamCopy: Bool? = nil
 }
 
 struct MediaStreamDto: Decodable {

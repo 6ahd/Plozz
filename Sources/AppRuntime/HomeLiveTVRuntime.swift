@@ -119,6 +119,15 @@ public enum HomeLiveTVRuntime {
                   route.sourceAuthorizationID == authorization.identity,
                   route.serverAuthorizationID == serverAuthorizationID,
                   !hidden.contains(route.channelID) else { return false }
+            if let metadata = card.organizationMetadata,
+               preferences.organization.hiddenReason(channelID: route.channelID, metadata: metadata) != nil {
+                return false
+            }
+            // Older cached IPTV cards have no classification to evaluate.
+            if card.organizationMetadata == nil, route.accountID == nil,
+               preferences.organization.hasVisibilityRules {
+                return false
+            }
             if let accountID = route.accountID {
                 return configuration.servers.contains {
                     $0.id == route.sourceID && $0.accountID == accountID && $0.isEnabled
@@ -130,7 +139,11 @@ public enum HomeLiveTVRuntime {
         let cards = filtered.recentChannels + filtered.channels
         let byID = Dictionary(cards.map { ($0.route.channelID, $0) }, uniquingKeysWith: { first, _ in first })
         return .build(
-            recentIDs: preferences.recentChannelIDs, favoriteIDs: preferences.favoriteOrder,
+            recentIDs: preferences.recentChannelIDs,
+            favoriteIDs: preferences.favoriteOrder + filtered.channels.filter {
+                guard let metadata = $0.organizationMetadata else { return false }
+                return preferences.organization.isCategoryFavorite(channelID: $0.route.channelID, metadata: metadata)
+            }.map { $0.route.channelID },
             fallbackIDs: filtered.channels.map { $0.route.channelID },
             channel: { byID[$0] }
         )

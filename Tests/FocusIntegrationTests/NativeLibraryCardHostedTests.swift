@@ -30,7 +30,7 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         try await checkNativeBrowseArtwork(onlineDelay: 0)
     }
 
-    func testSharedPosterMeasurementDoesNotChangeCommittedArtwork() throws {
+    func testSharedPosterMeasurementDoesNotChangeCommittedArtwork() async throws {
         let image = try XCTUnwrap(UIImage(data: artworkData(.red)))
         let host = UIHostingController(rootView: SharedZoomFixture(image: image, aspect: 2 / 3))
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
@@ -53,6 +53,12 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         host.view.layoutIfNeeded()
         let poster = try XCTUnwrap(descendant(NativePosterButton.self, in: host.view))
         poster.layoutIfNeeded()
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !(try poster.image.map {
+            try isRed($0, at: CGPoint(x: $0.size.width * $0.scale / 2, y: $0.size.height * $0.scale / 2))
+        } ?? false), ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         let rendered = try XCTUnwrap(poster.image)
         XCTAssertEqual(rendered.size, CGSize(width: 260, height: 390))
         XCTAssertTrue(try isRed(rendered, at: CGPoint(

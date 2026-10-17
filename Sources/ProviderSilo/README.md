@@ -27,11 +27,44 @@ that picker without repeating approval; retrying a failed profile lookup reuses
 the approved login while it remains valid. Expired codes have an explicit renewal
 action. Leaving the flow cancels pending work and clears in-memory PINs/tokens.
 TV approval follows the shared Plex-style QR/manual-code layout with one expiry
-ring and a visible match phrase. Profile selection uses the same avatar-row
+ring and the same sign-in code shown by current Silo versions. Profile selection uses the same avatar-row
 component and scroll card as Plex server-user selection, including focus-aware
 PIN indicators. These are Silo server profiles, not new Plozz household profiles.
 On mobile, browser approval stays primary and manual/QR alternatives share one
 disclosure instead of repeating the same instructions.
+
+If Silo advertises a configured public alias, Plozz keeps approval on the selected
+server's documented `/activate` page, including its reverse-proxy base path.
+It builds the link from the public user code, never forwards a foreign query or
+follows an authentication redirect. Inconsistent/unrecognized approval links are
+rejected with an address-specific message. Pending polls honor Silo's extended
+expiry; canceled/consumed requests offer a fresh code. A failed start can be
+retried in place, while a failed profile lookup retains successful approval.
+
+Setup errors identify validation, code creation, polling, profile loading, PIN
+verification, or session completion. With crash-reporting consent, at most ten
+distinct failures per reporter lifetime are sent using fixed stage/reason/response
+categories and an HTTP status only. No server address, response body, profile
+identity, PIN, pairing code, token, or error description is included. Opt-out
+invalidates retained attempts, including across later opt-in.
+
+## Server Home
+
+Match Server imports Silo's profile-scoped native Home row IDs, headings, order
+and contents, including custom rows. The lightweight `/home/layout` endpoint
+falls back to `/home/sections` only when unavailable; actual authentication,
+network and malformed-response failures remain failures. A row refresh shares
+one fresh sections response instead of caching content across watch changes.
+Single-row requests use `/home/sections/{id}/items` with the same older-server
+fallback. Servers lacking both Home endpoints retain ordinary provider defaults.
+
+Only video cards are displayed. Disabled Plozz libraries require exact membership
+in an enabled library; title matches alone never establish membership. Continue
+Watching and Next Up resolve the server-selected playable episode and retain
+resume state and verified parent artwork. Shared Home composition still owns
+multi-server merging and explicit Plozz profile customizations.
+These Home and device-login contracts were checked at upstream revision
+`6144c45cd65ae0f49f9f3397bbc20f7e4d60a20e`.
 
 ## Contracts
 
@@ -86,12 +119,35 @@ disclosure instead of repeating the same instructions.
   bytes are preserved and foreign origins never receive the account bearer.
   Original-file delivery advertises Plozzigen's software codecs (including VP9),
   separately from hardware decode and native remote-HLS capabilities.
+  Its delivery-scoped claims let the local player manage HDR presentation and
+  select source audio tracks without requesting server conversion. They do not
+  claim native HDR10+ output or apply to server-packaged streams. HLS delivery
+  includes Silo's `hls` stream-container token, not only segment containers.
   The provider accepts original HTTP or HLS
   plans with a source-aligned seekable timeline; incompatible plans are released,
   not played with an incorrect clock. Progress samples are sequenced and stop
   requests carry an idempotent stop identifier.
 - Watched state and the native Silo watchlist write back to Silo. Batched resume
   synchronization checks each result, not only HTTP success.
+
+## Collections
+
+Library collections and personal collections have separate native contracts.
+`collections(in:page:)` retains `/library/{id}/collections` and
+`source=library_collection`. `personalCollections(page:)` reads `/collections`,
+including the acting viewer's own collections and collections shared with them,
+even when they are not published in a library's Collections tab. It slices the
+native unpaginated list without discarding the server's viewer order.
+
+Personal IDs use a distinct provider-local namespace. Item lookup, children and
+paged members route consistently to that namespace, with members fetched through
+`/catalog?source=user_collection&collection_id=...`; no arbitrary library or sort
+is imposed. Server profile authorization applies to every request. Missing
+artwork is valid; unsupported endpoints and revoked credentials remain errors.
+Personal catalog cards do not declare library ownership, so the provider leaves
+it unknown rather than mislabeling the whole collection as one library.
+These contracts were checked against native v2 revision
+`bbef279723ddc17cd3798b22decf58e5791765c7`.
 
 ## Detail ratings
 
@@ -125,6 +181,10 @@ resume position.
 The quality contract was verified against Silo server revision
 `8e5ae2f469d36109e28cab3959693236cb503833`; unsupported growing/non-source-aligned
 timelines remain an explicit refusal rather than an incorrect resume clock.
+Original-player claims and HLS container matching were checked against
+`c78d233918ec7297d519fb2702f5473f5109eb9d`. An unspecified negotiation refusal
+does not imply transcoding was requested; diagnostics retain the requested
+quality, encoding requirement, and server refusal code.
 
 ## Subtitle search and download
 

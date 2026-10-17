@@ -227,7 +227,7 @@ final class WebDAVMediaTransportTests: XCTestCase {
         )
     }
 
-    func testOpenSourceRejectsNonStrongETagRepresentation() async throws {
+    func testOpenSourceRejectsNonRevalidatableRepresentation() async throws {
         let revision = CredentialRevision()
         let session = try await makeAdapter().connect(for: try makeKey(revision: revision, role: .playback))
         let locator = try NetworkFileLocator(
@@ -237,7 +237,7 @@ final class WebDAVMediaTransportTests: XCTestCase {
             relativePath: "Movie.mkv",
             representation: try RemoteFileRepresentation(
                 size: 10,
-                identity: try RemoteFileIdentity(kind: .modificationTime, modifiedAt: Date(timeIntervalSince1970: 1)),
+                identity: try RemoteFileIdentity(kind: .snapshot, value: "snapshot"),
                 consistency: .changeDetecting
             )
         )
@@ -254,6 +254,7 @@ final class WebDAVMediaTransportTests: XCTestCase {
     func testOpenSourceProbesThenReadsWithIfMatchRevalidation() async throws {
         let revision = CredentialRevision()
         let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        queueStat()
         let observedIfMatch = LockedValue<String?>(nil)
         // 1) range probe: 206 + strong ETag + Content-Range 0-0/1000, 1-byte body.
         StubURLProtocol.queue(
@@ -287,6 +288,7 @@ final class WebDAVMediaTransportTests: XCTestCase {
     func testOpenSourceDetectsETagDrift() async throws {
         let revision = CredentialRevision()
         let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        queueStat()
         // Probe succeeds but returns a DIFFERENT strong ETag than the locator's.
         StubURLProtocol.queue(
             StubResponse(
@@ -310,6 +312,7 @@ final class WebDAVMediaTransportTests: XCTestCase {
     func testByteSourceReturnsEmptyAtEOF() async throws {
         let revision = CredentialRevision()
         let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        queueStat()
         StubURLProtocol.queue(
             StubResponse(
                 statusCode: 206,
@@ -338,6 +341,246 @@ final class WebDAVMediaTransportTests: XCTestCase {
     }
 
     // MARK: - trust-revision threading
+
+    private func queueStat(etag: String? = "\"strong-1\"", modified: String? = nil, size: Int = 1000) {
+        let xml = """
+        <D:multistatus xmlns:D="DAV:"><D:response>
+          <D:href>/dav/movies/Movie.mkv</D:href>
+          <D:propstat><D:prop>
+            <D:getcontentlength>\(size)</D:getcontentlength>
+            \(etag.map { "<D:getetag>\($0)</D:getetag>" } ?? "")
+            \(modified.map { "<D:getlastmodified>\($0)</D:getlastmodified>" } ?? "")
+          </D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>
+        </D:response></D:multistatus>
+        """
+        StubURLProtocol.queue(
+            StubResponse(statusCode: 207, body: Data(xml.utf8)),
+            for: URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        )
+    }
+
+    func testModificationTimeLocatorCanOpenAndSeekWithoutETag() async throws {
+        let revision = CredentialRevision()
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        let modified = "Wed, 14 Oct 2026 12:00:00 GMT"
+        let date = try XCTUnwrap(HTTPDate.parse(modified))
+        queueStat(etag: nil, modified: modified)
+        StubURLProtocol.queue(
+            StubResponse(statusCode: 206, headers: ["Last-Modified": modified, "Content-Range": "bytes 0-0/1000"], body: Data([0])),
+            for: url
+        )
+        StubURLProtocol.queue(
+            StubResponse(
+                statusCode: 206, headers: ["Last-Modified": modified, "Content-Range": "bytes 900-909/1000"],
+                body: Data(repeating: 7, count: 10),
+                onRequest: {
+                    XCTAssertNil($0.value(forHTTPHeaderField: "If-Match"))
+                    XCTAssertEqual($0.value(forHTTPHeaderField: "If-Unmodified-Since"), modified)
+                }
+            ), for: url
+        )
+        let locator = try NetworkFileLocator(
+            accountID: "account", sourceID: "account", credentialRevision: revision, relativePath: "Movie.mkv",
+            representation: RemoteFileRepresentation(
+                size: 1000, identity: RemoteFileIdentity(kind: .modificationTime, modifiedAt: date),
+                consistency: .changeDetecting
+            )
+        )
+        let session = try await makeAdapter().connect(for: makeKey(revision: revision, role: .playback))
+        let lease = try await session.fileSystem.openSource(for: locator)
+        let cursor = try XCTUnwrap(lease.makeCursor())
+        let bytes = try await cursor.read(at: 900, length: 10)
+        XCTAssertEqual(bytes, Data(repeating: 7, count: 10))
+    }
+
+    func testStatLearnsMissingDAVIdentityFromGET() async throws {
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        queueStat(etag: nil)
+        StubURLProtocol.queue(
+            StubResponse(statusCode: 206, headers: ["ETag": "\"get-only\"", "Content-Range": "bytes 0-0/1000"], body: Data([0])),
+            for: url
+        )
+        let session = try await makeAdapter().connect(for: makeKey())
+        let entry = try await session.fileSystem.statForOpening(relativePath: "Movie.mkv")
+        XCTAssertEqual(entry.strongETag, "\"get-only\"")
+        XCTAssertEqual(entry.size, 1000)
+        XCTAssertEqual(StubURLProtocol.requests(for: url).map(\.httpMethod), ["PROPFIND", "GET"])
+    }
+
+    func testStrongGETETagDoesNotHideChangedModificationTime() async throws {
+        let revision = CredentialRevision()
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        let modified = "Wed, 14 Oct 2026 12:00:00 GMT"
+        queueStat(etag: nil, modified: modified)
+        StubURLProtocol.queue(
+            StubResponse(
+                statusCode: 206,
+                headers: [
+                    "ETag": "\"replacement\"", "Last-Modified": "Thu, 15 Oct 2026 12:00:00 GMT",
+                    "Content-Range": "bytes 0-0/1000"
+                ],
+                body: Data([0])
+            ), for: url
+        )
+        let locator = try NetworkFileLocator(
+            accountID: "account", sourceID: "account", credentialRevision: revision, relativePath: "Movie.mkv",
+            representation: RemoteFileRepresentation(
+                size: 1000,
+                identity: RemoteFileIdentity(kind: .modificationTime, modifiedAt: XCTUnwrap(HTTPDate.parse(modified))),
+                consistency: .changeDetecting
+            )
+        )
+        let session = try await makeAdapter().connect(for: makeKey(revision: revision, role: .playback))
+        do {
+            _ = try await session.fileSystem.openSource(for: locator)
+            XCTFail("must compare the GET date even when conditional reads would use its ETag")
+        } catch let error as MediaTransportError {
+            guard case .sourceChanged = error else { return XCTFail("unexpected \(error)") }
+        }
+    }
+
+    func testMissingDAVIdentityCannotPersistARedirectedResourceValidator() async throws {
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        for target in [
+            URL(string: "https://cdn.example.com/movie?signature=ephemeral")!,
+            URL(string: "https://nas.example.com/dav/movies/Other.mkv")!
+        ] {
+            queueStat(etag: nil)
+            StubURLProtocol.queue(redirect: StubRedirect(location: target), for: url)
+            StubURLProtocol.queue(
+                StubResponse(statusCode: 206, headers: ["ETag": "\"1\"", "Content-Range": "bytes 0-0/1000"], body: Data([0])),
+                for: target
+            )
+            let session = try await makeAdapter().connect(for: makeKey())
+            do {
+                _ = try await session.fileSystem.statForOpening(relativePath: "Movie.mkv")
+                XCTFail("a different resource's ETag must not become the stable DAV locator identity")
+            } catch let error as MediaTransportError {
+                guard case .unsupportedRange = error else { return XCTFail("unexpected \(error)") }
+            }
+        }
+    }
+
+    func testGETDerivedLocatorRejectsNewResourceWithSameETagAndSize() async throws {
+        let revision = CredentialRevision()
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        let target = URL(string: "https://cdn.example.com/other?signature=ephemeral")!
+        let response = StubResponse(
+            statusCode: 206, headers: ["ETag": "\"strong-1\"", "Content-Range": "bytes 0-0/1000"], body: Data([0])
+        )
+        queueStat(etag: nil)
+        StubURLProtocol.queue(response, for: url)
+        let session = try await makeAdapter().connect(for: makeKey(revision: revision, role: .playback))
+        let entry = try await session.fileSystem.statForOpening(relativePath: "Movie.mkv")
+        XCTAssertEqual(entry.strongETag, "\"strong-1\"")
+        queueStat(etag: nil)
+        StubURLProtocol.queue(redirect: StubRedirect(location: target), for: url)
+        StubURLProtocol.queue(response, for: target)
+        StubURLProtocol.queue(redirect: StubRedirect(location: target), for: url)
+        StubURLProtocol.queue(response, for: target)
+        do {
+            _ = try await session.fileSystem.openSource(for: strongETagLocator(revision: revision))
+            XCTFail("matching unscoped ETags must not authorize resuming different content")
+        } catch let error as MediaTransportError {
+            guard case .unsupportedRange = error else { return XCTFail("unexpected \(error)") }
+        }
+    }
+
+    func testOpenReusesExactResourceIdentityProbeWhenDAVHasNoValidator() async throws {
+        let revision = CredentialRevision()
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        queueStat(etag: nil)
+        StubURLProtocol.queue(
+            StubResponse(statusCode: 206, headers: ["ETag": "\"strong-1\"", "Content-Range": "bytes 0-0/1000"], body: Data([0])),
+            for: url
+        )
+        StubURLProtocol.queue(
+            StubResponse(
+                statusCode: 206, headers: ["ETag": "\"strong-1\"", "Content-Range": "bytes 900-909/1000"],
+                body: Data(repeating: 7, count: 10),
+                onRequest: {
+                    XCTAssertEqual($0.value(forHTTPHeaderField: "Range"), "bytes=900-909")
+                    XCTAssertEqual($0.value(forHTTPHeaderField: "If-Match"), "\"strong-1\"")
+                }
+            ), for: url
+        )
+        let session = try await makeAdapter().connect(for: makeKey(revision: revision, role: .playback))
+        let lease = try await session.fileSystem.openSource(for: strongETagLocator(revision: revision))
+        let cursor = try XCTUnwrap(lease.makeCursor())
+        let data = try await cursor.read(at: 900, length: 10)
+        XCTAssertEqual(data, Data(repeating: 7, count: 10))
+        XCTAssertEqual(StubURLProtocol.requests(for: url).map(\.httpMethod), ["PROPFIND", "GET", "GET"])
+    }
+
+    func testStatStillRejectsFileWithNoUsableGETValidator() async throws {
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        queueStat(etag: nil)
+        StubURLProtocol.queue(
+            StubResponse(statusCode: 206, headers: ["Content-Range": "bytes 0-0/1000"], body: Data([0])),
+            for: url
+        )
+        let session = try await makeAdapter().connect(for: makeKey())
+        do {
+            _ = try await session.fileSystem.statForOpening(relativePath: "Movie.mkv")
+            XCTFail("must not fabricate a representation identity")
+        } catch let error as MediaTransportError {
+            guard case .unsupportedRange = error else { return XCTFail("unexpected \(error)") }
+        }
+    }
+
+    func testOpenSourceRevalidatesPersistedDAVIdentityBeforeGET() async throws {
+        let revision = CredentialRevision()
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        queueStat(etag: "\"changed\"")
+        let session = try await makeAdapter().connect(for: makeKey(revision: revision, role: .playback))
+        do {
+            _ = try await session.fileSystem.openSource(for: strongETagLocator(revision: revision))
+            XCTFail("must reject a stale persisted locator")
+        } catch let error as MediaTransportError {
+            guard case .sourceChanged = error else { return XCTFail("unexpected \(error)") }
+        }
+        XCTAssertEqual(StubURLProtocol.requests(for: url).map(\.httpMethod), ["PROPFIND"])
+    }
+
+    func testOrdinaryStatDoesNotProbeUnvalidatedFileContents() async throws {
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        queueStat(etag: nil)
+        let session = try await makeAdapter().connect(for: makeKey())
+        let entry = try await session.fileSystem.stat(relativePath: "Movie.mkv")
+        XCTAssertEqual(entry.size, 1000)
+        XCTAssertNil(entry.strongETag)
+        XCTAssertNil(entry.modifiedAt)
+        XCTAssertEqual(StubURLProtocol.requests(for: url).map(\.httpMethod), ["PROPFIND"])
+    }
+
+    func testCDNValidatorIsIndependentFromStableDAVIdentity() async throws {
+        let revision = CredentialRevision()
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        let cdn = URL(string: "https://cdn.example.com/movie?signature=ephemeral")!
+        queueStat()
+        StubURLProtocol.queue(redirect: StubRedirect(location: cdn), for: url)
+        StubURLProtocol.queue(
+            StubResponse(statusCode: 206, headers: ["ETag": "\"cdn-1\"", "Content-Range": "bytes 0-0/1000"], body: Data([0])),
+            for: cdn
+        )
+        StubURLProtocol.queue(
+            StubResponse(
+                statusCode: 206, headers: ["ETag": "\"cdn-1\"", "Content-Range": "bytes 0-9/1000"],
+                body: Data(repeating: 1, count: 10),
+                onRequest: {
+                    XCTAssertEqual($0.value(forHTTPHeaderField: "If-Match"), "\"cdn-1\"")
+                    XCTAssertNil($0.value(forHTTPHeaderField: "Authorization"))
+                }
+            ), for: cdn
+        )
+        let session = try await makeAdapter(credential: .bearerToken("dav-secret")).connect(
+            for: makeKey(revision: revision, role: .playback)
+        )
+        let lease = try await session.fileSystem.openSource(for: strongETagLocator(revision: revision))
+        let cursor = try XCTUnwrap(lease.makeCursor())
+        let data = try await cursor.read(at: 0, length: 10)
+        XCTAssertEqual(data.count, 10)
+    }
 
     func testTrustRevisionMismatchFailsClosed() async throws {
         // A pinned-leaf trust policy whose revision disagrees with the key's

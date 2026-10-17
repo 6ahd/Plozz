@@ -498,7 +498,12 @@ public final class PlayerControlsModel {
     public var dialogEnhanceEnabled: Bool = false
 
     // MARK: Transport UI state (written by the input controller)
-    public var controlsVisible: Bool = false
+    public var controlsVisible: Bool = false {
+        didSet {
+            if !controlsVisible { timelineClock.isEnabled = false }
+        }
+    }
+    public let timelineClock = PlayerTimelineClock()
     /// Transient global bounds of visible bottom controls, excluding the scrim.
     public let subtitleLayout = SubtitleControlsLayout()
     public var isScrubbing: Bool = false

@@ -5,6 +5,43 @@ import XCTest
 final class LiveTVPortableSyncTests: XCTestCase {
     private let profileID = "profile"
 
+    func testCategoryRulesRegionAndIndividualExceptionsSyncWithoutExpandingFavorites() throws {
+        let sender = try makeFixture()
+        let receiver = try makeFixture()
+        var organization = LiveTVChannelOrganization()
+        let category = LiveTVCategoryRule(sourceID: "playlist", name: "News", visibility: .hidden, isFavorite: true)
+        organization.setCategory(category)
+        organization.region = .init(isEnabled: true, countries: ["US"], languages: ["English"])
+        organization.shownChannelIDs = ["shown"]
+        organization.excludedFavoriteIDs = ["unfavorite"]
+        try sender.preferences.save(.init(organization: organization))
+        let records = try sender.adapter.capture(sourceStore: sender.sources, fallback: [:])
+        XCTAssertEqual(records.count, 4)
+        _ = try receiver.adapter.apply(records.mapValues(Optional.some), sourceStore: receiver.sources)
+        XCTAssertEqual(try receiver.preferences.load().organization, organization)
+        XCTAssertTrue(try receiver.preferences.load().favoriteIDs.isEmpty)
+        XCTAssertEqual(try receiver.adapter.capture(sourceStore: receiver.sources, fallback: records), records)
+        try sender.preferences.save(.empty)
+        let cleared = try sender.adapter.capture(sourceStore: sender.sources, fallback: records)
+        _ = try receiver.adapter.apply(cleared.mapValues(Optional.some), sourceStore: receiver.sources)
+        XCTAssertEqual(try receiver.preferences.load().organization, .init())
+        let bytes = try XCTUnwrap(cleared[recordKey(.category, category.id).recordName])
+        XCTAssertTrue(try LiveTVPortableRecord.decode(bytes, key: recordKey(.category, category.id)).isDeleted)
+    }
+
+    func testCategoryAndRegionRecordsRejectWrongIdentityAndProfile() throws {
+        let fixture = try makeFixture()
+        let category = LiveTVCategoryRule(sourceID: "playlist", name: "News", visibility: .hidden)
+        let invalid = try LiveTVPortableRecord(category: category).encoded()
+        let changes: [String: Data?] = [
+            recordKey(.category, "wrong-id").recordName: invalid,
+            recordKey(.region, "wrong-region").recordName: try LiveTVPortableRecord(region: .init()).encoded(),
+            LiveTVPortableRecordKey(profileID: "different-profile", kind: .category, entityID: category.id).recordName: invalid
+        ]
+        _ = try fixture.adapter.apply(changes, sourceStore: fixture.sources)
+        XCTAssertEqual(try fixture.preferences.load(), .empty)
+    }
+
     @MainActor
     func testCaptureInputsIgnoreRecentsButDetectPreferencesJournalEditsAndEviction() async throws {
         let fixture = try makeFixture()
@@ -466,6 +503,28 @@ final class LiveTVPortableSyncTests: XCTestCase {
         _ = try fixture.adapter.apply([recordKey(.source, "server").recordName: malicious], sourceStore: fixture.sources)
         XCTAssertEqual(try fixture.sources.load().servers.first?.accountID, "allowed-account")
         XCTAssertEqual(try fixture.preferences.load().favoriteIDs, ["recoverable-channel"])
+    }
+
+    func testServerDescriptorRoundTripAndUnavailableStorageDoNotDeleteSavedSources() throws {
+        let sender = try makeFixture()
+        let receiver = try makeFixture()
+        let saved = LiveTVSourcesConfiguration(servers: [
+            .init(id: "saved-server", name: "Live playlist", accountID: "iptv-account")
+        ])
+        try sender.sources.save(saved)
+        let initial = try sender.adapter.capture(sourceStore: sender.sources, fallback: [:])
+        _ = try receiver.adapter.apply(initial.mapValues(Optional.some), sourceStore: receiver.sources)
+        XCTAssertTrue(try receiver.sources.load().servers.isEmpty, "A descriptor cannot enroll an account.")
+        let returned = try receiver.adapter.capture(sourceStore: receiver.sources, fallback: initial)
+        XCTAssertEqual(returned, initial, "An unconfigured peer must not invent source deletions.")
+        _ = try sender.adapter.apply(returned.mapValues(Optional.some), sourceStore: sender.sources)
+        XCTAssertEqual(try sender.sources.load(), saved)
+        XCTAssertThrowsError(try sender.adapter.capture(sourceStore: UnavailablePortableSources(), fallback: initial))
+        XCTAssertEqual(try sender.adapter.capture(sourceStore: sender.sources, fallback: initial), initial)
+        XCTAssertEqual(try sender.sources.load(), saved)
+        XCTAssertTrue(try LiveTVServerEnrollmentSuppressionStore(
+            defaults: sender.defaults, profileID: profileID
+        ).suppressedAccountIDs().isEmpty)
     }
 
     func testOptInHydratesPreviouslyFetchedRemoteFavoritesWithoutErasingLocalChoices() throws {

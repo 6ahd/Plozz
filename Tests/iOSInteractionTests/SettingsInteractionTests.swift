@@ -101,17 +101,21 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertFalse(app.buttons["Huge"].exists)
     }
 
-    func testDisplaySizeRemainsAnIndependentMenu() {
+    func testDisplaySizeIsLastInCardsAndRemainsAnIndependentMenu() {
         launch()
+        XCTAssertFalse(app.buttons["appearance-display-size"].exists)
+        app.buttons["appearance-cards"].tap()
         let size = app.buttons["appearance-display-size"]
-        XCTAssertTrue(size.waitForExistence(timeout: 5), app.debugDescription)
+        reveal(size, fullyVisible: true)
+        let style = app.staticTexts["STYLE"].firstMatch
+        XCTAssertTrue(style.exists)
+        XCTAssertLessThan(style.frame.minY, size.frame.minY)
         size.tap()
         XCTAssertTrue(app.buttons["Small"].waitForExistence(timeout: 3), app.debugDescription)
         app.buttons["Small"].tap()
-        XCTAssertTrue(app.navigationBars["Appearance"].exists)
+        XCTAssertTrue(app.navigationBars["Cards"].exists)
         XCTAssertTrue(size.staticTexts["Small"].exists, app.debugDescription)
-        app.buttons["appearance-cards"].tap()
-        XCTAssertTrue(app.navigationBars["Cards"].waitForExistence(timeout: 3), app.debugDescription)
+        capture("cards-display-size-last")
     }
 
     func testCardsOpenFromTheFullSettingsNavigation() {
@@ -120,6 +124,177 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Cards"].waitForExistence(timeout: 3), app.debugDescription)
         assertInlineTitle("Cards")
         XCTAssertFalse(app.buttons["Micro"].exists)
+    }
+
+    func testRootOrganizationMatchesAcrossAdaptiveLayouts() {
+        let titles = [
+            "Playback", "Subtitles", "Live TV", "Libraries", "Appearance",
+            "Screens & Navigation", "Trackers", "Language"
+        ]
+        for arguments in [[], ["--compact-settings"], ["--large-text"]] {
+            launch(settingsRoot: true, arguments: arguments)
+            capture("settings-root-\(arguments.joined())")
+            for title in titles {
+                let row = categoryButton(title)
+                reveal(row, settingsMenu: true)
+                XCTAssertTrue(row.isHittable, title)
+            }
+            XCTAssertTrue(categoryButton("Language").staticTexts["Language"].exists,
+                          "The native menu must include the setting's label, not only its current language.")
+            capture("settings-language-\(arguments.joined())")
+            XCTAssertFalse(button("Customize Home").exists)
+            XCTAssertFalse(button("Detail Page").exists)
+            XCTAssertFalse(button("Circadian Mode").exists)
+            XCTAssertFalse(button("Spoiler Protection").exists)
+            categoryButton("Language").tap()
+            XCTAssertTrue(app.buttons["English"].waitForExistence(timeout: 3), app.debugDescription)
+            app.buttons["English"].tap()
+            XCTAssertTrue(categoryButton("Language").isHittable)
+            for title in ["Servers", "Profiles", "Parental PIN", "Seerr", "iCloud Sync", "Metadata Providers", "Downloads"] {
+                let row = button(title)
+                reveal(row, settingsMenu: true)
+                XCTAssertTrue(row.isHittable)
+            }
+            capture("settings-everyone-\(arguments.joined())")
+            reveal(button("Help & Diagnostics"), settingsMenu: true)
+            XCTAssertTrue(app.staticTexts["Version"].exists)
+            XCTAssertTrue(app.links["Discord"].exists || app.buttons["Discord"].exists)
+            capture("settings-community-\(arguments.joined())")
+            app.terminate()
+        }
+    }
+
+    func testNestedAppearanceAndScreensKeepIndependentNavigation() {
+        for title in ["Appearance", "Screens & Navigation"] {
+            openSettingsPage(title)
+            let children = title == "Appearance"
+                ? ["Theme", "Cards", "Artwork", "Spoiler Protection", "Circadian Mode"]
+                : ["Customize Home", "Navigation", "Detail Page"]
+            for child in children {
+                let row = button(child)
+                reveal(row)
+                row.tap()
+                XCTAssertTrue(app.navigationBars[child].waitForExistence(timeout: 5), app.debugDescription)
+                capture("settings-child-\(child)")
+                app.navigationBars.buttons["BackButton"].tap()
+                XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
+            }
+            app.terminate()
+        }
+    }
+
+    func testKidsLibrariesRemainGatedWithTheAlignedCategories() {
+        for arguments in [["--kids-settings", "--parental-pin"],
+                          ["--kids-settings", "--parental-pin", "--compact-settings"]] {
+            launch(settingsRoot: true, arguments: arguments)
+            XCTAssertTrue(categoryButton("Playback").exists)
+            XCTAssertFalse(categoryButton("Libraries").exists)
+            XCTAssertFalse(button("Servers").exists)
+            let library = button("Libraries")
+            reveal(library, settingsMenu: true)
+            library.tap()
+            XCTAssertTrue(app.staticTexts["Enter the Parental PIN"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(app.buttons["Add Server"].exists)
+            capture("settings-kids-parental-gate-\(arguments.joined())")
+            app.terminate()
+        }
+        launch(settingsRoot: true, arguments: ["--kids-settings"])
+        let library = categoryButton("Libraries")
+        reveal(library, settingsMenu: true)
+        library.tap()
+        XCTAssertTrue(app.navigationBars["Libraries"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(app.staticTexts["Enter the Parental PIN"].exists)
+    }
+
+    func testSyncBreakdownAndReviewPreview() {
+        openSettingsPage("iCloud Sync", verifyTitleLayout: false, arguments: ["--sync-breakdown-fixture"])
+        let troubleshooting = button("Troubleshooting")
+        reveal(troubleshooting)
+        troubleshooting.tap()
+        XCTAssertTrue(app.navigationBars["Troubleshooting"].waitForExistence(timeout: 5))
+        let settings = app.descendants(matching: .any)["cloud-sync-category-settings"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        capture("sync-data-breakdown")
+        let erase = app.buttons["cloud-sync-erase"]
+        reveal(erase)
+        capture("sync-troubleshooting-recovery")
+        erase.tap()
+        let proceed = app.buttons["cloud-sync-erase-continue"]
+        XCTAssertTrue(proceed.waitForExistence(timeout: 5))
+        XCTAssertEqual(proceed.label, "Erase Sync Data…")
+        XCTAssertTrue(app.staticTexts["From iCloud"].exists)
+        XCTAssertTrue(app.staticTexts["From this device"].exists)
+        XCTAssertTrue(app.staticTexts["Not affected"].exists)
+        XCTAssertFalse(app.staticTexts["Start over with iCloud Sync"].exists)
+        capture("sync-erasure-review")
+        revealSyncErasureControl(proceed)
+        capture("sync-erasure-review-actions")
+    }
+
+    func testSyncTroubleshootingIsPublicWithSyncOffAndBothCancellationsAreSafe() {
+        openSettingsPage("iCloud Sync", verifyTitleLayout: false)
+        XCTAssertFalse(app.buttons["Turn Off Developer Mode"].exists)
+        let troubleshooting = button("Troubleshooting")
+        reveal(troubleshooting)
+        troubleshooting.tap()
+        XCTAssertTrue(app.navigationBars["Troubleshooting"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Refresh Breakdown"].exists)
+        XCTAssertFalse(app.buttons["cloud-sync-reload"].isEnabled)
+        let erase = app.buttons["cloud-sync-erase"]
+        reveal(erase)
+        erase.tap()
+        XCTAssertTrue(app.buttons["cloud-sync-erase-continue"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        let cancel = app.buttons["cloud-sync-erase-cancel"]
+        revealSyncErasureControl(cancel)
+        cancel.tap()
+        XCTAssertTrue(app.buttons["cloud-sync-erase-continue"].waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Troubleshooting"].waitForExistence(timeout: 5))
+        reveal(erase)
+        erase.tap()
+        let proceed = app.buttons["cloud-sync-erase-continue"]
+        revealSyncErasureControl(proceed)
+        proceed.tap()
+        let alert = app.alerts["Erase sync data?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        capture("sync-erasure-final-confirmation")
+        alert.buttons["Cancel"].tap()
+        XCTAssertTrue(proceed.isEnabled)
+        cancel.tap()
+        XCTAssertTrue(proceed.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Troubleshooting"].waitForExistence(timeout: 5))
+    }
+
+    func testSyncErasureFinalConfirmationInvokesOnlyOnce() {
+        app.launchArguments = ["--sync-erasure-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        app.buttons["Review Erasure"].tap()
+        let proceed = app.buttons["cloud-sync-erase-continue"]
+        revealSyncErasureControl(proceed)
+        proceed.tap()
+        let alert = app.alerts["Erase sync data?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Cancel"].tap()
+        proceed.tap()
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["cloud-sync-erase-final"].firstMatch.tap()
+        XCTAssertTrue(proceed.waitForExistence(timeout: 5))
+        XCTAssertFalse(proceed.isEnabled)
+        app.buttons["cloud-sync-erase-cancel"].tap()
+        XCTAssertTrue(proceed.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["fixture-erasure-count"].label, "Erasures: 1")
+    }
+
+    func testSyncErasureCannotStartWithoutAuthorization() {
+        app.launchArguments = ["--sync-erasure-fixture", "--sync-erasure-denied", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        app.buttons["Review Erasure"].tap()
+        let proceed = app.buttons["cloud-sync-erase-continue"]
+        revealSyncErasureControl(proceed)
+        XCTAssertFalse(proceed.isEnabled)
+        app.buttons["cloud-sync-erase-cancel"].tap()
+        XCTAssertTrue(proceed.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["fixture-erasure-count"].label, "Erasures: 0")
     }
 
     func testMetadataArtworkLinkReturnsWithoutStackingDuplicatePages() {
@@ -165,14 +340,18 @@ final class SettingsInteractionTests: XCTestCase {
 
     func testThemeMenusAndToggleKeepSeparateActions() {
         launch()
-        let appearance = button("Appearance")
+        app.buttons["appearance-theme"].tap()
+        XCTAssertTrue(app.navigationBars["Theme"].waitForExistence(timeout: 5))
+        let appearance = app.collectionViews.buttons.matching(NSPredicate(
+            format: "label == %@ OR label BEGINSWITH %@", "Appearance", "Appearance,"
+        )).firstMatch
         appearance.tap()
         XCTAssertTrue(app.buttons["Light"].waitForExistence(timeout: 3), app.debugDescription)
         app.buttons["Light"].tap()
         XCTAssertTrue(appearance.staticTexts["Light"].exists)
         let gradient = app.switches["Gradient Backgrounds"]
         let before = gradient.value as? String
-        gradient.tap()
+        tapNativeSwitch(gradient)
         XCTAssertNotEqual(gradient.value as? String, before)
         XCTAssertTrue(appearance.staticTexts["Light"].exists)
         let glass = button("Liquid Glass")
@@ -180,7 +359,7 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(app.buttons["System"].waitForExistence(timeout: 3), app.debugDescription)
         XCTAssertFalse(app.buttons["Light"].exists)
         app.buttons["System"].tap()
-        XCTAssertTrue(app.navigationBars["Appearance"].exists)
+        XCTAssertTrue(app.navigationBars["Theme"].exists)
     }
 
     func testLabelEditsEnterCustomAndPresetsReplaceAllViews() {
@@ -468,8 +647,8 @@ final class SettingsInteractionTests: XCTestCase {
 
     func testSettingsSectionsOpenTheirOwnDestinations() {
         for title in [
-            "Trackers", "Appearance", "Customize Home", "Live TV", "Detail Page",
-            "Playback", "Subtitles", "Spoilers", "Circadian Mode",
+            "Playback", "Subtitles", "Live TV", "Libraries", "Appearance", "Screens & Navigation",
+            "Trackers", "Customize Home", "Navigation", "Detail Page", "Theme", "Spoiler Protection", "Circadian Mode",
             "Profiles", "Servers", "Downloads", "Seerr", "Metadata Providers", "Help & Diagnostics", "Attributions"
         ] {
             openSettingsPage(title)
@@ -546,6 +725,9 @@ final class SettingsInteractionTests: XCTestCase {
         capture("playback-simplified")
 
         let local = button("Local network")
+        XCTAssertTrue(local.isEnabled)
+        XCTAssertFalse(app.buttons["streaming-unavailable"].exists)
+        XCTAssertFalse(app.staticTexts["Unavailable for network shares."].exists)
         local.tap()
         XCTAssertTrue(app.buttons["1080p · 8 Mbps"].waitForExistence(timeout: 3))
         app.buttons["1080p · 8 Mbps"].tap()
@@ -566,13 +748,13 @@ final class SettingsInteractionTests: XCTestCase {
         app.buttons["Prefer H.264"].tap()
         XCTAssertEqual(codec.value as? String, "Prefer H.264")
         let force = app.switches["streaming-force-transcoding"]
-        force.tap()
+        tapNativeSwitch(force)
         XCTAssertEqual(force.value as? String, "1")
         XCTAssertTrue(app.staticTexts["May change HDR and audio formats."].waitForExistence(timeout: 3))
         capture("playback-advanced-warning")
-        force.tap()
+        tapNativeSwitch(force)
         XCTAssertTrue(app.staticTexts["May change HDR and audio formats."].waitForNonExistence(timeout: 3))
-        force.tap()
+        tapNativeSwitch(force)
         app.navigationBars.buttons["BackButton"].tap()
         XCTAssertTrue(advanced.waitForExistence(timeout: 5))
         XCTAssertEqual(local.value as? String, "1080p · 8 Mbps")
@@ -582,6 +764,33 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(codec.waitForExistence(timeout: 5))
         XCTAssertEqual(codec.value as? String, "Prefer H.264")
         XCTAssertEqual(force.value as? String, "1")
+    }
+
+    func testStreamingQualityMakesShareOnlyRestrictionExplicit() {
+        launchPlayback("--share-only-playback")
+        let quality = app.buttons["streaming-unavailable"]
+        XCTAssertTrue(quality.waitForExistence(timeout: 5))
+        XCTAssertFalse(quality.isEnabled)
+        XCTAssertTrue(quality.staticTexts["Original quality"].exists)
+        XCTAssertTrue(app.staticTexts["Unavailable for network shares."].exists)
+        XCTAssertFalse(button("Local network").exists)
+        XCTAssertFalse(button("Remote Wi-Fi / Ethernet").exists)
+        XCTAssertFalse(button("Cellular").exists)
+        XCTAssertFalse(app.buttons["streaming-advanced"].exists)
+        XCTAssertTrue(app.buttons["playback-read-ahead"].isEnabled)
+        capture("playback-quality-unavailable")
+    }
+
+    func testUnavailableStreamingQualityExplanationRemainsVisibleAtAccessibilitySize() {
+        launchPlayback("--share-only-playback", "--large-text")
+        let quality = app.buttons["streaming-unavailable"]
+        reveal(quality, fullyVisible: true)
+        XCTAssertFalse(quality.isEnabled)
+        XCTAssertTrue(quality.staticTexts["Original quality"].exists)
+        let explanation = app.staticTexts["Unavailable for network shares."]
+        reveal(explanation, fullyVisible: true)
+        XCTAssertTrue(explanation.isHittable)
+        capture("playback-quality-unavailable-large-text")
     }
 
     func testPlaybackAdvancedKeepsUnsupportedCodecsDisabled() {
@@ -643,21 +852,61 @@ final class SettingsInteractionTests: XCTestCase {
         capture("playback-large-text")
     }
 
-    private func launchPlayback(_ argument: String? = nil) {
+    func testReadAheadPresetsPersistForShareOnlyPlayback() {
+        launchPlayback("--share-only-playback", "--reset-read-ahead")
+        let picker = app.buttons["playback-read-ahead"]
+        reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.staticTexts["Automatic"].exists)
+        for choice in ["1 minute", "5 minutes", "10 minutes", "Maximum available", "Automatic", "10 minutes"] {
+            picker.tap()
+            XCTAssertTrue(app.buttons[choice].waitForExistence(timeout: 3))
+            app.buttons[choice].tap()
+            XCTAssertTrue(picker.staticTexts[choice].exists)
+        }
+        capture("read-ahead-share-only")
+        app.terminate()
+        launchPlayback("--share-only-playback")
+        reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.staticTexts["10 minutes"].exists)
+        picker.tap()
+        app.buttons["Automatic"].tap()
+    }
+
+    func testReadAheadMaximumRemainsEditableAtAccessibilitySize() {
+        launchPlayback("--large-text", "--reset-read-ahead")
+        let picker = app.buttons["playback-read-ahead"]
+        reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.label.contains("Video buffer"))
+        picker.tap()
+        XCTAssertTrue(app.buttons["Maximum available"].waitForExistence(timeout: 3))
+        app.buttons["Maximum available"].tap()
+        XCTAssertTrue(picker.staticTexts["Maximum available"].exists)
+        let explanation = app.staticTexts[
+            "Larger buffers use more storage. Unavailable with Apple’s native player."
+        ]
+        reveal(explanation, fullyVisible: true)
+        XCTAssertTrue(explanation.isHittable)
+        capture("read-ahead-maximum-large-text")
+        reveal(picker, fullyVisible: true)
+        picker.tap()
+        app.buttons["Automatic"].tap()
+    }
+
+    private func launchPlayback(_ arguments: String...) {
         app.launchArguments = [
             "--playback-settings-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
-        ] + (argument.map { [$0] } ?? [])
+        ] + arguments
         app.launch()
         XCTAssertTrue(app.navigationBars["Playback"].waitForExistence(timeout: 5))
     }
 
     func testSpoilerSwitchesAndMenuRemainIndependent() {
-        openSettingsPage("Spoilers")
+        openSettingsPage("Spoiler Protection", verifyTitleLayout: false)
         let protection = app.switches["Protect unwatched episodes"]
         let ratings = app.switches["Hide ratings until watched"]
         let treatment = button("Thumbnail treatment")
         XCTAssertFalse(treatment.isEnabled)
-        protection.tap()
+        tapNativeSwitch(protection)
         XCTAssertTrue(treatment.isEnabled)
         treatment.tap()
         XCTAssertTrue(app.buttons["Placeholder Art"].waitForExistence(timeout: 3))
@@ -665,23 +914,23 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(treatment.staticTexts["Placeholder Art"].exists)
         XCTAssertEqual(protection.value as? String, "1")
         XCTAssertEqual(ratings.value as? String, "0")
-        ratings.tap()
+        tapNativeSwitch(ratings)
         XCTAssertEqual(ratings.value as? String, "1")
         XCTAssertTrue(treatment.staticTexts["Placeholder Art"].exists)
-        protection.tap()
+        tapNativeSwitch(protection)
         XCTAssertFalse(treatment.isEnabled)
         XCTAssertEqual(ratings.value as? String, "1")
     }
 
     func testSubtitleToggleInsertsOnlyItsOwnNavigationRow() {
-        openSettingsPage("Subtitles")
+        openSettingsPage("Subtitles", verifyTitleLayout: false)
         let liveStyle = app.switches["Use a separate style for Live TV"]
         XCTAssertEqual(liveStyle.value as? String, "0")
-        liveStyle.tap()
+        tapNativeSwitch(liveStyle)
         let liveLink = button("Customize Live TV subtitles")
         XCTAssertTrue(liveLink.waitForExistence(timeout: 3), app.debugDescription)
         XCTAssertTrue(button("Customize subtitle style").exists)
-        liveStyle.tap()
+        tapNativeSwitch(liveStyle)
         XCTAssertFalse(liveLink.exists)
         let hearing = button("Hearing impaired")
         reveal(hearing)
@@ -696,8 +945,8 @@ final class SettingsInteractionTests: XCTestCase {
     }
 
     func testCircadianPictureMenusAndPreviewKeepSeparateActions() {
-        openSettingsPage("Circadian Mode")
-        app.switches["Circadian Mode"].tap()
+        openSettingsPage("Circadian Mode", verifyTitleLayout: false)
+        tapNativeSwitch(app.switches["Circadian Mode"])
         button("Schedule").tap()
         app.buttons["Always On"].tap()
         let warmth = button("Warmth")
@@ -719,7 +968,7 @@ final class SettingsInteractionTests: XCTestCase {
     }
 
     func testLiveTVSegmentedPickerAndSwitchesRemainIndependent() {
-        openSettingsPage("Live TV")
+        openSettingsPage("Live TV", verifyTitleLayout: false)
         let sort = app.segmentedControls.firstMatch
         XCTAssertTrue(sort.waitForExistence(timeout: 3))
         sort.buttons["Name"].tap()
@@ -728,7 +977,8 @@ final class SettingsInteractionTests: XCTestCase {
         let recent = app.switches["Recently watched"]
         let recentBefore = recent.value as? String
         let previewBefore = preview.value as? String
-        preview.tap()
+        capture("live-tv-native-switches")
+        tapNativeSwitch(preview)
         XCTAssertNotEqual(preview.value as? String, previewBefore)
         XCTAssertEqual(recent.value as? String, recentBefore)
         XCTAssertTrue(sort.buttons["Name"].isSelected)
@@ -742,6 +992,64 @@ final class SettingsInteractionTests: XCTestCase {
         capture("after-tapping-continue-watching-label")
         XCTAssertTrue(app.navigationBars["Customize Home"].exists, app.debugDescription)
         XCTAssertFalse(app.navigationBars["Rows on Home"].exists)
+    }
+
+    func testHeroSettingsNavigationKeepsProfileModelsAndEdits() {
+        openSettingsPage("Customize Home")
+        for (page, title, setting) in [
+            ("ratings", "Ratings", "hero-ratings"),
+            ("trailers", "Trailers", "hero-trailers")
+        ] {
+            let link = app.buttons["hero-settings-\(page)"]
+            reveal(link)
+            link.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
+            let toggle = app.switches[setting]
+            XCTAssertTrue(toggle.waitForExistence(timeout: 3), app.debugDescription)
+            let before = toggle.value as? String
+            tapNativeSwitch(toggle)
+            let after = toggle.value as? String
+            XCTAssertNotEqual(after, before)
+            app.navigationBars[title].buttons.firstMatch.tap()
+            XCTAssertTrue(app.navigationBars["Customize Home"].waitForExistence(timeout: 3))
+            reveal(link)
+            XCTAssertTrue(link.label.contains(after == "1" ? "On" : "Off"), link.label)
+            link.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3))
+            XCTAssertEqual(toggle.value as? String, after, "Reopening must use the same profile model.")
+            app.navigationBars[title].buttons.firstMatch.tap()
+        }
+    }
+
+    func testNestedHeroSettingsNavigationKeepsProfileModels() {
+        openSettingsPage("Customize Home")
+        let sources = app.buttons["hero-settings-titles"]
+        reveal(sources)
+        sources.tap()
+        XCTAssertTrue(app.navigationBars["Hero content sources"].waitForExistence(timeout: 5))
+        for (source, page, title, content) in [
+            ("Random from Library", "libraries", "Random libraries", "No movie or TV libraries are enabled on Home."),
+            ("Collections", "collections", "Choose collections", "No available collection sources."),
+            ("Discovery", "discovery", "Discovery", "Show provider labels")
+        ] {
+            let toggle = app.switches[source]
+            reveal(toggle, fullyVisible: true)
+            if toggle.value as? String != "1" { tapNativeSwitch(toggle) }
+            let link = app.buttons["hero-settings-\(page)"]
+            reveal(link)
+            link.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(app.staticTexts[content].firstMatch.waitForExistence(timeout: 3), app.debugDescription)
+            if page == "discovery" {
+                let labels = app.switches["Show provider labels"]
+                let before = labels.value as? String
+                tapNativeSwitch(labels)
+                XCTAssertNotEqual(labels.value as? String, before)
+            }
+            app.navigationBars[title].buttons.firstMatch.tap()
+            XCTAssertTrue(app.navigationBars["Hero content sources"].waitForExistence(timeout: 3))
+            XCTAssertEqual(toggle.value as? String, "1", "Nested navigation must not replace the source settings.")
+        }
     }
 
     func testHomeRowArrangementAndArtworkMenuKeepSeparateActions() {
@@ -852,21 +1160,35 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertGreaterThan(watching.frame.minY, watchlist.frame.minY)
     }
 
-    private func openSettingsPage(_ title: String, verifyTitleLayout: Bool = true) {
-        launch(settingsRoot: true)
-        let usesAboutPage = app.windows.firstMatch.frame.width >= 600
-            && ["Help & Diagnostics", "Attributions"].contains(title)
-        if usesAboutPage {
-            let about = button("About")
-            reveal(about, settingsMenu: true)
-            about.tap()
-            XCTAssertTrue(app.navigationBars["About"].waitForExistence(timeout: 3), app.debugDescription)
+    private func openSettingsPage(
+        _ title: String, verifyTitleLayout: Bool = true, arguments: [String] = []
+    ) {
+        launch(settingsRoot: true, arguments: arguments)
+        let parent: String? = switch title {
+        case "Customize Home", "Navigation", "Detail Page": "Screens & Navigation"
+        case "Theme", "Spoiler Protection", "Circadian Mode": "Appearance"
+        default: nil
         }
-        let row = button(title)
-        reveal(row, settingsMenu: !usesAboutPage)
+        if let parent {
+            let row = categoryButton(parent)
+            reveal(row, settingsMenu: true)
+            row.tap()
+            XCTAssertTrue(app.navigationBars[parent].waitForExistence(timeout: 3), app.debugDescription)
+        }
+
+        let row = parent == nil ? categoryButton(title) : button(title)
+        reveal(row, settingsMenu: parent == nil)
         row.tap()
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3), app.debugDescription)
         if verifyTitleLayout { assertInlineTitle(title) }
+    }
+
+    private func revealSyncErasureControl(_ element: XCUIElement) {
+        for _ in 0..<8 {
+            if element.isHittable { return }
+            app.scrollViews["cloud-sync-erase-review"].swipeUp()
+        }
+        XCTAssertTrue(element.isHittable, app.debugDescription)
     }
 
     private func assertInlineTitle(_ title: String) {
@@ -877,16 +1199,24 @@ final class SettingsInteractionTests: XCTestCase {
         let sidebar = app.navigationBars["Settings"]
         // iPad reports a full-window bar, but centers its title in the detail column.
         if sidebar.exists, sidebar.frame.width < bar.frame.width {
-            if sidebar.frame.minX <= bar.frame.minX {
-                titleRegion.origin.x = sidebar.frame.maxX
-                titleRegion.size.width = bar.frame.maxX - sidebar.frame.maxX
+            // Floating iPad sidebars have an outer inset and the same gap on their inner edge.
+            if sidebar.frame.midX < bar.frame.midX {
+                titleRegion.origin.x = sidebar.frame.maxX + max(0, sidebar.frame.minX - bar.frame.minX)
+                titleRegion.size.width = bar.frame.maxX - titleRegion.minX
             } else {
                 titleRegion.size.width = sidebar.frame.minX - bar.frame.minX
+                    - max(0, bar.frame.maxX - sidebar.frame.maxX)
             }
         }
         XCTAssertEqual(heading.frame.midX, titleRegion.midX, accuracy: 4, app.debugDescription)
         XCTAssertLessThanOrEqual(bar.frame.height, 64, "Subpages must not reserve a large-title block.")
         XCTAssertLessThanOrEqual(heading.frame.height, 32, "Subpages must use the native inline title font.")
+    }
+
+    private func tapNativeSwitch(_ row: XCUIElement) {
+        let control = row.switches.firstMatch
+        XCTAssertTrue(control.waitForExistence(timeout: 3), "Expected the native switch inside its labeled row.")
+        control.tap()
     }
 
     private func button(_ title: String) -> XCUIElement {
@@ -895,15 +1225,27 @@ final class SettingsInteractionTests: XCTestCase {
         )).firstMatch
     }
 
+    private func categoryButton(_ title: String) -> XCUIElement {
+        let identifiers = [
+            "Playback": "playback", "Subtitles": "subtitles", "Live TV": "liveTV",
+            "Libraries": "libraries", "Appearance": "appearance",
+            "Screens & Navigation": "screensNavigation", "Trackers": "trackers", "Language": "language"
+        ]
+        if let identifier = identifiers[title] {
+            return app.buttons["settings-category-\(identifier)"]
+        }
+        return button(title)
+    }
+
     private func seconds(_ count: Int) -> String {
         Duration.seconds(count).formatted(.units(allowed: [.seconds], width: .abbreviated).locale(Locale(identifier: "en_US")))
     }
 
-    private func launch(settingsRoot: Bool = false) {
+    private func launch(settingsRoot: Bool = false, arguments: [String] = []) {
         app.launchArguments = [
             settingsRoot ? "--settings-interaction-fixture" : "--appearance-interaction-fixture",
             "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
-        ]
+        ] + arguments
         app.launch()
     }
 

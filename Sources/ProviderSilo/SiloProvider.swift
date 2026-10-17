@@ -26,7 +26,7 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
         capabilitiesSnapshot = capabilities
     }
 
-    public var capabilities: ProviderCapability { [.video, .libraryCollections, .remoteSubtitles] }
+    public var capabilities: ProviderCapability { [.video, .libraryCollections, .personalCollections, .remoteSubtitles] }
     public var catalogIdentityRequiresEnrichment: Bool { true }
 
     public func libraries() async throws -> [MediaLibrary] {
@@ -54,7 +54,12 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
 
     public func item(id: String) async throws -> MediaItem {
         if let collection = Self.collectionIdentity(id) {
-            let page = try await collections(in: collection.libraryID, page: .init(limit: Int.max))
+            let page: MediaPage
+            if let libraryID = collection.libraryID {
+                page = try await collections(in: libraryID, page: .init(limit: Int.max))
+            } else {
+                page = try await personalCollections(page: .init(limit: Int.max))
+            }
             guard let item = page.items.first(where: { $0.id == id }) else { throw AppError.notFound }
             return item
         }
@@ -175,16 +180,7 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
                 var candidate = summary
                 if let target = dto.play_content_id, target != dto.content_id { candidate = try await item(id: target) }
                 if let libraryIDs {
-                    var membership: String?
-                    for libraryID in libraryIDs {
-                        let matches = try await catalogItems([
-                            URLQueryItem(name: "library_id", value: libraryID),
-                            URLQueryItem(name: "q", value: candidate.title),
-                            URLQueryItem(name: "type", value: candidate.kind.rawValue)
-                        ], limit: Int.max, libraryID: libraryID)
-                        if matches.contains(where: { $0.id == candidate.id }) { membership = libraryID; break }
-                    }
-                    guard let membership else { continue }
+                    guard let membership = try await homeLibraryID(for: candidate, in: libraryIDs) else { continue }
                     candidate.libraryID = membership
                 }
                 guard candidate.kind == .movie || candidate.kind == .episode else { continue }
@@ -402,7 +398,7 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
         }
     }
 
-    private func inheritingSeriesArtwork(_ episode: MediaItem, from series: MediaItem) -> MediaItem {
+    func inheritingSeriesArtwork(_ episode: MediaItem, from series: MediaItem) -> MediaItem {
         guard episode.kind == .episode, series.kind == .series, episode.seriesID == series.id else { return episode }
         var item = episode
         if item.logoURL == nil {
@@ -451,10 +447,13 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
             audioInfo.profile = audio.profile
             audioInfo.channels = audio.channels
             audioInfo.channelLayout = audio.layout
+            audioInfo.language = audio.language
         }
         return MediaSourceMetadata(
             container: file.container, fileSizeBytes: file.file_size,
-            video: videoInfo, audio: audioInfo)
+            fileName: file.file_name,
+            video: videoInfo, audio: audioInfo,
+            audioLanguages: file.audio_tracks?.compactMap(\.language))
     }
 }
 

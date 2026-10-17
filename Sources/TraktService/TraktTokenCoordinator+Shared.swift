@@ -3,6 +3,14 @@ import CoreModels
 import CoreNetworking
 
 extension TraktTokenCoordinator {
+    func retireSharedStateForErasure(store: any TraktTokenStoring) throws {
+        guard let configuration = sharedRefresh,
+              var journal = try loadSharedState(store.coordinationID, configuration: configuration) else { return }
+        journal.pending = nil
+        journal.accepted = .init(epoch: UUID(), generation: 0, phase: .disconnected)
+        try persistSharedState(journal, key: store.coordinationID, configuration: configuration)
+    }
+
     /// There is deliberately no lease timeout. Once an exchange might have
     /// reached Trakt, neither its owner nor another device may replay that token.
     func sharedAccess(

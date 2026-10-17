@@ -152,7 +152,7 @@ public struct HomeView: View {
     /// That includes a hero that follows focus: its titles are the rows, so none
     /// of the carousel's curation, caching or refresh has anything to do.
     private var carouselSettings: HeroSettings? {
-        guard let settings = heroSettings?.settings else { return nil }
+        guard let settings = heroSettings?.effectiveSettings else { return nil }
         #if os(tvOS)
         if settings.followsFocus { return nil }
         #endif
@@ -164,7 +164,7 @@ public struct HomeView: View {
     /// so the row holds exactly the discovery picks the Fullscreen Hero would. `nil`
     /// when nothing on screen needs curating.
     private var curationSettings: HeroSettings? {
-        Self.curationSettings(for: heroSettings?.settings)
+        Self.curationSettings(for: heroSettings?.effectiveSettings)
     }
 
     static func curationSettings(for settings: HeroSettings?) -> HeroSettings? {
@@ -358,7 +358,7 @@ public struct HomeView: View {
         self.enabledServerCount = enabledServerCount
         if !heroRuntime.hasHydratedCache {
             heroRuntime.hasHydratedCache = true
-            if let settings = Self.curationSettings(for: heroSettings?.settings),
+            if let settings = Self.curationSettings(for: heroSettings?.effectiveSettings),
                let cached = viewModel.cachedHeroItems(for: settings) {
                 heroRuntime.cachedKey = HeroConfigurationKey(settings: settings)
                 heroRuntime.cachedDisabledLibraryKeys = visibility.visibility.disabledKeys
@@ -521,7 +521,7 @@ public struct HomeView: View {
                                 if heroActive, let heroSettings {
                                     HomeHeroView(
                                         items: displayHeroItems,
-                                        settings: heroSettings.settings,
+                                        settings: heroSettings.effectiveSettings,
                                         backgroundSettings: heroBackground.settings,
                                         trailerController: heroTrailerController,
                                         trailerResolver: heroTrailerResolver,
@@ -591,7 +591,7 @@ public struct HomeView: View {
                                         .focusable(true)
                                         .prefersDefaultFocus(true, in: heroFocusScope)
                                         .focusEffectDisabled()
-                                        .accessibilityLabel("Loading featured content")
+                                        .accessibilityLabel("Loading Home content")
                                 }
                                 LazyVStack(alignment: .leading, spacing: metrics.rowSpacing) {
                                     // Shown ABOVE the rows, not instead of them. A
@@ -860,7 +860,10 @@ public struct HomeView: View {
                 perfSampler.start()
             }
         }
-        .onDisappear { perfSampler.stop() }
+        .onDisappear {
+            // The console stream keeps sampling screens pushed over Home, such as a library grid.
+            if !HomePerfDiagnostics.isStdoutMirrorEnabled { perfSampler.stop() }
+        }
         .onChange(of: homePerfOverlayEnabled) { _, enabled in
             if enabled || HomePerfDiagnostics.isStdoutMirrorEnabled {
                 perfSampler.start()
@@ -1113,6 +1116,9 @@ public struct HomeView: View {
                         await retainedRandomProvider(libraries, limit)
                     }
                 },
+                collectionProvider: { selection, limit in
+                    try await viewModel.heroCollectionContent(selection, limit: limit, hideWatched: settings.hideWatched)
+                },
                 artworkProvider: heroArtworkProvider,
                 artworkValidator: heroArtworkValidator
             )
@@ -1131,7 +1137,8 @@ public struct HomeView: View {
             randomLibraries: randomLibraries,
             seerConnected: heroSeerConnected,
             featuredDiscoveryEnabled: heroDiscoveryProvider == nil
-                ? nil : !settings.discoverySources.isEmpty
+                ? nil : !settings.discoverySources.isEmpty,
+            collectionState: result.collectionState
         )
         let fallbackEligibility = heroSourceEligibility(
             content: content, randomLibraries: randomLibraries,
@@ -1381,7 +1388,7 @@ public struct HomeView: View {
     /// The hero settings when Apple TV's Home follows focus, otherwise `nil`.
     private var focusHeroSettings: HeroSettings? {
         #if os(tvOS)
-        guard let settings = heroSettings?.settings, settings.followsFocus else { return nil }
+        guard let settings = heroSettings?.effectiveSettings, settings.followsFocus else { return nil }
         return settings
         #else
         return nil
@@ -1508,8 +1515,8 @@ public struct HomeView: View {
                 } else {
                     MediaRowView(
                         title: settings.showsDiscoverRow ? Text(LocalizedStringResource(
-                            "home.row.discover",
-                            defaultValue: "Discover",
+                            "home.row.discovery",
+                            defaultValue: "Discovery",
                             comment: "Name of a Home row of recommended titles from outside the user's libraries."
                         )) : Text(verbatim: "Recently Added"),
                         items: [],
@@ -1650,8 +1657,8 @@ public struct HomeView: View {
         case .discover(let items, let isLoading):
             MediaRowView(
                 title: Text(LocalizedStringResource(
-                    "home.row.discover",
-                    defaultValue: "Discover",
+                    "home.row.discovery",
+                    defaultValue: "Discovery",
                     comment: "Name of a Home row of recommended titles from outside the user's libraries."
                 )),
                 items: items,
@@ -1798,6 +1805,7 @@ struct HeroRecomputeKey: Equatable {
     let watchlist: [HeroCandidateSignature]
     let recentlyAdded: [HeroCandidateSignature]
     let randomLibraries: [HeroRandomLibrary]
+    let collectionLibraries: [AggregatedLibrary]
     let sources: [HeroSourceKind]
     let maxItems: Int
     let hideWatched: Bool
@@ -1846,6 +1854,13 @@ struct HeroRecomputeKey: Equatable {
         self.randomLibraries = activeSources.contains(.randomFromLibrary)
             ? randomLibraries
             : []
+        self.collectionLibraries = activeSources.contains(.collection)
+            ? content.libraries.filter { library in
+                settings?.collections.contains { collection in
+                    library.accountID == collection.accountID
+                        && (collection.libraryID == nil || library.library.id == collection.libraryID)
+                } == true
+            } : []
         self.externalRefreshRevision = settings?.requiresExternalWatchHistory == true
             ? externalRefreshRevision : 0
         self.freshnessRevision = activeSources.isEmpty ? 0 : freshnessRevision
@@ -1865,6 +1880,7 @@ struct HeroRecomputeKey: Equatable {
             && watchlist == other.watchlist
             && recentlyAdded == other.recentlyAdded
             && randomLibraries == other.randomLibraries
+            && collectionLibraries == other.collectionLibraries
             && sources == other.sources
             && maxItems == other.maxItems
             && hideWatched == other.hideWatched
@@ -1914,26 +1930,6 @@ enum HeroRecomputePolicy {
         completedKey: HeroRecomputeKey?
     ) -> Bool {
         completedKey != key
-    }
-}
-
-/// Resolves the Home hero's structural slot independently from its item details.
-/// Loaded rows may be available from disk while async-only hero sources are still
-/// curating; that state must reserve the hero geometry with a placeholder rather
-/// than briefly rendering the classic rows-only layout.
-enum HomeHeroSlotState: Equatable {
-    case hidden
-    case placeholder
-    case content
-
-    static func resolve(
-        isConfigured: Bool,
-        hasItems: Bool,
-        recomputeComplete: Bool
-    ) -> HomeHeroSlotState {
-        guard isConfigured else { return .hidden }
-        if hasItems { return .content }
-        return recomputeComplete ? .hidden : .placeholder
     }
 }
 

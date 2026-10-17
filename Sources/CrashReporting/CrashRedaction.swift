@@ -3,9 +3,9 @@ import CoreModels
 import Foundation
 import Sentry
 
-/// Scrubs outgoing Sentry events and breadcrumbs so nothing that could identify
-/// a user or reveal what they were watching leaves the device. Runs in Sentry's
-/// `beforeSend`/`beforeBreadcrumb` hooks — the last gate before upload.
+/// Scrubs automatically collected identity and content from outgoing events and
+/// breadcrumbs. Explicitly submitted diagnostic notes are retained. Runs in
+/// Sentry's `beforeSend`/`beforeBreadcrumb` hooks — the last gate before upload.
 enum CrashRedaction {
     /// Drop PII-bearing containers from an event and scrub its breadcrumbs.
     static func scrub(_ event: Event) -> Event? {
@@ -38,6 +38,23 @@ enum CrashRedaction {
            let safe = CrashPerformanceContext.scrub(raw) {
             context[CrashPerformanceContext.key] = safe
         }
+        if event.tags?["report.kind"] == "user-feedback" || event.type == "feedback" {
+            guard let raw = event.context?["feedback"],
+                  raw["source"] as? String == "custom",
+                  let message = raw["message"] as? String,
+                  !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  let association = raw["associated_event_id"] as? String else { return nil }
+            let eventID = SentryId(uuidString: association)
+            guard eventID != .empty else { return nil }
+            context["feedback"] = [
+                "message": message,
+                "source": "custom",
+                "associated_event_id": eventID.sentryIdString
+            ]
+            event.type = "feedback"
+            event.threads = nil
+            event.debugMeta = nil
+        }
         if event.tags?["report.kind"] == "playlist-import-limit",
            let limit = event.tags?["import.limit"],
            LiveTVPlaylistLimitDiagnostic.Limit(rawValue: limit) != nil {
@@ -52,6 +69,23 @@ enum CrashRedaction {
                 }
             }
             if !counts.isEmpty { context["playlist_import"] = counts }
+        }
+        if event.tags?["report.kind"] == "silo-setup" {
+            guard let raw = event.context?["silo_setup"],
+                  let bytes = try? JSONSerialization.data(withJSONObject: raw),
+                  let diagnostic = try? JSONDecoder().decode(SiloSetupDiagnostic.self, from: bytes),
+                  diagnostic.isValid else { return nil }
+            context["silo_setup"] = SentryCrashReporter.siloSetupData(diagnostic)
+            event.message = SentryMessage(formatted: "Silo setup failed")
+            event.fingerprint = [
+                "silo_setup", diagnostic.stage.rawValue, diagnostic.reason.rawValue,
+                diagnostic.httpStatus.map(String.init) ?? "none", diagnostic.response.rawValue
+            ]
+            var tags = coarseSetupTags(event.tags ?? [:])
+            tags["report.kind"] = "silo-setup"
+            tags["setup.stage"] = diagnostic.stage.rawValue
+            tags["setup.failure"] = diagnostic.reason.rawValue
+            event.tags = tags
         }
         if event.tags?["report.kind"] == "iptv-setup" {
             guard let raw = event.context?["iptv_setup"], let data = setupData(raw),

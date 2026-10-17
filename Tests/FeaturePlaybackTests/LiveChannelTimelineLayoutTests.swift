@@ -1,6 +1,9 @@
 #if DEBUG
 import CoreModels
 import XCTest
+#if os(tvOS)
+import UIKit
+#endif
 
 @testable import FeaturePlayback
 
@@ -75,6 +78,18 @@ final class LiveChannelTimelineLayoutTests: XCTestCase {
 
 #if DEBUG
 final class LiveChannelTimelineScrubTests: XCTestCase {
+    #if os(tvOS)
+    @MainActor
+    func testRemotePanCannotBeginWhenTheTimelineIsInactive() {
+        let view = LiveChannelTimelineScrubPan.ObserverView()
+        let pan = UIPanGestureRecognizer()
+        XCTAssertFalse(view.gestureRecognizerShouldBegin(pan))
+        view.isEnabled = true
+        XCTAssertTrue(view.gestureRecognizerShouldBegin(pan))
+        view.isEnabled = false
+        XCTAssertFalse(view.gestureRecognizerShouldBegin(pan))
+    }
+    #endif
     func testHorizontalSwipePreviewsAndCommitsOnLift() throws {
         var scrub = LiveChannelTimelineScrub()
         scrub.begin(behindLive: 0)

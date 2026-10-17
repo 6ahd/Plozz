@@ -22,10 +22,10 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// id to those databases. The server's own markers always win.
     public var useCommunityMarkers: Bool
 
-    /// How many seconds a left-press on the Siri Remote skips backward.
+    /// How many seconds a remote left-press or mobile backward gesture skips.
     public var skipBackwardInterval: SkipInterval
 
-    /// How many seconds a right-press on the Siri Remote skips forward.
+    /// How many seconds a remote right-press or mobile forward gesture skips.
     public var skipForwardInterval: SkipInterval
 
     /// How many seconds *earlier* than the saved resume point a partially-watched
@@ -39,6 +39,10 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// iPhone full-screen player preference. iPad follows system rotation.
     public var orientation: PlaybackOrientation
     public var streaming: StreamingQualitySettings
+
+    /// Nil until the profile answers the first multi-version playback prompt
+    /// or explicitly chooses a mode in Settings.
+    public var versionSelectionMode: PlaybackVersionSelectionMode?
 
     /// Whether finishing/resuming/marking a title converges your watch state on
     /// **every** server that holds it (the default), or only the server you
@@ -110,8 +114,9 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// `.original`, `false` → `.device`), migrated in the decoder below.
     public var audioLanguagePreference: AudioLanguagePreference
 
-    /// Request TrueHD Atmos spatial rendering on tvOS 26+. Off retains the
-    /// ordinary channel bridge. Applied when a new playback session starts.
+    /// Request TrueHD Atmos and DTS:X spatial rendering on tvOS 26+. Off retains
+    /// the ordinary channel bridge. Applied when a new playback session starts.
+    /// Keep the original property/key so existing profile preferences and transfers survive.
     public var trueHDAtmosEnabled: Bool
 
     /// Remember the chosen **audio language** per series: switching audio on any
@@ -161,7 +166,8 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         fadeOnFrameRateChange: Bool = true,
         backgroundAudio: Bool = false,
         orientation: PlaybackOrientation = .landscape,
-        streaming: StreamingQualitySettings = .default
+        streaming: StreamingQualitySettings = .default,
+        versionSelectionMode: PlaybackVersionSelectionMode? = nil
     ) {
         self.skipIntros = skipIntros
         self.skipModeOverrides = skipModeOverrides
@@ -184,6 +190,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         self.backgroundAudio = backgroundAudio
         self.orientation = orientation
         self.streaming = streaming
+        self.versionSelectionMode = versionSelectionMode
     }
 
     public static let `default` = PlaybackSettings()
@@ -212,6 +219,7 @@ public extension PlaybackSettings {
         case backgroundAudio
         case orientation
         case streaming
+        case versionSelectionMode
         case syncWatchAcrossServers
         case seekWithoutPausing
         case autoPlayNextEpisode
@@ -277,6 +285,7 @@ public extension PlaybackSettings {
         self.orientation = (try? container.decode(PlaybackOrientation.self, forKey: .orientation))
             ?? defaults.orientation
         self.streaming = (try? container.decode(StreamingQualitySettings.self, forKey: .streaming)) ?? .default
+        self.versionSelectionMode = try? container.decode(PlaybackVersionSelectionMode.self, forKey: .versionSelectionMode)
         self.syncWatchAcrossServers =
             (try? container.decodeIfPresent(Bool.self, forKey: .syncWatchAcrossServers))
             .flatMap { $0 } ?? defaults.syncWatchAcrossServers
@@ -344,6 +353,7 @@ public extension PlaybackSettings {
         try container.encode(backgroundAudio, forKey: .backgroundAudio)
         try container.encode(orientation, forKey: .orientation)
         try container.encode(streaming, forKey: .streaming)
+        try container.encodeIfPresent(versionSelectionMode, forKey: .versionSelectionMode)
         try container.encode(syncWatchAcrossServers, forKey: .syncWatchAcrossServers)
         try container.encode(seekWithoutPausing, forKey: .seekWithoutPausing)
         try container.encode(autoPlayNextEpisode, forKey: .autoPlayNextEpisode)

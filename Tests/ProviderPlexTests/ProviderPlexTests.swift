@@ -1749,7 +1749,7 @@ final class PlexProviderMappingTests: XCTestCase {
         let provider = PlexProvider(session: makeSession(), http: stub)
 
         let request = try await provider.playbackInfo(for: "77")
-        XCTAssertEqual(request.playSessionID, "77")
+        XCTAssertNotEqual(request.playSessionID, "77")
         XCTAssertEqual(request.startPosition, 600)
         XCTAssertEqual(request.audioTracks.count, 1)
         XCTAssertEqual(request.subtitleTracks.count, 1)
@@ -1781,6 +1781,7 @@ final class PlexProviderMappingTests: XCTestCase {
         )
         XCTAssertEqual(locator.deliveryMode, .serverTranscode)
         XCTAssertTrue(locator.playSessionID?.hasPrefix("plozz-d1-77-") == true)
+        XCTAssertEqual(request.playSessionID, locator.playSessionID)
         XCTAssertEqual(
             locator.resource.queryItems.first { $0.name == "protocol" }?.value,
             "hls"
@@ -2186,14 +2187,16 @@ final class PlexProviderMappingTests: XCTestCase {
         let provider = PlexProvider(session: makeSession(), http: stub)
 
         try await provider.reportPlayback(
-            PlaybackProgress(itemID: "77", playSessionID: "77", positionSeconds: 120, isPaused: true),
+            PlaybackProgress(itemID: "77", playSessionID: "play-77", positionSeconds: 120, isPaused: true),
             event: .pause
         )
 
         let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/:/timeline"))
         XCTAssertEqual(query.first(where: { $0.name == "ratingKey" })?.value, "77")
+        XCTAssertEqual(query.first(where: { $0.name == "key" })?.value, "/library/metadata/77")
         XCTAssertEqual(query.first(where: { $0.name == "state" })?.value, "paused")
         XCTAssertEqual(query.first(where: { $0.name == "time" })?.value, "120000")
+        XCTAssertEqual(stub.sentHeaders.last?["X-Plex-Session-Identifier"], "play-77")
     }
 
     func testReportPlaybackStopMapsToStopped() async throws {
@@ -2202,11 +2205,67 @@ final class PlexProviderMappingTests: XCTestCase {
         let provider = PlexProvider(session: makeSession(), http: stub)
 
         try await provider.reportPlayback(
-            PlaybackProgress(itemID: "77", playSessionID: "77", positionSeconds: 0, isPaused: false),
+            PlaybackProgress(itemID: "77", playSessionID: "play-77", positionSeconds: 0, isPaused: false),
             event: .stop
         )
         let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/:/timeline"))
         XCTAssertEqual(query.first(where: { $0.name == "state" })?.value, "stopped")
+        XCTAssertEqual(stub.sentHeaders.last?["X-Plex-Session-Identifier"], "play-77")
+    }
+
+    func testTimelineForwardsKnownDurationForEveryPlaybackEvent() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/:/timeline", json: "{}")
+        let provider = PlexProvider(session: makeSession(), http: stub)
+        for event in [PlaybackEvent.start, .progress, .pause, .unpause, .stop] {
+            try await provider.reportPlayback(.init(
+                itemID: "77", playSessionID: "play-77", positionSeconds: 950.25,
+                isPaused: event == .pause || event == .stop, durationSeconds: 1_000.5
+            ), event: event)
+            let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/:/timeline"))
+            XCTAssertEqual(query.first { $0.name == "duration" }?.value, "1000500")
+            XCTAssertEqual(query.first { $0.name == "time" }?.value, "950250")
+            XCTAssertEqual(stub.sentHeaders.last?["X-Plex-Session-Identifier"], "play-77")
+        }
+    }
+
+    func testTimelineOmitsUnknownOrInvalidDuration() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/:/timeline", json: "{}")
+        let provider = PlexProvider(session: makeSession(), http: stub)
+        for duration: TimeInterval? in [nil, 0, -1, .nan, .infinity, .greatestFiniteMagnitude, 0.0001] {
+            try await provider.reportPlayback(.init(
+                itemID: "77", playSessionID: "play-77", positionSeconds: 30,
+                isPaused: true, durationSeconds: duration
+            ), event: .stop)
+            let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/:/timeline"))
+            XCTAssertNil(query.first { $0.name == "duration" })
+        }
+    }
+
+    func testTimelineWithoutSessionDoesNotBorrowPreviouslyReportedIdentity() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/:/timeline", json: "{}")
+        let provider = PlexProvider(session: makeSession(), http: stub)
+        try await provider.reportPlayback(.init(
+            itemID: "77", playSessionID: "video-session",
+            positionSeconds: 30, isPaused: false
+        ), event: .start)
+        XCTAssertEqual(stub.sentHeaders.last?["X-Plex-Session-Identifier"], "video-session")
+
+        let absentIDs: [String?] = [nil, ""]
+        for sessionID in absentIDs {
+            try await provider.reportPlayback(.init(
+                itemID: "song1", playSessionID: sessionID,
+                positionSeconds: 60, isPaused: false
+            ), event: .progress)
+            XCTAssertNil(stub.sentHeaders.last?["X-Plex-Session-Identifier"])
+            XCTAssertEqual(stub.sentHeaders.last?["X-Plex-Client-Identifier"], "d1")
+            let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/:/timeline"))
+            XCTAssertEqual(query.first { $0.name == "ratingKey" }?.value, "song1")
+            XCTAssertEqual(query.first { $0.name == "key" }?.value, "/library/metadata/song1")
+            XCTAssertEqual(query.first { $0.name == "time" }?.value, "60000")
+        }
     }
 }
 
@@ -2356,14 +2415,30 @@ final class PlexAuthClientTests: XCTestCase {
         XCTAssertEqual(stub.method(forPathSuffix: "/api/v2/home/users"), .get)
     }
 
-    func testHomeUsersTreatsHasPasswordAsRequiresPIN() async throws {
+    func testHomeUsersNeverTreatsAccountPasswordAsHomePINProtection() async throws {
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/api/v2/home/users", json: """
         {"users":[{"uuid":"u","title":"Guest","hasPassword":true}]}
         """)
         let users = try await client(stub).homeUsers(authToken: "ADMIN_TOKEN")
         XCTAssertEqual(users.count, 1)
-        XCTAssertTrue(users[0].requiresPIN)
+        XCTAssertFalse(users[0].requiresPIN)
+        XCTAssertEqual(users[0].pinRequirementVerified, false)
+    }
+
+    func testHomeUsersNeverTreatMissingProtectionMetadataAsPINRemoval() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/api/v2/home/users", json: """
+        {"users":[
+          {"uuid":"unknown","title":"Unknown"},
+          {"uuid":"null","title":"Null","protected":null,"hasPassword":null},
+          {"uuid":"passwordless","title":"Passwordless","hasPassword":false},
+          {"uuid":"unprotected","title":"Unprotected","protected":false,"hasPassword":true}
+        ]}
+        """)
+        let users = try await client(stub).homeUsers(authToken: "ADMIN_TOKEN")
+        XCTAssertEqual(users.map(\.requiresPIN), [false, false, false, false])
+        XCTAssertEqual(users.map(\.pinRequirementVerified), [false, false, false, true])
     }
 
     func testSwitchHomeUserPassesPinAndReturnsToken() async throws {

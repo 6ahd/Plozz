@@ -5,6 +5,15 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+- **Kids Discovery policy** — both shells consume the live profile's effective
+  Hero settings, not a destructive rewrite of saved preferences. Kids profiles
+  exclude external Discovery, including Showcase, cached attributed titles, and
+  delayed network results. The shared runtime checks authorization before and
+  after awaits; curation and final display reconciliation apply the same restriction.
+  Cache configuration includes the policy even when Discovery was already switched
+  off. Public provider caches stay profile-independent; server-owned library titles
+  continue to follow the selected server user's access rather than an invented
+  app-wide maturity threshold.
 - **Home row customization** — Settings > Customize Home > Rows on Home uses
   the same individual-row arranger on TV, iPhone and iPad. Rows from different
   libraries can be interleaved, reordered or hidden, including the Libraries
@@ -59,9 +68,48 @@ fallback when the user's server has no attached trailer.
   On mobile, a root-owned `LazyViewState` retains the shared Home/Watchlist
   model by profile, credentials and active accounts. Rebuilding the tab shell
   for settings/theme changes must not construct and rehydrate throwaway models.
+  Mobile cards defer identity-index source resolution until direct-play activation
+  or the detail destination's body. Browsing and metadata updates do not resolve
+  every visible card. Activation reads current accounts/index contents while
+  preserving explicit detail editions and folder/collection routing.
   Both platforms recheck hero Watchlist membership immediately, but memoize
   supporting-source identity tokens by the full current row values. No
   supporting index is built without exclusions; source-scope changes clear it.
+  Mobile and TV share the Hero slot policy: pending curation reserves a placeholder,
+  available items render the Hero, and a completed empty result removes the slot
+  and its spacing. Mobile also skips the placeholder immediately when Collections
+  has no selections or Discovery has no enabled providers and no other source is
+  configured. Completion belongs to the current curation inputs and profile;
+  cancelled work cannot settle a replacement request. This never changes saved
+  preferences or treats a failed fetch as authority to erase cached candidates.
+- **Collections hero source** — an opt-in source mixes individual movies and
+  shows from multiple account-qualified collections across libraries, not collection cards. TV and
+  mobile use the same `MediaProvider.collectionMembers` loader and existing
+  watched-title, artwork, freshness and source-mixing rules. A session-seeded,
+  bounded window per collection gives large collections coverage beyond their first page
+  without enumerating entire collections on Home. Loads are serial within this
+  source, each sampling at most 48 members. Round-robin sampling retains alternate
+  copies through eligibility checks. After applying current watch mutations,
+  Hide Watched excludes a title if any matching selected copy has been watched,
+  even before the identity index is warm. All sampled selections participate in
+  filtering and freshness ranking before the candidate cap, which counts distinct
+  title groups without dropping their alternate artwork. Bounded artwork checks
+  choose the first usable copy per group, preserving its provider routing and
+  artwork while carrying the group's identity aliases and per-copy watch history.
+  Cached slides therefore recognize later account-scoped watch mutations without
+  a warm identity index, and final source mixing still shows each title once. Short pages
+  follow the reported total, while duplicate/non-progressing pages fail the
+  whole load. Cancellation and fetch failures are distinct from a confirmed
+  empty collection. Selection changes invalidate the cached lineup; account
+  and library availability are rechecked for live and persisted candidates.
+  A failed or cancelled collection does not turn a partial aggregate into
+  authoritative success. The cached collection bucket has no individual
+  collection-membership attribution, so losing access to any saved selection
+  requires fresh sampling instead of reusing that bucket.
+  Personal collections are account/server-viewer scoped with no invented library;
+  mixed movie/show members retain their own known library attribution and the
+  existing Home visibility rules. Legacy single selections and cache keys migrate;
+  an explicitly empty selection array never restores the old single choice.
 - **Multi-account aggregation** — `HomeAggregator` fans out across the
   active account set (`[ResolvedAccount]`) so Home is a merged view
   across multiple servers / profiles. Uses the `MediaProvider`
@@ -176,7 +224,11 @@ fallback when the user's server has no attached trailer.
   The sidebar's mask changes without replacing the scroll view, preserving
   browse position and restoring the normal feather when navigation returns.
 - **Library browsing** — `LibraryBrowseView` + `LibraryBrowseViewModel`
-  show Recommended by default for server-backed video libraries, with
+  own a bounded, directional `ArtworkPrefetchWindow`. Its URL/variant requests
+  preserve overlapping work across reversals and cancel obsolete queued work.
+  Admission rechecks decoded residency; content, density, lifecycle and background
+  generation changes cannot keep stale warming alive or suppress a later pass.
+  They show Recommended by default for server-backed video libraries, with
   library-scoped Continue Watching and Recently Added plus native Plex hubs
   or Jellyfin/Emby movie recommendation categories. TV uses Showcase, showing
   its mode tabs only while the first row is active; mobile uses touch-sized rows.

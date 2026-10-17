@@ -45,8 +45,19 @@ final class PlozziOSAppModel {
     var canEnterApp: Bool { admissionContext.canEnterApp }
     var isLiveTVProfileAuthorized: Bool { isActiveProfileAuthorized }
 
+    var liveTVAdmissionDiagnostic: String { // l10n:content - diagnostic log fields, never display copy.
+        guard HandoffDiagnostics.isEnabled else { return "" }
+        return "canEnter=\(canEnterApp) chooseProfile=\(mustChooseProfile)"
+            + " launchSelectionPending=\(requiresLaunchProfileSelection && !didCompleteLaunchProfileSelection)"
+            + " lockedSwitch=\(lockedSwitch != nil) parentalSwitch=\(parentalSwitch != nil)"
+            + " identitySelection=\(pendingIdentityAccount != nil) librarySelection=\(pendingLibrarySelection != nil)"
+            + " firstRun=\(pendingFirstRunStep != nil) profileOnboarding=\(profileOnboardingStep != nil)"
+            + " plexPIN=\(plexHomeUsers.pendingPlexPINRequest != nil) needsUnlock=\(activeProfileNeedsUnlock)"
+            + " identityPending=\(profiles.activeProfile.awaitsIdentity(amongAccounts: accountsProviders.activeAccountIDs))"
+            + " actionableIdentityPending=\(accountsProviders.activeProfileAwaitsIdentity)"
+    }
+
     var isActiveProfileAuthorized: Bool {
-        let profile = profiles.activeProfile
         return canEnterApp && !mustChooseProfile
             && (!requiresLaunchProfileSelection || didCompleteLaunchProfileSelection)
             && lockedSwitch == nil && parentalSwitch == nil
@@ -54,7 +65,7 @@ final class PlozziOSAppModel {
             && pendingFirstRunStep == nil && profileOnboardingStep == nil
             && plexHomeUsers.pendingPlexPINRequest == nil
             && !activeProfileNeedsUnlock
-            && !profile.awaitsIdentity(amongAccounts: accountsProviders.activeAccountIDs)
+            && !accountsProviders.activeProfileAwaitsIdentity
     }
     var allowsStandalonePlayback: Bool { admissionContext.explicitStandaloneChoice }
     var pendingStandaloneLiveTVEntry: Bool { appAdmission.pendingLiveTVEntry }
@@ -550,19 +561,27 @@ final class PlozziOSAppModel {
 
     var accountError: String?
 
-    init(appAdmissionStore: any AppAdmissionStoring = AppAdmissionStore()) {
+    init(
+        appAdmissionStore: any AppAdmissionStoring = AppAdmissionStore(),
+        accountStore suppliedAccountStore: AccountStore? = nil,
+        profileStore: (any ProfilePersisting)? = nil
+    ) {
         let appAdmission = AppAdmissionModel(store: appAdmissionStore)
         self.appAdmission = appAdmission
         let authenticatedHTTPResolver = ManagedAuthenticatedHTTPResolver()
         let accountStore: AccountStore
         var launchErrors: [String] = []
-        do {
-            accountStore = try DefaultAccountStoreFactory.make()
-        } catch {
-            accountStore = DefaultAccountStoreFactory.makeCredentialOnlyFallback()
-            launchErrors.append(
-                "Network-share credential storage is unavailable: \(error.localizedDescription)"
-            )
+        if let suppliedAccountStore {
+            accountStore = suppliedAccountStore
+        } else {
+            do {
+                accountStore = try DefaultAccountStoreFactory.make()
+            } catch {
+                accountStore = DefaultAccountStoreFactory.makeCredentialOnlyFallback()
+                launchErrors.append(
+                    "Network-share credential storage is unavailable: \(error.localizedDescription)"
+                )
+            }
         }
         let mediaShareRuntime = DefaultMediaShareRuntime.make(
             accountStore: accountStore,
@@ -588,7 +607,7 @@ final class PlozziOSAppModel {
             durableLocalStateStore: durableLocalStateStore
         )
         let profiles = ProfilesModel(
-            store: ProfileStore(
+            store: profileStore ?? ProfileStore(
                 secureStore: KeychainStore(service: "com.plozz.app.household")
             ),
             defaultActiveAccountIDs: accountStore.activeAccountIDs()
@@ -658,7 +677,8 @@ final class PlozziOSAppModel {
         self.crashReportingController = CrashReportingController()
         self.requiresLaunchProfileSelection = requiresLaunchProfileSelection
         let initialSettings = PlozziOSSettingsModel(
-            namespace: profiles.activeNamespace
+            namespace: profiles.activeNamespace,
+            allowsDiscovery: { !profiles.activeProfile.isKids }
         )
         self.settings = initialSettings
         self.seriesTrackStore = SeriesTrackPreferenceStore(
@@ -742,7 +762,6 @@ final class PlozziOSAppModel {
         )
         accountsProviders.tokenResolver = { [weak self] accountID in
             self?.plexHomeUsers.resolvedToken(for: accountID)
-                ?? accountStore.token(for: accountID)
         }
         accountsProviders.onAccountsInvalidated = { [weak self] in
             self?.mediaItemActionHandler.invalidateAccountCaches()
@@ -1065,7 +1084,15 @@ final class PlozziOSAppModel {
 
     /// Debug-only: clear all accounts + profiles so the app returns to the
     /// first-run / onboarding empty state (used to test Sync & Setup receive).
-    func resetToFirstRunForDebugging() {
+    @discardableResult
+    func resetToFirstRunForDebugging(afterSyncErasure: Bool = false) -> Bool {
+        do {
+            try accountStore.clearAll()
+        } catch {
+            PlozzLog.auth.error("First-run reset could not remove every account")
+            accountError = error.localizedDescription
+            return false
+        }
         // Clear cross-device sync state too, so a debug reset is a truly clean slate
         // for re-testing "new server from another device": pull each account's
         // iCloud-Keychain portable credential (stops auto-connect) and wipe the
@@ -1078,10 +1105,17 @@ final class PlozziOSAppModel {
         HouseholdDevicesStore().removeAll()
         pendingSyncedServers = []
         pendingSyncedServerPrompt = nil
-        try? accountStore.clearAll()
         accountsProviders.reloadAccounts()
+        guard accountsProviders.accounts.isEmpty else { return false }
         plexHomeUsers.resetAllForDebug()
-        profiles.resetToPristineDefaultForDebugging()
+        do {
+            if afterSyncErasure { try profiles.resetToPristineDefaultAfterSyncErasure() }
+            else { profiles.resetToPristineDefaultForDebugging() }
+        } catch {
+            PlozzLog.sync.error("First-run reset could not remove every profile")
+            accountError = error.localizedDescription
+            return false
+        }
         resetLiveTVPortableSync()
         if accountsProviders.accounts.isEmpty { appAdmission.resetForDebugging() }
         pendingLibrarySelection = nil
@@ -1090,6 +1124,7 @@ final class PlozziOSAppModel {
         // Bypass the lock gate deliberately: this is the debug "reset to first
         // run" path and it has just wiped the profiles back to a pristine default.
         performSelectProfile(profiles.activeProfileID)
+        return true
     }
 
     /// Everything guarding entry to a profile, in ONE observable property.
@@ -1586,7 +1621,10 @@ final class PlozziOSAppModel {
             await Task.yield()
             resumeProfileOnboardingIfNeeded()
         }
-        settings = PlozziOSSettingsModel(namespace: profiles.activeNamespace)
+        settings = PlozziOSSettingsModel(
+            namespace: profiles.activeNamespace,
+            allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
+        )
         seriesTrackStore = SeriesTrackPreferenceStore(
             namespace: profiles.activeNamespace
         )
@@ -2370,7 +2408,10 @@ final class PlozziOSAppModel {
                 reloadAccountsAndCrashContext()
                 return
             }
-            settings = PlozziOSSettingsModel(namespace: profiles.activeNamespace)
+            settings = PlozziOSSettingsModel(
+                namespace: profiles.activeNamespace,
+                allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
+            )
             seriesTrackStore = SeriesTrackPreferenceStore(
                 namespace: profiles.activeNamespace
             )
@@ -2573,7 +2614,8 @@ final class PlozziOSAppModel {
             homeUserID: user.id,
             name: user.name,
             avatarURL: user.avatarURL?.absoluteString,
-            requiresPIN: user.requiresPIN
+            requiresPIN: user.requiresPIN,
+            pinRequirementVerified: user.pinRequirementVerified
         )
         var profile = profiles.activeProfile
         for accountID in pending.applyToAccountIDs {

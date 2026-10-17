@@ -9,7 +9,7 @@ import UIKit
 struct LiveChannelSessionReporting {
     let id: UUID
     let update: @MainActor (LiveTVPlaybackUpdate) -> Void
-    let failed: @MainActor () -> Void
+    let failed: @MainActor (LiveChannelFailureReport) -> Void
 }
 
 /// Playback host for live channels.
@@ -37,7 +37,7 @@ public struct LiveChannelPlayerView: View {
     private let onPlaybackStarted: () -> Void
     private let reportingID: UUID?
     private let onPlaybackUpdate: @MainActor (LiveTVPlaybackUpdate) -> Void
-    private let onPlaybackFailed: @MainActor () -> Void
+    private let onPlaybackFailed: @MainActor (LiveChannelFailureReport) -> Void
     private let onVideoAspectRatioChange: @MainActor (Double?) -> Void
     private let preparingChannelName: String?
     private let onMultiview: (() -> Void)?
@@ -47,6 +47,7 @@ public struct LiveChannelPlayerView: View {
     private let countsAsWatching: Bool
     private let isMultiview: Bool
     private let trackPreferences: LiveChannelTrackPreferences?
+    private let touchSkipIntervals: @MainActor () -> (backward: SkipInterval, forward: SkipInterval)
     private let networkBlock: LiveTVNetworkBlock?
     private let presentationControls: (@MainActor (LiveChannelPresentationContext) -> AnyView)?
     private let onExternalContinuationChanged: @MainActor (Bool) -> Void
@@ -71,6 +72,9 @@ public struct LiveChannelPlayerView: View {
     @State private var returnsToGuideAfterFullscreen = false
     @State private var engineInitializationFailed = false
     @State private var controlsVisible = true
+    @State private var touchGestures = PlayerTouchGestureState()
+    @State private var touchBackgroundTapRevision = 0
+    @State private var mobileSubtitleViewport = VideoSubtitleViewport()
     @State private var tracksArePresented = false
     @State private var autoHideRevision = 0
     @State private var hudInactivity = PlaybackControlsInactivity()
@@ -121,7 +125,7 @@ public struct LiveChannelPlayerView: View {
         onPlaybackStarted: @escaping () -> Void = {},
         reportingID: UUID? = nil,
         onPlaybackUpdate: @escaping @MainActor (LiveTVPlaybackUpdate) -> Void = { _ in },
-        onPlaybackFailed: @escaping @MainActor () -> Void = {},
+        onPlaybackFailed: @escaping @MainActor (LiveChannelFailureReport) -> Void = { _ in },
         onVideoAspectRatioChange: @escaping @MainActor (Double?) -> Void = { _ in },
         preparingChannelName: String? = nil,
         onMultiview: (() -> Void)? = nil,
@@ -131,6 +135,9 @@ public struct LiveChannelPlayerView: View {
         countsAsWatching: Bool = false,
         isMultiview: Bool = false,
         trackPreferences: LiveChannelTrackPreferences? = nil,
+        touchSkipIntervals: @escaping @MainActor () -> (backward: SkipInterval, forward: SkipInterval) = {
+            (PlaybackSettings.default.skipBackwardInterval, PlaybackSettings.default.skipForwardInterval)
+        },
         networkBlock: LiveTVNetworkBlock? = nil,
         isAuthorized: Bool = true,
         presentationControls: (@MainActor (LiveChannelPresentationContext) -> AnyView)? = nil,
@@ -172,6 +179,7 @@ public struct LiveChannelPlayerView: View {
         self.countsAsWatching = countsAsWatching
         self.isMultiview = isMultiview
         self.trackPreferences = trackPreferences
+        self.touchSkipIntervals = touchSkipIntervals
         self.networkBlock = networkBlock
         self.isAuthorized = isAuthorized
         self.presentationControls = presentationControls
@@ -206,7 +214,7 @@ public struct LiveChannelPlayerView: View {
         onPlaybackStarted: @escaping () -> Void = {},
         reportingID: UUID? = nil,
         onPlaybackUpdate: @escaping @MainActor (LiveTVPlaybackUpdate) -> Void = { _ in },
-        onPlaybackFailed: @escaping @MainActor () -> Void = {},
+        onPlaybackFailed: @escaping @MainActor (LiveChannelFailureReport) -> Void = { _ in },
         onVideoAspectRatioChange: @escaping @MainActor (Double?) -> Void = { _ in },
         preparingChannelName: String? = nil,
         onMultiview: (() -> Void)? = nil,
@@ -216,6 +224,9 @@ public struct LiveChannelPlayerView: View {
         countsAsWatching: Bool = false,
         isMultiview: Bool = false,
         trackPreferences: LiveChannelTrackPreferences? = nil,
+        touchSkipIntervals: @escaping @MainActor () -> (backward: SkipInterval, forward: SkipInterval) = {
+            (PlaybackSettings.default.skipBackwardInterval, PlaybackSettings.default.skipForwardInterval)
+        },
         networkBlock: LiveTVNetworkBlock? = nil,
         isAuthorized: Bool = true,
         presentationControls: (@MainActor (LiveChannelPresentationContext) -> AnyView)? = nil,
@@ -241,6 +252,7 @@ public struct LiveChannelPlayerView: View {
             preparingChannelName: preparingChannelName, onMultiview: onMultiview,
             outputGroup: outputGroup, outputID: outputID, isAudible: isAudible,
             countsAsWatching: countsAsWatching, isMultiview: isMultiview, trackPreferences: trackPreferences,
+            touchSkipIntervals: touchSkipIntervals,
             networkBlock: networkBlock, isAuthorized: isAuthorized, presentationControls: presentationControls,
             onExternalContinuationChanged: onExternalContinuationChanged,
             onRestoreUI: onRestoreUI, onStopPlayback: onStopPlayback,
@@ -260,17 +272,30 @@ public struct LiveChannelPlayerView: View {
                     channelID: channelID,
                     input: input
                 )
-                VideoSurfaceContainer(engine: model.engine, zoom: model.videoZoom.settings)
+                VideoSurfaceContainer(
+                    engine: model.engine, zoom: model.videoZoom.settings,
+                    fitsInsideSafeArea: liveSubtitleViewport != nil && !model.continuesExternally,
+                    subtitleViewport: liveSubtitleViewport
+                )
                     .ignoresSafeArea()
 
                 if sourceMatches, model.networkBlock == nil, !model.continuesExternally {
-                    LiveChannelSubtitleSurface(model: model)
+                    LiveChannelSubtitleSurface(model: model, viewport: liveSubtitleViewport)
                         .allowsHitTesting(false)
                 }
 
+                #if os(iOS)
+                if isExpanded {
+                    mobileGestureSurface(model: model)
+                }
+                #endif
+
                 #if os(tvOS)
                 if isExpanded, diagnosticsEnabled, sourceMatches, model.hasPresentedFrame {
-                    PlaybackDiagnosticsOverlay(diagnostics: diagnosticsSampler.latest)
+                    PlaybackDiagnosticsOverlay(
+                        diagnostics: diagnosticsSampler.latest,
+                        televisionControlsLayout: model.subtitles.controlsLayout
+                    )
                         // Pinned to the top-left corner, as the VOD player's is.
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .allowsHitTesting(false)
@@ -290,6 +315,7 @@ public struct LiveChannelPlayerView: View {
                 if let networkBlock = model.networkBlock {
                     LiveChannelNetworkStatus(block: networkBlock)
                 } else if isExpanded {
+                    #if os(tvOS)
                     if !controlsVisible {
                         LiveChannelRevealSurface(
                             focus: $focusedControl,
@@ -297,8 +323,9 @@ public struct LiveChannelPlayerView: View {
                         )
                         .transition(.identity)
                     }
+                    #endif
 
-                    if controlsVisible,
+                    if controlsVisible || touchGestures.skip != nil,
                        !sourceMatches || model.interruption == nil {
                         LiveChannelOverlay(
                             title: title,
@@ -336,7 +363,10 @@ public struct LiveChannelPlayerView: View {
                             toggleDiagnostics: { diagnosticsEnabled.toggle() },
                             onTracksPresentationChange: { tracksArePresented = $0 },
                             onControlActivity: noteControlNavigation,
-                            onDismissControls: dismissControls
+                            onDismissControls: dismissControls,
+                            hasTouchGestureSurface: true,
+                            touchBackgroundTapRevision: touchBackgroundTapRevision,
+                            touchTimelineOnly: !controlsVisible
                         )
                         .onAppear(perform: focusPlaybackControlIfNeeded)
                         .transition(.opacity)
@@ -493,6 +523,12 @@ public struct LiveChannelPlayerView: View {
                 model?.togglePlayPause()
             }
             .onChange(of: source, initial: true) { _, _ in updateSource() }
+            .onChange(of: source) { _, _ in touchGestures.cancel() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { touchGestures.cancel() }
+            }
+            .onChange(of: isExpanded) { _, _ in touchGestures.cancel() }
+            .onDisappear { touchGestures.cancel() }
             .onChange(of: reportingID) { _, _ in
                 updateSource()
                 onVideoAspectRatioChange(model?.engine.videoAspectRatio)
@@ -515,7 +551,7 @@ public struct LiveChannelPlayerView: View {
                 playerSurface
             }
         }
-        .fullScreenCover(isPresented: $fullscreenPresented, onDismiss: fullscreenDidDismiss) {
+        .plozzFullScreenCover(isPresented: $fullscreenPresented, onDismiss: fullscreenDidDismiss) {
             playerSurface
                 .ignoresSafeArea()
         }
@@ -557,7 +593,7 @@ public struct LiveChannelPlayerView: View {
         .onDisappear(perform: releaseGlassSuspension)
         .onChange(of: reportingID) { _, _ in updateDiagnosticsSampling(diagnosticsEnabled) }
         #if os(iOS)
-        .sheet(isPresented: $diagnosticsEnabled) {
+        .plozzSheet(isPresented: $diagnosticsEnabled) {
             NavigationStack {
                 PlaybackDiagnosticsOverlay(diagnostics: diagnosticsSampler.latest, presentation: .mobile)
                     .navigationTitle("Playback Diagnostics")
@@ -575,7 +611,8 @@ public struct LiveChannelPlayerView: View {
     private func playbackPhaseChanged(_ phase: LiveChannelPlaybackPhase?) {
         autoHideRevision &+= 1
         guard let phase else { return }
-        if phase != .playing { controlsVisible = true }
+        if phase.isInterrupted { touchGestures.cancel() }
+        if phase != .playing, !touchGestures.isActive { controlsVisible = true }
         if isExpanded, phase.isInterrupted { focusInterruptionAction() }
     }
 
@@ -691,7 +728,10 @@ public struct LiveChannelPlayerView: View {
             LiveChannelDiagnostics().event(.initializationFailure, attempt: 0)
             engineInitializationFailed = true
             focusAfterPresentation(.close)
-            if reportingID != nil { onPlaybackFailed() }
+            if reportingID != nil {
+                onPlaybackFailed(.init(failure: (error as? AppError).map(LiveChannelPlaybackFailure.engine)
+                    ?? .initializationFailed))
+            }
             return
         }
         let playerModel = LiveChannelPlayerModel(
@@ -731,6 +771,14 @@ public struct LiveChannelPlayerView: View {
     }
 
     private var permitsExternalPresentation: Bool { !isMultiview && isAuthorized }
+
+    private var liveSubtitleViewport: VideoSubtitleViewport? {
+        #if os(iOS)
+        isExpanded && !isMultiview ? mobileSubtitleViewport : nil
+        #else
+        nil
+        #endif
+    }
 
     private var sessionReporting: LiveChannelSessionReporting? {
         reportingID.map {
@@ -953,6 +1001,49 @@ public struct LiveChannelPlayerView: View {
         noteInteraction()
         model.seek(behindLive: seconds)
     }
+
+    #if os(iOS)
+    private func mobileGestureSurface(model: LiveChannelPlayerModel) -> some View {
+        ZStack {
+            PlayerTouchGestureSurface(
+                state: touchGestures,
+                shortcutsEnabled: isActive && isAuthorized && sourceMatchesCurrentModel
+                    && model.networkBlock == nil && model.hasPresentedFrame && !model.continuesExternally
+                    && !tracksArePresented && !guidePresented && !diagnosticsEnabled
+                    && scenePhase == .active,
+                canSeek: model.canSeekWindow,
+                canBoost: false,
+                canZoom: model.engine.capabilities.contains(.videoZoom),
+                onTap: {
+                    touchGestures.clearSkip()
+                    if controlsVisible { touchBackgroundTapRevision &+= 1 }
+                    else { revealControls() }
+                },
+                onSkip: { direction in
+                    guard model.canSeekWindow, let window = model.seekableWindow else { return }
+                    let intervals = touchSkipIntervals()
+                    let interval = direction == .forward ? intervals.forward.seconds : -intervals.backward.seconds
+                    let floor = LiveChannelPlayerModel.windowSeekTarget(window.lowerBound, window: window)
+                    guard let target = touchGestures.seek(
+                        by: interval, from: model.seekPosition,
+                        within: floor...window.upperBound
+                    ) else { return }
+                    dismissControls()
+                    model.seek(behindLive: window.upperBound - target)
+                    TouchFeedback.shared.emit(.selection)
+                },
+                onBoostChanged: { _ in },
+                onZoom: { model.videoZoom.settings.mode = $0 ? .fill : .fit },
+                onGestureStarted: dismissControls
+            )
+            .ignoresSafeArea()
+            if touchGestures.isActive {
+                PlayerTouchGestureFeedbackView(state: touchGestures)
+                    .modifier(WindowSafeAreaPadding())
+            }
+        }
+    }
+    #endif
 
     private func retry() {
         guard let model, model.canRetry else { return }
@@ -1462,6 +1553,8 @@ final class LiveChannelPlayerModel {
     }
     /// The engine's last playhead, on the same axis as `seekableWindow`.
     @ObservationIgnored private var lastPosition: TimeInterval = 0
+    /// Unlike the live badge's delay, this retains normal HLS holdback.
+    var seekPosition: TimeInterval { pendingSeekTarget ?? lastPosition }
     @ObservationIgnored private var seekCommitTask: Task<Void, Never>?
     /// One engine seek at a time: a held button keeps moving the target, and
     /// AVPlayer cancelling its segment loads for every superseded seek is
@@ -1679,7 +1772,7 @@ final class LiveChannelPlayerModel {
     /// presses stack rather than each measuring from a playhead still moving.
     func seek(by delta: TimeInterval) {
         guard canSeekWindow, let seekableWindow else { return }
-        stageSeek(to: (pendingSeekTarget ?? lastPosition) + delta, window: seekableWindow)
+        stageSeek(to: seekPosition + delta, window: seekableWindow)
     }
 
     /// Whether scrubbing shows a preview box: the native HLS route can fetch one.
@@ -1690,8 +1783,11 @@ final class LiveChannelPlayerModel {
     /// A scrub preview for the frame `seconds` behind the live edge.
     func scrubThumbnail(behindLive seconds: TimeInterval, maxWidth: Int) async -> CGImage? {
         guard canSeekWindow, let seekableWindow else { return nil }
+        let generation = attemptGeneration
         let offset = seekableWindow.upperBound - max(0, seconds) - seekableWindow.lowerBound
-        return await engine.liveScrubThumbnail(secondsIntoWindow: max(0, offset), maxWidth: maxWidth)
+        let image = await engine.liveScrubThumbnail(secondsIntoWindow: max(0, offset), maxWidth: maxWidth)
+        guard !Task.isCancelled, generation == attemptGeneration, canSeekWindow else { return nil }
+        return image
     }
 
     /// Land `seconds` behind the live edge.
@@ -2194,6 +2290,10 @@ final class LiveChannelPlayerModel {
             return
         }
         if snapshot.phase == .failed {
+            if engine.isCapturingLiveFailureDiagnostic {
+                idleSleepGuard.allowSleep()
+                return
+            }
             if case .failed(let error) = engine.status {
                 fail(.engine(error))
             } else {
@@ -2309,10 +2409,10 @@ final class LiveChannelPlayerModel {
         }
     }
 
-    private func reportSessionFailure() {
+    private func reportSessionFailure(_ report: LiveChannelFailureReport) {
         guard let sessionReporting, !reportedSessionFailure else { return }
         reportedSessionFailure = true
-        sessionReporting.failed()
+        sessionReporting.failed(report)
     }
 
     private func resumeActivePlayback() {
@@ -2409,7 +2509,7 @@ final class LiveChannelPlayerModel {
               !stopped, !phase.isInterrupted || isRecoveringProgramme else { return }
         if showRecoverableProgrammeIssue() { return }
         switch failure {
-        case .input, .library:
+        case .input, .library, .ended, .initializationFailed:
             diagnostics.event(.failure, attempt: attemptCount)
         case .engine(let error):
             diagnostics.event(.failure, attempt: attemptCount, error: error)
@@ -2427,9 +2527,10 @@ final class LiveChannelPlayerModel {
         cancelRecovery()
         foregroundTask?.cancel()
         foregroundTask = nil
+        let report = LiveChannelFailureReport(failure: failure, diagnostic: engine.livePlaybackFailureDiagnostic)
         engine.stop()
         idleSleepGuard.allowSleep()
-        reportSessionFailure()
+        reportSessionFailure(report)
     }
 
     private func streamEnded(generation: Int? = nil) {
@@ -2443,9 +2544,10 @@ final class LiveChannelPlayerModel {
         cancelRecovery()
         foregroundTask?.cancel()
         foregroundTask = nil
+        let report = LiveChannelFailureReport(failure: .ended, diagnostic: engine.livePlaybackFailureDiagnostic)
         engine.stop()
         idleSleepGuard.allowSleep()
-        reportSessionFailure()
+        reportSessionFailure(report)
     }
 }
 
@@ -2513,38 +2615,6 @@ enum LiveChannelPlaybackPhase: Equatable {
     }
 }
 
-enum LiveChannelPlaybackFailure: Equatable {
-    case startupTimedOut
-    case bufferingTimedOut
-    case recoveryExhausted
-    case engine(AppError)
-    case input(LiveChannelInputError)
-    case library(LibraryChannelError)
-
-    static func engineMessage(_ error: AppError) -> LocalizedStringResource {
-        switch error {
-        case .notFound:
-            "The channel provider could not find this stream. Its playlist link may be outdated, or the feed may be temporarily off air."
-        case .unauthorized, .invalidCredentials:
-            "The channel provider refused access to this stream. It may require authorization or be unavailable in your region."
-        case .accessRestricted:
-            error.userMessage
-        case .serverUnreachable:
-            "Plozz could not reach the channel's streaming server. Check your internet connection or try again later."
-        case .rateLimited:
-            "The channel provider is limiting requests. Wait before trying again."
-        case .invalidResponse:
-            "The channel's playlist or video data could not be opened. Its link may be outdated or the feed may be temporarily unavailable."
-        case .decoding:
-            "The player could not decode this channel's audio or video. Try another stream version or channel."
-        case .cancelled:
-            "Opening this channel was cancelled."
-        default:
-            "Plozz could not start playback. Retry or choose another channel."
-        }
-    }
-}
-
 enum LibraryChannelPlaybackCopy {
     static func returnToCurrentTitle(isScheduledChannel: Bool) -> LocalizedStringResource {
         isScheduledChannel ? "Jump to now" : "Go Live"
@@ -2571,6 +2641,12 @@ private struct LiveChannelInterruption {
     ) -> LiveChannelInterruption {
         let base: LiveChannelInterruption
         switch failure {
+        case .ended:
+            base = ended(retryLimitReached: false)
+        case .initializationFailed:
+            base = LiveChannelInterruption(
+                icon: "exclamationmark.triangle.fill", title: "Unable to Play Channel", message: failure.message
+            )
         case .input(let error):
             base = LiveChannelInterruption(
                 icon: "exclamationmark.triangle.fill",

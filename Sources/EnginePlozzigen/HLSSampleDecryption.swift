@@ -64,7 +64,7 @@ enum HLSSampleDecryption {
 
         /// Decrypts `bytes[range]` in place.
         func update(_ bytes: inout [UInt8], _ range: Range<Int>) {
-            guard let ref, !range.isEmpty else { return }
+            guard let ref, !range.isEmpty, range.lowerBound >= 0, range.upperBound <= bytes.count else { return }
             var output = [UInt8](repeating: 0, count: range.count)
             var moved = 0
             let status = bytes.withUnsafeBufferPointer { input in
@@ -334,6 +334,7 @@ enum HLSSampleDecryption {
                   let encv = descendants(of: bytes, in: trak, path: ["mdia", "minf", "stbl", "stsd"]).first.flatMap({
                       sampleEntry("encv", of: bytes, stsd: $0)
                   }),
+                  encv.count >= 78, !tkhd.isEmpty,
                   let sinf = child("sinf", of: bytes, in: (encv.lowerBound + 78)..<encv.upperBound),
                   let schm = child("schm", of: bytes, in: sinf),
                   let tenc = descendants(of: bytes, in: sinf, path: ["schi", "tenc"]).first
@@ -348,6 +349,7 @@ enum HLSSampleDecryption {
             let tencVersion = bytes[t]
             let pattern = tencVersion == 0 ? 0 : bytes[t + 5]
             let ivSize = Int(bytes[t + 7])
+            guard [0, 8, 16].contains(ivSize) else { continue }
             var constantIV: Data?
             if bytes[t + 6] == 1, ivSize == 0, t + 25 <= tenc.upperBound {
                 let size = Int(bytes[t + 24])
@@ -373,6 +375,7 @@ enum HLSSampleDecryption {
         for moof in boxes(in: bytes, range: 0..<bytes.count) where moof.type == "moof" {
             for traf in boxes(in: bytes, range: moof.payload) where traf.type == "traf" {
                 guard let tfhd = child("tfhd", of: bytes, in: traf.payload),
+                      tfhd.count >= 8,
                       be32(bytes, tfhd.lowerBound + 4) == track.trackID,
                       let trun = child("trun", of: bytes, in: traf.payload)
                 else { continue }
@@ -387,11 +390,19 @@ enum HLSSampleDecryption {
                 }
                 let sizes = trackRunSampleSizes(bytes, tfhd: tfhd, trun: trun)
                 let tfhdFlags = be32(bytes, tfhd.lowerBound) & 0xFFFFFF
-                let base = tfhdFlags & 0x01 != 0 ? Int(be64(bytes, tfhd.lowerBound + 8)) : moof.start
-                var sampleStart = base + (trackRunDataOffset(bytes, trun: trun) ?? 0)
+                let base: Int
+                if tfhdFlags & 0x01 != 0 {
+                    guard tfhd.count >= 16, let offset = Int(exactly: be64(bytes, tfhd.lowerBound + 8)) else { continue }
+                    base = offset
+                } else {
+                    base = moof.start
+                }
+                let (start, overflow) = base.addingReportingOverflow(trackRunDataOffset(bytes, trun: trun) ?? 0)
+                guard !overflow, start >= 0, start <= bytes.count else { continue }
+                var sampleStart = start
                 for (index, size) in sizes.enumerated() {
+                    guard size > 0, size <= bytes.count - sampleStart else { break }
                     let sampleEnd = sampleStart + size
-                    guard sampleEnd <= bytes.count else { break }
                     if index < info.count {
                         let iv = info[index].iv ?? track.constantIV ?? playlistIV
                         decryptSample(&bytes, sampleStart..<sampleEnd, subsamples: info[index].subsamples,
@@ -409,19 +420,22 @@ enum HLSSampleDecryption {
     static func auxiliaryEncryption(
         _ bytes: [UInt8], traf: Range<Int>, moofStart: Int, ivSize: Int
     ) -> [(iv: Data?, subsamples: [(clear: Int, protected: Int)])]? {
-        guard let saiz = child("saiz", of: bytes, in: traf), let saio = child("saio", of: bytes, in: traf) else { return nil }
+        guard [0, 8, 16].contains(ivSize),
+              let saiz = child("saiz", of: bytes, in: traf), saiz.count >= 9,
+              let saio = child("saio", of: bytes, in: traf), saio.count >= 8 else { return nil }
         let saizFlags = be32(bytes, saiz.lowerBound) & 0xFFFFFF
         var cursor = saiz.lowerBound + 4 + (saizFlags & 1 != 0 ? 8 : 0)
         guard cursor + 5 <= saiz.upperBound else { return nil }
         let defaultSize = Int(bytes[cursor])
         let count = Int(be32(bytes, cursor + 1))
+        guard count <= 4_096, defaultSize == 0 || defaultSize >= ivSize else { return nil }
         cursor += 5
         var sizes: [Int] = []
         for index in 0..<count {
             if defaultSize != 0 {
                 sizes.append(defaultSize)
             } else {
-                guard cursor + index < saiz.upperBound else { break }
+                guard cursor + index < saiz.upperBound, Int(bytes[cursor + index]) >= ivSize else { return nil }
                 sizes.append(Int(bytes[cursor + index]))
             }
         }
@@ -429,11 +443,12 @@ enum HLSSampleDecryption {
         let saioFlags = be32(bytes, saio.lowerBound) & 0xFFFFFF
         let entryStart = saio.lowerBound + 4 + (saioFlags & 1 != 0 ? 8 : 0) + 4
         guard entryStart + (saioVersion == 1 ? 8 : 4) <= saio.upperBound else { return nil }
-        let offset = saioVersion == 1 ? Int(be64(bytes, entryStart)) : Int(be32(bytes, entryStart))
+        guard let offset = saioVersion == 1 ? Int(exactly: be64(bytes, entryStart)) : Int(be32(bytes, entryStart)),
+              moofStart >= 0, moofStart <= bytes.count, offset <= bytes.count - moofStart else { return nil }
         var position = moofStart + offset
         var result: [(iv: Data?, subsamples: [(clear: Int, protected: Int)])] = []
         for size in sizes {
-            guard position + size <= bytes.count else { break }
+            guard size <= bytes.count - position else { break }
             var entry = position
             var iv: Data?
             if ivSize > 0 {
@@ -459,7 +474,7 @@ enum HLSSampleDecryption {
         _ bytes: inout [UInt8], _ sample: Range<Int>, subsamples: [(clear: Int, protected: Int)],
         track: TrackEncryption, key: Data, iv: Data?
     ) {
-        guard var iv else { return }
+        guard sample.lowerBound >= 0, sample.upperBound <= bytes.count, var iv else { return }
         if iv.count == 8 { iv.append(Data(count: 8)) }
         guard iv.count == 16 else { return }
         let ranges: [Range<Int>]
@@ -467,12 +482,17 @@ enum HLSSampleDecryption {
             ranges = [sample]
         } else {
             var cursor = sample.lowerBound
-            ranges = subsamples.compactMap { entry in
+            var protectedRanges: [Range<Int>] = []
+            for entry in subsamples {
+                guard entry.clear >= 0, entry.protected >= 0,
+                      entry.clear <= sample.upperBound - cursor else { return }
                 let start = cursor + entry.clear
-                let end = min(start + entry.protected, sample.upperBound)
-                cursor = start + entry.protected
-                return start < end ? start..<end : nil
+                guard entry.protected <= sample.upperBound - start else { return }
+                let end = start + entry.protected
+                cursor = end
+                if start < end { protectedRanges.append(start..<end) }
             }
+            ranges = protectedRanges
         }
         switch track.scheme {
         case .cenc:
@@ -500,21 +520,27 @@ enum HLSSampleDecryption {
     struct Box { let type: String; let start: Int; let payload: Range<Int> }
 
     static func boxes(in bytes: [UInt8], range: Range<Int>) -> [Box] {
+        guard range.lowerBound >= 0, range.upperBound <= bytes.count else { return [] }
         var result: [Box] = []
         var offset = range.lowerBound
         while offset + 8 <= range.upperBound {
             var size = Int(be32(bytes, offset))
             var header = 8
-            if size == 1, offset + 16 <= range.upperBound {
-                size = Int(be64(bytes, offset + 8))
+            if size == 1 {
+                guard range.upperBound - offset >= 16,
+                      let extended = Int(exactly: be64(bytes, offset + 8)) else { break }
+                size = extended
                 header = 16
             } else if size == 0 {
                 size = range.upperBound - offset
             }
             guard size >= header else { break }
             let type = String(bytes: bytes[(offset + 4)..<(offset + 8)], encoding: .ascii) ?? ""
-            let end = min(offset + size, range.upperBound)
+            let available = range.upperBound - offset
+            guard size <= available || type == "mdat" else { break }
+            let end = offset + min(size, available)
             result.append(Box(type: type, start: offset, payload: (offset + header)..<end))
+            guard size <= available else { break }
             offset += size
         }
         return result
@@ -538,6 +564,7 @@ enum HLSSampleDecryption {
     }
 
     static func trackRunSampleSizes(_ bytes: [UInt8], tfhd: Range<Int>, trun: Range<Int>) -> [Int] {
+        guard tfhd.count >= 8, trun.count >= 8 else { return [] }
         let tfhdFlags = be32(bytes, tfhd.lowerBound) & 0xFFFFFF
         var cursor = tfhd.lowerBound + 8
         if tfhdFlags & 0x01 != 0 { cursor += 8 }
@@ -546,9 +573,12 @@ enum HLSSampleDecryption {
         let defaultSize = tfhdFlags & 0x10 != 0 && cursor + 4 <= tfhd.upperBound ? Int(be32(bytes, cursor)) : 0
         let flags = be32(bytes, trun.lowerBound) & 0xFFFFFF
         let count = Int(be32(bytes, trun.lowerBound + 4))
+        guard count <= 4_096 else { return [] }
         var offset = trun.lowerBound + 8
         if flags & 0x01 != 0 { offset += 4 }
         if flags & 0x04 != 0 { offset += 4 }
+        let stride = [0x100, 0x200, 0x400, 0x800].filter { flags & UInt32($0) != 0 }.count * 4
+        guard offset <= trun.upperBound, stride == 0 || count <= (trun.upperBound - offset) / stride else { return [] }
         var sizes: [Int] = []
         for _ in 0..<count {
             if flags & 0x100 != 0 { offset += 4 }
@@ -574,8 +604,11 @@ enum HLSSampleDecryption {
     static func sampleEncryption(
         _ bytes: [UInt8], senc: Range<Int>, ivSize: Int
     ) -> [(iv: Data?, subsamples: [(clear: Int, protected: Int)])] {
+        guard senc.lowerBound >= 0, senc.upperBound <= bytes.count, senc.count >= 8,
+              [0, 8, 16].contains(ivSize) else { return [] }
         let flags = be32(bytes, senc.lowerBound) & 0xFFFFFF
         let count = Int(be32(bytes, senc.lowerBound + 4))
+        guard count <= 4_096, flags & 1 == 0 else { return [] }
         var offset = senc.lowerBound + 8
         var result: [(iv: Data?, subsamples: [(clear: Int, protected: Int)])] = []
         for _ in 0..<count {
@@ -590,6 +623,7 @@ enum HLSSampleDecryption {
                 guard offset + 2 <= senc.upperBound else { break }
                 let entries = Int(bytes[offset]) << 8 | Int(bytes[offset + 1])
                 offset += 2
+                guard entries <= (senc.upperBound - offset) / 6 else { return [] }
                 for _ in 0..<entries {
                     guard offset + 6 <= senc.upperBound else { break }
                     subsamples.append((Int(bytes[offset]) << 8 | Int(bytes[offset + 1]), Int(be32(bytes, offset + 2))))
@@ -602,12 +636,13 @@ enum HLSSampleDecryption {
     }
 
     static func be32(_ bytes: [UInt8], _ offset: Int) -> UInt32 {
-        guard offset + 4 <= bytes.count else { return 0 }
+        guard offset >= 0, bytes.count >= 4, offset <= bytes.count - 4 else { return 0 }
         return UInt32(bytes[offset]) << 24 | UInt32(bytes[offset + 1]) << 16
             | UInt32(bytes[offset + 2]) << 8 | UInt32(bytes[offset + 3])
     }
 
     static func be64(_ bytes: [UInt8], _ offset: Int) -> UInt64 {
-        UInt64(be32(bytes, offset)) << 32 | UInt64(be32(bytes, offset + 4))
+        guard offset >= 0, bytes.count >= 8, offset <= bytes.count - 8 else { return 0 }
+        return UInt64(be32(bytes, offset)) << 32 | UInt64(be32(bytes, offset + 4))
     }
 }

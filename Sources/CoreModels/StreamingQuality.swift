@@ -248,9 +248,19 @@ public enum StreamingNetwork: Sendable, Equatable {
     /// Cost is not an interface type: Wi-Fi/Ethernet can be expensive too.
     /// Keep those paths eligible for the user's local/remote settings.
     public static func classify(
-        isSatisfied: Bool, usesCellular: Bool, usesWiFi: Bool, usesEthernet: Bool
+        isSatisfied: Bool, usesCellular: Bool, usesWiFi: Bool, usesEthernet: Bool,
+        interfacePreference: [Self] = []
     ) -> Self {
         guard isSatisfied else { return .offline }
+        // A path can permit several interfaces. Eligibility is not preference.
+        for network in interfacePreference {
+            switch network {
+            case .wifi where usesWiFi: return .wifi
+            case .wired where usesEthernet: return .wired
+            case .cellular where usesCellular: return .cellular
+            default: continue
+            }
+        }
         if usesCellular { return .cellular }
         if usesWiFi { return .wifi }
         if usesEthernet { return .wired }
@@ -260,8 +270,13 @@ public enum StreamingNetwork: Sendable, Equatable {
 
 public enum StreamingConnection: String, Sendable, Equatable {
     case local, remote, cellular
-    public static func resolve(network: StreamingNetwork, locality: SourceLocality) -> Self {
-        // Unknown/tunneled paths use the conservative mobile policy until proven otherwise.
+    public static func resolve(
+        network: StreamingNetwork, locality: SourceLocality, previousConnection: Self? = nil
+    ) -> Self {
+        // Losing a route is not a transition to cellular. Keep the current
+        // session's selection until iOS reports a usable path again.
+        if network == .offline, let previousConnection { return previousConnection }
+        // An unresolved initial path still keeps the existing conservative limit.
         if network == .cellular || network == .unknown || network == .offline { return .cellular }
         return locality == .local ? .local : .remote
     }
@@ -378,6 +393,11 @@ public protocol StreamingQualityProviding: MediaProvider {
 
 public extension StreamingQualityProviding {
     var streamingQualitySupport: StreamingQualitySupport { .standard }
+}
+
+/// Opt-in maintenance of an already-started server rendition, including while paused.
+public protocol StreamingSessionMaintaining: MediaProvider {
+    func maintainStreamingSession(_ request: PlaybackRequest) async throws
 }
 
 public enum StreamingQualityError: Error, Equatable, Sendable {

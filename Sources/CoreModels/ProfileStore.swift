@@ -88,6 +88,7 @@ public protocol ProfilePersisting: Sendable {
     /// selection, household preference overrides, and the first-run flag) so
     /// the next launch behaves like a brand-new install.
     func resetForDebugging()
+    func resetForSyncErasure() throws
 }
 
 extension ProfilePersisting {
@@ -98,6 +99,7 @@ extension ProfilePersisting {
     public func parentalPIN() -> ParentalPIN? { nil }
     public func setParentalPIN(_ value: ParentalPIN?) {}
     public func resetForDebugging() {}
+    public func resetForSyncErasure() throws { resetForDebugging() }
     public func clearActiveAccountIDs(forProfile profileID: String) {}
     public func rootNamespaceOwnerID() -> String? { nil }
     public func setRootNamespaceOwnerID(_ id: String?) {}
@@ -286,6 +288,20 @@ public final class ProfileStore: ProfilePersisting, @unchecked Sendable {
         writeSharedBool(nil, forKey: legacyProfilesEnabledKey)
         writeSharedBool(nil, forKey: firstRunSetupKey)
         removeShared(forKey: parentalPINKey)
+        didMigrateShared = false
+    }
+
+    public func resetForSyncErasure() throws {
+        lock.lock(); defer { lock.unlock() }
+        let keys = loadProfilesLocked().map { accountsKey($0.id) }
+            + [profilesKey, legacyAskOnStartupKey, legacyProfilesEnabledKey, firstRunSetupKey, parentalPINKey]
+        for key in keys {
+            if let secureStore { try secureStore.removeValue(for: key) }
+            defaults.removeObject(forKey: key)
+        }
+        for key in [activeProfileIDKey, lastUsedKey, rootNamespaceOwnerKey] {
+            defaults.removeObject(forKey: key)
+        }
         didMigrateShared = false
     }
 
@@ -925,6 +941,15 @@ public final class ProfilesModel {
     /// interfere.
     public func resetToPristineDefaultForDebugging() {
         store.resetForDebugging()
+        reloadPristineDefault()
+    }
+
+    public func resetToPristineDefaultAfterSyncErasure() throws {
+        try store.resetForSyncErasure()
+        reloadPristineDefault()
+    }
+
+    private func reloadPristineDefault() {
         let migrated = store.migrateLegacyIfNeeded(defaultName: "Me", defaultActiveAccountIDs: [])
         profiles = migrated
         refreshAccountSelections()

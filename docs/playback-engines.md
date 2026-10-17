@@ -6,12 +6,27 @@ with the best possible quality (Dolby Vision, Atmos, full-timeline seek).
 
 ## IPTV live streams
 
+The [IPTV troubleshooting history](iptv-history.md) links earlier routing,
+redirect and cancellation repairs, including approaches that later changed.
+
 IPTV playlist URLs can declare live output as `ts` or `m3u8` while publishing
 extensionless channel URLs. The provider carries that declaration into its
 encrypted loopback URL without changing the upstream address or opening an
 extra probe connection. This keeps declared MPEG-TS on the ingest/remux path
 instead of the HLS-only native bypass. Explicit stream extensions take
 precedence; the hint never applies to movies, episodes, or HLS child resources.
+
+When neither an extension nor a declaration identifies an HTTP live stream,
+`PlozzigenLiveSourceProbe` examines a bounded response prefix before choosing the
+route. HLS manifest bytes retain native playback, including fMP4; three framed
+MPEG-TS sync bytes select ingest even with a generic MIME type. Undetermined
+non-playlist bytes use Aether's container probe, not its HLS bypass. This adds one
+sequential, cancelled-after-inspection GET for opaque addresses, with a 1,024-byte
+consumption cap and 15-second deadline. It never buffers an entire live stream.
+The authenticated proxy serializes this request with subsequent root playback;
+redirected account headers remain origin-scoped. Stops and replacement loads
+cancel the inspection, and HTTP refusals remain typed rather than triggering
+decoder retries. Declared HLS/raw streams and on-demand playback are unchanged.
 
 Authenticated IPTV relay refusals are retained by exact loopback URL for the
 current live attempt. This preserves HTTP 451 access restrictions, authentication
@@ -27,8 +42,10 @@ fetch: the standard full-holdback gate can wait longer than AVPlayer's initial
 playlist timeout on a long-GOP channel. Fast start permits a shallower initial
 window after two finalized segments and a bounded grace period. It can trade
 some initial buffering protection for earlier playback; it does not remove the
-source's keyframe wait or guarantee instant tuning. Native HLS and unknown-format
-streams keep their existing route and standard join policy; on-demand is unchanged.
+source's keyframe wait or guarantee instant tuning. Native HLS keeps its standard
+join policy; detected raw transport streams use the same fast-start policy as
+explicit `.ts` addresses. Other unclassified containers keep the standard ingest
+join policy; on-demand is unchanged.
 
 On the native HLS route the rewind window is the playlist's own: Plozz reads the
 item's `seekableTimeRanges` (Aether reports `0...edge` there) and, once it spans
@@ -75,14 +92,26 @@ ships the upstream and transitive-library notices. Preserve all upstream license
 headers when updating the vendored sources, and update sources, public headers,
 binary checksums, and bundled notices together.
 
-Plozz pins the subtitle-corrected
-[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/4b7552a06c4cf646bb94eb7eb273946f8b916a70)
-at commit `4b7552a06c4cf646bb94eb7eb273946f8b916a70`, based on upstream
-release **7.34.1** (`cc070bf8d7bd7004547283cf1dc0c70ccd00d616`).
+Plozz pins the playback-corrected
+[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/299a3d9ea767e2382158c2a3d137c4b1d302ab4a)
+at commit `299a3d9ea767e2382158c2a3d137c4b1d302ab4a`, integrating upstream
+release **7.36.0** (`c6365cc3c8850bdb670654ca26dcd21f73670875`).
 ASS/SSA packets with neither a decoded end nor a packet duration are now discarded
 instead of lingering for a fabricated five seconds. This also applies to sidecars;
-other subtitle codecs retain their established fallback. Upstream 7.34.1 does not
+other subtitle codecs retain their established fallback. Upstream 7.36.0 does not
 include this correction; the fork retains it and its regression tests.
+
+The fork also corrects accumulating AAC-LC audio drift in indexed MP4 VOD
+([#89](https://github.com/brandomoore/Plozz/issues/89)). When the existing audio
+sample index demonstrates a different clock from the decoded samples, the native
+HLS path selectively enables timestamp-aware resampling through its audio bridge.
+Ordinary AAC and nonaccumulating timing jitter still stream-copy. Stereo uses
+FLAC without an extra lossy encoding generation; surround retains the configured
+bridge mode. Compensation resets on restart and drains at EOF. The correction
+applies independently of provider or transport on tvOS and iOS/iPadOS; it does
+not modify SMB reads, video timestamps or Match Frame Rate. Synthetic regressions
+cover both drift directions, late-onset drift, 44.1/48 kHz, restart/resume and
+decoded HLS timing. The original reporter's media has not been supplied.
 
 The fork exports **AetherEngine as a dynamic framework**. LibDovi and LibTrueHD
 each bring a Rust exception personality; statically combining both with Plozz's
@@ -97,40 +126,53 @@ during rebuilds, and blocking engine work moved off Swift's cooperative pool.
 Changing speed while paused now leaves the session paused until `play()`.
 E-AC-3 JOC stream copies advertise object audio in the HLS master, including
 untagged tracks. FFmpegBuild **3.7.x** fixes dependent-substream Atmos signaling;
-LibDovi remains **2.1.x** and LibTrueHD **2.2.x** is newly linked into the engine.
+LibDovi remains **2.1.x**. The current fork uses LibTrueHD **2.3.x** and
+LibDTSX **1.0.1**. Upstream 7.36.0 adds DTS:X object rendering, corrected spatial
+speaker positions and a tvOS Atmos output activator for receivers that need it.
+It also includes live-replay recovery, software-video recovery after a screen lock,
+and the intervening 7.35.x playback fixes; these are upstream changes, not new
+Plozz-specific implementations.
 
 On **tvOS 26 and later**, ordinary on-demand playback automatically requests
-TrueHD Atmos object rendering with `LoadOptions.objectAudioRendering = .apac(.l714)`.
+TrueHD Atmos and DTS:X object rendering with `LoadOptions.objectAudioRendering = .apac(.l714)`.
 The 7.1.4 layout is an **intermediate spatial bed**, not a detected physical speaker
 configuration. tvOS and the receiver handle final output; there is no speaker
-setup prompt or mandatory opt-in. **Settings > Playback > Dolby Atmos from TrueHD**
+setup prompt or mandatory opt-in. **Settings > Playback > TrueHD Atmos and DTS:X**
 provides an on-by-default switch on supported Apple TVs. It is saved per profile,
 including profile settings transfer, and applies when the next playback session
-starts. Keep it on for overhead sound from eligible TrueHD Atmos tracks on
+starts. The original `trueHDAtmosEnabled` storage key is retained, so existing
+profile choices and transfers apply to both formats without resetting the preference.
+Keep it on for overhead sound from eligible TrueHD Atmos and DTS:X tracks on
 compatible equipment. Turning it off retains the ordinary channel bridge
-described below: the TrueHD channel presentation still plays, but does not carry
-the original Atmos height positioning. Avoiding the extra spatial conversion may
+described below: the compatible channel presentation still plays, but does not carry
+the original height positioning. Avoiding the extra spatial conversion may
 help when those tracks stutter or seek slowly; it is not a guaranteed remedy for
 unrelated playback problems. This is not a global Atmos switch: Dolby Digital Plus
 (E-AC-3/JOC) Atmos remains unaffected.
 Older saved profiles default to on. HDMI channel counts and the current rendering
 mode are not used as Atmos capability gates: neither reliably describes the room's speakers.
 
-Aether only converts **48 kHz TrueHD Atmos** on its native/HLS VOD path. It decodes
-the objects into the spatial bed and encodes Apple Positional Audio (APAC), which
+Aether converts **48 kHz TrueHD Atmos and supported lossless DTS:X** on its
+native/HLS VOD path. For DTS-HD Master Audio, LibDTSX checks the actual packets:
+some DTS:X tracks are labelled only DTS-HD MA by FFmpeg, so metadata alone does
+not decide eligibility. Confirmed DTS:X has its height/object contributions
+removed from the compatible floor-channel downmix before the bed, heights and
+objects are rendered together. Ordinary DTS-HD MA retains the channel bridge.
+The engine renders into the spatial bed and encodes Apple Positional Audio (APAC), which
 tvOS can deliver as Dolby MAT to compatible equipment. This is **lossy conversion**,
-not TrueHD bitstream passthrough or preservation of the original dynamic object
+not TrueHD/DTS:X bitstream passthrough or preservation of the original dynamic object
 stream. It adds decoding/encoding work during eligible playback, not library
 scanning or idle sync. Shared live players and muted previews stay off to avoid
 additional spatial encoding in those background/concurrent paths.
 
 Live stream loading, iOS/iPadOS and older tvOS keep object rendering off. Plain
-TrueHD, DTS/DTS-HD MA (including DTS:X), ineligible sources and APAC initialization
+TrueHD, ordinary DTS/DTS-HD MA, unsupported DTS:X presentations, ineligible sources and APAC initialization
 failures retain the existing bridge: FLAC for source layouts above six channels,
 otherwise the E-AC-3 compatibility bridge. Software-video playback does not use
 this conversion. E-AC-3/JOC Atmos remains stream-copied. Explicit track selections
 and language preferences are still passed to Aether; its automatic selection can
-prefer TrueHD Atmos within the same language/dub when rendering is enabled.
+prefer TrueHD Atmos or DTS:X within the same language/dub when rendering is enabled.
+DTS:X alternate presentations remain experimental upstream.
 
 Progressive segment delivery remains disabled. The upstream Apple TV reports in
 [AetherEngine #731](https://github.com/superuser404notfound/AetherEngine/issues/731)
@@ -140,9 +182,11 @@ mapping, particularly with tvOS Continuous Audio.
 
 Both apps bundle the unmodified
 MIT license, Apache-2.0 license and NOTICE from
-[LibTrueHD 2.2.0](https://github.com/superuser404notfound/LibTrueHD/tree/2.2.0)
+[LibTrueHD 2.3.0](https://github.com/superuser404notfound/LibTrueHD/tree/2.3.0)
 as `LibTrueHDLicense.txt`, `LibTrueHDApacheLicense.txt` and `LibTrueHDNotices.txt`,
-with a shared in-app credit.
+with a shared in-app credit. They also bundle the unmodified Apache-2.0 license
+and NOTICE from [LibDTSX 1.0.1](https://github.com/superuser404notfound/LibDTSX/tree/1.0.1)
+as `LibDTSXLicense.txt` and `LibDTSXNotices.txt`, with its own in-app credit.
 
 The retained 7.23.0 audio-output
 flush epoch prevents a buffer decoded before a software seek from entering
@@ -411,7 +455,8 @@ Native handles content the server has already prepared:
 | HDR10 / HLG | ✅ | ✅ |
 | Full-timeline seek | ✅ | ✅ (if not live transcode) |
 | PGS subtitles | ❌ | ❌ |
-| DTS bitstream / DTS:X heights | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
+| DTS:X heights | ✅ (supported lossless DTS:X converted to APAC on tvOS 26+ native/HLS VOD) | ❌ |
+| DTS bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 | TrueHD bitstream | ❌ (eligible Atmos uses APAC; otherwise FLAC/E-AC-3 bridge) | ❌ |
 
 ## AirPlay 2 / HomePod Audio Recovery

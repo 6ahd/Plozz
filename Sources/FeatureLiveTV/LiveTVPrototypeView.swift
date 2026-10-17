@@ -25,7 +25,7 @@ public struct LiveTVPrototypePlayback {
     public let playbackStarted: () -> Void
     public let reportingID: UUID
     public let playbackUpdate: @MainActor (LiveTVPlaybackUpdate) -> Void
-    public let playbackFailed: @MainActor () -> Void
+    public let playbackFailed: @MainActor (LiveChannelFailureReport) -> Void
     public let videoAspectRatioChanged: @MainActor (Double?) -> Void
     public let preparingChannelName: String?
     public let isMultiview: Bool
@@ -512,11 +512,11 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             },
             reportingID: prepared.id,
             playbackUpdate: { multiview.report($0, paneID: pane.id, preparedID: prepared.id) },
-            playbackFailed: {
+            playbackFailed: { report in
                 if multiview.isEnabled {
-                    multiview.playbackFailed(pane.id, preparedID: prepared.id)
+                    multiview.playbackFailed(pane.id, preparedID: prepared.id, report: report)
                 } else {
-                    playback.playbackFailed(prepared.id)
+                    playback.playbackFailed(prepared.id, report: report)
                 }
             },
             videoAspectRatioChanged: {
@@ -674,7 +674,8 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                 openLibraryItem: onOpenTitle == nil ? nil : {
                     pendingLibraryNavigation = $0
                     sheet = nil
-                }
+                },
+                canMutate: { isActive && isProfileAuthorized() }
             )
             .environment(\.themePalette, palette)
             .tint(palette.accent)
@@ -723,6 +724,9 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             get: { isActive && playback.watchFailure != nil },
             set: { if !$0 { playback.dismissFailure() } }
         ), presenting: playback.watchFailure) { failure in
+            if let report = failure.playbackFailure {
+                Button("Details") { sheet = .diagnostics(.playback(report)) }
+            }
             if failure.currentToStop != nil {
                 Button("Stop current channel and retry", role: .destructive) {
                     playback.stopCurrentAndRetry(failure)
@@ -752,7 +756,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         .onChange(of: isInitialCatalogLoading, initial: true) { _, loading in
             HandoffDiagnostics.emit("LIVE_TV event=guideLoading loading=\(loading) channels=\(model.channels.count)")
         }
-        .task(id: isActive ? reloadRequest : -1) {
+        .task(id: isActive && isProfileAuthorized() ? reloadRequest : -1) {
             await reloadCatalog()
         }
         .task(id: preview.pendingRequest) {
@@ -958,8 +962,11 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             updatePlaybackAvailability()
             handleHomeSelection()
         }
-        .onChange(of: isProfileAuthorized(), initial: true) { _, _ in
-            if !isProfileAuthorized() { enrollment.invalidate() }
+        .onChange(of: isProfileAuthorized(), initial: true) { _, authorized in
+            if !authorized {
+                enrollment.invalidate()
+                loadedRequest = nil
+            }
             updatePlaybackAvailability()
         }
         .onChange(of: allowsPlayback, initial: true) { _, _ in
@@ -1031,6 +1038,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                 catalogGuideContent(layout, canvasWidth: canvasWidth)
             } else if model.channels.isEmpty, let automaticChannels,
                       automaticChannels.needsEmptyState, canManageLibraryChannels,
+                      !enrollment.statuses.contains(where: { $0.failure != nil }),
                       automaticChannels.isWorking || !isInitialCatalogLoading {
                 PrototypeGuidePlacement(frame: layout.contentFrame, canvasWidth: canvasWidth) {
                     LiveTVAutomaticChannelsEmptyView(state: automaticChannels) {
@@ -1063,6 +1071,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                         useServer: { sheet = .serverSetup },
                         issue: sources.mutationIssue?.message,
                         serverStatuses: enrollment.statuses.filter { $0.phase != .idle },
+                        retryServers: requestCatalogRefresh,
                         createChannel: canManageLibraryChannels ? {
                             managesLibraryChannels = true
                             sheet = .sources
@@ -1158,6 +1167,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             default:
                 LiveTVSourcesView(
                     model: sources, imports: imports, refresh: requestCatalogRefresh,
+                    refreshSource: { try await imports.reloadSource($0, into: model) },
                     serverChoices: serverChoices, serverProviderResolver: serverProviderResolver,
                     connectServer: connectServer == nil ? nil : requestServerConnection,
                     connectIPTV: providerSetupRouter == nil ? nil : requestIPTVConnection,
@@ -1318,7 +1328,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
     }
 
     private func reloadCatalog() async {
-        guard isActive, loadedRequest != reloadRequest else { return }
+        guard isActive, isProfileAuthorized(), loadedRequest != reloadRequest else { return }
         installCatalogHooks()
         let request = reloadRequest
         if let sources {
@@ -1474,7 +1484,8 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     restoresCategoryFocus: sidebarRestoresCategoryFocus,
                     search: { if isSearching { closeSearch() } else { openSearch() } },
                     enterGuide: enterGuide,
-                    multiviews: multiviewSelection == nil ? { sheet = .multiviewFavorites } : nil
+                    multiviews: multiviewSelection == nil ? { sheet = .multiviewFavorites } : nil,
+                    manageChannels: { sheet = .organization }
                 )
                 .modifier(LiveTVMultiviewGuideExit(
                     cancel: multiviewSelection == nil ? nil : finishMultiviewSelection))
@@ -1581,6 +1592,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             isLoading: isInitialCatalogLoading,
             loadFailed: imports.catalogPhase == .failed || libraryIssue != nil || libraryGuideIssue != nil,
             reload: { reloadLibrary?(); requestCatalogRefresh() },
+            openChannelManagement: { sheet = .organization },
             hideChannel: hideChannel,
             selectionAction: multiviewSelection?.title,
             selectedChannelIDs: multiviewSelection == nil ? [] : Set(multiview.panes.compactMap { $0.channel?.id }),

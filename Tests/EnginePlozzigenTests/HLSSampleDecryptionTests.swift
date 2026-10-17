@@ -58,6 +58,12 @@ final class HLSSampleDecryptionTests: XCTestCase {
         XCTAssertEqual(encrypted, plain)
     }
 
+    func testWholeSegmentCBCDecryptsOnlyCompletePrefixBlocks() {
+        let plain = pattern(Array(repeating: 0, count: 48))
+        let encrypted = encrypt(plain, ranges: [0..<48], mode: kCCModeCBC)
+        XCTAssertEqual(HLSSampleDecryption.cbcDecrypt(Data(encrypted.prefix(35)), key: key, iv: iv), Data(plain.prefix(32)))
+    }
+
     func testCBCSSubsamplesRestartTheIVAndFollowThePattern() {
         let plain = pattern([UInt8](repeating: 0, count: 700))
         let track = HLSSampleDecryption.TrackEncryption(
@@ -117,6 +123,149 @@ final class HLSSampleDecryptionTests: XCTestCase {
         XCTAssertFalse(LiveHLSScrubThumbnails.canDecrypt(fairPlay, fragmented: true))
         XCTAssertEqual(LiveHLSScrubThumbnails.sequenceIV(258).suffix(2), Data([1, 2]))
     }
+
+    func testMalformedMP4BoxesAndUnboundedSampleCountsAreRejected() {
+        XCTAssertTrue(HLSSampleDecryption.boxes(
+            in: [0, 0, 0, 1] + Array("moof".utf8) + Array(repeating: 255, count: 8), range: 0..<16
+        ).isEmpty)
+        XCTAssertTrue(HLSSampleDecryption.boxes(in: [], range: 0..<8).isEmpty)
+        XCTAssertTrue(HLSSampleDecryption.boxes(in: Array(repeating: 0, count: 8), range: -1..<8).isEmpty)
+        let senc: [UInt8] = [0, 0, 0, 0, 255, 255, 255, 255]
+        XCTAssertTrue(HLSSampleDecryption.sampleEncryption(senc, senc: 0..<8, ivSize: 0).isEmpty)
+        let run: [UInt8] = Array(repeating: 0, count: 12) + [255, 255, 255, 255]
+        XCTAssertTrue(HLSSampleDecryption.trackRunSampleSizes(run, tfhd: 0..<8, trun: 8..<16).isEmpty)
+    }
+
+    func testShortVideoSampleEntryAndAuxiliaryIVAreRejected() {
+        func word(_ value: UInt32) -> [UInt8] {
+            [UInt8(truncatingIfNeeded: value >> 24), UInt8(truncatingIfNeeded: value >> 16),
+             UInt8(truncatingIfNeeded: value >> 8), UInt8(truncatingIfNeeded: value)]
+        }
+        func box(_ type: String, _ body: [UInt8]) -> [UInt8] { word(UInt32(body.count + 8)) + Array(type.utf8) + body }
+        let stsd = box("stsd", Array(repeating: 0, count: 8) + box("encv", []))
+        let trak = box("trak", box("tkhd", [0]) + box("mdia", box("minf", box("stbl", stsd))))
+        XCTAssertNil(HLSSampleDecryption.videoTrackEncryption(initSegment: Data(box("moov", trak))))
+        let saiz = box("saiz", [0, 0, 0, 0, 1] + word(1))
+        let saio = box("saio", [0, 0, 0, 0] + word(1) + word(UInt32(saiz.count + 20)))
+        let auxiliary = saiz + saio + [0]
+        XCTAssertNil(HLSSampleDecryption.auxiliaryEncryption(
+            auxiliary, traf: 0..<auxiliary.count, moofStart: 0, ivSize: 16
+        ))
+    }
+
+    func testInvalidFragmentSampleOffsetsDoNotDecryptOutsideTheSegment() {
+        func word(_ value: UInt32) -> [UInt8] {
+            [UInt8(truncatingIfNeeded: value >> 24), UInt8(truncatingIfNeeded: value >> 16),
+             UInt8(truncatingIfNeeded: value >> 8), UInt8(truncatingIfNeeded: value)]
+        }
+        func box(_ type: String, _ body: [UInt8]) -> [UInt8] { word(UInt32(body.count + 8)) + Array(type.utf8) + body }
+        let tfhd = box("tfhd", word(0) + word(1))
+        let trun = box("trun", word(0x201) + word(1) + word(UInt32(bitPattern: -100)) + word(16))
+        let senc = box("senc", word(0) + word(1) + Array(iv))
+        let data = Data(box("moof", box("traf", tfhd + trun + senc)))
+        let track = HLSSampleDecryption.TrackEncryption(
+            scheme: .cenc, trackID: 1, cryptBlocks: 0, skipBlocks: 0, perSampleIVSize: 16, constantIV: nil
+        )
+        XCTAssertEqual(HLSSampleDecryption.decryptFragmentedMP4(data, track: track, key: key), data)
+        let plain = pattern(Array(repeating: 0, count: 16))
+        let encrypted = encrypt(plain, ranges: [0..<16], mode: kCCModeCTR)
+        let validRun = box("trun", word(0x201) + word(1) + word(UInt32(data.count + 8)) + word(16))
+        let segment = Data(box("moof", box("traf", tfhd + validRun + senc)) + box("mdat", encrypted))
+        XCTAssertEqual(HLSSampleDecryption.decryptFragmentedMP4(segment, track: track, key: key).suffix(16), Data(plain))
+    }
+
+    func testUnsupportedByteRangesMapSwitchesAndInvalidDurationsDoNotProduceWrongSegments() {
+        let base = URL(string: "https://cdn.test/live/index.m3u8")!
+        XCTAssertNil(LiveHLSScrubThumbnails.parseMediaPlaylist(
+            "#EXTM3U\n#EXTINF:6,\n#EXT-X-BYTERANGE:512@0\nall.ts", base: base
+        ))
+        XCTAssertNil(LiveHLSScrubThumbnails.parseMediaPlaylist(
+            "#EXTM3U\n#EXT-X-MAP:URI=\"one.mp4\"\n#EXTINF:6,\na.m4s\n#EXT-X-MAP:URI=\"two.mp4\"\n#EXTINF:6,\nb.m4s", base: base
+        ))
+        XCTAssertEqual(LiveHLSScrubThumbnails.parseMediaPlaylist(
+            "#EXTM3U\n#EXTINF:nan,\na.ts\n#EXTINF:-1,\nb.ts\n#EXTINF:6,\nc.ts", base: base
+        )?.segments.map(\.url.lastPathComponent), ["c.ts"])
+    }
+}
+
+final class LiveHLSScrubNetworkingTests: XCTestCase {
+    func testRedirectsPreserveHeadersOnlyWithinTheOriginalOrigin() {
+        let session = session()
+        defer { session.invalidateAndCancel() }
+        let origin = URL(string: "https://fixture.invalid/start")!
+        var request = URLRequest(url: origin)
+        request.setValue("Bearer fixture", forHTTPHeaderField: "Authorization")
+        request.setValue("bytes=0-31", forHTTPHeaderField: "Range")
+        let task = session.dataTask(with: request)
+        let response = HTTPURLResponse(url: origin, statusCode: 302, httpVersion: nil, headerFields: nil)!
+        let delegate = LiveHLSScrubRedirects()
+        let local = URL(string: "https://fixture.invalid/next")!
+        delegate.urlSession(session, task: task, willPerformHTTPRedirection: response, newRequest: URLRequest(url: local)) {
+            XCTAssertEqual($0?.url, local)
+            XCTAssertEqual($0?.value(forHTTPHeaderField: "Authorization"), "Bearer fixture")
+            XCTAssertEqual($0?.value(forHTTPHeaderField: "Range"), "bytes=0-31")
+        }
+        for url in ["https://foreign.invalid/next", "http://fixture.invalid/next", "https://fixture.invalid:444/next"] {
+            delegate.urlSession(
+                session, task: task, willPerformHTTPRedirection: response,
+                newRequest: URLRequest(url: URL(string: url)!)
+            ) { XCTAssertNil($0) }
+        }
+    }
+
+    func testPrefixReadIsBoundedWhenOriginIgnoresRange() async throws {
+        let session = session()
+        defer { session.invalidateAndCancel() }
+        let data = await LiveHLSScrubThumbnails.fetch(
+            URLRequest(url: URL(string: "https://fixture.invalid/large")!),
+            session: session, maximumBytes: 32, allowsPrefix: true
+        )
+        XCTAssertEqual(data, Data(repeating: 7, count: 32))
+    }
+
+    func testOversizedWholeResourcesAndWrongRangeStartAreRejected() async {
+        let session = session()
+        defer { session.invalidateAndCancel() }
+        for path in ["large", "unknown-length", "wrong-range", "error"] {
+            let data = await LiveHLSScrubThumbnails.fetch(
+                URLRequest(url: URL(string: "https://fixture.invalid/\(path)")!),
+                session: session, maximumBytes: 16
+            )
+            XCTAssertNil(data, path)
+        }
+    }
+
+    @MainActor
+    func testChannelCredentialsAreNotForwardedToPlaylistSuppliedForeignOrigins() {
+        let source = URL(string: "https://fixture.invalid/live.m3u8")!
+        let thumbnails = LiveHLSScrubThumbnails(playlistURL: source, headers: ["Authorization": "Bearer fixture", "X-Token": "fixture"])
+        XCTAssertEqual(thumbnails.request(source).value(forHTTPHeaderField: "Authorization"), "Bearer fixture")
+        let foreign = thumbnails.request(URL(string: "https://cdn.invalid/key")!)
+        XCTAssertNil(foreign.value(forHTTPHeaderField: "Authorization"))
+        XCTAssertNil(foreign.value(forHTTPHeaderField: "X-Token"))
+    }
+
+    private func session() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [LiveHLSScrubHTTPStub.self]
+        return URLSession(configuration: configuration)
+    }
+}
+
+private final class LiveHLSScrubHTTPStub: URLProtocol, @unchecked Sendable {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        let path = request.url!.lastPathComponent
+        var headers = path == "unknown-length" ? [:] : ["Content-Length": "65536"]
+        if path == "wrong-range" { headers["Content-Range"] = "bytes 100-115/65536" }
+        let status = path == "error" ? 403 : path == "wrong-range" ? 206 : 200
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(repeating: 7, count: 65_536))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
 }
 
 final class LiveHLSThumbnailVariantTests: XCTestCase {

@@ -88,7 +88,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
 
     #if os(tvOS)
     public var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: SettingsRowMetrics.formRowSpacing) {
             ForEach(Array(sections.enabled.enumerated()), id: \.element) { index, element in
                 rowView(element, isEnabled: true, rank: index + 1)
             }
@@ -399,13 +399,13 @@ private struct LiftableRow: View {
 
     var body: some View {
         Button(action: onPrimary) {
-            HStack(spacing: 14) {
+            HStack(spacing: SettingsRowMetrics.spacing(.primary)) {
                 ReorderRank(rank: rank, maximumRank: maximumRank)
-                    .font(.callout.weight(.bold))
+                    .font(SettingsRowMetrics.titleFont)
                 if let providerKind {
                     ProviderBrandMark(
                         provider: providerKind,
-                        size: 32,
+                        size: 24,
                         showsBackground: false,
                         mediaShareTransport: mediaShareTransport
                     )
@@ -413,26 +413,26 @@ private struct LiftableRow: View {
                     .accessibilityHidden(true)
                 } else if let symbolName {
                     Image(systemName: symbolName)
-                        .font(.headline)
+                        .font(SettingsRowMetrics.descriptionFont)
                         .frame(width: 30)
                         .accessibilityHidden(true)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    title.font(.headline.weight(.semibold))
+                    title.font(SettingsRowMetrics.titleFont)
                     if let subtitle {
-                        subtitle.font(.caption).opacity(0.7)
+                        subtitle.font(SettingsRowMetrics.descriptionFont).opacity(0.7)
                     }
                 }
                 .lineLimit(1)
                 if let detail {
                     detail
-                        .font(.caption)
+                        .font(SettingsRowMetrics.descriptionFont)
                         .opacity(0.7)
                 }
 
                 Spacer(minLength: 12)
                 Image(systemName: "line.3.horizontal")
-                    .font(.title3)
+                    .font(SettingsRowMetrics.descriptionFont)
                     .accessibilityHidden(true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -502,8 +502,7 @@ private struct LiftableRowButtonStyle: ButtonStyle {
         let fill: AnyShapeStyle = inverted ? AnyShapeStyle(invertedFill) : AnyShapeStyle(Color.clear)
 
         return configuration.label
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .settingsFormRowLayout()
             .foregroundStyle(foreground)
             // ProviderBrandMark and other settings-row descendants use these
             // values to choose focus-safe contrast. `inverted` includes a lifted
@@ -515,7 +514,7 @@ private struct LiftableRowButtonStyle: ButtonStyle {
                 if focused { onFocus() }
             }
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous).fill(fill)
+                RoundedRectangle(cornerRadius: SettingsRowMetrics.formRowCornerRadius, style: .continuous).fill(fill)
             )
     }
 }
@@ -550,10 +549,8 @@ private struct ReorderDisabledPlaceholder: View {
     var body: some View {
         Button(action: {}) {
             Text(message)
-                .font(.callout)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 14)
-                .padding(.horizontal, 16)
+                .font(SettingsRowMetrics.descriptionFont)
+                .settingsFormRowLayout()
         }
         .buttonStyle(
             ReorderPlaceholderButtonStyle(suppressFocusAppearance: isReordering)
@@ -573,11 +570,11 @@ private struct ReorderPlaceholderButtonStyle: ButtonStyle {
         return configuration.label
             .foregroundStyle(inverted ? AnyShapeStyle(invertedText) : AnyShapeStyle(.secondary))
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SettingsRowMetrics.formRowCornerRadius, style: .continuous)
                     .fill(inverted ? AnyShapeStyle(invertedFill) : AnyShapeStyle(Color.clear))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SettingsRowMetrics.formRowCornerRadius, style: .continuous)
                     .strokeBorder(
                         style: StrokeStyle(lineWidth: 1, dash: [6, 5])
                     )

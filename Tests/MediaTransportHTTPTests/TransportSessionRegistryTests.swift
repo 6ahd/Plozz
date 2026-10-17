@@ -3,6 +3,41 @@ import XCTest
 @testable import TestSupportNetworking
 
 final class TransportSessionRegistryTests: XCTestCase {
+    func testMediaSessionsSeparateAccountCredentialsAndTrustEvenOnReturnHop() async throws {
+        let registry = TransportSessionRegistry()
+        let key = try makeKey()
+        let origin = try XCTUnwrap(key.origin)
+        let account = try await registry.session(
+            for: key, credential: .bearerToken("account-secret"),
+            trustPolicy: .pinnedLeaf(sha256: Data(repeating: 1, count: 32), revision: key.trustRevision)
+        )
+        let media = try await registry.mediaSession(for: key, origin: origin)
+        XCTAssertFalse(account === media)
+        XCTAssertTrue(media.matches(credential: .anonymous, trustPolicy: .system))
+        XCTAssertNil(media.session.configuration.urlCredentialStorage)
+        XCTAssertNil(media.session.configuration.httpCookieStorage)
+        let same = try await registry.mediaSession(for: key, origin: origin)
+        XCTAssertTrue(same === media)
+        await registry.invalidate(key)
+        let count = await registry.liveSessionCount
+        XCTAssertEqual(count, 0, "retiring the source also retires its delivery sessions")
+    }
+
+    func testMediaSessionsStayScopedToAccountRevisionAndRole() async throws {
+        let registry = TransportSessionRegistry()
+        let origin = TransportOrigin(url: URL(string: "https://cdn.example.com/")!)!
+        let keyA = try makeKey()
+        let keyB = try makeKey(accountID: "other")
+        let first = try await registry.mediaSession(for: keyA, origin: origin)
+        let second = try await registry.mediaSession(for: keyB, origin: origin)
+        XCTAssertFalse(first === second)
+        await registry.invalidateAll { $0.accountID == keyA.accountID }
+        let count = await registry.liveSessionCount
+        XCTAssertEqual(count, 1)
+        let replacement = try await registry.mediaSession(for: keyA, origin: origin)
+        XCTAssertFalse(first === replacement)
+    }
+
     private func makeKey(
         accountID: String = "account-1",
         credentialRevision: UUID = UUID(),

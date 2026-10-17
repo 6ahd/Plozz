@@ -52,12 +52,14 @@ public struct PlaybackFailureDiagnostic: Codable, Equatable, Sendable {
     public let httpStatus: Int?
     public let format: Format
     public let elapsedMilliseconds: Int
+    public let evidence: PlaybackFailureEvidence?
 
     public var isValid: Bool {
         reason != .cancelled
             && (0...86_400_000).contains(elapsedMilliseconds)
             && code.map { (Int(Int32.min)...Int(Int32.max)).contains($0) } != false
             && httpStatus.map { (100...599).contains($0) } != false
+            && evidence?.isValid != false
     }
 }
 
@@ -85,11 +87,14 @@ public final class PlaybackFailureDiagnostics: @unchecked Sendable {
         }
     }
 
-    public func begin(layer: PlaybackFailureDiagnostic.Layer, content: PlaybackFailureDiagnostic.Content) -> PlaybackFailureAttempt? {
+    public func begin(
+        layer: PlaybackFailureDiagnostic.Layer, content: PlaybackFailureDiagnostic.Content,
+        captureForPresentation: Bool = false
+    ) -> PlaybackFailureAttempt? {
         let generation = lock.withLock { sink == nil ? nil : self.generation }
-        guard let generation else { return nil }
+        guard captureForPresentation || generation != nil else { return nil }
         return PlaybackFailureAttempt(layer: layer, content: content) { [weak self] diagnostic in
-            guard let self else { return }
+            guard let self, let generation else { return }
             self.lock.withLock {
                 guard self.generation == generation else { return }
                 self.sink?(diagnostic)
@@ -105,6 +110,9 @@ public final class PlaybackFailureAttempt: @unchecked Sendable {
     private let sink: PlaybackFailureDiagnostics.Sink
     private let started = ProcessInfo.processInfo.systemUptime
     private var finished = false
+    private var completedDiagnostic: PlaybackFailureDiagnostic?
+
+    public var diagnostic: PlaybackFailureDiagnostic? { lock.withLock { completedDiagnostic } }
 
     fileprivate init(
         layer: PlaybackFailureDiagnostic.Layer, content: PlaybackFailureDiagnostic.Content,
@@ -115,24 +123,29 @@ public final class PlaybackFailureAttempt: @unchecked Sendable {
         self.sink = sink
     }
 
+    @discardableResult
     public func fail(
         stage: PlaybackFailureDiagnostic.Stage, reason: IPTVSetupDiagnostic.Failure.Reason = .other,
         engineFailure: PlaybackFailureDiagnostic.EngineFailure = .none,
         domain: PlaybackFailureDiagnostic.Domain = .none, code: Int? = nil,
-        httpStatus: Int? = nil, format: PlaybackFailureDiagnostic.Format = .unknown
-    ) {
-        guard reason != .cancelled else { return }
+        httpStatus: Int? = nil, format: PlaybackFailureDiagnostic.Format = .unknown,
+        evidence: PlaybackFailureEvidence? = nil
+    ) -> PlaybackFailureDiagnostic? {
+        guard reason != .cancelled else { return nil }
         let diagnostic = PlaybackFailureDiagnostic(
             layer: layer, content: content, stage: stage, reason: reason, engineFailure: engineFailure,
             domain: domain, code: code.flatMap { (Int(Int32.min)...Int(Int32.max)).contains($0) ? $0 : nil },
             httpStatus: httpStatus.flatMap { (100...599).contains($0) ? $0 : nil }, format: format,
-            elapsedMilliseconds: min(86_400_000, max(0, Int((ProcessInfo.processInfo.systemUptime - started) * 1_000)))
+            elapsedMilliseconds: min(86_400_000, max(0, Int((ProcessInfo.processInfo.systemUptime - started) * 1_000))),
+            evidence: evidence
         )
         let emit = lock.withLock {
             guard !finished else { return false }
             finished = true
+            completedDiagnostic = diagnostic
             return true
         }
         if emit { sink(diagnostic) }
+        return diagnostic
     }
 }

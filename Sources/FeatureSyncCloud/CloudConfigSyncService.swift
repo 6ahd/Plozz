@@ -150,6 +150,7 @@ public actor CloudConfigSyncService {
         let schema: CloudSyncSchemaDescriptor
         let stateFileURL: URL
         let stateCodec: CloudSyncStateCodec?
+        let usesRecordLedger: Bool
         let captureSnapshot: (@Sendable (SyncChannelSnapshot) async throws -> [SyncRecordID: Data])?
         let applySnapshot: (@Sendable (SyncChannelSnapshot) async -> Void)?
         let snapshotAuthority: @Sendable () -> String
@@ -173,6 +174,7 @@ public actor CloudConfigSyncService {
             isHydrated: @escaping @Sendable () -> Bool,
             ledger: SyncLedger,
             stateCodec: CloudSyncStateCodec? = nil,
+            usesRecordLedger: Bool = false,
             captureSnapshot: (@Sendable (SyncChannelSnapshot) async throws -> [SyncRecordID: Data])? = nil,
             applySnapshot: (@Sendable (SyncChannelSnapshot) async -> Void)? = nil,
             snapshotAuthority: @escaping @Sendable () -> String = { "" }
@@ -186,6 +188,7 @@ public actor CloudConfigSyncService {
             self.isHydrated = isHydrated
             self.ledger = ledger
             self.stateCodec = stateCodec
+            self.usesRecordLedger = usesRecordLedger || stateCodec != nil
             self.captureSnapshot = captureSnapshot
             self.applySnapshot = applySnapshot
             self.snapshotAuthority = snapshotAuthority
@@ -281,6 +284,7 @@ public actor CloudConfigSyncService {
     /// SHARED: a token reset rebuilds the ONE engine, so every channel's zone is
     /// re-fetched from scratch together.
     private var isFullResyncing = false
+    private var isErasing = false
     /// False after `deactivate()`; true again after the next `activate()`. Fences
     /// every public entry point AND every delegate callback, so a disabled service
     /// can neither publish nor process CloudKit events even if a stale `engine`
@@ -333,6 +337,7 @@ public actor CloudConfigSyncService {
                 stateCodec: extra.stateCodec ?? (schema.encryptsValue
                     ? .deviceLocal(context: configuration.containerIdentifier + ":" + schema.zoneName)
                     : nil),
+                usesRecordLedger: extra.schema == .liveTVStateV1,
                 captureSnapshot: extra.captureSnapshot, applySnapshot: extra.applySnapshot,
                 snapshotAuthority: extra.snapshotAuthority
             ))
@@ -401,6 +406,43 @@ public actor CloudConfigSyncService {
         Task { @MainActor in status.syncedRecordCount = total }
     }
 
+    /// On demand only: opening diagnostics must not parse credentials, fetch CloudKit
+    /// or add a full-ledger scan to the normal status-update path.
+    public func dataInventory() throws -> SyncDataInventory {
+        guard restorePersistedStateIfNeeded() else { throw CocoaError(.fileReadCorruptFile) }
+        var inventory = SyncDataInventory()
+        for channel in channels {
+            inventory.include(channel.ledger) { name in
+                switch channel.schema.recordType {
+                case CloudSyncSchemaDescriptor.configV3.recordType:
+                    switch SyncRecordKey.parse(name)?.kind {
+                    case .profile: .profiles
+                    case .membership: .profileAccess
+                    case .descriptor: .servers
+                    case .setting: .settings
+                    case .removal: .bookkeeping
+                    case nil: .other
+                    }
+                case CloudSyncSchemaDescriptor.trackerTokensV1.recordType:
+                    channel.schema.zoneName.hasPrefix(CloudSyncSchemaDescriptor.liveTVSourcesV1.zoneName)
+                        ? .liveTVSources : .trackerSignIns
+                case CloudSyncSchemaDescriptor.mediaStateV1.recordType:
+                    if channel.schema.zoneName.hasPrefix(CloudSyncSchemaDescriptor.liveTVStateV1.zoneName) {
+                        .liveTVPreferences
+                    } else if WatchlistMediaStateRecordKey.parse(name) != nil {
+                        .watchlist
+                    } else if MediaStateRecordKey.parse(name) != nil {
+                        .mediaMatches
+                    } else {
+                        .other
+                    }
+                default: .other
+                }
+            }
+        }
+        return inventory
+    }
+
     private static func ckCodeName(_ error: CKError) -> String { "\(error.code) (\(error.code.rawValue))" }
 
     /// A fetch of the CURRENT account succeeded (or real data arrived): the server
@@ -419,6 +461,7 @@ public actor CloudConfigSyncService {
     /// peer), then publish genuine local diffs for every channel. Safe to call
     /// repeatedly. Re-arms the service if a prior `deactivate()` had fenced it.
     public func activate() async {
+        guard !isErasing else { return }
         isActive = true
         guard config.isEnabled() else {
             deactivate()
@@ -437,6 +480,7 @@ public actor CloudConfigSyncService {
             return
         }
         guard await accountIsAvailable() else { setStatus(.signedOut); return }
+        guard !isErasing, isActive, config.isEnabled() else { return }
         ensureEngine()
         guard let engine else { return }
         setStatus(.idle)
@@ -605,7 +649,7 @@ public actor CloudConfigSyncService {
     /// creates is deliberate and safe.
     @discardableResult
     public func publishLocalChanges(bypassBaselineGate: Bool = false) async -> Bool {
-        guard isActive, config.isEnabled(), let engine else { return false }
+        guard !isErasing, isActive, config.isEnabled(), let engine else { return false }
         var completed = true
         for channel in channels {
             let published = await publish(channel, engine: engine, bypassBaselineGate: bypassBaselineGate)
@@ -620,7 +664,7 @@ public actor CloudConfigSyncService {
     /// they're shared rather than per-channel.
     private func publish(_ channel: Channel, engine: CKSyncEngine, bypassBaselineGate: Bool) async -> Bool {
         let generation = engineGeneration
-        guard isActive, engine === self.engine else { return false }
+        guard !isErasing, isActive, engine === self.engine else { return false }
         guard !suspendPublishUntilFetch else {
             PlozzLog.sync.info("CloudSync[\(channel.schema.zoneName)]: publish skipped — suspended pending account-switch fetch")
             return false
@@ -662,7 +706,7 @@ public actor CloudConfigSyncService {
             } else {
                 desired = await channel.captureRecords(channel.ledger.syncedValues())
             }
-            guard isActive, engine === self.engine, generation == engineGeneration, config.isEnabled() else { return false }
+            guard !isErasing, isActive, engine === self.engine, generation == engineGeneration, config.isEnabled() else { return false }
             if channel.ledger.remoteRevision == rev { stabilized = true; break }
         }
         // S4: if a remote apply kept interleaving every capture, the snapshot may
@@ -724,6 +768,76 @@ public actor CloudConfigSyncService {
         }
         for channel in channels { channel.ledger = SyncLedger() }
         return persist() ? .completed : .failed
+    }
+
+    /// Explicit household erasure, including records this device never mirrored
+    /// and direct tracker records. Keeps zones so peers receive normal deletions.
+    /// The engine is drained before the shell switches sync off; it stays stopped
+    /// on failure too, so a partial erase cannot silently republish local data.
+    public func eraseAllServerData(
+        trackerStores: [any TraktTokenStoring] = [],
+        authorized: @escaping @Sendable () async -> Bool,
+        stopSync: @escaping @Sendable () async -> Void
+    ) async -> CloudSyncRecoveryResult {
+        guard !isErasing else { return .interrupted }
+        guard hasCloudKitEntitlement,
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              NSClassFromString("XCTestCase") == nil else { return .unavailable }
+        isErasing = true
+        defer { isErasing = false }
+        guard await authorized(), await accountIsAvailable() else { return .unavailable }
+        do {
+            let accountID = try await container.userRecordID()
+            guard await authorized() else { return .interrupted }
+            let previousEngine = engine
+            deactivate()
+            if let previousEngine {
+                await Task.detached(priority: .userInitiated) {
+                    await previousEngine.cancelOperations()
+                }.value
+            }
+            await stopSync()
+            let database = container.privateCloudDatabase
+            let zones = Array(Set(channels.flatMap { channel in
+                [channel.schema.zoneID] + channel.schema.legacyZoneIDs
+            }))
+            try await TraktSharedRefresh.shared.withCloudErasure(stores: trackerStores) {
+                try await CloudSyncErasure.run(
+                    zones: zones,
+                    validate: { try await self.validateErasure(accountID: accountID, authorized: authorized) },
+                    records: { try await CloudSyncErasure.recordIDs(in: $0, database: database) },
+                    delete: { try await CloudSyncErasure.delete($0, database: database) }
+                )
+            }
+            guard clearErasedLocalState() else { return .failed }
+            reportRecordCount()
+            return .completed
+        } catch is CancellationError {
+            return .interrupted
+        } catch CloudSyncErasure.Failure.authorizationChanged {
+            setDiagnostic("Erase interrupted by a profile or iCloud account change.")
+            return .interrupted
+        } catch {
+            PlozzLog.sync.error("CloudSync: erase failed (code \((error as NSError).code)); local reset not completed")
+            setDiagnostic("Could not finish erasing synced data; some records may already be deleted.")
+            return .failed
+        }
+    }
+
+    private func validateErasure(
+        accountID: CKRecord.ID, authorized: @Sendable () async -> Bool
+    ) async throws {
+        guard await authorized(), try await container.userRecordID() == accountID else {
+            throw CloudSyncErasure.Failure.authorizationChanged
+        }
+    }
+
+    func clearErasedLocalState() -> Bool {
+        guard restorePersistedStateIfNeeded() else { return false }
+        for channel in channels { channel.ledger = SyncLedger() }
+        engineState = nil
+        didConfirmServerState = false
+        return persist()
     }
 
     /// Erase this app's synced config from iCloud and RE-SEED it from THIS device's
@@ -901,6 +1015,7 @@ public actor CloudConfigSyncService {
     /// required for a valid full resync (`redownloadFromCloud`). Otherwise the change
     /// token is preserved.
     private func rebuildEngine(resetState: Bool) {
+        guard !isErasing else { return }
         guard restorePersistedStateIfNeeded() else { return }
         engineGeneration += 1
         if resetState { engineState = nil }
@@ -1034,9 +1149,9 @@ public actor CloudConfigSyncService {
             var needsFullFetch = false
             let additional: [(ledger: SyncLedger, authority: String?)] = try channels.dropFirst().map { channel in
                 let authority = channel.currentAuthority
-                if let codec = channel.stateCodec {
+                if channel.usesRecordLedger {
                     let ledger = try CloudSyncSealedLedger.load(
-                        from: channel.stateFileURL, codec: codec, authority: authority
+                        from: channel.stateFileURL, codec: channel.stateCodec, authority: authority
                     )
                     if ledger == nil { needsFullFetch = true }
                     return (ledger ?? SyncLedger(), authority)
@@ -1283,9 +1398,9 @@ public actor CloudConfigSyncService {
                     engineRevision: channel.isPrimary ? engineStateRevision : nil,
                     authority: channel.ledgerAuthority
                 ) {
-                    if let codec = channel.stateCodec {
+                    if channel.usesRecordLedger {
                         try CloudSyncSealedLedger.save(
-                            channel.ledger, to: channel.stateFileURL, codec: codec, authority: channel.ledgerAuthority
+                            channel.ledger, to: channel.stateFileURL, codec: channel.stateCodec, authority: channel.ledgerAuthority
                         )
                         return
                     }

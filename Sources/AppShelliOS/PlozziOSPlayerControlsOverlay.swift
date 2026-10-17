@@ -39,25 +39,28 @@ struct PlozziOSPlayerControlsOverlay: View {
     @State private var backwardSpins = 0
     @State private var forwardSpins = 0
     @State private var autoHideTask: Task<Void, Never>?
+    @State private var touchGestures = PlayerTouchGestureState()
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pictureInPicture = PlozziOSPictureInPictureController()
 
     var body: some View {
         ZStack {
-            Color.clear
+            PlayerTouchGestureSurface(
+                state: touchGestures,
+                shortcutsEnabled: touchShortcutsEnabled,
+                canSeek: viewModel.controls.duration.isFinite && viewModel.controls.duration > 0,
+                canBoost: !viewModel.controls.intendsPause
+                    && viewModel.controls.engineCapabilities.contains(.playbackSpeed),
+                canZoom: viewModel.controls.engineCapabilities.contains(.videoZoom),
+                onTap: backgroundTapped,
+                onSkip: touchSkip,
+                onBoostChanged: touchBoostChanged,
+                onZoom: { fillsScreen in
+                    viewModel.controls.videoZoom.settings.mode = fillsScreen ? .fill : .fit
+                },
+                onGestureStarted: beginTouchInteraction
+            )
                 .ignoresSafeArea()
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // An open card is what a tap out here means to dismiss.
-                    // Hiding the whole transport instead would take the card
-                    // with it and leave nothing to tap back — and the gesture
-                    // reads as "put that away", not "hide everything".
-                    if isCardOpen {
-                        isCardOpen = false
-                        noteInteraction()
-                    } else {
-                        toggleControls()
-                    }
-                }
 
             if isPlayingElsewhere {
                 PlozziOSExternalPlaybackPlaceholder(
@@ -66,15 +69,20 @@ struct PlozziOSPlayerControlsOverlay: View {
                 )
             }
 
-            if controlsVisible {
+            if controlsVisible || touchGestures.skip != nil {
                 LinearGradient(
-                    colors: [.black.opacity(0.65), .clear, .black.opacity(0.82)],
+                    colors: [
+                        .black.opacity(controlsVisible ? 0.65 : 0), .clear,
+                        .black.opacity(controlsVisible ? 0.82 : 0.45)
+                    ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
+            }
 
+            if controlsVisible {
                 // Skip / play / skip, centred — where a thumb reaches on a
                 // held device. Hidden while a card is open, matching tvOS,
                 // where the card owns the screen.
@@ -129,12 +137,15 @@ struct PlozziOSPlayerControlsOverlay: View {
                     },
                     onClose: onClose
                 )
+            }
 
+            if controlsVisible || touchGestures.skip != nil {
                 PlozziOSPlayerTransport(
                     viewModel: viewModel,
+                    timelineOnly: !controlsVisible,
                     displayedSeconds: isScrubbing
                         ? scrubSeconds
-                        : viewModel.controls.currentSeconds,
+                        : (touchGestures.skip?.target ?? viewModel.controls.currentSeconds),
                     isScrubbing: isScrubbing,
                     scrubPreviewImage: scrubPreviewCoordinator?.image,
                     showsScrubPreview: scrubPreviewCoordinator?.isAvailable == true,
@@ -151,6 +162,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                     onScrubEditingChanged: { editing in
                         isScrubbing = editing
                         if editing {
+                            controlsVisible = true
                             scrubSeconds = viewModel.controls.currentSeconds
                             cancelAutoHide()
                         } else {
@@ -205,7 +217,11 @@ struct PlozziOSPlayerControlsOverlay: View {
                 )
             }
 
-            if viewModel.controls.skipButtonVisible {
+            if touchGestures.isActive {
+                PlayerTouchGestureFeedbackView(state: touchGestures)
+            }
+
+            if viewModel.controls.skipButtonVisible, !touchGestures.isActive {
                 Button {
                     let canSkip = viewModel.controls.activeSkipSegment != nil
                     viewModel.skipActiveSegment()
@@ -235,6 +251,9 @@ struct PlozziOSPlayerControlsOverlay: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: controlsVisible)
+        .onChange(of: controlsVisible) { _, visible in
+            if !visible { viewModel.controls.timelineClock.isEnabled = false }
+        }
         .onChange(of: isCardOpen) { _, _ in cardOpenChanged() }
         .onAppear { scheduleAutoHide() }
         .onAppear { configureScrubPreview() }
@@ -252,13 +271,25 @@ struct PlozziOSPlayerControlsOverlay: View {
         .onDisappear { pictureInPicture.detach() }
         .onDisappear {
             cancelAutoHide()
+            cancelTouchInteraction()
             scrubPreviewCoordinator?.clear()
+            viewModel.controls.timelineClock.isEnabled = false
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { cancelTouchInteraction() }
+        }
+        .onChange(of: touchShortcutsEnabled) { _, enabled in
+            if !enabled { cancelTouchInteraction() }
+        }
+        .onChange(of: viewModel.temporarySpeedBoostRate) { _, rate in
+            touchGestures.showBoost(rate: rate)
         }
         .onChange(of: viewModel.scrubPreview) {
             configureScrubPreview()
         }
         .onChange(of: viewModel.controls.intendsPause) { _, paused in
             if paused {
+                cancelTouchInteraction()
                 controlsVisible = true
                 cancelAutoHide()
             } else {
@@ -271,7 +302,7 @@ struct PlozziOSPlayerControlsOverlay: View {
         .onChange(of: versionsPresented) { _, presented in
             if presented { cancelAutoHide() } else { scheduleAutoHide() }
         }
-        .sheet(item: $presentedSheet, onDismiss: scheduleAutoHide) { sheet in
+        .plozzSheet(item: $presentedSheet, onDismiss: scheduleAutoHide) { sheet in
             switch sheet {
             case .speed:
                 PlozziOSPlaybackSpeedSheet(viewModel: viewModel)
@@ -304,6 +335,60 @@ struct PlozziOSPlayerControlsOverlay: View {
         } else {
             cancelAutoHide()
         }
+
+    }
+
+    private var touchShortcutsEnabled: Bool {
+        !isPlayingElsewhere && presentedSheet == nil && !optionsMenuPresented
+            && !versionsPresented && !isCardOpen && !isScrubbing
+            && !viewModel.controls.upNextCard.isPresenting && scenePhase == .active
+    }
+
+    private func backgroundTapped() {
+        touchGestures.clearSkip()
+        if isCardOpen {
+            isCardOpen = false
+            noteInteraction()
+        } else {
+            toggleControls()
+        }
+    }
+
+    private func beginTouchInteraction() {
+        cancelAutoHide()
+        controlsVisible = false
+    }
+
+    private func touchSkip(_ direction: PlayerTouchSkipDirection) {
+        let duration = viewModel.controls.duration
+        guard touchShortcutsEnabled, duration.isFinite, duration > 0 else { return }
+        let interval = direction == .forward
+            ? viewModel.controls.skipGesture.forwardInterval.seconds
+            : -viewModel.controls.skipGesture.backwardInterval.seconds
+        guard let target = touchGestures.seek(
+            by: interval,
+            from: viewModel.controls.pendingSeekTarget ?? viewModel.controls.currentSeconds,
+            within: 0...max(0, duration - 1)
+        ) else { return }
+        beginTouchInteraction()
+        viewModel.requestSeek(to: target, origin: "touchSkip")
+        TouchFeedback.shared.emit(.selection)
+    }
+
+    private func touchBoostChanged(_ held: Bool) {
+        if held {
+            guard touchShortcutsEnabled, let rate = viewModel.beginTemporarySpeedBoost() else { return }
+            beginTouchInteraction()
+            touchGestures.showBoost(rate: rate)
+        } else {
+            viewModel.endTemporarySpeedBoost()
+            touchGestures.showBoost(rate: nil)
+        }
+    }
+
+    private func cancelTouchInteraction() {
+        viewModel.endTemporarySpeedBoost()
+        touchGestures.cancel()
     }
 
     private func seek(by interval: TimeInterval) {
@@ -353,10 +438,12 @@ struct PlozziOSPlayerControlsOverlay: View {
               !optionsMenuPresented,
               !viewModel.controls.diagnosticsEnabled,
               !isScrubbing,
-              !isCardOpen
+              !isCardOpen,
+              !touchGestures.isActive
         else {
             return
         }
+
         // Auto-hide exists to get the chrome out of the way of the video. With
         // the video on a TV or in a PiP window there is nothing to reveal, and
         // hiding leaves the user staring at a placeholder with no way to pause
@@ -606,6 +693,7 @@ private struct PlozziOSPlaybackOptionsMenu: View {
 
 private struct PlozziOSPlayerTransport: View {
     let viewModel: PlayerViewModel
+    let timelineOnly: Bool
     let displayedSeconds: TimeInterval
     let isScrubbing: Bool
     let scrubPreviewImage: CGImage?
@@ -674,40 +762,32 @@ private struct PlozziOSPlayerTransport: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
-                .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .title, isVisible: !isCardOpen)
+                .reportSubtitleControlsFrame(
+                    in: viewModel.controls.subtitleLayout, region: .title,
+                    isVisible: !isCardOpen && !timelineOnly
+                )
 
                 Spacer(minLength: 12)
 
                 // Keep captions one tap away; secondary choices share one menu.
                 trackControls
-                    .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .trackControls, isVisible: !isCardOpen)
+                    .reportSubtitleControlsFrame(
+                        in: viewModel.controls.subtitleLayout, region: .trackControls,
+                        isVisible: !isCardOpen && !timelineOnly
+                    )
             }
             .foregroundStyle(.white)
-            .opacity(isCardOpen ? 0 : 1)
-            .allowsHitTesting(!isCardOpen)
+            .opacity(isCardOpen || timelineOnly ? 0 : 1)
+            .allowsHitTesting(!isCardOpen && !timelineOnly)
+            .accessibilityHidden(isCardOpen || timelineOnly)
 
-            // Times flank the scrubber rather than sitting above it, so the row
-            // reads as one timeline instead of three stacked things.
-            HStack(spacing: 16) {
-                // Each label is exactly as wide as the longest string THIS video
-                // can produce, so the bar's ends never drift as the digits tick
-                // over, and no dead space is reserved for an hours digit a
-                // 42-minute episode will never show. A hardcoded width has to
-                // assume the worst case for every video.
-                playbackTimeLabel(playbackTime(displayedSeconds))
-
-                PlayerTouchScrubBar(
-                    currentSeconds: displayedSeconds,
-                    duration: viewModel.controls.duration,
-                    bufferedFraction: viewModel.controls.bufferedFraction,
-                    segments: viewModel.controls.skipSegments.segments,
-                    onScrub: onScrubChanged,
-                    onScrubbingChanged: onScrubEditingChanged
-                )
-                .accessibilityLabel("Playback position")
-
-                playbackTimeLabel("-\(playbackTime(max(viewModel.controls.duration - displayedSeconds, 0)))")
-            }
+            PlozziOSPlayerTimeline(
+                model: viewModel.controls, displayedSeconds: displayedSeconds, isScrubbing: isScrubbing,
+                onScrubChanged: onScrubChanged, onScrubEditingChanged: onScrubEditingChanged,
+                onInteraction: onInteraction
+            )
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("player-timeline")
             .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .timeline, isVisible: !isCardOpen)
             .opacity(isCardOpen ? 0 : 1)
             .allowsHitTesting(!isCardOpen)
@@ -727,6 +807,9 @@ private struct PlozziOSPlayerTransport: View {
                     }
                 }
             )
+            .opacity(timelineOnly ? 0 : 1)
+            .allowsHitTesting(!timelineOnly)
+            .accessibilityHidden(timelineOnly)
 
             // Deliberately no .font / .foregroundStyle / .buttonStyle here. Those
             // travel through the environment into a Menu's POPUP content, not just
@@ -735,7 +818,7 @@ private struct PlozziOSPlayerTransport: View {
             // open. Each glyph now carries its own styling instead.
         }
         .reportSubtitleControlsFrame(
-            in: viewModel.controls.subtitleLayout, region: .transport, isVisible: !isCardOpen
+            in: viewModel.controls.subtitleLayout, region: .transport, isVisible: !isCardOpen && !timelineOnly
         )
         .padding(.horizontal, 24)
         .padding(.bottom, 18)
@@ -804,25 +887,77 @@ private struct PlozziOSPlayerTransport: View {
         viewModel.controls.engineCapabilities.contains(.dialogEnhance)
     }
 
-    // Sized by the longest string this video can produce — remaining time at
-    // its maximum, which is the duration itself plus the minus sign. Elapsed
-    // and remaining both fit it, so neither label resizes mid-playback and the
-    // bar's ends stay put. Minutes are not zero-padded, so width changes at
-    // 9:59 → 10:00 as well as at the hour; deriving the template from the
-    // duration covers both without enumerating cases.
-    private func playbackTimeLabel(_ text: String) -> some View {
-        Text(verbatim: "-\(playbackTime(viewModel.controls.duration))")
-            .font(.caption.monospacedDigit())
-            .hidden()
+}
+
+struct PlozziOSPlayerTimeline: View {
+    let model: PlayerControlsModel
+    let displayedSeconds: TimeInterval
+    let isScrubbing: Bool
+    let onScrubChanged: (TimeInterval) -> Void
+    let onScrubEditingChanged: (Bool) -> Void
+    let onInteraction: () -> Void
+
+    var body: some View {
+        PlayerClockTimeline(model: model, enabled: model.timelineClock.isEnabled) { clock in
+            let visibleClock = isScrubbing ? nil : clock
+            HStack(spacing: 16) {
+                timeButton(
+                    Text(verbatim: visibleClock?.current ?? playbackTime(displayedSeconds)),
+                    samples: (clock?.currentWidthSamples ?? []).map { Text(verbatim: $0) },
+                    label: visibleClock != nil ? "Current time" : "Elapsed time",
+                    identifier: "player-timeline-current-time"
+                )
+                PlayerTouchScrubBar(
+                    currentSeconds: displayedSeconds, duration: model.duration,
+                    bufferedFraction: model.bufferedFraction, segments: model.skipSegments.segments,
+                    onScrub: onScrubChanged, onScrubbingChanged: onScrubEditingChanged
+                )
+                .accessibilityLabel("Playback position")
+                .accessibilityIdentifier("player-timeline-scrubber")
+                timeButton(
+                    visibleClock.map { $0.end.map { Text($0) } ?? Text(verbatim: "--:--") }
+                        ?? Text(verbatim: "-\(playbackTime(max(model.duration - displayedSeconds, 0)))"),
+                    samples: (clock?.endWidthSamples ?? []).map { Text($0) },
+                    label: visibleClock != nil ? "Estimated end time" : "Remaining time",
+                    identifier: "player-timeline-end-time"
+                )
+            }
+        }
+    }
+
+    private func timeButton(
+        _ text: Text, samples: [Text], label: LocalizedStringResource, identifier: String
+    ) -> some View {
+        Button {
+            model.timelineClock.isEnabled.toggle()
+            onInteraction()
+        } label: {
+            ZStack {
+                Text(verbatim: "-\(playbackTime(model.duration))").hidden()
+                ForEach(samples.indices, id: \.self) { index in
+                    samples[index].hidden()
+                }
+            }
             .accessibilityHidden(true)
             .overlay {
-                Text(verbatim: text)
-                    .font(.caption.monospacedDigit())
+                text
                     .foregroundStyle(.white.opacity(0.85))
             }
+            .font(.caption.monospacedDigit())
+            .fixedSize()
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isScrubbing)
+        .accessibilityLabel(Text(label))
+        .accessibilityValue(text)
+        .accessibilityHint("Switch between playback and clock times")
+        .accessibilityIdentifier(identifier)
     }
 
     private func playbackTime(_ seconds: TimeInterval) -> String {
+        guard seconds.isFinite, seconds >= 0, seconds < Double(Int.max) else { return "--:--" }
         let total = max(Int(seconds.rounded()), 0)
         let hours = total / 3_600
         let minutes = (total % 3_600) / 60

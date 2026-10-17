@@ -69,6 +69,7 @@ struct CustomPlayerContainer: UIViewControllerRepresentable {
         (any AuthenticatedHTTPResourceResolving)?
     let makeGeneratedScrubStills: (@MainActor () -> (any ScrubStillExtracting)?)?
     let showsSharedControls: Bool
+    let fitsInsideSafeArea: Bool
     let themePalette: ThemePaletteBox
 
     init(
@@ -80,6 +81,7 @@ struct CustomPlayerContainer: UIViewControllerRepresentable {
         authenticatedHTTPResolver: (any AuthenticatedHTTPResourceResolving)?,
         makeGeneratedScrubStills: (@MainActor () -> (any ScrubStillExtracting)?)? = nil,
         showsSharedControls: Bool = true,
+        fitsInsideSafeArea: Bool = false,
         themePalette: ThemePaletteBox
     ) {
         self.engine = engine
@@ -90,11 +92,14 @@ struct CustomPlayerContainer: UIViewControllerRepresentable {
         self.authenticatedHTTPResolver = authenticatedHTTPResolver
         self.makeGeneratedScrubStills = makeGeneratedScrubStills
         self.showsSharedControls = showsSharedControls
+        self.fitsInsideSafeArea = fitsInsideSafeArea
         self.themePalette = themePalette
     }
 
     func makeUIViewController(context: Context) -> PlayerInputViewController {
-        let controller = PlayerInputViewController(engine: engine, model: model, actions: actions)
+        let controller = PlayerInputViewController(
+            engine: engine, model: model, actions: actions, fitsInsideSafeArea: fitsInsideSafeArea
+        )
         if showsSharedControls {
             controller.configureScrubPreview(
                 scrubPreview,
@@ -112,6 +117,7 @@ struct CustomPlayerContainer: UIViewControllerRepresentable {
 
     func updateUIViewController(_ controller: PlayerInputViewController, context: Context) {
         controller.actions = actions
+        controller.fitsInsideSafeArea = fitsInsideSafeArea
     }
 }
 
@@ -121,17 +127,54 @@ struct CustomPlayerContainer: UIViewControllerRepresentable {
 struct VideoSurfaceContainer: UIViewRepresentable {
     let engine: any VideoEngine
     var zoom = PlayerVideoZoom()
+    var fitsInsideSafeArea = false
+    var subtitleViewport: VideoSubtitleViewport?
 
     func makeUIView(context: Context) -> VideoPresentationView {
         let root = VideoPresentationView(frame: .zero)
+        root.subtitleViewport = subtitleViewport
         root.attach(engine)
-        root.update(zoom: zoom)
+        root.update(zoom: zoom, fitsInsideSafeArea: fitsInsideSafeArea)
         return root
     }
 
     func updateUIView(_ uiView: VideoPresentationView, context: Context) {
+        uiView.subtitleViewport = subtitleViewport
         uiView.attach(engine)
-        uiView.update(zoom: zoom)
+        uiView.update(zoom: zoom, fitsInsideSafeArea: fitsInsideSafeArea)
+    }
+}
+
+/// Place behind a subtitle overlay to map authored cues into that overlay's
+/// actual coordinate space, including when only the video ignores safe areas.
+struct VideoSubtitleViewportReader: UIViewRepresentable {
+    let viewport: VideoSubtitleViewport
+
+    func makeUIView(context: Context) -> VideoSubtitleViewportView {
+        let view = VideoSubtitleViewportView(frame: .zero)
+        view.isUserInteractionEnabled = false
+        view.viewport = viewport
+        return view
+    }
+
+    func updateUIView(_ uiView: VideoSubtitleViewportView, context: Context) {
+        uiView.viewport = viewport
+    }
+}
+
+final class VideoSubtitleViewportView: UIView {
+    weak var viewport: VideoSubtitleViewport? {
+        didSet { viewport?.attachSubtitleView(self) }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        viewport?.scheduleUpdate()
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        viewport?.scheduleUpdate()
     }
 }
 
@@ -172,6 +215,11 @@ final class PlayerInputView: UIView {
 /// a concrete player, so this UI is reused verbatim by every engine.
 final class PlayerInputViewController: UIViewController, UIGestureRecognizerDelegate {
     var actions: PlayerActions
+    var fitsInsideSafeArea: Bool {
+        didSet {
+            if fitsInsideSafeArea != oldValue, isViewLoaded { updateSubtitleVideoRect() }
+        }
+    }
     private let engine: any VideoEngine
     private let model: PlayerControlsModel
     private var scrubPreviewCoordinator: ScrubPreviewCoordinator?
@@ -278,10 +326,14 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     private let playerInputView = PlayerInputView()
     private let videoPresentation = VideoPresentationView(frame: .zero)
 
-    init(engine: any VideoEngine, model: PlayerControlsModel, actions: PlayerActions) {
+    init(
+        engine: any VideoEngine, model: PlayerControlsModel, actions: PlayerActions,
+        fitsInsideSafeArea: Bool = false
+    ) {
         self.engine = engine
         self.model = model
         self.actions = actions
+        self.fitsInsideSafeArea = fitsInsideSafeArea
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -396,7 +448,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
         videoPresentation.frame = view.bounds
         videoPresentation.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         videoPresentation.attach(engine)
-        videoPresentation.update(zoom: model.videoZoom.settings)
+        videoPresentation.update(zoom: model.videoZoom.settings, fitsInsideSafeArea: fitsInsideSafeArea)
         view.insertSubview(videoPresentation, at: 0)
     }
 
@@ -420,7 +472,8 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     }
 
     private func updateSubtitleVideoRect() {
-        videoPresentation.update(zoom: model.videoZoom.settings)
+        videoPresentation.update(zoom: model.videoZoom.settings, fitsInsideSafeArea: fitsInsideSafeArea)
+        videoPresentation.layoutIfNeeded()
         guard let subtitleModel else { return }
         let rect = videoPresentation.videoRect
         if subtitleModel.videoRect != rect {
@@ -872,6 +925,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
         pan.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirect.rawValue)]
         pan.allowedPressTypes = []
         pan.delegate = self
+        pan.onStationaryTap = { [weak self] in self?.handleSurfaceTap() }
         view.addGestureRecognizer(pan)
         surfaceRecognizers.append(pan)
         surfacePan = pan
@@ -900,6 +954,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive press: UIPress) -> Bool {
+        surfacePan?.cancelTap()
         if gestureRecognizer === selectRecognizer, press.type == .select, focusContext == .surface {
             var position: RemoteClickInterpreter.Position?
 #if os(tvOS)
@@ -1149,6 +1204,19 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     }
 
     // MARK: Button handlers
+
+    func handleSurfaceTap() {
+        guard focusContext == .surface, !model.isScrubbing else { return }
+        if !model.controlsVisible {
+            model.timelineClock.isEnabled = false
+            flashControls()
+        } else if !model.timelineClock.isEnabled {
+            model.timelineClock.isEnabled = true
+            flashControls()
+        } else {
+            hideControls()
+        }
+    }
 
     @objc private func handleSelect() {
         guard focusContext == .surface else { return }

@@ -568,6 +568,10 @@ extension PlozziOSAppModel {
     /// Turn cross-device Sync & Setup on/off. Enabling activates CloudKit sync;
     /// disabling stops publishing but never deletes the shared cloud config.
     func setSyncSetupEnabled(_ on: Bool) {
+        guard !on || !cloudSyncStatus.isRecovering else {
+            PlozzLog.sync.info("iCloud Sync cannot be enabled during recovery")
+            return
+        }
         syncSetup.setEnabled(on)
         if !on {
             cloudPublishTask?.cancel()
@@ -858,41 +862,47 @@ extension PlozziOSAppModel {
         }
     }
 
-    /// DEBUG: nuke the ENTIRE household from iCloud so you can test a true cold start
-    /// (e.g. "set up only on the Apple TV, then fresh-install the iPad"). Unlike
-    /// `resetCloudSync` (which deletes then immediately RE-uploads from this device),
-    /// this deletes and does NOT republish, then takes this device out of sync so it
-    /// can't refill iCloud. It:
-    ///   1. deletes every CloudKit config + removal-tombstone record (flushed to peers
-    ///      as normal deletions, so their synced view empties too);
-    ///   2. removes every synchronizable iCloud-Keychain login (propagates the deletion
-    ///      through iCloud Keychain so no device silently auto-reconnects);
-    ///   3. wipes this device's local roster/profiles/sync bookkeeping (first-run);
-    ///   4. turns iCloud Sync OFF here so this device stays out of the household until
-    ///      you re-enable it — leaving iCloud genuinely empty for the next publisher.
-    func eraseEverythingFromICloudForDebugging() {
-        let config = cloudSync
+    func eraseCloudSyncData() {
+        let profileID = profiles.activeProfileID
         Task { @MainActor in
-            await config?.deleteAllServerData()
-            setSyncSetupEnabled(false)
+            await CloudSyncRecoveryFeedback.run(.erase, status: cloudSyncStatus, presenter: transientStatusPresenter) {
+                await self.performCloudSyncErasure(profileID: profileID)
+            }
+        }
+    }
+
+    private func performCloudSyncErasure(profileID: String) async -> CloudSyncRecoveryResult {
+        let authorized: @Sendable () async -> Bool = { @MainActor [weak self] in
+            guard let self else { return false }
+            return self.profiles.activeProfileID == profileID
+                && !self.profiles.activeProfile.isKids && !self.managementRequiresParentalPIN
+        }
+        guard await authorized(), let config = cloudSync else { return .unavailable }
+        let result = await config.eraseAllServerData(
+            trackerStores: TrackerTokenSyncBridge.erasureStores(profileNamespaces: profiles.profiles.map {
+                $0.settingsNamespace(isDefault: profiles.isDefault($0))
+            }),
+            authorized: authorized,
+            stopSync: { @MainActor in self.setSyncSetupEnabled(false) }
+        )
+        guard result == .completed else { return result }
+        guard await authorized() else { return .interrupted }
+        do {
+            try TrackerTokenSyncBridge.eraseLocalTokens()
+            try await removeAllPortableCredentials()
+            guard await authorized() else { return .interrupted }
+            try LiveTVSourceStorage.eraseAllSources()
+            for id in profiles.profiles.map(\.id) {
+                guard await authorized() else { return .interrupted }
+                try await mediaAliasLedger.removeProfile(id)
+                try universalWatchlist.removeProfile(id)
+            }
+            guard await authorized() else { return .interrupted }
             resetLiveTVPortableSync()
-            for profileID in profiles.profiles.map(\.id) {
-                do {
-                    try await mediaAliasLedger.removeProfile(profileID)
-                    try universalWatchlist.removeProfile(profileID)
-                } catch {
-                    PlozzLog.sync.error(
-                        "Media aliases: debug reset failed for one profile: \(error.localizedDescription)"
-                    )
-                }
-            }
-            do {
-                try await removeAllPortableCredentials()  // step 2
-            } catch {
-                accountError = error.localizedDescription
-                return
-            }
-            resetToFirstRunForDebugging()         // step 3
+            return resetToFirstRunForDebugging(afterSyncErasure: true) ? .completed : .failed
+        } catch {
+            PlozzLog.sync.error("iCloud data erased, but local reset failed (code \((error as NSError).code))")
+            return .failed
         }
     }
 }

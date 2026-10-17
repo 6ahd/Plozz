@@ -11,8 +11,7 @@ import Foundation
 /// position, where a live segment's keyframe sits, and decodes one small frame
 /// from it: about the cost of VOD's on-device fallback, but across the internet.
 ///
-/// No variant is preferred: a multivariant playlist uses its first entry. This is
-/// the version to measure on real providers before tuning.
+/// Preview I/O is capped independently of the origin's support for Range.
 @MainActor
 final class LiveHLSScrubThumbnails {
     struct Segment: Equatable {
@@ -58,17 +57,22 @@ final class LiveHLSScrubThumbnails {
     /// A live playlist moves on by a segment every few seconds.
     static let playlistLifetime: TimeInterval = 4
 
-    init(playlistURL: URL, headers: [String: String], playingMediaPlaylist: @escaping @MainActor () -> URL? = { nil }) {
+    init(
+        playlistURL: URL, headers: [String: String],
+        configuration: URLSessionConfiguration = .ephemeral,
+        playingMediaPlaylist: @escaping @MainActor () -> URL? = { nil }
+    ) {
         self.playlistURL = playlistURL
         self.headers = headers
         self.playingMediaPlaylist = playingMediaPlaylist
         // AVPlayer's own cookie store: a provider that sets a session cookie
         // when the player connects expects it back on every request.
-        let configuration = URLSessionConfiguration.default
         configuration.httpCookieStorage = .shared
         configuration.httpShouldSetCookies = true
+        configuration.urlCredentialStorage = nil
         configuration.urlCache = nil
         configuration.timeoutIntervalForRequest = 8
+        configuration.timeoutIntervalForResource = 12
         configuration.httpMaximumConnectionsPerHost = 2
         session = URLSession(configuration: configuration)
     }
@@ -78,7 +82,7 @@ final class LiveHLSScrubThumbnails {
     /// A frame near `offset` seconds after the start of AVPlayer's seekable
     /// range, which begins with the oldest segment of the playlist it holds.
     func thumbnail(secondsIntoWindow offset: TimeInterval, maxWidth: Int) async -> CGImage? {
-        guard offset.isFinite, let playlist = await currentPlaylist(),
+        guard !Task.isCancelled, offset.isFinite, let playlist = await currentPlaylist(), !Task.isCancelled,
               let segment = Self.segment(at: offset, in: playlist.segments) else { return nil }
         if let cached = cache[segment.url] { return cached }
         if let key = segment.key, !Self.canDecrypt(key, fragmented: playlist.mapURL != nil) {
@@ -88,6 +92,7 @@ final class LiveHLSScrubThumbnails {
         // Small first: a keyframe usually fits, and the provider's throughput is
         // the whole wait. A head too short to decode is read again, longer.
         for (attempt, limit) in Self.headLimits.enumerated() {
+            guard !Task.isCancelled else { return nil }
             guard var data = await head(of: segment.url, bytes: limit) else {
                 return nil
             }
@@ -97,7 +102,10 @@ final class LiveHLSScrubThumbnails {
             var decryptedTransportHead = Data()
             var initSegment: Data?
             if let mapURL = playlist.mapURL {
-                if initSegments[mapURL] == nil { initSegments[mapURL] = await whole(mapURL) }
+                if initSegments[mapURL] == nil {
+                    if initSegments.count >= 8 { initSegments.removeAll() }
+                    initSegments[mapURL] = await whole(mapURL)
+                }
                 initSegment = initSegments[mapURL]
             }
             if let key = segment.key {
@@ -130,9 +138,9 @@ final class LiveHLSScrubThumbnails {
             }
             // A keyframe cut short decodes as a picture going green where its
             // bytes ran out: read further rather than show that.
-            if !lastAttempt,
-               !HLSSampleDecryption.leadingFrameIsComplete(
-                   fileExtension == "h264" ? decryptedTransportHead : data, fragmented: playlist.mapURL != nil) {
+            if !HLSSampleDecryption.leadingFrameIsComplete(
+                fileExtension == "h264" ? decryptedTransportHead : data, fragmented: playlist.mapURL != nil) {
+                guard !lastAttempt else { return nil }
                 continue
             }
             if playlist.mapURL != nil {
@@ -141,7 +149,7 @@ final class LiveHLSScrubThumbnails {
             }
             guard !Task.isCancelled else { return nil }
             let image = await Self.decodeFirstFrame(data, fileExtension: fileExtension, maxWidth: maxWidth)
-            if let image {
+            if let image, !Task.isCancelled {
                 remember(image, for: segment.url)
                 return image
             }
@@ -177,11 +185,12 @@ final class LiveHLSScrubThumbnails {
             fetched = keyURL.absoluteString.split(separator: ",", maxSplits: 1).last
                 .flatMap { Data(base64Encoded: String($0)) }
         } else {
-            fetched = await whole(keyURL)
+            fetched = await fetch(request(keyURL), maximumBytes: 16)
         }
         guard let fetched, fetched.count == 16 else {
             return nil
         }
+        if keys.count >= 8 { keys.removeAll() }
         keys[keyURL] = fetched
         return fetched
     }
@@ -260,7 +269,7 @@ final class LiveHLSScrubThumbnails {
     }
 
     private func store(_ parsed: Playlist?) -> Playlist? {
-        guard let parsed, !parsed.segments.isEmpty else { return playlist }
+        guard let parsed, !parsed.segments.isEmpty else { return nil }
         playlist = parsed
         playlistFetchedAt = Date()
         return parsed
@@ -275,6 +284,9 @@ final class LiveHLSScrubThumbnails {
         var key: Key?
         for raw in text.components(separatedBy: .newlines) {
             let line = raw.trimmingCharacters(in: .whitespaces)
+            // A URL alone cannot identify one byte-range segment. Until range
+            // offsets are modelled, omit previews rather than cache the wrong frame.
+            if line.hasPrefix("#EXT-X-BYTERANGE:") { return nil }
             if line.hasPrefix("#EXT-X-MEDIA-SEQUENCE:") {
                 sequence = Int(line.dropFirst("#EXT-X-MEDIA-SEQUENCE:".count)) ?? 0
             } else if line.hasPrefix("#EXT-X-KEY:") {
@@ -287,13 +299,16 @@ final class LiveHLSScrubThumbnails {
                 )
             } else if line.hasPrefix("#EXTINF:") {
                 let value = line.dropFirst("#EXTINF:".count).split(separator: ",").first.map(String.init)
-                pendingDuration = value.flatMap(Double.init)
+                pendingDuration = value.flatMap(Double.init).flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
             } else if line.hasPrefix("#EXT-X-MAP:"), let uri = attribute("URI", in: line) {
-                mapURL = URL(string: uri, relativeTo: base)?.absoluteURL
+                let next = URL(string: uri, relativeTo: base)?.absoluteURL
+                guard attribute("BYTERANGE", in: line) == nil, mapURL == nil || mapURL == next else { return nil }
+                mapURL = next
             } else if !line.isEmpty, !line.hasPrefix("#"), let duration = pendingDuration {
                 if let url = URL(string: line, relativeTo: base)?.absoluteURL {
                     segments.append(Segment(url: url, duration: duration, sequence: sequence, key: key))
                 }
+                guard sequence < Int.max else { return nil }
                 sequence += 1
                 pendingDuration = nil
             }
@@ -381,31 +396,55 @@ final class LiveHLSScrubThumbnails {
         return "AppleCoreMedia/1.0.0.\(String(cString: build)) (\(device); U; CPU OS \(os) like Mac OS X; \(locale))"
     }()
 
-    private func request(_ url: URL) -> URLRequest {
+    func request(_ url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-        for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
-        if !headers.keys.contains(where: { $0.caseInsensitiveCompare("User-Agent") == .orderedSame }) {
+        // Playlist-provided CDN/key URLs do not authorize forwarding the
+        // channel's credentials to another origin.
+        if HDR10PlusHTTPRangeSource.sameOrigin(playlistURL, url) {
+            for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        }
+        if request.value(forHTTPHeaderField: "User-Agent") == nil {
             request.setValue(Self.playerUserAgent, forHTTPHeaderField: "User-Agent")
         }
         return request
     }
 
     private func text(of url: URL) async -> String? {
-        guard let data = await fetch(request(url), what: "playlist") else { return nil }
+        guard let data = await fetch(request(url), maximumBytes: 512 * 1_024) else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
     private func whole(_ url: URL) async -> Data? {
-        await fetch(request(url), what: "init")
+        await fetch(request(url), maximumBytes: 2 * 1_024 * 1_024)
     }
 
-    private func fetch(_ request: URLRequest, what: String) async -> Data? {
+    private func fetch(_ request: URLRequest, maximumBytes: Int, allowsPrefix: Bool = false) async -> Data? {
+        await Self.fetch(request, session: session, maximumBytes: maximumBytes, allowsPrefix: allowsPrefix)
+    }
+
+    nonisolated static func fetch(
+        _ request: URLRequest, session: URLSession, maximumBytes: Int, allowsPrefix: Bool = false
+    ) async -> Data? {
+        guard let url = request.url, HDR10PlusHTTPRangeSource.sameOrigin(url, url), maximumBytes > 0,
+              !Task.isCancelled else { return nil }
         do {
-            let (data, response) = try await session.data(for: request)
-            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                PlozzLog.playback.debug("Scrub preview \(what) refused: HTTP \(http.statusCode)")
-                return nil
+            let (bytes, response) = try await session.bytes(for: request, delegate: LiveHLSScrubRedirects())
+            defer { bytes.task.cancel() }
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+                  allowsPrefix || response.expectedContentLength <= maximumBytes else { return nil }
+            if http.statusCode == 206 {
+                // A prefix must start at zero, not an unrelated cached range.
+                guard http.value(forHTTPHeaderField: "Content-Range")?.lowercased().hasPrefix("bytes 0-") == true else { return nil }
             }
+            var data = Data()
+            data.reserveCapacity(min(maximumBytes, 256 * 1_024))
+            for try await byte in bytes {
+                guard !Task.isCancelled else { return nil }
+                guard data.count < maximumBytes else { return nil }
+                data.append(byte)
+                if allowsPrefix, data.count == maximumBytes { return data }
+            }
+            guard !Task.isCancelled else { return nil }
             return data
         } catch {
             return nil
@@ -413,11 +452,12 @@ final class LiveHLSScrubThumbnails {
     }
 
     /// The first `bytes` of a segment by range request. An origin that ignores
-    /// the range sends the whole segment, which still decodes.
+    /// the range is cancelled once the bounded prefix has arrived.
     private func head(of url: URL, bytes: Int) async -> Data? {
         var request = request(url)
         request.setValue("bytes=0-\(bytes - 1)", forHTTPHeaderField: "Range")
-        guard let data = await fetch(request, what: "segment"), !data.isEmpty else { return nil }
+        request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+        guard let data = await fetch(request, maximumBytes: bytes, allowsPrefix: true), !data.isEmpty else { return nil }
         return data
     }
 
@@ -443,6 +483,31 @@ final class LiveHLSScrubThumbnails {
         while cacheOrder.count > Self.cacheLimit {
             cache.removeValue(forKey: cacheOrder.removeFirst())
         }
+    }
+}
+
+final class LiveHLSScrubRedirects: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        guard let original = task.originalRequest, let origin = original.url, let destination = request.url,
+              HDR10PlusHTTPRangeSource.sameOrigin(origin, destination) else {
+            completionHandler(nil)
+            return
+        }
+        var redirected = original
+        redirected.url = destination
+        completionHandler(redirected)
+    }
+
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        completionHandler(challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust
+            ? .performDefaultHandling : .cancelAuthenticationChallenge, nil)
     }
 }
 #endif

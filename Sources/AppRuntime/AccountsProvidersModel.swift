@@ -98,6 +98,16 @@ public final class AccountsProvidersModel {
         profilesModel.unconfirmedAccountSelectionProfileIDs.contains(profilesModel.activeProfileID)
     }
 
+    /// Sync may record a question before the account's provider is known.
+    /// Only locally present, active Plex accounts can require an identity choice.
+    public var activeProfileAwaitsIdentity: Bool {
+        profilesModel.activeProfile.awaitsIdentity(
+            amongAccounts: accounts.lazy.filter {
+                self.activeAccountIDs.contains($0.id) && $0.server.provider == .plex
+            }.map(\.id)
+        )
+    }
+
     public var liveTVServerChoices: [LiveTVServerChoice] {
         // Listing connected servers must not resolve credentials during a render.
         // The resolver verifies access when the user checks or imports a server.

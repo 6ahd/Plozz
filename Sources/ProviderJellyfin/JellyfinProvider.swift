@@ -1195,9 +1195,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         try await resolvePlayback(for: itemID, mediaSourceID: mediaSourceID, forceTranscode: forceTranscode)
     }
 
-    private func validateStreamingDecision(_ info: PlaybackInfoResponse) async throws {
+    private func validateStreamingDecision(_ info: PlaybackInfoResponse) throws {
         guard let error = info.streamingError else { return }
-        if let id = info.PlaySessionId { await releaseStreamingEncoding(id) }
         PlozzLog.playback.error("Server rejected streaming negotiation: \(error.diagnosticCode ?? "unspecified")")
         throw error
     }
@@ -1207,31 +1206,54 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         streaming: StreamingPlaybackOptions? = nil
     ) async throws -> PlaybackRequest {
         try streaming?.quality.validate()
+        try Task.checkCancellation()
         // Jellyfin needs two independent round-trips here — the item detail and
         // the playback decision (media sources). They don't depend on each other,
         // so issue them concurrently to halve the time-to-first-frame latency
         // versus awaiting them serially. (Plex resolves both in one `metadata`
         // call, so its provider has nothing to parallelize — see PlexProvider.)
         async let detailTask = client.item(userID: session.userID, id: itemID)
-        async let infoTask = client.playbackInfo(
+        let info = try await client.playbackInfo(
             userID: session.userID,
             itemID: itemID,
             mediaSourceID: mediaSourceID,
             mode: forceTranscode || streaming?.forceTranscoding == true ? .transcode : .auto,
             streaming: streaming
         )
-        let detail = try await detailTask
-        var info = try await infoTask
+        // Claim the decision before awaiting detail: detail failure must not
+        // discard a session that the concurrent PlaybackInfo request created.
+        var pendingSessionID = info.PlaySessionId
+        do {
+            try Task.checkCancellation()
+            let detail = try await detailTask
+            let request = try await makePlaybackRequest(
+                for: itemID, mediaSourceID: mediaSourceID, forceTranscode: forceTranscode,
+                streaming: streaming, detail: detail, info: info,
+                pendingSessionID: &pendingSessionID
+            )
+            try Task.checkCancellation()
+            return request
+        } catch {
+            if let pendingSessionID { await releaseStreamingEncoding(pendingSessionID) }
+            throw error
+        }
+    }
+
+    private func makePlaybackRequest(
+        for itemID: String, mediaSourceID: String?, forceTranscode: Bool,
+        streaming: StreamingPlaybackOptions?, detail: BaseItemDto,
+        info initialInfo: PlaybackInfoResponse, pendingSessionID: inout String?
+    ) async throws -> PlaybackRequest {
+        try Task.checkCancellation()
+        var info = initialInfo
         var streaming = streaming
-        if streaming != nil { try await validateStreamingDecision(info) }
+        try validateStreamingDecision(info)
         // Prefer the explicitly chosen source; fall back to the server default.
         guard var source = Self.selectSource(mediaSourceID, in: info.MediaSources) else {
-            if streaming != nil, let id = info.PlaySessionId { await releaseStreamingEncoding(id) }
             if streaming != nil { throw StreamingQualityError.sourceUnavailable }
             throw AppError.notFound
         }
-        if streaming != nil, let mediaSourceID, source.Id != mediaSourceID {
-            if let id = info.PlaySessionId { await releaseStreamingEncoding(id) }
+        if streaming != nil || forceTranscode, let mediaSourceID, source.Id != mediaSourceID {
             PlozzLog.playback.error("Streaming quality negotiation returned a different media source.")
             throw StreamingQualityError.sourceUnavailable
         }
@@ -1243,9 +1265,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             streaming?.subtitleTrack = selected
             streaming?.subtitlesOff = selected == nil
         }
-        let mustConvert = streaming.map { $0.forceTranscoding || forceTranscode || !source.fits($0.quality) } ?? false
+        let mustConvert = forceTranscode || (streaming.map { $0.forceTranscoding || !source.fits($0.quality) } ?? false)
         if mustConvert, source.SupportsTranscoding == false {
-            if let id = info.PlaySessionId { await releaseStreamingEncoding(id) }
             PlozzLog.playback.error("Server marked this source as unavailable for transcoding.")
             throw StreamingQualityError.noCompatibleStream
         }
@@ -1254,31 +1275,32 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         }
         if let streaming, mustConvert, source.TranscodingUrl == nil {
             if let oldSession = info.PlaySessionId {
-                do { try await client.stopActiveEncoding(playSessionID: oldSession) }
-                catch { PlozzLog.playback.error("Unable to release a rejected streaming decision.") }
+                await releaseStreamingEncoding(oldSession)
+                pendingSessionID = nil
             }
+            try Task.checkCancellation()
             info = try await client.playbackInfo(
                 userID: session.userID, itemID: itemID, mediaSourceID: source.Id ?? mediaSourceID,
                 mode: .transcode, streaming: streaming
             )
-            try await validateStreamingDecision(info)
+            pendingSessionID = info.PlaySessionId
+            try Task.checkCancellation()
+            try validateStreamingDecision(info)
             guard let converted = Self.selectSource(source.Id ?? mediaSourceID, in: info.MediaSources),
                   converted.Id == source.Id, converted.TranscodingUrl != nil else {
-                if let id = info.PlaySessionId { await releaseStreamingEncoding(id) }
                 PlozzLog.playback.error("Server did not provide the requested bounded transcode.")
                 throw StreamingQualityError.unavailable
             }
 
             source = converted
         }
+        guard !mustConvert || source.TranscodingUrl != nil else {
+            throw StreamingQualityError.unavailable
+        }
         if let streaming, source.TranscodingUrl != nil {
-            do {
-                source.TranscodingUrl = try source.boundedTranscodingURL(streaming, supportsHEVC: client.canRequestHEVC)
-            }
-            catch {
-                if let id = info.PlaySessionId { await releaseStreamingEncoding(id) }
-                throw error
-            }
+            source.TranscodingUrl = try source.boundedTranscodingURL(
+                streaming, supportsHEVC: client.canRequestHEVC, forceVideoTranscode: mustConvert
+            )
         }
 
         // Surface the server's direct-play-vs-transcode decision and, when it
@@ -1327,26 +1349,36 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         // the remux fails or the server offers no stream URL, fall back to direct
         // play (the router then sends `hev1` to the on-device engine as a net).
         if streaming == nil, !forceTranscode, Self.shouldRequestDoViRemux(source) || Self.shouldRequestHvc1Remux(source) {
+            let selectedSourceID = source.Id ?? mediaSourceID
             if let remuxInfo = try? await client.playbackInfo(
                 userID: session.userID,
                 itemID: itemID,
-                mediaSourceID: mediaSourceID,
+                mediaSourceID: selectedSourceID,
                 mode: .remux
-            ), let remuxSource = Self.selectSource(mediaSourceID, in: remuxInfo.MediaSources),
-               remuxSource.TranscodingUrl != nil {
-                info = remuxInfo
-                source = remuxSource
-                didRemux = true
+            ) {
+                if remuxInfo.streamingError == nil,
+                   let remuxSource = Self.selectSource(selectedSourceID, in: remuxInfo.MediaSources),
+                   remuxSource.Id == source.Id, remuxSource.TranscodingUrl != nil {
+                    if let previousSession = pendingSessionID, previousSession != remuxInfo.PlaySessionId {
+                        await releaseStreamingEncoding(previousSession)
+                    }
+                    info = remuxInfo
+                    pendingSessionID = info.PlaySessionId
+                    source = remuxSource
+                    didRemux = true
+                } else if let rejectedSession = remuxInfo.PlaySessionId, rejectedSession != pendingSessionID {
+                    await releaseStreamingEncoding(rejectedSession)
+                }
             }
+            try Task.checkCancellation()
         }
 
         if !didRemux {
             do {
                 try source.requestSDRForH264Transcode(
-                    provider: kind, forceVideoTranscode: forceTranscode || streaming != nil
+                    provider: kind, forceVideoTranscode: forceTranscode || mustConvert
                 )
             } catch {
-                if let id = info.PlaySessionId { await releaseStreamingEncoding(id) }
                 PlozzLog.playback.error("Unable to apply the H.264 transcode output range.")
                 throw error
             }
@@ -1800,7 +1832,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             sourceRevision: sourceRevision,
             video: videoStream,
             audio: audioStream,
-            subtitle: subtitleStream
+            subtitle: subtitleStream,
+            audioLanguages: streams.filter { $0.`Type` == "Audio" }.compactMap(\.Language)
         )
         return metadata.isEmpty ? nil : metadata
     }
@@ -2260,7 +2293,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 ? defaultStreams ?? []
                 : source.MediaStreams ?? []
             let video = streams.first { $0.`Type` == "Video" }
-            let audio = streams.first { $0.`Type` == "Audio" }
+            let audio = streams.first { $0.`Type` == "Audio" && $0.IsDefault == true }
+                ?? streams.first { $0.`Type` == "Audio" }
             return MediaVersion(
                 id: source.Id ?? "\(index)",
                 name: source.Name,
@@ -2277,15 +2311,19 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 audioCodec: audio?.Codec,
                 audioChannels: audio?.Channels,
                 audioProfile: audio?.Profile,
-                container: source.Container
+                container: source.Container,
+                sourceMetadata: Self.sourceMetadata(
+                    container: source.Container,
+                    streams: streams,
+                    fileSizeBytes: source.Size,
+                    fileName: source.Path.flatMap(Self.fileName(fromPath:))
+                )
             )
         }
     }
 
     private static func fileName(fromPath path: String) -> String? {
-        let base = (path as NSString).lastPathComponent
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return base.isEmpty ? nil : base
+        MediaSourceDisplayName.fileName(from: path)
     }
 
     private static func sourceRevision(

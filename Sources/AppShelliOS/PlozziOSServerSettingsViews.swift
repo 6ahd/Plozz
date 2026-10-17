@@ -289,7 +289,7 @@ struct PlozziOSMyLibrariesSettingsView: View {
         // asking from the root would silently never appear.
         //
         // Suppressed during setup, which asks the same question inline.
-        .sheet(item: identityPromptBinding) { account in
+        .plozzSheet(item: identityPromptBinding) { account in
             PlozziOSServerIdentityPromptView(
                 appModel: appModel,
                 account: account,
