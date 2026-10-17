@@ -18,6 +18,18 @@ The engine selects the main title by default. WebDAV still requires validated
 byte ranges and stable representation identity; external HTTPS delivery never
 receives the share's credentials.
 
+WebDAV advertises efficient 32 MiB reads to the shared transport reader.
+Scattered reads start with a 64 KiB window (or the caller's larger request);
+contiguous window exhaustion grows read-ahead fourfold, capped at 32 MiB and
+the file's remaining bytes. Cached seeks stay local; random misses and cloned
+readers start small again. This avoids fetching megabytes for tiny disc probes
+and amortizes HTTP latency during sequential playback without parallel prefetch.
+Transports using the default preference retain 4 MiB windows assembled from
+requests no larger than 1 MiB. Range and representation checks are unchanged.
+The old adaptive buffer is released before replacement, but the bound is per
+reader, not a process memory cap: clones and HTTP/engine buffers add their own
+memory, and larger windows can fetch bytes that playback does not consume.
+
 This does not add CSS/AACS decryption, disc menus, BD-J, multi-angle playback,
 or a disc-title picker. An ISO extension alone does not guarantee a supported
 video disc; unsupported or encrypted images follow the normal playback error
@@ -27,7 +39,8 @@ path. No full image download is required.
 playback request, WebDAV adapter, source resolver, and displayed video frames,
 including forward/backward seeks. Its ordinary test serves an original ten-second
 MPEG-2 test pattern in a DVD ISO over loopback WebDAV. The fixture contains no
-third-party media and was generated with:
+third-party media and was generated with the commands below. A separate MP4
+fixture exercises ordinary-container playback through the same path.
 
 ```sh
 mkdir -p /tmp/plozz-disc-fixture/VIDEO_TS
@@ -46,6 +59,9 @@ owned by the tester with mode `0600`, outside Git. Remove staged simulator
 credentials after the run. Missing configuration skips only that live test;
 it is not evidence of remote playback. Each load/seek has a 120-second deadline
 and frame/progress waits are bounded separately.
+After the final seek, the live test observes another 20 seconds and requires
+more than 18 seconds of playhead advancement. This is a bounded continued-playback
+check, not proof of complete-film playback or physical-device frame smoothness.
 
 ## IPTV live streams
 

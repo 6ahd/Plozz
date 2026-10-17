@@ -104,15 +104,13 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
     private let inflight = OSAllocatedUnfairLock<TransportInflightRead?>(initialState: nil)
     private let avseekSize: Int32 = 65_536
 
-    /// How much to fetch per underlying transport read. ffmpeg drives the demux
-    /// with 256 KB AVIO reads; on a high-latency source (WebDAV/SFTP/FTP) that is
-    /// dozens of serial round-trips per GOP, each paying request latency and
-    /// restarting TCP slow-start. Reading a large contiguous window instead
-    /// collapses those into one round-trip and lets the transport sustain its
-    /// congestion window across the whole read — the dominant cold-start win.
-    /// Served bytes are handed back to ffmpeg in its own 256 KB bites from memory.
+    /// Existing window/chunk limits remain unchanged for transports that do not
+    /// advertise efficient larger requests.
     static let defaultReadAheadWindow = 4 * 1024 * 1024  // 4 MB
+    private static let defaultBackendChunk = 1024 * 1024
+    private static let maximumReadAheadWindow = 32 * 1024 * 1024
     private let readAheadWindow: Int
+    private let maxBackendChunk: Int
 
     public convenience init(source: TransportByteSource) {
         self.init(source: source, readAheadWindow: Self.defaultReadAheadWindow)
@@ -124,6 +122,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         self.resolvedSource = nil
         self.cursor = lease.makeCursor()!
         self.readAheadWindow = max(1, readAheadWindow)
+        self.maxBackendChunk = min(max(1, lease.preferredReadSize), Self.maximumReadAheadWindow)
         self.readerGroup = TransportReaderGroup()
         _ = readerGroup.register(self)
     }
@@ -133,6 +132,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         self.lease = resolvedSource.sourceLease
         self.cursor = resolvedSource.sourceLease.makeCursor()!
         self.readAheadWindow = Self.defaultReadAheadWindow
+        self.maxBackendChunk = min(max(1, lease.preferredReadSize), Self.maximumReadAheadWindow)
         self.readerGroup = TransportReaderGroup()
         _ = readerGroup.register(self)
     }
@@ -148,6 +148,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         self.lease = lease
         self.resolvedSource = resolvedSource
         self.readAheadWindow = readAheadWindow
+        self.maxBackendChunk = min(max(1, lease.preferredReadSize), Self.maximumReadAheadWindow)
         self.readerGroup = readerGroup
     }
 
@@ -183,17 +184,8 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         }
     }
 
-    /// Largest single read issued to the underlying transport. The window is
-    /// filled by concatenating reads of at most this size so no backend ever sees
-    /// an oversized length (SFTP loops at 32 KB, WebDAV/NFS/SMB all accept ≤1 MB),
-    /// while ffmpeg's 256 KB demux reads are still served from the multi-MB window.
-    private static let maxBackendChunk = 1024 * 1024  // 1 MB
-
-    /// Miss path: fetch a `readAheadWindow`-sized window at `offset` (clamped to
-    /// EOF and never smaller than the demand), cache it, and hand back the
-    /// requested prefix. Preserves the single-in-flight-read + cancellation model.
-    /// The window is filled with bounded (`maxBackendChunk`) transport reads so a
-    /// large window never becomes a single oversized backend request.
+    /// Small, scattered disc probes must not fetch movie-sized windows. Grow
+    /// only when consuming contiguous windows; a random miss starts small again.
     private func fetchAndServe(
         into buffer: UnsafeMutablePointer<UInt8>,
         offset: Int64,
@@ -202,8 +194,6 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         let byteSize = lease.byteSize
         let remaining = byteSize > offset ? Int(min(byteSize - offset, Int64(Int.max))) : 0
         guard remaining > 0 else { return 0 }  // at/past EOF
-        let fetchLength = min(max(requestedLength, readAheadWindow), remaining)
-
         let outcome = TransportReadOutcome()
         let operation = TransportInflightRead()
         let wasPublished = inflight.withLock { active -> Bool in
@@ -214,18 +204,28 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         guard wasPublished else {
             return -1
         }
+        let fetchLength = readerState.withLock { state -> Int in
+            guard maxBackendChunk > Self.defaultBackendChunk else {
+                return min(max(requestedLength, readAheadWindow), remaining)
+            }
+            let sequential = !state.bufferData.isEmpty
+                && offset == state.bufferStart + Int64(state.bufferData.count)
+            let window = sequential ? min(state.bufferData.count * 4, maxBackendChunk) : 64 * 1024
+            let length = min(max(requestedLength, window), maxBackendChunk, remaining)
+            state.bufferData = Data()
+            return length
+        }
         if readerState.withLock({ $0.isClosed }) {
             operation.cancel()
         }
 
-        let chunkSize = Self.maxBackendChunk
+        let chunkSize = maxBackendChunk
         let task = Task.detached(priority: .userInitiated) { [cursor] in
             defer {
                 operation.semaphore.signal()
             }
             do {
                 var assembled = Data()
-                assembled.reserveCapacity(fetchLength)
                 var cursorOffset = offset
                 // Fill the window with bounded reads, concatenating partial reads
                 // (a backend may cap each read below the chunk size). Stop only on
@@ -235,8 +235,15 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
                     try Task.checkCancellation()
                     let want = min(chunkSize, fetchLength - assembled.count)
                     let piece = try await cursor.read(at: cursorOffset, length: want)
+                    guard piece.count <= want else {
+                        throw MediaTransportError.protocolViolation(reason: "source exceeded requested read length")
+                    }
                     if piece.isEmpty { break }
-                    assembled.append(piece)
+                    if assembled.isEmpty {
+                        assembled = piece
+                    } else {
+                        assembled.append(piece)
+                    }
                     cursorOffset += Int64(piece.count)
                 }
                 outcome.result = .success(assembled)
@@ -331,6 +338,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         let shouldRelease = readerState.withLock { state in
             guard !state.isClosed else { return false }
             state.isClosed = true
+            state.bufferData = Data()
             return true
         }
         guard shouldRelease else { return }

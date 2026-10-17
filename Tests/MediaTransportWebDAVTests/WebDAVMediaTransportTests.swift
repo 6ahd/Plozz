@@ -279,6 +279,7 @@ final class WebDAVMediaTransportTests: XCTestCase {
         let session = try await makeAdapter().connect(for: try makeKey(revision: revision, role: .playback))
         let lease = try await session.fileSystem.openSource(for: strongETagLocator(revision: revision))
         XCTAssertEqual(lease.byteSize, 1000)
+        XCTAssertEqual(lease.preferredReadSize, 32 * 1024 * 1024)
         let cursor = try XCTUnwrap(lease.makeCursor())
         let bytes = try await cursor.read(at: 0, length: 4)
         XCTAssertEqual(bytes, Data([1, 2, 3, 4]))
@@ -307,6 +308,50 @@ final class WebDAVMediaTransportTests: XCTestCase {
                 return XCTFail("expected sourceChanged, got \(error)")
             }
         }
+    }
+
+    func testLargePlaybackRangeKeepsExactBoundsAndValidator() async throws {
+        let revision = CredentialRevision()
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        let total = 64 * 1024 * 1024
+        let offset = 4 * 1024 * 1024
+        let length = 32 * 1024 * 1024
+        queueStat(size: total)
+        StubURLProtocol.queue(
+            StubResponse(
+                statusCode: 206,
+                headers: ["ETag": "\"strong-1\"", "Content-Range": "bytes 0-0/\(total)"],
+                body: Data([42])
+            ), for: url
+        )
+        let observedRange = LockedValue<String?>(nil)
+        let observedValidator = LockedValue<String?>(nil)
+        StubURLProtocol.queue(
+            StubResponse(
+                statusCode: 206,
+                headers: [
+                    "ETag": "\"strong-1\"",
+                    "Content-Range": "bytes \(offset)-\(offset + length - 1)/\(total)"
+                ],
+                body: Data(repeating: 42, count: length),
+                onRequest: {
+                    observedRange.set($0.value(forHTTPHeaderField: "Range"))
+                    observedValidator.set($0.value(forHTTPHeaderField: "If-Match"))
+                }
+            ), for: url
+        )
+        let session = try await makeAdapter().connect(for: try makeKey(revision: revision, role: .playback))
+        let locator = try strongETagLocator(size: Int64(total), revision: revision)
+        let lease = try await session.fileSystem.openSource(for: locator)
+        let cursor = try XCTUnwrap(lease.makeCursor())
+        let bytes = try await cursor.read(at: Int64(offset), length: length)
+        cursor.close()
+        await lease.waitForFinalShutdown()
+        await session.shutdown()
+        XCTAssertEqual(bytes.count, length)
+        XCTAssertTrue(bytes.allSatisfy { $0 == 42 })
+        XCTAssertEqual(observedRange.get(), "bytes=\(offset)-\(offset + length - 1)")
+        XCTAssertEqual(observedValidator.get(), "\"strong-1\"")
     }
 
     func testByteSourceReturnsEmptyAtEOF() async throws {

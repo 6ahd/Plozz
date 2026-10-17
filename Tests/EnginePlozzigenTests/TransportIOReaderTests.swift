@@ -114,6 +114,11 @@ private final class BlockingTransportByteSource: TransportByteSource, @unchecked
     private var closeCountStorage = 0
 
     let byteSize: Int64 = 1
+    let preferredReadSize: Int
+
+    init(preferredReadSize: Int = 1024 * 1024) {
+        self.preferredReadSize = preferredReadSize
+    }
 
     var closeCount: Int {
         state.withLock { closeCountStorage }
@@ -159,6 +164,26 @@ private final class CountingTransportByteSource: TransportByteSource, @unchecked
     func shutdown() async {}
 }
 
+private final class SparseTransportByteSource: TransportByteSource, @unchecked Sendable {
+    let byteSize: Int64 = 256 * 1024 * 1024
+    let preferredReadSize: Int
+    private let lock = NSLock()
+    private var reads: [(offset: Int64, length: Int)] = []
+
+    init(preferredReadSize: Int = 1024 * 1024) {
+        self.preferredReadSize = preferredReadSize
+    }
+
+    var readLog: [(offset: Int64, length: Int)] { lock.withLock { reads } }
+
+    func read(at offset: Int64, length: Int) async throws -> Data {
+        lock.withLock { reads.append((offset, length)) }
+        return Data(repeating: 42, count: min(length, Int(byteSize - offset)))
+    }
+
+    func shutdown() async {}
+}
+
 private func read(_ reader: IOReader, count: Int) -> (result: Int32, data: Data) {
     var bytes = [UInt8](repeating: 0, count: count)
     let result = bytes.withUnsafeMutableBufferPointer {
@@ -170,12 +195,14 @@ private func read(_ reader: IOReader, count: Int) -> (result: Int32, data: Data)
 private final class CappedTransportByteSource: TransportByteSource, @unchecked Sendable {
     let data: Data
     let perReadCap: Int
+    let preferredReadSize: Int
     private let state = NSLock()
     private var reads: [(offset: Int64, length: Int)] = []
 
-    init(_ data: Data, perReadCap: Int) {
+    init(_ data: Data, perReadCap: Int, preferredReadSize: Int = 1024 * 1024) {
         self.data = data
         self.perReadCap = perReadCap
+        self.preferredReadSize = preferredReadSize
     }
 
     var byteSize: Int64 { Int64(data.count) }
@@ -194,6 +221,71 @@ private final class CappedTransportByteSource: TransportByteSource, @unchecked S
 }
 
 final class TransportIOReaderReadAheadTests: XCTestCase {
+    func testAdaptiveWindowPreservesShortReadsAndEOF() {
+        let payload = Data((0..<4096).map { UInt8($0 & 0xff) })
+        let source = CappedTransportByteSource(
+            payload, perReadCap: 1000, preferredReadSize: 32 * 1024 * 1024
+        )
+        let reader = TransportIOReader(source: source)
+        defer { reader.close() }
+        XCTAssertEqual(read(reader, count: 256).data, Data(payload.prefix(256)))
+        XCTAssertEqual(source.readCount, 5)
+        XCTAssertEqual(read(reader, count: 4096).data, Data(payload.dropFirst(256)))
+        XCTAssertEqual(read(reader, count: 1).result, 0)
+        XCTAssertEqual(source.readCount, 5)
+    }
+
+    func testLargeRangeReadsStartSmallGrowContiguouslyAndStayBounded() {
+        let source = SparseTransportByteSource(preferredReadSize: 64 * 1024 * 1024)
+        let reader = TransportIOReader(source: source)
+        defer { reader.close() }
+        XCTAssertEqual(read(reader, count: 2).data, Data([42, 42]))
+        for _ in 0..<6 {
+            let previous = source.readLog.last!
+            let next = previous.offset + Int64(previous.length)
+            XCTAssertEqual(reader.seek(offset: next, whence: SEEK_SET), next)
+            XCTAssertEqual(read(reader, count: 2).data, Data([42, 42]))
+        }
+        XCTAssertEqual(source.readLog.map(\.length), [
+            64 * 1024, 256 * 1024, 1024 * 1024, 4 * 1024 * 1024,
+            16 * 1024 * 1024, 32 * 1024 * 1024, 32 * 1024 * 1024
+        ])
+    }
+
+    func testLargeRangeRandomSeekAndCloneRestartSmallWithoutLosingCacheHits() throws {
+        let source = SparseTransportByteSource(preferredReadSize: 32 * 1024 * 1024)
+        let reader = TransportIOReader(source: source)
+        defer { reader.close() }
+        XCTAssertEqual(read(reader, count: 256 * 1024).result, 256 * 1024)
+        XCTAssertEqual(read(reader, count: 2).result, 2)
+        XCTAssertEqual(source.readLog.map(\.length), [256 * 1024, 1024 * 1024])
+        XCTAssertEqual(reader.seek(offset: 64 * 1024 * 1024, whence: SEEK_SET), 64 * 1024 * 1024)
+        XCTAssertEqual(read(reader, count: 2).data, Data([42, 42]))
+        XCTAssertEqual(source.readLog.last?.length, 64 * 1024)
+        let count = source.readLog.count
+        XCTAssertEqual(reader.seek(offset: 64 * 1024 * 1024 + 1, whence: SEEK_SET), 64 * 1024 * 1024 + 1)
+        XCTAssertEqual(read(reader, count: 2).data, Data([42, 42]))
+        XCTAssertEqual(source.readLog.count, count)
+
+        let clone = try XCTUnwrap(reader.makeIndependentReader())
+        defer { clone.close() }
+        XCTAssertEqual(read(clone, count: 2).data, Data([42, 42]))
+        XCTAssertEqual(source.readLog.last?.offset, 0)
+        XCTAssertEqual(source.readLog.last?.length, 64 * 1024)
+        XCTAssertEqual(read(reader, count: 2).data, Data([42, 42]))
+        XCTAssertEqual(source.readLog.count, count + 1)
+    }
+
+    func testOtherTransportsKeepExistingWindowAndRequestSizes() {
+        let source = SparseTransportByteSource()
+        let reader = TransportIOReader(source: source)
+        defer { reader.close() }
+        XCTAssertEqual(read(reader, count: 2).data, Data([42, 42]))
+        XCTAssertEqual(source.readLog.map(\.length), Array(repeating: 1024 * 1024, count: 4))
+        let expectedOffsets: [Int64] = [0, 1_048_576, 2_097_152, 3_145_728]
+        XCTAssertEqual(source.readLog.map(\.offset), expectedOffsets)
+    }
+
     /// Many small sequential reads within one window collapse to a single
     /// underlying transport round-trip (the cold-start latency win).
     func testSequentialSmallReadsCoalesceIntoOneFetch() {
@@ -443,21 +535,23 @@ final class TransportIOReaderTests: XCTestCase {
     }
 
     func testCancelUnblocksReadWhileUnderlyingOperationDrains() async {
-        let source = BlockingTransportByteSource()
-        let reader = TransportIOReader(source: source)
-        let readTask = Task.detached { read(reader, count: 1).result }
-        await source.waitUntilReadStarts()
+        for preferredReadSize in [1024 * 1024, 32 * 1024 * 1024] {
+            let source = BlockingTransportByteSource(preferredReadSize: preferredReadSize)
+            let reader = TransportIOReader(source: source)
+            let readTask = Task.detached { read(reader, count: 1).result }
+            await source.waitUntilReadStarts()
 
-        reader.cancel()
-        let cancelledResult = await readTask.value
-        XCTAssertEqual(cancelledResult, -1)
+            reader.cancel()
+            let cancelledResult = await readTask.value
+            XCTAssertEqual(cancelledResult, -1)
 
-        source.finishRead()
-        XCTAssertEqual(read(reader, count: 1).data, Data([42]))
+            source.finishRead()
+            XCTAssertEqual(read(reader, count: 1).data, Data([42]))
 
-        reader.close()
-        await reader.waitForFinalShutdown()
-        XCTAssertEqual(source.closeCount, 1)
+            reader.close()
+            await reader.waitForFinalShutdown()
+            XCTAssertEqual(source.closeCount, 1)
+        }
     }
 }
 #endif

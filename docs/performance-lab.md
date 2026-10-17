@@ -155,6 +155,18 @@ without pretending a sample count measures frame smoothness.
 | `diagnostics` | 10,000 operation attempts with recording disabled/enabled, plus 100 bounded snapshot encodes. Measures recorder and event-time serialization overhead without starting Sentry or creating uploads. |
 | `network` | `catalog-cached-refresh`: 1,000-channel loopback M3U import with a 100-ms header delay, then an expired-catalog refresh held while three cached reads complete. Verifies one refresh and actual replacement visibility. Cold/cached foreground timings are separate counters; whole-cycle wall time includes setup, controlled waiting and settling. No external playlist or stream links are fetched. |
 
+For network-file startup and seek overhead, select `network-file-read-ahead`.
+It exercises the production transport reader with four scattered metadata probes
+followed by 64 MiB of verified sequential consumption. The synthetic source
+advertises 32 MiB requests and adds 5 ms latency per read. Counters distinguish
+consumed bytes, fetched bytes, request count and largest request; read-ahead may
+reduce round trips while increasing unused sequential bytes. This measures reader
+work and synthetic latency, not real WebDAV throughput, TLS/HTTP allocation cost,
+video decode, or device smoothness. Resident snapshots are not peak memory.
+Pair it with the hosted WebDAV playback checks in
+[Playback engines](playback-engines.md#media-share-disc-images) when changing
+actual network playback.
+
 For Home metadata work, select `home-metadata-publication`,
 `home-observed-metadata-publication`, `home-row-metadata-updates`, and
 `home-row-metadata-reuse` on either platform.

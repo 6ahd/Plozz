@@ -16,6 +16,7 @@ import MediaTransportHTTP
 /// shutdown.
 final class WebDAVByteSource: MediaTransportByteSource, @unchecked Sendable {
     let byteSize: Int64
+    let preferredReadSize = 32 * 1024 * 1024
 
     private let client: WebDAVClient
     private let resourceURL: URL

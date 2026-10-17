@@ -1163,6 +1163,7 @@ let package = Package(
                 "CoreModels",
                 "EnginePlozzigen",
                 "MediaTransportCore",
+                "TestSupportPerformance",
                 .product(name: "AetherEngine", package: "AetherEngine"),
             ]
         ),

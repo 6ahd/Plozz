@@ -15,14 +15,23 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
     }
 
     func testSyntheticDVDISOPlaysAndSeeksOverWebDAV() async throws {
+        try await checkFixturePlayback(named: "dvd-test-pattern", fileExtension: "iso")
+    }
+
+    func testMP4PlaysAndSeeksOverWebDAV() async throws {
+        try await checkFixturePlayback(named: "embedded", fileExtension: "mp4")
+    }
+
+    private func checkFixturePlayback(named name: String, fileExtension: String) async throws {
         let file = try XCTUnwrap(Bundle(for: Self.self).url(
-            forResource: "dvd-test-pattern", withExtension: "iso", subdirectory: "Fixtures"
+            forResource: name, withExtension: fileExtension, subdirectory: "Fixtures"
         ))
+        let path = "fixture.\(fileExtension)"
         let data = try Data(contentsOf: file)
         let etag = "\"synthetic-disc\""
         let xml = """
         <D:multistatus xmlns:D="DAV:"><D:response>
-        <D:href>/dav/fixture.iso</D:href><D:propstat><D:prop>
+        <D:href>/dav/\(path)</D:href><D:propstat><D:prop>
         <D:getcontentlength>\(data.count)</D:getcontentlength>
         <D:getetag>\(etag)</D:getetag>
         <D:getcontenttype>application/octet-stream</D:getcontenttype>
@@ -36,7 +45,7 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
             if request.hasPrefix("PROPFIND ") {
                 return .init(data: Data(xml.utf8), status: 207, headers: ["Content-Type": "application/xml"])
             }
-            guard request.hasPrefix("GET /dav/fixture.iso "),
+            guard request.hasPrefix("GET /dav/\(path) "),
                   let range = request.components(separatedBy: "\r\n").first(where: {
                       $0.lowercased().hasPrefix("range: bytes=")
                   })?.split(separator: "=").last?.split(separator: "-"),
@@ -54,7 +63,7 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
         addTeardownBlock { await server.stop() }
         let base = try await server.start().appendingPathComponent("dav")
         try await checkPlayback(
-            base: base, path: "fixture.iso", credential: .anonymous, seekPositions: [4, 1]
+            base: base, path: path, credential: .anonymous, seekPositions: [4, 1]
         )
     }
 
@@ -83,12 +92,13 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
         try await checkPlayback(
             base: input.baseURL, path: input.relativePath,
             credential: .password(username: input.username, password: input.password, policy: .automatic),
-            seekPositions: input.seekPositions
+            seekPositions: input.seekPositions, sustainedPlaybackSeconds: 20
         )
     }
 
     private func checkPlayback(
-        base: URL, path: String, credential: WebDAVCredential, seekPositions: [Double]
+        base: URL, path: String, credential: WebDAVCredential, seekPositions: [Double],
+        sustainedPlaybackSeconds: Int = 0
     ) async throws {
         let scheme = try XCTUnwrap(base.scheme.flatMap(WebDAVScheme.init(rawValue:)))
         let account = "webdav-playback-\(UUID().uuidString)"
@@ -118,7 +128,7 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
         let container = parent.isEmpty ? ShareLibraryStore.rootLibraryID : "d:\(parent)"
         let entries = try await library.entries(forContainerID: container)
         let item = try XCTUnwrap(entries.first { $0.id == "f:\(path)" },
-                                 "The production browser must expose the selected ISO")
+                                 "The production browser must expose the selected media")
         let provider = ShareProvider(
             session: UserSession(
                 server: .init(id: account, name: "Disc fixture", baseURL: base, provider: .mediaShare),
@@ -160,6 +170,17 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
             try await perform(engine: engine) { await engine.seek(to: target) }
             try await waitForPlayback(engine, after: target + 0.3, before: target + 5)
             print("WEBDAV_DISC seek=\(target) landed=\(engine.currentTime) elapsed=\(seekStart.duration(to: .now))")
+        }
+        if sustainedPlaybackSeconds > 0 {
+            let initialPosition = engine.currentTime
+            let started = ContinuousClock.now
+            while started.duration(to: .now) < .seconds(sustainedPlaybackSeconds) {
+                if case .failed = engine.status { throw CheckFailure.engineFailed }
+                try await Task.sleep(for: .milliseconds(250))
+            }
+            let progress = engine.currentTime - initialPosition
+            XCTAssertGreaterThan(progress, Double(sustainedPlaybackSeconds) - 2)
+            print("WEBDAV_DISC sustainedSeconds=\(sustainedPlaybackSeconds) progressed=\(progress)")
         }
     }
 

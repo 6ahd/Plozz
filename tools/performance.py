@@ -64,6 +64,13 @@ SCENARIOS = {
         "counters": ["channels", "cachedReads", "replacementChannels", "httpRequests", "refreshRequests",
                      "coldForegroundNanoseconds", "cachedForegroundNanoseconds"],
     },
+    "network-file-read-ahead": {
+        "suite": "network", "target": "EnginePlozzigenTests",
+        "test": "TransportReadAheadPerformanceTests/testPerformanceRandomAndSequentialReads",
+        "file": "Tests/EnginePlozzigenTests/TransportReadAheadPerformanceTests.swift",
+        "description": "Four sparse disc-metadata probes then 64 MiB sequential playback through the production reader; 5-ms synthetic request latency.",
+        "counters": ["metadataReads", "consumedBytes", "transportReads", "transportBytes", "largestRequest"],
+    },
     "diagnostics-disabled": {
         "suite": "diagnostics", "target": "CoreModelsTests",
         "test": "PerformanceDiagnosticsProbeTests/testPerformanceDisabledOperations",
