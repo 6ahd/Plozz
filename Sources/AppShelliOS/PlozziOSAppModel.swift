@@ -810,7 +810,9 @@ final class PlozziOSAppModel {
                 credentialRevision: accountsProviders.credentialRevision(account),
                 baseURL: baseURL,
                 token: token,
-                resourceResolver: accountsProviders.provider(forAccountID: account.id) as? any ProviderHTTPResourceResolving
+                resourceResolver: accountsProviders.provider(forAccountID: account.id) as? any ProviderHTTPResourceResolving,
+                originProvider: accountsProviders.provider(forAccountID: account.id) as? any AuthenticatedHTTPOriginProviding,
+                connectionScopeKey: account.connectionScopeKey
             )
         }
         do {

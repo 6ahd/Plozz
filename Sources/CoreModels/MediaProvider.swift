@@ -366,6 +366,12 @@ public protocol InteractiveBrowseActivityReporting: Sendable {
 /// host, and effective port must all match, so a path that merely resembles a
 /// provider endpoint on Plex Discover or a CDN is never adopted as local art.
 public enum MediaProviderURLIdentity {
+    /// Prefer the specific proxy prefix when approved bases share an origin.
+    public static func matchingBaseURL(for url: URL, among bases: [URL]) -> URL? {
+        bases.filter { relativeResourcePath(of: url, under: $0) != nil }
+            .max { $0.path.count < $1.path.count }
+    }
+
     public static func relativeResourcePath(
         of url: URL,
         under baseURL: URL

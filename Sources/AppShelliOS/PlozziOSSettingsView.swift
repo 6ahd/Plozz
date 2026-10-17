@@ -4,6 +4,7 @@ import CoreModels
 import CoreNetworking
 import CoreUI
 import FeaturePlayback
+import FeatureAuth
 import FeatureSettings
 import FeatureSyncSetup
 import SwiftUI
@@ -65,6 +66,20 @@ struct PlozziOSSettingsView: View {
         }
         .environment(appModel.profiles)
         .environment(\.managedProviderSetupRouter, providerSetupRouter)
+        .plozzSheet(item: $providerSetupRouter.addressAccount) { account in
+            let profileID = appModel.profiles.activeProfileID
+            ServerAddressesView(
+                account: account, store: appModel.accountStore,
+                isAuthorized: {
+                    appModel.profiles.activeProfileID == profileID && !appModel.managementRequiresParentalPIN
+                },
+                onChanged: { appModel.accountsProviders.reloadAccounts() }
+            )
+            .presentationSizing(.page)
+        }
+        .onChange(of: appModel.profiles.activeProfileID) { _, _ in
+            providerSetupRouter.addressAccount = nil
+        }
         .onChange(of: appModel.liveTVAdmissionDiagnostic, initial: true) { _, diagnostic in
             HandoffDiagnostics.emit("SOURCES event=appAdmission \(diagnostic)")
         }

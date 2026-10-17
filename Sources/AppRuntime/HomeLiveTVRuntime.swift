@@ -50,7 +50,7 @@ public enum HomeLiveTVRuntime {
         guard let accounts else { return nil }
         let active = accounts.accounts.filter { accounts.activeAccountIDs.contains($0.id) }
         let durableRevisions = active.sorted { $0.id < $1.id }
-            .map { "\($0.id):\($0.credentialRevision.rawValue.uuidString)" }.joined(separator: "|")
+            .map(\.connectionScopeKey).joined(separator: "|")
         let epoch = accounts.liveTVAuthorizationID + "|" + durableRevisions
         let key = ObjectIdentifier(accounts)
         var credentialIDs = Set<String>()
@@ -102,6 +102,7 @@ public enum HomeLiveTVRuntime {
                 account.credentialRevision.rawValue.uuidString
             ] { append(value) }
             for address in account.server.connectionURLs ?? [] { append(address.absoluteString) }
+            for address in account.server.alternateConnectionURLs ?? [] { append(address.absoluteString) }
         }
         return digest.finalize().map { String(format: "%02x", $0) }.joined()
     }

@@ -153,6 +153,22 @@ private struct PlozziOSServerSettingsDetailView: View {
                     }
                 }
 
+                if [.jellyfin, .emby, .plex, .silo].contains(group.providerKind),
+                   let providerSetupRouter {
+                    SettingsSectionGroup("Connection addresses") {
+                        ForEach(group.accounts) { account in
+                            Button {
+                                providerSetupRouter.addressAccount = account
+                            } label: {
+                                SettingsDisclosureLabel {
+                                    Text(verbatim: account.userName.isEmpty ? account.server.name : account.userName)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
                 if group.accounts.count > 1 {
                     SettingsSectionGroup {
                         Button("Remove Server", role: .destructive) {
@@ -275,7 +291,7 @@ struct PlozziOSMyLibrariesSettingsView: View {
         .onChange(of: appModel.profiles.activeProfileID) { _, _ in
             pendingWatching.removeAll()
         }
-        .task(id: appModel.accounts.map(\.credentialRevision)) {
+        .task(id: appModel.accounts.map(\.connectionScopeKey)) {
             await loadLibraries()
         }
         // Asks who you are on a Plex server you just switched on — the same

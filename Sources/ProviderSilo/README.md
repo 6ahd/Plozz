@@ -48,6 +48,23 @@ categories and an HTTP status only. No server address, response body, profile
 identity, PIN, pairing code, token, or error description is included. Opt-out
 invalidates retained attempts, including across later opt-in.
 
+## Alternate connection addresses
+
+Settings can approve another address through native device pairing, matching the
+authenticated installation/account/profile before saving the alias. Only the
+temporary verification login is revoked; the original rotating credential and
+account identity stay intact. This does not depend on newer Silo pinned-LAN
+discovery, and does not infer trust from a self-asserted public server ID.
+
+API requests choose among explicitly approved routes with credential-free v2
+reachability probes. A refresh whose route selection fails before transmission
+retains its original token; an ambiguous transmitted refresh is never replayed.
+Relative resource URLs use the selected API base. Server-issued signed media
+URLs remain byte-for-byte on their issued origin, with the bearer added only for
+approved server/session URLs. Foreign media nodes do not receive that bearer.
+If Silo issues a public absolute media URL, selecting a local API address does
+not silently rewrite it or move an already-playing stream.
+
 ## Server Home
 
 Match Server imports Silo's profile-scoped native Home row IDs, headings, order

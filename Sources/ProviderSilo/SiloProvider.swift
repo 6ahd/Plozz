@@ -16,12 +16,13 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
     public init(
         context: ProviderResolutionContext, credentials: any RotatingCredentialStoring,
         http: any HTTPClient = URLSessionHTTPClient(),
-        capabilities: MediaCapabilities = .detected()
+        capabilities: MediaCapabilities = .detected(),
+        addressProbe: any HTTPClient = URLSessionHTTPClient(session: .plozzDiscovery)
     ) throws {
         session = context.session
         accountID = context.accountID
         credentialRevision = context.credentialRevision
-        client = try SiloClient(context: context, store: credentials, http: http)
+        client = try SiloClient(context: context, store: credentials, http: http, addressProbe: addressProbe)
         playback = SiloPlaybackSessions()
         capabilitiesSnapshot = capabilities
     }
@@ -303,7 +304,7 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
 
     func resourceURL(_ value: String?) -> URL? {
         guard let value, !value.isEmpty,
-              let url = URL(string: value, relativeTo: session.server.baseURL)?.absoluteURL,
+              let url = URL(string: value, relativeTo: client.baseURL)?.absoluteURL,
               ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
               url.user == nil, url.password == nil else { return nil }
         return url

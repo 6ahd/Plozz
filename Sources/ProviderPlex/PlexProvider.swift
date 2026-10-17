@@ -21,6 +21,30 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
 
     public var authenticatedHTTPOrigin: URL { client.baseURL }
 
+    public func resolveAuthenticatedHTTPOrigin() async throws -> URL {
+        let url = await client.resolvedBaseURL()
+        try Task.checkCancellation()
+        return url
+    }
+
+    public static func verifyAddress(
+        _ url: URL, serverID: String,
+        http: any HTTPClient = URLSessionHTTPClient(session: .plozzDiscovery)
+    ) async throws {
+        struct Identity: Decodable {
+            struct Container: Decodable { let machineIdentifier: String }
+            let MediaContainer: Container
+        }
+        let identity = try await http.decode(
+            Identity.self,
+            from: Endpoint(path: "/identity", headers: ["Accept": "application/json"], redirectPolicy: .sameOrigin),
+            baseURL: url
+        )
+        guard !serverID.isEmpty, identity.MediaContainer.machineIdentifier == serverID else {
+            throw AppError.conflict
+        }
+    }
+
     public init(
         session: UserSession,
         accountID: String? = nil,
@@ -42,9 +66,11 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
         // Probe the persisted connection list (or the single saved URL) and stay
         // on whichever is reachable. With only one candidate and no refresh this
         // is a no-op — behaviour matches a fixed URL.
-        let candidates = session.server.connectionURLs?.isEmpty == false
+        let advertised = session.server.connectionURLs?.isEmpty == false
             ? session.server.connectionURLs!
             : [session.server.baseURL]
+        let manual = session.server.alternateConnectionURLs ?? []
+        let candidates = advertised + manual
         // Persist whichever connection last answered, keyed by server, so a warm
         // server resolves on the first probe next launch instead of re-discovering
         // through stale/dead addresses (Docker bridges, old relay IPs).
@@ -53,12 +79,18 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
             "plex.artwork-origins.\(session.server.id)"
         self.artworkOriginHistoryKey = artworkOriginHistoryKey
         let reachableSeed = UserDefaults.standard.string(forKey: reachableKey).flatMap(URL.init(string:))
+            .flatMap { candidates.contains($0) ? $0 : nil }
         let resolver = PlexConnectionResolver(
             candidates: candidates,
             deviceProfile: deviceProfile,
             token: session.accessToken,
             probe: probe,
-            refresh: connectionRefresh,
+            refresh: connectionRefresh.map { refresh in
+                {
+                    let updated = await refresh()
+                    return updated.isEmpty ? candidates : updated + manual
+                }
+            },
             reachableSeed: reachableSeed,
             onReachable: { url in
                 UserDefaults.standard.set(url.absoluteString, forKey: reachableKey)

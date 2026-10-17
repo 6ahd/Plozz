@@ -180,6 +180,8 @@ public struct PlexClient: Sendable {
     /// used by URL builders after a request has settled it.
     public var baseURL: URL { resolver.current }
 
+    func resolvedBaseURL() async -> URL { await resolver.resolved() }
+
     var knownBaseURLs: [URL] { resolver.knownBaseURLs }
 
     /// Whether the resolver has a confirmed-reachable (or persisted last-known-good)
@@ -271,6 +273,8 @@ public struct PlexClient: Sendable {
         using client: HTTPClient? = nil,
         preservingStatus: Bool = false
     ) async throws -> (Data, HTTPURLResponse) {
+        var endpoint = endpoint
+        endpoint.redirectPolicy = .sameOrigin
         let client = client ?? http
         let base = await resolver.resolved()
         do {

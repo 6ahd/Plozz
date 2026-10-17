@@ -326,7 +326,8 @@ public final class PlexConnectionResolver: Sendable {
     }
 
     private func probeReachable(_ url: URL) async -> Bool {
-        let endpoint = Endpoint(path: "/identity", headers: deviceProfile.headers(token: token))
+        let endpoint = Endpoint(path: "/identity", headers: deviceProfile.headers(token: token),
+                                redirectPolicy: .sameOrigin)
         do {
             _ = try await probe.send(endpoint, baseURL: url)
             return true

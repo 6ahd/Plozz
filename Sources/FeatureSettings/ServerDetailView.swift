@@ -57,6 +57,22 @@ struct ServerDetailView: View {
                     // tvOS otherwise can't connect (a diagonal move it won't make).
                     accountsPanel(group)
                         .tvOSFocusSection()
+                    if [.jellyfin, .emby, .plex, .silo].contains(group.providerKind),
+                       let providerSetupRouter {
+                        SettingsPanel(title: "Connection addresses") {
+                            VStack(alignment: .leading, spacing: 16) {
+                                ForEach(group.accounts) { account in
+                                    Button {
+                                        providerSetupRouter.addressAccount = account
+                                    } label: {
+                                        Label(account.userName.isEmpty ? account.server.name : account.userName,
+                                              systemImage: "network")
+                                    }
+                                }
+                            }
+                        }
+                        .tvOSFocusSection()
+                    }
                     if group.providerKind == .mediaShare {
                         shareLibraryPanel(group)
                             .tvOSFocusSection()

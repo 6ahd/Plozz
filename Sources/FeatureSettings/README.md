@@ -5,6 +5,12 @@ and the single place caption customization lives.
 
 ## Responsibility
 
+- **Servers > Connection addresses** opens the shared address editor for each
+  Jellyfin, Emby, Plex, or Silo sign-in on TV and mobile. The original sign-in
+  address remains visible; verified aliases can be added or removed. Saving
+  rebuilds retained browsing providers without rotating credentials. Address
+  changes apply to subsequent work, not seamless migration of an active stream.
+  Network-share aliases are a separate feature.
 - `PlaybackReadAheadControl` — Playback's device-local **Video buffer**
   uses the shared checkable option list on TV and a native menu picker on mobile,
   including share-only profiles. Automatic, 1 minute, 5 minutes, 10 minutes and
