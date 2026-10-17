@@ -202,7 +202,7 @@ final class SeerMapperTests: XCTestCase {
         XCTAssertEqual(mapped.seasons.first?.premiereDate, premiere)
         XCTAssertTrue(mapped.seasons.dropFirst().allSatisfy { $0.premiereDate == nil })
         let presentation = SeasonRequestPresentation(availability: mapped, now: premiere.addingTimeInterval(-604_800))
-        XCTAssertEqual(String(localized: presentation.title), "S1 Requested · Awaiting Release")
+        XCTAssertEqual(String(localized: presentation.title), "S1 Requested · Unreleased")
         XCTAssertEqual(presentation.systemImage, "calendar")
     }
 

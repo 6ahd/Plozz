@@ -31,6 +31,7 @@ public struct TouchHeroActionButtonStyle: ButtonStyle {
     private func styledLabel(_ configuration: Configuration) -> some View {
         if circular {
             configuration.label
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(kind == .primary ? palette.backgroundBase : palette.primaryText)
                 .frame(width: 48, height: 48)
                 .background {

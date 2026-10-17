@@ -66,9 +66,9 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
             // One request identifies its season; multiple requests summarize their count.
             if awaitingRelease.count == activeCount {
                 if activeCount == 1, let season = awaitingRelease.first {
-                    title = "S\(season.number) Requested · Awaiting Release"
+                    title = "S\(season.number) Requested · Unreleased"
                 } else {
-                    title = "\(activeCount) Seasons Requested · Awaiting Release"
+                    title = "\(activeCount) Seasons Requested · Unreleased"
                 }
                 systemImage = "calendar"
             } else if processing.count == activeCount {
@@ -144,8 +144,8 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
         }
         guard awaitingRelease > 0 else { return workflow }
         if let workflow {
-            return "\(workflow) · \(awaitingRelease) Awaiting Release"
+            return "\(workflow) · \(awaitingRelease) Unreleased"
         }
-        return "\(awaitingRelease) Awaiting Release"
+        return "\(awaitingRelease) Unreleased"
     }
 }

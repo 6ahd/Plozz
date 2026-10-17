@@ -105,7 +105,7 @@ public struct MediaSeasonRequestState: Identifiable, Sendable, Equatable {
         if requestStatus == .completed { return "Request Completed" }
         if effectiveRequestStatus == .pending { return "Requested" }
         if isAwaitingRelease(now: now, calendar: calendar) {
-            return "Requested · Awaiting Release"
+            return "Requested · Unreleased"
         }
         if effectiveRequestStatus == .processing { return "Processing" }
         return switch coverage {

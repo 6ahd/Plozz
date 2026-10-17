@@ -13,12 +13,12 @@ final class SeasonRequestPresentationTests: XCTestCase {
         let result = SeasonRequestPresentation(
             availability: availability([requested]), now: now, calendar: calendar
         )
-        XCTAssertEqual(english(result.title), "S1 Requested · Awaiting Release")
+        XCTAssertEqual(english(result.title), "S1 Requested · Unreleased")
         XCTAssertEqual(result.systemImage, "calendar")
         XCTAssertTrue(result.hasActiveRequests)
         XCTAssertNil(result.detail)
         XCTAssertFalse(requested.isRequestable)
-        XCTAssertEqual(english(requested.statusTitle(now: now, calendar: calendar)), "Requested · Awaiting Release")
+        XCTAssertEqual(english(requested.statusTitle(now: now, calendar: calendar)), "Requested · Unreleased")
         XCTAssertEqual(requested.statusSystemImage, "calendar")
 
         let next = MediaSeasonRequestState(
@@ -26,10 +26,10 @@ final class SeasonRequestPresentationTests: XCTestCase {
         )
         XCTAssertEqual(english(SeasonRequestPresentation(
             availability: availability([requested, next]), now: now, calendar: calendar
-        ).title), "2 Seasons Requested · Awaiting Release")
+        ).title), "2 Seasons Requested · Unreleased")
         XCTAssertEqual(english(SeasonRequestPresentation(
             availability: availability([season(1, .available), next]), now: now, calendar: calendar
-        ).title), "S2 Requested · Awaiting Release")
+        ).title), "S2 Requested · Unreleased")
     }
 
     func testReleaseDayUsesTheUsersCalendarDayNotUTCMidnight() throws {
@@ -78,10 +78,10 @@ final class SeasonRequestPresentationTests: XCTestCase {
         variants.append(failed)
         for variant in variants {
             XCTAssertFalse(variant.isAwaitingRelease(now: now), "\(variant)")
-            XCTAssertFalse(english(variant.statusTitle(now: now)).contains("Awaiting Release"))
+            XCTAssertFalse(english(variant.statusTitle(now: now)).contains("Unreleased"))
             XCTAssertFalse(english(SeasonRequestPresentation(
                 availability: availability([variant]), now: now
-            ).title).contains("Awaiting Release"))
+            ).title).contains("Unreleased"))
         }
         XCTAssertEqual(english(SeasonRequestPresentation(
             availability: .init(status: .processing, downloadProgress: 0.25, seasons: [base]), now: now
@@ -97,12 +97,12 @@ final class SeasonRequestPresentationTests: XCTestCase {
         let mixed = [season(1, .processing), season(2, .pending), future]
         let presentation = SeasonRequestPresentation(availability: availability(mixed), now: now)
         XCTAssertEqual(english(presentation.title), "3 Seasons Requested")
-        XCTAssertEqual(presentation.detail.map(english), "1 Requested, 1 Processing · 1 Awaiting Release")
+        XCTAssertEqual(presentation.detail.map(english), "1 Requested, 1 Processing · 1 Unreleased")
         let failure = SeasonRequestPresentation(
             availability: availability(mixed + [season(4, .pending, failed: true)]), now: now
         )
         XCTAssertEqual(english(failure.title), "S4 Request Failed")
-        XCTAssertEqual(failure.detail.map(english), "1 Requested, 1 Processing, 1 Failed · 1 Awaiting Release")
+        XCTAssertEqual(failure.detail.map(english), "1 Requested, 1 Processing, 1 Failed · 1 Unreleased")
     }
 
     func testDuplicateAndOptimisticSeasonStatesPreserveReleaseEvidence() throws {

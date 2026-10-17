@@ -2060,13 +2060,7 @@ struct PlozziOSDetailHeroForeground: View {
                     labelledTrailer: false,
                     resume: .hidden
                 )
-                actionRow(
-                    actions: entries,
-                    collapsing: extras.count,
-                    labelledTrailer: false,
-                    resume: .full,
-                    stacksVertically: true
-                )
+                stackedActionRows(actions: entries)
             }
             .controlSize(.large)
             .padding(.top, style == .compactPortrait ? PlozziOSHeroMetrics.compactDetailActionSpacing : 0)
@@ -2152,8 +2146,7 @@ struct PlozziOSDetailHeroForeground: View {
         actions: [ActionEntry],
         collapsing collapseCount: Int,
         labelledTrailer: Bool,
-        resume: PlayResumeButtonLabel.ResumeTrailingStyle,
-        stacksVertically: Bool = false
+        resume: PlayResumeButtonLabel.ResumeTrailingStyle
     ) -> some View {
         let extras = orderedInlineExtras(from: actions)
         // Fold by priority, then render what survives in display order, so the
@@ -2173,16 +2166,37 @@ struct PlozziOSDetailHeroForeground: View {
         let menu = menuActions(collapsing: collapsed, from: actions)
         let fileBrowserAction = actions.first { $0.action == .browseFiles }
         return HeroActionRow(
-            stacksVertically: stacksVertically,
             alignment: style == .compactPortrait ? .center : .leading
         ) {
-            playActionButton(resume: resume, wrapsText: stacksVertically)
+            playActionButton(resume: resume)
             heroRequestButton
             ForEach(inline) { extra in
                 inlineExtraButton(extra, labelled: labelledTrailer)
             }
             if hasSourceVersionOptions || !menu.isEmpty || fileBrowserAction != nil {
                 sourceVersionMenuButton(actions: menu, fileBrowserAction: fileBrowserAction)
+            }
+        }
+    }
+
+    private func stackedActionRows(actions: [ActionEntry]) -> some View {
+        let extras = orderedInlineExtras(from: actions)
+        let fileBrowserAction = actions.first { $0.action == .browseFiles }
+        return HeroActionRow(
+            stacksVertically: true,
+            alignment: style == .compactPortrait ? .center : .leading
+        ) {
+            playActionButton(wrapsText: true)
+            heroRequestButton
+            if !extras.isEmpty || hasSourceVersionOptions || fileBrowserAction != nil {
+                WrappingHStackLayout(alignment: style == .compactPortrait ? .center : .leading) {
+                    ForEach(extras) { extra in
+                        inlineExtraButton(extra, labelled: false)
+                    }
+                    if hasSourceVersionOptions || fileBrowserAction != nil {
+                        sourceVersionMenuButton(actions: [], fileBrowserAction: fileBrowserAction)
+                    }
+                }
             }
         }
     }
