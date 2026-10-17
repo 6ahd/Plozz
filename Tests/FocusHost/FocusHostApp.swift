@@ -8,7 +8,9 @@ import FeaturePlayback
 struct FocusHostApp: App {
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--read-ahead-settings-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--player-presentation-back-fixture") {
+                PlayerPresentationBackFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--read-ahead-settings-fixture") {
                 PlaybackReadAheadFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--iptv-organization-fixture") {
                 IPTVOrganizationFixture()

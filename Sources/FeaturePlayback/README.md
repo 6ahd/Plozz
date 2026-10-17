@@ -15,6 +15,9 @@ Manual choices and remembered Off take precedence. Server conversion, native
 rendition matching, and bitmap-engine routing preserve the selected SDH class.
 Provider flags and explicit SDH/CC track titles identify accessibility tracks;
 unlabelled content cannot be assumed to contain SDH cues.
+The debug playback journal records each automatic subtitle decision, including
+the effective SDH preference, remembered-choice precedence, selected track, and
+bounded language-match/accessibility flags without track titles or URLs.
 
 - **Engine abstraction** — `VideoEngine` protocol + the two seam files:
   - `NativeVideoEngine` — the always-shipped AVPlayer-backed engine.

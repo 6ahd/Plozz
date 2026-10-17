@@ -34,6 +34,9 @@ registry.
   `EnginePlozzigen` (and any future engine packages). Builds the
   `EngineFactory` closure injected into `FeaturePlayback`, keeping the
   heavy on-device decode binaries out of every other module's dependency graph.
+- `PlayerPresentation` handles Back only while preparing the initial playback
+  version. Once it creates the player model, it removes that handler so the
+  player's menus, controls, and video surface own their normal Back sequence.
 - `AppInfo` — version / build / display-name helpers read from
   `Info.plist`.
 

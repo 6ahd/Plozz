@@ -424,6 +424,38 @@ final class SubtitleTrackController {
     private func applyDefaultSubtitleThroughOverlay(from tracks: [MediaTrack]) {
         guard let host else { return }
         let engine = host.trackEngine
+        let rule = host.trackRequest.map { host.trackEffectiveSubtitleRule(for: $0.item) }
+        let remembered = host.trackRequest.flatMap { host.trackRememberedSubtitle(for: $0.item) }
+        defer {
+            if HandoffDiagnostics.isEnabled {
+                let language: String?
+                let memory: String
+                switch remembered {
+                case .off:
+                    language = nil
+                    memory = "off"
+                case .language(let value):
+                    language = value
+                    memory = "language"
+                case nil:
+                    language = rule?.preferredLanguage ?? host.trackBehavior.resolvedPreferredLanguage
+                    memory = "none"
+                }
+                let candidates = tracks.prefix(32).map { track in
+                    "\(track.id):match=\(LanguageMatch.matches(track.language, language))"
+                        + ",sdh=\(track.isSDHSubtitle),forced=\(track.isForced)"
+                        + ",image=\(track.isImageBasedSubtitle),external=\(track.isExternal)"
+                }.joined(separator: ";")
+                HandoffDiagnostics.emit(
+                    "subtitle AUTO engine=\(host.trackEngineKind)"
+                        + " preference=\(host.trackBehavior.hearingImpairedPreference.rawValue)"
+                        + " mode=\(rule?.mode ?? host.trackBehavior.subtitleMode)"
+                        + " memory=\(memory) languageKnown=\(language != nil)"
+                        + " selected=\(selectedSubtitleTrackID.map(String.init) ?? "off")"
+                        + " count=\(tracks.count) candidates=[\(candidates)]"
+                )
+            }
+        }
         func renderableSelection(mode: SubtitleMode, language: String?) -> MediaTrack? {
             guard let chosen = tracks.defaultSubtitleSelection(
                 mode: mode, preferredLanguage: language,
@@ -437,7 +469,7 @@ final class SubtitleTrackController {
             }
         }
         // A remembered per-series subtitle decision overrides the default rule.
-        if let remembered = host.trackRequest.map({ host.trackRememberedSubtitle(for: $0.item) }) ?? nil {
+        if let remembered {
             switch remembered {
             case .off:
                 engine.selectSubtitleTrack(nil)
@@ -454,7 +486,6 @@ final class SubtitleTrackController {
             }
         }
 
-        let rule = host.trackRequest.map { host.trackEffectiveSubtitleRule(for: $0.item) }
         let chosen = renderableSelection(
             mode: rule?.mode ?? host.trackBehavior.subtitleMode,
             language: rule?.preferredLanguage ?? host.trackBehavior.resolvedPreferredLanguage
