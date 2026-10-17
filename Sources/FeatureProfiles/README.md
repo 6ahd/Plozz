@@ -26,6 +26,14 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   restrictions. Settings lists retain their existing lock indicators.
 - `ProfilePhotoCandidate` — value type for profile photos borrowed from
   connected accounts and Plex Home users.
+- `ProfileActionsList` — shared profile management actions. Settings pages use
+  separate native groups for appearance/locks/Kids, device-wide automatic sign-in,
+  and deletion; mobile groups own row insets rather than wrapping padded rows.
+  Locked or parentally sealed actions remain gated, including automatic sign-in.
+  Picker dialogs retain their ungrouped layout and do not offer startup trust.
+- `AutomaticSignInSettings` — one binding and shared control for the device's
+  startup preference, exposed in individual profile settings and Everyone → Profiles.
+  The description carries device scope without an extra section heading.
 
 ## Invariants
 

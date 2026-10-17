@@ -2,6 +2,7 @@ import XCTest
 import CoreModels
 import FeatureAuth
 import FeatureMusic
+import FeatureProfiles
 import FeatureSettings
 @testable import AppRuntime
 @testable import AppShell

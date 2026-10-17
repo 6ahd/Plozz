@@ -144,13 +144,22 @@ session persistence.
 
 ## Automatically Sign In
 
-Settings → Profiles offers an off-by-default, device-only startup preference on
+Individual profile settings and Everyone → Profiles expose the same
+off-by-default, device-only startup preference on
 tvOS and iOS/iPadOS. When enabled from an authenticated profile, the next launch
 opens the last successfully used profile without the profile picker or PIN.
 This is the only startup control. When disabled, households with multiple
 profiles see the picker and protected profiles require their PIN as usual.
 The retired ask-on-startup preference is ignored, not converted into consent
-to bypass a PIN. The toggle has no helper text; only errors appear beneath it.
+to bypass a PIN. The description explains that it signs in to the last-used
+profile automatically on this device; this is not a per-profile or synced preference.
+
+On mobile, applying configuration sync refreshes the unchanged active profile
+without starting a new explicit activation. Cosmetic updates preserve a successful
+or in-flight Plex PIN entry. Synced profile changes and locks still pass the
+profile gates, and source membership/credential changes still reconcile or revoke
+Plex access. Deliberate selection, even of the current profile, remains a fresh
+authorization boundary.
 Automatic sign-in applies to Plozz profiles regardless of their providers,
 including profiles without server accounts. Plex Home token restoration is the
 provider-specific part, not a restriction on who can use the setting.

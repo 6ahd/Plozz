@@ -9,6 +9,11 @@ and the single place caption customization lives.
 
 ## Responsibility
 
+- Individual profile settings expose the existing device-wide Automatically
+  Sign In preference below Kids Profile, followed by a separate Delete Profile
+  group. Everyone → Profiles keeps the same control and binding. Shared
+  `FeatureProfiles` controls explain device scope in the description, not an
+  additional heading; profile locks and parental gates still protect management.
 - **Servers > Connection addresses** opens the shared address editor for each
   Jellyfin, Emby, Plex, or Silo sign-in on TV and mobile. One explicit
   **Add or manage addresses** action replaces a second list of user names.

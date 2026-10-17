@@ -1,6 +1,7 @@
 #if os(iOS)
 import CoreModels
 import CoreUI
+import FeatureProfiles
 @testable import FeatureSettings
 import Observation
 import SwiftUI
@@ -30,6 +31,56 @@ final class NativeSettingsToggleTests: XCTestCase {
 
     func testSharedSettingsStyleUsesNativeSwitchesOnMobile() async throws {
         try await verifyNativeSwitch(grouped: false)
+    }
+
+    func testProfileAndEveryoneAutomaticSignInShareOneNativeBinding() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        let model = Model()
+        var appearanceOpens = 0
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        for profilePage in [true, false, true] {
+            window.rootViewController = UIHostingController(rootView: SettingsPageList {
+                if profilePage {
+                    ProfileActionsList(
+                        profile: .init(id: "native-signin", name: "Sample", avatarSymbol: "person.fill"),
+                        syncEnabled: false, hasParentalPIN: false, restrictedActionsSealed: false,
+                        groupsActions: true,
+                        automaticSignIn: AutomaticSignInSettings(isEnabled: model.binding),
+                        onEditAppearance: { appearanceOpens += 1 },
+                        onSetLock: { _ in }, onSetKids: { _ in }, onDelete: {}
+                    )
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                } else {
+                    SettingsSectionGroup {
+                        AutomaticSignInToggle(settings: AutomaticSignInSettings(isEnabled: model.binding))
+                    }
+                }
+            })
+            window.makeKeyAndVisible()
+            try await settle(window)
+            let controls = listedSwitches(in: window)
+            XCTAssertEqual(controls.count, 1)
+            let control = try XCTUnwrap(controls.first)
+            XCTAssertEqual(control.isOn, model.isOn, "Both entry points must reflect the same live preference.")
+            let next = !model.isOn
+            let writes = model.writes
+            control.setOn(next, animated: false)
+            control.sendActions(for: .valueChanged)
+            try await settle(window)
+            XCTAssertEqual(model.isOn, next)
+            XCTAssertEqual(model.writes, writes + 1)
+            XCTAssertEqual(appearanceOpens, 0, "A sibling action must not own the switch's native cell.")
+        }
     }
 
     func testHeroRootUsesInlineControlsAndShowsPageStatesAtPhoneAndTabletWidths() async throws {

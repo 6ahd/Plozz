@@ -5,6 +5,7 @@ import CoreNetworking
 import CoreUI
 import FeaturePlayback
 import FeatureAuth
+import FeatureProfiles
 import FeatureSettings
 import FeatureSyncSetup
 import SwiftUI

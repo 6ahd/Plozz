@@ -1626,6 +1626,12 @@ final class PlozziOSAppModel {
             await Task.yield()
             resumeProfileOnboardingIfNeeded()
         }
+        refreshActiveProfileConfiguration()
+    }
+
+    /// Reapply settings and reconcile sources without granting a new profile
+    /// activation or discarding an unchanged Plex authentication in progress.
+    func refreshActiveProfileConfiguration() {
         settings = PlozziOSSettingsModel(
             namespace: profiles.activeNamespace,
             allowsDiscovery: { [profiles] in !profiles.activeProfile.isKids }
