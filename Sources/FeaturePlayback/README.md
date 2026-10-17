@@ -6,6 +6,19 @@ and the diagnostics overlay.
 
 ## Responsibility
 
+Automatic on-demand subtitle selection applies the profile's **SDH subtitles**
+preference to embedded tracks and external files, including network shares and
+offline playback. Prefer SDH falls back to regular subtitles in the chosen
+language; Only SDH is strict, including remote search/download. Full dialogue
+still outranks forced-only passages unless the subtitle mode is Forced Only.
+Manual choices and remembered Off take precedence. Server conversion, native
+rendition matching, and bitmap-engine routing preserve the selected SDH class.
+Provider flags and explicit SDH/CC track titles identify accessibility tracks;
+unlabelled content cannot be assumed to contain SDH cues.
+The debug playback journal records each automatic subtitle decision, including
+the effective SDH preference, remembered-choice precedence, selected track, and
+bounded language-match/accessibility flags without track titles or URLs.
+
 - **Engine abstraction** — `VideoEngine` protocol + the two seam files:
   - `NativeVideoEngine` — the always-shipped AVPlayer-backed engine.
   - `EngineFactory` — closure-based factory that the composition root
@@ -124,7 +137,9 @@ recognition. Moving, held, cancelled, or clicked contacts cannot toggle the cloc
 iPhone and iPad use native buttons on the two time labels instead of changing
 the video-tap or scrubber gestures.
 
-Scrubbing always shows the media position; hiding the controls resets clock mode.
+Scrubbing always shows the media position. On tvOS, hiding the controls preserves
+the outgoing clock labels through their fade and stops clock ticks; the next
+reveal resets to elapsed/remaining time. Mobile retains its reset-on-hide behavior.
 Finish estimates use the current position and selected playback speed, and update
 after seeking or pausing. Unknown duration or invalid timing omits the estimate.
 Clock formatting follows the device locale/time-zone conventions. The clock only

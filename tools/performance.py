@@ -230,6 +230,13 @@ SCENARIOS = {
         "description": "Complete twelve native Home poster conversions, separating request latency from finished bitmap work.",
         "counters": ["completedPosters", "compositions", "mainThreadCompositions", "requestMicroseconds"],
     },
+    "native-poster-indicators": {
+        "suite": "ui", "platforms": ["tvOS"],
+        "test": "NativePosterCompositionTests/testPerformanceNativePosterIndicatorReuse",
+        "file": "Tests/FocusIntegrationTests/NativePosterCompositionTests.swift",
+        "description": "Render 72 native poster foregrounds with three visible badges and changing playback progress.",
+        "counters": ["completedOverlays", "distinctBitmaps"],
+    },
     "runtime-matrix": {
         "suite": "matrix", "target": "AppRuntimeTests",
         "test": "LiveTVAutomaticChannelsRuntimeTests/testPerformanceConfigurationMatrix",

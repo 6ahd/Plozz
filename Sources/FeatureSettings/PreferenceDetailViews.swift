@@ -396,9 +396,7 @@ struct PlaybackDetailView: View {
     /// device language for everything else").
     @Bindable var audioPolicy: AudioPolicyModel
     /// Whether the active profile has a server that can download subtitles
-    /// (Jellyfin or Plex). A share-only profile can't — so the whole "Downloading
-    /// subtitles" row (auto-download + SDH/Forced ranking, all of which only act on
-    /// a server search) is hidden rather than shown as a dead control.
+    /// (Jellyfin or Plex). SDH selection is independent of this capability.
     var canDownloadSubtitles: Bool = true
     var section: PlaybackSettingsSection = .playback
 
@@ -657,6 +655,22 @@ struct PlaybackDetailView: View {
                         }
                     }
                 }
+            }.labeledControl(),
+            SettingsSplitRow(
+                id: "subtitle-sdh",
+                title: "SDH subtitles",
+                description: subtitleBehavior.settings.hearingImpairedPreference.detail
+            ) {
+                SettingsMenuRow(
+                    title: "SDH subtitles",
+                    value: Text(subtitleBehavior.settings.hearingImpairedPreference.displayName)
+                ) {
+                    Picker("SDH subtitles", selection: $subtitleBehavior.settings.hearingImpairedPreference) {
+                        ForEach(HearingImpairedPreference.allCases, id: \.self) { option in
+                            Text(option.displayName).tag(option)
+                        }
+                    }
+                }
             }.labeledControl()
         ]
 
@@ -672,16 +686,6 @@ struct PlaybackDetailView: View {
             ) {
                 SettingsControlRows(nonTVSpacing: 28) {
                     Toggle("Automatically download", isOn: $subtitleBehavior.settings.autoDownloadSubtitles)
-                    SettingsMenuRow(
-                        title: "Hearing-Impaired (SDH)",
-                        value: Text(subtitleBehavior.settings.hearingImpairedPreference.displayName)
-                    ) {
-                        Picker("Hearing-impaired subtitles", selection: $subtitleBehavior.settings.hearingImpairedPreference) {
-                            ForEach(HearingImpairedPreference.allCases, id: \.self) { option in
-                                Text(option.displayName).tag(option)
-                            }
-                        }
-                    }
                     SettingsMenuRow(
                         title: "Forced",
                         value: Text(subtitleBehavior.settings.forcedSearchPreference.displayName)

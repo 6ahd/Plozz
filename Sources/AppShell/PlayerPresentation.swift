@@ -145,12 +145,11 @@ struct PlayerPresentation: View {
             handoffTask?.cancel()
             dismiss()
         }
-        .onExitCommand {
-            if viewModel == nil {
-                versionChoice.cancel()
-                dismiss()
-            }
-        }
+        // Even a no-op handler consumes Back; loaded playback owns the command.
+        .onExitCommand(perform: viewModel == nil ? {
+            versionChoice.cancel()
+            dismiss()
+        } : nil)
         .alert("Couldn't load versions", isPresented: $versionChoiceFailed) {
             Button("Close player") { dismiss() }
         } message: {

@@ -2637,6 +2637,10 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
             isDefault: dto.default ?? dto.selected ?? false,
             isForced: dto.forced ?? false,
             channels: isSubtitle ? nil : dto.channels,
+            isHearingImpaired: dto.hearingImpaired == true
+                || TrackLabeling.isHearingImpaired(dto.title)
+                || TrackLabeling.isHearingImpaired(dto.extendedDisplayTitle)
+                || TrackLabeling.isHearingImpaired(dto.displayTitle),
             deliverySource: deliverySource,
             isImageBasedSubtitle: isSubtitle && !isTextSubtitleCodec(dto.codec),
             isExternal: isSubtitle && dto.key != nil

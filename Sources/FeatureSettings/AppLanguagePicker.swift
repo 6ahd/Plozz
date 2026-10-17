@@ -79,8 +79,7 @@ struct AppLanguagePicker: View {
         #if os(tvOS)
         SettingsMenuRow(
             title: "Language", value: label(for: model.language),
-            icon: isCategoryRow ? "globe" : nil,
-            selected: isCategoryRow && navigation?.section == .language
+            icon: isCategoryRow ? "globe" : nil
         ) {
             languageOptions
         }

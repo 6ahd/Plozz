@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Offline coverage for availability, credential boundaries, and replay safety."""
 
+import base64
 import copy
 from contextlib import redirect_stdout
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import unittest
@@ -102,12 +104,32 @@ class Discord:
         raise AssertionError((method, path))
 
 
-def sync(discord, apple, publish=True, github=None):
-    github = github or Mock(pages=Mock(return_value=[{"tag_name": "release/056", "draft": False}]))
+def catalog_fixture(number=56, version="2026.10.14", released_at="2026-10-14"):
+    return {"schemaVersion": 1, "releases": [{
+        "id": APP.NOTES.release_tag(number), "build": number, "version": version,
+        "marketingVersion": "2026.9.25", "releasedAt": released_at,
+        "sections": [{"category": "Updated", "items": ["Playback improvements."]}],
+    }]}
+
+
+def catalog_response(catalog):
+    content = base64.encodebytes(json.dumps(catalog).encode()).decode()
+    return {"type": "file", "encoding": "base64", "content": content}
+
+
+def github_fixture(catalog):
+    return Mock(
+        pages=Mock(return_value=[{"tag_name": entry["id"], "draft": False} for entry in catalog["releases"]]),
+        call=Mock(return_value=catalog_response(catalog)),
+    )
+
+
+def sync(discord, apple, publish=True, github=None, catalog=None):
+    github = github or github_fixture(catalog_fixture())
     with redirect_stdout(io.StringIO()):
         APP.synchronize(
             discord, apple, github,
-            {"releases": [{"id": "release/056", "build": 56, "version": "2026.10.14", "marketingVersion": "2026.9.25"}]},
+            catalog if catalog is not None else catalog_fixture(),
             (56, 0, 0), publish=publish,
         )
 
@@ -167,7 +189,8 @@ class AvailabilityTests(unittest.TestCase):
         releases = APP.available_builds(apple, (56, 0, 0))
         self.assertEqual([item["build"] for item in releases], ["56.2", "56.10", "57"])
         embed = APP.announcement(releases[-1], {"releases": []}, [{"tag_name": "release/057", "draft": True}])
-        self.assertIn("2026.9.25 (57)", embed["title"])
+        self.assertEqual("Plozz build 57 is on TestFlight", embed["title"])
+        self.assertNotIn("2026.9.25", embed["title"])
         self.assertIn("notes are available in TestFlight", embed["description"])
         self.assertNotIn("/releases/tag/", embed["description"])
 
@@ -206,6 +229,107 @@ class AvailabilityTests(unittest.TestCase):
     def test_duplicate_platform_identity_fails(self):
         with self.assertRaisesRegex(APP.Error, "Duplicate available"):
             APP.available_builds(Apple(build(), build()), (56, 0, 0))
+
+
+class ReleaseIdentityTests(unittest.TestCase):
+    def test_published_tag_supplies_date_when_main_catalog_lacks_build(self):
+        discord = Discord()
+        github = github_fixture(catalog_fixture(57, "2026.10.17", "2026-10-17"))
+        sync(discord, Apple(build(number="57"), build("IOS", number="57")), github=github)
+        self.assertEqual(discord.messages[0]["embeds"][0]["title"], "Plozz 2026.10.17 (57) is on TestFlight")
+        github.call.assert_called_once_with(
+            "GET", f"/repos/{BRIDGE.REPO}/contents/App/Resources/ReleaseNotes.json",
+            query={"ref": "refs/tags/release/057"},
+        )
+
+    def test_tagged_catalog_wins_over_a_changed_main_entry(self):
+        discord = Discord()
+        sync(discord, Apple(build()), catalog=catalog_fixture(version="2026.10.16", released_at="2026-10-16"))
+        self.assertEqual(discord.messages[0]["embeds"][0]["title"], "Plozz 2026.10.14 (56) is on TestFlight")
+
+    def test_existing_incorrect_announcement_is_repaired_once_without_duplicate(self):
+        discord, apple = Discord(), Apple(build(number="57"), build("IOS", number="57"))
+        github = github_fixture(catalog_fixture(57, "2026.10.17", "2026-10-17"))
+        unpublished = Mock(pages=Mock(return_value=[]))
+        sync(discord, apple, github=unpublished)
+        discord.messages[0]["embeds"][0]["title"] = "Plozz 2026.9.25 (57) is on TestFlight"
+        original = copy.deepcopy(discord.messages[0])
+        discord.writes.clear()
+        sync(discord, apple, github=github)
+        sync(discord, apple, github=github)
+        self.assertEqual(len(discord.messages), 1)
+        self.assertEqual(discord.messages[0]["id"], original["id"])
+        self.assertEqual(discord.messages[0]["embeds"][0]["footer"], original["embeds"][0]["footer"])
+        self.assertEqual(discord.messages[0]["embeds"][0]["title"], "Plozz 2026.10.17 (57) is on TestFlight")
+        self.assertEqual([item[0] for item in discord.writes], ["PATCH"])
+        self.assertEqual(discord.writes[0][2]["allowed_mentions"]["parse"], [])
+        unpublished.call.assert_not_called()
+
+    def test_check_resolves_tagged_identity_without_discord_writes(self):
+        discord = Discord()
+        github = github_fixture(catalog_fixture(57, "2026.10.17", "2026-10-17"))
+        sync(discord, Apple(build(number="57")), github=github, publish=False)
+        github.call.assert_called_once()
+        self.assertEqual(discord.writes, [])
+
+    def test_unpublished_release_uses_local_public_date_or_build_only(self):
+        for releases in ([], [{"tag_name": "release/056", "draft": True}]):
+            for catalog, title in (
+                (catalog_fixture(), "Plozz 2026.10.14 (56) is on TestFlight"),
+                ({"releases": []}, "Plozz build 56 is on TestFlight"),
+            ):
+                with self.subTest(releases=releases, catalog=catalog):
+                    discord, github = Discord(), Mock(pages=Mock(return_value=releases))
+                    sync(discord, Apple(build()), github=github, catalog=catalog)
+                    self.assertEqual(discord.messages[0]["embeds"][0]["title"], title)
+                    github.call.assert_not_called()
+
+    def test_invalid_tagged_catalog_fails_without_falling_back_to_main(self):
+        wrong_marketing = catalog_fixture()
+        wrong_marketing["releases"][0]["marketingVersion"] = "2026.10.14"
+        wrong_id = catalog_fixture()
+        wrong_id["releases"][0]["id"] = "release/057"
+        wrong_date = catalog_fixture()
+        wrong_date["releases"][0]["version"] = "2026.10.17"
+        responses = [
+            None, {"type": "dir"}, {"type": "file", "encoding": "none", "content": ""},
+            {"type": "file", "encoding": "base64", "content": "not base64!"},
+            {"type": "file", "encoding": "base64", "content": base64.b64encode(b"{").decode()},
+            catalog_response([]), catalog_response({"schemaVersion": 2, "releases": []}),
+            catalog_response({"schemaVersion": 1, "releases": []}),
+            catalog_response(catalog_fixture(57)), catalog_response(wrong_marketing),
+            catalog_response(wrong_id), catalog_response(wrong_date),
+        ]
+        for response in responses:
+            with self.subTest(response=response):
+                discord, github = Discord(), github_fixture(catalog_fixture())
+                github.call.return_value = response
+                with self.assertRaises(APP.Error):
+                    sync(discord, Apple(build()), github=github)
+                self.assertEqual(discord.writes, [])
+
+    def test_tag_fetch_failure_is_not_a_success_shaped_fallback(self):
+        discord, github = Discord(), github_fixture(catalog_fixture())
+        github.call.side_effect = APP.Error("GitHub GET failed (HTTP 503).")
+        with self.assertRaisesRegex(APP.Error, "HTTP 503"):
+            sync(discord, Apple(build()), github=github)
+        self.assertEqual(discord.writes, [])
+
+    def test_hotfix_tag_and_apple_version_keep_their_exact_identities(self):
+        discord = Discord()
+        github = github_fixture(catalog_fixture("56.5", "2026.10.15", "2026-10-15"))
+        sync(discord, Apple(build(number="56.5")), github=github)
+        self.assertEqual(discord.messages[0]["embeds"][0]["title"], "Plozz 2026.10.15 (56.5) is on TestFlight")
+        self.assertEqual(github.call.call_args.kwargs["query"], {"ref": "refs/tags/release/056.5"})
+        self.assertIn("testflight:2026.9.25:56.5.0", discord.messages[0]["embeds"][0]["footer"]["text"])
+
+    def test_duplicate_published_release_is_rejected_before_fetching_or_writing(self):
+        discord, github = Discord(), github_fixture(catalog_fixture())
+        github.pages.return_value *= 2
+        with self.assertRaisesRegex(APP.Error, "Duplicate published"):
+            sync(discord, Apple(build()), github=github)
+        github.call.assert_not_called()
+        self.assertEqual(discord.writes, [])
 
 
 class PermissionTests(unittest.TestCase):

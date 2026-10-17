@@ -57,6 +57,25 @@ final class StreamingPlaybackTests: XCTestCase {
         XCTAssertEqual(engine.positions.count, 1, "Dismissal must not start the replacement.")
     }
 
+    func testProfileSDHPreferenceReachesServerNegotiation() async throws {
+        let provider = QualityPlaybackProvider()
+        let engine = QualityEngine()
+        let model = PlayerViewModel(
+            provider: provider, itemID: "movie",
+            behavior: .init(preferredSubtitleLanguage: "en", hearingImpairedPreference: .onlySDH),
+            streamingOptions: .init(quality: .hd720),
+            engineFactory: .init(makeNative: { _ in engine })
+        )
+        await model.load()
+        let calls = await provider.calls
+        let call = try XCTUnwrap(calls.first)
+        XCTAssertEqual(call.options.hearingImpairedPreference, .onlySDH)
+        XCTAssertNil(call.options.selectedSubtitle(in: [
+            .init(id: 1, kind: .subtitle, displayTitle: "English", language: "en")
+        ]))
+        await model.stop()
+    }
+
     func testPausedSessionMaintenanceDoesNotWaitForScrobbling() async throws {
         let provider = QualityPlaybackProvider()
         let gate = QualityDecisionGate()

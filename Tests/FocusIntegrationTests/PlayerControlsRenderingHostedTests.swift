@@ -8,6 +8,51 @@ import XCTest
 
 @MainActor
 final class PlayerControlsRenderingHostedTests: XCTestCase {
+    func testOutgoingTimelineKeepsClockLabelsUntilNextReveal() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        let model = PlayerControlsModel()
+        model.controlsVisible = true
+        model.duration = 3_600
+        model.currentSeconds = 600
+        window.rootViewController = UIHostingController(rootView:
+            // Inspect the production labels without the parent's fading opacity,
+            // so changing them under an outgoing fade cannot escape detection.
+            PlayerTimelineTimes(model: model)
+                .frame(width: 1400, height: 60)
+                .foregroundStyle(.white)
+                .environment(\.locale, Locale(identifier: "en_US"))
+                .environment(\.timeZone, .gmt)
+                .background(.black)
+        )
+        window.makeKeyAndVisible()
+        _ = try await captureTimeline(in: window, matching: "10:00.*50:00")
+        model.timelineClock.isEnabled = true
+        let clockPattern = #"\d{1,2}:\d{2}\s*(AM|PM).*\d{1,2}:\d{2}\s*(AM|PM)"#
+        _ = try await captureTimeline(in: window, matching: clockPattern)
+        model.controlsVisible = false
+        let outgoing = try await captureTimeline(in: window, matching: clockPattern)
+        let attachment = XCTAttachment(image: outgoing)
+        attachment.name = "Outgoing timeline preserves clock labels"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        model.controlsVisible = true
+        _ = try await captureTimeline(in: window, matching: "10:00.*50:00")
+    }
+
     func testClockUpdatesAndRepeatedCardRevealsPreserveBothNativeMaterials() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),

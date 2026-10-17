@@ -99,6 +99,9 @@ and the single place caption customization lives.
   directional movement, without resizing or sliding across the screen.
   Back from a category restores its selected row and retained scroll position;
   Back from a child returns one page. Playback initially owns focus, not a second pane.
+  The remembered category only restores navigation: native focus owns the row's
+  highlight and selected accessibility trait. Moving to profile actions, credits,
+  or any other root control must not leave an inactive category highlighted.
   The avatar/name switches profiles; the adjacent
   Edit action uses the same `ProfileActionsList` as the profile picker.
   Profile and Everyone headers share title weight/size, icon width, label gap
@@ -190,6 +193,10 @@ and the single place caption customization lives.
   align with the labels rather than extending under their icons.
   Compact About community cards keep their QR codes beside wrapping captions and
   share one equal-height row; mobile and expanded community layouts are unchanged.
+- **SDH subtitles** is a profile-scoped playback preference, available even
+  without a subtitle-download provider. TV uses the shared whole-row menu in Subtitles;
+  mobile includes it in Subtitles > Behavior. Prefer SDH permits regular-subtitle
+  fallback; Only SDH does not. The same saved preference also filters searches.
 - **iCloud Sync > Troubleshooting** remains reachable with sync off. The grouped
   breakdown is an on-demand local-ledger snapshot of encoded payload bytes and
   record counts, not an iCloud quota or network-usage measurement. Pending uploads

@@ -59,21 +59,23 @@ public struct PlayerClockTimes {
 public struct PlayerClockTimeline<Content: View>: View {
     let model: PlayerControlsModel
     let enabled: Bool
+    let paused: Bool
     let content: (PlayerClockTimes?) -> Content
     @Environment(\.locale) private var locale
     @Environment(\.timeZone) private var timeZone
 
     public init(
-        model: PlayerControlsModel, enabled: Bool,
+        model: PlayerControlsModel, enabled: Bool, paused: Bool = false,
         @ViewBuilder content: @escaping (PlayerClockTimes?) -> Content
     ) {
         self.model = model
         self.enabled = enabled
+        self.paused = paused
         self.content = content
     }
     public var body: some View {
         if enabled {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+            TimelineView(PlayerClockSchedule(paused: paused)) { context in
                 content(PlayerClockTimes(
                     now: context.date, position: model.currentSeconds, duration: model.duration,
                     speed: model.playbackSpeed, locale: locale, timeZone: timeZone
@@ -82,6 +84,15 @@ public struct PlayerClockTimeline<Content: View>: View {
         } else {
             content(nil)
         }
+    }
+}
+
+struct PlayerClockSchedule: TimelineSchedule {
+    let paused: Bool
+
+    func entries(from startDate: Date, mode: Mode) -> AnySequence<Date> {
+        if paused { return AnySequence([]) }
+        return AnySequence(PeriodicTimelineSchedule(from: startDate, by: 1).entries(from: startDate, mode: mode))
     }
 }
 #endif

@@ -290,7 +290,11 @@ final class PlayerScrubInputTests: XCTestCase {
         XCTAssertTrue(model.timelineClock.isEnabled)
         tap()
         XCTAssertFalse(model.controlsVisible)
+        #if os(tvOS)
+        XCTAssertTrue(model.timelineClock.isEnabled, "The outgoing clock labels must survive the fade.")
+        #else
         XCTAssertFalse(model.timelineClock.isEnabled)
+        #endif
         XCTAssertTrue(recorder.targets.isEmpty)
         XCTAssertTrue(recognizers.compactMap { $0 as? UITapGestureRecognizer }.allSatisfy {
             $0.allowedTouchTypes.isEmpty
@@ -310,7 +314,11 @@ final class PlayerScrubInputTests: XCTestCase {
         XCTAssertTrue(model.timelineClock.isEnabled)
         XCTAssertTrue(model.controlsVisible)
         controller.handleSurfaceTap()
+        #if os(tvOS)
+        XCTAssertTrue(model.timelineClock.isEnabled, "The third tap only fades the current labels.")
+        #else
         XCTAssertFalse(model.timelineClock.isEnabled)
+        #endif
         XCTAssertFalse(model.controlsVisible)
         controller.handleSurfaceTap()
         XCTAssertTrue(model.controlsVisible)

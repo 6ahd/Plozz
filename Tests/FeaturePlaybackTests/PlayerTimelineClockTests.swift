@@ -53,10 +53,24 @@ final class PlayerTimelineClockTests: XCTestCase {
         model.isScrubbing = true
         XCTAssertTrue(model.timelineClock.isEnabled, "Scrubbing temporarily changes labels, not the chosen mode.")
         model.isScrubbing = false
+        model.controlsVisible = true
+        XCTAssertTrue(model.timelineClock.isEnabled, "Rearming auto-hide must not reset the clock.")
         model.controlsVisible = false
+        #if os(tvOS)
+        XCTAssertTrue(model.timelineClock.isEnabled, "The outgoing controls must keep their clock labels.")
+        #else
         XCTAssertFalse(model.timelineClock.isEnabled)
+        #endif
         model.controlsVisible = true
         XCTAssertFalse(model.timelineClock.isEnabled)
+    }
+
+    func testHiddenClockSchedulesNoTicksAndVisibleClockTicksEverySecond() {
+        XCTAssertTrue(Array(PlayerClockSchedule(paused: true).entries(from: now, mode: .normal).prefix(3)).isEmpty)
+        XCTAssertEqual(
+            Array(PlayerClockSchedule(paused: false).entries(from: now, mode: .normal).prefix(3)),
+            [now, now.addingTimeInterval(1), now.addingTimeInterval(2)]
+        )
     }
 
     private func end(position: Double, duration: Double, speed: Double = 1) throws -> Date {

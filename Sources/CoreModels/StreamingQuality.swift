@@ -335,6 +335,7 @@ public struct StreamingPlaybackOptions: Hashable, Sendable {
     public var subtitlesOff = false
     public var subtitleMode: SubtitleMode?
     public var subtitleLanguage: String?
+    public var hearingImpairedPreference: HearingImpairedPreference = .preferNonSDH
     /// Source-time resume intent for a server that prepares its output at that position.
     public var startPosition: TimeInterval?
 
@@ -374,10 +375,14 @@ public struct StreamingPlaybackOptions: Hashable, Sendable {
                 ?? tracks.first {
                     LanguageMatch.matches($0.language, subtitleTrack.language)
                         && $0.isForced == subtitleTrack.isForced && $0.isBitmapSubtitle == subtitleTrack.isBitmapSubtitle
+                        && $0.isSDHSubtitle == subtitleTrack.isSDHSubtitle
                 }
         }
         guard let subtitleMode else { return tracks.first(where: \.isDefault) }
-        return tracks.defaultSubtitleSelection(mode: subtitleMode, preferredLanguage: subtitleLanguage)
+        return tracks.defaultSubtitleSelection(
+            mode: subtitleMode, preferredLanguage: subtitleLanguage,
+            hearingImpairedPreference: hearingImpairedPreference
+        )
     }
 }
 

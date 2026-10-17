@@ -336852,6 +336852,7 @@
     },
     "Hearing impaired" : {
       "comment" : "Label for the iOS subtitle-search preference that controls whether SDH or hearing-impaired subtitle results are preferred.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -337073,6 +337074,7 @@
     },
     "Hearing-Impaired (SDH)" : {
       "comment" : "Row title in tvOS subtitle download settings for the preference that chooses whether SDH subtitle tracks are preferred.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -337294,6 +337296,7 @@
     },
     "Hearing-impaired subtitles" : {
       "comment" : "Picker title in tvOS subtitle download settings for choosing the SDH or hearing-impaired subtitle preference.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -433677,6 +433680,7 @@
     },
     "Never show subtitles for the deaf or hard-of-hearing." : {
       "comment" : "Explanation shown under the Only Non-SDH subtitle search option.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -474910,72 +474914,72 @@
       }
     },
     "Only Non-SDH" : {
-      "comment" : "Subtitle search preference option for hearing-impaired (SDH) subtitles.",
+      "comment" : "Subtitle playback and search preference for subtitles for the deaf or hard of hearing (SDH).",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "ترجمة غير SDH فقط"
+            "value" : "الترجمة العادية فقط"
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Само без SDH"
+            "value" : "Само обикновени субтитри"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Només no SDH"
+            "value" : "Només subtítols convencionals"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Jen bez SDH"
+            "value" : "Jen běžné titulky"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Kun ikke-SDH"
+            "value" : "Kun almindelige undertekster"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Nur ohne SDH"
+            "value" : "Nur normale Untertitel"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Μόνο μη SDH"
+            "value" : "Μόνο κανονικοί υπότιτλοι"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Solo subtítulos sin SDH"
+            "value" : "Solo subtítulos normales"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "فقط غیر SDH"
+            "value" : "فقط زیرنویس معمولی"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Vain ei-SDH"
+            "value" : "Vain tavalliset tekstitykset"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Non SDH uniquement"
+            "value" : "Sous-titres non SDH uniquement"
           }
         },
         "he" : {
@@ -475005,7 +475009,7 @@
         "id" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Hanya Subtitle Non-SDH"
+            "value" : "Hanya subtitel non-SDH"
           }
         },
         "it" : {
@@ -475023,7 +475027,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "SDH 자막 제외"
+            "value" : "일반 자막만"
           }
         },
         "ms" : {
@@ -475047,13 +475051,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Tylko bez SDH"
+            "value" : "Tylko zwykłe napisy"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Apenas sem SDH"
+            "value" : "Apenas legendas comuns"
           }
         },
         "ro" : {
@@ -475065,19 +475069,19 @@
         "ru" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Только не SDH"
+            "value" : "Только субтитры без SDH"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Len bez SDH"
+            "value" : "Len titulky bez SDH"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Samo brez SDH"
+            "value" : "Samo podnapisi brez SDH"
           }
         },
         "sr-Latn" : {
@@ -475095,19 +475099,19 @@
         "th" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "เฉพาะที่ไม่ใช่คำบรรยายสำหรับผู้บกพร่องทางการได้ยิน (SDH)"
+            "value" : "เฉพาะคำบรรยายที่ไม่ใช่ SDH"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Yalnızca SDH olmayan"
+            "value" : "Yalnızca SDH olmayan altyazılar"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Лише не SDH"
+            "value" : "Лише звичайні субтитри"
           }
         },
         "vi" : {
@@ -475119,19 +475123,19 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "仅非 SDH 字幕"
+            "value" : "仅使用非 SDH 字幕"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "僅非聽障字幕"
+            "value" : "僅使用非 SDH 字幕"
           }
         }
       }
     },
     "Only SDH" : {
-      "comment" : "Subtitle search preference option for hearing-impaired (SDH) subtitles.",
+      "comment" : "Subtitle playback and search preference for subtitles for the deaf or hard of hearing (SDH).",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -475172,37 +475176,37 @@
         "el" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Μόνο SDH"
+            "value" : "Μόνο υπότιτλοι SDH"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Solo subtítulos para personas sordas (SDH)"
+            "value" : "Solo subtítulos SDH"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "فقط SDH"
+            "value" : "فقط زیرنویس SDH"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Vain SDH"
+            "value" : "Vain SDH-tekstitykset"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "SDH uniquement"
+            "value" : "Sous-titres SDH uniquement"
           }
         },
         "he" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "רק SDH"
+            "value" : "רק כתוביות SDH"
           }
         },
         "hi" : {
@@ -475226,7 +475230,7 @@
         "id" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Hanya Subtitle SDH"
+            "value" : "Hanya subtitel SDH"
           }
         },
         "it" : {
@@ -475268,13 +475272,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Tylko SDH"
+            "value" : "Tylko napisy SDH"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Apenas SDH"
+            "value" : "Apenas legendas SDH"
           }
         },
         "ro" : {
@@ -475286,19 +475290,19 @@
         "ru" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Только SDH"
+            "value" : "Только субтитры SDH"
           }
         },
         "sk" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Len SDH"
+            "value" : "Len titulky SDH"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Samo SDH"
+            "value" : "Samo podnapisi SDH"
           }
         },
         "sr-Latn" : {
@@ -475322,13 +475326,13 @@
         "tr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Yalnızca SDH"
+            "value" : "Yalnızca SDH altyazıları"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Лише SDH"
+            "value" : "Лише субтитри SDH"
           }
         },
         "vi" : {
@@ -475340,13 +475344,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "仅 SDH 字幕"
+            "value" : "仅使用 SDH 字幕"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "僅聽障字幕"
+            "value" : "僅使用 SDH 字幕"
           }
         }
       }
@@ -477335,6 +477339,7 @@
     },
     "Only show subtitles for the deaf or hard-of-hearing (SDH)." : {
       "comment" : "Explanation shown under the Only SDH subtitle search option.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -523421,60 +523426,60 @@
       }
     },
     "Prefer Non-SDH" : {
-      "comment" : "Subtitle search preference option for hearing-impaired (SDH) subtitles.",
+      "comment" : "Subtitle playback and search preference for subtitles for the deaf or hard of hearing (SDH).",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "تفضيل عدم ترجمة SDH"
+            "value" : "تفضيل الترجمة العادية"
           }
         },
         "bg" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Предпочитане на субтитри без SDH"
+            "value" : "Предпочитане на обикновени субтитри"
           }
         },
         "ca" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Prefereix no SDH"
+            "value" : "Prefereix subtítols convencionals"
           }
         },
         "cs" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Upřednostnit bez SDH"
+            "value" : "Upřednostnit běžné titulky"
           }
         },
         "da" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Foretræk ikke-SDH"
+            "value" : "Foretræk almindelige undertekster"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Ohne SDH bevorzugen"
+            "value" : "Normale Untertitel bevorzugen"
           }
         },
         "el" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Προτίμηση μη SDH"
+            "value" : "Προτίμηση σε κανονικούς υπότιτλους"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Preferir subtítulos sin SDH"
+            "value" : "Preferir subtítulos normales"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "ترجیح غیر SDH"
+            "value" : "ترجیح زیرنویس معمولی"
           }
         },
         "fi" : {
@@ -523510,13 +523515,13 @@
         "hu" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Kizárólag nem SDH"
+            "value" : "Nem SDH-feliratok előnyben részesítése"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Utamakan Subtitle Non-SDH"
+            "value" : "Utamakan subtitel non-SDH"
           }
         },
         "it" : {
@@ -523534,7 +523539,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "SDH 자막 비선호"
+            "value" : "일반 자막 우선"
           }
         },
         "ms" : {
@@ -523558,13 +523563,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Preferuj bez SDH"
+            "value" : "Preferuj zwykłe napisy"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Preferir legendas que não sejam SDH"
+            "value" : "Preferir legendas comuns"
           }
         },
         "ro" : {
@@ -523582,13 +523587,13 @@
         "sk" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Uprednostniť bez SDH"
+            "value" : "Uprednostniť titulky bez SDH"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Prednost brez SDH"
+            "value" : "Daj prednost podnapisom brez SDH"
           }
         },
         "sr-Latn" : {
@@ -523618,7 +523623,7 @@
         "uk" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Надавати перевагу не-SDH"
+            "value" : "Надавати перевагу звичайним субтитрам"
           }
         },
         "vi" : {
@@ -523636,13 +523641,13 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "偏好非 SDH 字幕"
+            "value" : "優先使用非 SDH 字幕"
           }
         }
       }
     },
     "Prefer SDH" : {
-      "comment" : "Subtitle search preference option for hearing-impaired (SDH) subtitles.",
+      "comment" : "Subtitle playback and search preference for subtitles for the deaf or hard of hearing (SDH).",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -523683,19 +523688,19 @@
         "el" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Προτίμηση SDH"
+            "value" : "Προτίμηση σε υπότιτλους SDH"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Preferir subtítulos para personas sordas (SDH)"
+            "value" : "Preferir subtítulos SDH"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "ترجیح SDH"
+            "value" : "ترجیح زیرنویس SDH"
           }
         },
         "fi" : {
@@ -523713,7 +523718,7 @@
         "he" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "העדף SDH"
+            "value" : "העדף כתוביות SDH"
           }
         },
         "hi" : {
@@ -523731,13 +523736,13 @@
         "hu" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Kizárólag SDH"
+            "value" : "SDH-feliratok előnyben részesítése"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Utamakan Subtitle SDH"
+            "value" : "Utamakan subtitel SDH"
           }
         },
         "it" : {
@@ -523755,7 +523760,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "SDH 자막 선호"
+            "value" : "SDH 자막 우선"
           }
         },
         "ms" : {
@@ -523779,13 +523784,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Preferuj SDH"
+            "value" : "Preferuj napisy SDH"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Preferir legendas para surdos e ensurdecidos (SDH)"
+            "value" : "Preferir legendas SDH"
           }
         },
         "ro" : {
@@ -523803,13 +523808,13 @@
         "sk" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Uprednostniť SDH"
+            "value" : "Uprednostniť titulky SDH"
           }
         },
         "sl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Prednost SDH"
+            "value" : "Daj prednost podnapisom SDH"
           }
         },
         "sr-Latn" : {
@@ -523839,7 +523844,7 @@
         "uk" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Надавати перевагу SDH"
+            "value" : "Надавати перевагу субтитрам SDH"
           }
         },
         "vi" : {
@@ -523857,7 +523862,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "偏好 SDH 字幕"
+            "value" : "優先使用 SDH 字幕"
           }
         }
       }
@@ -606195,6 +606200,226 @@
         }
       }
     },
+    "SDH subtitles" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ترجمة SDH"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH субтитри"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Subtítols SDH"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Titulky SDH"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-undertekster"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-Untertitel"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Υπότιτλοι SDH"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Subtítulos SDH"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "زیرنویس SDH"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-tekstitykset"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sous-titres SDH"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כתוביות SDH"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH उपशीर्षक"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH titlovi"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-feliratok"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Subtitel SDH"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sottotitoli SDH"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH字幕"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH 자막"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sari kata SDH"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-undertekster"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-ondertitels"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Napisy SDH"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Legendas SDH"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Subtitrări SDH"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Субтитры SDH"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Titulky SDH"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podnapisi SDH"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH titlovi"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-undertexter"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "คำบรรยาย SDH"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH altyazıları"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Субтитри SDH"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Phụ đề SDH"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH 字幕"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH 字幕"
+          }
+        }
+      }
+    },
     "SDR versions" : {
       "localizations" : {
         "ar" : {
@@ -660127,6 +660352,7 @@
     },
     "Show subtitles for the deaf or hard-of-hearing at the top of the list." : {
       "comment" : "Explanation shown under the Prefer SDH subtitle search option.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -660348,6 +660574,7 @@
     },
     "Show subtitles for the deaf or hard-of-hearing lower in the list." : {
       "comment" : "Explanation shown under the Prefer Non-SDH subtitle search option.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -815296,6 +815523,227 @@
         }
       }
     },
+    "Use SDH when available; otherwise use regular subtitles." : {
+      "comment" : "SDH playback and search preference. SDH includes speaker identification and sound descriptions.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استخدم ترجمة SDH عند توفرها، وإلا فاستخدم الترجمة العادية."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Използвай SDH субтитри, когато са налични; иначе използвай обикновени субтитри."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilitza SDH si n’hi ha; si no, utilitza subtítols convencionals."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použít titulky SDH, pokud jsou k dispozici; jinak použít běžné titulky."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brug SDH-undertekster, hvis de er tilgængelige; brug ellers almindelige undertekster."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-Untertitel verwenden, wenn verfügbar; andernfalls normale Untertitel verwenden."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρήση υποτίτλων SDH όταν είναι διαθέσιμοι· διαφορετικά, χρήση κανονικών υποτίτλων."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar subtítulos SDH cuando estén disponibles; de lo contrario, usar subtítulos normales."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "در صورت وجود، از زیرنویس SDH استفاده می‌شود؛ در غیر این صورت، از زیرنویس معمولی استفاده می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käytä SDH-tekstityksiä, jos niitä on saatavilla. Muussa tapauksessa käytä tavallisia tekstityksiä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utiliser les sous-titres SDH s’ils sont disponibles, sinon les sous-titres classiques."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "יש להשתמש בכתוביות SDH אם הן זמינות; אחרת, יש להשתמש בכתוביות רגילות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH उपलब्ध होने पर उसका उपयोग करें; अन्यथा सामान्य उपशीर्षकों का उपयोग करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi SDH kada su dostupni; inače koristi obične titlove."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH-feliratok használata, ha elérhetők; egyébként hagyományos feliratok használata."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan SDH jika tersedia; jika tidak, gunakan subtitel biasa."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa i sottotitoli SDH se disponibili; altrimenti usa quelli standard."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH字幕があれば使用し、なければ通常の字幕を使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH 자막이 있으면 사용하고, 없으면 일반 자막을 사용합니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan sari kata SDH jika tersedia; jika tidak, gunakan sari kata biasa."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruk SDH-undertekster når de er tilgjengelige, og vanlige undertekster ellers."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gebruik SDH-ondertitels indien beschikbaar; gebruik anders gewone ondertitels."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Używaj napisów SDH, gdy są dostępne; w przeciwnym razie używaj zwykłych napisów."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar legendas SDH quando disponíveis; caso contrário, usar legendas comuns."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folosește subtitrări SDH când sunt disponibile; altfel, folosește subtitrări obișnuite."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Использовать субтитры SDH, если они доступны; иначе использовать обычные субтитры."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použiť titulky SDH, ak sú dostupné; inak použiť bežné titulky."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uporabi podnapise SDH, če so na voljo; sicer uporabi običajne podnapise."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi SDH titlove kada su dostupni; u suprotnom koristi obične titlove."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använd SDH-undertexter om de finns; använd annars vanliga undertexter."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้คำบรรยาย SDH หากมี มิฉะนั้นให้ใช้คำบรรยายทั่วไป"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Varsa SDH altyazılarını kullan; yoksa normal altyazıları kullan."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Використовувати субтитри SDH, якщо вони доступні; інакше використовувати звичайні субтитри."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dùng phụ đề SDH khi có; nếu không, dùng phụ đề thông thường."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "有 SDH 字幕时优先使用，否则使用普通字幕。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "有 SDH 字幕時優先使用，否則使用一般字幕。"
+          }
+        }
+      }
+    },
     "Use System Caption Style" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -821027,6 +821475,448 @@
         }
       }
     },
+    "Use only SDH. Leave subtitles off if unavailable." : {
+      "comment" : "Strict automatic SDH selection; the viewer can still manually select any available track.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استخدم ترجمة SDH فقط. أبقِ الترجمة متوقفة إذا لم تتوفر."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Използвай само SDH субтитри. Остави субтитрите изключени, ако няма такива."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilitza només SDH. Deixa els subtítols desactivats si no n’hi ha."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použít pouze titulky SDH. Pokud nejsou k dispozici, ponechat titulky vypnuté."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brug kun SDH-undertekster. Lad undertekster være slået fra, hvis de ikke er tilgængelige."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nur SDH-Untertitel verwenden. Untertitel ausgeschaltet lassen, wenn keine SDH-Untertitel verfügbar sind."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρήση μόνο υποτίτλων SDH. Αν δεν υπάρχουν, οι υπότιτλοι παραμένουν απενεργοποιημένοι."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar solo subtítulos SDH. Dejarlos desactivados si no hay subtítulos SDH disponibles."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فقط از زیرنویس SDH استفاده می‌شود. اگر موجود نباشد، زیرنویس خاموش می‌ماند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käytä vain SDH-tekstityksiä. Pidä tekstitys pois päältä, jos niitä ei ole saatavilla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utiliser uniquement les sous-titres SDH. S’il n’y en a pas, laisser les sous-titres désactivés."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "יש להשתמש רק בכתוביות SDH. אם אינן זמינות, יש להשאיר את הכתוביות כבויות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "केवल SDH का उपयोग करें। उपलब्ध न होने पर उपशीर्षक बंद रखें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi samo SDH. Ostavi titlove isključenima ako nisu dostupni."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Csak SDH-feliratok használata. Ha nem érhetők el, a feliratok maradjanak kikapcsolva."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan hanya SDH. Biarkan subtitel nonaktif jika tidak tersedia."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa solo i sottotitoli SDH. Lascia i sottotitoli disattivati se non disponibili."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH字幕のみを使用します。利用できない場合は字幕をオフにします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SDH 자막만 사용합니다. 없으면 자막을 끕니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan sari kata SDH sahaja. Jika tiada sari kata SDH, biarkan sari kata dimatikan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruk bare SDH-undertekster. Hvis de ikke er tilgjengelige, la undertekster være av."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gebruik alleen SDH-ondertitels. Zijn die niet beschikbaar, laat ondertitels dan uit."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Używaj tylko napisów SDH. Jeśli ich brakuje, pozostaw napisy wyłączone."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar apenas legendas SDH. Se não estiverem disponíveis, manter as legendas desativadas."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folosește doar subtitrări SDH. Lasă subtitrările dezactivate dacă acestea nu sunt disponibile."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Использовать только субтитры SDH. Оставлять субтитры выключенными, если таких субтитров нет."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použiť iba titulky SDH. Ak nie sú dostupné, ponechať titulky vypnuté."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uporabi samo podnapise SDH. Če niso na voljo, pusti podnapise izklopljene."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi samo SDH titlove. Ako nisu dostupni, ostavi titlove isključene."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använd endast SDH-undertexter. Låt undertexterna vara avstängda om inga sådana finns."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้เฉพาะคำบรรยาย SDH หากไม่มี ให้ปิดคำบรรยายไว้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yalnızca SDH altyazılarını kullan. Yoksa altyazıları kapalı tut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Використовувати лише субтитри SDH. Якщо вони недоступні, залишати субтитри вимкненими."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chỉ dùng phụ đề SDH. Giữ phụ đề ở trạng thái tắt nếu không có."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "仅使用 SDH 字幕。若无可用的 SDH 字幕，则关闭字幕。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "僅使用 SDH 字幕。若無可用的 SDH 字幕，則關閉字幕。"
+          }
+        }
+      }
+    },
+    "Use only regular subtitles. Leave subtitles off if unavailable." : {
+      "comment" : "Strict automatic non-SDH selection; the viewer can still manually select any available track.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استخدم الترجمة العادية فقط. أبقِ الترجمة متوقفة إذا لم تتوفر."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Използвай само обикновени субтитри. Остави субтитрите изключени, ако няма такива."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilitza només subtítols convencionals. Deixa els subtítols desactivats si no n’hi ha."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použít pouze běžné titulky. Pokud nejsou k dispozici, ponechat titulky vypnuté."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brug kun almindelige undertekster. Lad undertekster være slået fra, hvis de ikke er tilgængelige."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nur normale Untertitel verwenden. Untertitel ausgeschaltet lassen, wenn keine normalen Untertitel verfügbar sind."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρήση μόνο κανονικών υποτίτλων. Αν δεν υπάρχουν, οι υπότιτλοι παραμένουν απενεργοποιημένοι."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar solo subtítulos normales. Dejarlos desactivados si no están disponibles."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فقط از زیرنویس معمولی استفاده می‌شود. اگر موجود نباشد، زیرنویس خاموش می‌ماند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käytä vain tavallisia tekstityksiä. Pidä tekstitys pois päältä, jos niitä ei ole saatavilla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utiliser uniquement les sous-titres classiques. S’il n’y en a pas, laisser les sous-titres désactivés."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "יש להשתמש רק בכתוביות רגילות. אם אינן זמינות, יש להשאיר את הכתוביות כבויות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "केवल सामान्य उपशीर्षकों का उपयोग करें। उपलब्ध न होने पर उपशीर्षक बंद रखें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi samo obične titlove. Ostavi titlove isključenima ako nisu dostupni."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Csak hagyományos feliratok használata. Ha nem érhetők el, a feliratok maradjanak kikapcsolva."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan hanya subtitel biasa. Biarkan subtitel nonaktif jika tidak tersedia."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa solo i sottotitoli standard. Lascia i sottotitoli disattivati se non disponibili."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "通常の字幕のみを使用します。利用できない場合は字幕をオフにします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일반 자막만 사용합니다. 없으면 자막을 끕니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan sari kata biasa sahaja. Jika tiada sari kata biasa, biarkan sari kata dimatikan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruk bare vanlige undertekster. Hvis de ikke er tilgjengelige, la undertekster være av."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gebruik alleen gewone ondertitels. Zijn die niet beschikbaar, laat ondertitels dan uit."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Używaj tylko zwykłych napisów. Jeśli ich brakuje, pozostaw napisy wyłączone."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar apenas legendas comuns. Mantê-las desativadas se não estiverem disponíveis."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folosește doar subtitrări obișnuite. Lasă subtitrările dezactivate dacă nu sunt disponibile."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Использовать только обычные субтитры. Оставлять субтитры выключенными, если они недоступны."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použiť iba bežné titulky. Ak nie sú dostupné, ponechať titulky vypnuté."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uporabi samo običajne podnapise. Če niso na voljo, pusti podnapise izklopljene."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi samo obične titlove. Ako nisu dostupni, ostavi titlove isključene."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använd endast vanliga undertexter. Låt undertexterna vara avstängda om inga sådana finns."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้เฉพาะคำบรรยายทั่วไป หากไม่มี ให้ปิดคำบรรยายไว้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yalnızca normal altyazıları kullan. Yoksa altyazıları kapalı tut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Використовувати лише звичайні субтитри. Якщо вони недоступні, залишати субтитри вимкненими."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chỉ dùng phụ đề thông thường. Giữ phụ đề ở trạng thái tắt nếu không có."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "仅使用普通字幕。若无可用的普通字幕，则关闭字幕。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "僅使用一般字幕。若無可用的一般字幕，則關閉字幕。"
+          }
+        }
+      }
+    },
     "Use profiles on this Apple TV?" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -821244,6 +822134,227 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "要在這台 Apple TV 上使用個人檔案嗎？"
+          }
+        }
+      }
+    },
+    "Use regular subtitles when available." : {
+      "comment" : "Prefer regular subtitles over SDH when automatically selecting or searching; SDH remains a fallback.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استخدم الترجمة العادية عند توفرها."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Използвай обикновени субтитри, когато са налични."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilitza subtítols convencionals si n’hi ha."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použít běžné titulky, pokud jsou k dispozici."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brug almindelige undertekster, hvis de er tilgængelige."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Normale Untertitel verwenden, wenn verfügbar."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρήση κανονικών υποτίτλων όταν είναι διαθέσιμοι."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar subtítulos normales cuando estén disponibles."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "در صورت وجود، از زیرنویس معمولی استفاده می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käytä tavallisia tekstityksiä, jos niitä on saatavilla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utiliser les sous-titres classiques lorsqu’ils sont disponibles."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "יש להשתמש בכתוביות רגילות כשהן זמינות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "उपलब्ध होने पर सामान्य उपशीर्षकों का उपयोग करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi obične titlove kada su dostupni."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hagyományos feliratok használata, ha elérhetők."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan subtitel biasa jika tersedia."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa i sottotitoli standard quando disponibili."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "通常の字幕があれば使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일반 자막이 있으면 사용합니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan sari kata biasa jika tersedia."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruk vanlige undertekster når de er tilgjengelige."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gebruik gewone ondertitels indien beschikbaar."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Używaj zwykłych napisów, gdy są dostępne."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar legendas comuns quando disponíveis."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folosește subtitrări obișnuite când sunt disponibile."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Использовать обычные субтитры, если они доступны."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použiť bežné titulky, ak sú dostupné."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uporabi običajne podnapise, če so na voljo."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi obične titlove kada su dostupni."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använd vanliga undertexter om de finns."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้คำบรรยายทั่วไปหากมี"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Varsa normal altyazıları kullan."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Використовувати звичайні субтитри, якщо вони доступні."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dùng phụ đề thông thường khi có."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "有普通字幕时优先使用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "有一般字幕時優先使用。"
           }
         }
       }

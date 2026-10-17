@@ -2,6 +2,98 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/057",
+      "version": "2026.10.17",
+      "marketingVersion": "2026.9.25",
+      "build": 57,
+      "releasedAt": "2026-10-17",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "Save alternate addresses for Jellyfin, Emby, Plex, or Silo, with automatic fallback between approved connections.",
+            "Adjust the Video buffer on each device for on-demand playback, except in Apple's native player.",
+            "Choose whether to pick a video version each time or let Plozz remember your choice.",
+            "Scrub through Live TV's rewind window, with preview images on supported streams.",
+            "Hide or favorite IPTV categories and filter channels by country or language.",
+            "Review hidden IPTV channels and restore individual channels without resetting your filters.",
+            {
+              "text": "With playback controls visible, tap the remote touchpad to show the clock and estimated finish time; tap again to hide them.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Tap the playback time labels to see the current time and estimated finish time.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Double-tap either side of a video to skip, or hold to temporarily speed up supported on-demand videos.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Pinch to switch between fitting video inside the safe area and filling the screen.",
+              "platforms": ["iOS"]
+            },
+            "Find ISO disc images in network-share libraries."
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            {
+              "text": "Redesigned Settings with clearer categories, centered pages, and smoother navigation.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Reorganized Settings to match Apple TV, with clearer categories and compact library-source summaries.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Larger subtitle previews and more consistent remote controls in Settings.",
+              "platforms": ["tvOS"]
+            },
+            "Video version lists show more audio, picture, file-size, and runtime details.",
+            "SDH preferences now guide automatic subtitle selection; Only options never substitute the other subtitle type.",
+            "More efficient WebDAV buffering and less repeated work when opening disc images.",
+            "Profile names show a lock icon when a Profile Lock is configured.",
+            "Live TV errors appear beside the affected source, with individual retry progress.",
+            {
+              "text": "Less Home background activity during playback and more efficient poster rendering.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Compact Home banners prefer artwork without embedded titles.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Plex PIN checks being skipped, or appearing for users without a Home PIN.",
+            "Canceled Plex user changes replacing the saved selection.",
+            "Completed videos missing from Plex play history.",
+            "Automatic subtitle downloads turning subtitles back on after choosing Off.",
+            "Live TV Sources becoming unavailable after source edits or sync updates.",
+            "Synced profiles being blocked by a Plex user-selection requirement for non-Plex sources.",
+            "Some Silo videos being refused despite supported original-quality or HLS playback.",
+            "Encoded release names appearing as unreadable text in video version lists.",
+            {
+              "text": "The player failing to close from an error screen or at the end of playback.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Cellular quality limits being applied when Wi-Fi is the preferred connection.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Empty banner space on Home when no featured items are available.",
+              "platforms": ["iOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/056.5",
       "version": "2026.10.15",
       "marketingVersion": "2026.9.25",

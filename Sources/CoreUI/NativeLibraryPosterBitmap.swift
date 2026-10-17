@@ -58,6 +58,29 @@ enum NativePosterArtworkBitmap {
         let legibilityWeight: LegibilityWeight?
         let layer: NativePosterIndicatorLayer
 
+        private enum RenderedInputs: Equatable {
+            case complete(NativePosterIndicators)
+            case foreground(MediaPlaybackIndicatorPresentation.Status?, inset: CGFloat, cornerRadius: CGFloat?)
+        }
+
+        private var renderedInputs: RenderedInputs {
+            guard layer == .foreground, case .playback(let inputs) = inputs else {
+                return .complete(inputs)
+            }
+            // Progress, downloads and bottom scrims are not drawn in this layer.
+            return .foreground(status, inset: inputs.badgeInset, cornerRadius: inputs.artworkCornerRadius)
+        }
+
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.renderedInputs == rhs.renderedInputs
+                && lhs.metrics == rhs.metrics && lhs.palette == rhs.palette
+                && lhs.watchIndicator == rhs.watchIndicator && lhs.showsEpisodeCount == rhs.showsEpisodeCount
+                && lhs.seerConnected == rhs.seerConnected && lhs.locale == rhs.locale
+                && lhs.layoutDirection == rhs.layoutDirection && lhs.colorScheme == rhs.colorScheme
+                && lhs.contrast == rhs.contrast && lhs.dynamicTypeSize == rhs.dynamicTypeSize
+                && lhs.legibilityWeight == rhs.legibilityWeight && lhs.layer == rhs.layer
+        }
+
         init(
             _ indicators: NativePosterIndicators, environment: EnvironmentValues,
             layer: NativePosterIndicatorLayer = .combined
@@ -77,12 +100,16 @@ enum NativePosterArtworkBitmap {
             self.layer = layer
         }
 
-        var overlayPlacement: NativePosterOverlayPlacement? {
+        private var status: MediaPlaybackIndicatorPresentation.Status? {
             guard case .playback(let inputs) = inputs, inputs.rendersStatus else { return nil }
-            switch MediaPlaybackIndicatorPresentation.status(
+            return MediaPlaybackIndicatorPresentation.status(
                 for: inputs.playback, hidesStatus: inputs.hidesStatus, indicator: watchIndicator,
                 showsEpisodeCount: showsEpisodeCount, seerConnected: seerConnected
-            ) {
+            )
+        }
+
+        var overlayPlacement: NativePosterOverlayPlacement? {
+            switch status {
             case .episodeCount:
                 return watchIndicator == .unwatched ? .croppedCount : .floating
             case .library, .watched:

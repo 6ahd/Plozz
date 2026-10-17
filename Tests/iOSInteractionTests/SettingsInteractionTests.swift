@@ -932,7 +932,7 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(button("Customize subtitle style").exists)
         tapNativeSwitch(liveStyle)
         XCTAssertFalse(liveLink.exists)
-        let hearing = button("Hearing impaired")
+        let hearing = app.buttons["subtitle-sdh"]
         reveal(hearing)
         let forced = button("Forced subtitles")
         let forcedBefore = forced.label
@@ -942,6 +942,17 @@ final class SettingsInteractionTests: XCTestCase {
         app.buttons["Prefer SDH"].tap()
         XCTAssertTrue(hearing.staticTexts["Prefer SDH"].exists)
         XCTAssertEqual(forced.label, forcedBefore)
+        let fallback = app.staticTexts["Use SDH when available; otherwise use regular subtitles."]
+        reveal(fallback, fullyVisible: true)
+        XCTAssertTrue(fallback.isHittable)
+        reveal(hearing, fullyVisible: true)
+        hearing.tap()
+        app.buttons["Only SDH"].tap()
+        XCTAssertTrue(hearing.staticTexts["Only SDH"].exists)
+        let strict = app.staticTexts["Use only SDH. Leave subtitles off if unavailable."]
+        reveal(strict, fullyVisible: true)
+        XCTAssertTrue(strict.isHittable)
+        capture("subtitle-sdh-behavior")
     }
 
     func testCircadianPictureMenusAndPreviewKeepSeparateActions() {

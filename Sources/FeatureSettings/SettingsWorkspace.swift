@@ -126,8 +126,7 @@ struct SettingsSectionButton: View {
         } label: {
             SettingsSectionLabel(
                 title: title, icon: icon, assetIcon: assetIcon,
-                value: value, subtitle: subtitle, subtitleContent: subtitleContent,
-                selected: navigation.section == route
+                value: value, subtitle: subtitle, subtitleContent: subtitleContent
             )
         }
         .buttonStyle(SettingsFocusButtonStyle(size: .contained))
@@ -160,7 +159,7 @@ private struct SettingsCategoryFocus: ViewModifier {
         .modifier(SettingsSectionFocusPreference(scope: scope, selected: navigation.section == route))
         .disabled(!canReceiveFocus)
         .accessibilityIdentifier("settings-section-\(route)")
-        .accessibilityAddTraits(navigation.section == route ? .isSelected : [])
+        .accessibilityAddTraits(focused ? .isSelected : [])
         .navigationEntryFocus(navigation.section == route ? .content : nil)
         .background {
             NativeFocusRegionObserver(isEnabled: canReceiveFocus) {
@@ -203,10 +202,7 @@ struct SettingsSectionLabel: View {
     let value: Text?
     let subtitle: Text?
     var subtitleContent: AnyView?
-    let selected: Bool
     var accessorySymbol = "chevron.forward"
-    @Environment(\.settingsRowIsFocused) private var focused
-    @Environment(\.themePalette) private var palette
 
     var body: some View {
         SettingsRowLabel(icon: icon, assetIcon: assetIcon, title: title, secondary: {
@@ -228,12 +224,6 @@ struct SettingsSectionLabel: View {
                     .settingsRowSecondary()
             }
         })
-        .background {
-            if selected && !focused {
-                RoundedRectangle(cornerRadius: SettingsRowMetrics.formRowCornerRadius, style: .continuous)
-                    .fill(palette.fillSubtle)
-            }
-        }
     }
 }
 

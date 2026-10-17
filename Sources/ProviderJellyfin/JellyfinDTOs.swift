@@ -333,6 +333,8 @@ struct MediaStreamDto: Decodable {
     let DisplayTitle: String?
     let IsDefault: Bool?
     let IsForced: Bool?
+    let IsHearingImpaired: Bool?
+    let Title: String? // l10n:content — container track title
     /// Whether this subtitle stream is text-based (SRT/ASS/embedded text) and so
     /// can be delivered/converted to WebVTT for the player. Image-based subs
     /// (PGS/VOBSUB) report `false` and need server burn-in instead.

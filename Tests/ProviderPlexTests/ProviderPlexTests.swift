@@ -441,6 +441,24 @@ final class PlexConnectionResolverTests: XCTestCase {
 // MARK: - Provider mapping
 
 final class PlexProviderMappingTests: XCTestCase {
+    func testSubtitleAccessibilitySurvivesFlagsAndContainerTitles() throws {
+        let provider = PlexProvider(session: makeSession(), http: StubHTTPClient())
+        for metadata in [
+            #""hearingImpaired":true"#,
+            #""hearingImpaired":1"#,
+            #""hearingImpaired":"1""#,
+            #""title":"English [SDH]""#,
+            #""extendedDisplayTitle":"English (CC)""#
+        ] {
+            let json = #"{"index":2,"streamType":3,"codec":"srt","languageTag":"en","# + metadata + "}"
+            let dto = try JSONDecoder.plozz.decode(PlexStream.self, from: Data(json.utf8))
+            XCTAssertTrue(try provider.map(stream: dto, itemID: "movie", mediaSourceID: "file").isHearingImpaired)
+        }
+        let plain = try JSONDecoder.plozz.decode(PlexStream.self, from: Data(
+            #"{"index":1,"streamType":3,"codec":"srt","languageTag":"hi","title":"Hindi"}"#.utf8))
+        XCTAssertFalse(try provider.map(stream: plain, itemID: "movie", mediaSourceID: "file").isHearingImpaired)
+    }
+
     private func makeSession() -> UserSession {
         UserSession(
             server: MediaServer(id: "srv", name: "Home", baseURL: URL(string: "https://plex.host:32400")!, provider: .plex),

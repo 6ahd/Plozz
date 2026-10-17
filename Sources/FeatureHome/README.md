@@ -65,6 +65,12 @@ fallback when the user's server has no attached trailer.
 - **Home** — `HomeView` + `HomeViewModel` render the focused tvOS rows:
   Continue Watching, Latest, Recently Added (per library). `HomeLayout`
   centralises sizing/spacing so all rows feel uniform.
+  Share polling and scan/foreground-triggered row reloads only run while Home
+  is frontmost and the scene is active, never behind playback or a pushed page.
+  Hidden catalog changes and app-foreground refreshes coalesce until Home returns;
+  overdue polls resume once rather than catching up in a burst. Ordinary catalog
+  changes still respect the trailer and navigation-idle guards. This does not
+  disable background synchronization or discard pending library updates.
   On mobile, a root-owned `LazyViewState` retains the shared Home/Watchlist
   model by profile, credentials and active accounts. Rebuilding the tab shell
   for settings/theme changes must not construct and rehydrate throwaway models.
