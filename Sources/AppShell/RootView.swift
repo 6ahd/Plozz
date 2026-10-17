@@ -1577,24 +1577,28 @@ private struct PlexPINEntryView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        // Track the request directly so a successful switch (which clears
-        // pendingPlexPINRequest on AppState) re-evaluates THIS view and triggers
-        // the onChange-based dismiss below. Belt-and-suspenders dismissal that
-        // does NOT rely on the outer cover binding tracking anything — call
-        // dismiss() ourselves from inside the cover.
         let pendingRequest = appState.plexHomeUsers.pendingPlexPINRequest
         return PINEntryScaffold(
             title: "Enter your Plex PIN",
             name: Text(verbatim: userName),
             errorMessage: appState.plexHomeUsers.plexPINError,
             isSubmitting: appState.plexHomeUsers.isSubmittingPlexPIN,
+            availability: pendingRequest == nil ? .checking : appState.plexHomeUsers.plexPINEntryAvailability,
+            onRetry: {
+                guard let pendingRequest, appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest else { return }
+                appState.plexHomeUsers.retryPlexPINRequirement()
+            },
             sequenceStep: sequenceStep,
             onSubmit: { pin in
-                guard appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest else { return }
+                guard appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest,
+                      appState.plexHomeUsers.plexPINEntryAvailability == .available else { return }
                 PlozzLog.auth.debug("PIN auto-submit at 4 digits")
                 onSubmit(pin)
             },
-            onCancel: onCancel
+            onCancel: {
+                guard let pendingRequest, appState.plexHomeUsers.pendingPlexPINRequest == pendingRequest else { return }
+                onCancel()
+            }
         ) {
             PINBadge {
                 if let url = avatarURLString.flatMap(URL.init(string:)) {
@@ -1614,10 +1618,7 @@ private struct PlexPINEntryView: View {
         }
         .id([pendingRequest?.id, pendingRequest?.accountID, pendingRequest?.homeUserID])
         .onChange(of: pendingRequest?.id) { _, newValue in
-            // The cover's outer Binding tracking has been flaky on tvOS — call
-            // dismiss() directly from inside the cover when AppState clears the
-            // pending request (success path). This is the authoritative signal
-            // that the PIN was accepted.
+            // Both a successful switch and a cancelled proposal dismiss the cover.
             if newValue == nil, dismissOnSuccess {
                 PlozzLog.auth.debug("pendingPlexPINRequest cleared — calling dismiss()")
                 dismiss()

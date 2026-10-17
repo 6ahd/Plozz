@@ -2385,14 +2385,30 @@ final class PlexAuthClientTests: XCTestCase {
         XCTAssertEqual(stub.method(forPathSuffix: "/api/v2/home/users"), .get)
     }
 
-    func testHomeUsersTreatsHasPasswordAsRequiresPIN() async throws {
+    func testHomeUsersNeverTreatsAccountPasswordAsHomePINProtection() async throws {
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/api/v2/home/users", json: """
         {"users":[{"uuid":"u","title":"Guest","hasPassword":true}]}
         """)
         let users = try await client(stub).homeUsers(authToken: "ADMIN_TOKEN")
         XCTAssertEqual(users.count, 1)
-        XCTAssertTrue(users[0].requiresPIN)
+        XCTAssertFalse(users[0].requiresPIN)
+        XCTAssertEqual(users[0].pinRequirementVerified, false)
+    }
+
+    func testHomeUsersNeverTreatMissingProtectionMetadataAsPINRemoval() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/api/v2/home/users", json: """
+        {"users":[
+          {"uuid":"unknown","title":"Unknown"},
+          {"uuid":"null","title":"Null","protected":null,"hasPassword":null},
+          {"uuid":"passwordless","title":"Passwordless","hasPassword":false},
+          {"uuid":"unprotected","title":"Unprotected","protected":false,"hasPassword":true}
+        ]}
+        """)
+        let users = try await client(stub).homeUsers(authToken: "ADMIN_TOKEN")
+        XCTAssertEqual(users.map(\.requiresPIN), [false, false, false, false])
+        XCTAssertEqual(users.map(\.pinRequirementVerified), [false, false, false, true])
     }
 
     func testSwitchHomeUserPassesPinAndReturnsToken() async throws {
