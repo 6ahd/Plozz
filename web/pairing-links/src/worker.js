@@ -12,7 +12,7 @@
 //        Safari loads this page, which explains how to get Plozz and finish setup.
 //
 // Everything else on plozz.app is still served by the existing `plozz-website`
-// Cloudflare Pages project — this Worker claims only the listed routes.
+// Cloudflare Worker — this Worker claims only the listed routes.
 
 const APP_ID = "N8Z5T4AK3X.com.thatcube.Plozz";
 
@@ -20,7 +20,7 @@ const APP_ID = "N8Z5T4AK3X.com.thatcube.Plozz";
 // Store release). The /pair page adapts its copy if this is ever emptied.
 const APP_STORE_URL = "https://testflight.apple.com/join/EKfReNMu";
 const SHORTLINKS = [
-  { path: "/discord", target: "https://discord.gg/YkXnmB8rcF" },
+  { path: "/discord", target: "https://discord.gg/34tvRebP5Q" },
   { path: "/github", target: "https://github.com/brandomoore/Plozz" },
 ];
 
@@ -90,7 +90,7 @@ export default {
       );
     }
 
-    // The wildcards also catch similarly prefixed pages; keep those on Pages.
+    // The wildcards also catch similarly prefixed pages; keep those on the website.
     if (SHORTLINKS.some(({ path }) => url.pathname.startsWith(path))) {
       return fetch(request);
     }
