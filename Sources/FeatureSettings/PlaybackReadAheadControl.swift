@@ -26,7 +26,7 @@ public struct PlaybackReadAheadControl: View {
         }
         #else
         SettingsSectionGroup {
-            Picker("Read-ahead buffer", selection: $selection) {
+            Picker("Video buffer", selection: $selection) {
                 ForEach(PlaybackReadAhead.allCases, id: \.self) {
                     Text($0.title).tag($0)
                 }
@@ -41,7 +41,7 @@ public struct PlaybackReadAheadControl: View {
 
 private struct PlaybackReadAheadHelp: View {
     var body: some View {
-        Text("Larger buffers use more storage. Applies to new Plozzigen playback.")
+        Text("Larger buffers use more storage. Unavailable with Apple’s native player.")
             .fixedSize(horizontal: false, vertical: true)
     }
 }

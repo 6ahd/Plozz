@@ -76,7 +76,15 @@ struct PlozziOSStreamingSettings: View {
                 }
                 .accessibilityIdentifier("streaming-advanced")
             } else {
-                Text("Original quality only")
+                Picker("Quality", selection: .constant(StreamingQuality.original)) {
+                    Text("Original quality").tag(StreamingQuality.original)
+                }
+                .disabled(true)
+                .accessibilityIdentifier("streaming-unavailable")
+            }
+        } footer: {
+            if !hasCompatibleServer {
+                Text("Unavailable for network shares.")
             }
         }
     }

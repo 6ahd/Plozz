@@ -637,6 +637,9 @@ final class SettingsInteractionTests: XCTestCase {
         capture("playback-simplified")
 
         let local = button("Local network")
+        XCTAssertTrue(local.isEnabled)
+        XCTAssertFalse(app.buttons["streaming-unavailable"].exists)
+        XCTAssertFalse(app.staticTexts["Unavailable for network shares."].exists)
         local.tap()
         XCTAssertTrue(app.buttons["1080p · 8 Mbps"].waitForExistence(timeout: 3))
         app.buttons["1080p · 8 Mbps"].tap()
@@ -677,13 +680,29 @@ final class SettingsInteractionTests: XCTestCase {
 
     func testStreamingQualityMakesShareOnlyRestrictionExplicit() {
         launchPlayback("--share-only-playback")
-        XCTAssertTrue(app.staticTexts["Original quality only"].exists)
-        XCTAssertFalse(app.buttons["Original quality only"].exists)
+        let quality = app.buttons["streaming-unavailable"]
+        XCTAssertTrue(quality.waitForExistence(timeout: 5))
+        XCTAssertFalse(quality.isEnabled)
+        XCTAssertTrue(quality.staticTexts["Original quality"].exists)
+        XCTAssertTrue(app.staticTexts["Unavailable for network shares."].exists)
         XCTAssertFalse(button("Local network").exists)
         XCTAssertFalse(button("Remote Wi-Fi / Ethernet").exists)
         XCTAssertFalse(button("Cellular").exists)
         XCTAssertFalse(app.buttons["streaming-advanced"].exists)
-        capture("playback-original-quality-only")
+        XCTAssertTrue(app.buttons["playback-read-ahead"].isEnabled)
+        capture("playback-quality-unavailable")
+    }
+
+    func testUnavailableStreamingQualityExplanationRemainsVisibleAtAccessibilitySize() {
+        launchPlayback("--share-only-playback", "--large-text")
+        let quality = app.buttons["streaming-unavailable"]
+        reveal(quality, fullyVisible: true)
+        XCTAssertFalse(quality.isEnabled)
+        XCTAssertTrue(quality.staticTexts["Original quality"].exists)
+        let explanation = app.staticTexts["Unavailable for network shares."]
+        reveal(explanation, fullyVisible: true)
+        XCTAssertTrue(explanation.isHittable)
+        capture("playback-quality-unavailable-large-text")
     }
 
     func testPlaybackAdvancedKeepsUnsupportedCodecsDisabled() {
@@ -769,12 +788,13 @@ final class SettingsInteractionTests: XCTestCase {
         launchPlayback("--large-text", "--reset-read-ahead")
         let picker = app.buttons["playback-read-ahead"]
         reveal(picker, fullyVisible: true)
+        XCTAssertTrue(picker.label.contains("Video buffer"))
         picker.tap()
         XCTAssertTrue(app.buttons["Maximum available"].waitForExistence(timeout: 3))
         app.buttons["Maximum available"].tap()
         XCTAssertTrue(picker.staticTexts["Maximum available"].exists)
         let explanation = app.staticTexts[
-            "Larger buffers use more storage. Applies to new Plozzigen playback."
+            "Larger buffers use more storage. Unavailable with Apple’s native player."
         ]
         reveal(explanation, fullyVisible: true)
         XCTAssertTrue(explanation.isHittable)

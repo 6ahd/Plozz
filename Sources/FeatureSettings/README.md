@@ -5,11 +5,12 @@ and the single place caption customization lives.
 
 ## Responsibility
 
-- `PlaybackReadAheadControl` — Playback's device-local **Read-ahead buffer**
+- `PlaybackReadAheadControl` — Playback's device-local **Video buffer**
   uses the shared checkable option list on TV and a native menu picker on mobile,
   including share-only profiles. Automatic, 1 minute, 5 minutes, 10 minutes and
   Maximum available share one ordered model and default. One short note explains
-  the storage cost and Plozzigen-only, next-load scope. This is
+  the storage cost and excludes Apple's native player without naming internal
+  engines or explaining when settings take effect. This is
   independent of profile preferences and metadata/artwork cache budgets.
 - `HeroSettingsControls` — Hero keeps content selection, watched filtering, item
   count, and automatic changes together, shared by TV and mobile. **Ratings** and

@@ -14,7 +14,11 @@ final class PlaybackReadAheadRemoteTests: XCTestCase {
             XCUIRemote.shared.press(.down)
         }
         XCTAssertTrue(row.hasFocus)
+        XCTAssertTrue(row.label.contains("Video buffer"))
         XCUIRemote.shared.press(.right)
+        XCTAssertTrue(app.staticTexts[
+            "Larger buffers use more storage. Unavailable with Apple’s native player."
+        ].exists)
         let choices = ["Automatic", "1 minute", "5 minutes", "10 minutes", "Maximum available"]
         XCTAssertTrue(waitUntil { choices.contains { app.buttons[$0].hasFocus } })
         // Directional entry follows native geometry; walk to the first choice.
