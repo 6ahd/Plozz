@@ -11,9 +11,11 @@ public final class ServerAddressResolver: Sendable {
     public typealias Probe = @Sendable (URL) async throws -> Void
 
     private struct State {
+        var addresses: [URL]
         var current: URL
         var confirmedAt: Date?
         var flight: Flight?
+        var generation = UUID()
     }
 
     private struct Flight {
@@ -22,15 +24,17 @@ public final class ServerAddressResolver: Sendable {
         let task: Task<URL, Error>
     }
 
-    public let addresses: [URL]
+    private let baseURL: URL
+    public var addresses: [URL] { state.withLock { $0.addresses } }
     private let probe: Probe
     private let state: Mutex<State>
 
     public init(baseURL: URL, alternatives: [URL], probe: @escaping Probe) {
         var seen = Set<URL>()
-        addresses = ([baseURL] + alternatives).filter { seen.insert($0).inserted }
+        let addresses = ([baseURL] + alternatives).filter { seen.insert($0).inserted }
+        self.baseURL = baseURL
         self.probe = probe
-        state = Mutex(State(current: baseURL))
+        state = Mutex(State(addresses: addresses, current: baseURL))
     }
 
     public var current: URL { state.withLock { $0.current } }
@@ -44,9 +48,45 @@ public final class ServerAddressResolver: Sendable {
         }
     }
 
+    fileprivate func confirmSuccessfulRequest(_ address: URL) {
+        state.withLock {
+            if $0.current == address, $0.confirmedAt == nil { $0.confirmedAt = Date() }
+        }
+    }
+
     public func resolved(excluding failed: URL? = nil) async throws -> URL {
+        while true {
+            let generation = state.withLock { $0.generation }
+            do {
+                let result = try await resolveSnapshot(excluding: failed)
+                guard state.withLock({ $0.generation == generation }) else { continue }
+                return result
+            } catch {
+                try Task.checkCancellation()
+                guard state.withLock({ $0.generation == generation }) else { continue }
+                throw error
+            }
+        }
+    }
+
+    public func updateAlternatives(_ alternatives: [URL]) {
+        var seen = Set<URL>()
+        let addresses = ([baseURL] + alternatives).filter { seen.insert($0).inserted }
+        let previous = state.withLock { state -> Task<URL, Error>? in
+            guard state.addresses != addresses else { return nil }
+            let previous = state.flight?.task
+            state = State(addresses: addresses, current: baseURL)
+            return previous
+        }
+        previous?.cancel()
+    }
+
+    private func resolveSnapshot(excluding failed: URL?) async throws -> URL {
         try Task.checkCancellation()
         let task = state.withLock { state -> Task<URL, Error> in
+            if state.addresses.count == 1, failed == nil {
+                return Task { self.baseURL }
+            }
             if failed == nil, let confirmedAt = state.confirmedAt,
                Date().timeIntervalSince(confirmedAt) < 30 {
                 let current = state.current
@@ -56,9 +96,10 @@ public final class ServerAddressResolver: Sendable {
                 return flight.task
             }
             let id = UUID()
+            let candidates = state.addresses.filter { $0 != failed }
             let flight = Task {
                 do {
-                    let selected = try await self.select(excluding: failed)
+                    let selected = try await self.select(candidates)
                     self.state.withLock {
                         guard $0.flight?.id == id else { return }
                         $0.current = selected
@@ -81,8 +122,7 @@ public final class ServerAddressResolver: Sendable {
         return result
     }
 
-    private func select(excluding failed: URL?) async throws -> URL {
-        let candidates = addresses.filter { $0 != failed }
+    private func select(_ candidates: [URL]) async throws -> URL {
         return try await withThrowingTaskGroup(of: URL?.self) { group in
             for address in candidates {
                 group.addTask { [probe] in
@@ -169,7 +209,10 @@ public struct ServerAddressHTTPClient: HTTPClient {
     }
 
     private func perform(_ endpoint: Endpoint, baseURL: URL, raw: Bool) async throws -> (Data, HTTPURLResponse) {
-        if raw { return try await wrapped.sendRaw(endpoint, baseURL: baseURL) }
-        return try await wrapped.send(endpoint, baseURL: baseURL)
+        let result: (Data, HTTPURLResponse)
+        if raw { result = try await wrapped.sendRaw(endpoint, baseURL: baseURL) }
+        else { result = try await wrapped.send(endpoint, baseURL: baseURL) }
+        if (200..<300).contains(result.1.statusCode) { resolver.confirmSuccessfulRequest(baseURL) }
+        return result
     }
 }

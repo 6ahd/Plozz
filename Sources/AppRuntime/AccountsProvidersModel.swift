@@ -386,12 +386,26 @@ public final class AccountsProvidersModel {
     /// active profile. Invalidates the provider cache first, then fires
     /// `onActiveAccountsChanged` so the media-share runtime can update its
     /// preferred-account keys.
-    public func reloadAccounts() {
+    public func reloadAccounts(updatingServerAddressesFor addressAccountID: String? = nil) {
         profilesModel.retryUnconfirmedAccountSelections()
         liveTVAuthorizationCache = [:]
-        registry.invalidateCache()
+        let updated = accountStore.loadAccounts()
+        if let addressAccountID,
+           let account = updated.first(where: { $0.id == addressAccountID }),
+           accounts.map({ old in
+               var expected = old
+               if old.id == addressAccountID {
+                   expected.server.alternateConnectionURLs = account.server.alternateConnectionURLs
+               }
+               return expected
+           }) == updated {
+            registry.updateServerAddresses(accountID: addressAccountID,
+                                           alternatives: account.server.alternateConnectionURLs ?? [])
+        } else {
+            registry.invalidateCache()
+        }
         onAccountsInvalidated()
-        accounts = accountStore.loadAccounts()
+        accounts = updated
         let known = Set(accounts.map(\.id))
         // The household-global active set is the fallback for a profile that has
         // never chosen a subset (default profile / upgrade path).

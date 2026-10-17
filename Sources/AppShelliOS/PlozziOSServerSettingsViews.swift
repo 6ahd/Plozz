@@ -154,18 +154,9 @@ private struct PlozziOSServerSettingsDetailView: View {
                 }
 
                 if [.jellyfin, .emby, .plex, .silo].contains(group.providerKind),
-                   let providerSetupRouter {
+                   providerSetupRouter != nil {
                     SettingsSectionGroup("Connection addresses") {
-                        ForEach(group.accounts) { account in
-                            Button {
-                                providerSetupRouter.addressAccount = account
-                            } label: {
-                                SettingsDisclosureLabel {
-                                    Text(verbatim: account.userName.isEmpty ? account.server.name : account.userName)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        ServerAddressSettingsLink(accounts: group.accounts)
                     }
                 }
 

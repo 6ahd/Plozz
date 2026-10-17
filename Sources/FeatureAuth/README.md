@@ -46,7 +46,9 @@ session persistence.
   before writing metadata; profile authorization and cancellation are checked
   again after asynchronous work. Account IDs, credential revisions, active
   selection, and watch state do not change. Aliases are excluded from sync and
-  device-transfer descriptors.
+  device-transfer descriptors. Address-only reloads update existing providers
+  through `ServerAddressUpdating`, including retained music consumers, rather
+  than invalidating every provider and losing active Silo grants.
 - **Tokens NEVER leave the Keychain.** Never written to `UserDefaults`,
   never logged. `AccountStore` is split-storage by design.
 - **Pure state machine.** `SessionStateMachine` has no I/O — all side

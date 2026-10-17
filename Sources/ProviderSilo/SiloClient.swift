@@ -6,10 +6,8 @@ import FoundationNetworking
 #endif
 
 actor SiloClient {
-    private nonisolated let savedBaseURL: URL
-    nonisolated let addressResolver: ServerAddressResolver?
-    nonisolated var baseURL: URL { addressResolver?.current ?? savedBaseURL }
-    private let knownAddresses: [URL]
+    nonisolated let addressResolver: ServerAddressResolver
+    nonisolated var baseURL: URL { addressResolver.current }
     let accountID: String
     let revision: CredentialRevision
     let profileID: String
@@ -27,22 +25,18 @@ actor SiloClient {
               context.session.userID == "\(credential.accountID):\(credential.profileID)" else {
             throw AppError.unauthorized
         }
-        savedBaseURL = context.session.server.baseURL
-        knownAddresses = [context.session.server.baseURL] + (context.session.server.alternateConnectionURLs ?? [])
-        if let alternatives = context.session.server.alternateConnectionURLs, !alternatives.isEmpty {
-            let resolver = ServerAddressResolver(baseURL: context.session.server.baseURL, alternatives: alternatives) { url in
-                struct Info: Decodable { let api_major: Int }
-                let info = try await addressProbe.decode(
-                    Info.self, from: SiloAPI.endpoint("/system/info"), baseURL: url
-                )
-                guard info.api_major == 2 else { throw AppError.invalidResponse }
-            }
-            addressResolver = resolver
-            self.http = ServerAddressHTTPClient(wrapped: http, resolver: resolver)
-        } else {
-            addressResolver = nil
-            self.http = http
+        let resolver = ServerAddressResolver(
+            baseURL: context.session.server.baseURL,
+            alternatives: context.session.server.alternateConnectionURLs ?? []
+        ) { url in
+            struct Info: Decodable { let api_major: Int }
+            let info = try await addressProbe.decode(
+                Info.self, from: SiloAPI.endpoint("/system/info"), baseURL: url
+            )
+            guard info.api_major == 2 else { throw AppError.invalidResponse }
         }
+        addressResolver = resolver
+        self.http = ServerAddressHTTPClient(wrapped: http, resolver: resolver)
         accountID = context.accountID
         revision = context.credentialRevision
         profileID = credential.profileID
@@ -65,7 +59,7 @@ actor SiloClient {
         let credential = try await authorizedCredential()
         _ = try currentCredential()
         guard url.user == nil, url.password == nil else { throw AppError.unauthorized }
-        guard let base = MediaProviderURLIdentity.matchingBaseURL(for: url, among: knownAddresses),
+        guard let base = MediaProviderURLIdentity.matchingBaseURL(for: url, among: addressResolver.addresses),
               let path = MediaProviderURLIdentity.relativeResourcePath(of: url, under: base) else {
             // Distributed nodes retain their issued signed transport. Never
             // send this server's account bearer to another origin.

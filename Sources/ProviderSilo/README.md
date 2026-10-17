@@ -64,6 +64,9 @@ URLs remain byte-for-byte on their issued origin, with the bearer added only for
 approved server/session URLs. Foreign media nodes do not receive that bearer.
 If Silo issues a public absolute media URL, selecting a local API address does
 not silently rewrite it or move an already-playing stream.
+Address-only edits preserve the existing provider's login-revision-bound playback
+and subtitle grants while updating its API routes. They do not invalidate other
+accounts' providers; a new credential revision still receives a new session store.
 
 ## Server Home
 

@@ -73,7 +73,7 @@ struct PlozziOSSettingsView: View {
                 isAuthorized: {
                     appModel.profiles.activeProfileID == profileID && !appModel.managementRequiresParentalPIN
                 },
-                onChanged: { appModel.accountsProviders.reloadAccounts() }
+                onChanged: { appModel.accountsProviders.reloadAccounts(updatingServerAddressesFor: account.id) }
             )
             .presentationSizing(.page)
         }

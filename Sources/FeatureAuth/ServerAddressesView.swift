@@ -43,6 +43,10 @@ public struct ServerAddressesView: View {
                         #endif
                         Text(verbatim: model.account.server.name)
                             .font(.headline)
+                        if !model.account.userName.isEmpty {
+                            Text("Signed in as \(model.account.userName)")
+                                .plozzForeground(.secondary)
+                        }
                         Text("Plozz prefers a reachable local address and tries another saved address if the connection fails. These addresses apply to this sign-in on this device.")
                             .plozzForeground(.secondary)
                         ServerSavedAddresses(model: model)
@@ -71,7 +75,7 @@ private struct ServerSavedAddresses: View {
     var body: some View {
         SettingsSectionGroup("Saved addresses") {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Sign-in address").font(.caption)
+                Text("Original server address").font(.caption)
                 Text(verbatim: model.account.server.baseURL.absoluteString)
                     .lineLimit(2)
             }

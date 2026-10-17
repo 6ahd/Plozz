@@ -40,7 +40,7 @@ public struct JellyfinClient: Sendable {
     ) {
         let latch = ReachabilityLatch()
         let resolver: ServerAddressResolver?
-        if !alternateURLs.isEmpty, let serverID {
+        if let serverID {
             resolver = ServerAddressResolver(baseURL: baseURL, alternatives: alternateURLs) { url in
                 try await Self.verifyAddress(url, serverID: serverID, http: addressProbe)
             }

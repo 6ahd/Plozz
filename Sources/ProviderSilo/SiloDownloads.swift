@@ -76,7 +76,7 @@ extension SiloProvider {
             guard ["srt", "vtt", "ass", "ssa", "subrip", "webvtt"].contains(subtitle.format.lowercased()) else { continue }
             guard let url = resourceURL(subtitle.fetch_url),
                   let base = MediaProviderURLIdentity.matchingBaseURL(
-                    for: url, among: [session.server.baseURL] + (session.server.alternateConnectionURLs ?? [])),
+                    for: url, among: client.addressResolver.addresses),
                   let path = MediaProviderURLIdentity.relativeResourcePath(of: url, under: base),
                   path.hasPrefix("/api/v2/downloads/\(try SiloAPI.pathComponent(reference.id))/subtitles/"),
                   url.query == nil, url.fragment == nil else { throw AppError.invalidResponse }

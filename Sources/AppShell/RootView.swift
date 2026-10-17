@@ -601,7 +601,7 @@ public struct RootView: View {
                     appState.profilesModel.activeProfileID == profileID
                         && !appState.profileFlow.managementRequiresParentalPIN
                 },
-                onChanged: { appState.accountsProviders.reloadAccounts() }
+                onChanged: { appState.accountsProviders.reloadAccounts(updatingServerAddressesFor: account.id) }
             )
         }
         .onChange(of: appState.profilesModel.activeProfileID) { _, _ in

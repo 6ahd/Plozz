@@ -7,7 +7,7 @@ import CoreNetworking
 /// Holds an authenticated `JellyfinClient` and maps Jellyfin DTOs onto the
 /// provider-agnostic `CoreModels` types. Feature modules depend only on
 /// `MediaProvider`; this is the single place Jellyfin specifics live.
-public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIdentityProviding, AuthenticatedHTTPOriginProviding {
+public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIdentityProviding, AuthenticatedHTTPOriginProviding, ServerAddressUpdating {
     public let kind: ProviderKind
     public let session: UserSession
     public let accountID: String
@@ -20,6 +20,12 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     private let authenticatedStreamProber: (any AuthenticatedHTTPStreamProbing)?
     private let probeDescriptors: MediaBrowserProbeDescriptorStore
     public var authenticatedHTTPOrigin: URL { client.baseURL }
+
+    private var connectionAddresses: [URL] { client.addressResolver?.addresses ?? [session.server.baseURL] }
+
+    public func updateServerAddresses(_ alternatives: [URL]) {
+        client.addressResolver?.updateAlternatives(alternatives)
+    }
 
     public func resolveAuthenticatedHTTPOrigin() async throws -> URL {
         try await client.addressResolver?.resolved() ?? client.baseURL
@@ -1972,7 +1978,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     private func artworkPath(_ url: URL) -> String? {
-        let addresses = [session.server.baseURL] + (session.server.alternateConnectionURLs ?? [])
+        let addresses = connectionAddresses
         guard let base = MediaProviderURLIdentity.matchingBaseURL(for: url, among: addresses) else { return nil }
         return MediaProviderURLIdentity.relativeResourcePath(of: url, under: base)
     }
@@ -2091,16 +2097,10 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         if components.scheme != nil {
             if let url = components.url,
                let base = MediaProviderURLIdentity.matchingBaseURL(
-                for: url, among: [session.server.baseURL] + (session.server.alternateConnectionURLs ?? [])),
-               let baseComponents = URLComponents(url: base, resolvingAgainstBaseURL: false) {
-                let basePath = baseComponents.percentEncodedPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                let prefix = basePath.isEmpty ? "" : "/" + basePath
-                guard components.percentEncodedPath == prefix
-                    || components.percentEncodedPath.hasPrefix(prefix + "/") else {
-                    throw AppError.invalidResponse
-                }
+                for: url, among: connectionAddresses),
+               let relative = MediaProviderURLIdentity.relativeEncodedResourcePath(of: url, under: base) {
                 pathBase = .configuredBaseURL
-                path = String(components.percentEncodedPath.dropFirst(prefix.count).drop(while: { $0 == "/" }))
+                path = relative
             } else {
                 pathBase = .serverRoot
                 path = components.percentEncodedPath

@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import CoreModels
 import CoreNetworking
 
@@ -132,7 +133,12 @@ public struct PlexClient: Sendable {
     /// Resolves (and self-heals) the working server base URL. Browsing requests
     /// go through it so a saved-but-now-unreachable connection transparently
     /// fails over to a reachable one.
-    private let resolver: PlexConnectionResolver
+    private final class Routing: Sendable {
+        let resolver: Mutex<PlexConnectionResolver>
+        init(_ resolver: PlexConnectionResolver) { self.resolver = Mutex(resolver) }
+    }
+    private let routing: Routing
+    private var resolver: PlexConnectionResolver { routing.resolver.withLock { $0 } }
     private let deviceProfile: PlexDeviceProfile
     private let token: String
     /// Token for **plex.tv Discover** calls (watchlist, Discover metadata,
@@ -147,7 +153,7 @@ public struct PlexClient: Sendable {
     ///
     /// `nil` means "same as `token`", correct for an ordinary sign-in where the
     /// account token is what was stored.
-    private let discoverToken: String?
+    private var discoverToken: String?
 
     /// The credential to send to plex.tv Discover.
     private var plexTVToken: String { discoverToken ?? token }
@@ -180,7 +186,20 @@ public struct PlexClient: Sendable {
     /// used by URL builders after a request has settled it.
     public var baseURL: URL { resolver.current }
 
-    func resolvedBaseURL() async -> URL { await resolver.resolved() }
+    func resolvedBaseURL() async -> URL {
+        while true {
+            let snapshot = resolver
+            let url = await snapshot.resolved()
+            if resolver === snapshot { return url }
+        }
+    }
+
+    func updateConnectionResolver(_ makeReplacement: ([URL]) -> PlexConnectionResolver) {
+        routing.resolver.withLock { current in
+            let discovered = current.retire()
+            current = makeReplacement(discovered)
+        }
+    }
 
     var knownBaseURLs: [URL] { resolver.knownBaseURLs }
 
@@ -223,16 +242,9 @@ public struct PlexClient: Sendable {
     /// per-server token, while the watchlist uses that person's own
     /// account-level token so it reads and writes THEIR list.
     public func withDiscoverToken(_ discoverToken: String?) -> PlexClient {
-        PlexClient(
-            resolver: resolver,
-            deviceProfile: deviceProfile,
-            token: token,
-            discoverToken: discoverToken,
-            http: http,
-            interactiveHTTP: interactiveHTTP,
-            capabilities: capabilities,
-            hybridEngineEnabled: hybridEngineEnabled
-        )
+        var copy = self
+        copy.discoverToken = discoverToken
+        return copy
     }
 
     /// Self-healing initializer: `resolver` probes its candidate connections and
@@ -247,7 +259,7 @@ public struct PlexClient: Sendable {
         capabilities: MediaCapabilities = .detected(),
         hybridEngineEnabled: Bool = false
     ) {
-        self.resolver = resolver
+        self.routing = Routing(resolver)
         self.deviceProfile = deviceProfile
         self.token = token
         self.discoverToken = discoverToken
@@ -276,13 +288,15 @@ public struct PlexClient: Sendable {
         var endpoint = endpoint
         endpoint.redirectPolicy = .sameOrigin
         let client = client ?? http
-        let base = await resolver.resolved()
+        let base = await resolvedBaseURL()
+        try Task.checkCancellation()
         do {
             if preservingStatus { return try await client.sendRaw(endpoint, baseURL: base) }
             return try await client.send(endpoint, baseURL: base)
         } catch AppError.serverUnreachable {
             resolver.reportFailure(base)
-            let retry = await resolver.resolved()
+            let retry = await resolvedBaseURL()
+            try Task.checkCancellation()
             guard retry != base else { throw AppError.serverUnreachable }
             if preservingStatus { return try await client.sendRaw(endpoint, baseURL: retry) }
             return try await client.send(endpoint, baseURL: retry)
@@ -345,7 +359,7 @@ public struct PlexClient: Sendable {
                 method: method, path: path, queryItems: query, headers: liveHeaders,
                 redirectPolicy: .sameOrigin
             ),
-            baseURL: await resolver.resolved()
+            baseURL: await resolvedBaseURL()
         )
         switch response.statusCode {
         case 200..<300: return data

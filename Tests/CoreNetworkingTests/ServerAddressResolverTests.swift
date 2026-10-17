@@ -99,7 +99,11 @@ final class ServerAddressResolverTests: XCTestCase {
 
     func testCancelledWaiterDoesNotCancelAnotherCallersResolution() async throws {
         let gate = HeldAddressProbe()
-        let resolver = ServerAddressResolver(baseURL: local, alternatives: []) { _ in await gate.hold() }
+        let local = local
+        let resolver = ServerAddressResolver(baseURL: local, alternatives: [remote]) { url in
+            if url == local { await gate.hold() }
+            else { throw AppError.serverUnreachable }
+        }
         let cancelled = Task { try await resolver.resolved() }
         await gate.waitUntilHeld()
         let survivor = Task { try await resolver.resolved() }
@@ -109,6 +113,23 @@ final class ServerAddressResolverTests: XCTestCase {
         catch { XCTAssertTrue(error is CancellationError) }
         let selected = try await survivor.value
         XCTAssertEqual(selected, local)
+    }
+
+    func testRemovingAddressDuringProbeCannotPublishOrReturnTheRemovedRoute() async throws {
+        let gate = HeldAddressProbe()
+        let local = local
+        let resolver = ServerAddressResolver(baseURL: remote, alternatives: [local]) { url in
+            if url == local { await gate.hold() }
+            else { throw AppError.serverUnreachable }
+        }
+        let resolving = Task { try await resolver.resolved() }
+        await gate.waitUntilHeld()
+        resolver.updateAlternatives([])
+        await gate.release()
+        let result = try await resolving.value
+        XCTAssertEqual(result, remote)
+        XCTAssertEqual(resolver.addresses, [remote])
+        XCTAssertNil(resolver.confirmed)
     }
 }
 

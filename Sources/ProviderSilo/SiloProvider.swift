@@ -2,7 +2,7 @@ import Foundation
 import CoreModels
 import CoreNetworking
 
-public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFieldProviding, Sendable {
+public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFieldProviding, ServerAddressUpdating, Sendable {
     public let kind: ProviderKind = .silo
     public let session: UserSession
     public let accountID: String
@@ -12,6 +12,10 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
     let capabilitiesSnapshot: MediaCapabilities
     let artwork = SiloArtworkStore()
     let libraryRatings = SiloLibraryRatings()
+
+    public func updateServerAddresses(_ alternatives: [URL]) {
+        client.addressResolver.updateAlternatives(alternatives)
+    }
 
     public init(
         context: ProviderResolutionContext, credentials: any RotatingCredentialStoring,

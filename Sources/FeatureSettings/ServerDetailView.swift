@@ -58,18 +58,9 @@ struct ServerDetailView: View {
                     accountsPanel(group)
                         .tvOSFocusSection()
                     if [.jellyfin, .emby, .plex, .silo].contains(group.providerKind),
-                       let providerSetupRouter {
+                       providerSetupRouter != nil {
                         SettingsPanel(title: "Connection addresses") {
-                            VStack(alignment: .leading, spacing: 16) {
-                                ForEach(group.accounts) { account in
-                                    Button {
-                                        providerSetupRouter.addressAccount = account
-                                    } label: {
-                                        Label(account.userName.isEmpty ? account.server.name : account.userName,
-                                              systemImage: "network")
-                                    }
-                                }
-                            }
+                            ServerAddressSettingsLink(accounts: group.accounts)
                         }
                         .tvOSFocusSection()
                     }
