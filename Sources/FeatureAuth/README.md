@@ -37,6 +37,8 @@ session persistence.
   mobile Copy preserves the complete URL, and accessibility reads it intact.
   Routing and device-scope explanations remain secondary to native add/remove actions;
   removal still requires confirmation, and the original address cannot be removed.
+  The add action uses a native title-and-icon label so the group's muted row-icon
+  color cannot override the prominent button's contrasting foreground.
 
 ## Invariants
 

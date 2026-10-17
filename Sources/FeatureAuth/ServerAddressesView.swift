@@ -253,6 +253,7 @@ private struct ServerAddAddressForm: View {
             }
             HStack {
                 Button("Verify and add address", systemImage: "plus", action: add)
+                    .labelStyle(.titleAndIcon)
                     .plozzActionButton(role: canAdd ? .primary : .secondary)
                     .disabled(!canAdd)
                 Spacer(minLength: 0)

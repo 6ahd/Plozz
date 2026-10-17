@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 @MainActor
 final class ServerAddressNavigationInteractionTests: XCTestCase {
@@ -109,6 +110,30 @@ final class ServerAddressNavigationInteractionTests: XCTestCase {
     }
 
     #if os(iOS)
+    func testEnabledAddressActionKeepsItsIconReadableAcrossThemes() throws {
+        for light in [false, true] {
+            launch(multiple: false, arguments: light ? ["--light-addresses"] : [])
+            activate(app.buttons["manageServerAddresses"])
+            let field = app.textFields["serverAddressInput"]
+            XCTAssertTrue(field.waitForExistence(timeout: 5))
+            let add = app.buttons["Verify and add address"]
+            XCTAssertFalse(add.isEnabled)
+            field.tap()
+            field.typeText("https://media.example.test")
+            XCTAssertTrue(add.isEnabled)
+            for _ in 0..<6 {
+                if add.isHittable { break }
+                app.swipeUp()
+            }
+            XCTAssertTrue(add.isHittable)
+            capture(light ? "enabled-action-light" : "enabled-action-dark")
+            let icon = add.images["plus"]
+            XCTAssertTrue(icon.exists, app.debugDescription)
+            try assertIconContrast(icon)
+            app.terminate()
+        }
+    }
+
     func testLargeTextAndInvalidAddressFeedback() {
         launch(multiple: false, arguments: ["--large-address-text"])
         activate(app.buttons["manageServerAddresses"])
@@ -128,6 +153,40 @@ final class ServerAddressNavigationInteractionTests: XCTestCase {
         }
         add.tap()
         XCTAssertTrue(app.staticTexts["serverAddressError"].waitForExistence(timeout: 5), app.debugDescription)
+    }
+
+    private func assertIconContrast(_ icon: XCUIElement) throws {
+        let image = try XCTUnwrap(app.screenshot().image.cgImage)
+        let scale = CGFloat(image.width) / app.frame.width
+        let region = icon.frame.insetBy(dx: -2, dy: -2)
+            .applying(CGAffineTransform(scaleX: scale, y: scale)).integral
+        let crop = try XCTUnwrap(image.cropping(to: region))
+        var pixels = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
+        try pixels.withUnsafeMutableBytes {
+            let context = try XCTUnwrap(CGContext(
+                data: $0.baseAddress, width: crop.width, height: crop.height,
+                bitsPerComponent: 8, bytesPerRow: crop.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+            ))
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
+        }
+        func luminance(at offset: Int) -> Double {
+            let channels = (0..<3).map { channel -> Double in
+                let value = Double(pixels[offset + channel]) / 255
+                return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+            }
+            return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+        }
+        let background = luminance(at: 0)
+        let readable = stride(from: 0, to: pixels.count, by: 4).filter { offset in
+            let ink = luminance(at: offset)
+            return (max(ink, background) + 0.05) / (min(ink, background) + 0.05) >= 3
+        }.count
+        XCTAssertGreaterThan(
+            readable, crop.width * crop.height / 20,
+            "The enabled plus glyph must have at least 3:1 contrast against its own button surface."
+        )
     }
     #endif
 
