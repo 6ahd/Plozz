@@ -31,6 +31,12 @@ session persistence.
 - **UI surfaces** — `AuthView` (root sign-in orchestrator) and the
   per-flow views above. `BrandQRCodeView` renders the Quick Connect /
   Plex Link codes as scannable QR + readable digits.
+  `ServerAddressesView` uses the shared provider logo and Settings surfaces to
+  separate server/sign-in identity, saved addresses, and address entry. Full
+  addresses wrap without truncation, with the protocol labeled separately;
+  mobile Copy preserves the complete URL, and accessibility reads it intact.
+  Routing and device-scope explanations remain secondary to native add/remove actions;
+  removal still requires confirmation, and the original address cannot be removed.
 
 ## Invariants
 
