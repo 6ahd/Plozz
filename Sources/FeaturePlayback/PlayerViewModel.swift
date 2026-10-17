@@ -1882,10 +1882,9 @@ public final class PlayerViewModel {
     }
 
     /// Community markers for `item`, or none when no source is enabled or the item
-    /// lacks the ids the databases key on. For an episode without series ids, the
-    /// series' ids are resolved first (the injected resolver, then the provider's
-    /// series item).
-    private static func communitySegments(
+    /// lacks the ids the databases key on. The owning provider's series supplies
+    /// missing identity and numbering context without changing the playable item.
+    static func communitySegments(
         for item: MediaItem?,
         sources: CommunitySkipMarkerSources,
         duration: TimeInterval?,
@@ -1893,18 +1892,37 @@ public final class PlayerViewModel {
         seriesIDResolver: (@Sendable () async -> [String: String]?)?,
         service: any CommunitySkipMarkerFetching
     ) async -> [MediaSegment] {
-        guard !sources.isEmpty, var item else { return [] }
+        guard !sources.isEmpty, !Task.isCancelled, var item else { return [] }
+        if item.kind == .episode, let end = item.episodeNumberEnd, end != item.episodeNumber {
+            PlozzLog.playback.debug("Community markers omitted for a combined or invalid episode range")
+            return []
+        }
         var series: MediaItem?
-        if CommunitySkipMarkerQuery.needsSeriesIDs(item) {
-            if let resolved = await seriesIDResolver?(), !resolved.isEmpty {
-                if let imdb = resolved.providerID(.imdb) { item.providerIDs["SeriesImdb"] = imdb }
-                if let tmdb = resolved.providerID(.tmdb) { item.providerIDs["SeriesTmdb"] = tmdb }
-            }
-            if CommunitySkipMarkerQuery.needsSeriesIDs(item), let seriesID = item.seriesID {
-                series = try? await provider.item(id: seriesID)
+        let needsOrder = item.kind == .episode && sources.contains(.theIntroDB)
+            && item.episodeOrdering == nil
+        let needsTVDB = item.kind == .episode && sources.contains(.theIntroDB)
+            && item.providerID(.seriesTvdb) == nil
+        if CommunitySkipMarkerQuery.needsSeriesIDs(item) || needsOrder || needsTVDB {
+            if let seriesID = item.seriesID {
+                do {
+                    let candidate = try await provider.item(id: seriesID)
+                    guard !Task.isCancelled else { return [] }
+                    if candidate.kind == .series, candidate.id == seriesID {
+                        series = candidate
+                    } else {
+                        PlozzLog.playback.error("Community marker lookup received unrelated series metadata")
+                    }
+                } catch {
+                    guard !Task.isCancelled else { return [] }
+                    PlozzLog.playback.debug("Community marker series lookup failed; retaining known identity")
+                }
+            } else if let resolved = await seriesIDResolver?() {
+                guard !Task.isCancelled else { return [] }
+                item.providerIDs.mergeSeriesProviderIDs(from: resolved)
             }
         }
-        guard let query = CommunitySkipMarkerQuery(item: item, series: series, duration: duration) else { return [] }
+        guard !Task.isCancelled,
+              let query = CommunitySkipMarkerQuery(item: item, series: series, duration: duration) else { return [] }
         return await service.segments(for: query, sources: sources)
     }
 

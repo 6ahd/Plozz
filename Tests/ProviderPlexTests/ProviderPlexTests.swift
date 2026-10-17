@@ -441,6 +441,34 @@ final class PlexConnectionResolverTests: XCTestCase {
 // MARK: - Provider mapping
 
 final class PlexProviderMappingTests: XCTestCase {
+    func testSeriesOrderingAndExactEpisodeGUIDs() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/library/metadata/show", json: """
+        {"MediaContainer":{"Metadata":[{"ratingKey":"show","type":"show","Guid":[{"id":"tvdb://81189"}],
+        "Preferences":{"Setting":[{"id":"useOriginalTitle","value":true},{"id":"episodeOrdering","value":"tvdbDvd"}]}}]}}
+        """)
+        stub.stub(pathSuffix: "/library/metadata/episode", json: """
+        {"MediaContainer":{"Metadata":[{"ratingKey":"episode","type":"episode","grandparentRatingKey":"show",
+        "parentIndex":0,"index":1,"Guid":[{"id":"tvdb://349232"}]}]}}
+        """)
+        let provider = PlexProvider(session: makeSession(), http: stub)
+        let series = try await provider.item(id: "show")
+        let episode = try await provider.item(id: "episode")
+        XCTAssertEqual(series.episodeOrdering, .dvd)
+        XCTAssertEqual(series.providerID(.tvdb), "81189")
+        XCTAssertEqual(episode.providerID(.tvdb), "349232")
+        XCTAssertNil(episode.providerID(.seriesTvdb))
+        XCTAssertEqual(episode.seriesID, "show")
+        let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/library/metadata/show"))
+        XCTAssertTrue(query.contains(URLQueryItem(name: "includePreferences", value: "1")))
+        XCTAssertTrue(query.contains(URLQueryItem(name: "includeGuids", value: "1")))
+        XCTAssertEqual(PlexProvider.episodeOrdering("tvdbAiring"), .aired)
+        XCTAssertEqual(PlexProvider.episodeOrdering("tvdbAbsolute"), .absolute)
+        XCTAssertEqual(PlexProvider.episodeOrdering("tmdbAiring"), .tmdb)
+        XCTAssertEqual(PlexProvider.episodeOrdering("futureOrder"), .unknown)
+        XCTAssertNil(PlexProvider.episodeOrdering(""))
+    }
+
     func testSubtitleAccessibilitySurvivesFlagsAndContainerTitles() throws {
         let provider = PlexProvider(session: makeSession(), http: StubHTTPClient())
         for metadata in [
