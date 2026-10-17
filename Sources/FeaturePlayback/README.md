@@ -50,6 +50,18 @@ and the diagnostics overlay.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## Playback completion reporting
+
+Playback lifecycle reports capture the request, position, duration, and tracker
+percentage before suspension and drain in order. Ending a session rejects new
+heartbeats/state changes; its single stop report follows previously admitted
+events. Rendition replacement resets start/deferred-state admission without
+relabeling queued events. Teardown and reporting are owned tasks, so cancelling
+a presentation handoff does not cancel the final network request, and repeated
+stop callers await the same teardown. Reports remain best-effort on real server
+failures; final-report failures are logged explicitly, not retried as potentially
+duplicate watched/scrobble writes.
+
 ## On-demand player clock
 
 The on-demand timeline normally shows elapsed and remaining playback time.

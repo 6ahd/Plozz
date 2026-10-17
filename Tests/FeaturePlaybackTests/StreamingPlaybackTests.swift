@@ -10,6 +10,53 @@ import UIKit
 
 @MainActor
 final class StreamingPlaybackTests: XCTestCase {
+    func testCancelledStopCallerStillReportsAndConcurrentStopJoinsTeardown() async {
+        let (model, engine, provider) = make()
+        await model.load()
+        engine.currentTime = 590
+        let gate = QualityDecisionGate()
+        engine.drainGate = gate
+        let stop = Task { await model.stop() }
+        await gate.waitUntilEntered()
+        stop.cancel()
+        var joined = false
+        var secondEntered = false
+        let secondStop = Task { secondEntered = true; await model.stop(); joined = true }
+        await wait { secondEntered }
+        XCTAssertFalse(joined, "A second stop must await the same outstanding teardown.")
+        await gate.release()
+        await stop.value
+        await secondStop.value
+        let reports = await provider.playbackReports
+        XCTAssertEqual(reports.filter { $0.event == .stop }.count, 1)
+        XCTAssertEqual(reports.last?.progress.positionSeconds, 590)
+        XCTAssertEqual(reports.last?.progress.durationSeconds, 600)
+        let released = await provider.released
+        XCTAssertEqual(released, ["quality-1"])
+    }
+
+    func testDismissalDuringOutgoingRenditionReportPreservesOneFinalStop() async {
+        let (model, engine, provider) = make()
+        await model.load()
+        engine.currentTime = 590
+        engine.duration = 620
+        let gate = QualityDecisionGate()
+        await provider.setStopReportGate(gate)
+        model.changeStreamingOptions(.init(quality: .sd480))
+        await gate.waitUntilEntered()
+        var stopEntered = false
+        let stop = Task { stopEntered = true; await model.stop() }
+        await wait { stopEntered }
+        await gate.release()
+        await stop.value
+        let reports = await provider.playbackReports
+        XCTAssertEqual(reports.map(\.event), [.start, .stop])
+        XCTAssertEqual(reports.last?.progress.playSessionID, "report-1")
+        XCTAssertEqual(reports.last?.progress.positionSeconds, 590)
+        XCTAssertEqual(reports.last?.progress.durationSeconds, 620)
+        XCTAssertEqual(engine.positions.count, 1, "Dismissal must not start the replacement.")
+    }
+
     func testPausedSessionMaintenanceDoesNotWaitForScrobbling() async throws {
         let provider = QualityPlaybackProvider()
         let gate = QualityDecisionGate()
@@ -695,6 +742,12 @@ final class StreamingPlaybackTests: XCTestCase {
         model.setPlaybackSpeed(1.5)
         engine.onFailure?(.invalidResponse)
         await wait { engine.positions.count == 2 && model.phase == .ready }
+        let reportDeadline = ContinuousClock.now + .seconds(3)
+        while !(await provider.playbackReports).contains(where: {
+            $0.event == .start && $0.progress.playSessionID == "report-2"
+        }), ContinuousClock.now < reportDeadline {
+            await Task.yield()
+        }
         let reports = await provider.playbackReports
         let stopped = reports.firstIndex {
             $0.event == .stop && $0.progress.playSessionID == "report-1"
@@ -1020,6 +1073,7 @@ private actor QualityPlaybackProvider: StreamingQualityProviding, StreamingSessi
     private(set) var maintained: [String] = []
     private var maintenanceGate: QualityDecisionGate?
     private var startReportGate: QualityDecisionGate?
+    private var stopReportGate: QualityDecisionGate?
     private var refusesQuality = false
     private var hevcFailure: (any Error & Sendable)?
     private var negotiatedCodec: DirectPlayVideoCodec?
@@ -1033,6 +1087,7 @@ private actor QualityPlaybackProvider: StreamingQualityProviding, StreamingSessi
     func installGate(_ gate: QualityDecisionGate) { self.gate = gate }
     func setMaintenanceGate(_ gate: QualityDecisionGate) { maintenanceGate = gate }
     func setStartReportGate(_ gate: QualityDecisionGate) { startReportGate = gate }
+    func setStopReportGate(_ gate: QualityDecisionGate) { stopReportGate = gate }
     func maintainStreamingSession(_ request: PlaybackRequest) async throws {
         guard let id = request.streamingSessionID else { throw StreamingQualityError.unavailable }
         maintained.append(id)
@@ -1102,11 +1157,16 @@ private actor QualityPlaybackProvider: StreamingQualityProviding, StreamingSessi
     }
     func search(query: String, limit: Int) async throws -> [MediaItem] { [] }
     func reportPlayback(_ progress: PlaybackProgress, event: PlaybackEvent) async throws {
-        playbackReports.append(.init(progress: progress, event: event))
         if case .start = event, let gate = startReportGate {
             startReportGate = nil
             await gate.suspend()
         }
+        if case .stop = event, let gate = stopReportGate {
+            stopReportGate = nil
+            await gate.suspend()
+        }
+        try Task.checkCancellation()
+        playbackReports.append(.init(progress: progress, event: event))
     }
     nonisolated func imageURL(itemID: String, kind: ImageKind, maxWidth: Int?) -> URL? { nil }
 }
@@ -1119,6 +1179,7 @@ private final class QualityScrubStillExtractor: ScrubStillExtracting {
 @MainActor
 private final class QualityEngine: VideoEngine {
     var loadGate: QualityDecisionGate?
+    var drainGate: QualityDecisionGate?
     var streamingFailure: StreamingPlaybackFailure?
     var streamingOutputDynamicRange: SourceDynamicRange?
     var streamingOutputVideoCodec: DirectPlayVideoCodec?
@@ -1161,6 +1222,9 @@ private final class QualityEngine: VideoEngine {
     func pause() { isPaused = true; onPause?() }
     func seek(to seconds: TimeInterval) async { currentTime = seconds }
     func stop() { status = .idle; currentTime = 0; isPaused = true }
+    func drainTransport() async {
+        if let gate = drainGate { drainGate = nil; await gate.suspend() }
+    }
     func selectAudioTrack(_ track: MediaTrack?) { currentAudioTrackID = track?.id }
     func selectSubtitleTrack(_ track: MediaTrack?) { selectedSubtitleID = track?.id }
     #if canImport(UIKit)

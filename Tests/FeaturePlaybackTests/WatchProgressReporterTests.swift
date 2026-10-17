@@ -113,6 +113,115 @@ final class WatchProgressReporterTests: XCTestCase {
         XCTAssertEqual(scrobbles.first?.progress ?? -1, 90, accuracy: 0.001)
     }
 
+    func testStopUsesCapturedDurationAfterEngineTeardown() async {
+        for runtime: TimeInterval? in [nil, 2_000] {
+            let (sut, host, provider, scrobbler, _) = makeSUT(
+                item: MediaItem(id: "item-1", title: "Ep", kind: .episode, runtime: runtime)
+            )
+            host.engineDuration = 0
+            await sut.report(event: .stop, isPaused: true, positionOverride: 950, durationOverride: 1_000)
+            let events = await provider.events
+            let calls = await scrobbler.calls
+            XCTAssertEqual(events.last?.duration, 1_000)
+            XCTAssertEqual(calls.last?.progress, 95)
+        }
+    }
+
+    func testReportCapturesPercentBeforeProviderSuspends() async {
+        let (sut, host, provider, scrobbler, _) = makeSUT()
+        host.engineCurrentTime = 950
+        await provider.hold(.progress)
+        let report = Task { await sut.report(event: .progress, isPaused: false) }
+        await provider.waitUntilHeld()
+        host.engineCurrentTime = 0
+        host.engineDuration = 0
+        host.request = nil
+        await provider.release()
+        await report.value
+        let calls = await scrobbler.calls
+        XCTAssertEqual(calls.last?.progress, 95)
+    }
+
+    func testStopDrainsEarlierProgressAndRejectsLateEvents() async {
+        let (sut, host, provider, _, _) = makeSUT()
+        await sut.reportStart(isPaused: false, positionOverride: 0)
+        host.engineCurrentTime = 950
+        await provider.hold(.progress)
+        sut.reportProgress()
+        await provider.waitUntilHeld()
+        sut.cancel()
+        let stop = Task {
+            await sut.report(event: .stop, isPaused: true, positionOverride: 950, durationOverride: 1_000)
+        }
+        await Task.yield()
+        sut.reportStateChange(paused: false)
+        sut.reportProgress()
+        await provider.release()
+        await stop.value
+        await sut.report(event: .progress, isPaused: false)
+        await sut.report(event: .stop, isPaused: true)
+        let events = await provider.events
+        XCTAssertEqual(events.map(\.event), [.start, .progress, .stop])
+        XCTAssertEqual(events.last?.position, 950)
+    }
+
+    func testStopWhileStartIsSuspendedCannotBeFollowedByDeferredPause() async {
+        let (sut, _, provider, _, _) = makeSUT()
+        await provider.hold(.start)
+        let start = Task { await sut.reportStart(isPaused: false, positionOverride: 0) }
+        await provider.waitUntilHeld()
+        sut.reportStateChange(paused: true)
+        sut.cancel()
+        let stop = Task { await sut.report(event: .stop, isPaused: true, positionOverride: 950) }
+        await Task.yield()
+        await provider.release()
+        await start.value
+        await stop.value
+        let events = await provider.events
+        XCTAssertEqual(events.first?.event, .start)
+        XCTAssertEqual(events.last?.event, .stop)
+        XCTAssertEqual(events.filter { $0.event == .stop }.count, 1)
+    }
+
+    func testReplacementDefersStateUntilItsOwnStartAndKeepsQueuedIdentity() async {
+        let (sut, host, provider, _, _) = makeSUT()
+        await sut.reportStart(isPaused: false, positionOverride: 0)
+        host.engineCurrentTime = 300
+        await provider.hold(.progress)
+        sut.reportProgress()
+        await provider.waitUntilHeld()
+        let outgoing = sut.finishSession(position: 300, duration: 1_000, scrobble: false)
+        host.request?.playSessionID = "session-2"
+        sut.beginSession()
+        host.engineCurrentTime = 400
+        sut.reportStateChange(paused: true)
+        let replacement = Task { await sut.reportStart(isPaused: false, positionOverride: 400) }
+        await Task.yield()
+        await provider.release()
+        await outgoing?.value
+        await replacement.value
+        let events = await provider.events
+        XCTAssertEqual(events.map(\.event), [.start, .progress, .stop, .start, .pause])
+        XCTAssertEqual(events.map(\.sessionID), ["session-1", "session-1", "session-1", "session-2", "session-2"])
+        XCTAssertEqual(events[1].position, 300)
+    }
+
+    func testCancelledCallerCannotCancelFinalReport() async {
+        let (sut, _, provider, _, _) = makeSUT()
+        await sut.reportStart(isPaused: false, positionOverride: 0)
+        await provider.hold(.stop)
+        let stop = Task {
+            await sut.report(event: .stop, isPaused: true, positionOverride: 950, durationOverride: 1_000)
+        }
+        await provider.waitUntilHeld()
+        stop.cancel()
+        await provider.release()
+        await stop.value
+        let events = await provider.events
+        XCTAssertEqual(events.map(\.event), [.start, .stop])
+        XCTAssertEqual(events.last?.duration, 1_000)
+    }
+
     // MARK: defer-until-started
 
     func testStateChangeBeforeStartIsDeferredThenFlushedWhenDifferent() async {
@@ -213,8 +322,20 @@ private actor RecordingProvider: MediaProvider {
         let event: PlaybackEvent
         let position: TimeInterval
         let isPaused: Bool
+        let duration: TimeInterval?
+        let sessionID: String?
     }
     private(set) var events: [Reported] = []
+    private var heldEvent: PlaybackEvent?
+    private var continuation: CheckedContinuation<Void, Never>?
+
+    func hold(_ event: PlaybackEvent) { heldEvent = event }
+    func waitUntilHeld() async {
+        let deadline = ContinuousClock.now + .seconds(2)
+        while continuation == nil, ContinuousClock.now < deadline { await Task.yield() }
+        XCTAssertNotNil(continuation)
+    }
+    func release() { continuation?.resume(); continuation = nil }
 
     nonisolated let kind: ProviderKind = .jellyfin
     nonisolated let session = UserSession(
@@ -226,7 +347,15 @@ private actor RecordingProvider: MediaProvider {
     )
 
     func reportPlayback(_ progress: PlaybackProgress, event: PlaybackEvent) async throws {
-        events.append(Reported(event: event, position: progress.positionSeconds, isPaused: progress.isPaused))
+        if heldEvent == event {
+            heldEvent = nil
+            await withCheckedContinuation { continuation = $0 }
+        }
+        try Task.checkCancellation()
+        events.append(Reported(
+            event: event, position: progress.positionSeconds,
+            isPaused: progress.isPaused, duration: progress.durationSeconds, sessionID: progress.playSessionID
+        ))
     }
 
     // Unused MediaProvider surface.

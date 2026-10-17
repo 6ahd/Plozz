@@ -2213,6 +2213,36 @@ final class PlexProviderMappingTests: XCTestCase {
         XCTAssertEqual(stub.sentHeaders.last?["X-Plex-Session-Identifier"], "play-77")
     }
 
+    func testTimelineForwardsKnownDurationForEveryPlaybackEvent() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/:/timeline", json: "{}")
+        let provider = PlexProvider(session: makeSession(), http: stub)
+        for event in [PlaybackEvent.start, .progress, .pause, .unpause, .stop] {
+            try await provider.reportPlayback(.init(
+                itemID: "77", playSessionID: "play-77", positionSeconds: 950.25,
+                isPaused: event == .pause || event == .stop, durationSeconds: 1_000.5
+            ), event: event)
+            let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/:/timeline"))
+            XCTAssertEqual(query.first { $0.name == "duration" }?.value, "1000500")
+            XCTAssertEqual(query.first { $0.name == "time" }?.value, "950250")
+            XCTAssertEqual(stub.sentHeaders.last?["X-Plex-Session-Identifier"], "play-77")
+        }
+    }
+
+    func testTimelineOmitsUnknownOrInvalidDuration() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/:/timeline", json: "{}")
+        let provider = PlexProvider(session: makeSession(), http: stub)
+        for duration: TimeInterval? in [nil, 0, -1, .nan, .infinity, .greatestFiniteMagnitude, 0.0001] {
+            try await provider.reportPlayback(.init(
+                itemID: "77", playSessionID: "play-77", positionSeconds: 30,
+                isPaused: true, durationSeconds: duration
+            ), event: .stop)
+            let query = try XCTUnwrap(stub.queryItems(forPathSuffix: "/:/timeline"))
+            XCTAssertNil(query.first { $0.name == "duration" })
+        }
+    }
+
     func testTimelineWithoutSessionDoesNotBorrowPreviouslyReportedIdentity() async throws {
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/:/timeline", json: "{}")

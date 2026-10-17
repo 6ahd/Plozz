@@ -44,12 +44,11 @@ final class WatchProgressReporter {
     private var checkpointTask: Task<Void, Never>?
     private var lastCheckpointPosition: TimeInterval = 0
 
-    /// Whether the `.start` lifecycle report has been sent. Until it has, a
-    /// pause/unpause is deferred (see ``pendingPlaybackStateReport``) so the
-    /// server never sees a state change for a session it doesn't know about yet.
-    private(set) var hasReportedPlaybackStart = false
-    /// A pause/unpause that arrived before `.start`; flushed by ``reportStart``.
+    private var hasEnqueuedPlaybackStart = false
     private var pendingPlaybackStateReport: Bool?
+    private var isEndingSession = false
+    private var reportTail: Task<Void, Never>?
+    private var terminalReport: Task<Void, Never>?
 
     init(
         host: WatchProgressReporterHost,
@@ -69,20 +68,58 @@ final class WatchProgressReporter {
 
     // MARK: - Reporting
 
-    /// Reports the current position. Best-effort: a failed report must never
-    /// interrupt playback, so errors are swallowed (and never logged with data).
-    /// The same lifecycle is forwarded to Trakt so watches sync to the user's
-    /// Trakt history.
+    func beginSession() {
+        hasEnqueuedPlaybackStart = false
+        pendingPlaybackStateReport = nil
+        isEndingSession = false
+        terminalReport = nil
+    }
+
     func report(
         event: PlaybackEvent,
         isPaused: Bool,
         positionOverride: TimeInterval? = nil,
         durationOverride: TimeInterval? = nil
     ) async {
+        await enqueueReport(
+            event: event, isPaused: isPaused,
+            positionOverride: positionOverride, durationOverride: durationOverride
+        )?.value
+    }
+
+    /// Closes admission synchronously, before a rendition clears its request or
+    /// tears down the clock. The returned task is not cancelled with its waiter.
+    func finishSession(
+        position: TimeInterval, duration: TimeInterval?, scrobble: Bool = true
+    ) -> Task<Void, Never>? {
+        enqueueReport(
+            event: .stop, isPaused: true, positionOverride: position,
+            durationOverride: duration, scrobble: scrobble
+        )
+    }
+
+    @discardableResult
+    private func enqueueReport(
+        event: PlaybackEvent,
+        isPaused: Bool,
+        positionOverride: TimeInterval? = nil,
+        durationOverride: TimeInterval? = nil,
+        scrobble: Bool = true
+    ) -> Task<Void, Never>? {
+        if event == .stop {
+            if let terminalReport { return terminalReport }
+            cancel()
+        } else if isEndingSession {
+            return nil
+        }
         guard let host, let request = host.reporterRequest,
-              !request.suppressOrdinaryWatchReporting else { return }
+              !request.suppressOrdinaryWatchReporting else { return nil }
         let position = positionOverride ?? host.reporterEngineCurrentTime
-        let knownDuration = durationOverride ?? knownPlaybackDuration()
+        let knownDuration = WatchProgressMath.knownDuration(
+            engineDuration: durationOverride ?? 0,
+            controlsDuration: knownPlaybackDuration() ?? 0,
+            itemRuntime: nil
+        )
         let progress = PlaybackProgress(
             itemID: itemID,
             playSessionID: request.playSessionID,
@@ -90,43 +127,63 @@ final class WatchProgressReporter {
             isPaused: isPaused,
             durationSeconds: knownDuration
         )
-        HandoffDiagnostics.emit(
-            "session REPORT_INTENT origin=watch-progress provider=\(provider.kind.rawValue)"
-                + " item=\(HandoffDiagnostics.correlationID(itemID))"
-                + " session=\(HandoffDiagnostics.correlationID(request.playSessionID)) event=\(event)"
+        let percent = WatchProgressMath.watchedPercent(
+            position: position, engineDuration: knownDuration ?? 0, itemRuntime: nil
         )
-        do {
-            try await provider.reportPlayback(progress, event: event)
-        } catch {
-            PlozzLog.playback.debug("Progress report failed (non-fatal)")
-        }
-        // Compute the scrobble percent from the SAME position the report used. At
-        // stop() the engine is already torn down, so `engine.currentTime` reads 0 —
-        // honoring `positionOverride` keeps the live stop-scrobble's percent honest
-        // (otherwise Trakt would see 0% and never mark the title watched).
-        let scrobblePercent = positionOverride.map { watchedPercent(at: $0) } ?? watchedPercentNow()
-        await scrobbler.scrobble(item: request.item, progress: scrobblePercent, event: event)
-    }
-
-    /// Emits the `.start` lifecycle report, marks the session started, then
-    /// flushes any pause/unpause that arrived before start (only when it differs
-    /// from the started state).
-    func reportStart(isPaused: Bool, positionOverride: TimeInterval?) async {
-        await report(event: .start, isPaused: isPaused, positionOverride: positionOverride)
-        hasReportedPlaybackStart = true
-        if let pendingPaused = pendingPlaybackStateReport {
-            pendingPlaybackStateReport = nil
-            if pendingPaused != isPaused {
-                await report(event: pendingPaused ? .pause : .unpause, isPaused: pendingPaused)
+        let previous = reportTail
+        let provider = provider
+        let scrobbler = scrobbler
+        // Capture the request and timing before suspension. A later engine or
+        // request replacement must not relabel an already queued event.
+        let task = Task {
+            await previous?.value
+            HandoffDiagnostics.emit(
+                "session REPORT_INTENT origin=watch-progress provider=\(provider.kind.rawValue)"
+                    + " item=\(HandoffDiagnostics.correlationID(progress.itemID))"
+                    + " session=\(HandoffDiagnostics.correlationID(progress.playSessionID)) event=\(event)"
+            )
+            do {
+                try await provider.reportPlayback(progress, event: event)
+            } catch {
+                if event == .stop {
+                    PlozzLog.playback.error("Final playback report failed.")
+                } else {
+                    PlozzLog.playback.debug("Progress report failed (non-fatal)")
+                }
+            }
+            if scrobble {
+                await scrobbler.scrobble(item: request.item, progress: percent, event: event)
             }
         }
+        reportTail = task
+        if event == .stop { terminalReport = task }
+        return task
     }
 
-    /// Reports a genuine pause/unpause. If the `.start` report hasn't gone out
-    /// yet, the state is deferred and flushed by ``reportStart``.
+    /// Queues start and any deferred state in the same actor turn. Later state
+    /// changes join that queue even while the start request is still in flight.
+    func reportStart(isPaused: Bool, positionOverride: TimeInterval?) async {
+        guard let start = enqueueReport(
+            event: .start, isPaused: isPaused, positionOverride: positionOverride
+        ) else { return }
+        hasEnqueuedPlaybackStart = true
+        var completion = start
+        if let pendingPaused = pendingPlaybackStateReport {
+            pendingPlaybackStateReport = nil
+            if pendingPaused != isPaused, let deferred = enqueueReport(
+                event: pendingPaused ? .pause : .unpause, isPaused: pendingPaused
+            ) {
+                completion = deferred
+            }
+        }
+        await completion.value
+    }
+
+    /// Defers state changes until start has entered the ordered reporting queue.
     func reportStateChange(paused: Bool) {
-        if hasReportedPlaybackStart {
-            Task { await report(event: paused ? .pause : .unpause, isPaused: paused) }
+        guard !isEndingSession else { return }
+        if hasEnqueuedPlaybackStart {
+            enqueueReport(event: paused ? .pause : .unpause, isPaused: paused)
         } else {
             pendingPlaybackStateReport = paused
         }
@@ -134,11 +191,8 @@ final class WatchProgressReporter {
 
     /// Reports a mid-play progress heartbeat (from the engine's onProgress).
     func reportProgress() {
-        guard host?.reporterEngineIsPaused == false else { return }
-        Task {
-            guard host?.reporterEngineIsPaused == false else { return }
-            await report(event: .progress, isPaused: false)
-        }
+        guard hasEnqueuedPlaybackStart, host?.reporterEngineIsPaused == false else { return }
+        enqueueReport(event: .progress, isPaused: false)
     }
 
     // MARK: - Duration / percent
@@ -152,22 +206,17 @@ final class WatchProgressReporter {
         )
     }
 
-    /// Watched percentage (0...100) from the engine's current position over the
-    /// item's duration, preferring the engine's known duration and falling back
-    /// to the item runtime. `0` when neither is known.
+    /// Watched percentage using the same best-known duration as server reports.
     func watchedPercentNow() -> Double {
         watchedPercent(at: host?.reporterEngineCurrentTime ?? 0)
     }
 
-    /// Watched percentage (0...100) for an explicit `position` over the item's
-    /// duration, preferring the engine's known duration and falling back to the
-    /// item runtime. `0` when neither is known. Used at `stop()` so the percentage
-    /// is computed from the captured final position (the engine is torn down there).
+    /// Returns zero when neither the playback clock nor metadata knows duration.
     func watchedPercent(at position: TimeInterval) -> Double {
         WatchProgressMath.watchedPercent(
             position: position,
-            engineDuration: host?.reporterEngineDuration ?? 0,
-            itemRuntime: host?.reporterRequest?.item.runtime
+            engineDuration: knownPlaybackDuration() ?? 0,
+            itemRuntime: nil
         )
     }
 
@@ -180,6 +229,7 @@ final class WatchProgressReporter {
     /// default no-op hook) leaves the loop off so standalone/test players are
     /// unaffected.
     func startCheckpointLoop(seedPosition: TimeInterval) {
+        guard !isEndingSession else { return }
         lastCheckpointPosition = max(0, seedPosition)
         checkpointTask?.cancel()
         guard checkpointInterval > 0 else { return }
@@ -200,6 +250,7 @@ final class WatchProgressReporter {
     /// app background, from `checkpointNow()`.
     func emitCheckpoint(includingPaused: Bool = false) {
         guard let host, let request = host.reporterRequest,
+              !isEndingSession,
               !request.suppressOrdinaryWatchReporting,
               includingPaused || !host.reporterEngineIsPaused else { return }
         let position = host.reporterResumePosition
@@ -216,8 +267,11 @@ final class WatchProgressReporter {
         emitCheckpoint(includingPaused: true)
     }
 
-    /// Tears down the checkpoint loop (called from `stop()`).
+    /// Stops checkpoints and rejects new nonterminal reports. Already admitted
+    /// events still drain before the one allowed stop report.
     func cancel() {
+        isEndingSession = true
+        pendingPlaybackStateReport = nil
         checkpointTask?.cancel()
         checkpointTask = nil
     }

@@ -1114,6 +1114,7 @@ public final class PlayerViewModel {
 
             let request = resolved.request
             self.request = request
+            progressReporter.beginSession()
             HandoffDiagnostics.emit(
                 "session OWNED vm=\(instanceID) provider=\(provider.kind.rawValue)"
                     + " item=\(HandoffDiagnostics.correlationID(request.item.id))"
@@ -1449,6 +1450,9 @@ public final class PlayerViewModel {
         }
         let position = resumeOverride ?? streamingResumePosition ?? startPositionOverride ?? controls.currentSeconds
         let outgoing = request
+        let outgoingReport = progressReporter.finishSession(
+            position: position, duration: progressReporter.knownPlaybackDuration(), scrobble: false
+        )
         request = nil
         streamingQuality.currentStream = .init()
         controls.infoCard.badges = []
@@ -1470,12 +1474,7 @@ public final class PlayerViewModel {
                     "session STOP_INTENT origin=rendition-restart vm=\(self.instanceID)"
                         + " session=\(HandoffDiagnostics.correlationID(outgoing.playSessionID)) generation=\(generation)"
                 )
-                do {
-                    try await self.provider.reportPlayback(.init(
-                        itemID: self.itemID, playSessionID: outgoing.playSessionID,
-                        positionSeconds: position, isPaused: true, durationSeconds: outgoing.item.runtime
-                    ), event: .stop)
-                } catch { PlozzLog.playback.error("Unable to report the ended streaming rendition.") }
+                await outgoingReport?.value
                 await self.releaseStreamingSession(outgoing)
             }
             await self.nextEpisodeCoordinator.releaseOrphanedPrefetchIfNeeded()
@@ -2207,6 +2206,7 @@ public final class PlayerViewModel {
     /// view's `onDisappear` fires a second `stop()` once it's torn down. Without
     /// this the server would get two `.stop` reports for one playback.
     private var didStop = false
+    private var stopTask: Task<Void, Never>?
     /// Natural EOF can zero an engine's current time before dismissal. Only that
     /// path falls back to the furthest observed point; manual exits save the actual
     /// current position so rewinding intentionally moves the resume point backward.
@@ -2225,6 +2225,10 @@ public final class PlayerViewModel {
     /// Call when leaving playback: report a final stop so the server records the
     /// resume point, then tear the engine down.
     public func stop(preserveDisplayMode: Bool = false) async {
+        if let stopTask {
+            await stopTask.value
+            return
+        }
         guard !didStop else { return }
         endTemporarySpeedBoost()
         let suspendedPosition = foregroundReload.preservedPosition
@@ -2275,43 +2279,46 @@ public final class PlayerViewModel {
             ? max(engine.furthestObservedPosition, engine.currentTime)
             : suspendedPosition ?? currentResumePosition()
         let finalDuration = progressReporter.knownPlaybackDuration()
-        let percent = progressReporter.watchedPercent(at: finalPosition)
+        let percent = WatchProgressMath.watchedPercent(
+            position: finalPosition, engineDuration: finalDuration ?? 0, itemRuntime: nil
+        )
         engine.stop(preserveDisplayMode: preserveDisplayMode)
         // Network-file engines retain their resolved source so teardown can await
         // every SMB cursor/session close. Without this, leaving playback releases
         // the source only when the engine deinitializes; a quick second playback
         // can race that asynchronous cleanup and fail until the app restarts.
-        await engine.drainTransport()
-        await maintenance?.value
-        // Release any prefetched next-episode session that was never adopted, and
-        // an adopted-but-never-committed session (a hand-off torn down before the
-        // incoming player took ownership), so a Jellyfin session isn't orphaned.
-        // A no-op for idempotent providers. Done AFTER engine.stop() so it never
-        // keeps audio playing while the cleanup round-trips.
-        await nextEpisodeCoordinator.releaseOrphanedPrefetchIfNeeded()
-        if let unadopted = adoptedResolved {
-            adoptedResolved = nil
-            await nextEpisodeCoordinator.releaseSession(unadopted.request)
-        }
-        // Let in-flight series-id enrichment finish so a fast playthrough still
-        // scrobbles with the show's ids (anime tagged only AniDB resolve mal/
-        // anilist here). Capped at 2s so a slow server never blocks teardown.
-        if let enrichTask {
-            await withTaskGroup(of: Void.self) { group in
-                group.addTask { await enrichTask.value }
-                group.addTask { try? await Task.sleep(nanoseconds: 2_000_000_000) }
-                _ = await group.next()
-                group.cancelAll()
+        // Teardown is owned by the player, not the presentation task that may be
+        // cancelled during an episode handoff. Repeated callers join this task.
+        let task = Task { @MainActor [self] in
+            await engine.drainTransport()
+            await maintenance?.value
+            await streamingSwitchTask?.value
+            // Drain orphaned prefetches after silencing the outgoing engine.
+            await nextEpisodeCoordinator.releaseOrphanedPrefetchIfNeeded()
+            if let unadopted = adoptedResolved {
+                adoptedResolved = nil
+                await nextEpisodeCoordinator.releaseSession(unadopted.request)
             }
+            if let enrichTask {
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { await enrichTask.value }
+                    group.addTask { try? await Task.sleep(nanoseconds: 2_000_000_000) }
+                    _ = await group.next()
+                    group.cancelAll()
+                }
+            }
+            await progressReporter.report(
+                event: .stop,
+                isPaused: true,
+                positionOverride: finalPosition,
+                durationOverride: finalDuration
+            )
+            if let request { await releaseStreamingSession(request) }
+            onPlaybackStopped(finalPosition, percent)
         }
-        await progressReporter.report(
-            event: .stop,
-            isPaused: true,
-            positionOverride: finalPosition,
-            durationOverride: finalDuration
-        )
-        if let request { await releaseStreamingSession(request) }
-        onPlaybackStopped(finalPosition, percent)
+        stopTask = task
+        await task.value
+        stopTask = nil
     }
 
     // MARK: - View / diagnostics access
