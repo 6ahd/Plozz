@@ -47,6 +47,9 @@ public final class PlayerViewModel {
     }
 
     public private(set) var phase: Phase = .loading {
+        willSet {
+            if newValue != .ready { endTemporarySpeedBoost() }
+        }
         didSet {
             if case .failed = phase { nowPlaying?.end() }
             else { nowPlaying?.refresh() }
@@ -279,6 +282,7 @@ public final class PlayerViewModel {
     }
 
     public func continuationForVersionChange() -> PlaybackContinuation {
+        endTemporarySpeedBoost()
         let position = controls.pendingSeekTarget ?? (phase == .ready
             ? currentResumePosition()
             : streamingResumePosition ?? startPositionOverride ?? controls.currentSeconds)
@@ -389,6 +393,8 @@ public final class PlayerViewModel {
     /// Fences probe updates when the same engine instance is asked to load a new
     /// request. Engine swaps are additionally fenced by `engineToken`.
     private var dynamicRangeLoadGeneration: UInt = 0
+    // A subtitle-triggered reload can leave phase/engine ready through the pre-commit yield.
+    @ObservationIgnored private var readySpeedBoostLoadGeneration: UInt?
     /// Run-loop yield that lets SwiftUI paint the pre-probe veil before an engine
     /// swap. Internal so lifecycle tests can suspend this exact race window.
     @ObservationIgnored var preEngineCommitYield:
@@ -439,6 +445,21 @@ public final class PlayerViewModel {
     /// true because load auto-plays.
     private var intendsPlayback = true
 
+    private struct TemporarySpeedBoost {
+        let engineToken: UUID
+        let loadGeneration: UInt
+        let rate: Double
+    }
+    private var temporarySpeedBoost: TemporarySpeedBoost?
+
+    /// The effective hold speed, never the selected or persisted preference.
+    public var temporarySpeedBoostRate: Double? {
+        guard let boost = temporarySpeedBoost,
+              boost.engineToken == engineToken,
+              boost.loadGeneration == dynamicRangeLoadGeneration else { return nil }
+        return boost.rate
+    }
+
     /// Keeps the existing full-screen loading indicator visible while a suspended
     /// engine rebuilds its media pipeline at the preserved position. Owned by
     /// ``ForegroundReloadCoordinator``; forwarded so `showBringUpSpinner` reads it.
@@ -483,7 +504,11 @@ public final class PlayerViewModel {
     /// natural end (auto-advance) or from a manual next/previous jump. The
     /// ``PlayerPresentation`` observes this and swaps the VM in-place so the
     /// full-screen cover never dismisses (no series-page flash).
-    public var pendingNextEpisode: MediaItem?
+    public var pendingNextEpisode: MediaItem? {
+        willSet {
+            if newValue != nil { endTemporarySpeedBoost() }
+        }
+    }
     public let playlistContext: VideoPlaylistPlaybackContext?
     public let episodeBrowser: PlayerEpisodeBrowser?
     /// The member requested for an in-place playlist handoff. Index, not ID,
@@ -492,7 +517,11 @@ public final class PlayerViewModel {
         public let index: Int
         public let item: MediaItem
     }
-    public private(set) var pendingPlaylistSelection: PlaylistSelection?
+    public private(set) var pendingPlaylistSelection: PlaylistSelection? {
+        willSet {
+            if newValue != nil { endTemporarySpeedBoost() }
+        }
+    }
     @ObservationIgnored private var playlistAdvanceTask: Task<Void, Never>?
 
     /// Durable cross-server convergence hook, called once on `stop()` with the final
@@ -742,6 +771,7 @@ public final class PlayerViewModel {
         }
         engine.onFailure = { [weak self] error in
             guard let self, self.engineToken == callbackEngineToken else { return }
+            self.endTemporarySpeedBoost()
             let failureGeneration = self.streamingLoadGeneration
             let failureEvidence = self.engine.streamingFailure
             // Re-weaken for the Task. The enclosing closure is [weak self], but
@@ -851,6 +881,7 @@ public final class PlayerViewModel {
     private func handlePlaybackEnded() {
         PlaybackTrace.note("handlePlaybackEnded curr=\(String(format: "%.2f", engine.currentTime)) furthest=\(String(format: "%.2f", engine.furthestObservedPosition)) dur=\(String(format: "%.2f", engine.duration)) hasNext=\(nextEpisode != nil) autoPlay=\(playbackSettings.autoPlayNextEpisode) isSeeking=\(controls.isSeeking) isScrubbing=\(controls.isScrubbing) intendsPlayback=\(intendsPlayback)")
         didReachNaturalEnd = true
+        endTemporarySpeedBoost()
         nowPlaying?.end()
         guard pendingNextEpisode == nil else { return }
         if let playlistContext {
@@ -1399,6 +1430,7 @@ public final class PlayerViewModel {
         resumeOverride: TimeInterval? = nil,
         origin: String = #function
     ) {
+        endTemporarySpeedBoost()
         HandoffDiagnostics.emit(
             "session RESTART vm=\(instanceID) origin=\(origin)"
                 + " session=\(HandoffDiagnostics.correlationID(request?.playSessionID)) generation=\(streamingLoadGeneration)"
@@ -1652,6 +1684,7 @@ public final class PlayerViewModel {
         engineKind: PlaybackEngineKind,
         startPosition: TimeInterval
     ) async {
+        endTemporarySpeedBoost()
         var request = request
         request.trueHDAtmosEnabled = playbackSettings.trueHDAtmosEnabled
         dynamicRangeLoadGeneration &+= 1
@@ -1729,6 +1762,7 @@ public final class PlayerViewModel {
         controls.isPaused = !intendsPlayback
         controls.intendsPause = !intendsPlayback
         configureTracksAfterLoad(for: request)
+        readySpeedBoostLoadGeneration = rangeLoadGeneration
         phase = .ready
         streamingQuality.preparation = .waitingForVideo
         restoreStreamingTracks()
@@ -1935,6 +1969,7 @@ public final class PlayerViewModel {
     /// paused so the user resumes intentionally, rather than audio springing back
     /// to life on its own.
     public func suspendForBackground() {
+        endTemporarySpeedBoost()
         progressReporter.emitCheckpoint(includingPaused: true)
         #if os(iOS)
         // A PiP window or an AirPlay receiver is still showing this video, so
@@ -1994,6 +2029,7 @@ public final class PlayerViewModel {
     /// coalescing / resume-confirm semantics. `origin` names the caller in the
     /// persistent playback trace, so an unexpected jump (issue #61) is traceable.
     public func requestSeek(to seconds: TimeInterval, origin: String = "transport") {
+        endTemporarySpeedBoost()
         HandoffDiagnostics.emit(
             "session SEEK_INTENT vm=\(instanceID) origin=\(origin)"
                 + " from=\(String(format: "%.1f", controls.currentSeconds))"
@@ -2009,6 +2045,7 @@ public final class PlayerViewModel {
     /// Legacy direct-seek path retained for callers (e.g. resume on load) that
     /// want a one-shot await. New transport input goes through `requestSeek`.
     public func seek(to seconds: TimeInterval) async {
+        endTemporarySpeedBoost()
         foregroundReload.noteUserSeek(to: seconds)
         await seekCoordinator.seek(to: seconds)
         nowPlaying?.refresh()
@@ -2016,7 +2053,50 @@ public final class PlayerViewModel {
 
     // MARK: Live tunables (engine fan-out)
 
+    /// Starts a nonpersisting, at-most-2× hold override only on moving playback.
+    /// Returns the supported effective rate, or nil when no speedup is possible.
+    @discardableResult
+    public func beginTemporarySpeedBoost() -> Double? {
+        guard phase == .ready, intendsPlayback, !didStop, !didReachNaturalEnd,
+              readySpeedBoostLoadGeneration == dynamicRangeLoadGeneration,
+              !isInBackground, !isRecoveringAfterForeground,
+              pendingNextEpisode == nil, pendingPlaylistSelection == nil,
+              !controls.isSeeking, !controls.isScrubbing,
+              engine.status == .ready, !engine.isPaused, engine.preventsDisplaySleep,
+              engine.capabilities.contains(.playbackSpeed) else { return nil }
+        if let rate = temporarySpeedBoostRate { return rate }
+        let maximum = engine.maximumPlaybackSpeed
+        let selected = controls.playbackSpeed
+        guard maximum.isFinite, selected.isFinite, selected >= 0.25 else { return nil }
+        let rate = min(2, maximum)
+        guard rate > selected else { return nil }
+        temporarySpeedBoost = TemporarySpeedBoost(
+            engineToken: engineToken, loadGeneration: dynamicRangeLoadGeneration, rate: rate
+        )
+        engine.setPlaybackSpeed(rate)
+        nowPlaying?.refresh()
+        return rate
+    }
+
+    /// Idempotent cancellation. Never restores a rate onto a replacement load.
+    public func endTemporarySpeedBoost() {
+        guard let boost = temporarySpeedBoost else { return }
+        temporarySpeedBoost = nil
+        defer { nowPlaying?.refresh() }
+        guard boost.engineToken == engineToken,
+              boost.loadGeneration == dynamicRangeLoadGeneration,
+              !didStop, !didReachNaturalEnd,
+              engine.capabilities.contains(.playbackSpeed) else { return }
+        switch engine.status {
+        case .idle, .failed: return
+        case .loading, .ready: break
+        }
+        engine.setPlaybackSpeed(max(0.25, min(engine.maximumPlaybackSpeed, controls.playbackSpeed)))
+    }
+
     public func setPlaybackSpeed(_ rate: Double) {
+        // An explicit selection supersedes the hold; its later release is inert.
+        temporarySpeedBoost = nil
         let clamped = max(0.25, min(engine.maximumPlaybackSpeed, rate))
         controls.playbackSpeed = clamped
         engine.setPlaybackSpeed(clamped)
@@ -2098,6 +2178,7 @@ public final class PlayerViewModel {
         let resuming = !paused && !intendsPlayback
         intendsPlayback = !paused
         controls.intendsPause = paused
+        if paused { endTemporarySpeedBoost() }
         // Pause/play is the way back from an AirPlay speaker that went silent
         // under a still-"playing" AVPlayer: rebuild its stream while paused.
         if resuming { AirPlayAudioSession.rebuildStreamBeforeResume() }
@@ -2145,6 +2226,7 @@ public final class PlayerViewModel {
     /// resume point, then tear the engine down.
     public func stop(preserveDisplayMode: Bool = false) async {
         guard !didStop else { return }
+        endTemporarySpeedBoost()
         let suspendedPosition = foregroundReload.preservedPosition
         HandoffDiagnostics.emit(
             "session STOP_INTENT origin=player-stop vm=\(instanceID)"
@@ -2822,7 +2904,7 @@ extension PlayerViewModel: VideoNowPlayingHost {
     var nowPlayingPlayer: AVPlayer? { engine.nowPlayingPlayer }
     var nowPlayingTime: TimeInterval { engine.currentTime }
     var nowPlayingDuration: TimeInterval { engine.duration }
-    var nowPlayingSpeed: Double { controls.playbackSpeed }
+    var nowPlayingSpeed: Double { temporarySpeedBoostRate ?? controls.playbackSpeed }
     var nowPlayingPaused: Bool { !intendsPlayback }
     var nowPlayingAdvancing: Bool { engine.preventsDisplaySleep }
     var nowPlayingReady: Bool {

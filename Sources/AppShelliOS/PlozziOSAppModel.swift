@@ -45,8 +45,19 @@ final class PlozziOSAppModel {
     var canEnterApp: Bool { admissionContext.canEnterApp }
     var isLiveTVProfileAuthorized: Bool { isActiveProfileAuthorized }
 
+    var liveTVAdmissionDiagnostic: String { // l10n:content - diagnostic log fields, never display copy.
+        guard HandoffDiagnostics.isEnabled else { return "" }
+        return "canEnter=\(canEnterApp) chooseProfile=\(mustChooseProfile)"
+            + " launchSelectionPending=\(requiresLaunchProfileSelection && !didCompleteLaunchProfileSelection)"
+            + " lockedSwitch=\(lockedSwitch != nil) parentalSwitch=\(parentalSwitch != nil)"
+            + " identitySelection=\(pendingIdentityAccount != nil) librarySelection=\(pendingLibrarySelection != nil)"
+            + " firstRun=\(pendingFirstRunStep != nil) profileOnboarding=\(profileOnboardingStep != nil)"
+            + " plexPIN=\(plexHomeUsers.pendingPlexPINRequest != nil) needsUnlock=\(activeProfileNeedsUnlock)"
+            + " identityPending=\(profiles.activeProfile.awaitsIdentity(amongAccounts: accountsProviders.activeAccountIDs))"
+            + " actionableIdentityPending=\(accountsProviders.activeProfileAwaitsIdentity)"
+    }
+
     var isActiveProfileAuthorized: Bool {
-        let profile = profiles.activeProfile
         return canEnterApp && !mustChooseProfile
             && (!requiresLaunchProfileSelection || didCompleteLaunchProfileSelection)
             && lockedSwitch == nil && parentalSwitch == nil
@@ -54,7 +65,7 @@ final class PlozziOSAppModel {
             && pendingFirstRunStep == nil && profileOnboardingStep == nil
             && plexHomeUsers.pendingPlexPINRequest == nil
             && !activeProfileNeedsUnlock
-            && !profile.awaitsIdentity(amongAccounts: accountsProviders.activeAccountIDs)
+            && !accountsProviders.activeProfileAwaitsIdentity
     }
     var allowsStandalonePlayback: Bool { admissionContext.explicitStandaloneChoice }
     var pendingStandaloneLiveTVEntry: Bool { appAdmission.pendingLiveTVEntry }

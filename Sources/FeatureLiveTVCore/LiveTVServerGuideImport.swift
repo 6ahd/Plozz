@@ -195,12 +195,13 @@ extension LiveTVPrototypeImportModel {
         return gapState(for: channel)
     }
 
-    func cancelServerGuideRequests() {
-        for index in serverGuideWindows.indices where activeServerGuideRequests.contains(serverGuideWindows[index].id) {
+    func cancelServerGuideRequests(sourceID: String? = nil) {
+        for index in serverGuideWindows.indices where activeServerGuideRequests.contains(serverGuideWindows[index].id)
+            && (sourceID == nil || serverGuideWindows[index].sourceID == sourceID) {
             serverGuideWindows[index].phase = serverGuideWindows[index].lastRefresh == nil ? .idle : .loaded
             serverGuideWindows[index].failure = nil
+            activeServerGuideRequests.remove(serverGuideWindows[index].id)
         }
-        activeServerGuideRequests.removeAll()
     }
 
     func removeServerGuideWindows(_ sourceID: String) {

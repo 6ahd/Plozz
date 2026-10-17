@@ -498,6 +498,20 @@ page for enabling, editing, checking and removing that source; guide policy and
 diagnostics sit behind named links rather than expanding every source inline.
 Each tap pushes only its selected destination, and Back returns one level.
 This applies to both Settings and the Live TV toolbar's Sources entry.
+Channel, guide and access failures appear beside the affected enabled source,
+using the shared theme-aware inline error style and naming failed guides.
+On mobile, the source row, error and Retry share one group item; dividers
+separate sources, never a source from its own error.
+Retry shows an inline loading spinner and label, prevents duplicate taps, and
+briefly retains feedback even when the provider refuses the request immediately.
+During a source Retry, that inline indicator replaces the source's loading
+subtitle and page-wide loading indicators instead of showing duplicate spinners.
+Source Retry refreshes only that playlist and its guides, or that server; it
+preserves other sources' channels, errors and in-flight server-guide requests.
+The source detail page offers the same error and Retry. Page-wide storage,
+configuration, enrollment and profile-access failures appear above the source
+list rather than in a duplicate generic footer. Provider access errors are
+reported as received, not interpreted as proof that an IPTV trial expired.
 When embedded in a native List, the iPhone/iPad Sources pane clears its row's
 background, separator, and extra insets, so the shared settings gradient and
 group keylines continue through the whole page rather than an opaque inner panel.
@@ -543,6 +557,22 @@ not the Cloud sync checkpoint stored alongside them. A checkpoint-only write mus
 not revoke an open Sources page, discard a pending channel refresh, or stop channel
 checks. Checkpoints remain intact in secure storage; real source edits, account
 changes, profile locks and parental-approval revocations still invalidate old work.
+An open Sources page also observes profile-scoped local and synced source changes.
+If a real configuration change invalidates its snapshot, it cancels the old work
+and restores the newly authorized cached catalogue without requiring Retry or
+reopening. Changes while inactive wait for normal presentation admission; they
+never bypass a profile lock or re-enable a deliberately disabled source.
+App and Sources admission use the same provider-aware identity check: only an
+active, locally present Plex account can owe a server-user choice. Sync can
+record pending questions before an account's provider is known; a marker that
+later resolves to IPTV, Jellyfin, Emby, Silo or a network share must not block
+Live TV. These markers remain stored, and genuine Plex questions still gate
+access until answered; no identity or PIN requirement is cleared by this check.
+Diagnostic builds record Sources admission transitions and rejection stages in
+the bounded `HandoffDiagnostics` journal under `SOURCES`. These distinguish app
+entry gates, runtime invalidation and changed catalogue authority without logging
+profile/account names, identifiers, credentials or source addresses. The mobile
+Settings host also records which app-entry conditions are pending.
 Earlier prototype builds did not store Favorites or Recents on disk, so there
 is no prior in-memory history to migrate on the first updated launch.
 

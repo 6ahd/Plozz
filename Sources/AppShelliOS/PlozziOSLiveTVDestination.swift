@@ -160,6 +160,10 @@ struct PlozziOSLiveTVDestination: View {
                 countsAsWatching: playback.countsAsWatching,
                 isMultiview: playback.isMultiview,
                 trackPreferences: runtime.trackPreferences,
+                touchSkipIntervals: {
+                    let settings = PlaybackSettingsStore(namespace: preferencesNamespace).load()
+                    return (settings.skipBackwardInterval, settings.skipForwardInterval)
+                },
                 networkBlock: effectiveNetworkBlock,
                 isAuthorized: playback.isAuthorized && isCurrentProfileScope,
                 presentationControls: { AnyView(PlozziOSLivePresentationControls(context: $0)) },

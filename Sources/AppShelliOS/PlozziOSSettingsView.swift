@@ -65,6 +65,9 @@ struct PlozziOSSettingsView: View {
         }
         .environment(appModel.profiles)
         .environment(\.managedProviderSetupRouter, providerSetupRouter)
+        .onChange(of: appModel.liveTVAdmissionDiagnostic, initial: true) { _, diagnostic in
+            HandoffDiagnostics.emit("SOURCES event=appAdmission \(diagnostic)")
+        }
         .onChange(of: providerSetupRouter.request?.id) { _, _ in
             guard let request = providerSetupRouter.request else { return }
             iptvSetup = request

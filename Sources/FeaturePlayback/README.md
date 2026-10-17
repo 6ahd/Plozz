@@ -102,6 +102,48 @@ inset, aligning the ruler with the current-program column. That column uses the
 shared raised content surface inside the single outer glass panel, not another
 glass layer. The standalone guide and tvOS grid retain their existing spacing.
 
+## Mobile player gestures
+
+On iPhone and iPad, double-tapping either side skips using the active profile's
+backward/forward interval. Additional taps while the feedback is visible
+accumulate from the requested position, not a lagging playback clock. Directional
+chevrons and the signed total share a compact dark glass pill, replacing the main
+controls while retaining the player's actual timeline in its normal position,
+with its time labels, playhead, buffer and segment styling, and scrubbing behavior.
+Each accepted skip launches one native chevron outward: right for forward, left
+for backward. It starts partially folded, not flat, and opens to its normal shape
+while traveling 20 points over 0.25 seconds. It then stops fully visible for half
+a second and fades in place over 0.3 seconds. The pill reserves that travel
+inside its layout before adding a 16-point outer inset, mirrored for backward
+skips. The number-to-icon layout gap is 4 points, and the icon slot uses its
+native width rather than extra blank space. Reduce Motion needs no travel space.
+Rapid taps add independent,
+overlapping chevrons without restarting earlier ones or queuing a replay.
+Each chevron is removed after its own animation finishes; the signed total
+retains its existing feedback lifetime. Reduce Motion shows one steady chevron
+instead, and enabling it removes any moving chevrons immediately. Single taps
+still toggle controls; native controls and open menus keep their own touches.
+
+Holding on-demand video for at least one second temporarily accelerates moving
+playback to at most 2x when the engine supports it; shorter presses do not boost
+speed. Releasing, pausing, seeking, leaving the player, or backgrounding cancels
+the override without changing the saved speed. Only a top-centered glass pill
+with the active rate and fast-forward symbol is shown during the hold; the
+timeline and its backdrop stay hidden. Both gesture pills reuse the player's
+shared native Liquid Glass surface and its reduced-transparency/older-system
+fallbacks. Text and native icons inherit the Info/Cast buttons' semibold callout
+style together, keeping symbols proportional to their labels as text size changes.
+They do not intercept touches. Live TV supports skips only inside an available
+rewind window, not speed boosting.
+
+Pinch inward for Normal fitting inside the display's safe area, clear of the
+Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
+uses the existing session-only zoom state without reloading video or revealing
+the timeline. Authored subtitle geometry follows the displayed picture; ordinary
+captions retain their screen-relative placement. Inline, tvOS, and external
+playback keep their existing geometry. Horizontal seeking and brightness/volume
+swipes are not implemented.
+
 ## Mobile playback settings
 
 Mobile Playback settings keep network quality limits on the main page and move
