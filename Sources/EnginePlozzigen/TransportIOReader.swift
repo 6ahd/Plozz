@@ -374,8 +374,12 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
             }
             guard candidate >= 0 else { return (-1, nil) }
             let discarded: TransportInflightRead?
+            // A seek within the current buffer still needs the same next window.
+            // Cancelling it here turns cached demux probes into repeated HTTP work.
+            let keepsReadAhead = state.pendingRead?.contains(candidate) == true
+                || (state.pendingRead?.isPrefetch == true && state.bufferedAhead(from: candidate) > 0)
             if candidate != state.position,
-               state.demandRead != nil || state.pendingRead?.contains(candidate) == false {
+               state.demandRead != nil || !keepsReadAhead {
                 discarded = state.pendingRead
                 state.pendingRead = nil
                 state.demandRead = nil

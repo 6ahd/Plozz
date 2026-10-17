@@ -97,7 +97,14 @@ SCENARIOS = {
         "test": "TransportReadAheadPerformanceTests/testPerformancePacedWebDAVPlayback",
         "file": "Tests/EnginePlozzigenTests/TransportReadAheadPerformanceTests.swift",
         "description": "Consume 128 MiB through the production WebDAV reader at 32 MiB/s with synthetic 100-ms request latency and bounded transfer delay.",
-        "counters": ["consumedBytes", "transportBytes", "transportReads", "readerWaitNanoseconds"],
+        "counters": ["consumedBytes", "requestedRangeBytes", "cachedProbes", "transportReads", "readerWaitNanoseconds"],
+    },
+    "webdav-cached-seeks": {
+        "suite": "network", "target": "EnginePlozzigenTests",
+        "test": "TransportReadAheadPerformanceTests/testPerformanceCachedWebDAVSeeks",
+        "file": "Tests/EnginePlozzigenTests/TransportReadAheadPerformanceTests.swift",
+        "description": "Paced 128 MiB WebDAV consumption with 31 cached back-and-forth probes; count cancelled/repeated range requests.",
+        "counters": ["consumedBytes", "requestedRangeBytes", "cachedProbes", "transportReads", "readerWaitNanoseconds"],
     },
     "diagnostics-disabled": {
         "suite": "diagnostics", "target": "CoreModelsTests",

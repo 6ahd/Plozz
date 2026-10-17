@@ -195,7 +195,7 @@ the production WebDAV byte source and transport reader. Its synthetic HTTP
 responses accept both single windows and the former two-range implementation,
 with 100 ms per-request latency plus a size-dependent transfer delay. A paced
 32 MiB/s consumer separates download waits from downstream work. Counters
-include time inside reader calls, requests, fetched bytes and consumed bytes;
+include time inside reader calls, requests, requested range bytes and consumed bytes;
 the entire file must be delivered exactly once. Use this workload to measure
 download/consumption overlap, not just the latency of an isolated range.
 
@@ -208,6 +208,15 @@ Cancellation, failed-prefetch, sparse-probe and clone tests cover those paths,
 and hosted loopback playback separately checks engine integration. Keep public
 service credentials out of local benchmarks and do not use repeated remote
 playback loops after receiving throttling responses.
+
+`webdav-cached-seeks` uses the same paced file and HTTP delays, adding 31
+back-and-forth 2 KiB probes two MiB behind the consumer. These targets remain
+inside the current read-ahead window. It measures whether cached seeks cancel
+and recreate an already useful next-window request. Every main byte and probe
+must still be delivered; explicit cancellation and seeks outside both windows
+retain separate correctness coverage. Requested range bytes include cancelled
+attempts, so they are **not** bytes transferred over the network. This is a
+controlled seek pattern, not a trace or frequency claim about every demuxer.
 
 For decoded local integration, `WebDAVDiscPlaybackHostedTests` accepts
 `PLOZZ_WEBDAV_LOCAL_PLAYBACK_FIXTURE`, the filename of a synthetic `.mkv`

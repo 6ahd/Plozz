@@ -284,15 +284,66 @@ final class TransportIOReaderReadAheadTests: XCTestCase {
         await reader.waitForFinalShutdown()
     }
 
-    func testSeekCancelsUnusedReadAheadAndPreservesCurrentCachedBytes() async {
+    func testSeekOutsideBothWindowsCancelsReadAheadAndPreservesCachedBytes() async {
         let source = PrefetchTransportByteSource()
         let reader = TransportIOReader(source: source)
         reachReadAhead(reader)
         await source.waitForPrefetch()
+        XCTAssertEqual(reader.seek(offset: 80 * 1024 * 1024, whence: SEEK_SET), 80 * 1024 * 1024)
         XCTAssertEqual(reader.seek(offset: 8 * 1024 * 1024, whence: SEEK_SET), 8 * 1024 * 1024)
         source.finishPrefetch()
         XCTAssertEqual(read(reader, count: 16).data, Data(repeating: 9, count: 16))
         XCTAssertEqual(source.readLog.count, 3)
+        reader.close()
+        await reader.waitForFinalShutdown()
+        XCTAssertEqual(source.cancelledReads, 1)
+    }
+
+    func testCachedForwardAndBackwardSeeksKeepUsefulReadAhead() async {
+        let source = PrefetchTransportByteSource()
+        let reader = TransportIOReader(source: source)
+        reachReadAhead(reader)
+        await source.waitForPrefetch()
+        for offsetMiB in [25, 23, 30, 8, 39] {
+            let offset = Int64(offsetMiB * 1024 * 1024)
+            XCTAssertEqual(reader.seek(offset: offset, whence: SEEK_SET), offset)
+            XCTAssertEqual(read(reader, count: 16).data, Data(repeating: 9, count: 16))
+        }
+        XCTAssertEqual(source.cancelledReads, 0)
+        XCTAssertEqual(source.readLog.count, 3)
+        source.finishPrefetch()
+        XCTAssertEqual(reader.seek(offset: 40 * 1024 * 1024, whence: SEEK_SET), 40 * 1024 * 1024)
+        XCTAssertEqual(read(reader, count: 16).data, Data((0..<16).map { UInt8($0) }))
+        XCTAssertEqual(source.readLog.count, 3)
+        reader.close()
+        await reader.waitForFinalShutdown()
+    }
+
+    func testCachedSeeksDoNotRetryAFailedFutureWindow() async {
+        let source = PrefetchTransportByteSource(failsPrefetch: true)
+        let reader = TransportIOReader(source: source)
+        reachReadAhead(reader)
+        await source.waitForPrefetch()
+        source.finishPrefetch()
+        for offsetMiB in [25, 8, 30] {
+            let offset = Int64(offsetMiB * 1024 * 1024)
+            XCTAssertEqual(reader.seek(offset: offset, whence: SEEK_SET), offset)
+            XCTAssertEqual(read(reader, count: 16).data, Data(repeating: 9, count: 16))
+        }
+        XCTAssertEqual(reader.seek(offset: 40 * 1024 * 1024, whence: SEEK_SET), 40 * 1024 * 1024)
+        XCTAssertEqual(read(reader, count: 1).result, -1)
+        XCTAssertEqual(source.readLog.count, 3)
+        reader.close()
+        await reader.waitForFinalShutdown()
+    }
+
+    func testExplicitCancellationStillCancelsReadAheadInsideTheCachedWindow() async {
+        let source = PrefetchTransportByteSource()
+        let reader = TransportIOReader(source: source)
+        reachReadAhead(reader)
+        await source.waitForPrefetch()
+        reader.cancel()
+        source.finishPrefetch()
         reader.close()
         await reader.waitForFinalShutdown()
         XCTAssertEqual(source.cancelledReads, 1)

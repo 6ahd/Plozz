@@ -46,10 +46,12 @@ The current and pending windows retain at most 64 MiB of logical payload per
 adaptive reader, plus the 512 KiB probe cache. This is not a process/peak-memory
 cap: clones, HTTP, decoder and HLS buffers have their own memory costs. Stopping
 consumption can leave up to one unused 32 MiB window; no further work is started
-until the consumer advances. Seeks outside the pending window, cancellation and
-close cancel that read, and lease shutdown drains it. A failed pending window
+until the consumer advances. Seeks within the current or pending window preserve
+that same read: cached back-and-forth probes must not cancel and refetch it.
+Seeks outside both windows, explicit cancellation and close cancel it, and lease
+shutdown drains it. A failed pending window
 returns an error, not EOF or an implicit retry; cancel or a seek outside that
-window resets it.
+cached/pending region resets it.
 
 HTTP 429 responses establish a cooldown in the affected ephemeral HTTP session.
 `Retry-After` accepts delta-seconds or an HTTP date; absent/malformed hints use
