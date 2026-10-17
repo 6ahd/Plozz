@@ -749,6 +749,11 @@ media details, restart/episode actions, and Playback Info (diagnostics); there i
 no duplicate Now Playing sheet. Audio controls appear only for alternate tracks
 or Dialog Enhance, on both mobile and tvOS. Info keeps its existing technical
 badges without a redundant audio/source-audio text row beneath them.
+The shared Info card owns both its dark color scheme and dark badge palette:
+the native player host can inherit a Light browsing palette even though the
+playback surface remains dark. This local pairing keeps badges readable on TV
+and mobile without overriding the profile's Light, Dark, Black, or System theme
+on browsing surfaces, or changing reduced-effects/accessibility preferences.
 Provider-generated format/default labels use the shared friendly codec naming;
 the current selection is a checkmark, not the container's Default suffix. Subtitles remain
 one separate button, without a duplicate menu entry. A native button snapshots
