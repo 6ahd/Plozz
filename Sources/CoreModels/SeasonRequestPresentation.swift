@@ -3,8 +3,6 @@ import Foundation
 /// Shared presentation for every season-request affordance.
 public struct SeasonRequestPresentation: Equatable, Sendable {
     public let title: LocalizedStringResource
-    /// Optional first line when a touch layout stacks confirmation above "Awaiting Release".
-    public let awaitingReleaseConfirmation: LocalizedStringResource?
     public let systemImage: String
     public let detail: LocalizedStringResource?
     public let hasActiveRequests: Bool
@@ -39,15 +37,6 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
         hasActiveRequests = activeCount > 0
         hasFailures = !failures.isEmpty || !declined.isEmpty
         requestAllTitle = "Request All Missing (\(requestableCount))"
-        if !isSubmitting, !hasFailures, activeCount > 0, awaitingRelease.count == activeCount {
-            if activeCount == 1, let season = awaitingRelease.first {
-                awaitingReleaseConfirmation = "S\(season.number) Requested"
-            } else {
-                awaitingReleaseConfirmation = "\(activeCount) Seasons Requested"
-            }
-        } else {
-            awaitingReleaseConfirmation = nil
-        }
 
         if isSubmitting {
             title = "Requesting…"
@@ -75,8 +64,12 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
             detail = activeDetail
         } else if activeCount > 0 {
             // One request identifies its season; multiple requests summarize their count.
-            if let awaitingReleaseConfirmation {
-                title = "\(awaitingReleaseConfirmation) · Awaiting Release"
+            if awaitingRelease.count == activeCount {
+                if activeCount == 1, let season = awaitingRelease.first {
+                    title = "S\(season.number) Requested · Awaiting Release"
+                } else {
+                    title = "\(activeCount) Seasons Requested · Awaiting Release"
+                }
                 systemImage = "calendar"
             } else if processing.count == activeCount {
                 if activeCount == 1, let season = processing.first {

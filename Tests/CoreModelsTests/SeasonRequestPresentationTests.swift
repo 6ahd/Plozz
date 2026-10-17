@@ -14,7 +14,6 @@ final class SeasonRequestPresentationTests: XCTestCase {
             availability: availability([requested]), now: now, calendar: calendar
         )
         XCTAssertEqual(english(result.title), "S1 Requested · Awaiting Release")
-        XCTAssertEqual(result.awaitingReleaseConfirmation.map(english), "S1 Requested")
         XCTAssertEqual(result.systemImage, "calendar")
         XCTAssertTrue(result.hasActiveRequests)
         XCTAssertNil(result.detail)
@@ -98,7 +97,6 @@ final class SeasonRequestPresentationTests: XCTestCase {
         let mixed = [season(1, .processing), season(2, .pending), future]
         let presentation = SeasonRequestPresentation(availability: availability(mixed), now: now)
         XCTAssertEqual(english(presentation.title), "3 Seasons Requested")
-        XCTAssertNil(presentation.awaitingReleaseConfirmation)
         XCTAssertEqual(presentation.detail.map(english), "1 Requested, 1 Processing · 1 Awaiting Release")
         let failure = SeasonRequestPresentation(
             availability: availability(mixed + [season(4, .pending, failed: true)]), now: now

@@ -119,8 +119,9 @@ badge. Pending approval, missing dates, release-day/past premieres, failures,
 declines, library coverage, and download-queue evidence never claim that release
 is the only remaining wait. Seerr's existing TV detail response supplies the
 premiere date; this presentation needs no additional metadata requests.
-TV uses the full confirmation and wait in one label; touch heroes stack those
-same two facts to preserve space for adjacent actions without truncating either.
+TV and touch heroes keep the full confirmation and wait in one label. Mobile
+detail heroes move secondary actions into the existing overflow menu before
+falling back to a stacked action layout; the status does not gain a subtitle.
 
 ## Watch-state replay identity
 
