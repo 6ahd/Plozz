@@ -187,8 +187,38 @@ delivery delay is 400 ms for the full range and 200 ms per half, modeling
 per-connection throughput. Counters distinguish consumed bytes from HTTP
 request count. This isolates overlap and assembly cost; it does not promise
 parallel requests will increase throughput on a shared-bandwidth server.
-Out-of-order completion, identity drift, EOF and cancellation have separate
-correctness coverage.
+The retained single-request path separately checks identity drift, EOF and
+cancellation.
+
+`webdav-paced-playback` consumes and verifies a complete 128 MiB file through
+the production WebDAV byte source and transport reader. Its synthetic HTTP
+responses accept both single windows and the former two-range implementation,
+with 100 ms per-request latency plus a size-dependent transfer delay. A paced
+32 MiB/s consumer separates download waits from downstream work. Counters
+include time inside reader calls, requests, fetched bytes and consumed bytes;
+the entire file must be delivered exactly once. Use this workload to measure
+download/consumption overlap, not just the latency of an isolated range.
+
+This is a deterministic byte-pipeline model, not decoded 4K playback, a public
+server bandwidth measurement or a frame-stall count. The single-window scenario
+can get slower when removing parallel connections even as paced consumption
+gets faster with fewer requests. Read-ahead may fetch one unused future window
+on a seek or stop; this EOF-bounded workload alone does not measure that waste.
+Cancellation, failed-prefetch, sparse-probe and clone tests cover those paths,
+and hosted loopback playback separately checks engine integration. Keep public
+service credentials out of local benchmarks and do not use repeated remote
+playback loops after receiving throttling responses.
+
+For decoded local integration, `WebDAVDiscPlaybackHostedTests` accepts
+`PLOZZ_WEBDAV_LOCAL_PLAYBACK_FIXTURE`, the filename of a synthetic `.mkv`
+already staged in the owned test host's Caches directory. The loopback-only
+test adds 80 ms response latency and 1 ms per 64 KiB, seeks to 35/5/20 seconds,
+then requires over 58 seconds of advancement during a 60-second observation.
+Use a fixture longer than 85 seconds; the measured workload uses a generated
+90-second 3840x2160 10-bit HEVC / six-channel AC-3 file at approximately
+96 Mbps. It is not the remote Blu-ray ISO or proof of public-service performance.
+The test skips unless explicitly configured and never interprets this filename
+as a network address. Remove staged copies from the owned simulators afterward.
 
 For Home metadata work, select `home-metadata-publication`,
 `home-observed-metadata-publication`, `home-row-metadata-updates`, and

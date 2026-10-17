@@ -6,22 +6,34 @@ import MediaTransportCore
 
 public typealias TransportByteSource = MediaTransportByteSource
 
-private final class TransportReadOutcome: @unchecked Sendable {
-    var result: Result<Data, Error> = .success(Data())
-}
-
 private final class TransportInflightRead: @unchecked Sendable {
     private struct State {
         var task: Task<Void, Never>?
         var isCancelled = false
+        var result: Result<Data, Error>?
     }
 
-    let semaphore = DispatchSemaphore(value: 0)
+    let offset: Int64
+    let length: Int
+    let isPrefetch: Bool
+    private let semaphore = DispatchSemaphore(value: 0)
     private let state = OSAllocatedUnfairLock(initialState: State())
+
+    init(offset: Int64, length: Int, isPrefetch: Bool = false) {
+        self.offset = offset
+        self.length = length
+        self.isPrefetch = isPrefetch
+    }
+
+    func contains(_ position: Int64) -> Bool {
+        position >= offset && position - offset < Int64(length)
+    }
+
+    var isCancelled: Bool { state.withLock { $0.isCancelled } }
 
     func attach(_ task: Task<Void, Never>) {
         let shouldCancel = state.withLock { state in
-            state.task = task
+            if state.result == nil, !state.isCancelled { state.task = task }
             return state.isCancelled
         }
         if shouldCancel {
@@ -32,14 +44,29 @@ private final class TransportInflightRead: @unchecked Sendable {
     func cancel() {
         let task = state.withLock { state in
             state.isCancelled = true
+            state.result = nil
+            defer { state.task = nil }
             return state.task
         }
         task?.cancel()
         semaphore.signal()
     }
 
-    var isCancelled: Bool {
-        state.withLock { $0.isCancelled }
+    func finish(_ result: Result<Data, Error>) {
+        state.withLock { state in
+            if !state.isCancelled { state.result = result }
+            state.task = nil
+        }
+        semaphore.signal()
+    }
+
+    func wait() -> Result<Data, Error> {
+        if state.withLock({ $0.result == nil && !$0.isCancelled }) {
+            semaphore.wait()
+        }
+        return state.withLock {
+            $0.isCancelled ? .failure(MediaTransportError.cancelled) : $0.result!
+        }
     }
 }
 
@@ -87,6 +114,8 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         var bufferStart: Int64 = 0
         var bufferData = Data()
         var probeWindows: [(start: Int64, data: Data)] = []
+        var pendingRead: TransportInflightRead?
+        var demandRead: TransportInflightRead?
 
         /// Bytes of `bufferData` available from `position` forward, or 0 on a miss.
         func bufferedAhead(from offset: Int64) -> Int {
@@ -114,7 +143,6 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
     private let resolvedSource: MediaTransportResolvedSource?
     private let readerGroup: TransportReaderGroup
     private let readerState = OSAllocatedUnfairLock(initialState: ReaderState())
-    private let inflight = OSAllocatedUnfairLock<TransportInflightRead?>(initialState: nil)
     private let avseekSize: Int32 = 65_536
 
     /// Existing window/chunk limits remain unchanged for transports that do not
@@ -122,6 +150,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
     static let defaultReadAheadWindow = 4 * 1024 * 1024  // 4 MB
     private static let defaultBackendChunk = 1024 * 1024
     private static let maximumReadAheadWindow = 32 * 1024 * 1024
+    private static let minimumPrefetchWindow = 16 * 1024 * 1024
     private static let probeWindowSize = 64 * 1024
     private static let maximumProbeWindows = 8
     private let readAheadWindow: Int
@@ -179,7 +208,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         // the transport. `.hit` copies bytes out and advances the cursor.
         enum Probe { case closed, miss(offset: Int64), hit(count: Int) }
         let probe: Probe = readerState.withLock { state in
-            guard !state.isClosed else { return .closed }
+            guard !state.isClosed, state.demandRead == nil else { return .closed }
             let offset = state.position
             guard let window = state.window(containing: offset) else { return .miss(offset: offset) }
             let start = Int(offset - window.start)
@@ -193,7 +222,9 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         }
         switch probe {
         case .closed: return -1
-        case .hit(let count): return Int32(count)
+        case .hit(let count):
+            prefetchIfNeeded()
+            return Int32(count)
         case .miss(let offset):
             return fetchAndServe(into: buffer, offset: offset, requestedLength: requestedLength)
         }
@@ -209,46 +240,96 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         let byteSize = lease.byteSize
         let remaining = byteSize > offset ? Int(min(byteSize - offset, Int64(Int.max))) : 0
         guard remaining > 0 else { return 0 }  // at/past EOF
-        let outcome = TransportReadOutcome()
-        let operation = TransportInflightRead()
-        let wasPublished = inflight.withLock { active -> Bool in
-            guard active == nil else { return false }
-            active = operation
-            return true
-        }
-        guard wasPublished else {
-            return -1
-        }
-        let fetchLength = readerState.withLock { state -> Int in
-            guard maxBackendChunk > Self.defaultBackendChunk else {
-                return min(max(requestedLength, readAheadWindow), remaining)
+        let selected = readerState.withLock { state -> (TransportInflightRead, Bool, TransportInflightRead?)? in
+            guard !state.isClosed, state.position == offset, state.demandRead == nil else { return nil }
+            if let pending = state.pendingRead, pending.contains(offset) {
+                state.demandRead = pending
+                return (pending, false, nil)
             }
-            let sequential = !state.bufferData.isEmpty
-                && offset == state.bufferStart + Int64(state.bufferData.count)
-            let window = sequential ? min(state.bufferData.count * 4, maxBackendChunk) : Self.probeWindowSize
-            let length = min(max(requestedLength, window), maxBackendChunk, remaining)
-            state.bufferData = Data()
-            return length
+            let discarded = state.pendingRead
+            let length: Int
+            if maxBackendChunk > Self.defaultBackendChunk {
+                let sequential = !state.bufferData.isEmpty
+                    && offset == state.bufferStart + Int64(state.bufferData.count)
+                let window = sequential ? min(state.bufferData.count * 4, maxBackendChunk) : Self.probeWindowSize
+                length = min(max(requestedLength, window), maxBackendChunk, remaining)
+                state.bufferData = Data()
+            } else {
+                length = min(max(requestedLength, readAheadWindow), remaining)
+            }
+            let operation = TransportInflightRead(offset: offset, length: length)
+            state.pendingRead = operation
+            state.demandRead = operation
+            return (operation, true, discarded)
         }
-        if readerState.withLock({ $0.isClosed }) {
-            operation.cancel()
+        guard let (operation, startsNewRead, discarded) = selected else { return -1 }
+        discarded?.cancel()
+        if startsNewRead { start(operation) }
+        let outcome = operation.wait()
+        let result = readerState.withLock { state -> Int32 in
+            guard !state.isClosed, state.demandRead === operation, state.position == offset else { return -1 }
+            state.demandRead = nil
+            switch outcome {
+            case .failure:
+                // Keep the failed window until cancel or an out-of-window seek. AVIO
+                // reads must not silently retry a rejected speculative request.
+                if !operation.isPrefetch { state.pendingRead = nil }
+                return -1
+            case .success(let data):
+                state.pendingRead = nil
+                let start = Int(offset - operation.offset)
+                guard start < data.count else { return 0 }
+                let readCount = min(data.count - start, requestedLength)
+                data.withUnsafeBytes { raw in
+                    buffer.update(from: raw.baseAddress!.advanced(by: start).assumingMemoryBound(to: UInt8.self), count: readCount)
+                }
+                state.bufferStart = operation.offset
+                state.bufferData = data
+                if maxBackendChunk > Self.defaultBackendChunk, data.count <= Self.probeWindowSize {
+                    state.probeWindows.removeAll { $0.start == operation.offset }
+                    state.probeWindows.append((operation.offset, data))
+                    if state.probeWindows.count > Self.maximumProbeWindows {
+                        state.probeWindows.removeFirst()
+                    }
+                }
+                state.position = offset + Int64(readCount)
+                return Int32(readCount)
+            }
         }
+        if result > 0 { prefetchIfNeeded() }
+        return result
+    }
 
+    private func prefetchIfNeeded() {
+        let operation = readerState.withLock { state -> TransportInflightRead? in
+            guard !state.isClosed, state.pendingRead == nil, state.demandRead == nil,
+                  maxBackendChunk > Self.defaultBackendChunk,
+                  state.bufferData.count >= Self.minimumPrefetchWindow,
+                  state.position - state.bufferStart >= Int64(state.bufferData.count / 2) else { return nil }
+            let end = state.bufferStart + Int64(state.bufferData.count)
+            guard state.position <= end, end < lease.byteSize else { return nil }
+            let length = Int(min(Int64(min(state.bufferData.count * 4, maxBackendChunk)), lease.byteSize - end))
+            let operation = TransportInflightRead(offset: end, length: length, isPrefetch: true)
+            state.pendingRead = operation
+            return operation
+        }
+        if let operation { start(operation) }
+    }
+
+    private func start(_ operation: TransportInflightRead) {
         let chunkSize = maxBackendChunk
         let task = Task.detached(priority: .userInitiated) { [cursor] in
-            defer {
-                operation.semaphore.signal()
-            }
             do {
+                guard !operation.isCancelled else { throw MediaTransportError.cancelled }
                 var assembled = Data()
-                var cursorOffset = offset
+                var cursorOffset = operation.offset
                 // Fill the window with bounded reads, concatenating partial reads
                 // (a backend may cap each read below the chunk size). Stop only on
                 // an empty read (EOF / nothing more) or cancellation; the demux
                 // re-reads any remainder and short reads are handled downstream.
-                while assembled.count < fetchLength {
+                while assembled.count < operation.length {
                     try Task.checkCancellation()
-                    let want = min(chunkSize, fetchLength - assembled.count)
+                    let want = min(chunkSize, operation.length - assembled.count)
                     let piece = try await cursor.read(at: cursorOffset, length: want)
                     guard piece.count <= want else {
                         throw MediaTransportError.protocolViolation(reason: "source exceeded requested read length")
@@ -261,80 +342,61 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
                     }
                     cursorOffset += Int64(piece.count)
                 }
-                outcome.result = .success(assembled)
+                try Task.checkCancellation()
+                operation.finish(.success(assembled))
             } catch {
-                outcome.result = .failure(error)
+                operation.finish(.failure(error))
             }
         }
         operation.attach(task)
-        operation.semaphore.wait()
-
-        let wasCancelled = operation.isCancelled
-        inflight.withLock { active in
-            if active === operation {
-                active = nil
-            }
-        }
-        guard !wasCancelled else { return -1 }
-
-        switch outcome.result {
-        case .failure:
-            return -1
-        case .success(let data):
-            guard !data.isEmpty else { return 0 }
-            let readCount = min(data.count, requestedLength)
-            data.copyBytes(to: buffer, count: readCount)
-            readerState.withLock { state in
-                // Only adopt the window / advance if no seek raced in while the
-                // async fetch was outstanding (reads and seeks both take this lock;
-                // the fetch blocks on the semaphore, not the lock).
-                guard !state.isClosed, state.position == offset else { return }
-                state.bufferStart = offset
-                state.bufferData = data
-                // Disc directories alternate between tiny regions. Retain only
-                // validated small windows, never additional sequential payload.
-                if maxBackendChunk > Self.defaultBackendChunk, data.count <= Self.probeWindowSize {
-                    state.probeWindows.removeAll { $0.start == offset }
-                    state.probeWindows.append((offset, data))
-                    if state.probeWindows.count > Self.maximumProbeWindows {
-                        state.probeWindows.removeFirst()
-                    }
-                }
-                state.position = offset + Int64(readCount)
-            }
-            return Int32(readCount)
-        }
     }
 
 
     public func seek(offset: Int64, whence: Int32) -> Int64 {
-        readerState.withLock { state in
-            guard !state.isClosed else { return -1 }
+        let result = readerState.withLock { state -> (Int64, TransportInflightRead?) in
+            guard !state.isClosed else { return (-1, nil) }
             let candidate: Int64
             switch whence {
             case Int32(SEEK_SET):
                 candidate = offset
             case Int32(SEEK_CUR):
                 let (value, overflow) = state.position.addingReportingOverflow(offset)
-                guard !overflow else { return -1 }
+                guard !overflow else { return (-1, nil) }
                 candidate = value
             case Int32(SEEK_END):
                 let (value, overflow) = lease.byteSize.addingReportingOverflow(offset)
-                guard !overflow else { return -1 }
+                guard !overflow else { return (-1, nil) }
                 candidate = value
             case avseekSize:
-                return lease.byteSize
+                return (lease.byteSize, nil)
             default:
-                return -1
+                return (-1, nil)
             }
-            guard candidate >= 0 else { return -1 }
+            guard candidate >= 0 else { return (-1, nil) }
+            let discarded: TransportInflightRead?
+            if candidate != state.position,
+               state.demandRead != nil || state.pendingRead?.contains(candidate) == false {
+                discarded = state.pendingRead
+                state.pendingRead = nil
+                state.demandRead = nil
+            } else {
+                discarded = nil
+            }
             state.position = candidate
-            return candidate
+            return (candidate, discarded)
         }
+        result.1?.cancel()
+        return result.0
     }
 
     public func cancel() {
-        inflight.withLock { $0 }?.cancel()
+        let pending = readerState.withLock { state in
+            let pending = state.pendingRead
+            state.pendingRead = nil
+            state.demandRead = nil
+            return pending
+        }
+        pending?.cancel()
     }
 
     public func makeIndependentReader() -> IOReader? {

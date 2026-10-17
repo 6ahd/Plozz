@@ -56,29 +56,13 @@ final class WebDAVByteSource: MediaTransportByteSource, @unchecked Sendable {
         let end = requestedEnd.overflow ? lastByte : min(requestedEnd.partialValue, lastByte)
 
         do {
-            let count = end - offset + 1
-            let halfWindow: Int64 = 16 * 1024 * 1024
-            guard count > halfWindow, count <= Int64(preferredReadSize) else {
-                return try await readRange(start: offset, end: end)
-            }
-            // Overlap only the current window, never speculative bytes. Each half
-            // must independently pass the pinned representation/range checks.
-            async let first = readRange(start: offset, end: offset + halfWindow - 1)
-            async let second = readRange(start: offset + halfWindow, end: end)
-            var bytes = try await first
-            bytes.append(try await second)
-            try Task.checkCancellation()
-            return bytes
+            return try await client.readRange(
+                url: resourceURL, start: offset, end: end, representation: representation,
+                sessionKey: sessionKey, credential: credential, trustPolicy: trustPolicy
+            )
         } catch {
             throw mapWebDAVError(error)
         }
-    }
-
-    private func readRange(start: Int64, end: Int64) async throws -> Data {
-        try await client.readRange(
-            url: resourceURL, start: start, end: end, representation: representation,
-            sessionKey: sessionKey, credential: credential, trustPolicy: trustPolicy
-        )
     }
 
     func shutdown() async {

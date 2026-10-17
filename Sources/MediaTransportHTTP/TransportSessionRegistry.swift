@@ -13,6 +13,7 @@ final class TransportSession: @unchecked Sendable {
     private let trustPolicy: TrustPolicy
     private let lifecycleLock = NSLock()
     private var acceptsNewTasks = true
+    private var retryAfter: ContinuousClock.Instant?
 
     init(
         key: TransportSessionKey,
@@ -43,15 +44,26 @@ final class TransportSession: @unchecked Sendable {
     ) async throws -> TransportDataResponse {
         let taskBox = URLSessionTaskBox()
         return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
+            try Task.checkCancellation()
+            return try await withCheckedThrowingContinuation { continuation in
                 lifecycleLock.lock()
                 guard acceptsNewTasks else {
                     lifecycleLock.unlock()
                     continuation.resume(throwing: TransportError.cancelled)
                     return
                 }
+                if let retryAfter, retryAfter > .now {
+                    lifecycleLock.unlock()
+                    continuation.resume(throwing: TransportError.protocolError(
+                        status: 429, detail: "server-requested cooldown is still active"
+                    ))
+                    return
+                }
                 let task = session.dataTask(with: request)
-                delegate.register(task: task, maxResponseBytes: maxResponseBytes, followRedirects: followRedirects) { result in
+                delegate.register(task: task, maxResponseBytes: maxResponseBytes, followRedirects: followRedirects) { [self] result in
+                    if case .success(let response) = result, response.response.statusCode == 429 {
+                        recordCooldown(response.response)
+                    }
                     continuation.resume(with: result)
                 }
                 taskBox.store(task)
@@ -60,6 +72,25 @@ final class TransportSession: @unchecked Sendable {
             }
         } onCancel: {
             taskBox.cancel()
+        }
+    }
+
+    private func recordCooldown(_ response: HTTPURLResponse) {
+        let header = response.value(forHTTPHeaderField: "Retry-After")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let seconds: TimeInterval
+        if let header, !header.isEmpty, header.utf8.allSatisfy({ (48...57).contains($0) }),
+           let value = Double(header), value.isFinite {
+            seconds = value
+        } else if let header, let date = HTTPDate.parse(header) {
+            seconds = max(0, date.timeIntervalSinceNow)
+        } else {
+            seconds = 5
+        }
+        // An unrepresentably distant retry date remains blocked for this session.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(min(seconds, 31_536_000_000)))
+        lifecycleLock.withLock {
+            retryAfter = max(retryAfter ?? deadline, deadline)
         }
     }
 
@@ -148,8 +179,8 @@ public actor TransportSessionRegistry {
     /// this at 1 would silently serialize the whole scan onto one connection
     /// (making a WebDAV first-scan ~Nx slower than the equivalent SMB walk), so
     /// we allow enough connections to cover the scan pool plus a little headroom
-    /// for an overlapping interactive read. Playback is unaffected — its reads
-    /// are issued sequentially, so it simply never opens more than one.
+    /// for an overlapping interactive read. Each playback reader has at most one
+    /// active range request; independent preview readers retain their own cursors.
     static let maxConnectionsPerHost = 6
 
     public init() {

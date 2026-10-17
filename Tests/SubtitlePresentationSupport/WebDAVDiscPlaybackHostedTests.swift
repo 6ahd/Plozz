@@ -22,12 +22,34 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
         try await checkFixturePlayback(named: "embedded", fileExtension: "mp4")
     }
 
+    func testExplicitLocalHighBitratePlaybackWithLatency() async throws {
+        guard let name = ProcessInfo.processInfo.environment["PLOZZ_WEBDAV_LOCAL_PLAYBACK_FIXTURE"] else {
+            throw XCTSkip("Requires a staged synthetic local playback fixture; never contacts a public server.")
+        }
+        guard name == (name as NSString).lastPathComponent, name.hasSuffix(".mkv") else {
+            throw CheckFailure.invalidInput
+        }
+        let file = try XCTUnwrap(FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first)
+            .appendingPathComponent(name)
+        try await checkFixturePlayback(
+            file: file, fileExtension: "mkv", seekPositions: [35, 5, 20],
+            sustainedPlaybackSeconds: 60, headerDelay: .milliseconds(80), bodyDelay: .milliseconds(1)
+        )
+    }
+
     private func checkFixturePlayback(named name: String, fileExtension: String) async throws {
         let file = try XCTUnwrap(Bundle(for: Self.self).url(
             forResource: name, withExtension: fileExtension, subdirectory: "Fixtures"
         ))
+        try await checkFixturePlayback(file: file, fileExtension: fileExtension, seekPositions: [4, 1])
+    }
+
+    private func checkFixturePlayback(
+        file: URL, fileExtension: String, seekPositions: [Double],
+        sustainedPlaybackSeconds: Int = 0, headerDelay: Duration = .zero, bodyDelay: Duration = .zero
+    ) async throws {
         let path = "fixture.\(fileExtension)"
-        let data = try Data(contentsOf: file)
+        let data = try Data(contentsOf: file, options: .mappedIfSafe)
         let etag = "\"synthetic-disc\""
         let xml = """
         <D:multistatus xmlns:D="DAV:"><D:response>
@@ -58,13 +80,15 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
                 "Content-Range": "bytes \(start)-\(end)/\(data.count)",
                 "ETag": etag,
                 "Content-Type": "application/octet-stream"
-            ])
+            ], headerDelay: headerDelay, delay: bodyDelay)
         }
         addTeardownBlock { await server.stop() }
         let base = try await server.start().appendingPathComponent("dav")
         try await checkPlayback(
-            base: base, path: path, credential: .anonymous, seekPositions: [4, 1]
+            base: base, path: path, credential: .anonymous, seekPositions: seekPositions,
+            sustainedPlaybackSeconds: sustainedPlaybackSeconds
         )
+        print("WEBDAV_LOCAL requests=\(await server.requestCount) peakActive=\(await server.peakActiveRequestCount)")
     }
 
     func testExplicitLiveWebDAVISOPlaysAndSeeks() async throws {

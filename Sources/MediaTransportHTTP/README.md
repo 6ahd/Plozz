@@ -62,9 +62,12 @@ Last-Modified is **change-detecting, not immutable**: it has one-second
 precision and cannot detect a server replacing bytes while preserving both
 timestamp and size. Strong ETags remain preferred. The metadata recheck adds
 a PROPFIND per open; missing DAV validators add a one-byte GET during locator preparation.
-No full-file download or mandatory HEAD is introduced. Playback windows above
-16 MiB use at most two concurrent validated ranges within the existing 32 MiB
-window; they do not fetch speculative bytes outside it. See
+No full-file download or mandatory HEAD is introduced. Each playback window
+uses one validated range, up to 32 MiB. The transport reader can overlap
+consumption with one bounded next window rather than doubling HTTP requests.
+HTTP 429 establishes a session-local `Retry-After` cooldown (delta-seconds or
+HTTP date, five-second fallback). Calls during it fail before starting another
+request; there is no automatic retry or waiting-task queue. See
 [disc playback](../../docs/playback-engines.md#media-share-disc-images) for the
 memory/cancellation contract.
 

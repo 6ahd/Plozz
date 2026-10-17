@@ -23,12 +23,10 @@ Scattered reads start with a 64 KiB window (or the caller's larger request);
 contiguous window exhaustion grows read-ahead fourfold, capped at 32 MiB and
 the file's remaining bytes. Cached seeks stay local; random misses and cloned
 readers start small again. This avoids fetching megabytes for tiny disc probes
-and amortizes HTTP latency during sequential playback without parallel prefetch.
+and amortizes HTTP latency during sequential playback.
 Transports using the default preference retain 4 MiB windows assembled from
 requests no larger than 1 MiB. Range and representation checks are unchanged.
-The old adaptive buffer is released before replacement, but the bound is per
-reader, not a process memory cap: clones and HTTP/engine buffers add their own
-memory, and larger windows can fetch bytes that playback does not consume.
+Demand-only adaptive buffers are released before replacement.
 
 Adaptive readers also retain up to eight previously validated windows no larger
 than 64 KiB each (512 KiB total) for alternating disc-directory probes. Cache hits
@@ -36,13 +34,31 @@ refresh recency; misses evict the least recently used window when full. Large
 sequential windows are never added to that cache. It is local to the reader and
 its pinned source lease, starts empty in clones, and is released on close.
 
-WebDAV windows larger than 16 MiB (up to the 32 MiB ceiling) use two concurrent
-range requests within that window, not additional speculative read-ahead.
-Both responses must pass the same pinned representation, exact-range and body
-length checks before any bytes reach the demuxer. Cancellation drains both
-requests. Assembly can temporarily retain the two bodies plus the combined
-window (up to 64 MiB per active read); this trades bounded memory and one extra
-request for overlapping network latency. Small probes remain single requests.
+Once half of a large adaptive window (at least 16 MiB) has been consumed, the
+reader may fetch **one** next window, capped at 32 MiB and EOF. It overlaps
+network work with consumption rather than splitting a window into concurrent
+HTTP requests. Each WebDAV window uses one validated range; its full
+representation, range and body-length checks still precede delivery to the
+demuxer. The demand read adopts the pending window instead of requesting it
+again. Sparse probes and default-size transports do not speculate.
+
+The current and pending windows retain at most 64 MiB of logical payload per
+adaptive reader, plus the 512 KiB probe cache. This is not a process/peak-memory
+cap: clones, HTTP, decoder and HLS buffers have their own memory costs. Stopping
+consumption can leave up to one unused 32 MiB window; no further work is started
+until the consumer advances. Seeks outside the pending window, cancellation and
+close cancel that read, and lease shutdown drains it. A failed pending window
+returns an error, not EOF or an implicit retry; cancel or a seek outside that
+window resets it.
+
+HTTP 429 responses establish a cooldown in the affected ephemeral HTTP session.
+`Retry-After` accepts delta-seconds or an HTTP date; absent/malformed hints use
+five seconds. New calls during that interval fail with the same terminal 429
+classification without making a request, queuing sleepers or retrying
+automatically. Existing in-flight requests are not retried. The cooldown does
+not cross account/session boundaries or block DAV metadata just because a
+separate anonymous delivery origin was throttled.
+
 The full media-probe budget and default sealed HLS segment delivery remain
 unchanged; shortening analysis without track-completeness checks can lose sparse
 audio/subtitle tracks.

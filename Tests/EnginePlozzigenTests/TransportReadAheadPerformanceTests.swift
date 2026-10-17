@@ -2,6 +2,9 @@
 import Foundation
 import XCTest
 @testable import EnginePlozzigen
+@testable import MediaTransportHTTP
+@testable import MediaTransportWebDAV
+@testable import TestSupportNetworking
 @testable import TestSupportPerformance
 
 private final class LatencyByteSource: TransportByteSource, @unchecked Sendable {
@@ -34,6 +37,88 @@ private final class LatencyByteSource: TransportByteSource, @unchecked Sendable 
 
 @MainActor
 final class TransportReadAheadPerformanceTests: XCTestCase {
+    func testPerformancePacedWebDAVPlayback() async throws {
+        try PerformanceProbe.requireEnabled()
+        try await PerformanceProbe.measure(self, scenario: "webdav-paced-playback") {
+            StubURLProtocol.reset()
+            let url = try XCTUnwrap(URL(string: "https://media.example.com/fixture.m2ts"))
+            let total = 128 * 1024 * 1024
+            let registry = TransportSessionRegistry(testProtocolClasses: [StubURLProtocol.self])
+            let key = try TransportSessionKey(
+                accountID: "fixture", credentialRevision: UUID(),
+                origin: XCTUnwrap(TransportOrigin(url: url)), trustRevision: UUID(), role: .playback
+            )
+            let source = WebDAVByteSource(
+                client: WebDAVClient(registry: registry),
+                representation: RangeProbeResult(
+                    etag: try XCTUnwrap(ETag(headerValue: "\"fixture\"")),
+                    totalLength: Int64(total), resourceURL: url
+                ),
+                sessionKey: key, credential: .anonymous, trustPolicy: .system
+            )
+            var offset = 0
+            var window = 256 * 1024
+            while offset < total {
+                let length = min(window, total - offset)
+                let ranges = length > 16 * 1024 * 1024
+                    ? [(offset, length), (offset, 16 * 1024 * 1024),
+                       (offset + 16 * 1024 * 1024, length - 16 * 1024 * 1024)]
+                    : [(offset, length)]
+                for (start, count) in ranges {
+                    let range = "\(start)-\(start + count - 1)"
+                    StubURLProtocol.queue(StubResponse(
+                        statusCode: 206,
+                        headers: ["ETag": "\"fixture\"", "Content-Range": "bytes \(range)/\(total)"],
+                        body: Data(repeating: 0x5a, count: count),
+                        matchesRequest: { $0.value(forHTTPHeaderField: "Range") == "bytes=\(range)" },
+                        delay: .milliseconds(100 + count / (256 * 1024))
+                    ), for: url)
+                }
+                offset += length
+                window = min(window * 4, 32 * 1024 * 1024)
+            }
+            let reader = TransportIOReader(source: source)
+            let completed = await Task.detached {
+                var buffer = [UInt8](repeating: 0, count: 256 * 1024)
+                var consumed = 0
+                var waitNanoseconds: UInt64 = 0
+                while consumed < total {
+                    let started = DispatchTime.now().uptimeNanoseconds
+                    let count = buffer.withUnsafeMutableBufferPointer {
+                        reader.read($0.baseAddress, size: Int32($0.count))
+                    }
+                    waitNanoseconds += DispatchTime.now().uptimeNanoseconds - started
+                    guard count > 0 else {
+                        XCTFail("The complete paced workload must be delivered")
+                        break
+                    }
+                    XCTAssertTrue(buffer.prefix(Int(count)).allSatisfy { $0 == 0x5a })
+                    consumed += Int(count)
+                    // 32 MiB/s consumer work, independent of the download wait.
+                    try await Task.sleep(for: .nanoseconds(Int64(count) * 1_000_000_000 / (32 * 1024 * 1024)))
+                }
+                return (consumed, waitNanoseconds)
+            }.result
+            reader.close()
+            await reader.waitForFinalShutdown()
+            await registry.drainAll()
+            let (consumed, waitNanoseconds) = try completed.get()
+            XCTAssertEqual(consumed, total)
+            let requests = StubURLProtocol.requests(for: url)
+            let fetched = requests.reduce(0) { count, request in
+                let bounds = request.value(forHTTPHeaderField: "Range")!
+                    .dropFirst("bytes=".count).split(separator: "-")
+                return count + Int(bounds[1])! - Int(bounds[0])! + 1
+            }
+            XCTAssertEqual(fetched, total, "Overlap must not duplicate or skip any window")
+            StubURLProtocol.reset()
+            return [
+                "consumedBytes": consumed, "transportBytes": fetched,
+                "transportReads": requests.count, "readerWaitNanoseconds": Int(waitNanoseconds)
+            ]
+        }
+    }
+
     func testPerformanceRepeatedDiscMetadataProbes() async throws {
         try PerformanceProbe.requireEnabled()
         try await PerformanceProbe.measure(self, scenario: "disc-probe-cache") {

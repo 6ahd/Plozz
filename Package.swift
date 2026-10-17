@@ -1164,6 +1164,9 @@ let package = Package(
                 "CoreModels",
                 "EnginePlozzigen",
                 "MediaTransportCore",
+                "MediaTransportHTTP",
+                "MediaTransportWebDAV",
+                "TestSupportNetworking",
                 "TestSupportPerformance",
                 .product(name: "AetherEngine", package: "AetherEngine"),
             ]

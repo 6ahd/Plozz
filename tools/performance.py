@@ -92,6 +92,13 @@ SCENARIOS = {
         "description": "Read and verify a 32 MiB production WebDAV window with synthetic per-connection delivery delay.",
         "counters": ["consumedBytes", "transportReads"],
     },
+    "webdav-paced-playback": {
+        "suite": "network", "target": "EnginePlozzigenTests",
+        "test": "TransportReadAheadPerformanceTests/testPerformancePacedWebDAVPlayback",
+        "file": "Tests/EnginePlozzigenTests/TransportReadAheadPerformanceTests.swift",
+        "description": "Consume 128 MiB through the production WebDAV reader at 32 MiB/s with synthetic 100-ms request latency and bounded transfer delay.",
+        "counters": ["consumedBytes", "transportBytes", "transportReads", "readerWaitNanoseconds"],
+    },
     "diagnostics-disabled": {
         "suite": "diagnostics", "target": "CoreModelsTests",
         "test": "PerformanceDiagnosticsProbeTests/testPerformanceDisabledOperations",
