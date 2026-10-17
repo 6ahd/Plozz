@@ -3,7 +3,7 @@
 A tiny Cloudflare Worker that powers the **Universal Link** used by Sync & Setup
 ("set up another device"), Trakt's native PKCE callback, and community shortcuts. It claims only the
 paths below on `plozz.app`; everything
-else on the domain is still served by the existing `plozz-website` Pages project.
+else on the domain is still served by the existing `plozz-website` Worker.
 
 | Path | Purpose |
 | --- | --- |
@@ -14,8 +14,12 @@ else on the domain is still served by the existing `plozz-website` Pages project
 | `/github`, `/github/` | Temporary (302), non-cached redirect to `https://github.com/brandomoore/Plozz`. Query parameters are not forwarded. |
 
 The `/discord*` and `/github*` routes permit query strings on the shortcuts. Other
-paths sharing those prefixes are passed through to Pages unchanged. Targets are
+paths sharing those prefixes are passed through to the website unchanged. Targets are
 not permanently cached, so they can be replaced if an invite or repository moves.
+
+Use `https://plozz.app/discord` in the app, README, QR codes, and other public
+community links. Keep the replaceable Discord invite only in the `/discord`
+redirect target in `src/worker.js` and its regression test.
 
 The AASA also declares `webcredentials` for the canonical app. Apple's HTTPS
 authentication-session callback requires this association and the matching
@@ -29,12 +33,18 @@ needed. Keep request logging disabled so callback query strings are not retained
 ```bash
 cd web/pairing-links
 node --test tests/worker.test.mjs
-npx wrangler@4 deploy
+npx wrangler@4 versions upload --message "Update community redirect"
+# Inspect the uploaded version and retain the current version for rollback.
+npx wrangler@4 versions view <uploaded-version-id>
+npx wrangler@4 versions deploy <uploaded-version-id>@100%
 ```
 
 Requires wrangler logged in to the Cloudflare account that owns the `plozz.app`
-zone. Worker routes take priority over Pages for matching paths, so this never
-touches the rest of the site.
+zone. For an existing deployment, capture the live source, version, settings,
+bindings, routes, and HTTP responses before uploading. Confirm the source matches
+the deployed handler and verify the staged version changes only the intended
+target. Version deployment leaves existing routes and domains unchanged; do not
+deploy the website Worker or synchronize routes for a target-only update.
 
 ## Publishing note
 
