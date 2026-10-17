@@ -50,13 +50,14 @@ final class HomeRowArrangementHostedTests: XCTestCase {
     }
 
     #if os(iOS)
-    func testMobileHomeMergeSwitchPersistsWithoutActivatingNeighboringNavigation() async throws {
+    func testMobileCustomizeHomeKeepsArtworkWithoutDuplicatingTheMergeSwitch() async throws {
         let suite = "MobileHomeNextUp.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
         let visibility = HomeLibraryVisibilityModel(store: store)
         visibility.useRowDefaults(.combined)
+        visibility.setMergeNextUpIntoContinueWatching(true)
         try await withWindow {
             NavigationStack {
                 PlozziOSHomeSettingsView(
@@ -66,7 +67,39 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 )
             }
         } inspect: { window in
-            _ = try await self.capture(window, name: "Mobile Continue Watching settings")
+            let lines = try await self.capture(window, name: "Mobile Home artwork without duplicate merge toggle")
+            let text = lines.map(\.0).joined(separator: " ")
+            XCTAssertTrue(text.contains("Rows on Home"), text)
+            XCTAssertTrue(text.contains("Artwork"), text)
+            XCTAssertFalse(text.contains("Merge Next Up rows"), text)
+            XCTAssertFalse(text.contains("LIBRARIES"), "Customize Home must not duplicate library availability.")
+            XCTAssertFalse(text.contains("No video libraries are available"), text)
+            XCTAssertTrue(store.load().mergeNextUpIntoContinueWatching)
+
+            visibility.setGlobalRowEnabled(false, for: .continueWatching)
+            let hidden = try await self.capture(window, name: "Mobile Home with Continue Watching hidden")
+            let hiddenText = hidden.map(\.0).joined(separator: " ")
+            XCTAssertFalse(hiddenText.contains("Artwork"), hiddenText)
+            XCTAssertFalse(hiddenText.contains("CONTINUE WATCHING"), "Do not leave an empty section for a hidden row.")
+            XCTAssertFalse(hiddenText.contains("Merge Next Up rows"), hiddenText)
+            XCTAssertTrue(store.load().mergeNextUpIntoContinueWatching)
+        }
+    }
+
+    func testMobileRowArrangerMergeSwitchPersistsWithoutChangingPreset() async throws {
+        let suite = "MobileHomeRowsNextUp.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        let visibility = HomeLibraryVisibilityModel(store: store)
+        visibility.useRowDefaults(.combined)
+        try await withWindow {
+            ScrollView {
+                HomeRowsSettingsView(libraries: [], accounts: [], visibility: visibility)
+                    .padding(24)
+            }
+        } inspect: { window in
+            _ = try await self.capture(window, name: "Mobile Rows on Home merge setting")
             func switches(_ view: UIView) -> [UISwitch] {
                 (view as? UISwitch).map { [$0] } ?? view.subviews.flatMap(switches)
             }
@@ -74,15 +107,12 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             XCTAssertFalse(control.isOn)
             control.setOn(true, animated: false)
             control.sendActions(for: .valueChanged)
-            let lines = try await self.capture(window, name: "Mobile merged Continue Watching")
+            let lines = try await self.capture(window, name: "Mobile Rows on Home with Next Up merged")
             XCTAssertTrue(store.load().mergeNextUpIntoContinueWatching)
             XCTAssertEqual(visibility.visibility.rowCustomization?.defaults, .combined)
             let text = lines.map(\.0).joined(separator: " ")
-            XCTAssertTrue(text.contains("Artwork"), text)
+            XCTAssertTrue(text.contains("Combined rows"), text)
             XCTAssertTrue(text.contains("Merge Next Up rows"), text)
-            XCTAssertFalse(text.contains("LIBRARIES"), "Customize Home must not duplicate library availability.")
-            XCTAssertFalse(text.contains("No video libraries are available"), text)
-            XCTAssertFalse(text.contains("Presets"), "The neighboring Rows on Home action must not activate")
         }
     }
 
@@ -332,6 +362,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             #endif
         } inspect: { window in
             let before = try await self.capture(window, name: "Home arranger original order")
+            XCTAssertTrue(before.contains { $0.0.contains("Merge Next Up rows") })
             XCTAssertGreaterThan(try self.y("Alpha", in: before), try self.y("Beta", in: before))
             XCTAssertTrue(before.contains { $0.0.contains("All libraries") })
             visibility.applyRows(.init(enabled: Array(ids.reversed()), disabled: hidden), choices: choices)

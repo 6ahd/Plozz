@@ -115,22 +115,19 @@ struct CustomizeHomeDetailView: View {
             SettingsSplitRow(
                 id: "continue-watching",
                 title: "Continue Watching",
-                description: "Choose what appears in this row and how its cards look."
+                description: "What the cards in this row show."
             ) {
-                VStack(alignment: .leading, spacing: SettingsFormMetrics.illustratedGroupSpacing) {
-                    ContinueWatchingNextUpControl(visibility: homeVisibility)
-                    ContinueWatchingArtworkPicker(
-                        style: Binding(
-                            get: {
-                                homeVisibility.continueWatchingShowsSeriesArtwork
-                                    ? .logoAndArtwork : .thumbnail
-                            },
-                            set: {
-                                homeVisibility.setContinueWatchingShowsSeriesArtwork($0 == .logoAndArtwork)
-                            }
-                        )
+                ContinueWatchingArtworkPicker(
+                    style: Binding(
+                        get: {
+                            homeVisibility.continueWatchingShowsSeriesArtwork
+                                ? .logoAndArtwork : .thumbnail
+                        },
+                        set: {
+                            homeVisibility.setContinueWatchingShowsSeriesArtwork($0 == .logoAndArtwork)
+                        }
                     )
-                }
+                )
             }.illustratedContent()
         ]
     }

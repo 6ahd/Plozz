@@ -13,6 +13,8 @@ and the single place caption customization lives.
   does not duplicate its Enabled controls: Rows on Home manages row presentation,
   and Hero source selection uses the enabled library inventory. Discovering
   libraries for those controls must not restore a separate management list.
+- **Rows on Home** owns the Merge Next Up rows control on TV and mobile.
+  Customize Home keeps Continue Watching artwork choices, not a second merge toggle.
 - Individual profile settings expose the existing device-wide Automatically
   Sign In preference below Kids Profile, followed by a separate Delete Profile
   group. Everyone → Profiles keeps the same control and binding. Shared

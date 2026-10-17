@@ -34,8 +34,8 @@ fallback when the user's server has no attached trailer.
   Global rows say **All libraries**; native server and library rows identify their
   source. All can be freely interleaved. Changing presets requires confirmation;
   selecting the already active preset does nothing.
-  **Merge Next Up rows** is a separate profile-scoped Continue Watching setting,
-  available in Customize Home and beside the row arranger on every platform.
+  **Merge Next Up rows** is a profile-scoped setting inside **Rows on Home** on
+  every platform, not a duplicate control on the parent Customize Home page.
   It uses the provider's combined resume/next-episode feed without changing the
   preset, library exclusions, or other row choices. Separate Next Up rows are
   neither requested nor presented while merged; the arranger omits them rather

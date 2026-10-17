@@ -1915,9 +1915,8 @@ struct PlozziOSHomeSettingsView: View {
                 }
             }
 
-            SettingsSectionGroup("Continue Watching") {
-                ContinueWatchingNextUpControl(visibility: visibility)
-                if visibility.isGlobalRowEnabled(.continueWatching) {
+            if visibility.isGlobalRowEnabled(.continueWatching) {
+                SettingsSectionGroup("Continue Watching") {
                     Picker(
                         "Artwork",
                         selection: Binding<ContinueWatchingArtworkStyle>(
