@@ -155,6 +155,15 @@ Automatic sign-in applies to Plozz profiles regardless of their providers,
 including profiles without server accounts. Plex Home token restoration is the
 provider-specific part, not a restriction on who can use the setting.
 
+Plex authorization follows the profile's enabled sources, not individual library
+visibility. Disabling an entire Plex source preserves its saved Home-user binding
+but clears its live credentials, PIN proof, and pending authorization. It no longer
+prompts when entering the profile or participates in automatic sign-in. Re-enabling
+the source verifies current protection and requires its PIN before content access;
+neither old credentials nor an in-flight response can authorize it. Hiding libraries
+within an enabled source does not waive authentication. Separate Plozz Profile Locks
+and Kids Profile exit gates are unchanged.
+
 `AppRuntime.AutomaticSignInStore` retains one session in a non-synchronizable,
 ThisDeviceOnly Keychain item (per Apple TV system user). It stores authenticated
 Plex server and Discover tokens, never a PIN. The preference and session are not
