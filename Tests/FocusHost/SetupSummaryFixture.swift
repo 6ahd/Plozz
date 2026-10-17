@@ -59,7 +59,8 @@ struct SetupSummaryFixture: View {
                         nameFont: .caption, nameLineLimit: nil, focusableProfiles: true
                     )
                 }
-                .padding(70)
+                .padding(.horizontal, 70)
+                .padding(.bottom, 24)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

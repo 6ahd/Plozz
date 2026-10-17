@@ -28,21 +28,25 @@ final class SetupSummaryRemoteTests: XCTestCase {
         XCTAssertTrue(done.waitForExistence(timeout: 5))
         let footerFrame = done.frame
         XCTAssertTrue(app.frame.contains(footerFrame))
+        let viewport = app.scrollViews.firstMatch.frame
+        XCTAssertEqual(viewport.minY, app.frame.minY, accuracy: 1, "Scrolling must reach the page's top edge.")
         capture(app, name: "setup-summary-top")
         let lastServer = app.descendants(matching: .any).matching(
             NSPredicate(format: "label BEGINSWITH %@", "Server 24")
         ).firstMatch
         var reachedServer = false
         let lastProfile = app.descendants(matching: .any)["setup-summary-profile-profile-39"].firstMatch
-        for _ in 0..<40 {
-            if lastServer.exists && lastServer.isHittable {
+        for step in 0..<40 {
+            if !reachedServer && lastServer.exists && viewport.contains(lastServer.frame) && lastServer.isHittable {
                 reachedServer = true
             }
-            if lastProfile.exists && lastProfile.isHittable { break }
+            if lastProfile.exists && viewport.contains(lastProfile.frame) && lastProfile.isHittable { break }
             XCUIRemote.shared.press(.down)
+            if step == 5 { capture(app, name: "setup-summary-scrolling-to-page-edge") }
         }
         XCTAssertTrue(reachedServer, "Native focus must scroll through every server.")
         XCTAssertTrue(lastProfile.isHittable, "Native focus must reach the final profile row.")
+        XCTAssertTrue(viewport.contains(lastProfile.frame), "The final profile must be fully inside the viewport.")
         XCTAssertEqual(done.frame.midY, footerFrame.midY, accuracy: 2)
         capture(app, name: "setup-summary-last-profiles")
         for _ in 0..<8 where !focused(done) { XCUIRemote.shared.press(.down) }

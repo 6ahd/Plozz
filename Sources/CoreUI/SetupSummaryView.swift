@@ -47,6 +47,9 @@ public struct SetupSectionCard<Content: View>: View {
 /// profile avatars and retain responsibility for applying setup and dismissing it.
 public struct SetupSummaryView<Profiles: View>: View {
     @Environment(\.themePalette) private var palette
+    #if os(tvOS)
+    @State private var hasContentBelow = false
+    #endif
     private let title: LocalizedStringResource
     private let serverGroups: [SyncedServerAccountGroup]
     private let pendingIDs: Set<String>
@@ -75,6 +78,9 @@ public struct SetupSummaryView<Profiles: View>: View {
             summaryContent
             summaryAction
         }
+        #if os(tvOS)
+        .ignoresSafeArea(.container, edges: .top)
+        #endif
     }
 
     private var summaryContent: some View {
@@ -113,8 +119,27 @@ public struct SetupSummaryView<Profiles: View>: View {
             }
             .frame(maxWidth: contentWidth)
             .padding(24)
+            #if os(tvOS)
+            .padding(.top, 24)
+            #endif
             .frame(maxWidth: .infinity)
         }
+        #if os(tvOS)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentSize.height + geometry.contentInsets.bottom
+                - geometry.contentOffset.y - geometry.containerSize.height > 2
+        } action: { _, hasContentBelow in
+            self.hasContentBelow = hasContentBelow
+        }
+        .mask {
+            VerticalEdgeFadeMask(
+                fadeHeight: 64,
+                topStrength: 0,
+                bottomStrength: hasContentBelow ? 1 : 0,
+                horizontalOverhang: 32
+            )
+        }
+        #endif
     }
 
     private var summaryAction: some View {

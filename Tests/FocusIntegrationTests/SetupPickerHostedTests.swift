@@ -1,4 +1,5 @@
 import CoreImage
+import CoreModels
 import CoreUI
 import FeatureSyncSetup
 import Observation
@@ -9,6 +10,60 @@ import XCTest
 
 @MainActor
 final class SetupPickerHostedTests: XCTestCase {
+    func testSummaryScrollsToPageTopAndFadesOnlyAboveTheFooter() async throws {
+        let groups = SyncedServerAccountGroup.groups(from: (0..<50).map { index in
+            SyncedAccountDescriptor(
+                id: "account-\(index)", provider: .jellyfin, serverID: "server-\(index)",
+                serverName: String(format: "Library %02d", index), userID: "viewer", userName: "Viewer"
+            )
+        })
+        try await withWindow(scheme: .dark) { window in
+            window.rootViewController = UIHostingController(rootView:
+                SetupSummaryView(
+                    title: "Your other device is set up", serverGroups: groups,
+                    profileCount: 0, actionTitle: "Done", onAction: {}
+                ) { EmptyView() }
+                .padding(.horizontal, 70)
+                .padding(.bottom, 24)
+                .background(Color.red)
+                .environment(\.themePalette, ThemePalette.dark)
+            )
+            window.makeKeyAndVisible()
+            try await Task.sleep(for: .milliseconds(300))
+            let scroll = try XCTUnwrap(findScrollView(in: window))
+            scroll.setContentOffset(CGPoint(x: 0, y: 400), animated: false)
+            try await Task.sleep(for: .milliseconds(300))
+            let viewport = scroll.convert(scroll.bounds, to: window)
+            XCTAssertEqual(viewport.minY, window.bounds.minY, accuracy: 1)
+            let image = snapshot(window)
+            attach(image, name: "summary-page-top-and-footer-fade")
+            let bitmap = try XCTUnwrap(image.cgImage)
+            let pixels = try rgba(bitmap)
+            func red(at y: CGFloat) -> Int {
+                Int(pixels[(Int(y) * bitmap.width + Int(viewport.midX)) * 4])
+            }
+            XCTAssertLessThan(red(at: viewport.minY + 3), 80, "Content must reach the page edge without a top fade.")
+            XCTAssertGreaterThan(red(at: viewport.maxY - 3), red(at: viewport.maxY - 70) + 100)
+            for _ in 0..<5 {
+                scroll.setContentOffset(CGPoint(
+                    x: 0, y: scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom
+                ), animated: false)
+                try await Task.sleep(for: .milliseconds(80))
+            }
+            let end = snapshot(window)
+            attach(end, name: "summary-mask-at-end")
+            let endBitmap = try XCTUnwrap(end.cgImage)
+            let endPixels = try rgba(endBitmap)
+            let offset = (Int(viewport.maxY - 30) * endBitmap.width + Int(viewport.midX)) * 4
+            XCTAssertLessThan(endPixels[offset], 80, "The final card must remain opaque at the real bottom.")
+        }
+    }
+
+    private func findScrollView(in view: UIView) -> UIScrollView? {
+        if let scroll = view as? UIScrollView { return scroll }
+        return view.subviews.lazy.compactMap { self.findScrollView(in: $0) }.first
+    }
+
     func testMatchingCodePresentationFitsBothRolesAndThemes() async throws {
         for (name, scheme, palette) in appearances {
             for sending in [false, true] {

@@ -85,7 +85,14 @@ struct SyncSetupReceiveView: View {
                 Button("Cancel", role: .cancel) { onClose() }.padding(.top, 12)
             }
         }
-        .padding(70)
+        .padding(.horizontal, 70)
+        .padding(.top, summaryIsVisible ? 0 : 70)
+        .padding(.bottom, summaryIsVisible ? 24 : 70)
+    }
+
+    private var summaryIsVisible: Bool {
+        if case .applied = model.phase { return true }
+        return false
     }
 
     // MARK: Verification code (SAS) — shown so the user can confirm both devices

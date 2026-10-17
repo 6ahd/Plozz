@@ -13,7 +13,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   groups methods and counted summaries without styling native controls.
   `SetupSummaryView` scrolls the heading, full server names, and supplied profile
   grid while keeping Done/Continue reachable. TV rows and profile tiles provide
-  native focus targets so the remote can reach long summaries.
+  native focus targets so the remote can reach long summaries. TV summaries scroll
+  to the page's top edge, with initial header spacing inside the scroll content
+  rather than an inset clipping boundary. `VerticalEdgeFadeMask` softens only the
+  bottom above the fixed action while more content remains; the final rows stay
+  undimmed at the end.
 
 - **First-use choices** — `FirstUseChoiceView` shares the Live TV preview and
   playback-version introduction heading, native actions, and Settings reminder.

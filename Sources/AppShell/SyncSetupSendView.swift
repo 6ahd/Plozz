@@ -62,7 +62,10 @@ struct SyncSetupSendView: View {
     var body: some View {
         ZStack {
             AppBackground(palette: palette)
-            content.frame(maxWidth: .infinity, maxHeight: .infinity).padding(70)
+            content.frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 70)
+                .padding(.top, model.phase == .sent ? 0 : 70)
+                .padding(.bottom, model.phase == .sent ? 24 : 70)
         }
         .onAppear { if offer == nil { model.startDiscovery(offeringSetup: true) } }
         .onChange(of: model.sourceReceiver) { _, device in
