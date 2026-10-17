@@ -30,7 +30,8 @@ session persistence.
     both stores.
 - **UI surfaces** — `AuthView` (root sign-in orchestrator) and the
   per-flow views above. `BrandQRCodeView` renders the Quick Connect /
-  Plex Link codes as scannable QR + readable digits.
+  Plex Link codes as scannable QR. `ConnectionCodeView` supplies the shared
+  readable code panel for Quick Connect, Plex Link, Silo, and device setup.
   `ServerAddressesView` uses the shared provider logo and Settings surfaces to
   separate server/sign-in identity, saved addresses, and address entry. Full
   addresses wrap without truncation, with the protocol labeled separately;
