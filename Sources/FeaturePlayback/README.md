@@ -6,6 +6,16 @@ and the diagnostics overlay.
 
 ## Responsibility
 
+Automatic on-demand subtitle selection applies the profile's **SDH subtitles**
+preference to embedded tracks and external files, including network shares and
+offline playback. Prefer SDH falls back to regular subtitles in the chosen
+language; Only SDH is strict, including remote search/download. Full dialogue
+still outranks forced-only passages unless the subtitle mode is Forced Only.
+Manual choices and remembered Off take precedence. Server conversion, native
+rendition matching, and bitmap-engine routing preserve the selected SDH class.
+Provider flags and explicit SDH/CC track titles identify accessibility tracks;
+unlabelled content cannot be assumed to contain SDH cues.
+
 - **Engine abstraction** — `VideoEngine` protocol + the two seam files:
   - `NativeVideoEngine` — the always-shipped AVPlayer-backed engine.
   - `EngineFactory` — closure-based factory that the composition root

@@ -2460,17 +2460,21 @@ private struct PlozziOSSubtitleSettingsView: View {
                 )
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            }
-
-            SettingsSectionGroup("Subtitle search") {
                 Picker(
-                    "Hearing impaired",
+                    "SDH subtitles",
                     selection: $behavior.settings.hearingImpairedPreference
                 ) {
                     ForEach(HearingImpairedPreference.allCases, id: \.self) {
                         Text($0.displayName).tag($0)
                     }
                 }
+                .accessibilityIdentifier("subtitle-sdh")
+                Text(behavior.settings.hearingImpairedPreference.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            SettingsSectionGroup("Subtitle search") {
                 Picker(
                     "Forced subtitles",
                     selection: $behavior.settings.forcedSearchPreference

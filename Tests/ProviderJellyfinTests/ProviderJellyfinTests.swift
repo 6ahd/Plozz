@@ -72,6 +72,23 @@ final class JellyfinTicksTests: XCTestCase {
 }
 
 final class JellyfinProviderMappingTests: XCTestCase {
+    func testSubtitleAccessibilitySurvivesFlagsAndContainerTitles() throws {
+        let provider = JellyfinProvider(session: makeSession(), http: StubHTTPClient())
+        for metadata in [
+            #""IsHearingImpaired":true"#,
+            #""Title":"English [SDH]""#,
+            #""DisplayTitle":"English (CC)""#
+        ] {
+            let json = #"{"Index":2,"Type":"Subtitle","Codec":"subrip","Language":"eng","# + metadata + "}"
+            let dto = try JSONDecoder.plozz.decode(MediaStreamDto.self, from: Data(json.utf8))
+            XCTAssertTrue(provider.map(stream: dto).isHearingImpaired)
+            XCTAssertTrue(try provider.map(subtitleStream: dto, itemID: "movie", sourceID: "file").isHearingImpaired)
+        }
+        let plain = try JSONDecoder.plozz.decode(MediaStreamDto.self, from: Data(
+            #"{"Index":1,"Type":"Subtitle","Codec":"subrip","Language":"hin","Title":"Hindi"}"#.utf8))
+        XCTAssertFalse(provider.map(stream: plain).isHearingImpaired)
+    }
+
     func testEpisodeCountsUseUnplayedCountNotSeriesChildCount() async throws {
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/Users/u1/Items", json: """

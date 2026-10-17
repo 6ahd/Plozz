@@ -7,6 +7,7 @@ import SwiftUI
 struct PlaybackReadAheadFixture: View {
     @State private var models = ProfileSettingsModel(namespace: "read-ahead-fixture")
     @AppStorage(PlaybackReadAheadStore.storageKey) private var selection = PlaybackReadAhead.default
+    private let subtitleWorkspace = ProcessInfo.processInfo.arguments.contains("--subtitle-settings-workspace")
 
     init() {
         if ProcessInfo.processInfo.arguments.contains("--reset-read-ahead") {
@@ -22,8 +23,11 @@ struct PlaybackReadAheadFixture: View {
                 subtitleStyle: models.subtitleStyleModel,
                 subtitlePolicy: models.subtitlePolicyModel,
                 audioPolicy: models.audioPolicyModel,
-                canDownloadSubtitles: false
+                canDownloadSubtitles: false,
+                section: subtitleWorkspace ? .subtitles : .playback
             )
+            .environment(\.settingsInWorkspace, subtitleWorkspace)
+            .frame(maxWidth: subtitleWorkspace ? SettingsFormMetrics.pageWidth : .infinity)
         }
         .environment(models.uiDensityModel)
         .environment(models.transparencyModel)

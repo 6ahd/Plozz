@@ -1259,6 +1259,9 @@ public final class PlayerViewModel {
         var request: PlaybackRequest
         if var options = streamingOptions, let provider = provider as? any StreamingQualityProviding {
             try options.quality.validate()
+            options.hearingImpairedPreference = behavior.hearingImpairedPreference
+            options.subtitleMode = behavior.subtitleMode
+            options.subtitleLanguage = behavior.resolvedPreferredLanguage
             options.startPosition = itemID == self.itemID ? startPosition : 0
             if itemID == self.itemID, let retry = streamingQuality.fallbackCodec { options.codec = retry }
             let source = itemID == self.itemID ? (streamingMediaSourceID ?? mediaSourceID) : mediaSourceID
@@ -1532,6 +1535,7 @@ public final class PlayerViewModel {
             plozzigenAvailable: engineFactory.plozzigenAvailable,
             capabilities: capabilities,
             subtitleRule: effectiveSubtitleRule(for: request.item),
+            hearingImpairedPreference: behavior.hearingImpairedPreference,
             audioRouteIsAirPlay: AirPlayAudioSession.isActiveRoute
         )
     }
@@ -2605,7 +2609,11 @@ public final class PlayerViewModel {
         // background download just as it suppresses the on-load selection.
         guard rule.mode != .off, rule.autoDownloadIfMissing else { return }
         let language = rule.preferredLanguage ?? behavior.resolvedPreferredLanguage
-        guard !request.subtitleTracks.hasSuitableSubtitle(forLanguage: language) else { return }
+        guard rememberedSubtitle(for: request.item) != .off else { return }
+        guard !request.subtitleTracks.hasSuitableSubtitle(
+            forLanguage: language, mode: rule.mode,
+            hearingImpairedPreference: behavior.hearingImpairedPreference
+        ) else { return }
         guard let language, !language.isEmpty else { return }
         // The SDH/Forced accessibility preference applies to auto-download too, with
         // the content-type mode as the source of truth for the forced-only gate.
@@ -2670,7 +2678,11 @@ extension PlayerViewModel: RemoteSubtitleAcquisitionHost {
         subtitleController.selectSubtitleOption(id: id, userInitiated: userInitiated)
     }
 
-    var isPrimarySubtitleOff: Bool { subtitleController.selectedSubtitleTrackID == nil }
+    var canAutoSelectDownloadedSubtitle: Bool {
+        subtitleController.selectedSubtitleTrackID == nil
+            && !subtitleController.viewerChangedSubtitleThisSession
+            && request.map { rememberedSubtitle(for: $0.item) != .off } == true
+    }
 }
 
 // MARK: - SubtitleOverlayLoaderHost

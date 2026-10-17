@@ -89,7 +89,10 @@ final class SubtitleTrackController {
         func match(_ track: MediaTrack?, in tracks: [MediaTrack]) -> MediaTrack? {
             guard let track else { return nil }
             return tracks.first { $0.id == track.id && $0.language == track.language }
-                ?? tracks.first { LanguageMatch.matches($0.language, track.language) && $0.isForced == track.isForced }
+                ?? tracks.first {
+                    LanguageMatch.matches($0.language, track.language)
+                        && $0.isForced == track.isForced && $0.isSDHSubtitle == track.isSDHSubtitle
+                }
         }
         let engine = host.trackEngine
         if let audio = match(snapshot.audio, in: engine.audioTracks), engine.currentAudioTrackID != audio.id {
@@ -379,7 +382,13 @@ final class SubtitleTrackController {
             applyDefaultSubtitleThroughOverlay(from: request.subtitleTracks)
         case .plozzigen:
             registerProviderSidecars()
-            let embedded = host.trackEngine.subtitleTracks
+            let embedded = host.trackEngine.subtitleTracks.map { track in
+                track.enriched(withProvider: request.subtitleTracks.first {
+                    !$0.isExternal && $0.id == track.id
+                        && ($0.language == nil || track.language == nil
+                            || LanguageMatch.matches($0.language, track.language))
+                })
+            }
             // A server sidecar is known before demux completes. Don't let it
             // consume the initial selection before embedded tracks arrive.
             guard !embedded.isEmpty
@@ -411,10 +420,22 @@ final class SubtitleTrackController {
 
     /// Picks the default subtitle for the user's mode + preferred language and
     /// routes it through the overlay, or clears subtitles when there is no
-    /// default text track. Image-based defaults are skipped here.
+    /// default track. Plozzigen can also render image-based defaults.
     private func applyDefaultSubtitleThroughOverlay(from tracks: [MediaTrack]) {
         guard let host else { return }
         let engine = host.trackEngine
+        func renderableSelection(mode: SubtitleMode, language: String?) -> MediaTrack? {
+            guard let chosen = tracks.defaultSubtitleSelection(
+                mode: mode, preferredLanguage: language,
+                hearingImpairedPreference: host.trackBehavior.hearingImpairedPreference
+            ) else { return nil }
+            guard chosen.isImageBasedSubtitle, host.trackEngineKind != .plozzigen else { return chosen }
+            return tracks.first {
+                !$0.isImageBasedSubtitle && $0.kind == .subtitle
+                    && $0.isForced == chosen.isForced && $0.isSDHSubtitle == chosen.isSDHSubtitle
+                    && LanguageMatch.matches($0.language, chosen.language)
+            }
+        }
         // A remembered per-series subtitle decision overrides the default rule.
         if let remembered = host.trackRequest.map({ host.trackRememberedSubtitle(for: $0.item) }) ?? nil {
             switch remembered {
@@ -425,11 +446,8 @@ final class SubtitleTrackController {
                 loadTrackOptions()
                 return
             case .language(let language):
-                // Honor the remembered language explicitly, but only when a
-                // matching, renderable text track exists; else fall through.
-                if tracks.hasSuitableSubtitle(forLanguage: language),
-                   let chosen = tracks.defaultSubtitleSelection(mode: .all, preferredLanguage: language),
-                   !chosen.isImageBasedSubtitle {
+                if let chosen = renderableSelection(mode: .all, language: language),
+                   LanguageMatch.matches(chosen.language, language) {
                     selectSubtitleOption(id: chosen.id, userInitiated: false)
                     return
                 }
@@ -437,11 +455,11 @@ final class SubtitleTrackController {
         }
 
         let rule = host.trackRequest.map { host.trackEffectiveSubtitleRule(for: $0.item) }
-        let chosen = tracks.defaultSubtitleSelection(
+        let chosen = renderableSelection(
             mode: rule?.mode ?? host.trackBehavior.subtitleMode,
-            preferredLanguage: rule?.preferredLanguage ?? host.trackBehavior.resolvedPreferredLanguage
+            language: rule?.preferredLanguage ?? host.trackBehavior.resolvedPreferredLanguage
         )
-        guard let chosen, !chosen.isImageBasedSubtitle else {
+        guard let chosen else {
             engine.selectSubtitleTrack(nil)
             host.trackSubtitleOverlay.clearPrimary()
             selectedSubtitleTrackID = nil
@@ -470,7 +488,10 @@ final class SubtitleTrackController {
     func selectSubtitleOption(id: Int, userInitiated: Bool = true) {
         guard let host else { return }
         let engine = host.trackEngine
-        if userInitiated { viewerChangedSubtitleThisSession = true }
+        if userInitiated {
+            viewerChangedSubtitleThisSession = true
+            initialSubtitleApplied = true
+        }
         if host.trackRequest?.burnedInSubtitleTrackID == id {
             engine.selectSubtitleTrack(nil)
             host.trackSubtitleOverlay.clearPrimary()

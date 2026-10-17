@@ -2546,6 +2546,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             isDefault: dto.IsDefault ?? false,
             isForced: dto.IsForced ?? false,
             channels: isSubtitle ? nil : dto.Channels,
+            isHearingImpaired: dto.IsHearingImpaired == true
+                || TrackLabeling.isHearingImpaired(dto.Title)
+                || TrackLabeling.isHearingImpaired(dto.DisplayTitle),
             isImageBasedSubtitle: isSubtitle
                 && !(dto.IsTextSubtitleStream ?? isTextSubtitleCodec(dto.Codec))
         )
@@ -2577,6 +2580,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             codec: dto.Codec,
             isDefault: dto.IsDefault ?? false,
             isForced: dto.IsForced ?? false,
+            isHearingImpaired: dto.IsHearingImpaired == true
+                || TrackLabeling.isHearingImpaired(dto.Title)
+                || TrackLabeling.isHearingImpaired(dto.DisplayTitle),
             deliverySource: deliverySource,
             isImageBasedSubtitle: !isText,
             isExternal: dto.IsExternal ?? false

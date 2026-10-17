@@ -1242,24 +1242,36 @@ public final class NativeVideoEngine: VideoEngine {
     /// Finds the legible option AVPlayer exposes for a provider track. An
     /// injected sidecar rendition carries the track's display title as its HLS
     /// `NAME`, so match that first; otherwise fall back to canonicalised language
-    /// matching (`eng` ⇄ `en`), preferring the same forced-ness.
+    /// matching (`eng` ⇄ `en`) with the same forced and SDH classification.
     private static func legibleOption(
         for track: MediaTrack, in group: AVMediaSelectionGroup
     ) async -> AVMediaSelectionOption? {
         // HLS displayName is localized from LANGUAGE, not the playlist NAME.
         // Preserve same-language rendition identity before language fallback.
         let nameIdentifier = AVMetadataIdentifier(rawValue: "m3u8/NAME")
+        var namedOptions: [AVMediaSelectionOption] = []
         for option in group.options {
             for metadata in option.commonMetadata where metadata.identifier == nameIdentifier {
                 do {
-                    if try await metadata.load(.stringValue) == track.displayTitle { return option }
+                    if try await metadata.load(.stringValue) == track.displayTitle {
+                        namedOptions.append(option)
+                        break
+                    }
                 } catch {
                     if Task.isCancelled { return nil }
                     PlozzLog.playback.debug("Native subtitle rendition name could not be read.")
                 }
             }
         }
-        if let named = group.options.first(where: { $0.displayName == track.displayTitle }) {
+        if namedOptions.count == 1 { return namedOptions[0] }
+        func sameKind(_ option: AVMediaSelectionOption) -> Bool {
+            option.hasMediaCharacteristic(.containsOnlyForcedSubtitles) == track.isForced
+                && Self.isSDHOption(option) == track.isSDHSubtitle
+        }
+        if let named = namedOptions.first(where: sameKind) { return named }
+        if let named = group.options.first(where: {
+            $0.displayName == track.displayTitle && sameKind($0)
+        }) {
             return named
         }
         if group.options.count == 1 { return group.options[0] }
@@ -1267,9 +1279,13 @@ public final class NativeVideoEngine: VideoEngine {
         let candidates = AVMediaSelectionGroup.mediaSelectionOptions(
             from: group.options, filteredAndSortedAccordingToPreferredLanguages: [language]
         )
-        return candidates.first {
-            $0.hasMediaCharacteristic(.containsOnlyForcedSubtitles) == track.isForced
-        } ?? candidates.first
+        return candidates.first(where: sameKind)
+    }
+
+    private static func isSDHOption(_ option: AVMediaSelectionOption) -> Bool {
+        option.hasMediaCharacteristic(.transcribesSpokenDialogForAccessibility)
+            || option.hasMediaCharacteristic(.describesMusicAndSoundForAccessibility)
+            || TrackLabeling.isHearingImpaired(option.displayName)
     }
 
     /// Selects the audible track best matching an ordered list of preferred
