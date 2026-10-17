@@ -153,35 +153,80 @@ final class CommunitySkipMarkersTests: XCTestCase {
         )
         for (order, mapping) in cases {
             query.episodeOrdering = order
-            let params = try parameters(query)
-            XCTAssertEqual(params["mapping"], mapping)
-            XCTAssertEqual(params["season"], "0")
-            XCTAssertEqual(params["episode"], "0")
-            XCTAssertEqual(params["tvdb_id"], "81189")
+            for episodeID in [nil, "349232"] {
+                query.tvdbEpisodeID = episodeID
+                let params = try parameters(query)
+                XCTAssertEqual(params["mapping"], mapping)
+                XCTAssertEqual(params["season"], "0")
+                XCTAssertEqual(params["episode"], "0")
+                XCTAssertEqual(params["tvdb_id"], "81189")
+                XCTAssertEqual(params["tvdb_episode_id"], episodeID)
+            }
         }
         query.episodeOrdering = .unknown
-        XCTAssertNil(TheIntroDBClient.url(for: query))
-        query.tvdbEpisodeID = "349232"
-        XCTAssertEqual(try parameters(query)["tvdb_episode_id"], "349232")
-        XCTAssertNil(try parameters(query)["mapping"], "An exact record must not require a potentially unavailable mapping")
+        for episodeID in [nil, "349232"] {
+            query.tvdbEpisodeID = episodeID
+            XCTAssertNil(TheIntroDBClient.url(for: query), "An episode ID cannot make unknown coordinates safe")
+        }
     }
 
-    func testTMDBNumberingUsesTMDBResolutionUnlessExactEpisodeIsKnown() throws {
+    func testTMDBNumberingUsesTMDBResolutionEvenWhenExactEpisodeIsKnown() throws {
         var query = CommunitySkipMarkerQuery(
             isMovie: false, imdbID: "tt0903747", tmdbID: "1396", season: 1, episode: 2,
             tvdbID: "81189", episodeName: "Title", episodeOrdering: .tmdb
         )
-        var params = try parameters(query)
-        XCTAssertEqual(params["tmdb_id"], "1396")
-        XCTAssertNil(params["tvdb_id"])
-        XCTAssertNil(params["mapping"])
-        XCTAssertNil(params["episode_name"], "The API ignores this hint for TMDB addressing")
-        query.tmdbID = nil
-        XCTAssertNil(TheIntroDBClient.url(for: query), "Do not send TMDB coordinates as TVDB coordinates")
-        query.tvdbEpisodeID = "349232"
-        params = try parameters(query)
-        XCTAssertEqual(params["tvdb_id"], "81189")
-        XCTAssertEqual(params["tvdb_episode_id"], "349232")
+        for episodeID in [nil, "349232"] {
+            query.tmdbID = "1396"
+            query.tvdbEpisodeID = episodeID
+            let params = try parameters(query)
+            XCTAssertEqual(params["tmdb_id"], "1396")
+            XCTAssertNil(params["tvdb_id"])
+            XCTAssertNil(params["mapping"])
+            XCTAssertNil(params["episode_name"], "The API ignores this hint for TMDB addressing")
+            XCTAssertEqual(params["tvdb_episode_id"], episodeID)
+            query.tmdbID = nil
+            XCTAssertNil(TheIntroDBClient.url(for: query), "Do not send TMDB coordinates as TVDB or IMDb coordinates")
+        }
+    }
+
+    func testTVDBOrderingFallsBackToIMDbNeverTMDB() throws {
+        var query = CommunitySkipMarkerQuery(
+            isMovie: false, imdbID: "tt0149460", tmdbID: "615", season: 7, episode: 1,
+            duration: 1325.2, episodeName: "Rebirth", episodeOrdering: .alternate
+        )
+        for order in [EpisodeOrdering.tvdbDefault, .aired, .dvd, .absolute, .alternate, .regional] {
+            query.episodeOrdering = order
+            for episodeID in [nil, "1051911"] {
+                query.tvdbEpisodeID = episodeID
+                for invalidTVDB in [nil, "0", "100000001"] {
+                    query.tvdbID = invalidTVDB
+                    query.imdbID = "tt0149460"
+                    let params = try parameters(query)
+                    XCTAssertEqual(params["imdb_id"], "tt0149460")
+                    XCTAssertEqual(params["mapping"], query.mapping)
+                    XCTAssertNil(params["tmdb_id"])
+                    XCTAssertNil(params["tvdb_id"])
+                    XCTAssertEqual(params["tvdb_episode_id"], episodeID)
+                    for invalidIMDb in [nil, "tt1"] {
+                        query.imdbID = invalidIMDb
+                        XCTAssertNil(TheIntroDBClient.url(for: query), "TMDB cannot convert TVDB-order coordinates")
+                    }
+                }
+            }
+        }
+    }
+
+    func testAlternateOrderEpisodeIDRetainsRebirthMapping() throws {
+        let query = CommunitySkipMarkerQuery(
+            isMovie: false, imdbID: "tt0149460", tmdbID: "615", season: 7, episode: 1,
+            duration: 1325.2, tvdbID: "73871", tvdbEpisodeID: "1051911",
+            episodeName: "Rebirth", episodeOrdering: .alternate
+        )
+        XCTAssertEqual(try parameters(query), [
+            "tvdb_id": "73871", "season": "7", "episode": "1",
+            "tvdb_episode_id": "1051911", "mapping": "alternate",
+            "episode_name": "Rebirth", "duration_ms": "1325200"
+        ])
     }
 
     func testMoviesOmitAllTVParametersEvenWhenCallerSuppliesThem() throws {

@@ -71,14 +71,23 @@ load-bearing.
 endpoint. Server markers retain priority by segment kind on TV and mobile.
 Lookups remain optional and cancellation prevents late publication.
 
-TheIntroDB prefers TVDB identity, then TMDB/IMDb. An episode's own TVDB ID
-is sent as `tvdb_episode_id`, never as the show's ID. Series IDs and explicit
-episode ordering come from the owning provider; an exact episode record takes
-precedence over coordinate conversion. Known TVDB orders use `mapping`, while
-TMDB-numbered episodes without an exact record use TMDB addressing. Missing
-ordering leaves the API's documented default unchanged; an explicitly
-unrecognized order is not silently relabeled as default. IntroDB has no
-conversion parameter, so known non-aired orders bypass it.
+TheIntroDB prefers TVDB identity, then TMDB/IMDb when ordering is unspecified.
+An episode's own TVDB ID is sent as `tvdb_episode_id`, never as the show's ID.
+Series IDs and explicit episode ordering come from the owning provider.
+Known TVDB orders always retain `mapping`, including with an episode ID, and
+use TVDB or IMDb addressing, never TMDB. TMDB-numbered episodes require TMDB
+addressing even when an episode ID is available. Without a compatible series
+identifier, or with an explicitly unknown order, no request is sent. Missing
+ordering retains the previous default behavior. IntroDB has no conversion
+parameter, so known non-aired orders bypass it.
+
+These constraints reflect the deployed v4 behavior, not just its published
+contract. On 2026-10-17, Futurama (`tvdb_id=73871`, `imdb_id=tt0149460`,
+`tmdb_id=615`), alternate S7E1 "Rebirth" (`tvdb_episode_id=1051911`), returned
+another episode's intro without `mapping=alternate`, despite the episode ID.
+TVDB and IMDb addressing with that mapping returned Rebirth's intro/credits;
+TMDB addressing ignored the mapping. An episode ID is therefore only a hint,
+not permission to change numbering systems or omit conversion.
 
 Finite positive runtime is sent as `duration_ms` to select the nearest release
 cluster; unknown runtime is omitted, not sent as the special zero-duration

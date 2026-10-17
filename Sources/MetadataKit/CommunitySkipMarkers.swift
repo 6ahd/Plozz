@@ -240,13 +240,17 @@ enum TheIntroDBClient {
     }
 
     static func url(for query: CommunitySkipMarkerQuery) -> URL? {
+        guard query.isMovie || query.episodeOrdering != .unknown else { return nil }
         var components = URLComponents(url: baseURL.appendingPathComponent("media"), resolvingAgainstBaseURL: false)
         var items: [URLQueryItem]
         let exactEpisode = query.normalizedTVDBEpisodeID
-        let needsTMDBCoordinates = !query.isMovie && exactEpisode == nil && query.episodeOrdering == .tmdb
+        let needsTMDBCoordinates = !query.isMovie && query.episodeOrdering == .tmdb
+        let needsTVDBMapping = !query.isMovie && query.mapping != nil
+        // The deployed API ignores mapping with TMDB addressing and does not
+        // reliably prioritize episode IDs. Keep the caller's coordinate namespace.
         if let tvdb = query.normalizedTVDBID, !needsTMDBCoordinates {
             items = [URLQueryItem(name: "tvdb_id", value: tvdb)]
-        } else if let tmdb = query.normalizedTMDbID {
+        } else if let tmdb = query.normalizedTMDbID, !needsTVDBMapping {
             items = [URLQueryItem(name: "tmdb_id", value: tmdb)]
         } else if let imdb = query.normalizedIMDbID, !needsTMDBCoordinates {
             items = [URLQueryItem(name: "imdb_id", value: imdb)]
@@ -260,11 +264,9 @@ enum TheIntroDBClient {
             items.append(URLQueryItem(name: "episode", value: String(episode)))
             if let exactEpisode {
                 items.append(URLQueryItem(name: "tvdb_episode_id", value: exactEpisode))
-            } else {
-                guard query.episodeOrdering != .unknown else { return nil }
-                if let mapping = query.mapping {
-                    items.append(URLQueryItem(name: "mapping", value: mapping))
-                }
+            }
+            if let mapping = query.mapping {
+                items.append(URLQueryItem(name: "mapping", value: mapping))
             }
             if items.first?.name != "tmdb_id",
                let name = query.episodeName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
