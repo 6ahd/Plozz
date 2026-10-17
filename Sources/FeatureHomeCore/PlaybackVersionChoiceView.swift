@@ -22,10 +22,23 @@ private struct PlaybackVersionChoicePresentation: ViewModifier {
             .accessibilityHidden(model.prompt != nil)
             .overlay {
                 if model.prompt != nil {
-                    PlaybackVersionChoiceView(model: model)
-                        .plozzSurface(.overlay, cornerRadius: 32)
-                        .padding(32)
-                        .background(.black.opacity(0.7))
+                    GeometryReader { geometry in
+                        ZStack {
+                            PlozzDialogBackdrop()
+                            ViewThatFits(in: .vertical) {
+                                PlaybackVersionChoiceView(model: model)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                PlaybackVersionChoiceView(model: model)
+                            }
+                            .frame(width: min(1_100, max(0, geometry.size.width - 64)))
+                            .plozzSurface(.overlay, cornerRadius: 32)
+                            .accessibilityElement(children: .contain)
+                            .accessibilityIdentifier("version-choice-dialog")
+                            // Bound the proposal without stretching the card's surface.
+                            .frame(maxHeight: min(860, max(0, geometry.size.height - 64)))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 }
             }
         #else
