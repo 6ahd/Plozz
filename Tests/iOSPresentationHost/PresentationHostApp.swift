@@ -134,7 +134,9 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--iptv-organization-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--server-address-fixture") {
+                ServerAddressNavigationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--iptv-organization-fixture") {
                 IPTVOrganizationFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--sync-erasure-fixture") {
                 SyncErasureInteractionFixture()

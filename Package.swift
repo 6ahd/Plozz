@@ -1080,7 +1080,7 @@ let package = Package(
         ),
         .testTarget(
             name: "ProviderPlaybackIntegrationTests",
-            dependencies: ["AppRuntime", "FeaturePlayback", "ProviderJellyfin", "ProviderPlex", "ProviderSilo", "CoreNetworking", "CoreModels"]
+            dependencies: ["AppRuntime", "FeaturePlayback", "FeatureAuthCore", "ProviderJellyfin", "ProviderPlex", "ProviderSilo", "CoreNetworking", "CoreModels", "TestSupportNetworking"]
         ),
         .testTarget(
             name: "ProviderShareTests",

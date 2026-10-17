@@ -31,9 +31,32 @@ session persistence.
 - **UI surfaces** — `AuthView` (root sign-in orchestrator) and the
   per-flow views above. `BrandQRCodeView` renders the Quick Connect /
   Plex Link codes as scannable QR + readable digits.
+  `ServerAddressesView` uses the shared provider logo and Settings surfaces to
+  separate server/sign-in identity, saved addresses, and address entry. Full
+  addresses wrap without truncation, with the protocol labeled separately;
+  mobile Copy preserves the complete URL, and accessibility reads it intact.
+  Routing and device-scope explanations remain secondary to native add/remove actions;
+  removal still requires confirmation, and the original address cannot be removed.
+  The add action uses a native title-and-icon label so the group's muted row-icon
+  color cannot override the prominent button's contrasting foreground.
 
 ## Invariants
 
+- **Alternate addresses belong to one local sign-in.** `ServerAddressesModel`
+  verifies Jellyfin/Emby public server IDs and Plex machine identifiers without
+  sending saved credentials. Silo uses fresh native device pairing and matches
+  the authenticated installation, account, profile, and device; it revokes that
+  verification login without replacing the original credential. Cancellation
+  also disposes of any unfinished verification login already received.
+  A public identity is a consistency check, not proof of transport trust:
+  users must explicitly approve trusted addresses, with an HTTP warning.
+  `AccountStore.updateServerAddresses` compares the original account snapshot
+  before writing metadata; profile authorization and cancellation are checked
+  again after asynchronous work. Account IDs, credential revisions, active
+  selection, and watch state do not change. Aliases are excluded from sync and
+  device-transfer descriptors. Address-only reloads update existing providers
+  through `ServerAddressUpdating`, including retained music consumers, rather
+  than invalidating every provider and losing active Silo grants.
 - **Tokens NEVER leave the Keychain.** Never written to `UserDefaults`,
   never logged. `AccountStore` is split-storage by design.
 - **Pure state machine.** `SessionStateMachine` has no I/O — all side

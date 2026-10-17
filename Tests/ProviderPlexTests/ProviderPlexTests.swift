@@ -1775,9 +1775,10 @@ final class PlexProviderMappingTests: XCTestCase {
             return XCTFail("expected authenticated HTTP locator")
         }
         XCTAssertEqual(locator.provider, .plex)
+        XCTAssertEqual(locator.resource.pathBase, .configuredBaseURL)
         XCTAssertEqual(
             locator.resource.path,
-            "/video/:/transcode/universal/start.m3u8"
+            "video/:/transcode/universal/start.m3u8"
         )
         XCTAssertEqual(locator.deliveryMode, .serverTranscode)
         XCTAssertTrue(locator.playSessionID?.hasPrefix("plozz-d1-77-") == true)
@@ -1803,7 +1804,7 @@ final class PlexProviderMappingTests: XCTestCase {
         XCTAssertEqual(downloadableOriginal.purpose, .originalFile)
         XCTAssertEqual(
             downloadableOriginal.resource.path,
-            "/library/parts/2/16000/file.mkv"
+            "library/parts/2/16000/file.mkv"
         )
         XCTAssertEqual(
             downloadableOriginal.resource.queryItems.first {
@@ -1820,14 +1821,15 @@ final class PlexProviderMappingTests: XCTestCase {
               case .authenticatedHTTP(let reference) = localRemux.referencePlaybackSource else {
             return XCTFail("expected typed local remux sources")
         }
-        XCTAssertEqual(original.resource.path, "/library/parts/2/16000/file.mkv")
+        XCTAssertEqual(original.resource.pathBase, .configuredBaseURL)
+        XCTAssertEqual(original.resource.path, "library/parts/2/16000/file.mkv")
         XCTAssertEqual(
             original.resource.queryItems.first { $0.name == "download" }?.value,
             "1"
         )
         XCTAssertEqual(
             reference.resource.path,
-            "/video/:/transcode/universal/start.m3u8"
+            "video/:/transcode/universal/start.m3u8"
         )
         XCTAssertEqual(
             reference.resource.queryItems.first { $0.name == "directStream" }?.value,
@@ -1982,7 +1984,7 @@ final class PlexProviderMappingTests: XCTestCase {
         }
         XCTAssertEqual(
             locator.resource.path,
-            "/library/parts/2/16000/file%20name.mp4"
+            "library/parts/2/16000/file%20name.mp4"
         )
         XCTAssertEqual(locator.deliveryMode, .directFile)
         XCTAssertNil(locator.playSessionID)
@@ -2002,7 +2004,7 @@ final class PlexProviderMappingTests: XCTestCase {
         }
         XCTAssertEqual(
             forcedLocator.resource.path,
-            "/video/:/transcode/universal/start.m3u8"
+            "video/:/transcode/universal/start.m3u8"
         )
         XCTAssertEqual(forcedLocator.deliveryMode, .serverTranscode)
     }
@@ -2045,7 +2047,7 @@ final class PlexProviderMappingTests: XCTestCase {
         }
         XCTAssertEqual(
             original.resource.path,
-            "/library/parts/2/selected.mkv"
+            "library/parts/2/selected.mkv"
         )
         guard case .some(.authenticatedHTTP(let downloadableOriginal)) =
             request.originalFileSource else {
@@ -2054,7 +2056,7 @@ final class PlexProviderMappingTests: XCTestCase {
         XCTAssertEqual(downloadableOriginal.mediaSourceID, "22")
         XCTAssertEqual(
             downloadableOriginal.resource.path,
-            "/library/parts/2/selected.mkv"
+            "library/parts/2/selected.mkv"
         )
     }
 
@@ -2111,7 +2113,7 @@ final class PlexProviderMappingTests: XCTestCase {
         XCTAssertEqual(locator.deliveryMode, .directFile)
         XCTAssertEqual(
             locator.resource.path,
-            "/library/parts/8/song%20name.m4a"
+            "library/parts/8/song%20name.m4a"
         )
         XCTAssertFalse(
             locator.resource.queryItems.contains {

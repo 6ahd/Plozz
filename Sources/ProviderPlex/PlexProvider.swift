@@ -7,7 +7,7 @@ import CoreNetworking
 /// Holds an authenticated `PlexClient` and maps Plex `Metadata`/`Directory`
 /// onto the provider-agnostic `CoreModels` types. Feature modules depend only on
 /// `MediaProvider`; this is the single place Plex specifics live.
-public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
+public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, ServerAddressUpdating {
     public let kind: ProviderKind = .plex
     public let session: UserSession
     public let accountID: String
@@ -18,8 +18,37 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
     private let videoPlaylistCache = VideoPlaylistSnapshotCache()
     let themeArchiveResolver: @Sendable (String?) async -> URL?
     private let artworkOriginHistoryKey: String
+    private let makeConnectionResolver: @Sendable ([URL], [URL]) -> PlexConnectionResolver
 
     public var authenticatedHTTPOrigin: URL { client.baseURL }
+
+    public func updateServerAddresses(_ alternatives: [URL]) {
+        client.updateConnectionResolver { discovered in makeConnectionResolver(alternatives, discovered) }
+    }
+
+    public func resolveAuthenticatedHTTPOrigin() async throws -> URL {
+        let url = await client.resolvedBaseURL()
+        try Task.checkCancellation()
+        return url
+    }
+
+    public static func verifyAddress(
+        _ url: URL, serverID: String,
+        http: any HTTPClient = URLSessionHTTPClient(session: .plozzDiscovery)
+    ) async throws {
+        struct Identity: Decodable {
+            struct Container: Decodable { let machineIdentifier: String }
+            let MediaContainer: Container
+        }
+        let identity = try await http.decode(
+            Identity.self,
+            from: Endpoint(path: "/identity", headers: ["Accept": "application/json"], redirectPolicy: .sameOrigin),
+            baseURL: url
+        )
+        guard !serverID.isEmpty, identity.MediaContainer.machineIdentifier == serverID else {
+            throw AppError.conflict
+        }
+    }
 
     public init(
         session: UserSession,
@@ -42,7 +71,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
         // Probe the persisted connection list (or the single saved URL) and stay
         // on whichever is reachable. With only one candidate and no refresh this
         // is a no-op — behaviour matches a fixed URL.
-        let candidates = session.server.connectionURLs?.isEmpty == false
+        let advertised = session.server.connectionURLs?.isEmpty == false
             ? session.server.connectionURLs!
             : [session.server.baseURL]
         // Persist whichever connection last answered, keyed by server, so a warm
@@ -52,30 +81,36 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
         let artworkOriginHistoryKey =
             "plex.artwork-origins.\(session.server.id)"
         self.artworkOriginHistoryKey = artworkOriginHistoryKey
-        let reachableSeed = UserDefaults.standard.string(forKey: reachableKey).flatMap(URL.init(string:))
-        let resolver = PlexConnectionResolver(
-            candidates: candidates,
-            deviceProfile: deviceProfile,
-            token: session.accessToken,
-            probe: probe,
-            refresh: connectionRefresh,
-            reachableSeed: reachableSeed,
-            onReachable: { url in
-                UserDefaults.standard.set(url.absoluteString, forKey: reachableKey)
-                var origins = UserDefaults.standard.stringArray(
-                    forKey: artworkOriginHistoryKey
-                ) ?? []
-                if !origins.contains(url.absoluteString) {
-                    origins.append(url.absoluteString)
-                    UserDefaults.standard.set(
-                        origins,
+        let makeResolver: @Sendable ([URL], [URL]) -> PlexConnectionResolver = { manual, discovered in
+            let candidates = discovered + manual
+            let reachableSeed = UserDefaults.standard.string(forKey: reachableKey).flatMap(URL.init(string:))
+                .flatMap { candidates.contains($0) ? $0 : nil }
+            return PlexConnectionResolver(
+                candidates: discovered,
+                manualCandidates: manual,
+                deviceProfile: deviceProfile,
+                token: session.accessToken,
+                probe: probe,
+                refresh: connectionRefresh,
+                reachableSeed: reachableSeed,
+                onReachable: { url in
+                    UserDefaults.standard.set(url.absoluteString, forKey: reachableKey)
+                    var origins = UserDefaults.standard.stringArray(
                         forKey: artworkOriginHistoryKey
-                    )
+                    ) ?? []
+                    if !origins.contains(url.absoluteString) {
+                        origins.append(url.absoluteString)
+                        UserDefaults.standard.set(
+                            origins,
+                            forKey: artworkOriginHistoryKey
+                        )
+                    }
                 }
-            }
-        )
+            )
+        }
+        self.makeConnectionResolver = makeResolver
         self.client = PlexClient(
-            resolver: resolver,
+            resolver: makeResolver(session.server.alternateConnectionURLs ?? [], advertised),
             deviceProfile: deviceProfile,
             token: session.accessToken,
             http: http,
@@ -1502,12 +1537,15 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
         playSessionID: String?,
         formatHint: String?
     ) throws -> AuthenticatedHTTPPlaybackLocator {
-        guard let components = URLComponents(
+        guard var components = URLComponents(
             url: url,
             resolvingAgainstBaseURL: false
-        ), !components.percentEncodedPath.isEmpty else {
+        ), let base = MediaProviderURLIdentity.matchingBaseURL(
+            for: url, among: client.knownBaseURLs + [session.server.baseURL]),
+           let relative = MediaProviderURLIdentity.relativeEncodedResourcePath(of: url, under: base) else {
             throw AppError.invalidResponse
         }
+        components.percentEncodedPath = relative
         return try authenticatedPlaybackLocator(
             itemID: itemID,
             mediaSourceID: mediaSourceID,
@@ -1515,7 +1553,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding {
             purpose: purpose,
             playSessionID: playSessionID,
             formatHint: formatHint,
-            pathBase: .serverRoot,
+            pathBase: .configuredBaseURL,
             components: components
         )
     }

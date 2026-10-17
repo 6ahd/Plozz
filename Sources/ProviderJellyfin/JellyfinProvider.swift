@@ -7,7 +7,7 @@ import CoreNetworking
 /// Holds an authenticated `JellyfinClient` and maps Jellyfin DTOs onto the
 /// provider-agnostic `CoreModels` types. Feature modules depend only on
 /// `MediaProvider`; this is the single place Jellyfin specifics live.
-public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIdentityProviding {
+public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIdentityProviding, AuthenticatedHTTPOriginProviding, ServerAddressUpdating {
     public let kind: ProviderKind
     public let session: UserSession
     public let accountID: String
@@ -19,6 +19,17 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     let themeArchiveResolver: @Sendable (String?) async -> URL?
     private let authenticatedStreamProber: (any AuthenticatedHTTPStreamProbing)?
     private let probeDescriptors: MediaBrowserProbeDescriptorStore
+    public var authenticatedHTTPOrigin: URL { client.baseURL }
+
+    private var connectionAddresses: [URL] { client.addressResolver?.addresses ?? [session.server.baseURL] }
+
+    public func updateServerAddresses(_ alternatives: [URL]) {
+        client.addressResolver?.updateAlternatives(alternatives)
+    }
+
+    public func resolveAuthenticatedHTTPOrigin() async throws -> URL {
+        try await client.addressResolver?.resolved() ?? client.baseURL
+    }
 
     public init(
         session: UserSession,
@@ -28,6 +39,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         interactiveHTTP: HTTPClient? = nil,
         hybridEngineEnabled: Bool = false,
         authenticatedStreamProber: (any AuthenticatedHTTPStreamProbing)? = nil,
+        addressProbe: any HTTPClient = URLSessionHTTPClient(session: .plozzDiscovery),
         themeArchiveResolver: @escaping @Sendable (String?) async -> URL? = {
             await ThemeMusicArchive.resolvedURL(tvdbID: $0)
         }
@@ -48,22 +60,22 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             token: session.accessToken,
             http: http,
             interactiveHTTP: interactiveHTTP,
-            capabilityProfile: .detected(hybridEngineEnabled: hybridEngineEnabled)
+            capabilityProfile: .detected(hybridEngineEnabled: hybridEngineEnabled),
+            serverID: session.server.id,
+            alternateURLs: session.server.alternateConnectionURLs ?? [],
+            addressProbe: addressProbe
         )
     }
 
     // MARK: Browsing
 
-    /// Locality of this Jellyfin connection. Unlike Plex, Jellyfin uses a single
-    /// fixed `baseURL` (no connection resolver), so locality derives from that
-    /// host — but only once we've **confirmed the server is reachable**. A saved
-    /// server whose LAN address (`192.168.x`, `.local`, …) no longer answers must
-    /// not report `.local`, or best-source selection would route a merged title to
-    /// the dead local copy over a genuinely reachable remote twin. Until the first
-    /// successful request latches reachability, report `.unknown`. (r7-jf-locality)
+    /// Locality belongs to the reachable route, not the saved primary address.
     public var connectionLocality: SourceLocality {
+        if let resolver = client.addressResolver {
+            return resolver.confirmed.map { SourceLocalityClassifier.classify(url: $0) } ?? .unknown
+        }
         guard client.hasConfirmedReachableConnection else { return .unknown }
-        return SourceLocalityClassifier.classify(url: session.server.baseURL)
+        return SourceLocalityClassifier.classify(url: client.baseURL)
     }
 
     public func libraries() async throws -> [MediaLibrary] {
@@ -1925,14 +1937,11 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         _ persistedURL: URL,
         maxWidth: Int?
     ) -> URL? {
-        guard let path = MediaProviderURLIdentity.relativeResourcePath(
-            of: persistedURL,
-            under: session.server.baseURL
-        ) else { return nil }
+        guard let path = artworkPath(persistedURL) else { return nil }
         guard MediaProviderURLIdentity.isJellyfinArtworkResourcePath(path)
         else { return nil }
         guard var components = URLComponents(
-            url: session.server.baseURL,
+            url: client.baseURL,
             resolvingAgainstBaseURL: false
         ) else { return nil }
         var basePath = components.path
@@ -1965,11 +1974,14 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     public func ownsPersistedImageURL(_ persistedURL: URL) -> Bool {
-        guard let path = MediaProviderURLIdentity.relativeResourcePath(
-            of: persistedURL,
-            under: session.server.baseURL
-        ) else { return false }
+        guard let path = artworkPath(persistedURL) else { return false }
         return MediaProviderURLIdentity.isJellyfinArtworkResourcePath(path)
+    }
+
+    private func artworkPath(_ url: URL) -> String? {
+        let addresses = connectionAddresses
+        guard let base = MediaProviderURLIdentity.matchingBaseURL(for: url, among: addresses) else { return nil }
+        return MediaProviderURLIdentity.relativeResourcePath(of: url, under: base)
     }
 
     // MARK: Subtitles
@@ -2084,8 +2096,16 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         let pathBase: AuthenticatedHTTPResource.PathBase
         let path: String
         if components.scheme != nil {
-            pathBase = .serverRoot
-            path = components.percentEncodedPath
+            if let url = components.url,
+               let base = MediaProviderURLIdentity.matchingBaseURL(
+                for: url, among: connectionAddresses),
+               let relative = MediaProviderURLIdentity.relativeEncodedResourcePath(of: url, under: base) {
+                pathBase = .configuredBaseURL
+                path = relative
+            } else {
+                pathBase = .serverRoot
+                path = components.percentEncodedPath
+            }
         } else {
             pathBase = .configuredBaseURL
             path = String(

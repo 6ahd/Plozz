@@ -24,6 +24,16 @@ first-class backends; co-equal with `ProviderJellyfin`.
 
 ## Invariants
 
+- Manually verified alternate addresses supplement, rather than replace, Plex's
+  advertised local/remote/relay candidates. Discovery refresh retains the manual
+  set, and removed aliases cannot be resurrected by a last-reachable seed.
+  Public `/identity` validation carries no token; subsequent server probes and
+  API calls restrict redirects to the approved origin. Playback resolution asks
+  the existing Plex resolver for the current route. Address edits preserve
+  discovered candidates separately from manual aliases and retire superseded
+  probe sweeps before they can authenticate to a removed alias.
+  Playback locators strip the matching source base's encoded proxy prefix and
+  resolve relative to the newly selected base, preserving encoded media-path bytes.
 - **No UI imports.** Pure logic + DTOs.
 - **Tokens never logged.** `X-Plex-Token` flows through `CoreNetworking`
   redaction; PIN values are never persisted (see `PlexPinFlow`).

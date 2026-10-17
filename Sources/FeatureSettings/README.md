@@ -9,6 +9,17 @@ and the single place caption customization lives.
 
 ## Responsibility
 
+- **Servers > Connection addresses** opens the shared address editor for each
+  Jellyfin, Emby, Plex, or Silo sign-in on TV and mobile. One explicit
+  **Add or manage addresses** action replaces a second list of user names.
+  Multiple sign-ins get a native chooser explaining which sign-in is being
+  updated; a single sign-in opens directly. The editor names both the server and
+  sign-in, while address rows show URLs rather than user names. The original sign-in
+  address remains visible; verified aliases can be added or removed. Saving
+  updates retained providers' routes without rotating credentials or discarding
+  active playback grants; unrelated sign-ins retain their providers. Address
+  changes apply to subsequent work, not seamless migration of an active stream.
+  Network-share aliases are a separate feature.
 - `ProfileSettingsCategory` in CoreUI owns the cross-platform profile category
   order, names, icons, and summaries: Playback, Subtitles, Live TV, Libraries,
   Appearance, Screens & Navigation, Trackers, Language. iPhone and compact iPad

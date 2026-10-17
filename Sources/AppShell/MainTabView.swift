@@ -997,7 +997,7 @@ struct MainTabView: View {
     /// Re-runs library discovery for the rail when the signed-in accounts or the
     /// per-profile library switches change.
     private var railLibrariesKey: String {
-        let ids = accounts.map { "\($0.account.id):\($0.account.credentialRevision)" }.sorted()
+        let ids = accounts.map(\.account.connectionScopeKey).sorted()
         let disabled = homeVisibility.visibility.disabledKeys.sorted()
         return (ids + ["|\(plexIdentityGeneration)|"] + disabled).joined(separator: ",")
     }
@@ -2025,7 +2025,7 @@ struct MainTabView: View {
     /// enabled (disabled) state, not the Home-only "Show on Home" bit, so hiding a
     /// library from Home no longer re-probes Music while disabling it does.
     private var musicProbeKey: String {
-        let ids = accounts.map { "\($0.account.id):\($0.account.credentialRevision.rawValue)" }.sorted()
+        let ids = accounts.map(\.account.connectionScopeKey).sorted()
         let disabled = homeVisibility.visibility.disabledKeys.sorted()
         return (ids + ["|", scenePhase == .active ? "active" : "inactive"] + disabled).joined(separator: ",")
     }

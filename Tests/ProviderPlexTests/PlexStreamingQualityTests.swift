@@ -531,7 +531,8 @@ final class PlexStreamingQualityTests: XCTestCase {
             XCTAssertEqual(request.playSessionID, session)
             XCTAssertEqual(source.playSessionID, session)
             XCTAssertEqual(source.deliveryMode, .serverTranscode)
-            XCTAssertEqual(source.resource.path, "/video/:/transcode/universal/start.m3u8")
+            XCTAssertEqual(source.resource.pathBase, .configuredBaseURL)
+            XCTAssertEqual(source.resource.path, "video/:/transcode/universal/start.m3u8")
 
             try await provider.maintainStreamingSession(request)
             XCTAssertEqual(http.queryItems(forPathSuffix: "/ping"), [.init(name: "session", value: session)])
