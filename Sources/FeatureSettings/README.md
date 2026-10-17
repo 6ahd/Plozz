@@ -9,6 +9,10 @@ and the single place caption customization lives.
 
 ## Responsibility
 
+- **Libraries** owns profile-wide library availability. Mobile Customize Home
+  does not duplicate its Enabled controls: Rows on Home manages row presentation,
+  and Hero source selection uses the enabled library inventory. Discovering
+  libraries for those controls must not restore a separate management list.
 - Individual profile settings expose the existing device-wide Automatically
   Sign In preference below Kids Profile, followed by a separate Delete Profile
   group. Everyone → Profiles keeps the same control and binding. Shared

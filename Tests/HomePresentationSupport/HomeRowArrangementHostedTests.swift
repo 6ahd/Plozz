@@ -80,6 +80,8 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             let text = lines.map(\.0).joined(separator: " ")
             XCTAssertTrue(text.contains("Artwork"), text)
             XCTAssertTrue(text.contains("Merge Next Up rows"), text)
+            XCTAssertFalse(text.contains("LIBRARIES"), "Customize Home must not duplicate library availability.")
+            XCTAssertFalse(text.contains("No video libraries are available"), text)
             XCTAssertFalse(text.contains("Presets"), "The neighboring Rows on Home action must not activate")
         }
     }
@@ -156,8 +158,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             XCTAssertEqual(offlineRequests, 1)
             let lines = try await self.capture(window, name: "Home customization with an offline server")
             let text = lines.map(\.0).joined(separator: " ")
-            XCTAssertTrue(text.contains("Available server"), text)
-            XCTAssertTrue(text.contains("Movies"), text)
+            XCTAssertTrue(text.contains("Rows on Home"), text)
+            XCTAssertTrue(text.contains("Hero content sources"), text)
+            XCTAssertFalse(text.contains("Available server"), "Whole-library controls belong in Settings > Libraries.")
+            XCTAssertFalse(text.contains("Movies"), text)
+            XCTAssertFalse(text.contains("LIBRARIES"), text)
             XCTAssertFalse(text.contains("Some libraries are"), text)
             XCTAssertFalse(text.contains("Retry"), text)
             XCTAssertEqual(store.load(), saved)
@@ -187,7 +192,6 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         try await withWindow {
             HomeSettingsViewerHost(source: source, visibility: visibility)
         } inspect: { window in
-            var previousTitle: String?
             for (resolved, provider, title) in updates {
                 source.accounts = [resolved]
                 let deadline = ContinuousClock.now + .seconds(3)
@@ -198,14 +202,14 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 XCTAssertEqual(requests, 1, title)
                 let lines = try await self.capture(window, name: "Home settings \(title)")
                 let text = lines.map(\.0).joined(separator: " ")
-                XCTAssertTrue(text.contains(title), text)
-                if let previousTitle { XCTAssertFalse(text.contains(previousTitle), text) }
-                previousTitle = title
+                XCTAssertTrue(text.contains("Rows on Home"), text)
+                XCTAssertTrue(text.contains("Hero content sources"), text)
+                XCTAssertFalse(text.contains(title), "Discovery must not restore the removed library management list.")
             }
         }
     }
 
-    func testLateFailureCannotRestoreLibrariesFromASupersededAccountSelection() async throws {
+    func testLateLibraryFailureDoesNotRestoreRemovedLibraryManagementUI() async throws {
         let suite = "HomeSettingsLateFailure.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -238,11 +242,12 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             let currentRequests = await current.libraryRequests
             XCTAssertEqual(currentRequests, 1)
             let before = try await self.capture(window, name: "Current account libraries")
-            XCTAssertTrue(before.map(\.0).joined(separator: " ").contains("Current movies"))
+            XCTAssertTrue(before.map(\.0).joined(separator: " ").contains("Rows on Home"))
             await delayed.resumeLibraries()
             let after = try await self.capture(window, name: "Current libraries after stale failure")
             let text = after.map(\.0).joined(separator: " ")
-            XCTAssertTrue(text.contains("Current movies"), text)
+            XCTAssertTrue(text.contains("Hero content sources"), text)
+            XCTAssertFalse(text.contains("Current movies"), text)
             XCTAssertFalse(text.contains("Original movies"), text)
         }
     }

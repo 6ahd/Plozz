@@ -1897,9 +1897,7 @@ struct PlozziOSHomeSettingsView: View {
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
     @State private var libraries: [HomeLibraryChoice] = []
-    @State private var isLoadingLibraries = false
     @State private var showHomeRows = false
-    @State private var selectedLibraryID: String?
 
     var body: some View {
         List {
@@ -1940,41 +1938,6 @@ struct PlozziOSHomeSettingsView: View {
                 }
             }
 
-            SettingsSectionGroup("Libraries") {
-                if isLoadingLibraries, libraries.isEmpty {
-                    HStack {
-                        ProgressView()
-                        Text("Loading libraries…")
-                    }
-                } else if libraries.isEmpty {
-                    Text("No video libraries are available.")
-                        .plozzForeground(.secondary)
-                } else {
-                    ForEach(libraries) { library in
-                        Button {
-                            selectedLibraryID = library.id
-                        } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(library.title)
-                                    Text(library.serverName)
-                                        .font(.caption)
-                                        .plozzForeground(.secondary)
-                                }
-                                Spacer(minLength: 0)
-                                Image(systemName: "chevron.forward")
-                                    .font(.footnote.weight(.semibold))
-                                    .plozzForeground(.tertiary)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            } footer: {
-                Text("Choose which libraries and library-specific rows appear on Home.")
-            }
-
             HeroSettingsControls(
                 libraries: aggregatedHomeLibraries.filter { visibility.isVisibleOnHome($0.key) },
                 accounts: accounts
@@ -1995,11 +1958,6 @@ struct PlozziOSHomeSettingsView: View {
             }
             .navigationTitle("Rows on Home")
             .settingsPageSurface()
-        }
-        .navigationDestination(item: $selectedLibraryID) { id in
-            if let library = libraries.first(where: { $0.id == id }) {
-                PlozziOSLibraryHomeSettingsView(library: library, visibility: visibility)
-            }
         }
         .task(id: accounts.map {
             [$0.account.id, $0.credentialRevision.rawValue.uuidString,
@@ -2026,8 +1984,6 @@ struct PlozziOSHomeSettingsView: View {
     }
 
     private func loadLibraries() async {
-        isLoadingLibraries = true
-        defer { if !Task.isCancelled { isLoadingLibraries = false } }
         var loaded: [HomeLibraryChoice] = []
         for resolved in accounts {
             let discovered: [MediaLibrary]
@@ -2059,39 +2015,10 @@ struct PlozziOSHomeSettingsView: View {
     }
 }
 
-private struct HomeLibraryChoice: Identifiable {
+private struct HomeLibraryChoice {
     let accountID: String
     let serverName: String
     let library: MediaLibrary
-
-    var id: String { key }
-    var key: String { "\(accountID):\(library.id)" }
-    var title: String { library.title }   // l10n:content — library name from the server
-}
-
-private struct PlozziOSLibraryHomeSettingsView: View {
-    let library: HomeLibraryChoice
-    let visibility: HomeLibraryVisibilityModel
-
-    var body: some View {
-        List {
-            SettingsSectionGroup {
-                Toggle(
-                    "Enabled",
-                    isOn: Binding(
-                        get: { visibility.isEnabled(library.key) },
-                        set: { visibility.setEnabled($0, for: library.key) }
-                    )
-                )
-            } footer: {
-                Text("Disabled libraries are hidden from Home and library browsing.")
-            }
-
-        }
-        .settingsPageSurface()
-        .navigationTitle(library.title)
-        .navigationBarTitleDisplayMode(.inline)
-    }
 }
 
 private struct PlozziOSDetailPageSettingsView: View {
