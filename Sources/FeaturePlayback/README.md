@@ -119,7 +119,9 @@ recognition. Moving, held, cancelled, or clicked contacts cannot toggle the cloc
 iPhone and iPad use native buttons on the two time labels instead of changing
 the video-tap or scrubber gestures.
 
-Scrubbing always shows the media position; hiding the controls resets clock mode.
+Scrubbing always shows the media position. On tvOS, hiding the controls preserves
+the outgoing clock labels through their fade and stops clock ticks; the next
+reveal resets to elapsed/remaining time. Mobile retains its reset-on-hide behavior.
 Finish estimates use the current position and selected playback speed, and update
 after seeking or pausing. Unknown duration or invalid timing omits the estimate.
 Clock formatting follows the device locale/time-zone conventions. The clock only

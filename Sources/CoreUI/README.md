@@ -440,7 +440,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   images remain identical across focus changes: no late bitmap replacement,
   delayed number repositioning, custom poster scale, spring, duration or timer.
   Background/foreground indicator layers share the existing bounded bitmap cache;
-  only data, environment or size changes render new pixels. Mobile and
+  foreground identity uses the visible status and badge geometry, not unrelated
+  playback progress or download state. Different posters with identical badges
+  reuse the same concrete pixels; status/count, environment, size and scale
+  changes still invalidate them. Background and combined layers retain all
+  progress, download and scrim inputs. Mobile and
   landscape cards keep their combined indicator rendering.
   The button keeps the existing artwork slot and committed-bounds bitmap
   preparation, preserving row pitch and captions.

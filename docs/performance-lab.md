@@ -95,6 +95,12 @@ informational: allocator caches and framework lifetime make them unsuitable
 for a blanket byte threshold. Lifecycle scenarios additionally assert weak
 references actually release.
 
+`native-poster-indicators` exercises the actual native-poster coordinator's
+foreground path: 72 completed overlays across 24 posters, three visible episode
+badges, and changing playback progress. Each sample uses cold geometry. The
+distinct-bitmap counter exposes redundant synchronous rendering separately from
+wall/CPU time; `native-poster-composition` covers source artwork, not this path.
+
 ## Native Home navigation attribution
 
 For focus/scroll lag rather than isolated work counts, run the production Home

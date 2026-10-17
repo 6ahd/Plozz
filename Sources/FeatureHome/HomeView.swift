@@ -829,6 +829,7 @@ public struct HomeView: View {
             HomeShareScanRefreshObserver(
                 onRefresh: { Task { await viewModel.load(showLoadingState: false) } },
                 isTrailerPlaying: heroTrailerController.isPlaying,
+                isFrontmost: heroIsFrontmost,
                 onPollShares: onPollShares,
                 navigationActivity: navigationActivity
             )
@@ -2035,7 +2036,7 @@ enum HomeHeroDisplayResolver {
 ///
 /// Keyed on the newest completion across all shares rather than one id, since
 /// Home aggregates every account.
-private struct HomeShareScanRefreshObserver: View {
+struct HomeShareScanRefreshObserver: View {
     /// Silent — the loaded rows stay on screen while fresher ones swap in, so a
     /// background poll never flashes a skeleton or moves focus.
     let onRefresh: () -> Void
@@ -2044,6 +2045,7 @@ private struct HomeShareScanRefreshObserver: View {
     /// so the idle window would elapse mid-playback and the reload would tear the
     /// trailer down under them.
     let isTrailerPlaying: Bool
+    let isFrontmost: Bool
     /// Gives the shares a chance to notice new files. Deliberately separate from
     /// `onRefresh`: polling must cost no UI work, so this pokes the scanner and
     /// nothing else. A reload happens only if that pass reports a real change.
@@ -2054,7 +2056,7 @@ private struct HomeShareScanRefreshObserver: View {
 
     /// Slightly under the scanner's own throttle, so a poll is never the reason a
     /// walk is declined for being too soon.
-    private static let pollInterval: Duration = .seconds(120)
+    var pollInterval: Duration = .seconds(120)
 
     /// Updated by the ancestor's move handler, read only when deciding to refresh.
     /// A background view cannot receive the focused rails' move commands itself.
@@ -2079,12 +2081,16 @@ private struct HomeShareScanRefreshObserver: View {
     /// arrival at `.active` reloaded Home moments after it had loaded. Only a
     /// genuine return from background is the "expected reshuffle" moment.
     @State private var hasBeenBackgrounded = false
+    @State private var hasPendingForegroundRefresh = false
+    @State private var nextPollAt: ContinuousClock.Instant?
 
     /// Show a pending change once nothing is in the way. Called both when a change
     /// arrives and on every poll tick, so a viewer who is mid-browse when new
     /// content lands still sees it as soon as they stop.
     private func refreshIfSafe() {
-        guard hasPendingChange, isSafeToRefresh else { return }
+        guard isFrontmost, scenePhase == .active else { return }
+        guard hasPendingForegroundRefresh || (hasPendingChange && isSafeToRefresh) else { return }
+        hasPendingForegroundRefresh = false
         hasPendingChange = false
         onRefresh()
     }
@@ -2102,6 +2108,12 @@ private struct HomeShareScanRefreshObserver: View {
     /// Only poll where there is something to poll. A viewer with no media share
     /// gets no timer at all — server-backed accounts report their own changes.
     private var hasShares: Bool { !(status?.byShare.isEmpty ?? true) }
+    private var pollingEnabled: Bool { hasShares && isFrontmost && scenePhase == .active }
+
+    private struct PollingState: Hashable {
+        let enabled: Bool
+        let trailerPlaying: Bool
+    }
 
     /// How long the viewer must have been still before a poll may swap content in.
     ///
@@ -2139,14 +2151,23 @@ private struct HomeShareScanRefreshObserver: View {
                     hasBeenBackgrounded = true
                 } else if phase == .active, hasBeenBackgrounded {
                     hasBeenBackgrounded = false
-                    onRefresh()
+                    hasPendingForegroundRefresh = true
+                    refreshIfSafe()
                 }
             }
-            .task(id: hasShares) {
-                guard hasShares else { return }
+            .onChange(of: isFrontmost) { _, frontmost in
+                if frontmost { refreshIfSafe() }
+            }
+            .task(id: PollingState(enabled: pollingEnabled, trailerPlaying: isTrailerPlaying)) {
+                guard pollingEnabled else { return }
                 while !Task.isCancelled {
-                    try? await Task.sleep(for: Self.pollInterval)
-                    guard !Task.isCancelled, scenePhase == .active else { continue }
+                    // Retain the due time while covered: an overdue poll runs
+                    // once on return, not repeatedly behind playback or 2m later.
+                    let deadline = nextPollAt ?? .now.advanced(by: pollInterval)
+                    nextPollAt = deadline
+                    try? await Task.sleep(until: deadline, clock: .continuous)
+                    guard !Task.isCancelled, pollingEnabled else { return }
+                    nextPollAt = .now.advanced(by: pollInterval)
                     // Never swap content in under an active viewer: wait for the
                     // remote to be still. Re-querying the catalog is what spawns a
                     // scan; the reload then picks up whatever that pass found.

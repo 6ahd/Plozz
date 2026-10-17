@@ -500,7 +500,12 @@ public final class PlayerControlsModel {
     // MARK: Transport UI state (written by the input controller)
     public var controlsVisible: Bool = false {
         didSet {
+            #if os(tvOS)
+            // Keep the outgoing labels intact until the controls have faded.
+            if controlsVisible && !oldValue { timelineClock.isEnabled = false }
+            #else
             if !controlsVisible { timelineClock.isEnabled = false }
+            #endif
         }
     }
     public let timelineClock = PlayerTimelineClock()

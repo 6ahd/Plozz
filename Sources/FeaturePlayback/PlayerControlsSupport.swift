@@ -178,7 +178,8 @@ struct PlayerTimelineTimes: View {
 
     var body: some View {
         PlayerClockTimeline(
-            model: model, enabled: model.controlsVisible && model.timelineClock.isEnabled && !model.isScrubbing
+            model: model, enabled: model.timelineClock.isEnabled && !model.isScrubbing,
+            paused: !model.controlsVisible
         ) { clock in
             labels(clock: clock)
         }

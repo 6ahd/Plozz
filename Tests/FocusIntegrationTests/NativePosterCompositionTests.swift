@@ -155,6 +155,47 @@ final class NativePosterCompositionTests: XCTestCase {
 
     private var rotation = 0
 
+    func testPerformanceNativePosterIndicatorReuse() async throws {
+        try PerformanceProbe.requireEnabled()
+        var environment = EnvironmentValues()
+        environment.displayScale = 1
+        environment.plozzShowsUnwatchedEpisodeCount = true
+        environment.plozzWatchStatusIndicator = .watched
+        let coordinators = (0..<24).map { _ in
+            NativeTVPoster<EmptyView>.Coordinator(focus: PlozzCardFocus().projectedValue, action: {})
+        }
+        let inputs = (0..<72).map { index in
+            NativePosterIndicators.playback(MediaCardPlaybackIndicators(
+                item: MediaItem(
+                    id: "indicator-\(index)", title: "Series", kind: .series,
+                    resumePosition: Double(index + 1) * 30,
+                    playedPercentage: Double(index + 1) / 100,
+                    unwatchedEpisodeCount: 8 + index % 3
+                ),
+                badgeInset: 12
+            ).bitmapInputs)
+        }
+        try await PerformanceProbe.measure(self, scenario: "native-poster-indicators") {
+            // Each sample starts with cold geometry, without clearing shared caches.
+            let size = CGSize(width: 160 + rotation, height: 240 + rotation)
+            rotation += 1
+            var images: [UIImage] = []
+            for (index, input) in inputs.enumerated() {
+                let overlay = try XCTUnwrap(coordinators[index % coordinators.count].presentationOverlay(
+                    size: size, indicators: input, environment: environment
+                ))
+                XCTAssertEqual(overlay.image.size, size)
+                XCTAssertNotNil(overlay.image.cgImage)
+                images.append(overlay.image)
+            }
+            XCTAssertEqual(images.count, inputs.count, "Every requested foreground must finish rendering.")
+            return [
+                "completedOverlays": images.count,
+                "distinctBitmaps": Set(images.map(ObjectIdentifier.init)).count
+            ]
+        }
+    }
+
     private func source(index: Int) -> UIImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
