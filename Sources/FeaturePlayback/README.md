@@ -62,6 +62,36 @@ stop callers await the same teardown. Reports remain best-effort on real server
 failures; final-report failures are logged explicitly, not retried as potentially
 duplicate watched/scrobble writes.
 
+## On-demand read-ahead
+
+Playback's device-local read-ahead setting controls Plozzigen's existing disk
+buffer, not the transport reader's byte window. The on-demand factory injects a
+preference reader, sampled once for each new load and shared by its probe retry.
+Automatic leaves `forwardBufferSegments` unset (about 40 seconds); 1, 5 and
+10 minutes request 15, 75 and 150 segments. Maximum available requests the
+pinned engine's ceiling of 2,700 segments (about 3 hours). These are approximate
+targets, not guaranteed durations or an extra startup wait.
+
+Aether retains its free-space budget, process-wide retention claims and producer
+backpressure. Maximum relaxes the ordinary 2 GiB retention cap, but is not
+unlimited and does not reserve a fixed number of bytes. Storage and network use
+depend on bitrate and playback path, and may include unwatched material.
+The cache remains temporary; this does not implement downloads or next-episode
+preloading. Changing the preference does not reload active playback.
+
+Direct engine constructors used by previews and Live TV retain Automatic;
+scheduled library-channel requests and local downloaded files also keep the
+default. Native AVPlayer buffering and Live TV/DVR options are unchanged.
+
+`PlaybackReadAheadBufferingHostedTests` uses the real engine with synthetic
+H.264/AAC media and a range-serving loopback source. It compares Automatic with
+5 minutes across the same 45-second supply outage at 2x playback, checks actual
+displayed-frame changes (the clock alone is not playback proof), recovery,
+source-byte growth and cancellation before server teardown. This is a controlled
+simulator regression, not a reproduction of a particular rclone installation.
+A buffer can absorb temporary shortfalls after it fills; it cannot make a source
+whose sustained throughput is below the media bitrate keep up indefinitely.
+
 ## On-demand player clock
 
 The on-demand timeline normally shows elapsed and remaining playback time.

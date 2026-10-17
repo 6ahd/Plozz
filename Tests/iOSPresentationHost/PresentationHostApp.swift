@@ -36,6 +36,9 @@ struct PresentationHostApp: App {
         model.settings.theme.theme = .dark
         model.settings.theme.gradientEnabled = true
         model.settings.playback.settings = .default
+        if ProcessInfo.processInfo.arguments.contains("--reset-read-ahead") {
+            PlaybackReadAheadStore().save(.default)
+        }
         if ProcessInfo.processInfo.arguments.contains("--silo-streaming") {
             model.settings.playback.settings.streaming.codec = .preferHEVC
         }
@@ -329,7 +332,7 @@ private struct SettingsInteractionFixture: View {
                     PlozziOSPlaybackSettingsView(
                         model: appModel.settings.playback,
                         audioPolicy: appModel.settings.audioPolicy,
-                        hasStreamingServer: true,
+                        hasStreamingServer: !ProcessInfo.processInfo.arguments.contains("--share-only-playback"),
                         streamingSupport: ProcessInfo.processInfo.arguments.contains("--silo-streaming")
                             ? .silo : .standard
                     )

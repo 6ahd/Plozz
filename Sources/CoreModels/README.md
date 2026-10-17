@@ -86,6 +86,14 @@ Synced artwork/label-setting deletions consume their one-time legacy import
 even for profiles not yet loaded on this device. The separate `.migrated` store
 markers remain device-local and never enter profile transfer snapshots.
 
+## Device-local playback buffering
+
+`PlaybackReadAheadStore` keeps the on-demand buffering preference on the current
+device, outside `PlaybackSettings` and `ProfileSettingsTransfer`. Profile changes,
+sync and transfer must not overwrite this local storage/network choice.
+Missing or invalid values use `PlaybackReadAhead.default` (Automatic); invalid
+persisted values are logged without their contents.
+
 ## Watch-state replay identity
 
 New shell watch intents carry `WatchMutationServerScope`: the originating Plozz
