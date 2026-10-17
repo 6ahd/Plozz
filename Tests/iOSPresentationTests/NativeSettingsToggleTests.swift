@@ -171,7 +171,8 @@ final class NativeSettingsToggleTests: XCTestCase {
             .environment(hero)
             .environment(background)
             .environment(\.locale, Locale(identifier: "en_US"))
-            .environment(\.colorScheme, .dark))
+            .environment(\.colorScheme, .dark)
+            .tint(.white))
             window.makeKeyAndVisible()
             try await settle(window)
             let sourceText = try captureText(window, name: "hero-sources-mobile-\(Int(width))")
@@ -182,6 +183,9 @@ final class NativeSettingsToggleTests: XCTestCase {
                 $0.convert($0.bounds, to: window).minY < $1.convert($1.bounds, to: window).minY
             }
             XCTAssertEqual(switches.count, 6)
+            for control in switches where control.isOn {
+                try assertGreenOnState(control, in: window)
+            }
             let random = try XCTUnwrap(switches.indices.contains(2) ? switches[2] : nil)
             var ancestor = random.superview
             while ancestor != nil && !(ancestor is UICollectionViewCell) { ancestor = ancestor?.superview }
@@ -293,6 +297,7 @@ final class NativeSettingsToggleTests: XCTestCase {
                     try await settle(window)
                     XCTAssertTrue(model.isOn)
                     XCTAssertEqual(model.writes, 1, "A switch activation must write its binding exactly once.")
+                    try assertGreenOnState(control, in: window)
 
                     model.isOn = false
                     model.isDisabled = true
@@ -334,6 +339,38 @@ final class NativeSettingsToggleTests: XCTestCase {
         window.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(100))
         window.layoutIfNeeded()
+    }
+
+    private func assertGreenOnState(
+        _ control: UISwitch, in window: UIWindow,
+        file: StaticString = #filePath, line: UInt = #line
+    ) throws {
+        let bounds = control.convert(control.bounds, to: window)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: bounds.size, format: format).image { context in
+            context.cgContext.translateBy(x: -bounds.minX, y: -bounds.minY)
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let cgImage = try XCTUnwrap(image.cgImage, file: file, line: line)
+        let width = cgImage.width
+        let height = cgImage.height
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixels, width: width, height: height, bitsPerComponent: 8,
+            bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ), file: file, line: line)
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        let greenPixels = stride(from: 0, to: pixels.count, by: 4).filter {
+            Int(pixels[$0 + 1]) > Int(pixels[$0]) + 35
+                && Int(pixels[$0 + 1]) > Int(pixels[$0 + 2]) + 20
+        }.count
+        XCTAssertGreaterThan(
+            Double(greenPixels) / Double(width * height), 0.08,
+            "An enabled native switch must visibly remain green under the page's monochrome tint.",
+            file: file, line: line
+        )
     }
 
     private func switches(in view: UIView) -> [UISwitch] {

@@ -50,6 +50,68 @@ and the diagnostics overlay.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## Live rewind scrubbing
+
+The live timeline previews a pending seek without moving playback. On tvOS,
+horizontal Siri Remote swipes move the pending position; Select confirms it,
+while Back, focus loss, or five seconds without input cancels it. iPhone/iPad
+drags seek on release. Channel/source changes and overlay teardown cancel pending
+preview work and discard outgoing frames.
+
+Native HLS previews use bounded segment prefixes, not a second persistent player.
+Channel headers are restricted to their original origin; foreign-origin redirects
+and unsupported encryption/layouts omit the preview without affecting playback.
+Byte-range playlists and playlists switching initialization maps currently omit
+previews. Segments are capped at 2 MiB, playlists at 512 KiB, initialization files
+at 2 MiB, and identity keys at 16 bytes. Truncated frames are never intentionally
+shown; unsupported or oversized resources leave the preview unavailable.
+The decoded-image cache holds 32 entries; init and key caches each hold at most
+eight. Reduced-transparency/performance presentation retains the non-glass frame.
+
+## Playback completion reporting
+
+Playback lifecycle reports capture the request, position, duration, and tracker
+percentage before suspension and drain in order. At most one unsent heartbeat
+is retained, with newer progress replacing its snapshot; lifecycle events
+discard that obsolete heartbeat. Ending a session rejects new heartbeats/state
+changes; its single stop report follows in-flight reports and queued lifecycle
+events, not a backlog of old progress. Rendition replacement resets start/deferred-state admission without
+relabeling queued events. Teardown and reporting are owned tasks, so cancelling
+a presentation handoff does not cancel the final network request, and repeated
+stop callers await the same teardown. Reports remain best-effort on real server
+failures; final-report failures are logged explicitly, not retried as potentially
+duplicate watched/scrobble writes.
+
+## On-demand read-ahead
+
+Playback's device-local read-ahead setting controls Plozzigen's existing disk
+buffer, not the transport reader's byte window. The on-demand factory injects a
+preference reader, sampled once for each new load and shared by its probe retry.
+Automatic leaves `forwardBufferSegments` unset (about 40 seconds); 1, 5 and
+10 minutes request 15, 75 and 150 segments. Maximum available requests the
+pinned engine's ceiling of 2,700 segments (about 3 hours). These are approximate
+targets, not guaranteed durations or an extra startup wait.
+
+Aether retains its free-space budget, process-wide retention claims and producer
+backpressure. Maximum relaxes the ordinary 2 GiB retention cap, but is not
+unlimited and does not reserve a fixed number of bytes. Storage and network use
+depend on bitrate and playback path, and may include unwatched material.
+The cache remains temporary; this does not implement downloads or next-episode
+preloading. Changing the preference does not reload active playback.
+
+Direct engine constructors used by previews and Live TV retain Automatic;
+scheduled library-channel requests and local downloaded files also keep the
+default. Native AVPlayer buffering and Live TV/DVR options are unchanged.
+
+`PlaybackReadAheadBufferingHostedTests` uses the real engine with synthetic
+H.264/AAC media and a range-serving loopback source. It compares Automatic with
+5 minutes across the same 45-second supply outage at 2x playback, checks actual
+displayed-frame changes (the clock alone is not playback proof), recovery,
+source-byte growth and cancellation before server teardown. This is a controlled
+simulator regression, not a reproduction of a particular rclone installation.
+A buffer can absorb temporary shortfalls after it fills; it cannot make a source
+whose sustained throughput is below the media bitrate keep up indefinitely.
+
 ## On-demand player clock
 
 The on-demand timeline normally shows elapsed and remaining playback time.
@@ -102,7 +164,66 @@ inset, aligning the ruler with the current-program column. That column uses the
 shared raised content surface inside the single outer glass panel, not another
 glass layer. The standalone guide and tvOS grid retain their existing spacing.
 
+## Mobile player gestures
+
+On iPhone and iPad, double-tapping either side skips using the active profile's
+backward/forward interval. Additional taps while the feedback is visible
+accumulate from the requested position, not a lagging playback clock. Directional
+chevrons and the signed total share a compact dark glass pill, replacing the main
+controls while retaining the player's actual timeline in its normal position,
+with its time labels, playhead, buffer and segment styling, and scrubbing behavior.
+Each accepted skip launches one native chevron outward: right for forward, left
+for backward. It starts partially folded, not flat, and opens to its normal shape
+while traveling 20 points over 0.25 seconds. It then stops fully visible for half
+a second and fades in place over 0.3 seconds. The pill reserves that travel
+inside its layout before adding a 16-point outer inset, mirrored for backward
+skips. The number-to-icon layout gap is 4 points, and the icon slot uses its
+native width rather than extra blank space. Reduce Motion needs no travel space.
+Rapid taps add independent,
+overlapping chevrons without restarting earlier ones or queuing a replay.
+Each chevron is removed after its own animation finishes; the signed total
+retains its existing feedback lifetime. Reduce Motion shows one steady chevron
+instead, and enabling it removes any moving chevrons immediately. Single taps
+still toggle controls; native controls and open menus keep their own touches.
+
+Holding on-demand video for at least one second temporarily accelerates moving
+playback to at most 2x when the engine supports it; shorter presses do not boost
+speed. Releasing, pausing, seeking, leaving the player, or backgrounding cancels
+the override without changing the saved speed. Only a top-centered glass pill
+with the active rate and fast-forward symbol is shown during the hold; the
+timeline and its backdrop stay hidden. Both gesture pills reuse the player's
+shared native Liquid Glass surface and its reduced-transparency/older-system
+fallbacks. Text and native icons inherit the Info/Cast buttons' semibold callout
+style together, keeping symbols proportional to their labels as text size changes.
+They do not intercept touches. Live TV supports skips only inside an available
+rewind window, not speed boosting.
+
+Pinch inward for Normal fitting inside the display's safe area, clear of the
+Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
+uses the existing session-only zoom state without reloading video or revealing
+the timeline. Authored subtitle geometry follows the displayed picture; ordinary
+captions retain their screen-relative placement. Inline, tvOS, and external
+playback keep their existing geometry. Horizontal seeking and brightness/volume
+swipes are not implemented.
+
 ## Mobile playback settings
+
+Before the first multi-version movie or episode, both platforms ask the profile
+to **Ask every time** or **Remember my choice**, using the shared Live TV
+introduction layout. Both answers lead to the version picker for that video.
+Settings > Playback > Version selection can change the mode later; the existing
+profile settings payload carries it through switching, transfer, and cloud sync.
+Unanswered older profiles retain their per-title memories but still see the
+introduction on their first multi-version playback.
+
+`PlaybackVersionChoiceModel` gates player creation and next-episode/playlist
+handoffs. Ask every time includes autoplay. Remember reuses a movie's exact
+file, or matches all known descriptor facts across a series; it does not silently
+substitute a different resolution, range, or cut. Missing matches ask again,
+including when only one fallback remains. Cancelling does not start playback
+or record an unchosen file. In-player version changes and retry/failover do not
+repeat the introduction. Qualified picker IDs still resolve to original
+account/item/file identities before playback.
 
 Mobile Playback settings keep network quality limits on the main page and move
 codec selection and forced transcoding into Advanced. Only unsupported codec
@@ -548,6 +669,10 @@ section. The picture itself is non-focusable, so Left/Right stay dedicated to
 adjusting editor values and Down reaches preview controls. Select on the Preview
 header opens an actual full-screen canvas at playback scale; Back returns focus
 to that header without losing the chosen appearance or preview options.
+The full-screen Settings editor keeps Back above its stationary page title and
+the large picture stationary. Only the bounded left tool pane scrolls; the
+redundant Appearance heading is omitted. Expanding Preview smoothly reduces the
+pane's height, using the shared Settings motion and respecting Reduce Motion.
 
 ### Genuine HDR preview
 
@@ -621,6 +746,11 @@ account/file routing and playback continuation as mobile, swapping players
 inside the existing cover. An explicit choice never silently fails over to
 another source. Resolved file lists refresh the playing source without
 discarding other editions in a combined title.
+Detail and in-player version pickers share `MediaVersion.PickerPresentation`.
+Quality and file size lead; wrapping secondary text adds video format, available
+audio languages, primary audio format, bitrate and runtime when supplied.
+The release filename/name stays on its own tertiary line. These describe the
+source file, not the engine's negotiated output; missing facts are not guessed.
 Every native startup resume waits for readiness and verifies both seek completion
 and the actual landing. A rejected seek fails before playback starts at zero,
 allowing the existing alternate-engine fallback to keep the requested position

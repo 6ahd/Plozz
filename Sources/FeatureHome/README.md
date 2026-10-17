@@ -75,6 +75,13 @@ fallback when the user's server has no attached trailer.
   Both platforms recheck hero Watchlist membership immediately, but memoize
   supporting-source identity tokens by the full current row values. No
   supporting index is built without exclusions; source-scope changes clear it.
+  Mobile and TV share the Hero slot policy: pending curation reserves a placeholder,
+  available items render the Hero, and a completed empty result removes the slot
+  and its spacing. Mobile also skips the placeholder immediately when Collections
+  has no selections or Discovery has no enabled providers and no other source is
+  configured. Completion belongs to the current curation inputs and profile;
+  cancelled work cannot settle a replacement request. This never changes saved
+  preferences or treats a failed fetch as authority to erase cached candidates.
 - **Collections hero source** — an opt-in source mixes individual movies and
   shows from multiple account-qualified collections across libraries, not collection cards. TV and
   mobile use the same `MediaProvider.collectionMembers` loader and existing

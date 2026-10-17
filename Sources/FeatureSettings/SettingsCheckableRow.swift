@@ -33,6 +33,7 @@ struct SettingsCheckableRow: View {
     /// hugging the card's border. Default true (flush-left, for split panes).
     var flushLeading: Bool = true
     let action: () -> Void
+    @Environment(\.settingsFormRowsFlushLeading) private var groupFlushLeading
 
     // ``SettingsRowLabel`` insets content horizontally; cancel the leading inset
     // (unless `flushLeading` is off) so titles line up flush-left with the pane
@@ -83,7 +84,7 @@ struct SettingsCheckableRow: View {
         }
         .buttonStyle(SettingsFocusButtonStyle())
         .disabled(!isEnabled)
-        .padding(.leading, flushLeading ? -labelInset : 0)
+        .padding(.leading, flushLeading && groupFlushLeading ? -labelInset : 0)
         .accessibilityAddTraits(isChecked ? .isSelected : [])
     }
 }

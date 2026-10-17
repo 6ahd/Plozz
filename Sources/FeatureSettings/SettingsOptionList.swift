@@ -13,20 +13,30 @@ import CoreUI
 struct SettingsCheckGroup<Content: View>: View {
     var rowSize: SettingsRowSize = .standard
     @ViewBuilder var content: () -> Content
+    private var cornerRadius: CGFloat {
+        #if os(tvOS)
+        rowSize == .contained ? SettingsFormMetrics.groupCornerRadius : PlozzTheme.Metrics.Radius.card
+        #else
+        PlozzTheme.Metrics.Radius.card
+        #endif
+    }
 
     var body: some View {
         content()
-            .padding(.vertical, SettingsRowMetrics.formGroupInset)
+            .padding(.vertical, rowSize == .contained ? SettingsRowMetrics.formGroupInset : 10)
             .padding(.horizontal, rowSize == .contained ? SettingsRowMetrics.formGroupInset : 22)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Color.primary.opacity(0.05))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
             )
+            #if os(tvOS)
+            .environment(\.settingsFormTextInset, rowSize == .contained ? SettingsRowMetrics.horizontalPadding : 0)
+            #endif
     }
 }
 
@@ -53,7 +63,7 @@ struct SettingsOptionList<Option: Hashable>: View {
     @FocusState private var focusedOption: Option?
 
     private var list: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        SettingsControlRows(nonTVSpacing: SettingsRowMetrics.formRowSpacing) {
             ForEach(options, id: \.self) { option in
                 SettingsCheckableRow(
                     title: title(option),
@@ -112,7 +122,7 @@ struct SettingsCheckList<Option: Hashable & Identifiable>: View {
     var onToggle: (Option) -> Void
 
     private var list: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        SettingsControlRows(nonTVSpacing: SettingsRowMetrics.formRowSpacing) {
             ForEach(options) { option in
                 SettingsCheckableRow(
                     title: title(option),

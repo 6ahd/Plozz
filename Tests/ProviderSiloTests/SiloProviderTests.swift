@@ -824,11 +824,12 @@ final class SiloProviderTests: XCTestCase {
     let http = SiloHTTPStub([
       "/api/v2/catalog/items/episode-tvdb-353367-1-1": """
       {"content_id":"episode-tvdb-353367-1-1","type":"episode","title":"Episode",
-       "versions":[{"file_id":"hdr-file","resolution":"1080p","hdr":true,
+       "versions":[{"file_id":"hdr-file","file_name":"Episode.WEB-DL.mkv","resolution":"1080p","hdr":true,
        "codec_video":"hevc","codec_audio":"eac3","container":"mkv",
        "file_size":100,"duration":2100,"bitrate":12000,
        "video_tracks":[{"width":3840,"height":2160,"video_range_type":"HDR10"}],
-       "audio_tracks":[{"codec":"eac3","channels":6,"layout":"5.1","default":true}]}]}
+       "audio_tracks":[{"codec":"eac3","channels":6,"layout":"5.1","language":"eng","default":true},
+                       {"codec":"aac","channels":2,"language":"fra","default":false}]}]}
       """
     ])
     let provider = try SiloProvider(
@@ -840,6 +841,12 @@ final class SiloProviderTests: XCTestCase {
     XCTAssertTrue(item.technicalBadges.map(\.label).contains("4K"))
     XCTAssertTrue(item.technicalBadges.map(\.accessibilityText).contains("Dolby Digital+ 5.1"))
     XCTAssertEqual(item.versions.first?.technicalBadges, item.technicalBadges)
+    let version = try XCTUnwrap(item.versions.first)
+    XCTAssertEqual(version.audioLanguageNames(in: Locale(identifier: "en_US")), ["English", "French"])
+    XCTAssertEqual(version.audioFormatLabel, "Dolby Digital+ 5.1")
+    XCTAssertEqual(version.sourceMetadata?.audio?.language, "eng")
+    XCTAssertEqual(version.sourceMetadata?.fileName, "Episode.WEB-DL.mkv")
+    XCTAssertTrue(MediaVersion.PickerPresentation(version).supplementalFacts.contains("WEB-DL"))
   }
 
   func testPlaybackClaimsDoNotInventHeaderRefreshOrHDR10PlusOutput() throws {

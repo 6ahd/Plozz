@@ -8,7 +8,7 @@ public struct HeroCollectionPickerView: View {
     private let libraries: [AggregatedLibrary]
     private let accounts: [ResolvedAccount]
     @State private var sourceID: HeroCollectionPickerSource.ID?
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(SettingsDetailNavigation.self) private var detailNavigation: SettingsDetailNavigation?
 

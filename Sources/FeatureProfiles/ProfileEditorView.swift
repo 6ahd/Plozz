@@ -395,9 +395,6 @@ public struct ProfileEditorView: View {
             if canDelete, onDelete != nil {
                 deleteButton
             }
-            Text(isEditing ? "Edit Profile" : "New Profile")
-                .font(.system(size: 44, weight: .bold))
-                .foregroundStyle(palette.primaryText)
             Spacer(minLength: 24)
             if autoSaves {
                 Button("Revert All Changes", action: revertAll)
@@ -552,6 +549,7 @@ public struct ProfileEditorView: View {
     private var pickerColumn: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 40) {
+                SettingsPageHeader(Text(isEditing ? "Edit Profile" : "New Profile"))
                 headerRow
                 nameSection
                 avatarSection

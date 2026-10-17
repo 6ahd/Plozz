@@ -24,7 +24,7 @@ final class PlaybackSourceMenuPerformanceTests: XCTestCase {
             var rows = 0
             for _ in 0..<32 {
                 for (index, version) in versions.enumerated() {
-                    let presentation = PlaybackSourceVersionPresentation(version)
+                    let presentation = MediaVersion.PickerPresentation(version)
                     XCTAssertEqual(presentation.title, expected[index].0)
                     XCTAssertEqual(presentation.supplementalFacts, expected[index].1)
                     rows += 1
@@ -45,13 +45,13 @@ final class PlaybackSourceMenuPerformanceTests: XCTestCase {
                     )
                     let title = version.displayLabel
                     let facts = Set((title ?? "").components(separatedBy: " · "))
-                    let result = PlaybackSourceVersionPresentation(version)
+                    let result = MediaVersion.PickerPresentation(version)
                     XCTAssertEqual(result.title, title)
                     XCTAssertEqual(result.supplementalFacts, version.menuFacts.filter { !facts.contains($0) })
                 }
             }
         }
-        XCTAssertNil(PlaybackSourceVersionPresentation(MediaVersion(id: "unknown")).title)
-        XCTAssertEqual(PlaybackSourceVersionPresentation(MediaVersion(id: "unknown")).supplementalFacts, [])
+        XCTAssertNil(MediaVersion.PickerPresentation(MediaVersion(id: "unknown")).title)
+        XCTAssertEqual(MediaVersion.PickerPresentation(MediaVersion(id: "unknown")).supplementalFacts, [])
     }
 }

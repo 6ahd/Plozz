@@ -27,7 +27,7 @@ struct ProfileSettingsDetailView: View {
     /// set here can say when it's device-only.
     let syncEnabled: Bool
 
-    @Environment(\.dismiss) private var dismiss
+    @SettingsPageDismiss private var dismiss
 
     /// Read live from the context so the page reflects edits made on it (a lock
     /// added, a rename) without needing its own copy to be invalidated.
@@ -59,6 +59,7 @@ struct ProfileSettingsDetailView: View {
                         subtitle: "How this profile looks, and who can open it."
                     )
                     actionsPanel(profile)
+                        .settingsWorkspaceEntry()
                 }
             }
             .frame(maxWidth: PlozzTheme.Metrics.settingsContentMaxWidth, alignment: .leading)

@@ -771,6 +771,66 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertEqual(engine.goLiveCount, 0)
     }
 
+    func testScrubPreviewFromAnEndedAttemptIsDiscarded() async throws {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        engine.liveSnapshot.seekableRange = 0...600
+        model.refreshFromEngine()
+        var pending: CheckedContinuation<CGImage?, Never>?
+        engine.onScrubThumbnail = {
+            await withCheckedContinuation { pending = $0 }
+        }
+        let requested = Task { await model.scrubThumbnail(behindLive: 20, maxWidth: 640) }
+        let deadline = ContinuousClock.now + .seconds(2)
+        while pending == nil, ContinuousClock.now < deadline { await Task.yield() }
+        guard let pending else {
+            requested.cancel()
+            XCTFail("The preview request did not reach the engine")
+            return
+        }
+        let frame = try XCTUnwrap(UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
+        }.cgImage)
+        model.stop()
+        pending.resume(returning: frame)
+        let image = await requested.value
+        XCTAssertNil(image, "An outgoing source's image must never reach the next presentation")
+    }
+
+    func testTouchRewindStartsFromActualLiveHoldbackAndKeepsPendingTarget() async throws {
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        engine.liveSnapshot.seekableRange = 0...600
+        engine.liveSnapshot.position = 590
+        engine.liveSnapshot.behindLiveSeconds = 10
+        model.refreshFromEngine()
+        XCTAssertEqual(model.behindLiveSeconds, 0, "The live badge hides normal stream delay.")
+        XCTAssertEqual(model.seekPosition, 590)
+
+        let gestures = PlayerTouchGestureState()
+        defer { gestures.cancel() }
+        let window = try XCTUnwrap(model.seekableWindow)
+        let floor = LiveChannelPlayerModel.windowSeekTarget(window.lowerBound, window: window)
+        for expected in [585.0, 580.0] {
+            let target = try XCTUnwrap(gestures.seek(
+                by: -5, from: model.seekPosition, within: floor...window.upperBound
+            ))
+            XCTAssertEqual(target, expected)
+            model.seek(behindLive: window.upperBound - target)
+            XCTAssertEqual(model.seekPosition, expected)
+        }
+        XCTAssertEqual(gestures.skip?.seconds, -10)
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertEqual(engine.genericSeekCount, 1)
+        XCTAssertEqual(try XCTUnwrap(engine.lastSeekTarget), 580)
+        XCTAssertEqual(engine.goLiveCount, 0)
+    }
+
     func testWindowSeekPastTheEdgeGoesLive() async throws {
         let engine = LiveEngineSpy()
         let model = makeModel(engine: engine)
@@ -1606,6 +1666,7 @@ final class LiveEngineSpy: LiveChannelEngine {
     var recoverableProgrammeIssue: LibraryChannelError?
     var onLoad: (@MainActor () async -> Void)?
     var onGoLive: (@MainActor () -> Void)?
+    var onScrubThumbnail: (@MainActor () async -> CGImage?)?
     var loadedInputs: [LiveChannelInput] = []
     var inputLoadError: Error?
     var watching = false
@@ -1665,6 +1726,9 @@ final class LiveEngineSpy: LiveChannelEngine {
     }
     func resumeLoad(_ loadNumber: Int) {
         loadContinuations.removeValue(forKey: loadNumber)?.resume()
+    }
+    func liveScrubThumbnail(secondsIntoWindow seconds: TimeInterval, maxWidth: Int) async -> CGImage? {
+        await onScrubThumbnail?()
     }
     func load(request: PlaybackRequest, startPosition: TimeInterval) async { vodLoads += 1 }
     func play() { playCount += 1; isPaused = false }

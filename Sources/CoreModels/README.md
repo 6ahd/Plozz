@@ -42,6 +42,22 @@ language every other module speaks.
 | UI state | `LoadState`, `AppError` |
 | Subtitles | `SubtitleBehavior`, `SubtitleStyle` (rendered by `FeaturePlayback`) |
 
+## Version picker facts
+
+`MediaVersion.PickerPresentation` is the shared detail/player summary on TV and
+mobile: edition/quality/size, video format, available audio languages, primary
+audio codec/profile/layout, bitrate, runtime, and a separate release filename.
+Language names use the caller's effective locale. Provider metadata stays scoped
+to that physical file; subtitle languages never become audio languages. Unknown
+facts remain absent, and these source facts do not claim a playback mode or
+active output format. Optional `MediaSourceMetadata.audioLanguages` keeps older
+cached payloads readable and also survives synthesized edition versions.
+`MediaSourceDisplayName` extracts a readable `torrent_name` from URL/query-backed
+sources (including percent-encoded names) before taking a basename. It also
+cleans cached locator-like names at presentation time. Only the decoded name,
+not unrelated query parameters, supplies release text or edition/quality hints;
+playback locators and source IDs remain unchanged.
+
 ## Artwork and profile presentation
 
 `MediaItem.artworkReferences` supplies library artwork: server URLs and local
@@ -85,6 +101,14 @@ survive reload, profile switching, and transfer.
 Synced artwork/label-setting deletions consume their one-time legacy import
 even for profiles not yet loaded on this device. The separate `.migrated` store
 markers remain device-local and never enter profile transfer snapshots.
+
+## Device-local playback buffering
+
+`PlaybackReadAheadStore` keeps the on-demand buffering preference on the current
+device, outside `PlaybackSettings` and `ProfileSettingsTransfer`. Profile changes,
+sync and transfer must not overwrite this local storage/network choice.
+Missing or invalid values use `PlaybackReadAhead.default` (Automatic); invalid
+persisted values are logged without their contents.
 
 ## Watch-state replay identity
 

@@ -11,6 +11,72 @@ import XCTest
 
 @MainActor
 final class HomeHeroVisibilityPresentationTests: XCTestCase {
+    func testActualHomeRemovesCompletedEmptyHeroWithoutChangingItsSettings() async throws {
+        let app = PlozziOSAppModel()
+        let original = app.profiles.activeProfileID
+        let profile = app.profiles.add(name: "Empty Hero fixture", isAwaitingSetup: false)
+        app.selectProfile(profile.id)
+        defer {
+            app.selectProfile(original)
+            app.profiles.remove(profile.id)
+        }
+        let provider = EmptyHeroHomeProvider()
+        let model = HomeViewModel(
+            accounts: [ResolvedAccount(account: provider.account, provider: provider)],
+            layoutStore: InMemoryHomeLayoutStore(),
+            currentVisibility: { app.settings.homeVisibility.visibility }
+        )
+        await model.load()
+        XCTAssertNotNil(model.state.value)
+        app.settings.hero.settings.sources = [.collection]
+        app.settings.hero.settings.collections = []
+        app.settings.hero.settings.isEnabled = false
+        for sizeClass in [UserInterfaceSizeClass.compact, .regular] {
+            let home = NavigationStack {
+                PlozziOSHomeView(appModel: app, viewModel: model, onAddServer: {}, onShowSettings: {})
+            }
+            .environment(app)
+            .environment(HeroTrailerController())
+            try await withWindow(home, sizeClass: sizeClass) { window in
+                let scroll = try XCTUnwrap(self.scrollViews(in: window).first)
+                let rowsHeight = scroll.contentSize.height
+                let rowsInset = scroll.adjustedContentInset.top
+                app.settings.hero.settings.isEnabled = true
+                try await self.settle(window)
+                try await Task.sleep(for: .milliseconds(500))
+                window.layoutIfNeeded()
+                XCTAssertEqual(scroll.contentSize.height, rowsHeight, accuracy: 1,
+                               "An empty curation must remove the Hero and its reserved height.")
+                XCTAssertEqual(scroll.adjustedContentInset.top, rowsInset, accuracy: 1)
+                XCTAssertTrue(app.settings.hero.settings.isEnabled)
+                XCTAssertEqual(app.settings.hero.settings.sources, [.collection])
+
+                app.settings.hero.settings.collections = [
+                    HeroCollectionSelection(
+                        accountID: "unavailable-account", libraryID: "movies",
+                        collectionID: "missing-collection", title: "Unavailable collection"
+                    )
+                ]
+                try await self.settle(window)
+                try await Task.sleep(for: .milliseconds(500))
+                window.layoutIfNeeded()
+                XCTAssertEqual(scroll.contentSize.height, rowsHeight, accuracy: 1,
+                               "An unavailable saved collection must also finish without a placeholder.")
+                XCTAssertEqual(app.settings.hero.settings.collections.count, 1,
+                               "Presentation must not erase saved collection choices.")
+                let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                    window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                }
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "empty-hero-\(sizeClass)"
+                attachment.lifetime = .keepAlways
+                self.add(attachment)
+                app.settings.hero.settings.isEnabled = false
+                app.settings.hero.settings.collections = []
+            }
+        }
+    }
+
     func testPortraitAndLandscapeFirstPaintIdentitiesCannotReuseEachOthersPinnedArtwork() {
         let identity = "home:movie"
         XCTAssertEqual(PlozziOSHeroArtworkFallback.cacheIdentity(identity, style: .landscape), identity)
@@ -186,6 +252,30 @@ final class HomeHeroVisibilityPresentationTests: XCTestCase {
         }
     }
 
+    func testEmptyAndPendingHeroSlotsUseTheSamePhoneAndTabletGeometry() async throws {
+        for sizeClass in [UserInterfaceSizeClass.compact, .regular] {
+            let model = HeroFixtureModel()
+            model.settings.sources = [.collection]
+            model.settings.collections = []
+            let style: HeroArtworkStyle = sizeClass == .compact ? .compactPortrait : .landscape
+            try await withWindow(HeroFixture(model: model, style: style, showsContent: false), sizeClass: sizeClass) {
+                window in
+                try self.assertRowsOnly(in: window)
+                model.settings.collections = [
+                    .init(accountID: "account", collectionID: "collection", title: "Collection")
+                ]
+                try await self.settle(window)
+                try self.assertHeroVisible(in: window)
+                model.recomputeComplete = true
+                try await self.settle(window)
+                try self.assertRowsOnly(in: window)
+                model.hasItems = true
+                try await self.settle(window)
+                try self.assertHeroVisible(in: window)
+            }
+        }
+    }
+
     func testColdLoadingScreenOmitsHeroOnFirstPaintAndRespondsToSettings() async throws {
         for sizeClass in [UserInterfaceSizeClass.compact, .regular] {
             let model = HeroFixtureModel()
@@ -207,6 +297,12 @@ final class HomeHeroVisibilityPresentationTests: XCTestCase {
                 model.settings.sources = []
                 try await self.settle(window)
                 XCTAssertEqual(scroll.contentSize.height, rowsHeight, accuracy: 1)
+
+                model.settings.sources = [.collection]
+                model.settings.collections = []
+                try await self.settle(window)
+                XCTAssertEqual(scroll.contentSize.height, rowsHeight, accuracy: 1,
+                               "Known-empty Collections must not reserve a Hero even on the first Home load.")
             }
         }
     }
@@ -295,6 +391,8 @@ private final class HeroArtworkProviderSettings: MetadataProviderSettingsStoring
 @Observable
 private final class HeroFixtureModel {
     var settings = HeroSettings.default
+    var recomputeComplete = false
+    var hasItems = false
 }
 
 private struct HeroFixture: View {
@@ -303,9 +401,13 @@ private struct HeroFixture: View {
     let showsContent: Bool
 
     var body: some View {
-        PlozziOSHomeScrollView(heroActive: model.settings.isActive) {
+        let slot = HomeHeroSlotState.resolve(
+            settings: model.settings, hasItems: showsContent || model.hasItems,
+            recomputeComplete: model.recomputeComplete
+        )
+        PlozziOSHomeScrollView(heroActive: slot != .hidden) {
             Group {
-                if showsContent {
+                if slot == .content {
                     Color.blue.frame(height: 500)
                 } else {
                     PlozziOSHomeHeroSkeleton(style: style)
@@ -324,7 +426,9 @@ private struct LoadingFixture: View {
     let model: HeroFixtureModel
 
     var body: some View {
-        PlozziOSHomeSkeletonScreen(heroActive: model.settings.isActive)
+        PlozziOSHomeSkeletonScreen(heroActive: HomeHeroSlotState.resolve(
+            settings: model.settings, hasItems: false, recomputeComplete: false
+        ) != .hidden)
     }
 }
 
@@ -339,5 +443,35 @@ private struct FrameProbe: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {}
+}
+
+private struct EmptyHeroHomeProvider: MediaProvider {
+    let kind: ProviderKind = .jellyfin
+    let account = Account(
+        id: "empty-hero-account",
+        server: MediaServer(
+            id: "empty-hero-server", name: "Fixture",
+            baseURL: URL(string: "https://fixture.invalid")!, provider: .jellyfin
+        ),
+        userID: "viewer", userName: "Viewer", deviceID: "fixture"
+    )
+    var session: UserSession { account.session(token: "fixture") }
+
+    func libraries() async throws -> [MediaLibrary] {
+        [MediaLibrary(id: "movies", title: "Movies", kind: .movie)]
+    }
+    func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
+    func latest(limit: Int) async throws -> [MediaItem] {
+        [MediaItem(id: "movie", title: "Available movie", kind: .movie)]
+    }
+    func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
+        MediaPage(items: [], startIndex: 0, totalCount: 0)
+    }
+    func item(id: String) async throws -> MediaItem { throw AppError.notFound }
+    func children(of itemID: String) async throws -> [MediaItem] { [] }
+    func search(query: String, limit: Int) async throws -> [MediaItem] { [] }
+    func playbackInfo(for itemID: String) async throws -> PlaybackRequest { throw AppError.notFound }
+    func reportPlayback(_ progress: PlaybackProgress, event: PlaybackEvent) async throws {}
+    func imageURL(itemID: String, kind: ImageKind, maxWidth: Int?) -> URL? { nil }
 }
 #endif

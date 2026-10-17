@@ -858,7 +858,7 @@ extension View {
         offlinePlaybackResolver: (any OfflinePlaybackResolving)?,
         behavior: SubtitleBehavior,
         style: SubtitleStyle,
-        playbackSettings: PlaybackSettings,
+        playbackSettingsModel: PlaybackSettingsModel,
         spoilerSettings: SpoilerSettings,
         subtitlePolicy: SubtitlePolicy,
         audioPolicy: AudioPolicy,
@@ -887,7 +887,7 @@ extension View {
                         offlinePlaybackResolver: offlinePlaybackResolver,
                         behavior: behavior,
                         style: style,
-                        playbackSettings: playbackSettings,
+                        playbackSettings: playbackSettingsModel.settings,
                         spoilerSettings: spoilerSettings,
                         subtitlePolicy: subtitlePolicy,
                         audioPolicy: audioPolicy,
@@ -920,7 +920,23 @@ extension View {
                 },
                 showDiagnostics: showDiagnostics,
                 themePalette: themePalette,
-                versionPreferences: versionPreferences
+                versionPreferences: versionPreferences,
+                prepareVersion: { choice, item in
+                    guard let account = item.sourceAccountID
+                        .flatMap({ id in accounts.first { $0.account.id == id } })
+                        ?? (item.sourceAccountID == nil ? accounts.first : nil) else {
+                        throw AppError.unauthorized
+                    }
+                    return try await choice.prepare(
+                        item, provider: account.provider, settings: playbackSettingsModel,
+                        preferences: versionPreferences, offlineResolver: offlinePlaybackResolver,
+                        isCurrent: { playRequest.wrappedValue?.traceID == request.traceID }
+                    )
+                },
+                versionAuthorizationScope: accounts.flatMap {
+                    [$0.account.id, $0.provider.session.userID, $0.plexHomeUserID ?? "",
+                     $0.credentialRevision.rawValue.uuidString]
+                }
             )
         }
         .resumePrompt(item: resumePrompt) { item, startPosition in

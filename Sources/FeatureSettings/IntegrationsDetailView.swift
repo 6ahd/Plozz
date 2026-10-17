@@ -17,6 +17,9 @@ struct IntegrationsDetailView: View {
     @Bindable var playback: PlaybackSettingsModel
     let serverCount: Int
     @State private var confirmingTraktReconnect = false
+    #if os(tvOS)
+    @Environment(\.settingsInWorkspace) private var inWorkspace
+    #endif
 
     var body: some View {
         SettingsSplitLayout(title: "Trackers", rows: rows)
@@ -173,7 +176,26 @@ struct IntegrationsDetailView: View {
             }
         ]
 
+        #if os(tvOS)
+        if inWorkspace {
+            let phases = [traktRowPhase, simklRowPhase, anilistRowPhase, malRowPhase, lastfmRowPhase]
+            return zip(trackers, phases).map { row, phase in
+                row.page(summary: statusLabel(phase))
+            } + watchStatus
+        }
+        #endif
         return trackers + watchStatus
+    }
+
+    private func statusLabel(_ phase: TrackerRowPhase) -> Text {
+        switch phase {
+        case .loading: Text("Checking status…")
+        case .unavailable: Text("Unavailable")
+        case .disconnected: Text("Not connected")
+        case .connecting: Text("Connecting…")
+        case let .connected(username): Text(verbatim: username)
+        case .error: Text("Needs attention")
+        }
     }
 
     /// The status + action controls shown in a tracker's detail pane for every
@@ -540,6 +562,7 @@ struct AttributionsDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                SettingsPageHeader(SettingsCopy.attributions)
                 Text(PlozzAttributions.introduction)
                     .font(.callout)
                     .plozzForeground(.secondary)

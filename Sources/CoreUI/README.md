@@ -6,17 +6,52 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **First-use choices** — `FirstUseChoiceView` shares the Live TV preview and
+  playback-version introduction heading, native actions, and Settings reminder.
+  Hosts own persistence and cancellation; dismissing a version prompt never
+  records a mode. Mobile uses a vertically stacked, scrolling adaptation.
+
 - **Settings row typography** — `SettingsRowMetrics.titleFont` is the shared
   body-size label for navigation rows, TV switch variants, and labeled controls.
   Keep headings separate; do not give toggles a larger headline font or add
   per-screen compensating font overrides. Native iOS/iPadOS switches retain
-  system sizing.
+  system sizing. TV option/segmented pickers use the same body-sized labels;
+  `settingsHelperText()` uses the smaller caption size for explanatory copy
+  (tvOS footnote and body render at the same size).
 - **Settings form geometry** — `settingsFormRowLayout()` gives links, On/Off
   rows, and compact inline steppers the same content padding and minimum height.
-  Form groups use 8pt row spacing, 24pt section spacing, and a uniform 10pt
-  focus inset. The contained focus radius is the group's radius minus that
-  inset, so the corners remain concentric. Existing checkmark groups keep
-  their separate focus-bleed geometry.
+  TV form groups use a uniform 16pt focus inset. The contained focus radius is
+  the 28pt group radius minus that inset (12pt), including illustrated groups.
+  Headings, compact labels, helper copy and ordinary dividers share the control
+  text keyline: 16pt group inset plus 12pt row padding. Groups provide
+  `settingsFormTextInset`; `settingsFormTextLayout()` consumes it for static
+  content, while padded focus-row labels reset it to prevent double insets.
+  Outside a grouped form the text helpers add no padding. Legacy uncontained
+  checkmark groups retain their separate focus-bleed geometry.
+  Standalone page links use the `.navigation` row role: idle and focused surfaces
+  both read the same 28pt radius, with no focus bleed or corner tightening.
+  Adjacent page links have an 8pt gap; separate control sections keep their larger gap.
+  Page titles and Back belong inside the scrolling content, not in a fixed
+  header strip that shortens the viewport. `SettingsPageHeader` supplies their
+  horizontal Back/title layout, not a separate pinned container. `SettingsBackButton`
+  selects the shared native bordered capsule while callers retain navigation and
+  focus ownership. The full-width header is a native focus section, so Up from
+  right-aligned controls can reach the leading Back button. The full-screen subtitle editor is
+  an explicit exception: its stationary heading sits above a scrolling tool pane.
+  TV Settings categories and descendants share the centered
+  `SettingsFormMetrics.pageWidth`. `SettingsPageStack` keeps that width throughout
+  navigation; only explicitly full-width destinations use the whole viewport.
+- **Settings page navigation** — the TV workspace uses `SettingsPageStack` for
+  the retained category list and its equally sized child pages. Only the current page owns input,
+  accessibility and Back; a pop restores the originating link's focus after the
+  shared 420ms eased fade with 64pt directional travel, rather than crossing the
+  screen. Retained parents and inserted children use the same motion and keep
+  their final layout sizes throughout. Input and native entry/return focus transfer
+  only after the fade completes, so overlapping pages cannot steal focus.
+  `SettingsPageLink`, `SettingsPageDismiss` and
+  boolean destinations retain native navigation outside this workspace,
+  including iOS/iPadOS. `SettingsPageMotion` is also used by nested form and
+  subtitle panels, with Reduce Motion respected by their hosts.
 - **Native action controls** — `plozzActionButton` only selects the system
   glass/glass-prominent styles, or bordered styles on older systems. It adds no
   font, padding, capsule, border, focus effect or press scaling. Setup, profile/PIN,
@@ -31,6 +66,31 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   keeps visible title-and-icon labels and uses the same `playerGlassButton`
   treatment, including native menus. Only the existing reduced-transparency
   playback path draws the shared frosted fallback.
+- **Settings steppers** — TV makes the whole labeled row one focus target using
+  the existing `SettingsFormButtonStyle`, including its helper, persistent minus/plus cues and
+  `SettingsRowMetrics.titleFont` value. Labels must be supplied to the shared
+  stepper, not placed outside its focus target. Left/Right adjusts,
+  Select increments, and Up/Down remains native focus navigation. Bounds clamp
+  unless a caller explicitly requests wrapping. Width reserves the longest value.
+  `SettingsAdjustmentFocusScope` shares the player's horizontal input ownership,
+  held-press cancellation, and navigation-rail protection. VoiceOver adjustment
+  uses the same stepping operation. Mobile retains separate buttons.
+- **Grouped Settings rows** — `SettingsControlRows` inserts palette separators
+  between tvOS rows sharing a container, never after the last visible row. Keep
+  a control and its helper in one child view; the divider belongs after both.
+  Conditional rows keep their SwiftUI identity, and separators add no focus or
+  accessibility stops. Focus fills stay within row bounds, with the shared
+  8pt `dividerFocusClearance` on each side of the line. Icon-led category lists
+  start their dividers at `SettingsRowMetrics.iconTitleInset`, sharing the actual
+  row icon width, gap and content padding; leading alignment also follows RTL.
+  Illustrated Settings groups instead use a 16pt gap and 16pt padding without
+  internal dividers. Grouped steppers inherit
+  the same leading inset as their neighboring rows, with no extra resting chip.
+  Mobile keeps its existing stack/native-list presentation.
+- **Long Settings labels** — `LabeledSettingRow` preserves the aligned horizontal
+  layout when it fits. On tvOS, longer copy switches to a wrapping label above
+  its control rather than overlapping it or reducing the shared body font.
+  Mobile retains its existing layout.
 - **Grouped settings navigation** — `SettingsDisclosureLabel` supplies a
   direction-aware disclosure indicator and optional value without adding row
   padding. `SettingsSectionGroup` owns those insets; do not nest a separately
@@ -109,7 +169,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   alpha. The texture is created only when a card needs it, its longest edge is
   capped at 480 pixels, and it is rebuilt only for palette or viewport size
   changes. Scrolling updates each background's sampling rectangle, not its
-  texture or foreground content. Native focus,
+  texture or foreground content. `settingsPageBackground()` provides the same
+  page-aligned texture to Settings' focusable information cards, without the
+  detail page's darker information band. Nested workspace pages inherit that
+  background instead of painting another gradient. Native focus,
   clipping and text remain TVUIKit-owned.
   Text stays opaque and native focus geometry is unchanged. Gradient Off or
   Reduce Transparency restores both the solid band and solid card fills.
@@ -178,6 +241,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Custom value menus use `SettingsMenuLabel` to show
   the selected value with up/down chevrons, matching editable pickers rather
   than read-only `LabeledContent`. Navigation keeps its right-facing chevron.
+  Unavailable settings use a natively disabled control with a short explanation.
+  Share-only streaming quality shows a disabled **Original quality** picker with
+  **Unavailable for network shares.** beneath it; saved server-quality preferences
+  are left untouched. Compatible-server quality menus remain enabled.
   A visual group occupies one native List cell; automatic
   pickers can promote their menu to that whole cell and intercept neighboring
   navigation links or controls. Keep picker activation local without replacing

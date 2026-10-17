@@ -741,6 +741,9 @@ public struct PlexHomeUserBinding: Codable, Hashable, Sendable {
     public var name: String
     public var avatarURL: String?
     public var requiresPIN: Bool?
+    /// Older clients could infer PIN removal from a token-only switch response.
+    /// A missing marker requires revalidation before treating a binding as unprotected.
+    public var pinRequirementVerified: Bool?
     /// Whether this is a **managed** Plex Home user — one created inside someone
     /// else's Plex account, with no email or login of its own.
     ///
@@ -760,12 +763,14 @@ public struct PlexHomeUserBinding: Codable, Hashable, Sendable {
         name: String,
         avatarURL: String? = nil,
         requiresPIN: Bool? = nil,
-        isManaged: Bool? = nil
+        isManaged: Bool? = nil,
+        pinRequirementVerified: Bool? = true
     ) {
         self.homeUserID = homeUserID
         self.name = name
         self.avatarURL = avatarURL
         self.requiresPIN = requiresPIN
+        self.pinRequirementVerified = pinRequirementVerified
         self.isManaged = isManaged
     }
 }
@@ -806,7 +811,8 @@ extension Profile {
             homeUserID: id,
             name: plexHomeUserName ?? "",
             avatarURL: plexHomeUserAvatarURL,
-            requiresPIN: plexHomeUserRequiresPIN
+            requiresPIN: plexHomeUserRequiresPIN,
+            pinRequirementVerified: nil
         )
     }
 
@@ -828,7 +834,8 @@ extension Profile {
                 homeUserID: legacyID,
                 name: copy.plexHomeUserName ?? "",
                 avatarURL: copy.plexHomeUserAvatarURL,
-                requiresPIN: copy.plexHomeUserRequiresPIN
+                requiresPIN: copy.plexHomeUserRequiresPIN,
+                pinRequirementVerified: nil
             )
         }
         if let binding {

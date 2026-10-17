@@ -182,6 +182,9 @@ final class ServerToggleTests: XCTestCase {
             state.plexHomeUsers.plexHomeUserSwitch = { homeUserID, _, _, _ in
                 "account-token-\(homeUserID)"
             }
+            state.plexHomeUsers.plexHomeUsersFetch = { _, _ in
+                ["child-a", "child-b"].map { PlexHomeUser(id: $0, name: $0, requiresPIN: false) }
+            }
             state.plexHomeUsers.plexServerTokenResolve = { _, userToken, _ in
                 "server-\(userToken)"
             }
