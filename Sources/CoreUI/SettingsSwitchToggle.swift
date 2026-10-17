@@ -8,6 +8,7 @@ import SwiftUI
 /// consistent. iOS/iPadOS use the native switch without custom geometry or colors.
 /// tvOS uses its native On/Off presentation with the shared settings row style.
 public struct SettingsSwitchToggleStyle: ToggleStyle {
+    @Environment(\.settingsFormRowsFlushLeading) private var groupFlushLeading
     /// When false the row does NOT pull its leading edge outward — pass this
     /// inside a bordered card so the focus card nests concentrically instead of
     /// hugging the card's border. Default true (flush-left, for the borderless
@@ -28,7 +29,7 @@ public struct SettingsSwitchToggleStyle: ToggleStyle {
             .toggleStyle(.automatic)
             .font(SettingsRowMetrics.titleFont)
             .buttonStyle(SettingsFormButtonStyle())
-            .padding(.leading, flushLeading ? -SettingsRowMetrics.horizontalPadding : 0)
+            .padding(.leading, flushLeading && groupFlushLeading ? -SettingsRowMetrics.horizontalPadding : 0)
         #endif
     }
 }
@@ -46,6 +47,7 @@ public struct FocusGatedSwitch: View {
     private let title: LocalizedStringResource
     @Binding private var isOn: Bool
     private let canFocus: Bool
+    @Environment(\.settingsFormRowsFlushLeading) private var flushLeading
     private var hInset: CGFloat { SettingsRowMetrics.horizontalPadding }
 
     public init(_ title: LocalizedStringResource, isOn: Binding<Bool>, canFocus: Bool = true) {
@@ -74,7 +76,7 @@ public struct FocusGatedSwitch: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(SettingsFocusButtonStyle())
-        .padding(.leading, -hInset)
+        .padding(.leading, flushLeading ? -hInset : 0)
         // Custom button style ignores `\.isEnabled`, so disabling only removes it
         // from the focus order — no dimming.
         .disabled(!canFocus)
@@ -95,6 +97,7 @@ public struct SettingsSwitchButton<Label: View>: View {
     private let flushLeading: Bool
     private let action: () -> Void
     @ViewBuilder private let label: () -> Label
+    @Environment(\.settingsFormRowsFlushLeading) private var groupFlushLeading
     private var hInset: CGFloat { SettingsRowMetrics.horizontalPadding }
 
     public init(
@@ -124,7 +127,7 @@ public struct SettingsSwitchButton<Label: View>: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(SettingsFocusButtonStyle())
-        .padding(.leading, flushLeading ? -hInset : 0)
+        .padding(.leading, flushLeading && groupFlushLeading ? -hInset : 0)
     }
 }
 

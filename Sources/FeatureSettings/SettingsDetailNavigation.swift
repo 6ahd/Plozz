@@ -16,7 +16,7 @@ final class SettingsDetailNavigation {
         transitionGeneration += 1
         self.pageID = pageID
         awaitingFocus = true
-        withAnimation(animated ? .easeInOut(duration: 0.2) : nil) {
+        withAnimation(animated ? SettingsPageMotion.animation : nil) {
             isPresented = true
         }
     }
@@ -25,7 +25,7 @@ final class SettingsDetailNavigation {
         transitionGeneration += 1
         let generation = transitionGeneration
         awaitingFocus = true
-        withAnimation(animated ? .easeInOut(duration: 0.2) : nil, completionCriteria: .removed) {
+        withAnimation(animated ? SettingsPageMotion.animation : nil, completionCriteria: .removed) {
             isPresented = false
         } completion: {
             guard self.transitionGeneration == generation else { return }
@@ -44,7 +44,7 @@ final class SettingsDetailNavigation {
     }
 }
 
-/// A retained settings page and its child share one clipped, directional slide.
+/// A retained settings page and its child share the workspace's directional fade.
 struct SettingsDetailPages<Root: View, Detail: View>: View {
     let navigation: SettingsDetailNavigation
     @ViewBuilder var root: () -> Root
@@ -64,11 +64,11 @@ struct SettingsDetailPages<Root: View, Detail: View>: View {
                     .allowsHitTesting(!navigation.isPresented)
                     .accessibilityHidden(navigation.isPresented)
                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-                    .offset(x: navigation.isPresented ? -geometry.size.width : 0)
+                    .settingsPageVisibility(!navigation.isPresented)
                 if navigation.isPresented {
                     detail()
                         .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-                        .transition(.move(edge: .trailing))
+                        .transition(reduceMotion ? .identity : SettingsPageMotion.transition(edge: .trailing))
                         #if os(tvOS)
                         .onExitCommand {
                             navigation.pop(animated: !reduceMotion)
@@ -123,9 +123,10 @@ struct SettingsDetailLink<Destination: View, Label: View>: View {
                 }
                 #endif
             } else {
-                NavigationLink(destination: destination, label: label)
+                SettingsPageLink(destination: destination, label: label)
                     .focused($isFocused)
             }
+
         }
         #if !os(tvOS)
         .onChange(of: isFocused) { _, focused in
@@ -143,6 +144,41 @@ struct SettingsDetailLink<Destination: View, Label: View>: View {
                 #endif
             }
         }
+    }
+}
+
+struct SettingsRouteLink<Label: View>: View {
+    let value: SettingsRoute
+    let label: Label
+    #if os(tvOS)
+    @Environment(SettingsNavigationModel.self) private var navigation: SettingsNavigationModel?
+    @Environment(\.settingsPageContext) private var pageContext
+    #endif
+
+    init(value: SettingsRoute, @ViewBuilder label: () -> Label) {
+        self.value = value
+        self.label = label()
+    }
+
+    var body: some View {
+        #if os(tvOS)
+        if let navigation, pageContext != nil {
+            SettingsPageActionLink { source in
+                navigation.pages.push(value, sourceID: source)
+            } label: { label }
+        } else {
+            NavigationLink(value: value) { label }
+        }
+        #else
+        NavigationLink(value: value) { label }
+        #endif
+    }
+}
+
+extension SettingsRouteLink where Label == Text {
+    init(_ title: LocalizedStringKey, value: SettingsRoute) {
+        self.value = value
+        self.label = Text(title)
     }
 }
 

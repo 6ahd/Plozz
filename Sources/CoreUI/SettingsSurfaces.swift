@@ -5,17 +5,114 @@ public struct SettingsPageBackground: View {
     @Environment(\.themePalette) private var palette
     @Environment(\.gradientBackgroundsEnabled) private var gradientEnabled
     @Environment(\.plozzDialogBackgroundOwned) private var dialogBackgroundOwned
+    #if os(tvOS)
+    @Environment(\.settingsGradientCardSurface) private var cardSurface
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.settingsInWorkspace) private var inWorkspace
+    #endif
 
     public init() {}
 
     public var body: some View {
-        if dialogBackgroundOwned {
+        if inheritsBackground {
             Color.clear
         } else if gradientEnabled {
             AmbientGradientBackground(palette: palette)
+                #if os(tvOS)
+                .background {
+                    if let cardSurface {
+                        NativeGradientViewport(
+                            surface: cardSurface,
+                            style: .init(
+                                colors: AmbientGradientBackground.meshColors(tint: nil, palette: palette),
+                                palette: palette,
+                                informationSurfaceOpacity: 0
+                            ),
+                            reduceMotion: reduceMotion
+                        )
+                        .ignoresSafeArea()
+                    }
+                }
+                #endif
         } else {
             palette.settingsBackground.ignoresSafeArea()
         }
+    }
+
+    private var inheritsBackground: Bool {
+        #if os(tvOS)
+        dialogBackgroundOwned || inWorkspace
+        #else
+        dialogBackgroundOwned
+        #endif
+    }
+}
+
+#if os(tvOS)
+private struct SettingsWorkspaceKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct SettingsPageBackButtonKey: EnvironmentKey {
+    static let defaultValue: AnyView? = nil
+}
+
+public extension EnvironmentValues {
+    var settingsInWorkspace: Bool {
+        get { self[SettingsWorkspaceKey.self] }
+        set { self[SettingsWorkspaceKey.self] = newValue }
+    }
+
+    /// The navigation owner supplies its focus-aware Back control; the page hosts it inside its scroll content.
+    var settingsPageBackButton: AnyView? {
+        get { self[SettingsPageBackButtonKey.self] }
+        set { self[SettingsPageBackButtonKey.self] = newValue }
+    }
+}
+
+private struct SettingsGradientCardSurfaceKey: EnvironmentKey {
+    static let defaultValue: NativeGradientCardSurface? = nil
+}
+
+extension EnvironmentValues {
+    var settingsGradientCardSurface: NativeGradientCardSurface? {
+        get { self[SettingsGradientCardSurfaceKey.self] }
+        set { self[SettingsGradientCardSurfaceKey.self] = newValue }
+    }
+}
+#endif
+
+public struct SettingsPageBackButton: View {
+    #if os(tvOS)
+    @Environment(\.settingsPageBackButton) private var backButton
+    #endif
+
+    public init() {}
+
+    public var body: some View {
+        #if os(tvOS)
+        if let backButton {
+            backButton
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .focusSection()
+        }
+        #else
+        EmptyView()
+        #endif
+    }
+}
+
+private struct SettingsPageBackgroundModifier: ViewModifier {
+    #if os(tvOS)
+    @State private var cardSurface = NativeGradientCardSurface()
+    #endif
+
+    func body(content: Content) -> some View {
+        content
+            .background { SettingsPageBackground() }
+            #if os(tvOS)
+            .environment(\.settingsGradientCardSurface, cardSurface)
+            #endif
     }
 }
 
@@ -120,6 +217,11 @@ private struct SettingsGroupSurface: ViewModifier {
 }
 
 public extension View {
+    /// Shares the Settings backdrop with native cards' page-aligned surface.
+    func settingsPageBackground() -> some View {
+        modifier(SettingsPageBackgroundModifier())
+    }
+
     /// Paints an elevated surface behind this view at the given rung, using the
     /// palette's shared elevation table.
     func plozzSurface(_ level: SurfaceLevel, cornerRadius: CGFloat) -> some View {

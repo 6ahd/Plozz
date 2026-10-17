@@ -108,6 +108,7 @@ struct PlozziOSHomeView: View {
     /// direct instruction from the viewer, so the carousel restarts from the fresh
     /// curation instead of folding into the old one.
     @State private var heroCuratedConfiguration: HeroConfigurationKey?
+    @State private var heroCompletedLoadKey: HeroCurationLoadKey?
     @State private var heroCuratedDisabledLibraryKeys: Set<String> = []
     /// How many consecutive curations have failed to offer each retained title,
     /// so a deleted or un-watchlisted one eventually leaves. See `HeroLiveMerge`.
@@ -205,7 +206,10 @@ struct PlozziOSHomeView: View {
                 // placeholders occupy the same geometry the real rows will, so
                 // content swaps in without the page reflowing.
                 PlozziOSHomeSkeletonScreen(
-                    heroActive: appModel.settings.hero.effectiveSettings.isActive,
+                    heroActive: HomeHeroSlotState.resolve(
+                        settings: appModel.settings.hero.effectiveSettings,
+                        hasItems: false, recomputeComplete: false
+                    ) != .hidden,
                     showsPosterCaptions: appModel.settings.cardStyle.captions.showsLabels(in: .home)
                 )
             case .empty:
@@ -437,6 +441,23 @@ struct PlozziOSHomeView: View {
             heroItems, settings: settings, watchMutations: [],
             sourceEligibility: sourceEligibility
         )
+        let heroLoadKey = HeroCurationLoadKey(
+            content: heroContent,
+            settings: settings,
+            visibility: visibility.visibility,
+            freshnessRevision: heroFreshnessRefresh.revision,
+            identityIndexRevision: discoveryIdentityRevision,
+            watchlistMembershipRevision: watchlistIntentRevision,
+            scopeID: ObjectIdentifier(viewModel),
+            seerRevision: appModel.seerService.connectionRevision
+        )
+        let heroConfigurationMatches = heroCuratedConfiguration == HeroConfigurationKey(settings: settings)
+            && heroCuratedDisabledLibraryKeys == visibility.visibility.disabledKeys
+        let heroSlotState = HomeHeroSlotState.resolve(
+            settings: settings,
+            hasItems: heroConfigurationMatches && !displayHeroItems.isEmpty,
+            recomputeComplete: heroCompletedLoadKey == heroLoadKey
+        )
         let rows = HomeRow.rows(
             for: content,
             isLibraryVisible: visibility.isVisibleOnHome,
@@ -456,22 +477,17 @@ struct PlozziOSHomeView: View {
             dynamicTypeSize: dynamicTypeSize,
             containerHeight: heroContainerHeight
         ) / 2
-        let scroll = PlozziOSHomeScrollView(heroActive: settings.isActive) {
+        let scroll = PlozziOSHomeScrollView(heroActive: heroSlotState != .hidden) {
             // Retire a carousel the viewer's own settings just invalidated
             // WITHOUT waiting for the async re-curation, exactly as tvOS's
             // `HomeHeroDisplayResolver` does. Otherwise sources they just
             // switched off keep rendering for the whole refresh.
-            let heroConfiguration = HeroConfigurationKey(
-                settings: appModel.settings.hero.effectiveSettings
-            )
-            if displayHeroItems.isEmpty || heroCuratedConfiguration != heroConfiguration
-                || heroCuratedDisabledLibraryKeys != visibility.visibility.disabledKeys
-            {
-                // Reserve the hero's height while it resolves, so the rows
-                // below don't get shoved down when it lands (tvOS has had
-                // HomeHeroSkeletonView for this).
+            switch heroSlotState {
+            case .hidden:
+                EmptyView()
+            case .placeholder:
                 PlozziOSHomeHeroSkeleton(style: heroStyle)
-            } else {
+            case .content:
                 PlozziOSHomeHeroCarousel(
                     items: displayHeroItems,
                     autoAdvance: appModel.settings.hero.effectiveSettings.autoAdvance,
@@ -600,19 +616,10 @@ struct PlozziOSHomeView: View {
             } action: { _, pullDistance in
                 heroPullModel.update(pullDistance)
             }
-            .task(
-                id: HeroCurationLoadKey(
-                    content: heroContent,
-                    settings: appModel.settings.hero.effectiveSettings,
-                    visibility: appModel.settings.homeVisibility.visibility,
-                    freshnessRevision: heroFreshnessRefresh.revision,
-                    identityIndexRevision: discoveryIdentityRevision,
-                    watchlistMembershipRevision: watchlistIntentRevision,
-                    scopeID: ObjectIdentifier(viewModel),
-                    seerRevision: appModel.seerService.connectionRevision
-                )
-            ) {
+            .task(id: heroLoadKey) {
                 await loadHero(from: heroContent)
+                guard !Task.isCancelled else { return }
+                heroCompletedLoadKey = heroLoadKey
             }
     }
 
@@ -988,6 +995,7 @@ struct PlozziOSHomeView: View {
         heroCandidatePool = .empty
         heroPinnedItemIDs = []
         heroRetainedMisses = [:]
+        heroCompletedLoadKey = nil
         featuredItems = []
         featuredConfiguration = nil
         featuredDisabledLibraryKeys = []

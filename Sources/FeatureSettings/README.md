@@ -1,5 +1,9 @@
 # FeatureSettings
 
+Mobile customization lists apply the shared native switch style to both standard
+sections and grouped cards. Enabled switches keep the system green appearance
+instead of inheriting the page's monochrome navigation tint.
+
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
@@ -16,6 +20,27 @@ and the single place caption customization lives.
   active playback grants; unrelated sign-ins retain their providers. Address
   changes apply to subsequent work, not seamless migration of an active stream.
   Network-share aliases are a separate feature.
+- `ProfileSettingsCategory` in CoreUI owns the cross-platform profile category
+  order, names, icons, and summaries: Playback, Subtitles, Live TV, Libraries,
+  Appearance, Screens & Navigation, Trackers, Language. iPhone and compact iPad
+  use native push navigation; regular-width iPad uses a sidebar and detail stack.
+  Both mobile layouts share their category section and destinations. Appearance
+  groups Theme, Cards, Artwork, Spoiler Protection, and Circadian Mode; Display
+  Size is last inside Cards. Screens & Navigation groups Customize Home,
+  Navigation, and Detail Page; Music Player remains TV-only because mobile does
+  not implement those presentation choices. Mobile navigation editing still
+  excludes unsupported individual library tabs and Music/All Libraries entries.
+  Everyone uses the TV order, with mobile-only Downloads last. Version/build,
+  release notes, and community links are inline on both mobile root layouts.
+  Mobile Community uses standard-height, single-line Discord and GitHub links
+  with small brand icons, without subtitles or QR codes. TV keeps its scannable
+  community cards.
+  Kids-profile gates and profile/household storage ownership are unchanged.
+  `SettingsLibrarySourcesSummary` shares configured source grouping and profile
+  inclusion with TV. Mobile keeps the source icons/names on one horizontal line,
+  showing up to three names when they fit and counting the rest in `+N more`.
+  Narrow sidebars and larger text show fewer names; an oversized first name
+  truncates beside a compact `+N` count rather than wrapping or hiding the count.
 - `PlaybackReadAheadControl` — Playback's device-local **Video buffer**
   uses the shared checkable option list on TV and a native menu picker on mobile,
   including share-only profiles. Automatic, 1 minute, 5 minutes, 10 minutes and
@@ -35,7 +60,10 @@ and the single place caption customization lives.
   Discovery options use the shared `ViewPreferenceChoiceGroup` with the source
   they configure, so a source toggle and its links form one visual group.
   TV forms share row/section spacing and contained, concentric focus geometry;
-  inline steppers use the same row height and align to the trailing value column.
+  steppers focus the whole labeled row, with visible minus/plus cues and
+  Left/Right adjustment. Values stay aligned to the trailing column.
+  `SettingsControlRows` separates controls sharing a container, keeping each
+  helper with its control and omitting the divider after the last visible row.
   Hero copy uses **content** for the overall selection and **item** for one entry,
   rather than calling entries titles. **Advance automatically** and its conditional
   **Seconds per item** control share a group without a redundant section heading.
@@ -59,10 +87,104 @@ and the single place caption customization lives.
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing
   its watched/unwatched style.
-- `SettingsView` — the root focused list (themes, profiles, servers &
-  libraries, integrations, captions, about). `SettingsRowStyle` &
-  `SettingsContext` provide the shared look + the environment needed by
-  every detail page.
+- `SettingsView` / `SettingsWorkspace` — tvOS shows one centered page at a time.
+  The root contains profile identity and the category list, without a preview pane.
+  Categories and ordinary descendants share `SettingsFormMetrics.pageWidth`;
+  entering and returning fades between those equally sized pages with a short
+  directional movement, without resizing or sliding across the screen.
+  Back from a category restores its selected row and retained scroll position;
+  Back from a child returns one page. Playback initially owns focus, not a second pane.
+  The avatar/name switches profiles; the adjacent
+  Edit action uses the same `ProfileActionsList` as the profile picker.
+  Profile and Everyone headers share title weight/size, icon width, label gap
+  and content insets so their icons and names align. Everyone's scope glyph sits
+  inside a circle the same size as the profile avatar. The separators beneath
+  these two headers span the full card; category-row separators stay text-aligned.
+  `SettingsFormLayout` groups related controls into one vertical form, retaining
+  child pages for longer editors. Single-control preferences such as Language
+  use one compact label-and-control row without an extra heading or explanatory
+  paragraphs. Language is a native menu directly on the root, after Trackers,
+  showing the current selection. A translation-feedback QR dialog remains
+  available from that menu for non-English languages and restores focus on dismissal. It shares the category
+  focus/return behavior without opening an intermediate General page.
+  `SettingsMenuRow` gives app/audio/subtitle language, subtitle download policy,
+  and Circadian location the same whole-row focus and native menu presentation.
+  A setting's label and current value form one control, not a detached value pill.
+  Appearance contains Theme (including gradient backgrounds and Liquid Glass),
+  Cards (with Display Size last), Artwork, Spoiler Protection and Circadian Mode.
+  Screens & Navigation contains Customize Home, Navigation, Detail Page and
+  Music Player. Moving these controls does not change their profile-scoped stores.
+  Playback groups
+  audio, autoplay/Up Next, marker skipping, seeking and display fades.
+  Marker skipping is inline on the Playback page: the shared mode, per-kind
+  overrides and community-marker switch do not require opening another page.
+  Subtitles is its own profile category for mode, the shared/Live TV style
+  editors, language, downloading and per-series memory; downloading still
+  follows the active profile's provider capabilities.
+  Both subtitle-style editors deliberately use the full workspace for their large
+  live preview; this is the only width exception. The shared
+  `SettingsPageStack` retains parents and owns typed routes, local child pages,
+  and Back, including IPTV and profile editors. All use the same directional
+  420ms eased fade and 64pt travel as the subtitle editor's internal panels.
+  Reduce Motion changes the layout without animation.
+  The incoming and outgoing style destination always lays out at the final
+  workspace width; the navigation viewport reveals it without resizing the preview.
+  Hidden or focus-ineligible categories also stop observing native focus, so
+  an editor control cannot be mistaken for a category during the transition.
+  The navigation history and profile context remain intact, including
+  inside the editor's font and appearance subpages.
+  Libraries, Live TV and Trackers remain profile-owned. Household setup is
+  separate under Everyone. Beneath Libraries, the original signed-in strip shows
+  the names and provider icons of the added sources this profile watches, grouped
+  by server like the detail page. It shows up to three, then a "+N more" count.
+  These are configured source names, not discovered sections such as Movies or
+  Music, so they remain visible before discovery or while a server is offline.
+  Profile categories start with Playback, Subtitles,
+  Live TV and Libraries, then Appearance, Screens & Navigation, Trackers and Language.
+  Appearance, Screens & Navigation and Trackers retain concise explanatory subtitles.
+  Artwork remains profile-owned; Metadata Providers remains shared under Everyone.
+  Kids profiles retain their existing parental authorization and household restrictions.
+  About is a compact
+  root summary with version/build, release notes and community QR codes; credits,
+  Help & Diagnostics and the adult-only sign-out action follow in one group.
+  `SettingsRowStyle` and `SettingsContext` provide shared controls and dependencies.
+  The navigation viewport extends through the vertical safe area, keeping
+  the initial top inset inside its scrollable content instead of clipping pages
+  at that inset. Segmented choices share the body-sized control font; explanatory
+  copy uses the smaller shared helper style.
+  `SettingsFormMetrics` in CoreUI owns the centered page width, page insets, group padding and the gaps
+  between sections, controls and related content, using `PlozzTheme.Spacing`.
+  A legacy split-pane gap must not become large empty space between controls
+  inside a workspace form. The navigation owner supplies a focus-aware Back
+  control through `settingsPageBackButton`; page headers and custom editors
+  host it inside ordinary pages' scrolling content. `SettingsBackButton` selects
+  the same native style everywhere, and `SettingsPageHeader` places the title to
+  its right, including Customize by view. Full-screen subtitle
+  customization is the explicit exception: Back sits beside the stationary title,
+  and only the bounded left tool pane scrolls beside the large preview.
+  Preview controls below the pane expand on focus, smoothly reducing the pane's
+  available height instead of scrolling the whole page. There is no redundant
+  Appearance heading.
+  Standalone page links use matching 28pt idle/focus corners and compact 8pt gaps.
+  Controls within sections use inset rounded focus geometry instead. The shared
+  `SettingsControlGroup` supplies section surfaces, row separators and insets;
+  `SettingsDetailGroup` uses it for Cards and other multi-group pages. A row marked
+  `groupedContent()` already owns its groups and must not gain another outer box.
+  `ViewCustomizationList.hasGroupedContent` preserves the same boundary for
+  editors such as Hero's source groups instead of adding a second container.
+  Illustrated groups use 16pt padding on every side and a 16pt gap without a
+  divider between previews and controls, including Theme, Cards and Navigation.
+  Ordinary form groups share that 16pt inset and a concentric 12pt focus radius.
+  Illustrated cards derive their outer chrome from the same contained radius and
+  do not scale through the inset on focus; standalone/onboarding cards are unchanged.
+  Group headings, compact labels, toggle/stepper labels, helper copy and ordinary
+  separators use one 28pt leading text keyline. Static copy inherits its inset
+  from the group; already-padded control labels consume it instead of doubling it.
+  `illustratedContent()` selects that layout for single-group form rows. Ordinary
+  row separators leave 8pt clear of focus on each side; root category separators
+  align with the labels rather than extending under their icons.
+  Compact About community cards keep their QR codes beside wrapping captions and
+  share one equal-height row; mobile and expanded community layouts are unchanged.
 - **iCloud Sync > Troubleshooting** remains reachable with sync off. The grouped
   breakdown is an on-demand local-ledger snapshot of encoded payload bytes and
   record counts, not an iCloud quota or network-usage measurement. Pending uploads
@@ -87,8 +209,14 @@ and the single place caption customization lives.
   switch / sign out of accounts, configure the Plex Home-user mapping
   (`PlexLinkedUserDetailView`).
 - `ServerDetailView` + `ServersAndLibrariesDetailView` — manage stored
-  servers / accounts (`AccountStore`), pick which Jellyfin libraries the
-  current profile includes, remove accounts.
+  household servers / accounts (`AccountStore`) and remove accounts.
+  `MyLibrariesDetailView` owns the active profile's server-user and library choices.
+  On TV, each enabled media-share section shows its own compact update phase,
+  progress bar and known percentage. Only accounts included in the current
+  profile contribute; idle, excluded and removed shares show no status. Progress
+  observation stays in that small row, not the Settings workspace. Other Settings
+  categories no longer carry a global scan card; mobile and browsing banners
+  retain their existing behavior.
 - `IntegrationsDetailView` — "Trackers" page: connect/disconnect for Trakt,
   Simkl, AniList & MyAnimeList (delegates to each tracker service) plus the
   Watch Status across-servers sync toggle.
@@ -152,6 +280,35 @@ and the single place caption customization lives.
   `python3 -c "import cairosvg; cairosvg.svg2pdf(url='docs/assets/discord-mark.svg', write_to='App/Resources/CommunityAssets.xcassets/DiscordMark.imageset/discord_mark.pdf')"`.
 
 ## Invariants
+
+- **Settings surfaces.** Read-only focusable panels use the same adaptive
+  gradient surface as ordinary groups, including the opaque Reduce Transparency
+  fallback. Their native focus behavior stays unchanged.
+- **TV navigation ownership.** Focusing a category selects its row; Select
+  or Right opens the equally sized category page.
+  Back pops a child, then returns to categories, then leaves Settings for the
+  previous available app destination. MainTabView presents the workspace outside
+  the navigation-style shell, retaining the hidden shell while excluding it from
+  focus and accessibility. This prevents native sidebar adaptation from resizing
+  the Settings page. Changing navigation style retains
+  the Settings section and typed child path; all three styles restore on exit.
+  Focus requests are separate from native focus arrival: competing controls stay
+  gated until `NativeFocusRegionObserver` confirms ownership.
+- **Profile and parental scope.** Switching profile or changing Kids/PIN status
+  resets the workspace. Parental unlock proof is tied to the active profile and
+  current PIN verifier, not a persistent boolean. Route rendering enforces the
+  same restrictions as category visibility, including artwork/metadata cross-links.
+  A PIN unlock opens the selected protected pane in place; it must not dismiss
+  Settings. Kids without a household PIN retain their simplified, unsealed setup.
+  Mobile keeps its existing Settings navigation and control layouts.
+- **Review capture.** `SettingsWorkspaceRemoteTests` is opt-in through
+  `PLOZZ_SETTINGS_REVIEW=1` and runs only against the real app on an explicitly
+  owned simulator. The DEBUG-only `PLOZZ_SHOTS_SETTINGS=1` launch fixture uses
+  fictional Alex/Sam profiles. `PLOZZ_SHOTS_SETTINGS_NAVIGATION` chooses the
+  initial navigation style; `PLOZZ_SHOTS_SETTINGS_KIDS` configures the test child
+  as `off`, `no-pin`, or `pin`. These fixtures are never enabled on physical TVs
+  or normal launches. Attachments include native screenshots and accessibility
+  trees, not browser mockups.
 
 - **Shared TV control scale.** Tri-state segments, reorder labels, compact preview-card
   captions, and form controls use `SettingsRowMetrics.titleFont`. Feature and group

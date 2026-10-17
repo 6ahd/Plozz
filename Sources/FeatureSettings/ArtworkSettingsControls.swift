@@ -19,7 +19,7 @@ public struct ArtworkSettingsControls: View {
             Text("Choose the posters, backgrounds, and logos you see.")
                 .settingsHelperText()
             ArtworkPresetPicker(settings: $cards.artwork)
-            customizationLink
+            SettingsControlGroup { customizationLink }
         }
         #else
         Section {
@@ -117,8 +117,6 @@ struct ArtworkCustomizationView: View {
             Text(title)
                 #if os(tvOS)
                 .settingsSectionHeader()
-                .padding(.top, 20)
-                .padding(.bottom, 6)
                 #endif
         }
     }

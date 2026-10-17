@@ -186,22 +186,35 @@ private struct ThemeCardButtonBody: View {
     let isSelected: Bool
     let cornerRadius: CGFloat
     @Environment(\.isFocused) private var isFocused
+    @Environment(\.settingsFormTextInset) private var textInset
+
+    private var isContained: Bool {
+        #if os(tvOS)
+        textInset > 0
+        #else
+        false
+        #endif
+    }
+
+    private var corner: CGFloat {
+        isContained ? SettingsRowMetrics.formRowCornerRadius : cornerRadius
+    }
 
     var body: some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
                     .fill(.ultraThinMaterial)
                     .overlay(
                         // Accent wash marks the ACTIVE theme so selection reads
                         // at a glance, even when another card is focused.
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        RoundedRectangle(cornerRadius: corner, style: .continuous)
                             .fill(accent.opacity(isSelected ? 0.22 : 0))
                     )
             )
             // Resting border: a soft accent ring when selected, else a hairline.
             .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
                     .strokeBorder(
                         isSelected ? accent.opacity(0.7) : Color.primary.opacity(0.08),
                         lineWidth: isSelected ? 2 : 1
@@ -209,12 +222,12 @@ private struct ThemeCardButtonBody: View {
             )
             // Focus outline (accent), shown only when focused.
             .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
                     .strokeBorder(accent, lineWidth: 4)
                     .opacity(isFocused ? 1 : 0)
             )
             .shadow(color: .black.opacity(isFocused ? 0.28 : 0), radius: isFocused ? 14 : 0, y: isFocused ? 6 : 0)
-            .scaleEffect(isFocused ? 1.01 : 1)
+            .scaleEffect(isFocused && !isContained ? 1.01 : 1)
             .animation(.easeOut(duration: 0.16), value: isFocused)
             .animation(.easeOut(duration: 0.16), value: isSelected)
     }

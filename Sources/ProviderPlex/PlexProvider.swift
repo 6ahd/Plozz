@@ -1415,6 +1415,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
                 isInterlaced: Self.isInterlacedVideo(v),
                 width: v.width,
                 height: v.height,
+                bitDepth: v.bitDepth,
                 bitrate: bps(fromKbps: v.bitrate),
                 frameRate: v.frameRate,
                 videoRange: videoRangeToken(for: rangeType),
@@ -1435,7 +1436,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
                 channelLayout: a.audioChannelLayout,
                 sampleRate: a.samplingRate,
                 bitrate: bps(fromKbps: a.bitrate),
-                language: a.languageTag ?? a.language
+                language: a.languageTag ?? a.languageCode ?? a.language
             )
         }
         let subtitleStream = subtitle.map { s in
@@ -1452,7 +1453,9 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
             fileName: fileName,
             video: videoStream,
             audio: audioStream,
-            subtitle: subtitleStream
+            subtitle: subtitleStream,
+            audioLanguages: streams.filter { $0.streamType == 2 }
+                .compactMap { $0.languageTag ?? $0.languageCode ?? $0.language }
         )
         return metadata.isEmpty ? nil : metadata
     }
@@ -2199,7 +2202,8 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
     static func versions(from media: [PlexMedia]?, edition: String? = nil) -> [MediaVersion] {
         guard let media, media.count > 1 else { return [] }
         return media.enumerated().map { index, m in
-            MediaVersion(
+            let metadata = Self.sourceMetadata(from: m)
+            return MediaVersion(
                 id: m.id.map(String.init) ?? "\(index)",
                 name: Self.releaseName(from: m),
                 fileName: Self.fileName(from: m),
@@ -2211,11 +2215,12 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
                 duration: m.duration.map { TimeInterval($0) / 1_000 },
                 isDefault: index == 0,
                 videoCodec: m.videoCodec,
-                videoRange: nil,
+                videoRange: metadata?.video?.videoRangeType ?? metadata?.video?.videoRange,
                 audioCodec: m.audioCodec,
                 audioChannels: m.audioChannels,
-                audioProfile: nil,
-                container: m.container
+                audioProfile: metadata?.audio?.profile,
+                container: m.container,
+                sourceMetadata: metadata
             )
         }
     }
@@ -2249,10 +2254,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
     }
 
     static func fileName(from media: PlexMedia) -> String? {
-        guard let file = media.Part?.first?.file, !file.isEmpty else { return nil }
-        let base = (file as NSString).lastPathComponent
-        let trimmed = base.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        MediaSourceDisplayName.fileName(from: media.Part?.first?.file)
     }
 
     /// Maps Plex `Guid` values (`imdb://...`, `tmdb://...`, …) into the shared
@@ -2304,6 +2306,10 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
     /// badges. Returns `nil` for containers (shows/seasons) that have no part.
     static func sourceMetadata(from dto: PlexMetadata) -> MediaSourceMetadata? {
         guard let media = bestMedia(from: dto.Media) else { return nil }
+        return sourceMetadata(from: media)
+    }
+
+    static func sourceMetadata(from media: PlexMedia) -> MediaSourceMetadata? {
         let part = media.Part?.first
         let streams = part?.Stream ?? []
         if !streams.isEmpty {
@@ -2312,6 +2318,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
                 streams: streams,
                 mediaAudioProfile: media.audioProfile,
                 mediaVideoDisplayTitle: media.videoStreamDisplayTitle,
+                fileSizeBytes: fileSizeBytes(from: media),
                 fileName: Self.fileName(from: media)
             )
         }

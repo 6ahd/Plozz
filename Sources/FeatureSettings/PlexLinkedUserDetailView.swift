@@ -50,6 +50,7 @@ struct PlexLinkedUserDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                SettingsPageHeader("Plex Home")
                 if let account {
                     let admin = users.first(where: { $0.isAdmin })
                     let managed = users.filter { !$0.isAdmin }

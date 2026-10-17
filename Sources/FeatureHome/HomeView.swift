@@ -1933,26 +1933,6 @@ enum HeroRecomputePolicy {
     }
 }
 
-/// Resolves the Home hero's structural slot independently from its item details.
-/// Loaded rows may be available from disk while async-only hero sources are still
-/// curating; that state must reserve the hero geometry with a placeholder rather
-/// than briefly rendering the classic rows-only layout.
-enum HomeHeroSlotState: Equatable {
-    case hidden
-    case placeholder
-    case content
-
-    static func resolve(
-        isConfigured: Bool,
-        hasItems: Bool,
-        recomputeComplete: Bool
-    ) -> HomeHeroSlotState {
-        guard isConfigured else { return .hidden }
-        if hasItems { return .content }
-        return recomputeComplete ? .hidden : .placeholder
-    }
-}
-
 /// Resolves which hero items to render *this pass* from the retained runtime
 /// snapshot, the current recompute key, and the already-loaded page content —
 /// pulled out of `HomeView.body` so the (non-trivial) branching is unit-testable

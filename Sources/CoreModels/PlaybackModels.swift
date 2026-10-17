@@ -248,6 +248,9 @@ public struct MediaSourceMetadata: Hashable, Sendable, Codable {
     public var video: VideoStream?
     public var audio: AudioStream?
     public var subtitle: SubtitleStream?
+    /// All provider-reported audio languages for this file, not subtitle languages.
+    /// Optional so older cached metadata remains readable.
+    public var audioLanguages: [String]?
 
     public init(
         container: String? = nil,
@@ -256,7 +259,8 @@ public struct MediaSourceMetadata: Hashable, Sendable, Codable {
         sourceRevision: String? = nil,
         video: VideoStream? = nil,
         audio: AudioStream? = nil,
-        subtitle: SubtitleStream? = nil
+        subtitle: SubtitleStream? = nil,
+        audioLanguages: [String]? = nil
     ) {
         self.container = container
         self.fileSizeBytes = fileSizeBytes
@@ -265,6 +269,7 @@ public struct MediaSourceMetadata: Hashable, Sendable, Codable {
         self.video = video
         self.audio = audio
         self.subtitle = subtitle
+        self.audioLanguages = audioLanguages?.isEmpty == false ? audioLanguages : nil
     }
 
     /// True when no useful field was populated (lets callers skip wiring it up).
@@ -276,6 +281,7 @@ public struct MediaSourceMetadata: Hashable, Sendable, Codable {
             && video == nil
             && audio == nil
             && subtitle == nil
+            && audioLanguages?.isEmpty != false
     }
 }
 

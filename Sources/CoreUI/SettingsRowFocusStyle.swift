@@ -4,11 +4,13 @@ import SwiftUI
 /// Size variant for the unified list-row focus style. `.standard` is the
 /// top-level row height; `.prominent` is the taller server-list row that
 /// carries an "In use" badge and needs a larger corner radius / shadow;
-/// `.contained` keeps its highlight inside a shared grouped container.
+/// `.contained` keeps its highlight inside a shared grouped container;
+/// `.navigation` matches the full rounded outline of a standalone page link.
 public enum SettingsRowSize {
     case standard
     case prominent
     case contained
+    case navigation
 }
 
 /// How much weight a list-row *control* carries, and therefore how tall it is.
@@ -26,6 +28,35 @@ public enum SettingsRowProminence {
     case secondary
 }
 
+/// Spacing for settings pages, distinct from the clearance around individual focusable rows.
+public enum SettingsFormMetrics {
+    public static let pageWidth: CGFloat = 960
+    public static let sectionSpacing = PlozzTheme.Spacing.large + PlozzTheme.Spacing.xxSmall
+    public static let controlSpacing = PlozzTheme.Spacing.large
+    public static let relatedControlSpacing = PlozzTheme.Spacing.small
+    public static let navigationRowSpacing = PlozzTheme.Spacing.xSmall
+    public static let groupCornerRadius = PlozzTheme.Metrics.mediumCardCornerRadius
+    public static let dividerFocusClearance = PlozzTheme.Spacing.xSmall
+    public static let illustratedGroupSpacing = PlozzTheme.Spacing.medium
+    public static var groupInset: CGFloat {
+        #if os(tvOS)
+        illustratedGroupSpacing
+        #else
+        PlozzTheme.Spacing.large
+        #endif
+    }
+    public static let pageInset = sectionSpacing
+    public static var headingInset: CGFloat {
+        #if os(tvOS)
+        groupInset + SettingsRowMetrics.horizontalPadding
+        #else
+        PlozzTheme.Spacing.medium
+        #endif
+    }
+    public static let pageTopInset = PlozzTheme.Spacing.xSmall
+    public static let pageBottomInset = PlozzTheme.Spacing.xxxLarge + PlozzTheme.Spacing.small
+}
+
 /// One source of truth for list-row control metrics, so every control at the
 /// same ``SettingsRowProminence`` is the same height and its focus card nests
 /// concentrically. Toggle rows and checkable rows both read these, which is what
@@ -34,6 +65,20 @@ public enum SettingsRowProminence {
 public enum SettingsRowMetrics {
     /// Control labels share the navigation-row size; headings use separate styles.
     public static let titleFont: Font = .body
+    public static var optionFont: Font {
+        #if os(tvOS)
+        titleFont
+        #else
+        .headline
+        #endif
+    }
+    public static var helperFont: Font {
+        #if os(tvOS)
+        descriptionFont
+        #else
+        .callout
+        #endif
+    }
     public static var descriptionFont: Font {
         #if os(tvOS)
         .caption
@@ -45,9 +90,20 @@ public enum SettingsRowMetrics {
 
     public static let formRowSpacing: CGFloat = 8
     public static let formSectionSpacing: CGFloat = 24
-    public static let formGroupInset: CGFloat = 10
+    public static var formGroupInset: CGFloat {
+        #if os(tvOS)
+        SettingsFormMetrics.groupInset
+        #else
+        10
+        #endif
+    }
+    public static let navigationCornerRadius = SettingsFormMetrics.groupCornerRadius
     public static var formRowCornerRadius: CGFloat {
+        #if os(tvOS)
+        SettingsFormMetrics.groupCornerRadius - formGroupInset
+        #else
         PlozzTheme.Metrics.Radius.card - formGroupInset
+        #endif
     }
 
     /// Minimum content height before vertical padding.
@@ -68,6 +124,11 @@ public enum SettingsRowMetrics {
     /// Horizontal content inset — same at both prominences so a secondary child
     /// list stays aligned under its primary master.
     public static let horizontalPadding: CGFloat = 12
+    public static let iconColumnWidth: CGFloat = 30
+    public static let iconTitleSpacing: CGFloat = 16
+    public static var iconTitleInset: CGFloat {
+        horizontalPadding + iconColumnWidth + iconTitleSpacing
+    }
 
     /// The amount a row pulls its leading edge outward to cancel
     /// ``horizontalPadding`` and sit title-flush-left with a pane heading. Rows
@@ -135,6 +196,7 @@ public extension View {
     func settingsFormRowLayout() -> some View {
         #if os(tvOS)
         self
+            .environment(\.settingsFormTextInset, 0)
             .frame(
                 maxWidth: .infinity,
                 minHeight: SettingsRowMetrics.minHeight(.primary),
@@ -144,6 +206,25 @@ public extension View {
             .padding(.vertical, SettingsRowMetrics.verticalPadding(.primary))
         #else
         self
+        #endif
+    }
+
+    /// Static text joins the control-label keyline only inside a grouped form.
+    func settingsFormTextLayout() -> some View {
+        modifier(SettingsFormTextLayout())
+    }
+}
+
+private struct SettingsFormTextLayout: ViewModifier {
+    @Environment(\.settingsFormTextInset) private var inset
+
+    func body(content: Content) -> some View {
+        #if os(tvOS)
+        content
+            .environment(\.settingsFormTextInset, 0)
+            .padding(.horizontal, inset)
+        #else
+        content
         #endif
     }
 }
@@ -215,6 +296,8 @@ public struct SettingsFocusRow<Content: View>: View {
     private let size: SettingsRowSize
     private let content: Content
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.settingsRowsHaveDividers) private var hasDividers
+    @Environment(\.settingsFormTextInset) private var textInset
 
     public init(
         isFocused: Bool, isPressed: Bool = false, size: SettingsRowSize = .standard,
@@ -226,33 +309,37 @@ public struct SettingsFocusRow<Content: View>: View {
         self.content = content()
     }
 
-    // Concentric focus card: the top-level Settings cards use an outer radius
-    // of `mediumCardCornerRadius` (28) with 28pt horizontal / 16pt vertical
-    // content padding. Extending the focus fill outward by 16pt H / 4pt V
-    // leaves a UNIFORM 12pt gap on every side (28−16 = 16−4 = 12), and a focus
-    // corner of 28−12 = 16 makes the fill's corners concentric with the card's.
-    // `.prominent` keeps larger geometry; `.contained` disables the bleed.
+    private var effectiveSize: SettingsRowSize {
+        #if os(tvOS)
+        size == .standard && textInset > 0 ? .contained : size
+        #else
+        size
+        #endif
+    }
+
     private var corner: CGFloat {
-        switch size {
+        switch effectiveSize {
         case .standard: 16
         case .prominent: 18
         case .contained: SettingsRowMetrics.formRowCornerRadius
+        case .navigation: SettingsRowMetrics.navigationCornerRadius
         }
     }
 
     private var focusInsetH: CGFloat {
-        switch size {
+        switch effectiveSize {
         case .standard: 16
         case .prominent: 10
-        case .contained: 0
+        case .contained, .navigation: 0
         }
     }
 
     private var focusInsetV: CGFloat {
-        switch size {
+        if hasDividers { return 0 }
+        return switch effectiveSize {
         case .standard: 4
         case .prominent: 6
-        case .contained: 0
+        case .contained, .navigation: 0
         }
     }
 
@@ -265,6 +352,7 @@ public struct SettingsFocusRow<Content: View>: View {
 
     public var body: some View {
         content
+            .environment(\.settingsFormTextInset, 0)
             .font(SettingsRowMetrics.titleFont)
             // Inject the focused state + the "what color should focused
             // content be?" into the environment so descendants (subtitle,
@@ -310,7 +398,36 @@ private struct SettingsRowFocusForegroundKey: EnvironmentKey {
     static let defaultValue: Color = .white
 }
 
+private struct SettingsFormRowsFlushLeadingKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+private struct SettingsRowsHaveDividersKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct SettingsFormTextInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
 public extension EnvironmentValues {
+    /// Group-relative text and divider inset, consumed by already-padded row labels.
+    var settingsFormTextInset: CGFloat {
+        get { self[SettingsFormTextInsetKey.self] }
+        set { self[SettingsFormTextInsetKey.self] = newValue }
+    }
+
+    /// Contained groups keep the shared row inset; ordinary forms align labels to their gutter.
+    var settingsFormRowsFlushLeading: Bool {
+        get { self[SettingsFormRowsFlushLeadingKey.self] }
+        set { self[SettingsFormRowsFlushLeadingKey.self] = newValue }
+    }
+
+    var settingsRowsHaveDividers: Bool {
+        get { self[SettingsRowsHaveDividersKey.self] }
+        set { self[SettingsRowsHaveDividersKey.self] = newValue }
+    }
+
     var settingsRowIsFocused: Bool {
         get { self[SettingsRowIsFocusedKey.self] }
         set { self[SettingsRowIsFocusedKey.self] = newValue }
@@ -483,6 +600,7 @@ public extension View {
             .textCase(.uppercase)
             .tracking(1.8)
             .plozzForeground(.secondary)
+            .settingsFormTextLayout()
         #else
         font(.subheadline.weight(.bold))
             .textCase(.uppercase)
@@ -494,17 +612,15 @@ public extension View {
     /// L3 — a **feature** description: the intro sentence under the pane's feature
     /// title (e.g. under "Hero"). Readable but secondary.
     func settingsHelperText() -> some View {
-        #if os(tvOS)
-        font(SettingsRowMetrics.descriptionFont).plozzForeground(.secondary)
-        #else
-        font(.callout).plozzForeground(.secondary)
-        #endif
+        font(SettingsRowMetrics.helperFont).plozzForeground(.secondary)
+            .settingsFormTextLayout()
     }
 
     /// L4 — a **section** description: a small, dim note under a section header.
     /// Shares the helper-copy size, with quieter emphasis beneath a group heading.
     func settingsSectionDescription() -> some View {
         font(SettingsRowMetrics.descriptionFont).plozzForeground(.tertiary)
+            .settingsFormTextLayout()
     }
 }
 #endif

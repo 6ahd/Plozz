@@ -452,10 +452,13 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
             audioInfo.profile = audio.profile
             audioInfo.channels = audio.channels
             audioInfo.channelLayout = audio.layout
+            audioInfo.language = audio.language
         }
         return MediaSourceMetadata(
             container: file.container, fileSizeBytes: file.file_size,
-            video: videoInfo, audio: audioInfo)
+            fileName: file.file_name,
+            video: videoInfo, audio: audioInfo,
+            audioLanguages: file.audio_tracks?.compactMap(\.language))
     }
 }
 

@@ -29,6 +29,16 @@ struct PresentationHostApp: App {
             Self.seedSyncBreakdown()
         }
         let model = PlozziOSAppModel()
+        if ProcessInfo.processInfo.arguments.contains("--settings-interaction-fixture") {
+            var profile = model.profiles.activeProfile
+            profile.isKids = ProcessInfo.processInfo.arguments.contains("--kids-settings")
+            model.profiles.update(profile)
+            model.profiles.setParentalPIN(
+                ProcessInfo.processInfo.arguments.contains("--parental-pin")
+                    ? ParentalPIN.make(pin: "1234", iterations: 1) : nil
+            )
+            DeveloperModeModel.shared.disable()
+        }
         model.settings.density.density = .standard
         model.settings.cardStyle.captions = .default
         model.settings.cardStyle.artwork = .default
@@ -343,6 +353,12 @@ private struct SettingsInteractionFixture: View {
                 .tint(ThemePalette.dark.primaryText)
             } else if ProcessInfo.processInfo.arguments.contains("--settings-interaction-fixture") {
                 PlozziOSSettingsView(appModel: appModel, onClose: {}, systemColorScheme: .dark)
+                    .transformEnvironment(\.horizontalSizeClass) { sizeClass in
+                        if ProcessInfo.processInfo.arguments.contains("--compact-settings") {
+                            sizeClass = .compact
+                        }
+                    }
+                    .dynamicTypeSize(ProcessInfo.processInfo.arguments.contains("--large-text") ? .accessibility2 : .large)
             } else {
                 NavigationStack {
                     PlozziOSAppearanceSettingsView(
@@ -351,8 +367,7 @@ private struct SettingsInteractionFixture: View {
                         transparency: appModel.settings.transparency,
                         cardStyle: appModel.settings.cardStyle,
                         density: appModel.settings.density,
-                        watchIndicator: appModel.settings.watchIndicator,
-                        navigation: appModel.settings.navigation
+                        watchIndicator: appModel.settings.watchIndicator
                     )
                 }
             }

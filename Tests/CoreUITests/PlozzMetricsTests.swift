@@ -8,6 +8,8 @@ final class PlozzMetricsTests: XCTestCase {
     func testSettingsControlLabelsUseTheNavigationBodyFont() {
         XCTAssertEqual(SettingsRowMetrics.titleFont, Font.body)
         #if os(tvOS)
+        XCTAssertEqual(SettingsRowMetrics.optionFont, SettingsRowMetrics.titleFont)
+        XCTAssertEqual(SettingsRowMetrics.helperFont, SettingsRowMetrics.descriptionFont)
         XCTAssertEqual(SettingsRowMetrics.descriptionFont, Font.caption)
         #else
         XCTAssertEqual(SettingsRowMetrics.descriptionFont, Font.footnote)
@@ -18,11 +20,29 @@ final class PlozzMetricsTests: XCTestCase {
 
     func testContainedSettingsFocusCornersAreConcentricWithTheirGroup() {
         XCTAssertGreaterThan(SettingsRowMetrics.formGroupInset, 0)
+        #if os(tvOS)
+        let groupRadius = SettingsFormMetrics.groupCornerRadius
+        XCTAssertEqual(SettingsFormMetrics.groupInset, 16)
+        XCTAssertEqual(SettingsRowMetrics.formGroupInset, SettingsFormMetrics.groupInset)
+        XCTAssertEqual(SettingsRowMetrics.formRowCornerRadius, 12)
+        XCTAssertEqual(SettingsFormMetrics.headingInset, 28)
+        #else
+        let groupRadius = PlozzTheme.Metrics.Radius.card
+        #endif
         XCTAssertEqual(
             SettingsRowMetrics.formRowCornerRadius + SettingsRowMetrics.formGroupInset,
-            PlozzTheme.Metrics.Radius.card
+            groupRadius
         )
         XCTAssertGreaterThan(SettingsRowMetrics.formSectionSpacing, SettingsRowMetrics.formRowSpacing)
+    }
+
+    func testStandaloneSettingsLinksKeepTheirRoundedContainerShape() {
+        XCTAssertEqual(SettingsRowMetrics.navigationCornerRadius, SettingsFormMetrics.groupCornerRadius)
+        XCTAssertEqual(SettingsRowMetrics.navigationCornerRadius, 28)
+        XCTAssertEqual(SettingsFormMetrics.navigationRowSpacing, 8)
+        XCTAssertEqual(SettingsFormMetrics.dividerFocusClearance, 8)
+        XCTAssertEqual(SettingsFormMetrics.illustratedGroupSpacing, 16)
+        XCTAssertEqual(SettingsRowMetrics.iconTitleInset, 58)
     }
 
     func testPortraitRowsKeepTheSameVisibleFractionWithEitherNavigation() {

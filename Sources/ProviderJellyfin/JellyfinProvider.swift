@@ -1844,7 +1844,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             sourceRevision: sourceRevision,
             video: videoStream,
             audio: audioStream,
-            subtitle: subtitleStream
+            subtitle: subtitleStream,
+            audioLanguages: streams.filter { $0.`Type` == "Audio" }.compactMap(\.Language)
         )
         return metadata.isEmpty ? nil : metadata
     }
@@ -2312,7 +2313,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 ? defaultStreams ?? []
                 : source.MediaStreams ?? []
             let video = streams.first { $0.`Type` == "Video" }
-            let audio = streams.first { $0.`Type` == "Audio" }
+            let audio = streams.first { $0.`Type` == "Audio" && $0.IsDefault == true }
+                ?? streams.first { $0.`Type` == "Audio" }
             return MediaVersion(
                 id: source.Id ?? "\(index)",
                 name: source.Name,
@@ -2329,15 +2331,19 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 audioCodec: audio?.Codec,
                 audioChannels: audio?.Channels,
                 audioProfile: audio?.Profile,
-                container: source.Container
+                container: source.Container,
+                sourceMetadata: Self.sourceMetadata(
+                    container: source.Container,
+                    streams: streams,
+                    fileSizeBytes: source.Size,
+                    fileName: source.Path.flatMap(Self.fileName(fromPath:))
+                )
             )
         }
     }
 
     private static func fileName(fromPath path: String) -> String? {
-        let base = (path as NSString).lastPathComponent
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return base.isEmpty ? nil : base
+        MediaSourceDisplayName.fileName(from: path)
     }
 
     private static func sourceRevision(

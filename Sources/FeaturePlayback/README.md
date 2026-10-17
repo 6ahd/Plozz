@@ -190,6 +190,23 @@ swipes are not implemented.
 
 ## Mobile playback settings
 
+Before the first multi-version movie or episode, both platforms ask the profile
+to **Ask every time** or **Remember my choice**, using the shared Live TV
+introduction layout. Both answers lead to the version picker for that video.
+Settings > Playback > Version selection can change the mode later; the existing
+profile settings payload carries it through switching, transfer, and cloud sync.
+Unanswered older profiles retain their per-title memories but still see the
+introduction on their first multi-version playback.
+
+`PlaybackVersionChoiceModel` gates player creation and next-episode/playlist
+handoffs. Ask every time includes autoplay. Remember reuses a movie's exact
+file, or matches all known descriptor facts across a series; it does not silently
+substitute a different resolution, range, or cut. Missing matches ask again,
+including when only one fallback remains. Cancelling does not start playback
+or record an unchosen file. In-player version changes and retry/failover do not
+repeat the introduction. Qualified picker IDs still resolve to original
+account/item/file identities before playback.
+
 Mobile Playback settings keep network quality limits on the main page and move
 codec selection and forced transcoding into Advanced. Only unsupported codec
 selections and enabled forced transcoding show brief contextual notices.
@@ -634,6 +651,10 @@ section. The picture itself is non-focusable, so Left/Right stay dedicated to
 adjusting editor values and Down reaches preview controls. Select on the Preview
 header opens an actual full-screen canvas at playback scale; Back returns focus
 to that header without losing the chosen appearance or preview options.
+The full-screen Settings editor keeps Back above its stationary page title and
+the large picture stationary. Only the bounded left tool pane scrolls; the
+redundant Appearance heading is omitted. Expanding Preview smoothly reduces the
+pane's height, using the shared Settings motion and respecting Reduce Motion.
 
 ### Genuine HDR preview
 
@@ -707,6 +728,11 @@ account/file routing and playback continuation as mobile, swapping players
 inside the existing cover. An explicit choice never silently fails over to
 another source. Resolved file lists refresh the playing source without
 discarding other editions in a combined title.
+Detail and in-player version pickers share `MediaVersion.PickerPresentation`.
+Quality and file size lead; wrapping secondary text adds video format, available
+audio languages, primary audio format, bitrate and runtime when supplied.
+The release filename/name stays on its own tertiary line. These describe the
+source file, not the engine's negotiated output; missing facts are not guessed.
 Every native startup resume waits for readiness and verifies both seek completion
 and the actual landing. A rejected seek fails before playback starts at zero,
 allowing the existing alternate-engine fallback to keep the requested position

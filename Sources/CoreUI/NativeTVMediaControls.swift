@@ -264,6 +264,7 @@ struct NativeTVCard<Content: View>: UIViewRepresentable {
 private struct NativeCardBackground: View {
     @Environment(\.themePalette) private var palette
     @Environment(\.ambientBackdropModel) private var ambient
+    @Environment(\.settingsGradientCardSurface) private var settingsSurface
     @Environment(\.plozzGradientCardSurface) private var gradientSurface
     @Environment(\.artworkGradientTintSaturation) private var tintSaturation
     let apply: (UIColor) -> Void
@@ -272,14 +273,16 @@ private struct NativeCardBackground: View {
         guard gradientSurface else { return palette.raised.fill }
         // TVUIKit's flat fill remains a fallback until the page-aligned surface is ready.
         return AmbientGradientBackground.meshColors(
-            tint: ambient?.colors, palette: palette, tintSaturation: tintSaturation
+            tint: settingsSurface == nil ? ambient?.colors : nil,
+            palette: palette, tintSaturation: tintSaturation
         )[4]
-            .mix(with: palette.informationSurface, by: DetailInformationSections.bandFillOpacity)
+            .mix(with: palette.informationSurface,
+                 by: settingsSurface == nil ? DetailInformationSections.bandFillOpacity : 0)
             .mix(with: palette.gradientSurfaceTint, by: ThemePalette.gradientSurfaceFillOpacity)
     }
 
     var body: some View {
-        NativeGradientCardFill(surface: gradientSurface ? ambient?.cardSurface : nil)
+        NativeGradientCardFill(surface: gradientSurface ? (settingsSurface ?? ambient?.cardSurface) : nil)
             .onChange(of: color, initial: true) { _, color in apply(UIColor(color)) }
     }
 }

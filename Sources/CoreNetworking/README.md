@@ -13,6 +13,10 @@ and every provider/feature that talks to a remote server.
   headers, body) — providers build these, not raw `URLRequest`s.
 - `ServerURLNormalizer`: turns user-typed addresses (with/without scheme,
   trailing slash, port) into a well-formed `URL` for both Jellyfin and Plex.
+- `ProviderIconLoader`: best-effort, origin-only `/favicon.ico` requests for
+  provider marks. It strips user information, paths, query strings and fragments,
+  uses no credential/cookie storage, rejects redirects and authentication,
+  and bounds response bytes/time with a memory-only HTTP cache.
 - `PlozzLog` (and the `PlozzLogger` category facade): the **single** logging
   entry point. Backed by `OSLog` on Apple platforms, no-op on non-Apple
   hosts. Must never log tokens, Quick Connect secrets, or full
