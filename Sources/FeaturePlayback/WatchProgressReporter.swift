@@ -49,6 +49,23 @@ final class WatchProgressReporter {
     private var isEndingSession = false
     private var reportTail: Task<Void, Never>?
     private var terminalReport: Task<Void, Never>?
+    private var pendingProgress: (entry: PendingProgress, task: Task<Void, Never>)?
+
+    private struct Report {
+        let progress: PlaybackProgress
+        let event: PlaybackEvent
+        let item: MediaItem
+        let percent: Double
+        let scrobble: Bool
+    }
+
+    private final class PendingProgress {
+        var report: Report?
+
+        init(_ report: Report) {
+            self.report = report
+        }
+    }
 
     init(
         host: WatchProgressReporterHost,
@@ -69,6 +86,7 @@ final class WatchProgressReporter {
     // MARK: - Reporting
 
     func beginSession() {
+        discardPendingProgress()
         hasEnqueuedPlaybackStart = false
         pendingPlaybackStateReport = nil
         isEndingSession = false
@@ -130,13 +148,37 @@ final class WatchProgressReporter {
         let percent = WatchProgressMath.watchedPercent(
             position: position, engineDuration: knownDuration ?? 0, itemRuntime: nil
         )
+        let report = Report(
+            progress: progress, event: event, item: request.item, percent: percent, scrobble: scrobble
+        )
+        if event == .progress, let pendingProgress {
+            pendingProgress.entry.report = report
+            return pendingProgress.task
+        }
+        // Lifecycle events supersede any unsent heartbeat. An in-flight report
+        // still finishes first, but slow servers cannot accumulate stale ticks.
+        if event != .progress { discardPendingProgress() }
+        let progressEntry = event == .progress ? PendingProgress(report) : nil
         let previous = reportTail
         let provider = provider
         let scrobbler = scrobbler
         // Capture the request and timing before suspension. A later engine or
         // request replacement must not relabel an already queued event.
-        let task = Task {
+        let task = Task { [weak self] in
             await previous?.value
+            let delivery: Report
+            if let progressEntry {
+                guard let latest = progressEntry.report else { return }
+                delivery = latest
+                progressEntry.report = nil
+                if self?.pendingProgress?.entry === progressEntry {
+                    self?.pendingProgress = nil
+                }
+            } else {
+                delivery = report
+            }
+            let progress = delivery.progress
+            let event = delivery.event
             HandoffDiagnostics.emit(
                 "session REPORT_INTENT origin=watch-progress provider=\(provider.kind.rawValue)"
                     + " item=\(HandoffDiagnostics.correlationID(progress.itemID))"
@@ -151,13 +193,19 @@ final class WatchProgressReporter {
                     PlozzLog.playback.debug("Progress report failed (non-fatal)")
                 }
             }
-            if scrobble {
-                await scrobbler.scrobble(item: request.item, progress: percent, event: event)
+            if delivery.scrobble {
+                await scrobbler.scrobble(item: delivery.item, progress: delivery.percent, event: event)
             }
         }
+        if let progressEntry { pendingProgress = (progressEntry, task) }
         reportTail = task
         if event == .stop { terminalReport = task }
         return task
+    }
+
+    private func discardPendingProgress() {
+        pendingProgress?.entry.report = nil
+        pendingProgress = nil
     }
 
     /// Queues start and any deferred state in the same actor turn. Later state
@@ -272,6 +320,7 @@ final class WatchProgressReporter {
     func cancel() {
         isEndingSession = true
         pendingPlaybackStateReport = nil
+        discardPendingProgress()
         checkpointTask?.cancel()
         checkpointTask = nil
     }

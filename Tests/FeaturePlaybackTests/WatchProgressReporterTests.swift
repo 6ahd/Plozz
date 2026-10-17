@@ -222,6 +222,68 @@ final class WatchProgressReporterTests: XCTestCase {
         XCTAssertEqual(events.last?.duration, 1_000)
     }
 
+    func testSlowStartKeepsOnlyTheLatestPendingHeartbeat() async {
+        let (sut, host, provider, scrobbler, _) = makeSUT()
+        await provider.hold(.start)
+        let start = Task { await sut.reportStart(isPaused: false, positionOverride: 0) }
+        await provider.waitUntilHeld()
+        for position in 1...1_000 {
+            host.engineCurrentTime = Double(position)
+            sut.reportProgress()
+        }
+        await provider.release()
+        await start.value
+        _ = await waitForEvents(provider, count: 2)
+        await sut.report(event: .pause, isPaused: true)
+        let events = await provider.events
+        let calls = await scrobbler.calls
+        XCTAssertEqual(events.map(\.event), [.start, .progress, .pause])
+        XCTAssertEqual(events.filter { $0.event == .progress }.map(\.position), [1_000])
+        XCTAssertEqual(calls.filter { $0.event == .progress }.map(\.progress), [100])
+    }
+
+    func testStopDropsUnsentHeartbeatsButDrainsTheInFlightReport() async {
+        let (sut, host, provider, scrobbler, _) = makeSUT()
+        await sut.reportStart(isPaused: false, positionOverride: 0)
+        host.engineCurrentTime = 10
+        await provider.hold(.progress)
+        sut.reportProgress()
+        await provider.waitUntilHeld()
+        for position in 11...1_000 {
+            host.engineCurrentTime = Double(position)
+            sut.reportProgress()
+        }
+        let stop = sut.finishSession(position: 1_000, duration: 1_000)
+        await provider.release()
+        await stop?.value
+        let events = await provider.events
+        let calls = await scrobbler.calls
+        XCTAssertEqual(events.map(\.event), [.start, .progress, .stop])
+        XCTAssertEqual(events.map(\.position), [0, 10, 1_000])
+        XCTAssertEqual(calls.map(\.event), [.start, .progress, .stop])
+        XCTAssertEqual(calls.last?.progress, 100)
+    }
+
+    func testStateChangesSupersedeQueuedHeartbeatsWithoutReorderingLifecycle() async {
+        let (sut, host, provider, _, _) = makeSUT()
+        await provider.hold(.start)
+        let start = Task { await sut.reportStart(isPaused: false, positionOverride: 0) }
+        await provider.waitUntilHeld()
+        host.engineCurrentTime = 10
+        sut.reportProgress()
+        sut.reportStateChange(paused: true)
+        sut.reportStateChange(paused: false)
+        host.engineCurrentTime = 20
+        sut.reportProgress()
+        let stop = sut.finishSession(position: 20, duration: 1_000)
+        await provider.release()
+        await start.value
+        await stop?.value
+        let events = await provider.events
+        XCTAssertEqual(events.map(\.event), [.start, .pause, .unpause, .stop])
+        XCTAssertEqual(events.map(\.position), [0, 10, 10, 20])
+    }
+
     // MARK: defer-until-started
 
     func testStateChangeBeforeStartIsDeferredThenFlushedWhenDifferent() async {

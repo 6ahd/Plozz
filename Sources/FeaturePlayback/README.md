@@ -53,9 +53,11 @@ and the diagnostics overlay.
 ## Playback completion reporting
 
 Playback lifecycle reports capture the request, position, duration, and tracker
-percentage before suspension and drain in order. Ending a session rejects new
-heartbeats/state changes; its single stop report follows previously admitted
-events. Rendition replacement resets start/deferred-state admission without
+percentage before suspension and drain in order. At most one unsent heartbeat
+is retained, with newer progress replacing its snapshot; lifecycle events
+discard that obsolete heartbeat. Ending a session rejects new heartbeats/state
+changes; its single stop report follows in-flight reports and queued lifecycle
+events, not a backlog of old progress. Rendition replacement resets start/deferred-state admission without
 relabeling queued events. Teardown and reporting are owned tasks, so cancelling
 a presentation handoff does not cancel the final network request, and repeated
 stop callers await the same teardown. Reports remain best-effort on real server
