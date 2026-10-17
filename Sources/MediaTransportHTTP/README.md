@@ -30,6 +30,10 @@ and byte-source contracts live in `MediaTransportCore`.
   requires the same response validator. Weak ETags alone are insufficient.
   Missing/changed validators, HTTP 412, changed sizes, ignored ranges and
   truncated responses fail instead of being treated as usable media.
+- **Response buffering**: each task owns one mutable body accumulator under the
+  delegate lock. Callback appends must not copy the entire previously received
+  body. The byte cap is enforced before appending, and cancellation/errors never
+  return the partial body as successful media.
 
 ## File identity and compatibility
 
@@ -58,8 +62,11 @@ Last-Modified is **change-detecting, not immutable**: it has one-second
 precision and cannot detect a server replacing bytes while preserving both
 timestamp and size. Strong ETags remain preferred. The metadata recheck adds
 a PROPFIND per open; missing DAV validators add a one-byte GET during locator preparation.
-No full-file download, mandatory HEAD or additional parallel range workers
-are introduced.
+No full-file download or mandatory HEAD is introduced. Playback windows above
+16 MiB use at most two concurrent validated ranges within the existing 32 MiB
+window; they do not fetch speculative bytes outside it. See
+[disc playback](../../docs/playback-engines.md#media-share-disc-images) for the
+memory/cancellation contract.
 
 ## HTTPS media delivery redirects
 

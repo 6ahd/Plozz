@@ -34,6 +34,35 @@ private final class LatencyByteSource: TransportByteSource, @unchecked Sendable 
 
 @MainActor
 final class TransportReadAheadPerformanceTests: XCTestCase {
+    func testPerformanceRepeatedDiscMetadataProbes() async throws {
+        try PerformanceProbe.requireEnabled()
+        try await PerformanceProbe.measure(self, scenario: "disc-probe-cache") {
+            let source = LatencyByteSource()
+            let reader = TransportIOReader(source: source)
+            let completed = await Task.detached {
+                let offsets = [32, 512, 64, 576, 704, 896, 706, 898, 708, 930, 710,
+                               932, 712, 934, 714, 936, 580, 716, 580, 676, 828]
+                var buffer = [UInt8](repeating: 0, count: 2048)
+                var completed = 0
+                for offsetKiB in offsets {
+                    let offset = Int64(offsetKiB * 1024)
+                    XCTAssertEqual(reader.seek(offset: offset, whence: SEEK_SET), offset)
+                    let count = buffer.withUnsafeMutableBufferPointer {
+                        reader.read($0.baseAddress, size: Int32($0.count))
+                    }
+                    XCTAssertEqual(count, 2048)
+                    XCTAssertTrue(buffer.allSatisfy { $0 == 0x5a })
+                    completed += 1
+                }
+                return completed
+            }.value
+            reader.close()
+            await reader.waitForFinalShutdown()
+            XCTAssertEqual(completed, 21)
+            return source.counters.merging(["metadataReads": completed]) { _, new in new }
+        }
+    }
+
     func testPerformanceRandomAndSequentialReads() async throws {
         try PerformanceProbe.requireEnabled()
         try await PerformanceProbe.measure(self, scenario: "network-file-read-ahead") {

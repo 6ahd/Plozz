@@ -1097,7 +1097,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MediaTransportHTTPTests",
-            dependencies: ["MediaTransportHTTP", "MediaTransportCore", "TestSupportNetworking"],
+            dependencies: ["MediaTransportHTTP", "MediaTransportCore", "TestSupportNetworking", "TestSupportPerformance"],
             swiftSettings: [.unsafeFlags(["-strict-concurrency=complete"])]
         ),
         .testTarget(
@@ -1117,6 +1117,7 @@ let package = Package(
                 "MediaTransportHTTP",
                 "MediaTransportWebDAV",
                 "TestSupportNetworking",
+                "TestSupportPerformance",
             ],
             swiftSettings: [.unsafeFlags(["-strict-concurrency=complete"])]
         ),

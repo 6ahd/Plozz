@@ -86,6 +86,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         /// underlying transport round-trip satisfies many demux reads.
         var bufferStart: Int64 = 0
         var bufferData = Data()
+        var probeWindows: [(start: Int64, data: Data)] = []
 
         /// Bytes of `bufferData` available from `position` forward, or 0 on a miss.
         func bufferedAhead(from offset: Int64) -> Int {
@@ -93,6 +94,18 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
             let delta = offset - bufferStart
             guard delta >= 0, delta < Int64(bufferData.count) else { return 0 }
             return bufferData.count - Int(delta)
+        }
+
+        mutating func window(containing offset: Int64) -> (start: Int64, data: Data)? {
+            if bufferedAhead(from: offset) > 0 {
+                return (bufferStart, bufferData)
+            }
+            guard let index = probeWindows.lastIndex(where: {
+                offset >= $0.start && offset - $0.start < Int64($0.data.count)
+            }) else { return nil }
+            let window = probeWindows.remove(at: index)
+            probeWindows.append(window)
+            return window
         }
     }
 
@@ -109,6 +122,8 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
     static let defaultReadAheadWindow = 4 * 1024 * 1024  // 4 MB
     private static let defaultBackendChunk = 1024 * 1024
     private static let maximumReadAheadWindow = 32 * 1024 * 1024
+    private static let probeWindowSize = 64 * 1024
+    private static let maximumProbeWindows = 8
     private let readAheadWindow: Int
     private let maxBackendChunk: Int
 
@@ -166,11 +181,11 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
         let probe: Probe = readerState.withLock { state in
             guard !state.isClosed else { return .closed }
             let offset = state.position
-            let ahead = state.bufferedAhead(from: offset)
-            guard ahead > 0 else { return .miss(offset: offset) }
+            guard let window = state.window(containing: offset) else { return .miss(offset: offset) }
+            let start = Int(offset - window.start)
+            let ahead = window.data.count - start
             let count = min(ahead, requestedLength)
-            let start = Int(offset - state.bufferStart)
-            state.bufferData.withUnsafeBytes { raw in
+            window.data.withUnsafeBytes { raw in
                 buffer.update(from: raw.baseAddress!.advanced(by: start).assumingMemoryBound(to: UInt8.self), count: count)
             }
             state.position = offset + Int64(count)
@@ -210,7 +225,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
             }
             let sequential = !state.bufferData.isEmpty
                 && offset == state.bufferStart + Int64(state.bufferData.count)
-            let window = sequential ? min(state.bufferData.count * 4, maxBackendChunk) : 64 * 1024
+            let window = sequential ? min(state.bufferData.count * 4, maxBackendChunk) : Self.probeWindowSize
             let length = min(max(requestedLength, window), maxBackendChunk, remaining)
             state.bufferData = Data()
             return length
@@ -276,6 +291,15 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
                 guard !state.isClosed, state.position == offset else { return }
                 state.bufferStart = offset
                 state.bufferData = data
+                // Disc directories alternate between tiny regions. Retain only
+                // validated small windows, never additional sequential payload.
+                if maxBackendChunk > Self.defaultBackendChunk, data.count <= Self.probeWindowSize {
+                    state.probeWindows.removeAll { $0.start == offset }
+                    state.probeWindows.append((offset, data))
+                    if state.probeWindows.count > Self.maximumProbeWindows {
+                        state.probeWindows.removeFirst()
+                    }
+                }
                 state.position = offset + Int64(readCount)
             }
             return Int32(readCount)
@@ -339,6 +363,7 @@ public final class TransportIOReader: IOReader, @unchecked Sendable {
             guard !state.isClosed else { return false }
             state.isClosed = true
             state.bufferData = Data()
+            state.probeWindows.removeAll()
             return true
         }
         guard shouldRelease else { return }

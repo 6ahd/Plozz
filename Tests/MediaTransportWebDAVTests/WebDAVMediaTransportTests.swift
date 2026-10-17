@@ -4,6 +4,7 @@ import MediaTransportCore
 @testable import MediaTransportHTTP
 @testable import MediaTransportWebDAV
 @testable import TestSupportNetworking
+@testable import TestSupportPerformance
 import XCTest
 
 /// Hermetic coverage for the WebDAV media-transport adapter, driving the full
@@ -311,11 +312,123 @@ final class WebDAVMediaTransportTests: XCTestCase {
     }
 
     func testLargePlaybackRangeKeepsExactBoundsAndValidator() async throws {
-        let revision = CredentialRevision()
         let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
         let total = 64 * 1024 * 1024
         let offset = 4 * 1024 * 1024
         let length = 32 * 1024 * 1024
+        let cursor = try await openLargeSource(total: total)
+        queueReadHalf(url: url, offset: offset, length: length / 2, total: total, byte: 42, delay: .milliseconds(50))
+        queueReadHalf(url: url, offset: offset + length / 2, length: length / 2, total: total, byte: 43)
+        let bytes = try await cursor.read(at: Int64(offset), length: length)
+        XCTAssertEqual(bytes.count, length)
+        XCTAssertTrue(bytes.prefix(length / 2).allSatisfy { $0 == 42 })
+        XCTAssertTrue(bytes.suffix(length / 2).allSatisfy { $0 == 43 })
+        let reads = StubURLProtocol.requests(for: url).filter {
+            $0.httpMethod == "GET" && $0.value(forHTTPHeaderField: "Range") != "bytes=0-0"
+        }
+        XCTAssertEqual(reads.count, 2)
+        XCTAssertEqual(Set(reads.compactMap { $0.value(forHTTPHeaderField: "Range") }), [
+            "bytes=\(offset)-\(offset + length / 2 - 1)",
+            "bytes=\(offset + length / 2)-\(offset + length - 1)"
+        ])
+        XCTAssertTrue(reads.allSatisfy { $0.value(forHTTPHeaderField: "If-Match") == "\"strong-1\"" })
+    }
+
+    @MainActor
+    func testPerformancePlaybackWindow() async throws {
+        try await PerformanceProbe.measure(self, scenario: "webdav-playback-window") {
+            StubURLProtocol.reset()
+            let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+            let registry = TransportSessionRegistry(testProtocolClasses: [StubURLProtocol.self])
+            let key = try TransportSessionKey(
+                accountID: "fixture", credentialRevision: UUID(),
+                origin: XCTUnwrap(TransportOrigin(url: url)), trustRevision: UUID(), role: .playback
+            )
+            let length = 32 * 1024 * 1024
+            let source = WebDAVByteSource(
+                client: WebDAVClient(registry: registry),
+                representation: RangeProbeResult(
+                    etag: try XCTUnwrap(ETag(headerValue: "\"strong-1\"")),
+                    totalLength: Int64(length), resourceURL: url
+                ),
+                sessionKey: key, credential: .anonymous, trustPolicy: .system
+            )
+            // The same fixture accepts either one full request or two halves.
+            // Delay models a per-connection rate, not actual network throughput.
+            self.queueReadHalf(url: url, offset: 0, length: length, total: length, delay: .milliseconds(400))
+            self.queueReadHalf(url: url, offset: 0, length: length / 2, total: length, delay: .milliseconds(200))
+            self.queueReadHalf(
+                url: url, offset: length / 2, length: length / 2, total: length, delay: .milliseconds(200)
+            )
+            let bytes: Data
+            do {
+                bytes = try await source.read(at: 0, length: length)
+            } catch {
+                await registry.drainAll()
+                throw error
+            }
+            await registry.drainAll()
+            XCTAssertEqual(bytes.count, length)
+            XCTAssertTrue(bytes.allSatisfy { $0 == 42 })
+            let reads = StubURLProtocol.requests(for: url)
+            XCTAssertTrue((1...2).contains(reads.count))
+            StubURLProtocol.reset()
+            return ["consumedBytes": bytes.count, "transportReads": reads.count]
+        }
+    }
+
+    func testParallelReadRejectsChangedSecondHalfWithoutReturningPartialBytes() async throws {
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        let half = 16 * 1024 * 1024
+        let cursor = try await openLargeSource(total: 4 * half)
+        queueReadHalf(url: url, offset: 0, length: half, total: 4 * half)
+        queueReadHalf(url: url, offset: half, length: half, total: 4 * half, etag: "\"changed\"")
+        do {
+            _ = try await cursor.read(at: 0, length: 2 * half)
+            XCTFail("A changed second half must reject the entire read")
+        } catch let error as MediaTransportError {
+            guard case .sourceChanged = error else { return XCTFail("unexpected \(error)") }
+        }
+    }
+
+    func testParallelReadCancellationDrainsBothRequests() async throws {
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        let half = 16 * 1024 * 1024
+        let cursor = try await openLargeSource(total: 4 * half)
+        let started = expectation(description: "Both requests start before either finishes")
+        started.expectedFulfillmentCount = 2
+        for offset in [0, half] {
+            queueReadHalf(
+                url: url, offset: offset, length: half, total: 4 * half,
+                delay: .seconds(10), onRequest: { _ in started.fulfill() }
+            )
+        }
+        let task = Task { try await cursor.read(at: 0, length: 2 * half) }
+        await fulfillment(of: [started], timeout: 2)
+        task.cancel()
+        do {
+            _ = try await task.value
+            XCTFail("Cancellation must not return a successful or partial read")
+        } catch let error as MediaTransportError {
+            XCTAssertEqual(error, .cancelled)
+        }
+    }
+
+    func testParallelReadClampsSecondHalfToEOF() async throws {
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
+        let half = 16 * 1024 * 1024
+        let total = half + 7
+        let cursor = try await openLargeSource(total: total)
+        queueReadHalf(url: url, offset: 0, length: half, total: total, byte: 42)
+        queueReadHalf(url: url, offset: half, length: 7, total: total, byte: 43)
+        let bytes = try await cursor.read(at: 0, length: 2 * half)
+        XCTAssertEqual(bytes.count, total)
+        XCTAssertEqual(bytes.suffix(7), Data(repeating: 43, count: 7))
+    }
+
+    private func openLargeSource(total: Int) async throws -> MediaTransportSourceCursor {
+        let revision = CredentialRevision()
+        let url = URL(string: "https://nas.example.com/dav/movies/Movie.mkv")!
         queueStat(size: total)
         StubURLProtocol.queue(
             StubResponse(
@@ -324,34 +437,33 @@ final class WebDAVMediaTransportTests: XCTestCase {
                 body: Data([42])
             ), for: url
         )
-        let observedRange = LockedValue<String?>(nil)
-        let observedValidator = LockedValue<String?>(nil)
-        StubURLProtocol.queue(
-            StubResponse(
-                statusCode: 206,
-                headers: [
-                    "ETag": "\"strong-1\"",
-                    "Content-Range": "bytes \(offset)-\(offset + length - 1)/\(total)"
-                ],
-                body: Data(repeating: 42, count: length),
-                onRequest: {
-                    observedRange.set($0.value(forHTTPHeaderField: "Range"))
-                    observedValidator.set($0.value(forHTTPHeaderField: "If-Match"))
-                }
-            ), for: url
-        )
         let session = try await makeAdapter().connect(for: try makeKey(revision: revision, role: .playback))
         let locator = try strongETagLocator(size: Int64(total), revision: revision)
         let lease = try await session.fileSystem.openSource(for: locator)
         let cursor = try XCTUnwrap(lease.makeCursor())
-        let bytes = try await cursor.read(at: Int64(offset), length: length)
-        cursor.close()
-        await lease.waitForFinalShutdown()
-        await session.shutdown()
-        XCTAssertEqual(bytes.count, length)
-        XCTAssertTrue(bytes.allSatisfy { $0 == 42 })
-        XCTAssertEqual(observedRange.get(), "bytes=\(offset)-\(offset + length - 1)")
-        XCTAssertEqual(observedValidator.get(), "\"strong-1\"")
+        addTeardownBlock {
+            cursor.close()
+            await lease.waitForFinalShutdown()
+            await session.shutdown()
+        }
+        return cursor
+    }
+
+    private func queueReadHalf(
+        url: URL, offset: Int, length: Int, total: Int, byte: UInt8 = 42,
+        etag: String = "\"strong-1\"", delay: Duration = .zero,
+        onRequest: (@Sendable (URLRequest) -> Void)? = nil
+    ) {
+        let range = "\(offset)-\(offset + length - 1)"
+        StubURLProtocol.queue(
+            StubResponse(
+                statusCode: 206,
+                headers: ["ETag": etag, "Content-Range": "bytes \(range)/\(total)"],
+                body: Data(repeating: byte, count: length),
+                matchesRequest: { $0.value(forHTTPHeaderField: "Range") == "bytes=\(range)" },
+                delay: delay, onRequest: onRequest
+            ), for: url
+        )
     }
 
     func testByteSourceReturnsEmptyAtEOF() async throws {

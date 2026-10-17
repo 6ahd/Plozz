@@ -221,6 +221,48 @@ private final class CappedTransportByteSource: TransportByteSource, @unchecked S
 }
 
 final class TransportIOReaderReadAheadTests: XCTestCase {
+    func testSparseProbeCachePreservesOffsetsPartialReadsAndCloneIndependence() throws {
+        let payload = Data((0..<(512 * 1024)).map { UInt8($0 % 251) })
+        let source = CappedTransportByteSource(
+            payload, perReadCap: 64 * 1024, preferredReadSize: 32 * 1024 * 1024
+        )
+        let reader = TransportIOReader(source: source)
+        defer { reader.close() }
+        XCTAssertEqual(read(reader, count: 16).data, payload.prefix(16))
+        XCTAssertEqual(reader.seek(offset: 256 * 1024, whence: SEEK_SET), 256 * 1024)
+        XCTAssertEqual(read(reader, count: 16).data, payload.subdata(in: (256 * 1024)..<(256 * 1024 + 16)))
+        XCTAssertEqual(reader.seek(offset: 8, whence: SEEK_SET), 8)
+        XCTAssertEqual(read(reader, count: 16).data, payload.subdata(in: 8..<24))
+        XCTAssertEqual(source.readCount, 2)
+        XCTAssertEqual(reader.seek(offset: 65_530, whence: SEEK_SET), 65_530)
+        XCTAssertEqual(read(reader, count: 16).data, payload.subdata(in: 65_530..<65_536))
+        XCTAssertEqual(read(reader, count: 10).data, payload.subdata(in: 65_536..<65_546))
+        XCTAssertEqual(source.readCount, 3)
+        let clone = try XCTUnwrap(reader.makeIndependentReader())
+        defer { clone.close() }
+        XCTAssertEqual(read(clone, count: 16).data, payload.prefix(16))
+        XCTAssertEqual(source.readCount, 4, "A clone starts with an independent empty cache")
+    }
+
+    func testSparseProbeCacheEvictsLeastRecentlyUsedBeyondEightWindows() {
+        let source = SparseTransportByteSource(preferredReadSize: 32 * 1024 * 1024)
+        let reader = TransportIOReader(source: source)
+        defer { reader.close() }
+        for index in 0..<8 {
+            let offset = Int64(index * 128 * 1024)
+            XCTAssertEqual(reader.seek(offset: offset, whence: SEEK_SET), offset)
+            XCTAssertEqual(read(reader, count: 2).data, Data([42, 42]))
+        }
+        for index in [0, 8, 0, 1] {
+            let offset = Int64(index * 128 * 1024)
+            XCTAssertEqual(reader.seek(offset: offset, whence: SEEK_SET), offset)
+            XCTAssertEqual(read(reader, count: 2).result, 2)
+        }
+        XCTAssertEqual(source.readLog.count, 10)
+        XCTAssertEqual(source.readLog.last?.offset, 128 * 1024, "Window one, not recently used window zero, was evicted")
+        XCTAssertTrue(source.readLog.allSatisfy { $0.length == 64 * 1024 })
+    }
+
     func testAdaptiveWindowPreservesShortReadsAndEOF() {
         let payload = Data((0..<4096).map { UInt8($0 & 0xff) })
         let source = CappedTransportByteSource(

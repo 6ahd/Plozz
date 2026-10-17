@@ -167,6 +167,29 @@ Pair it with the hosted WebDAV playback checks in
 [Playback engines](playback-engines.md#media-share-disc-images) when changing
 actual network playback.
 
+`disc-probe-cache` performs 21 scattered, overlapping 2 KiB metadata reads
+through the same production reader and 5 ms synthetic-latency source. It
+models alternating disc-directory regions, separately from the sequential
+workload, and records actual transport requests/bytes as well as completed
+probes. Reuse must not change returned bytes, clone isolation or cache bounds.
+
+`http-response-assembly` separately measures the production HTTP delegate's
+body accumulation: 32 MiB delivered in 2,048 callbacks of 16 KiB, followed by
+byte-for-byte validation. It has no network delay and starts no URL task;
+this isolates callback CPU/allocation cost from server throughput. Task state
+must keep the body uniquely owned while appending, rather than repeatedly
+copying the growing `Data` out of dictionary-held value state. Response-size
+limits, ordered delivery and cancellation have separate correctness controls.
+
+`webdav-playback-window` verifies a 32 MiB production WebDAV read with the
+same fixture accepting either one full range or two 16 MiB ranges. Synthetic
+delivery delay is 400 ms for the full range and 200 ms per half, modeling
+per-connection throughput. Counters distinguish consumed bytes from HTTP
+request count. This isolates overlap and assembly cost; it does not promise
+parallel requests will increase throughput on a shared-bandwidth server.
+Out-of-order completion, identity drift, EOF and cancellation have separate
+correctness coverage.
+
 For Home metadata work, select `home-metadata-publication`,
 `home-observed-metadata-publication`, `home-row-metadata-updates`, and
 `home-row-metadata-reuse` on either platform.

@@ -30,6 +30,32 @@ The old adaptive buffer is released before replacement, but the bound is per
 reader, not a process memory cap: clones and HTTP/engine buffers add their own
 memory, and larger windows can fetch bytes that playback does not consume.
 
+Adaptive readers also retain up to eight previously validated windows no larger
+than 64 KiB each (512 KiB total) for alternating disc-directory probes. Cache hits
+refresh recency; misses evict the least recently used window when full. Large
+sequential windows are never added to that cache. It is local to the reader and
+its pinned source lease, starts empty in clones, and is released on close.
+
+WebDAV windows larger than 16 MiB (up to the 32 MiB ceiling) use two concurrent
+range requests within that window, not additional speculative read-ahead.
+Both responses must pass the same pinned representation, exact-range and body
+length checks before any bytes reach the demuxer. Cancellation drains both
+requests. Assembly can temporarily retain the two bodies plus the combined
+window (up to 64 MiB per active read); this trades bounded memory and one extra
+request for overlapping network latency. Small probes remain single requests.
+The full media-probe budget and default sealed HLS segment delivery remain
+unchanged; shortening analysis without track-completeness checks can lose sparse
+audio/subtitle tracks.
+
+Related upstream designs separate request sizing from buffered consumption:
+[FFmpeg HTTP](https://github.com/FFmpeg/FFmpeg/blob/b7e835e06913e4374a4567003fe8c75cebfffb98/libavformat/http.c)
+supports separate initial/steady request sizes and short-seek read-ahead;
+[VLC prefetch](https://github.com/videolan/vlc/blob/11bcb6f56d59b43cf589556f426c7a5cbd460fdd/modules/stream_filter/prefetch.c)
+uses a bounded producer/consumer buffer; and
+[mpv demux](https://github.com/mpv-player/mpv/blob/dde0671072723c311df874a32dc4e48b5197ca62/demux/demux.c)
+keeps bounded forward/backward packet caches. These are architectural references,
+not measurements of those players on Plozz's test service or copied implementations.
+
 This does not add CSS/AACS decryption, disc menus, BD-J, multi-angle playback,
 or a disc-title picker. An ISO extension alone does not guarantee a supported
 video disc; unsupported or encrypted images follow the normal playback error
@@ -59,8 +85,8 @@ owned by the tester with mode `0600`, outside Git. Remove staged simulator
 credentials after the run. Missing configuration skips only that live test;
 it is not evidence of remote playback. Each load/seek has a 120-second deadline
 and frame/progress waits are bounded separately.
-After the final seek, the live test observes another 20 seconds and requires
-more than 18 seconds of playhead advancement. This is a bounded continued-playback
+After the final seek, the live test observes another 60 seconds and requires
+more than 58 seconds of playhead advancement. This is a bounded continued-playback
 check, not proof of complete-film playback or physical-device frame smoothness.
 
 ## IPTV live streams

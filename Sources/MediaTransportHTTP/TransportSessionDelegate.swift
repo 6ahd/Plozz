@@ -18,7 +18,8 @@ enum PasswordChallengeDecision {
 }
 
 final class TransportSessionDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
-    private struct TaskState {
+    // Reference storage avoids copying the accumulated body on every callback.
+    private final class TaskState {
         var data = Data()
         var response: HTTPURLResponse?
         var policyError: TransportError?
@@ -27,6 +28,16 @@ final class TransportSessionDelegate: NSObject, URLSessionDataDelegate, @uncheck
         let maxResponseBytes: Int
         let followRedirects: Bool
         let completion: @Sendable (Result<TransportDataResponse, TransportError>) -> Void
+
+        init(
+            maxResponseBytes: Int,
+            followRedirects: Bool,
+            completion: @escaping @Sendable (Result<TransportDataResponse, TransportError>) -> Void
+        ) {
+            self.maxResponseBytes = maxResponseBytes
+            self.followRedirects = followRedirects
+            self.completion = completion
+        }
     }
 
     private let credential: WebDAVCredential
@@ -337,7 +348,7 @@ final class TransportSessionDelegate: NSObject, URLSessionDataDelegate, @uncheck
         var shouldCancel = false
 
         lock.lock()
-        if var state = tasks[dataTask.taskIdentifier],
+        if let state = tasks[dataTask.taskIdentifier],
            state.policyError == nil,
            !state.returnsErrorResponseOnCancellation {
             if data.count > state.maxResponseBytes - state.data.count {
@@ -346,7 +357,6 @@ final class TransportSessionDelegate: NSObject, URLSessionDataDelegate, @uncheck
             } else {
                 state.data.append(data)
             }
-            tasks[dataTask.taskIdentifier] = state
         }
         lock.unlock()
 

@@ -92,7 +92,7 @@ final class WebDAVDiscPlaybackHostedTests: XCTestCase {
         try await checkPlayback(
             base: input.baseURL, path: input.relativePath,
             credential: .password(username: input.username, password: input.password, policy: .automatic),
-            seekPositions: input.seekPositions, sustainedPlaybackSeconds: 20
+            seekPositions: input.seekPositions, sustainedPlaybackSeconds: 60
         )
     }
 

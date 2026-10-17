@@ -71,6 +71,27 @@ SCENARIOS = {
         "description": "Four sparse disc-metadata probes then 64 MiB sequential playback through the production reader; 5-ms synthetic request latency.",
         "counters": ["metadataReads", "consumedBytes", "transportReads", "transportBytes", "largestRequest"],
     },
+    "disc-probe-cache": {
+        "suite": "network", "target": "EnginePlozzigenTests",
+        "test": "TransportReadAheadPerformanceTests/testPerformanceRepeatedDiscMetadataProbes",
+        "file": "Tests/EnginePlozzigenTests/TransportReadAheadPerformanceTests.swift",
+        "description": "Twenty-one scattered, overlapping disc metadata probes through the production reader; 5-ms synthetic request latency.",
+        "counters": ["metadataReads", "transportReads", "transportBytes", "largestRequest"],
+    },
+    "http-response-assembly": {
+        "suite": "network", "target": "MediaTransportHTTPTests",
+        "test": "TransportResponsePerformanceTests/testPerformanceChunkedResponseAssembly",
+        "file": "Tests/MediaTransportHTTPTests/TransportResponsePerformanceTests.swift",
+        "description": "Assemble and verify a 32 MiB HTTP body delivered in 16 KiB callbacks through the production session delegate.",
+        "counters": ["responseBytes", "callbacks"],
+    },
+    "webdav-playback-window": {
+        "suite": "network", "target": "MediaTransportWebDAVTests",
+        "test": "WebDAVMediaTransportTests/testPerformancePlaybackWindow",
+        "file": "Tests/MediaTransportWebDAVTests/WebDAVMediaTransportTests.swift",
+        "description": "Read and verify a 32 MiB production WebDAV window with synthetic per-connection delivery delay.",
+        "counters": ["consumedBytes", "transportReads"],
+    },
     "diagnostics-disabled": {
         "suite": "diagnostics", "target": "CoreModelsTests",
         "test": "PerformanceDiagnosticsProbeTests/testPerformanceDisabledOperations",
