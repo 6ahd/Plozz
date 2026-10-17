@@ -112,35 +112,35 @@ public struct SeasonRequestPresentation: Equatable, Sendable {
         case (0, 0, 0, 0):
             nil
         case let (pending, 0, 0, 0):
-            "\(pending) Requested"
+            LocalizedStringResource("\(pending) Requested")
         case let (0, processing, 0, 0):
-            "\(processing) Processing"
+            LocalizedStringResource("\(processing) Processing")
         case let (0, 0, failures, 0):
-            "\(failures) Failed"
+            LocalizedStringResource("\(failures) Failed")
         case let (0, 0, 0, declined):
-            "\(declined) Declined"
+            LocalizedStringResource("\(declined) Declined")
         case let (pending, processing, 0, 0):
-            "\(pending) Requested, \(processing) Processing"
+            LocalizedStringResource("\(pending) Requested, \(processing) Processing")
         case let (pending, 0, failures, 0):
-            "\(pending) Requested, \(failures) Failed"
+            LocalizedStringResource("\(pending) Requested, \(failures) Failed")
         case let (0, processing, failures, 0):
-            "\(processing) Processing, \(failures) Failed"
+            LocalizedStringResource("\(processing) Processing, \(failures) Failed")
         case let (pending, processing, failures, 0):
-            "\(pending) Requested, \(processing) Processing, \(failures) Failed"
+            LocalizedStringResource("\(pending) Requested, \(processing) Processing, \(failures) Failed")
         case let (pending, 0, 0, declined):
-            "\(pending) Requested, \(declined) Declined"
+            LocalizedStringResource("\(pending) Requested, \(declined) Declined")
         case let (0, processing, 0, declined):
-            "\(processing) Processing, \(declined) Declined"
+            LocalizedStringResource("\(processing) Processing, \(declined) Declined")
         case let (pending, processing, 0, declined):
-            "\(pending) Requested, \(processing) Processing, \(declined) Declined"
+            LocalizedStringResource("\(pending) Requested, \(processing) Processing, \(declined) Declined")
         case let (0, 0, failures, declined):
-            "\(failures) Failed, \(declined) Declined"
+            LocalizedStringResource("\(failures) Failed, \(declined) Declined")
         case let (pending, 0, failures, declined):
-            "\(pending) Requested, \(failures) Failed, \(declined) Declined"
+            LocalizedStringResource("\(pending) Requested, \(failures) Failed, \(declined) Declined")
         case let (0, processing, failures, declined):
-            "\(processing) Processing, \(failures) Failed, \(declined) Declined"
+            LocalizedStringResource("\(processing) Processing, \(failures) Failed, \(declined) Declined")
         case let (pending, processing, failures, declined):
-            "\(pending) Requested, \(processing) Processing, \(failures) Failed, \(declined) Declined"
+            LocalizedStringResource("\(pending) Requested, \(processing) Processing, \(failures) Failed, \(declined) Declined")
         }
         guard awaitingRelease > 0 else { return workflow }
         if let workflow {
