@@ -195,13 +195,25 @@ public actor CloudConfigSyncService {
             self.ledgerAuthority = captureSnapshot == nil ? nil : snapshotAuthority()
         }
 
-        func snapshot(deleted: Set<SyncRecordID> = []) -> SyncChannelSnapshot {
+        func captureReceipts(for names: [SyncRecordID]) -> [SyncRecordID: Data] {
+            var result: [SyncRecordID: Data] = [:]
+            for name in names { result[name] = ledger.entries[name]?.localCaptureDigest }
+            return result
+        }
+
+        func snapshot(
+            deleted: Set<SyncRecordID> = [], changes: SyncLocalChanges = [:],
+            deletedCaptureDigests: [SyncRecordID: Data] = [:]
+        ) -> SyncChannelSnapshot {
             snapshotSequence += 1
             return SyncChannelSnapshot(
                 sequence: snapshotSequence, authority: ledgerAuthority ?? snapshotAuthority(),
                 records: ledger.entries.filter { !$0.value.pendingDelete }.mapValues(\.localValue),
                 deleted: deleted,
-                localCaptureDigests: ledger.entries.compactMapValues(\.localCaptureDigest)
+                localCaptureDigests: deletedCaptureDigests.merging(
+                    ledger.entries.compactMapValues(\.localCaptureDigest)
+                ) { _, current in current },
+                changes: changes
             )
         }
     }
@@ -924,6 +936,7 @@ public actor CloudConfigSyncService {
             markServerStateConfirmed()
             var confirmedDeletedByZone: [String: Set<SyncRecordID>] = [:]
             var finalizedByZone: [String: SyncLocalChanges] = [:]
+            var deletedCaptureDigestsByZone: [String: [SyncRecordID: Data]] = [:]
             for channel in channels {
                 // A fetch that omitted a record is NOT proof the record is gone: CloudKit
                 // reads are eventually consistent, so a record a peer saved moments ago
@@ -949,6 +962,9 @@ public actor CloudConfigSyncService {
                 confirmedDeletedByZone[channel.schema.zoneName] = confirmedDeleted
             }
             for channel in channels {
+                deletedCaptureDigestsByZone[channel.schema.zoneName] = channel.captureReceipts(
+                    for: Array(confirmedDeletedByZone[channel.schema.zoneName, default: []])
+                )
                 finalizedByZone[channel.schema.zoneName] = channel.ledger
                     .endFullResync(
                         confirmedDeleted: confirmedDeletedByZone[
@@ -965,7 +981,10 @@ public actor CloudConfigSyncService {
                       !finalized.isEmpty else {
                     continue
                 }
-                await apply(finalized, to: channel)
+                await apply(
+                    finalized, to: channel,
+                    deletedCaptureDigests: deletedCaptureDigestsByZone[channel.schema.zoneName, default: [:]]
+                )
             }
             guard isActive, engine === self.engine else { return .interrupted }
             // Requeue anything still dirty / pending-delete without re-stamping.
@@ -1101,10 +1120,15 @@ public actor CloudConfigSyncService {
         await Task.detached(priority: .userInitiated, operation: body).value
     }
 
-    private func apply(_ changes: SyncLocalChanges, to channel: Channel) async {
+    private func apply(
+        _ changes: SyncLocalChanges, to channel: Channel, deletedCaptureDigests: [SyncRecordID: Data] = [:]
+    ) async {
         guard persist() else { return }
         if let applySnapshot = channel.applySnapshot {
-            let snapshot = channel.snapshot(deleted: Set(changes.filter { $0.value == nil }.keys))
+            let snapshot = channel.snapshot(
+                deleted: Set(changes.filter { $0.value == nil }.keys), changes: changes,
+                deletedCaptureDigests: deletedCaptureDigests
+            )
             await outsideDelegateContext { await applySnapshot(snapshot) }
         } else {
             let applyRecords = channel.applyRecords
@@ -1395,6 +1419,7 @@ public actor CloudConfigSyncService {
             guard await publish(channel, engine: engine, bypassBaselineGate: false),
                   isCurrent() else { return false }
         }
+        let deletedCaptureDigests = channel.captureReceipts(for: Array(verdict.confirmedDeleted))
         var changes = channel.ledger.applyInventoryDeletions(
             confirmedDeleted: verdict.confirmedDeleted, candidates: candidates, now: nowMillis()
         )
@@ -1405,7 +1430,7 @@ public actor CloudConfigSyncService {
         guard persist(), isCurrent() else { return false }
         reportRecordCount()
         if !changes.isEmpty {
-            await apply(changes, to: channel)
+            await apply(changes, to: channel, deletedCaptureDigests: deletedCaptureDigests)
         }
         guard isCurrent() else { return false }
         let completed = verdict.completed && recovered.count == missingLocally.count
@@ -1718,11 +1743,12 @@ extension CloudConfigSyncService: CKSyncEngineDelegate {
             }
             guard !incoming.isEmpty || !deletedNames.isEmpty else { continue }
             guard accepts(incoming, for: channel) else { return }
+            let deletedCaptureDigests = channel.captureReceipts(for: deletedNames)
             let changes = channel.ledger.applyFetched(saved: incoming, deleted: deletedNames, now: nowMillis())
             guard persist() else { return }
             reportRecordCount()
             if !changes.isEmpty {
-                await apply(changes, to: channel)
+                await apply(changes, to: channel, deletedCaptureDigests: deletedCaptureDigests)
                 PlozzLog.sync.info("CloudSync[\(channel.schema.zoneName)]: applied \(changes.count) change(s) from \(incoming.count) fetched, \(deletedNames.count) deleted")
             }
         }

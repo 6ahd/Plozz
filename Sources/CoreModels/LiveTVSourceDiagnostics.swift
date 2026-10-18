@@ -14,6 +14,7 @@ public final class LiveTVSourceDiagnostics: @unchecked Sendable {
         case enrollmentStarted, enrollmentDecision, enrollmentFinished
         case providerCreated, catalogRefreshStarted, catalogRefreshFinished, catalogProgress, catalogRead
         case syncFinished, syncFailed
+        case syncLocalIntentPreserved
         case keychainRead, keychainWrite, keychainRemove, sourceErase, sourcesScreen
         case profileRemoved, profileDeletionDeferred
     }

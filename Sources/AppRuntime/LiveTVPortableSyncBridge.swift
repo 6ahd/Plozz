@@ -276,7 +276,7 @@ public final class LiveTVPortableSyncBridge {
         }
     }
 
-    public func apply(_ changes: SyncLocalChanges) async {
+    public func apply(_ changes: SyncLocalChanges, localCaptureDigests: [SyncRecordID: Data]? = nil) async {
         let epoch = LiveTVPortableSyncPreferenceStore.storageEpoch(defaults: defaults)
         let authority = currentAuthority()
         await beginOperation()
@@ -284,10 +284,12 @@ public final class LiveTVPortableSyncBridge {
         operationAuthority = authority
         guard !Task.isCancelled,
               epoch == LiveTVPortableSyncPreferenceStore.storageEpoch(defaults: defaults) else { return }
-        await applySerially(changes, epoch: epoch)
+        await applySerially(changes, epoch: epoch, localCaptureDigests: localCaptureDigests)
     }
 
-    private func applySerially(_ changes: SyncLocalChanges, epoch: String) async {
+    private func applySerially(
+        _ changes: SyncLocalChanges, epoch: String, localCaptureDigests: [SyncRecordID: Data]?
+    ) async {
         let known = Set(profiles.profiles.map(\.id))
         let removed: Set<String>
         do { removed = try removedProfiles() }
@@ -313,7 +315,8 @@ public final class LiveTVPortableSyncBridge {
                 let pending = try await adapter.committingJournal {
                     guard mayApply(profileID, epoch: epoch) else { throw CancellationError() }
                     return try adapter.apply(
-                        changes, sourceStore: sourceStore(profileID), includeLibrarySnapshots: false
+                        changes, sourceStore: sourceStore(profileID), includeLibrarySnapshots: false,
+                        localCaptureDigests: localCaptureDigests
                     )
                 }
                 guard mayApply(profileID, epoch: epoch) else { continue }

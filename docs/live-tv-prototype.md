@@ -1410,6 +1410,20 @@ encrypted fields in an isolated zone; old clients cannot erase them.
 Parental approvals, history grants and channel health remain device-local.
 Server sign-in credentials retain their existing authorization flow.
 
+Server-source enablement and enrollment suppression travel through the
+non-secret portable channel. Incoming state cannot overwrite a local re-add,
+removal, or enablement change that has not been captured. A captured server
+change remains protected across restarts until the ledger acknowledges its
+exact digest; delayed cloud state and fallback hydration cannot bypass that
+receipt. Both app shells pass the incoming delta and capture receipts together.
+Confirmed hard deletions retain the removed ledger entry's receipt for that
+apply, so unchanged sources still follow legitimate deletions on other devices.
+This does not delete or replace the authenticated server account.
+`IPTVCloudOverwriteHostedTests` exercises these races on iPhone/iPad through
+the separate presentation test host, isolated Keychain/defaults storage, and
+controlled incoming payloads. It does not mutate the normal app's sources or
+claim to reproduce CloudKit network delivery timing.
+
 These generated-channel snapshots are different from IPTV catalogue/guide
 downloads: they carry immutable library-item inputs so devices agree on the
 generated schedule, not video files. Authenticated IPTV accounts use the normal
