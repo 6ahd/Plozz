@@ -201,6 +201,16 @@ retains its existing feedback lifetime. Reduce Motion shows one steady chevron
 instead, and enabling it removes any moving chevrons immediately. Single taps
 still toggle controls; native controls and open menus keep their own touches.
 
+The mobile on-demand player owns hardware-keyboard playback commands: Space
+toggles play/pause and Left/Right skip by the profile's configured intervals.
+Keyboard skips reuse the cumulative gesture feedback and real timeline, including
+while Up Next is visible. Commands yield to open menus, sheets, expanded cards,
+scrubbing, external playback, and inactive scenes. Mobile key events do not also
+enter the Apple TV remote recognizers. The native keyboard owner remains attached
+through loading and engine handoffs; the visible overlay supplies its current
+actions. This path is pending physical-keyboard verification; full-player keyboard
+interaction tests currently fail despite the isolated native handler passing.
+
 Holding on-demand video for at least one second temporarily accelerates moving
 playback to at most 2x when the engine supports it; shorter presses do not boost
 speed. Releasing, pausing, seeking, leaving the player, or backgrounding cancels

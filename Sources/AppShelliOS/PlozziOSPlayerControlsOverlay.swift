@@ -18,6 +18,7 @@ private enum PlozziOSPlayerSheet: String, Identifiable {
 
 struct PlozziOSPlayerControlsOverlay: View {
     let viewModel: PlayerViewModel
+    let keyboardActions: PlozziOSPlayerKeyboardActions
     let hasVersions: Bool
     let versionsPresented: Bool
     let onShowVersions: () -> Void
@@ -270,6 +271,7 @@ struct PlozziOSPlayerControlsOverlay: View {
         // changes nothing. Tracked upstream as AetherEngine#227.
         .onDisappear { pictureInPicture.detach() }
         .onDisappear {
+            keyboardActions.clear()
             cancelAutoHide()
             cancelTouchInteraction()
             scrubPreviewCoordinator?.clear()
@@ -281,6 +283,8 @@ struct PlozziOSPlayerControlsOverlay: View {
         .onChange(of: touchShortcutsEnabled) { _, enabled in
             if !enabled { cancelTouchInteraction() }
         }
+        .onChange(of: keyboardShortcutsEnabled, initial: true) { _, _ in updateKeyboardActions() }
+        .onChange(of: canSeekWithKeyboard) { _, _ in updateKeyboardActions() }
         .onChange(of: viewModel.temporarySpeedBoostRate) { _, rate in
             touchGestures.showBoost(rate: rate)
         }
@@ -338,10 +342,29 @@ struct PlozziOSPlayerControlsOverlay: View {
 
     }
 
-    private var touchShortcutsEnabled: Bool {
+    private var keyboardShortcutsEnabled: Bool {
         !isPlayingElsewhere && presentedSheet == nil && !optionsMenuPresented
             && !versionsPresented && !isCardOpen && !isScrubbing
-            && !viewModel.controls.upNextCard.isPresenting && scenePhase == .active
+            && scenePhase == .active
+    }
+
+    private var touchShortcutsEnabled: Bool {
+        keyboardShortcutsEnabled && !viewModel.controls.upNextCard.isPresenting
+    }
+
+    private var canSeekWithKeyboard: Bool {
+        viewModel.controls.duration.isFinite && viewModel.controls.duration > 0
+    }
+
+    private func updateKeyboardActions() {
+        keyboardActions.isEnabled = keyboardShortcutsEnabled
+        keyboardActions.canSeek = canSeekWithKeyboard
+        keyboardActions.skip = keyboardSkip
+        keyboardActions.playPause = {
+            guard keyboardShortcutsEnabled else { return }
+            viewModel.togglePlayPause()
+            noteInteraction()
+        }
     }
 
     private func backgroundTapped() {
@@ -360,8 +383,21 @@ struct PlozziOSPlayerControlsOverlay: View {
     }
 
     private func touchSkip(_ direction: PlayerTouchSkipDirection) {
+        guard touchShortcutsEnabled else { return }
+        if skipWithFeedback(direction, origin: "touchSkip") {
+            TouchFeedback.shared.emit(.selection)
+        }
+    }
+
+    private func keyboardSkip(_ direction: PlayerTouchSkipDirection) {
+        guard keyboardShortcutsEnabled else { return }
+        skipWithFeedback(direction, origin: "keyboardSkip")
+    }
+
+    @discardableResult
+    private func skipWithFeedback(_ direction: PlayerTouchSkipDirection, origin: String) -> Bool {
         let duration = viewModel.controls.duration
-        guard touchShortcutsEnabled, duration.isFinite, duration > 0 else { return }
+        guard duration.isFinite, duration > 0 else { return false }
         let interval = direction == .forward
             ? viewModel.controls.skipGesture.forwardInterval.seconds
             : -viewModel.controls.skipGesture.backwardInterval.seconds
@@ -369,10 +405,10 @@ struct PlozziOSPlayerControlsOverlay: View {
             by: interval,
             from: viewModel.controls.pendingSeekTarget ?? viewModel.controls.currentSeconds,
             within: 0...max(0, duration - 1)
-        ) else { return }
+        ) else { return false }
         beginTouchInteraction()
-        viewModel.requestSeek(to: target, origin: "touchSkip")
-        TouchFeedback.shared.emit(.selection)
+        viewModel.requestSeek(to: target, origin: origin)
+        return true
     }
 
     private func touchBoostChanged(_ held: Bool) {

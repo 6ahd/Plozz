@@ -65,6 +65,11 @@ struct PlayerRotationFixture: View {
             model.settings.playback.settings.skipForwardInterval = .five
             model.settings.playback.settings.skipBackwardInterval = .thirty
         }
+        if arguments.contains("--keyboard-up-next-fixture") {
+            model.settings.playback.settings.autoPlayNextEpisode = false
+            model.settings.playback.settings.showUpNextCard = true
+            model.settings.playback.settings.upNextLeadSeconds = 90
+        }
         if arguments.contains("--auto") { model.settings.playback.settings.orientation = .auto }
         if arguments.contains("--portrait") { model.settings.playback.settings.orientation = .portrait }
         _model = State(initialValue: model)
@@ -99,7 +104,8 @@ struct PlayerRotationFixture: View {
             Button("Open rotation player") {
                 request = .init(
                     item: RotationProvider.media,
-                    startPosition: ProcessInfo.processInfo.arguments.contains("--gesture-player-fixture") ? 60 : 0,
+                    startPosition: ProcessInfo.processInfo.arguments.contains("--keyboard-up-next-fixture")
+                        ? 135 : (ProcessInfo.processInfo.arguments.contains("--gesture-player-fixture") ? 60 : 0),
                     versionPreferences: model.versionPreferences
                 )
             }
@@ -194,9 +200,22 @@ private struct RotationProvider: MediaProvider, StreamingQualityProviding {
     private static var embyStreaming: Bool {
         ProcessInfo.processInfo.arguments.contains("--emby-streaming-fixture")
     }
+    private static var keyboardUpNext: Bool {
+        ProcessInfo.processInfo.arguments.contains("--keyboard-up-next-fixture")
+    }
     static var media: MediaItem {
-        MediaItem(
+        if keyboardUpNext { return episode(index: 1) }
+        return MediaItem(
             id: "rotation", title: "Rotation fixture", kind: embyStreaming || failsPlayback ? .movie : .video, runtime: 180,
+            allowsTitleBasedMetadataMatching: false
+        )
+    }
+    private static func episode(index: Int) -> MediaItem {
+        MediaItem(
+            id: index == 1 ? "rotation" : "rotation-next",
+            title: "Keyboard episode \(index)", kind: .episode, parentTitle: "Keyboard fixture",
+            seasonNumber: 1, episodeNumber: index,
+            seriesID: "keyboard-series", seasonID: "keyboard-season", runtime: 180,
             allowsTitleBasedMetadataMatching: false
         )
     }
@@ -215,7 +234,10 @@ private struct RotationProvider: MediaProvider, StreamingQualityProviding {
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
     func item(id: String) async throws -> MediaItem { Self.media }
-    func children(of itemID: String) async throws -> [MediaItem] { [] }
+    func children(of itemID: String) async throws -> [MediaItem] {
+        Self.keyboardUpNext && itemID == "keyboard-season"
+            ? [Self.episode(index: 1), Self.episode(index: 2)] : []
+    }
     func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
         MediaPage(items: [], startIndex: 0, totalCount: 0)
     }
@@ -227,7 +249,10 @@ private struct RotationProvider: MediaProvider, StreamingQualityProviding {
         }
         let file = try await Self.movie()
         let url = try await probe.playbackURL(file: file, streaming: Self.embyStreaming)
-        return PlaybackRequest(item: Self.media, streamURL: url)
+        return PlaybackRequest(
+            item: Self.keyboardUpNext && itemID == "rotation-next" ? Self.episode(index: 2) : Self.media,
+            streamURL: url
+        )
     }
     func playbackInfo(
         for itemID: String, mediaSourceID: String?, forceTranscode: Bool,

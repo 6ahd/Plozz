@@ -74,6 +74,7 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
             hold.allowableMovement = 12
             pinch.addTarget(self, action: #selector(pinched(_:)))
             for gesture in [tap, hold, pinch] {
+                gesture.allowedPressTypes = []
                 gesture.delegate = self
                 view.addGestureRecognizer(gesture)
             }
