@@ -21,6 +21,9 @@ public struct PlayerTouchLevelFeedback: Equatable, Sendable {
     public let kind: PlayerTouchLevel
     /// Nil means this output cannot currently be adjusted.
     public let value: Double?
+    /// Points dragged past a limit: positive above full, negative below zero.
+    public let overshoot: Double
+    public let isDragging: Bool
 }
 
 struct PlayerTouchLevelDrag {
@@ -42,9 +45,13 @@ struct PlayerTouchLevelDrag {
         return nil
     }
 
-    func value(translationY: Double) -> Double? {
+    func adjustment(translationY: Double) -> (value: Double, overshoot: Double)? {
         guard translationY.isFinite, startValue.isFinite, height.isFinite, height > 0 else { return nil }
-        return min(max(startValue - translationY / height, 0), 1)
+        let proposed = startValue - translationY / height
+        let value = min(max(proposed, 0), 1)
+        let overshoot = (proposed - value) * height
+        guard proposed.isFinite, overshoot.isFinite else { return nil }
+        return (value, overshoot)
     }
 
     mutating func reachedLimit(afterApplying value: Double) -> Bool {
@@ -70,14 +77,15 @@ public final class PlayerTouchGestureState {
 
     public var isActive: Bool { skip != nil || boostRate != nil || isPinching || level != nil }
 
-    public func showLevel(_ kind: PlayerTouchLevel, value: Double?) {
+    public func showLevel(_ kind: PlayerTouchLevel, value: Double?, overshoot: Double = 0) {
         clearSkip()
         clearLevel()
-        level = PlayerTouchLevelFeedback(kind: kind, value: value)
+        level = PlayerTouchLevelFeedback(kind: kind, value: value, overshoot: overshoot, isDragging: true)
     }
 
     public func finishLevel() {
-        guard level != nil, levelFeedbackTask == nil else { return }
+        guard let level, levelFeedbackTask == nil else { return }
+        self.level = PlayerTouchLevelFeedback(kind: level.kind, value: level.value, overshoot: 0, isDragging: false)
         levelFeedbackTask = Task { @MainActor [weak self] in
             do { try await Task.sleep(for: .milliseconds(1200)) }
             catch { return }

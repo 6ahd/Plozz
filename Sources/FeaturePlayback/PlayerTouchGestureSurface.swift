@@ -216,17 +216,17 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
 
         private func updateLevel(movement: CGPoint, in view: UIView) {
             guard var drag = levelDrag else { return }
-            guard let value = drag.value(translationY: Double(movement.y)) else {
+            guard let adjustment = drag.adjustment(translationY: Double(movement.y)) else {
                 levelUnavailable(drag.kind)
                 return
             }
             do {
-                try levelControl.set(drag.kind, value: value, in: view)
-                if drag.reachedLimit(afterApplying: value) {
+                try levelControl.set(drag.kind, value: adjustment.value, in: view)
+                if drag.reachedLimit(afterApplying: adjustment.value) {
                     TouchFeedback.shared.emit(.impact)
                 }
                 levelDrag = drag
-                owner.state.showLevel(drag.kind, value: value)
+                owner.state.showLevel(drag.kind, value: adjustment.value, overshoot: adjustment.overshoot)
             } catch {
                 levelUnavailable(drag.kind)
             }
@@ -353,7 +353,10 @@ struct PlayerTouchGestureFeedbackContent: View {
                     let horizontalPosition = level.kind == .brightness ? inset : 1 - inset
                     Group {
                         if let value = level.value {
-                            PlayerTouchLevelMeter(kind: level.kind, value: value)
+                            PlayerTouchLevelMeter(
+                                kind: level.kind, value: value, overshoot: level.overshoot,
+                                isDragging: level.isDragging, reduceMotion: reduceMotion
+                            )
                         } else {
                             HStack(spacing: 8) {
                                 Image(systemName: level.kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
@@ -385,22 +388,33 @@ struct PlayerTouchGestureFeedbackContent: View {
 private struct PlayerTouchLevelMeter: View {
     let kind: PlayerTouchLevel
     let value: Double
+    let overshoot: Double
+    let isDragging: Bool
+    let reduceMotion: Bool
 
     var body: some View {
+        let stretch = reduceMotion ? 0 : 28 * (overshoot / (abs(overshoot) + 80))
+        let height = 156 + abs(stretch)
         ZStack(alignment: .bottom) {
             Color.clear
                 .modifier(PanelGlassBackground(cornerRadius: 999))
             Rectangle()
                 .fill(.white)
-                .frame(height: 156 * value)
+                .frame(height: height * value)
             icon.foregroundStyle(.white)
             icon.foregroundStyle(.black)
                 .mask(alignment: .bottom) {
-                    Rectangle().frame(height: 156 * value)
+                    Rectangle().frame(height: height * value)
                 }
         }
-        .frame(width: 32, height: 156)
+        .frame(width: 40 * 156 / height, height: height)
         .clipShape(Capsule())
+        .offset(y: -stretch / 2)
+        .frame(width: 40, height: 156)
+        .animation(
+            .spring(response: 0.35, dampingFraction: 0.72),
+            value: reduceMotion || isDragging ? nil : overshoot
+        )
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kind == .brightness ? "Brightness" : "Volume")

@@ -205,7 +205,7 @@ final class PlayerGestureInteractionTests: XCTestCase {
         )
         // UIKit's pan translation excludes the initial recognition slop.
         XCTAssertEqual(percent / 100, min(max(expected, 0), 1), accuracy: 0.04, file: file, line: line)
-        XCTAssertEqual(levelMeter.frame.width, 32, accuracy: 1, file: file, line: line)
+        XCTAssertEqual(levelMeter.frame.width, 40, accuracy: 1, file: file, line: line)
         XCTAssertEqual(levelMeter.frame.height, 156, accuracy: 1, file: file, line: line)
         XCTAssertEqual(
             app.otherElements["player-gesture-level-pill"].staticTexts.count, 0,

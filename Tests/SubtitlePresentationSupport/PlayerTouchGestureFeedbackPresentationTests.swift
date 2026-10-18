@@ -243,7 +243,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         for reducePanelGlass in [false, true] {
             for kind in [PlayerTouchLevel.brightness, .volume] {
                 try await withFeedback(reducePanelGlass: reducePanelGlass, colorScheme: .light) { fixture, window in
-                    let rect = CGRect(x: kind == .brightness ? 32 : 336, y: 22, width: 32, height: 156)
+                    let rect = CGRect(x: kind == .brightness ? 28 : 332, y: 22, width: 40, height: 156)
                     var frames: [Double: RenderedFrame] = [:]
                     for value in [0.0, 0.5, 1.0] {
                         fixture.state.showLevel(kind, value: value)
@@ -266,12 +266,12 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     let empty = try XCTUnwrap(frames[0])
                     let full = try XCTUnwrap(frames[1])
                     let upperInk = (12..<96).flatMap { y in
-                        (4..<28).map { x in empty.pixels[y * empty.width + x] }
+                        (4..<36).map { x in empty.pixels[y * empty.width + x] }
                     }.filter { $0 > 220 }
                     XCTAssertTrue(upperInk.isEmpty, "There must be no percentage or other visible label above the icon.")
 
                     let iconInk = (110..<144).flatMap { y in
-                        (2..<30).compactMap { x -> Int? in
+                        (2..<38).compactMap { x -> Int? in
                             let index = y * empty.width + x
                             return empty.pixels[index] > 240 ? index : nil
                         }
@@ -330,7 +330,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
 
                     let fullEnergy = self.inkEnergy(settled)
                     let fullBounds = try self.inkBounds(settled, threshold: 10)
-                    XCTAssertEqual(fullBounds.width, 32, accuracy: 1)
+                    XCTAssertEqual(fullBounds.width, 40, accuracy: 1)
                     XCTAssertEqual(fullBounds.height, 156, accuracy: 1)
                     for frame in [entering, exiting] {
                         XCTAssertGreaterThan(self.inkEnergy(frame), fullEnergy * 0.02, "Entry and exit must remain briefly visible.")
@@ -346,6 +346,83 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                         }
                     }
                     self.assertAbsent(gone, message: "The meter must disappear after its exit transition.")
+                }
+            }
+        }
+    }
+
+    func testLevelOverdragStretchesTowardTheLimitAndSpringsBackWithoutScalingIcons() async throws {
+        for reducePanelGlass in [false, true] {
+            for reduceMotion in [false, true] {
+                for (kind, value, overshoot) in [(PlayerTouchLevel.brightness, 1.0, 160.0), (.volume, 0.0, -160.0)] {
+                    try await withFeedback(
+                        reduceMotion: reduceMotion, reducePanelGlass: reducePanelGlass,
+                        feedbackSize: CGSize(width: 400, height: 300)
+                    ) { fixture, window in
+                        let rect = CGRect(x: kind == .brightness ? 8 : 312, y: 30, width: 80, height: 240)
+                        let label = "\(kind), reduced motion \(reduceMotion), reduced glass \(reducePanelGlass)"
+                        fixture.state.showLevel(kind, value: value)
+                        try await Task.sleep(for: .milliseconds(350))
+                        let resting = try self.capture(window, rect: rect, label: "Resting \(label)")
+                        fixture.state.showLevel(kind, value: value, overshoot: overshoot)
+                        try await Task.sleep(for: .milliseconds(100))
+                        let pulled = try self.capture(window, rect: rect, label: "Overdrag \(label)")
+                        fixture.state.showLevel(kind, value: value, overshoot: overshoot * 1000)
+                        try await Task.sleep(for: .milliseconds(100))
+                        let capped = try self.capture(window, rect: rect, label: "Extreme overdrag \(label)")
+                        fixture.state.finishLevel()
+                        try await Task.sleep(for: .milliseconds(80))
+                        let returning = try self.capture(window, rect: rect, label: "Spring return \(label)")
+                        try await Task.sleep(for: .milliseconds(520))
+                        let released = try self.capture(window, rect: rect, label: "Released \(label)")
+
+                        let restBounds = try self.inkBounds(resting, threshold: 10)
+                        let pulledBounds = try self.inkBounds(pulled, threshold: 10)
+                        let cappedBounds = try self.inkBounds(capped, threshold: 10)
+                        let returnBounds = try self.inkBounds(returning, threshold: 10)
+                        let releasedBounds = try self.inkBounds(released, threshold: 10)
+                        XCTAssertEqual(restBounds.width, 40, accuracy: 1)
+                        XCTAssertEqual(restBounds.height, 156, accuracy: 1)
+                        if reduceMotion {
+                            for bounds in [pulledBounds, cappedBounds, returnBounds] {
+                                XCTAssertEqual(bounds, restBounds, "Reduce Motion must keep the capsule stationary.")
+                            }
+                        } else {
+                            XCTAssertEqual(pulledBounds.height - restBounds.height, 28 * 160 / 240, accuracy: 2)
+                            XCTAssertLessThan(pulledBounds.width, restBounds.width - 2)
+                            XCTAssertLessThanOrEqual(cappedBounds.height, restBounds.height + 29)
+                            XCTAssertGreaterThanOrEqual(cappedBounds.height, restBounds.height + 26)
+                            XCTAssertGreaterThan(returnBounds.height, restBounds.height + 2, "Release must spring back, not snap.")
+                            XCTAssertLessThan(returnBounds.height, cappedBounds.height - 2)
+                            for bounds in [pulledBounds, cappedBounds, returnBounds] {
+                                XCTAssertEqual(bounds.midX, restBounds.midX, accuracy: 1)
+                                if overshoot > 0 {
+                                    XCTAssertEqual(bounds.maxY, restBounds.maxY, accuracy: 1, "Upward stretching must anchor the bottom.")
+                                } else {
+                                    XCTAssertEqual(bounds.minY, restBounds.minY, accuracy: 1, "Downward stretching must anchor the top.")
+                                }
+                            }
+                        }
+                        XCTAssertEqual(releasedBounds.minX, restBounds.minX, accuracy: 1)
+                        XCTAssertEqual(releasedBounds.minY, restBounds.minY, accuracy: 1)
+                        XCTAssertEqual(releasedBounds.width, restBounds.width, accuracy: 1)
+                        XCTAssertEqual(releasedBounds.height, restBounds.height, accuracy: 1)
+                        XCTAssertEqual(fixture.state.level?.value, value)
+                        XCTAssertEqual(fixture.state.level?.overshoot, 0)
+
+                        @MainActor func iconFrame(_ frame: RenderedFrame, bounds: CGRect) -> RenderedFrame {
+                            let icon = self.cropped(frame, to: CGRect(
+                                x: bounds.midX - 12, y: bounds.maxY - 38, width: 24, height: 24
+                            ))
+                            return value == 1
+                                ? RenderedFrame(width: icon.width, height: icon.height, pixels: icon.pixels.map { 255 - $0 })
+                                : icon
+                        }
+                        let restIcon = try self.inkBounds(iconFrame(resting, bounds: restBounds))
+                        let pulledIcon = try self.inkBounds(iconFrame(pulled, bounds: pulledBounds))
+                        XCTAssertEqual(pulledIcon.width, restIcon.width, accuracy: 1)
+                        XCTAssertEqual(pulledIcon.height, restIcon.height, accuracy: 1, "The symbol must not stretch with the capsule.")
+                    }
                 }
             }
         }
@@ -648,6 +725,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     private func withFeedback(
         direction: PlayerTouchSkipDirection? = nil, reduceMotion: Bool = false, reducePanelGlass: Bool = true,
         colorScheme: ColorScheme = .dark,
+        feedbackSize: CGSize = CGSize(width: 400, height: 200),
         _ operation: (FeedbackFixture, UIWindow) async throws -> Void
     ) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
@@ -660,7 +738,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         let previous = scene.windows.first(where: \.isKeyWindow)
         let fixture = FeedbackFixture(
             reduceMotion: direction == nil ? reduceMotion : false,
-            reducePanelGlass: reducePanelGlass, colorScheme: colorScheme
+            reducePanelGlass: reducePanelGlass, colorScheme: colorScheme, feedbackSize: feedbackSize
         )
         let host = UIHostingController(rootView: FeedbackFixtureView(fixture: fixture))
         host.safeAreaRegions = []
@@ -962,11 +1040,13 @@ private final class FeedbackFixture {
     var showsTypographyReferences = true
     let reducePanelGlass: Bool
     let colorScheme: ColorScheme
+    let feedbackSize: CGSize
 
-    init(reduceMotion: Bool, reducePanelGlass: Bool, colorScheme: ColorScheme) {
+    init(reduceMotion: Bool, reducePanelGlass: Bool, colorScheme: ColorScheme, feedbackSize: CGSize) {
         self.reduceMotion = reduceMotion
         self.reducePanelGlass = reducePanelGlass
         self.colorScheme = colorScheme
+        self.feedbackSize = feedbackSize
     }
 
     func seek(by interval: TimeInterval) {
@@ -979,7 +1059,7 @@ private struct FeedbackFixtureView: View {
 
     var body: some View {
         PlayerTouchGestureFeedbackContent(state: fixture.state, reduceMotion: fixture.reduceMotion)
-            .frame(width: 400, height: 200)
+            .frame(width: fixture.feedbackSize.width, height: fixture.feedbackSize.height)
             .fixedSize()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.black)

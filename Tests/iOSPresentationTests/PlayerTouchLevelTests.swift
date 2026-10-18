@@ -29,11 +29,11 @@ final class PlayerTouchLevelTests: XCTestCase {
         XCTAssertNil(PlayerTouchLevelDrag.kind(at: -1, width: 1000))
         XCTAssertNil(PlayerTouchLevelDrag.kind(at: 0, width: 0))
         let drag = PlayerTouchLevelDrag(kind: .volume, startValue: 0.5, height: 800)
-        XCTAssertEqual(drag.value(translationY: -160), 0.7)
-        XCTAssertEqual(drag.value(translationY: 240), 0.2)
-        XCTAssertEqual(drag.value(translationY: -1000), 1)
-        XCTAssertEqual(drag.value(translationY: 1000), 0)
-        XCTAssertNil(drag.value(translationY: .nan))
+        XCTAssertEqual(drag.adjustment(translationY: -160)?.value, 0.7)
+        XCTAssertEqual(drag.adjustment(translationY: 240)?.value, 0.2)
+        XCTAssertEqual(drag.adjustment(translationY: -1000)?.value, 1)
+        XCTAssertEqual(drag.adjustment(translationY: 1000)?.value, 0)
+        XCTAssertNil(drag.adjustment(translationY: .nan))
     }
 
     func testLevelFeedbackReplacesSkippingAndCancellationClearsIt() async throws {
@@ -63,7 +63,7 @@ final class PlayerTouchLevelTests: XCTestCase {
                 (500, false), (800, false), (320, false), (400, true)
             ]
             for (translation, expected) in movements {
-                let value = try XCTUnwrap(drag.value(translationY: translation))
+                let value = try XCTUnwrap(drag.adjustment(translationY: translation)?.value)
                 XCTAssertEqual(drag.reachedLimit(afterApplying: value), expected, "\(kind), \(translation)")
             }
         }
@@ -79,6 +79,35 @@ final class PlayerTouchLevelTests: XCTestCase {
             XCTAssertFalse(drag.reachedLimit(afterApplying: start))
             drag = PlayerTouchLevelDrag(kind: .brightness, startValue: start, height: 800)
             XCTAssertFalse(drag.reachedLimit(afterApplying: start), "A new swipe must not inherit old endpoint feedback.")
+        }
+    }
+
+    func testOverdragKeepsOutputsClampedAndMeasuresOnlyDistancePastTheLimit() throws {
+        let drag = PlayerTouchLevelDrag(kind: .volume, startValue: 0.5, height: 800)
+        for translation in [-400.0, -160, 0, 240, 400] {
+            XCTAssertEqual(try XCTUnwrap(drag.adjustment(translationY: translation)).overshoot, 0, accuracy: 0.001)
+        }
+        let above = try XCTUnwrap(drag.adjustment(translationY: -560))
+        XCTAssertEqual(above.value, 1)
+        XCTAssertEqual(above.overshoot, 160, accuracy: 0.001)
+        let below = try XCTUnwrap(drag.adjustment(translationY: 560))
+        XCTAssertEqual(below.value, 0)
+        XCTAssertEqual(below.overshoot, -160, accuracy: 0.001)
+        XCTAssertNil(drag.adjustment(translationY: .infinity))
+        XCTAssertNil(PlayerTouchLevelDrag(kind: .brightness, startValue: 0.5, height: 0).adjustment(translationY: 1))
+    }
+
+    func testFinishingOverdragReleasesTheStretchWithoutChangingTheOutput() {
+        let state = PlayerTouchGestureState()
+        defer { state.cancel() }
+        for (value, overshoot) in [(1.0, 160.0), (0.0, -160.0)] {
+            state.showLevel(.brightness, value: value, overshoot: overshoot)
+            XCTAssertEqual(state.level?.overshoot, overshoot)
+            XCTAssertEqual(state.level?.isDragging, true)
+            state.finishLevel()
+            XCTAssertEqual(state.level?.value, value)
+            XCTAssertEqual(state.level?.overshoot, 0)
+            XCTAssertEqual(state.level?.isDragging, false)
         }
     }
 

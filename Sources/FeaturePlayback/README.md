@@ -252,7 +252,7 @@ on-demand and Live TV playback, including while Up Next is visible, but yield to
 menus, sheets, VoiceOver, external playback and inactive scenes. Multiview and
 inline Live TV do not adjust shared device outputs.
 
-Level feedback is a 32-by-156-point monochrome vertical capsule, centered 12%
+Level feedback is a 40-by-156-point monochrome vertical capsule, centered 12%
 inward from the respective feedback area's edge. It fills upward with
 the swipe, without revealing the timeline. Only the fill and 16-point native output icon
 are visible; the percentage is available to accessibility, not drawn on screen.
@@ -262,6 +262,11 @@ partial-icon crossings and full output without flipping the whole symbol at a
 threshold. Native glass and reduced-effects backgrounds share the same layout.
 The capsule fades and gently scales on entry and exit; Reduce Motion uses only
 the fade. Keep the feedback host mounted while idle so expiry can animate out.
+Dragging beyond full stretches the capsule upward; dragging below zero stretches
+it downward. The opposite end stays anchored while the body gently narrows,
+with increasing resistance and at most 28 points of extra height. Output remains
+clamped, the icon keeps its size, and release springs back without changing the
+level. Reduce Motion disables stretching and the spring.
 Successful swipes emit a light haptic on supported hardware when first reaching
 zero or full output, not on every clamped update. Moving away and reaching a
 limit again re-arms the feedback; starting at a limit does not buzz immediately.
