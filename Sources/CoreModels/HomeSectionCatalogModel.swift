@@ -7,8 +7,14 @@ import Observation
 public final class HomeSectionCatalogModel {
     public struct RequestID: Hashable {
         let accounts: [String]
-        let libraries: [String]
+        let libraries: [AggregatedLibrary]
         let profile: ObjectIdentifier
+    }
+
+    public struct LoadID: Hashable {
+        let scope: RequestID
+        let presetRevision: UUID
+        let revision: Int
     }
 
     public private(set) var catalog = HomeSectionCatalog(libraries: [])
@@ -18,6 +24,9 @@ public final class HomeSectionCatalogModel {
     public private(set) var requestID: RequestID?
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var recommendations: [String: [LibrarySection]] = [:]
+    @ObservationIgnored private var pendingLoadID: LoadID?
+    @ObservationIgnored private var pendingLoad: Task<Void, Never>?
+    @ObservationIgnored private var consumers: Set<UUID> = []
 
     public init() {}
 
@@ -29,17 +38,70 @@ public final class HomeSectionCatalogModel {
                 [$0.account.id, $0.account.server.identityKey, $0.credentialRevision.rawValue.uuidString,
                  $0.provider.session.userID, $0.plexHomeUserID ?? ""]
             },
-            libraries: libraries.filter { visibility.isEnabled($0.key) }.map(\.key),
+            libraries: libraries.filter { visibility.isEnabled($0.key) },
             profile: ObjectIdentifier(visibility)
         )
     }
 
+    /// Visible editor pages share discovery; leaving the last consumer cancels it.
     public func load(
         libraries: [AggregatedLibrary], accounts: [ResolvedAccount], visibility: HomeLibraryVisibilityModel
     ) async {
+        guard !Task.isCancelled else { return }
+        let id = Self.loadID(libraries: libraries, accounts: accounts, visibility: visibility)
+        let consumer = UUID()
+        let task: Task<Void, Never>
+        if pendingLoadID == id, let pendingLoad {
+            task = pendingLoad
+        } else {
+            pendingLoad?.cancel()
+            generation = UUID()
+            consumers = []
+            pendingLoadID = id
+            let generation = generation
+            task = Task {
+                await discover(libraries: libraries, accounts: accounts, visibility: visibility, generation: generation)
+            }
+            pendingLoad = task
+        }
+        let generation = generation
+        consumers.insert(consumer)
+        await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.release(consumer, generation: generation)
+            }
+        }
+        release(consumer, generation: generation)
+    }
+
+    public static func loadID(
+        libraries: [AggregatedLibrary], accounts: [ResolvedAccount],
+        visibility: HomeLibraryVisibilityModel, revision: Int = 0
+    ) -> LoadID {
+        LoadID(
+            scope: requestID(libraries: libraries, accounts: accounts, visibility: visibility),
+            presetRevision: visibility.rowDefaultsRevision, revision: revision
+        )
+    }
+
+    private func release(_ consumer: UUID, generation: UUID) {
+        guard self.generation == generation, consumers.remove(consumer) != nil,
+              consumers.isEmpty else { return }
+        pendingLoad?.cancel()
+        pendingLoad = nil
+        pendingLoadID = nil
+        self.generation = UUID()
+        isLoading = false
+    }
+
+    private func discover(
+        libraries: [AggregatedLibrary], accounts: [ResolvedAccount],
+        visibility: HomeLibraryVisibilityModel, generation: UUID
+    ) async {
+        guard !Task.isCancelled, self.generation == generation else { return }
         let request = Self.requestID(libraries: libraries, accounts: accounts, visibility: visibility)
-        let generation = UUID()
-        self.generation = generation
         let accountIDs = Set(accounts.map(\.account.id))
         let available = libraries.filter {
             accountIDs.contains($0.accountID) && visibility.isEnabled($0.key)
@@ -66,6 +128,7 @@ public final class HomeSectionCatalogModel {
             .filter { accountIDs.contains($0.accountID) } + serverRows
         let useResolvedServerRows = visibility.visibility.rowCustomization?.defaults == .matchServer
         serverFailures = useResolvedServerRows ? visibility.serverMatchFailures : [:]
+        catalog = HomeSectionCatalog(libraries: available, serverRows: serverRows, recommendations: recommendations)
         var requests: [Request] = []
         if !useResolvedServerRows {
             requests += accounts.map { .server($0) }

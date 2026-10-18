@@ -14,6 +14,91 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testPresetPageRefreshesRecoveredNativeSectionsBeforeSavingCustomRows() async throws {
+        let suite = "HomePresetRecovery.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        let provider = HomeSettingsLibraryProvider(
+            name: "Recovered server", homeError: .serverUnreachable, kind: .plex,
+            homeLayout: .init(sections: [.init(id: "native", kind: .recommendations)], source: .promotedHubs)
+        )
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let inventory = HomeSectionCatalogModel()
+        await inventory.load(libraries: [], accounts: [account], visibility: visibility)
+        XCTAssertEqual(inventory.serverFailures[account.account.id], .serverUnreachable)
+
+        try await withWindow {
+            HomeRowPresetsView(inventory: inventory, visibility: visibility, libraries: [], accounts: [account])
+        } inspect: { window in
+            _ = try await self.capture(window, name: "Preset before server recovery")
+            await provider.setHomeError(nil)
+            visibility.useRowDefaults(.matchServer)
+            let native = HomeRowID.server(accountID: account.account.id, section: "native")
+            let recovered = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in
+                    !inventory.isLoading && inventory.serverFailures.isEmpty
+                        && inventory.catalog.sections(in: visibility.visibility).enabled == [native]
+                }, object: nil
+            )
+            await self.fulfillment(of: [recovered], timeout: 5)
+            try visibility.setHomeSectionVisible(true, id: .libraries, catalog: inventory.catalog)
+            XCTAssertEqual(inventory.catalog.sections(in: visibility.visibility).enabled, [native, .libraries])
+            _ = try await self.capture(window, name: "Preset after server recovery")
+        }
+    }
+
+    #if os(iOS)
+    func testPushingAddSectionFinishesDiscoveryAfterTheRootDisappears() async throws {
+        let suite = "HomeAddDiscovery.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        let requested = expectation(description: "Root starts a held native-section request")
+        let provider = HomeSettingsLibraryProvider(
+            name: "Slow server", kind: .plex,
+            homeLayout: .init(
+                sections: [.init(id: "native", kind: .recommendations, title: "Native picks")], source: .promotedHubs
+            ),
+            holdsHome: true, onFirstHomeRequest: { requested.fulfill() }
+        )
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let inventory = HomeSectionCatalogModel()
+        let navigation = HomeCatalogNavigationFixture()
+        try await withWindow {
+            HomeCatalogNavigationHost(navigation: navigation, inventory: inventory, visibility: visibility, accounts: [account])
+        } inspect: { window in
+            await self.fulfillment(of: [requested], timeout: 5)
+            XCTAssertTrue(inventory.isLoading)
+            navigation.path = ["add"]
+            let pushed = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in navigation.rootDisappeared && navigation.addAppeared }, object: nil
+            )
+            await self.fulfillment(of: [pushed], timeout: 5)
+            await provider.resumeHome()
+            let native = HomeRowID.server(accountID: account.account.id, section: "native")
+            let discovered = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in
+                    !inventory.isLoading && inventory.catalog.sections(in: visibility.visibility).disabled.contains(native)
+                }, object: nil
+            )
+            await self.fulfillment(of: [discovered], timeout: 5)
+            let lines = try await self.capture(window, name: "Native section discovered on Add section")
+            XCTAssertTrue(lines.contains { $0.0.contains("Native picks") }, lines.map(\.0).joined(separator: " "))
+            try visibility.setHomeSectionVisible(true, id: native, catalog: inventory.catalog)
+            navigation.path = []
+            let returned = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in !navigation.addAppeared }, object: nil
+            )
+            await self.fulfillment(of: [returned], timeout: 5)
+            XCTAssertTrue(inventory.catalog.sections(in: visibility.visibility).enabled.contains(native))
+        }
+        await provider.resumeHome()
+    }
+    #endif
+
     func testMergeNextUpControlIsReadableAndReflectsHiddenContinueWatching() async throws {
         let suite = "HomeNextUpControl.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -98,7 +183,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             NavigationStack {
                 HomeSectionSettingsView(
                     choice: HomeRowChoice.shared.first { $0.id == .global(.continueWatching) }!,
-                    inventory: HomeSectionCatalogModel(), visibility: visibility
+                    inventory: HomeSectionCatalogModel(), visibility: visibility, libraries: [], accounts: []
                 )
             }
         } inspect: { window in
@@ -237,7 +322,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 let text = lines.map(\.0).joined(separator: " ")
                 XCTAssertTrue(text.contains("Reorder"), text)
                 XCTAssertTrue(text.contains("Hero"), text)
-                XCTAssertTrue(text.contains(title), "The section source must follow the active viewer.")
+                XCTAssertTrue(text.contains(title), "Expected the active viewer's \(title): \(text)")
             }
         }
     }
@@ -418,7 +503,9 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         )
         for size in [DynamicTypeSize.large, .accessibility3] {
             try await withWindow {
-                HomeRowPresetsView(visibility: visibility, accounts: [])
+                HomeRowPresetsView(
+                    inventory: HomeSectionCatalogModel(), visibility: visibility, libraries: [], accounts: []
+                )
                 .environment(\.dynamicTypeSize, size)
                 #if os(tvOS)
                 .frame(width: 1050)
@@ -518,6 +605,33 @@ final class HomeRowArrangementHostedTests: XCTestCase {
 
 #if os(iOS)
 @MainActor @Observable
+private final class HomeCatalogNavigationFixture {
+    var path: [String] = []
+    var rootDisappeared = false
+    var addAppeared = false
+}
+
+@MainActor
+private struct HomeCatalogNavigationHost: View {
+    @Bindable var navigation: HomeCatalogNavigationFixture
+    let inventory: HomeSectionCatalogModel
+    let visibility: HomeLibraryVisibilityModel
+    let accounts: [ResolvedAccount]
+
+    var body: some View {
+        NavigationStack(path: $navigation.path) {
+            HomeRowsSettingsView(libraries: [], accounts: accounts, visibility: visibility, inventory: inventory)
+                .onDisappear { navigation.rootDisappeared = true }
+                .navigationDestination(for: String.self) { _ in
+                    HomeAddSectionView(inventory: inventory, visibility: visibility, libraries: [], accounts: accounts)
+                        .onAppear { navigation.addAppeared = true }
+                        .onDisappear { navigation.addAppeared = false }
+                }
+        }
+    }
+}
+
+@MainActor @Observable
 private final class HomeSettingsAccountsFixture {
     var accounts: [ResolvedAccount]
     init(accounts: [ResolvedAccount]) { self.accounts = accounts }
@@ -550,17 +664,26 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     private let libraryTitle: String
     private var holdsLibraries: Bool
     private var libraryContinuation: CheckedContinuation<Void, Never>?
+    private let homeLayout: ServerHomeLayout?
+    private var holdsHome: Bool
+    private var homeContinuations: [CheckedContinuation<Void, Never>] = []
+    private let onFirstHomeRequest: (@Sendable () -> Void)?
+    private var requestedHome = false
 
     init(
         name: String, isOffline: Bool = false, homeError: AppError? = nil,
         libraryTitle: String = "Movies", kind: ProviderKind = .jellyfin,
-        holdsLibraries: Bool = false
+        holdsLibraries: Bool = false, homeLayout: ServerHomeLayout? = nil,
+        holdsHome: Bool = false, onFirstHomeRequest: (@Sendable () -> Void)? = nil
     ) {
         self.isOffline = isOffline
         self.homeError = homeError
         self.libraryTitle = libraryTitle
         self.kind = kind
         self.holdsLibraries = holdsLibraries
+        self.homeLayout = homeLayout
+        self.holdsHome = holdsHome
+        self.onFirstHomeRequest = onFirstHomeRequest
         session = UserSession(
             server: MediaServer(
                 id: name, name: name,
@@ -577,8 +700,20 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
         libraryContinuation = nil
     }
     func serverHomeLayout() async throws -> ServerHomeLayout? {
+        if !requestedHome {
+            requestedHome = true
+            onFirstHomeRequest?()
+        }
+        if holdsHome { await withCheckedContinuation { homeContinuations.append($0) } }
         if let homeError { throw homeError }
-        return nil
+        return homeLayout
+    }
+
+    func resumeHome() {
+        holdsHome = false
+        let pending = homeContinuations
+        homeContinuations = []
+        for continuation in pending { continuation.resume() }
     }
 
     func libraries() async throws -> [MediaLibrary] {

@@ -3,6 +3,106 @@ import XCTest
 
 @MainActor
 final class HomeSectionCatalogModelTests: XCTestCase {
+    func testVisiblePagesShareDiscoveryWhenTheRootTaskIsCancelled() async throws {
+        let suite = "HomeCatalogConsumers.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        let provider = HomeCatalogProvider()
+        await provider.hold()
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let model = HomeSectionCatalogModel()
+        let root = Task { await model.load(libraries: [], accounts: [account], visibility: visibility) }
+        await provider.waitUntilRequested()
+        let attached = expectation(description: "Destination starts observing discovery")
+        let destination = Task {
+            attached.fulfill()
+            await model.load(libraries: [], accounts: [account], visibility: visibility)
+        }
+        await fulfillment(of: [attached], timeout: 2)
+        root.cancel()
+        await provider.resume()
+        await root.value
+        await destination.value
+        let requests = await provider.requestCount
+        XCTAssertEqual(requests, 1, "Opening a destination must not duplicate a live catalog request.")
+        XCTAssertTrue(model.catalog.choices.contains { $0.id == .server(accountID: account.account.id, section: "native") })
+        XCTAssertTrue(model.serverFailures.isEmpty)
+        XCTAssertFalse(model.isLoading)
+    }
+
+    func testLeavingTheLastPageCancelsDiscoveryWithoutPublishingLateResults() async throws {
+        let suite = "HomeCatalogDismissal.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        let provider = HomeCatalogProvider()
+        await provider.hold()
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let model = HomeSectionCatalogModel()
+        let task = Task { await model.load(libraries: [], accounts: [account], visibility: visibility) }
+        await provider.waitUntilRequested()
+        let original = model.catalog
+        task.cancel()
+        let stopped = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in !model.isLoading }, object: nil)
+        await fulfillment(of: [stopped], timeout: 2)
+        await provider.resume()
+        await task.value
+        XCTAssertEqual(model.catalog, original)
+        XCTAssertTrue(model.serverFailures.isEmpty)
+    }
+
+    func testPresetRecoveryRefreshesTheCatalogBeforeCustomizingRows() async throws {
+        let suite = "HomeCatalogPreset.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        let provider = HomeCatalogProvider()
+        await provider.setFailure(.serverUnreachable)
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let model = HomeSectionCatalogModel()
+        let originalLoadID = HomeSectionCatalogModel.loadID(libraries: [], accounts: [account], visibility: visibility)
+        await model.load(libraries: [], accounts: [account], visibility: visibility)
+        XCTAssertEqual(model.serverFailures[account.account.id], .serverUnreachable)
+        await provider.setFailure(nil)
+        visibility.useRowDefaults(.matchServer)
+        XCTAssertNotEqual(
+            HomeSectionCatalogModel.loadID(libraries: [], accounts: [account], visibility: visibility), originalLoadID
+        )
+        await model.load(libraries: [], accounts: [account], visibility: visibility)
+        let native = HomeRowID.server(accountID: account.account.id, section: "native")
+        XCTAssertEqual(model.catalog.sections(in: visibility.visibility).enabled, [native])
+        XCTAssertTrue(model.serverFailures.isEmpty)
+        let loadedID = HomeSectionCatalogModel.loadID(libraries: [], accounts: [account], visibility: visibility)
+        try visibility.setHomeSectionVisible(true, id: .libraries, catalog: model.catalog)
+        XCTAssertEqual(model.catalog.sections(in: visibility.visibility).enabled, [native, .libraries])
+        XCTAssertEqual(
+            HomeSectionCatalogModel.loadID(libraries: [], accounts: [account], visibility: visibility), loadedID,
+            "Freezing a preset during an edit must not restart discovery or disable a lifted row."
+        )
+    }
+
+    func testLibraryMetadataChangesInvalidateTheCatalogWithoutChangingItsStableKey() throws {
+        let suite = "HomeCatalogLibraryMetadata.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        let original = AggregatedLibrary(
+            accountID: "account", accountName: "Viewer", serverName: "Server", providerKind: .plex,
+            library: .init(id: "movies", title: "Original movies", kind: .movie)
+        )
+        var updated = original
+        updated.library.title = "Updated movies"
+        XCTAssertEqual(original.key, updated.key)
+        XCTAssertNotEqual(
+            HomeSectionCatalogModel.loadID(libraries: [original], accounts: [], visibility: visibility),
+            HomeSectionCatalogModel.loadID(libraries: [updated], accounts: [], visibility: visibility)
+        )
+    }
+
     func testDiscoveryKeepsChoicesOnFailureAndClearsThemForANewViewer() async throws {
         let suite = "HomeCatalog.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -113,6 +213,7 @@ private actor HomeCatalogProvider: MediaProvider {
     private var observer: CheckedContinuation<Void, Never>?
     private var requested = false
     private var hasPromotedRows = true
+    private(set) var requestCount = 0
 
     func setFailure(_ value: AppError?) { failure = value }
     func removePromotedRows() { hasPromotedRows = false }
@@ -126,6 +227,7 @@ private actor HomeCatalogProvider: MediaProvider {
         pending = nil
     }
     func serverHomeLayout() async throws -> ServerHomeLayout? {
+        requestCount += 1
         requested = true
         observer?.resume()
         observer = nil

@@ -10,7 +10,7 @@ public struct HomeRowsSettingsView: View {
     public let visibility: HomeLibraryVisibilityModel
     @Environment(HeroSettingsModel.self) private var hero
     @Environment(HeroBackgroundSettingsModel.self) private var heroBackground
-    @State private var inventory = HomeSectionCatalogModel()
+    @State private var inventory: HomeSectionCatalogModel
     @State private var isReordering = false
     @State private var isLifting = false
     @State private var reloadRevision = 0
@@ -20,9 +20,17 @@ public struct HomeRowsSettingsView: View {
         libraries: [AggregatedLibrary], accounts: [ResolvedAccount],
         visibility: HomeLibraryVisibilityModel
     ) {
+        self.init(libraries: libraries, accounts: accounts, visibility: visibility, inventory: HomeSectionCatalogModel())
+    }
+
+    init(
+        libraries: [AggregatedLibrary], accounts: [ResolvedAccount],
+        visibility: HomeLibraryVisibilityModel, inventory: HomeSectionCatalogModel
+    ) {
         self.libraries = libraries
         self.accounts = accounts
         self.visibility = visibility
+        _inventory = State(initialValue: inventory)
     }
 
     private var requestID: HomeSectionCatalogModel.RequestID {
@@ -77,12 +85,16 @@ public struct HomeRowsSettingsView: View {
                         } catch { editError = (error as? AppError) ?? .invalidResponse }
                     }
                 )
+                .disabled(inventory.isLoading)
                 .accessibilityIdentifier("home-section-reorder-list")
             } else {
                 ForEach(sections.enabled, id: \.self) { id in
                     if let choice = choices.first(where: { $0.id == id }) {
                         HomeEditorLink {
-                            HomeSectionSettingsView(choice: choice, inventory: inventory, visibility: visibility)
+                            HomeSectionSettingsView(
+                                choice: choice, inventory: inventory, visibility: visibility,
+                                libraries: libraries, accounts: accounts
+                            )
                         } label: {
                             HomeSectionChoiceLabel(choice: choice)
                         }
@@ -90,7 +102,9 @@ public struct HomeRowsSettingsView: View {
                     }
                 }
                 HomeEditorLink {
-                    HomeAddSectionView(inventory: inventory, visibility: visibility)
+                    HomeAddSectionView(
+                        inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
+                    )
                 } label: {
                     Label("Add section", systemImage: "plus")
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
@@ -98,7 +112,9 @@ public struct HomeRowsSettingsView: View {
                 .accessibilityIdentifier("home-section-add")
 
                 HomeEditorLink {
-                    HomeRowPresetsView(visibility: visibility, accounts: accounts)
+                    HomeRowPresetsView(
+                        inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
+                    )
                 } label: {
                     HomeEditorRowLabel(
                         title: Text("Starting layout"), subtitle: presetTitle,
@@ -120,7 +136,9 @@ public struct HomeRowsSettingsView: View {
             ToolbarItem(placement: .topBarTrailing) { reorderButton }
         }
         #endif
-        .task(id: LoadID(scope: requestID, revision: reloadRevision)) {
+        .task(id: HomeSectionCatalogModel.loadID(
+            libraries: libraries, accounts: accounts, visibility: visibility, revision: reloadRevision
+        )) {
             await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
         .onChange(of: requestID) { _, _ in
@@ -138,7 +156,8 @@ public struct HomeRowsSettingsView: View {
             if isReordering { Text("Done") }
             else { Text("Reorder") }
         }
-        .disabled(isLifting || (!isReordering && inventory.catalog.sections(in: visibility.visibility).enabled.count < 2))
+        .disabled(isLifting || (!isReordering && (inventory.isLoading
+            || inventory.catalog.sections(in: visibility.visibility).enabled.count < 2)))
         .accessibilityIdentifier("home-section-reorder")
     }
 
@@ -155,11 +174,6 @@ public struct HomeRowsSettingsView: View {
         if hero.settings.style == .followsFocus { return Text("Showcase") }
         #endif
         return hero.settings.isEnabled ? Text("Pinned at top") : Text("Off")
-    }
-
-    private struct LoadID: Hashable {
-        let scope: HomeSectionCatalogModel.RequestID
-        let revision: Int
     }
 }
 #endif

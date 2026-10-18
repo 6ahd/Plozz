@@ -67,6 +67,15 @@ and expose typed errors; cancellation and stale tasks cannot publish into a
 newer catalog. There is no timer, full-feed loader, playback resolution or
 new provider-specific API in the editor.
 
+The root, section, Add section and preset pages participate in the same
+identity- and preset-keyed load. Concurrent pages share its work; leaving the
+last consumer cancels it. A pushed page can restart a cancelled load, and preset
+selections refresh both resolved native sections and discovery errors; freezing
+a preset during a row edit does not restart discovery. Library metadata changes
+also invalidate the catalog even when account/library keys remain stable. Section
+mutations wait for discovery so an incomplete catalog cannot freeze a preset
+without its newly discovered rows.
+
 Hero stays in `HeroSettings`, fixed above `HomePresentationRow`; Showcase remains
 a page layout. Future custom source scopes, mixed feeds, duplicate instances,
 curated sections and new appearances need explicit configuration and capability

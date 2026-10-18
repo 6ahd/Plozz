@@ -63,6 +63,7 @@ public final class HomeLibraryVisibilityStore: HomeLibraryVisibilityStoring, @un
 public final class HomeLibraryVisibilityModel {
     public private(set) var visibility: HomeLibraryVisibility
     public private(set) var serverMatchFailures: [String: AppError] = [:]
+    public private(set) var rowDefaultsRevision = UUID()
 
     private let store: HomeLibraryVisibilityStoring
     @ObservationIgnored private var cachedServerDefaults: CachedHomeRowDefaults?
@@ -254,6 +255,7 @@ public final class HomeLibraryVisibilityModel {
         serverRequest = nil
         serverRequestID = UUID()
         visibility.rowCustomization = HomeRowCustomization(defaults: defaults)
+        rowDefaultsRevision = UUID()
         serverMatchFailures = [:]
         store.save(visibility)
     }

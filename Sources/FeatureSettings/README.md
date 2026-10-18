@@ -23,6 +23,11 @@ and the single place caption customization lives.
   Starting layout retains the confirmed Match server and Combined rows presets.
   Merely opening the editor, a destination, or Reorder does not freeze a preset.
   Shared `InlineErrorMessage` warnings name affected sources and offer retry.
+  Every catalog-editing destination keeps discovery active while visible and
+  offers the same status/retry controls. Preset changes reload the catalog;
+  adding, removing and reordering wait for discovery to finish.
+  Mobile library discovery publishes one identity-scoped snapshot, never pairing
+  a previous viewer's library metadata with the newly active credentials.
 - `HomeSectionCatalog` owns typed choice deduplication and validated section
   edits; `HomeSectionCatalogModel` owns bounded, identity-fenced discovery.
   The UI writes through the existing profile-scoped `HomeLibraryVisibilityModel`.

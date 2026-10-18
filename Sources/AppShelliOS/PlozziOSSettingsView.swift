@@ -1896,18 +1896,23 @@ struct PlozziOSHomeSettingsView: View {
     @Bindable var heroBackground: HeroBackgroundSettingsModel
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
-    @State private var libraries: [HomeLibraryChoice] = []
+    @State private var librarySnapshot: (scope: HomeSectionCatalogModel.RequestID, choices: [HomeLibraryChoice])?
+
+    private var libraryRequestID: HomeSectionCatalogModel.RequestID {
+        HomeSectionCatalogModel.requestID(libraries: [], accounts: accounts, visibility: visibility)
+    }
+
+    private var libraries: [HomeLibraryChoice] {
+        guard let librarySnapshot, librarySnapshot.scope == libraryRequestID else { return [] }
+        return librarySnapshot.choices
+    }
 
     var body: some View {
         HomeRowsSettingsView(libraries: aggregatedHomeLibraries, accounts: accounts, visibility: visibility)
         .id(ObjectIdentifier(visibility))
         .environment(hero)
         .environment(heroBackground)
-        .task(id: accounts.map {
-            [$0.account.id, $0.credentialRevision.rawValue.uuidString,
-             $0.provider.session.userID, $0.plexHomeUserID ?? ""]
-        }) {
-            libraries = []
+        .task(id: libraryRequestID) {
             await loadLibraries()
         }
     }
@@ -1928,6 +1933,8 @@ struct PlozziOSHomeSettingsView: View {
     }
 
     private func loadLibraries() async {
+        let scope = libraryRequestID
+        let previousLibraries = libraries
         var loaded: [HomeLibraryChoice] = []
         for resolved in accounts {
             let discovered: [MediaLibrary]
@@ -1939,7 +1946,7 @@ struct PlozziOSHomeSettingsView: View {
             } catch {
                 guard !Task.isCancelled else { return }
                 PlozzLog.app.error("Home settings library discovery failed")
-                loaded += libraries.filter { $0.accountID == resolved.account.id }
+                loaded += previousLibraries.filter { $0.accountID == resolved.account.id }
                 continue
             }
             loaded.append(
@@ -1955,7 +1962,7 @@ struct PlozziOSHomeSettingsView: View {
             )
         }
         guard !Task.isCancelled else { return }
-        libraries = loaded
+        librarySnapshot = (scope: scope, choices: loaded)
     }
 }
 

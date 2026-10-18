@@ -119,8 +119,11 @@ struct HomeSectionSettingsView: View {
     let choice: HomeRowChoice
     let inventory: HomeSectionCatalogModel
     let visibility: HomeLibraryVisibilityModel
+    let libraries: [AggregatedLibrary]
+    let accounts: [ResolvedAccount]
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
+    @State private var reloadRevision = 0
 
     var body: some View {
         HomeEditorPage(title: choice.homeEditorTitle, showsHeader: true) {
@@ -141,8 +144,17 @@ struct HomeSectionSettingsView: View {
                 } catch { failed = true }
             }
             .plozzActionButton(role: .secondary)
+            .disabled(inventory.isLoading)
             .accessibilityIdentifier("home-section-remove")
             if failed { InlineErrorMessage(Text("Couldn't update this section. Try again.")) }
+            HomeCatalogStatus(inventory: inventory, accounts: accounts, libraries: libraries) {
+                reloadRevision += 1
+            }
+        }
+        .task(id: HomeSectionCatalogModel.loadID(
+            libraries: libraries, accounts: accounts, visibility: visibility, revision: reloadRevision
+        )) {
+            await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
     }
 }
@@ -150,8 +162,11 @@ struct HomeSectionSettingsView: View {
 struct HomeAddSectionView: View {
     let inventory: HomeSectionCatalogModel
     let visibility: HomeLibraryVisibilityModel
+    let libraries: [AggregatedLibrary]
+    let accounts: [ResolvedAccount]
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
+    @State private var reloadRevision = 0
 
     var body: some View {
         HomeEditorPage(title: Text("Add section"), showsHeader: true) {
@@ -171,13 +186,21 @@ struct HomeAddSectionView: View {
                     HomeSectionChoiceLabel(choice: choice, accessory: "plus")
                 }
                 .buttonStyle(SettingsFormButtonStyle())
+                .disabled(inventory.isLoading)
                 .accessibilityIdentifier("home-add-\(choice.id.presentationID)")
             }
-            if inventory.isLoading { ProgressView("Loading available sections…") }
+            HomeCatalogStatus(inventory: inventory, accounts: accounts, libraries: libraries) {
+                reloadRevision += 1
+            }
             if visibility.visibility.mergesNextUpRows {
                 Text("Next Up is included in Continue Watching.").font(.footnote).plozzForeground(.secondary)
             }
             if failed { InlineErrorMessage(Text("Couldn't update this section. Try again.")) }
+        }
+        .task(id: HomeSectionCatalogModel.loadID(
+            libraries: libraries, accounts: accounts, visibility: visibility, revision: reloadRevision
+        )) {
+            await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
     }
 }
@@ -271,9 +294,12 @@ struct HomeCatalogStatus: View {
 }
 
 struct HomeRowPresetsView: View {
+    let inventory: HomeSectionCatalogModel
     let visibility: HomeLibraryVisibilityModel
+    let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
     @State private var resetDefaults: HomeRowCustomization.Defaults?
+    @State private var reloadRevision = 0
 
     var body: some View {
         HomeEditorPage(title: Text("Starting layout"), showsHeader: true) {
@@ -307,7 +333,6 @@ struct HomeRowPresetsView: View {
                     Button(title(preset)) {
                         visibility.useRowDefaults(preset)
                         resetDefaults = nil
-                        Task { await visibility.prepareServerDefaults(accounts: accounts) }
                     }
                     Button("Cancel", role: .cancel) { resetDefaults = nil }
                 } message: {
@@ -315,6 +340,14 @@ struct HomeRowPresetsView: View {
                     else { Text("Start with rows across all libraries.") }
                 }
             }
+            HomeCatalogStatus(inventory: inventory, accounts: accounts, libraries: libraries) {
+                reloadRevision += 1
+            }
+        }
+        .task(id: HomeSectionCatalogModel.loadID(
+            libraries: libraries, accounts: accounts, visibility: visibility, revision: reloadRevision
+        )) {
+            await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
     }
 
