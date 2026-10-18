@@ -14,21 +14,26 @@ and the single place caption customization lives.
   and Hero source selection uses the enabled library inventory. Discovering
   libraries for those controls must not restore a separate management list.
 - **Customize Home** is one shared section editor on TV, iPhone and iPad.
-  Normal rows open their own settings without redundant leading row icons.
-  A labeled action bar below the title exposes Layouts, Reorder/Done and Add
-  section; mobile keeps it visible while scrolling. Reorder/Done switches to
-  native movement controls with row icons and no Hidden drop zone; Hero stays
+  Normal rows open their own settings. Source-specific rows and their settings
+  use the shared provider brand mark, including the transport badge for shares;
+  generic row glyphs appear only during reordering.
+  An inline Preset selector and Add section sit below the title; mobile keeps
+  these controls visible while scrolling. Reorder/Done stays at the top right,
+  and a second Add section action follows the list. Reorder/Done switches to
+  native movement controls with no Hidden drop zone; Hero stays
   pinned and cannot move. Mobile uses the shared page inset without extra gutters.
   Add section offers available existing rows not already shown. Removing a
   section hides it without erasing its configuration or disabling its libraries.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
-  Layouts retains the confirmed Match server and Combined rows presets.
+  Preset retains the confirmed Match server and Combined rows choices and shows
+  Custom for edited arrangements. Selecting a new preset still requires
+  confirmation.
   Merely opening the editor, a destination, or Reorder does not freeze a preset.
   One bottom card on the main editor uses shared `InlineErrorMessage` warnings
   to name affected sources and offers Retry, without repeating these on detail pages.
-  Every catalog-editing destination keeps discovery active while visible and
-  retains loading status and local edit failures. Preset changes reload the catalog;
+  The root and every catalog-editing destination keep discovery active while
+  visible and retain loading status and local edit failures. Preset changes reload the catalog;
   adding, removing and reordering wait for discovery to finish.
   Mobile library discovery publishes one identity-scoped snapshot, never pairing
   a previous viewer's library metadata with the newly active credentials.

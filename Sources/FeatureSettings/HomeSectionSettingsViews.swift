@@ -90,6 +90,17 @@ struct HomeEditorRowLabel: View {
 
 extension HomeRowChoice {
     var homeEditorTitle: Text { localizedTitle.map(Text.init) ?? Text(verbatim: title) }
+    @ViewBuilder var homeEditorProviderMark: some View {
+        if let provider = library?.providerKind ?? serverRow?.providerKind {
+            ProviderBrandMark(
+                provider: provider, size: 32, showsBackground: false,
+                mediaShareTransport: library?.transportKind
+            )
+            .frame(width: 36)
+            .accessibilityHidden(true)
+        }
+    }
+
     var homeEditorSource: Text {
         if let library {
             return library.library.displayName + Text(verbatim: " · \(library.serverName)")
@@ -104,10 +115,13 @@ struct HomeSectionChoiceLabel: View {
     var accessory = "chevron.forward"
 
     var body: some View {
-        HomeEditorRowLabel(
-            title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
-            accessory: accessory
-        )
+        HStack(spacing: 12) {
+            choice.homeEditorProviderMark
+            HomeEditorRowLabel(
+                title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
+                accessory: accessory
+            )
+        }
     }
 }
 
@@ -122,7 +136,10 @@ struct HomeSectionSettingsView: View {
 
     var body: some View {
         HomeEditorPage(title: choice.homeEditorTitle, showsHeader: true) {
-            choice.homeEditorSource.font(.subheadline).plozzForeground(.secondary)
+            HStack(spacing: 12) {
+                choice.homeEditorProviderMark
+                choice.homeEditorSource.font(.subheadline).plozzForeground(.secondary)
+            }
             if choice.id == .global(.continueWatching) {
                 ContinueWatchingNextUpControl(visibility: visibility)
                 ContinueWatchingArtworkPicker(
@@ -290,63 +307,68 @@ struct HomeCatalogStatus: View {
     }
 }
 
-struct HomeRowPresetsView: View {
-    let inventory: HomeSectionCatalogModel
+struct HomeRowPresetPicker: View {
     let visibility: HomeLibraryVisibilityModel
-    let libraries: [AggregatedLibrary]
-    let accounts: [ResolvedAccount]
     @State private var resetDefaults: HomeRowCustomization.Defaults?
 
-    var body: some View {
-        HomeEditorPage(title: Text("Layouts"), showsHeader: true) {
-            Text("Choose a starting point, then customize individual sections.")
-                .font(.footnote).plozzForeground(.secondary)
-            ForEach([HomeRowCustomization.Defaults.matchServer, .combined], id: \.self) { preset in
-                Button {
-                    guard visibility.visibility.rowCustomization?.defaults != preset else { return }
-                    resetDefaults = preset
-                } label: {
-                    HStack {
-                        Text(title(preset))
-                        Spacer()
-                        if visibility.visibility.rowCustomization?.defaults == preset {
-                            Image(systemName: "checkmark").accessibilityHidden(true)
-                        }
-                    }
-                    .frame(minHeight: 44)
-                }
-                .buttonStyle(SettingsFormButtonStyle())
-                .accessibilityAddTraits(visibility.visibility.rowCustomization?.defaults == preset ? .isSelected : [])
-                .accessibilityIdentifier("home-row-preset-\(preset.rawValue)")
-                .confirmationDialog(
-                    "Replace your row arrangement?",
-                    isPresented: Binding(
-                        get: { resetDefaults == preset },
-                        set: { if !$0 { resetDefaults = nil } }
-                    ),
-                    titleVisibility: .visible
-                ) {
-                    Button(title(preset)) {
-                        visibility.useRowDefaults(preset)
-                        resetDefaults = nil
-                    }
-                    Button("Cancel", role: .cancel) { resetDefaults = nil }
-                } message: {
-                    if preset == .matchServer { Text("Follow your servers' Home sections.") }
-                    else { Text("Start with rows across all libraries.") }
-                }
-            }
-            if inventory.isLoading { ProgressView("Loading available sections…") }
-        }
-        .task(id: HomeSectionCatalogModel.loadID(
-            libraries: libraries, accounts: accounts, visibility: visibility
-        )) {
-            await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
+    private var current: HomeRowCustomization.Defaults {
+        switch visibility.visibility.rowCustomization?.defaults {
+        case .matchServer: .matchServer
+        case .combined: .combined
+        default: .custom
         }
     }
 
-    private func title(_ preset: HomeRowCustomization.Defaults) -> LocalizedStringResource {
-        preset == .matchServer ? "Match server" : "Combined rows"
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { content }
+                .fixedSize(horizontal: true, vertical: false)
+            VStack(alignment: .leading, spacing: 4) { content }
+        }
+        .frame(minHeight: 44)
+        .confirmationDialog(
+            "Replace your row arrangement?",
+            isPresented: Binding(
+                get: { resetDefaults != nil },
+                set: { if !$0 { resetDefaults = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let preset = resetDefaults {
+                Button {
+                    visibility.useRowDefaults(preset)
+                    resetDefaults = nil
+                } label: {
+                    if preset == .matchServer { Text("Match server") }
+                    else { Text("Combined rows") }
+                }
+            }
+            Button("Cancel", role: .cancel) { resetDefaults = nil }
+        } message: {
+            if resetDefaults == .matchServer { Text("Follow your servers' Home sections.") }
+            else { Text("Start with rows across all libraries.") }
+        }
+    }
+
+    private var content: some View {
+        Group {
+            Text("Preset")
+            Picker("Preset", selection: Binding(
+                get: { current },
+                set: { proposed in
+                    if proposed != current, proposed != .custom { resetDefaults = proposed }
+                }
+            )) {
+                if current == .custom {
+                    Text("Custom").tag(HomeRowCustomization.Defaults.custom).disabled(true)
+                }
+                Text("Match server").tag(HomeRowCustomization.Defaults.matchServer)
+                Text("Combined rows").tag(HomeRowCustomization.Defaults.combined)
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .accessibilityIdentifier("home-row-preset")
+        }
     }
 }
 #endif

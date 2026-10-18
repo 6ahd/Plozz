@@ -610,10 +610,42 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(hasFocus(configured), "Back must restore the section that opened its configuration.")
         try focus(reorder, in: app)
         XCUIRemote.shared.press(.left)
-        XCTAssertTrue(hasFocus(app.buttons["home-section-presets"]), app.debugDescription)
-        XCUIRemote.shared.press(.up)
         XCTAssertTrue(hasFocus(pageBack("settings-workspace-back", in: app)), app.debugDescription)
         capture("home-section-header-back", in: app)
+        let watchingWasBelowWatchlist = configured.frame.minY > app.buttons["home-section-home-watchlist"].frame.minY
+        let preset = app.buttons["home-row-preset"]
+        try focus(preset, in: app)
+        XCUIRemote.shared.press(.select)
+        let combinedOption = app.cells.containing(.other, identifier: "Combined rows").firstMatch
+        XCTAssertTrue(combinedOption.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(combinedOption, in: app)
+        XCUIRemote.shared.press(.select)
+        let confirmation = app.sheets["Replace your row arrangement?"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(confirmation.buttons.matching(identifier: "Cancel").firstMatch, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(confirmation.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(configured.exists)
+        XCTAssertEqual(configured.frame.minY > app.buttons["home-section-home-watchlist"].frame.minY, watchingWasBelowWatchlist)
+        try focus(preset, in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(combinedOption, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(confirmation.buttons.matching(identifier: "Combined rows").firstMatch, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(confirmation.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["home-section-home-recentlyAdded"].waitForExistence(timeout: 5))
+        for identifier in ["home-section-add", "home-section-add-bottom"] {
+            let add = app.buttons[identifier]
+            try focus(add, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(app.staticTexts["Add section"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(reorder.exists)
+            XCUIRemote.shared.press(.menu)
+            waitForEnabled(add)
+            XCTAssertTrue(hasFocus(add))
+        }
         #else
         throw XCTSkip("Simulator-only Home editor navigation.")
         #endif

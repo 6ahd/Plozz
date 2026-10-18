@@ -14,7 +14,7 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
-    func testPresetPageRefreshesRecoveredNativeSectionsBeforeSavingCustomRows() async throws {
+    func testPresetSelectionRefreshesRecoveredNativeSectionsBeforeSavingCustomRows() async throws {
         let suite = "HomePresetRecovery.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -30,7 +30,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         XCTAssertEqual(inventory.serverFailures[account.account.id], .serverUnreachable)
 
         try await withWindow {
-            HomeRowPresetsView(inventory: inventory, visibility: visibility, libraries: [], accounts: [account])
+            HomeRowsSettingsView(libraries: [], accounts: [account], visibility: visibility, inventory: inventory)
         } inspect: { window in
             _ = try await self.capture(window, name: "Preset before server recovery")
             await provider.setHomeError(nil)
@@ -77,7 +77,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             } inspect: { window in
                 let before = try await self.capture(window, name: "Home actions \(width) \(size)")
                 let text = before.map(\.0).joined(separator: " ")
-                for label in ["Layouts", "Reorder", "Add section"] {
+                for label in ["Preset", "Reorder", "Add section"] {
                     XCTAssertTrue(text.contains(label), text)
                 }
                 func scrollViews(_ view: UIView) -> [UIScrollView] {
@@ -90,7 +90,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 scroll.setContentOffset(CGPoint(x: 0, y: initialOffset + 300), animated: false)
                 let after = try await self.capture(window, name: "Home pinned actions \(width) \(size)")
                 XCTAssertGreaterThan(scroll.contentOffset.y, initialOffset + 250)
-                for label in ["Layouts", "Reorder"] {
+                for label in ["Preset", "Reorder"] {
                     XCTAssertEqual(try self.y(label, in: before), try self.y(label, in: after), accuracy: 0.003)
                 }
                 XCTAssertTrue(after.map(\.0).joined(separator: " ").contains("Add section"))
@@ -542,7 +542,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         }
     }
 
-    func testPresetActionsRemainSeparatedAtLargeTextSizes() async throws {
+    func testPresetSelectorReflectsSavedAndCustomLayoutsAtLargeTextSizes() async throws {
         let suite = "HomeRowPresets.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -550,23 +550,21 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             store: HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
         )
         for size in [DynamicTypeSize.large, .accessibility3] {
-            try await withWindow {
-                HomeRowPresetsView(
-                    inventory: HomeSectionCatalogModel(), visibility: visibility, libraries: [], accounts: []
-                )
-                .environment(\.dynamicTypeSize, size)
-                #if os(tvOS)
-                .frame(width: 1050)
-                #endif
-            } inspect: { window in
-                let lines = try await self.capture(window, name: "Home presets text size \(size)")
-                let text = lines.map(\.0).joined(separator: " ").replacingOccurrences(of: "- ", with: "-")
-                XCTAssertTrue(text.contains("Match server"), text)
-                XCTAssertTrue(text.contains("Combined rows"), text)
-                XCTAssertGreaterThan(
-                    try self.y("Match server", in: lines),
-                    try self.y("Combined rows", in: lines)
-                )
+            for (preset, title): (HomeRowCustomization.Defaults, String) in [
+                (.matchServer, "Match server"), (.combined, "Combined rows"), (.custom, "Custom")
+            ] {
+                visibility.useRowDefaults(preset)
+                try await withWindow {
+                    HomeRowPresetPicker(visibility: visibility)
+                        .padding(24)
+                        .environment(\.dynamicTypeSize, size)
+                } inspect: { window in
+                    let lines = try await self.capture(window, name: "Home preset \(title) text size \(size)")
+                    let text = lines.map(\.0).joined(separator: " ")
+                    XCTAssertTrue(text.contains("Preset"), text)
+                    XCTAssertTrue(text.contains(title), text)
+                    XCTAssertEqual(visibility.visibility.rowCustomization?.defaults, preset)
+                }
             }
         }
     }
@@ -587,7 +585,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         let choice = try XCTUnwrap(HomeRowChoice.shared.first { $0.id == .global(.continueWatching) })
         await inventory.load(libraries: [], accounts: accounts, visibility: visibility)
         XCTAssertEqual(inventory.serverFailures.count, 1)
-        for page in 0..<4 {
+        for page in 0..<3 {
             try await withWindow {
                 NavigationStack {
                     if page == 0 {
@@ -596,10 +594,8 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                         HomeSectionSettingsView(
                             choice: choice, inventory: inventory, visibility: visibility, libraries: [], accounts: accounts
                         )
-                    } else if page == 2 {
-                        HomeAddSectionView(inventory: inventory, visibility: visibility, libraries: [], accounts: accounts)
                     } else {
-                        HomeRowPresetsView(inventory: inventory, visibility: visibility, libraries: [], accounts: accounts)
+                        HomeAddSectionView(inventory: inventory, visibility: visibility, libraries: [], accounts: accounts)
                     }
                 }
             } inspect: { window in
@@ -608,6 +604,86 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 XCTAssertEqual(text.contains("Basement is offline."), page == 0, text)
                 XCTAssertEqual(lines.filter { $0.0.contains("Retry") }.count, page == 0 ? 1 : 0, text)
             }
+        }
+    }
+
+    func testSourceRowsRenderTheSharedProviderAndTransportMarks() async throws {
+        let sources: [(ProviderKind, MediaShareTransportKind?)] =
+            [ProviderKind.jellyfin, .plex, .emby, .silo, .iptv].map { ($0, nil) }
+            + MediaShareTransportKind.allCases.map { (.mediaShare, $0) }
+            + [(.plex, nil)]
+        let choices = sources.enumerated().map { index, source in
+            if index == sources.count - 1 {
+                return HomeRowChoice(serverRow: .init(
+                    accountID: "server", serverName: "Native server", providerKind: .plex,
+                    section: .init(id: "native", kind: .recommendations)
+                ))
+            }
+            let library = AggregatedLibrary(
+                accountID: "account", accountName: "Viewer", serverName: "Server",
+                providerKind: source.0, transportKind: source.1,
+                library: .init(id: "library-\(index)", title: "Movies", kind: .movie)
+            )
+            return HomeRowChoice(
+                id: .library(library.key, kind: .recentlyAdded), title: "Recently Added",
+                library: library, isProviderDefault: true
+            )
+        }
+        var screenshots: [CGImage] = []
+        for reference in [false, true] {
+            try await withWindow(size: CGSize(width: 600, height: 1040)) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(choices.indices, id: \.self) { index in
+                        Group {
+                            if reference {
+                                HStack(spacing: 12) {
+                                    ProviderBrandMark(
+                                        provider: sources[index].0, size: 32, showsBackground: false,
+                                        mediaShareTransport: sources[index].1
+                                    )
+                                    .frame(width: 36)
+                                    HomeEditorRowLabel(
+                                        title: choices[index].homeEditorTitle,
+                                        subtitle: choices[index].homeEditorSource
+                                    )
+                                }
+                            } else {
+                                HomeSectionChoiceLabel(choice: choices[index])
+                            }
+                        }
+                        .frame(width: 380, height: 72)
+                    }
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .ignoresSafeArea()
+            } inspect: { window in
+                let image = try await self.snapshot(window, name: reference ? "Shared mark references" : "Home source marks")
+                screenshots.append(try XCTUnwrap(image.cgImage))
+            }
+        }
+        func pixels(_ image: CGImage) throws -> [UInt8] {
+            var bytes = [UInt8](repeating: 0, count: 32 * 32 * 4)
+            try bytes.withUnsafeMutableBytes { buffer in
+                let context = try XCTUnwrap(CGContext(
+                    data: buffer.baseAddress, width: 32, height: 32, bitsPerComponent: 8,
+                    bytesPerRow: 32 * 4, space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                ))
+                context.draw(image, in: CGRect(x: 0, y: 0, width: 32, height: 32))
+            }
+            return bytes
+        }
+        for index in choices.indices {
+            let rect = CGRect(x: 26, y: 44 + index * 80, width: 32, height: 32)
+            let actual = try XCTUnwrap(screenshots[0].cropping(to: rect))
+            let reference = try XCTUnwrap(screenshots[1].cropping(to: rect))
+            let actualPixels = try pixels(actual)
+            let referencePixels = try pixels(reference)
+            XCTAssertTrue(stride(from: 0, to: referencePixels.count, by: 4).contains {
+                referencePixels[$0..<$0 + 3].contains { $0 > 30 }
+            }, "The shared reference must contain visible artwork.")
+            XCTAssertTrue(actualPixels == referencePixels, "Source \(sources[index]) must render the shared mark.")
         }
     }
 
@@ -666,7 +742,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         try await inspect(window)
     }
 
-    private func capture(_ window: UIWindow, name: String) async throws -> [(String, CGRect)] {
+    private func snapshot(_ window: UIWindow, name: String) async throws -> UIImage {
         try await Task.sleep(for: .milliseconds(400))
         window.layoutIfNeeded()
         let format = UIGraphicsImageRendererFormat()
@@ -678,6 +754,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+        return image
+    }
+
+    private func capture(_ window: UIWindow, name: String) async throws -> [(String, CGRect)] {
+        let image = try await snapshot(window, name: name)
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]

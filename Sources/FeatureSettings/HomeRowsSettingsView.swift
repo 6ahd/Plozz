@@ -40,11 +40,11 @@ public struct HomeRowsSettingsView: View {
     public var body: some View {
         HomeEditorPage(title: Text("Customize Home")) {
             #if os(tvOS)
-            SettingsPageHeader("Customize Home")
-            HomeEditorActions(
-                libraries: libraries, accounts: accounts, visibility: visibility, inventory: inventory,
-                isReordering: $isReordering, isLifting: $isLifting
-            )
+            HStack(spacing: SettingsFormMetrics.controlSpacing) {
+                SettingsPageHeader("Customize Home")
+                reorderButton
+            }
+            editorControls
             #endif
             HomeEditorLink {
                 HomeHeroSettingsView(libraries: libraries, accounts: accounts, visibility: visibility)
@@ -101,6 +101,7 @@ public struct HomeRowsSettingsView: View {
                     }
                 }
             }
+            addSectionButton(identifier: "home-section-add-bottom")
             if editError != nil {
                 InlineErrorMessage(Text("Couldn't update this section. Try again."))
             }
@@ -110,14 +111,16 @@ public struct HomeRowsSettingsView: View {
             .disabled(isReordering)
         }
         #if os(iOS)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                reorderButton
+            }
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HomeEditorActions(
-                libraries: libraries, accounts: accounts, visibility: visibility, inventory: inventory,
-                isReordering: $isReordering, isLifting: $isLifting
-            )
-            .padding(.horizontal, 24)
-            .padding(.vertical, 8)
-            .background { SettingsPageBackground() }
+            editorControls
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+                .background { SettingsPageBackground() }
         }
         #endif
         .task(id: HomeSectionCatalogModel.loadID(
@@ -132,27 +135,11 @@ public struct HomeRowsSettingsView: View {
         }
     }
 
-    private var heroSummary: Text {
-        #if os(tvOS)
-        if hero.settings.style == .followsFocus { return Text("Showcase") }
-        #endif
-        return hero.settings.isEnabled ? Text("Pinned at top") : Text("Off")
-    }
-}
-
-private struct HomeEditorActions: View {
-    let libraries: [AggregatedLibrary]
-    let accounts: [ResolvedAccount]
-    let visibility: HomeLibraryVisibilityModel
-    let inventory: HomeSectionCatalogModel
-    @Binding var isReordering: Bool
-    @Binding var isLifting: Bool
-
-    var body: some View {
+    private var editorControls: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) { buttons }
+            HStack(spacing: 16) { controls }
                 .fixedSize(horizontal: true, vertical: false)
-            VStack(alignment: .leading, spacing: 8) { buttons }
+            VStack(alignment: .leading, spacing: 8) { controls }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         #if os(tvOS)
@@ -160,40 +147,49 @@ private struct HomeEditorActions: View {
         #endif
     }
 
-    private var buttons: some View {
+    private var controls: some View {
         Group {
-            SettingsPageLink {
-                HomeRowPresetsView(
-                    inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
-                )
-            } label: {
-                Text("Layouts").fixedSize(horizontal: false, vertical: true)
-            }
-            .disabled(isReordering)
-            .accessibilityIdentifier("home-section-presets")
+            HomeRowPresetPicker(visibility: visibility)
+                .id(ObjectIdentifier(visibility))
+                .disabled(isReordering)
+            addSectionButton(identifier: "home-section-add")
+        }
+    }
 
-            Button {
-                isReordering.toggle()
-                isLifting = false
-            } label: {
-                if isReordering { Text("Done").fixedSize(horizontal: false, vertical: true) }
-                else { Text("Reorder").fixedSize(horizontal: false, vertical: true) }
-            }
-            .disabled(isLifting || (!isReordering && (inventory.isLoading
-                || inventory.catalog.sections(in: visibility.visibility).enabled.count < 2)))
-            .accessibilityIdentifier("home-section-reorder")
+    private var reorderButton: some View {
+        Button {
+            isReordering.toggle()
+            isLifting = false
+        } label: {
+            if isReordering { Text("Done").fixedSize(horizontal: false, vertical: true) }
+            else { Text("Reorder").fixedSize(horizontal: false, vertical: true) }
+        }
+        .disabled(isLifting || (!isReordering && (inventory.isLoading
+            || inventory.catalog.sections(in: visibility.visibility).enabled.count < 2)))
+        .accessibilityIdentifier("home-section-reorder")
+        #if os(tvOS)
+        .plozzActionButton(role: .secondary)
+        #endif
+    }
 
-            SettingsPageLink {
-                HomeAddSectionView(
-                    inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
-                )
-            } label: {
-                Text("Add section").fixedSize(horizontal: false, vertical: true)
-            }
-            .disabled(isReordering)
-            .accessibilityIdentifier("home-section-add")
+    private func addSectionButton(identifier: String) -> some View {
+        SettingsPageLink {
+            HomeAddSectionView(
+                inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
+            )
+        } label: {
+            Text("Add section").fixedSize(horizontal: false, vertical: true)
         }
         .plozzActionButton(role: .secondary)
+        .disabled(isReordering)
+        .accessibilityIdentifier(identifier)
+    }
+
+    private var heroSummary: Text {
+        #if os(tvOS)
+        if hero.settings.style == .followsFocus { return Text("Showcase") }
+        #endif
+        return hero.settings.isEnabled ? Text("Pinned at top") : Text("Off")
     }
 }
 #endif
