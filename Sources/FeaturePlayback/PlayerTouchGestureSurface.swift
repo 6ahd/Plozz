@@ -75,9 +75,11 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
         private let hold = UILongPressGestureRecognizer()
         private let pinch = UIPinchGestureRecognizer()
         private let pan = UIPanGestureRecognizer()
+        private let indicatorPress = UILongPressGestureRecognizer()
         private let levelControl: PlayerTouchLevelControl
         private let ownsLevelControl: Bool
         private var levelDrag: PlayerTouchLevelDrag?
+        private var directLevelFrame: CGRect?
 
         init(_ owner: PlayerTouchGestureSurface, sharedLevelControl: PlayerTouchLevelControl?) {
             self.owner = owner
@@ -93,12 +95,18 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
             pinch.addTarget(self, action: #selector(pinched(_:)))
             pan.addTarget(self, action: #selector(panned(_:)))
             pan.maximumNumberOfTouches = 1
-            for gesture in [tap, hold, pinch, pan] {
+            indicatorPress.addTarget(self, action: #selector(adjustedIndicator(_:)))
+            indicatorPress.minimumPressDuration = 0
+            indicatorPress.allowableMovement = .greatestFiniteMagnitude
+            for gesture in [tap, hold, pinch, pan, indicatorPress] {
                 gesture.allowedPressTypes = []
                 gesture.delegate = self
                 view.addGestureRecognizer(gesture)
             }
             tap.require(toFail: hold)
+            for gesture in [tap, hold, pinch, pan] {
+                gesture.require(toFail: indicatorPress)
+            }
             update(owner)
         }
 
@@ -108,6 +116,7 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
             hold.isEnabled = enabled && owner.canBoost
             pinch.isEnabled = enabled && owner.canZoom
             pan.isEnabled = owner.levelsEnabled && owner.isActive && !UIAccessibility.isVoiceOverRunning
+            indicatorPress.isEnabled = pan.isEnabled
             if !enabled {
                 cancelPendingTap()
                 finishHold()
@@ -120,6 +129,7 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
             cancelPendingTap()
             finishHold()
             levelDrag = nil
+            directLevelFrame = nil
             if ownsLevelControl || restoringBrightness {
                 levelControl.deactivate()
             } else {
@@ -172,13 +182,23 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
         }
 
         public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-            guard gestureRecognizer === pan else { return true }
+            guard gestureRecognizer === pan || gestureRecognizer === indicatorPress else { return true }
             guard owner.levelsEnabled, owner.isActive, !UIAccessibility.isVoiceOverRunning,
-                  let view = pan.view else { return false }
+                  let view = gestureRecognizer.view else { return false }
+            if gestureRecognizer === indicatorPress {
+                guard let window = view.window else { return false }
+                return canAdjustIndicator(at: indicatorPress.location(in: window))
+            }
             let movement = pan.translation(in: view)
             let startX = pan.location(in: view).x - movement.x
             return abs(movement.y) > abs(movement.x) * 1.25
                 && PlayerTouchLevelDrag.kind(at: Double(startX), width: Double(view.bounds.width)) != nil
+        }
+
+        private func canAdjustIndicator(at point: CGPoint) -> Bool {
+            guard let level = owner.state.level, level.value != nil,
+                  let region = owner.state.levelInteractionRegion, region.kind == level.kind else { return false }
+            return region.frame.contains(point)
         }
 
         @objc private func panned(_ gesture: UIPanGestureRecognizer) {
@@ -189,44 +209,81 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
                 guard let kind = PlayerTouchLevelDrag.kind(
                     at: Double(gesture.location(in: view).x - movement.x), width: Double(view.bounds.width)
                 ) else { return }
-                cancelPendingTap()
-                finishHold()
-                owner.state.clearSkip()
-                owner.onGestureStarted()
-                do {
-                    levelDrag = PlayerTouchLevelDrag(
-                        kind: kind, startValue: try levelControl.begin(kind, in: view),
-                        height: Double(view.bounds.height)
-                    )
-                    updateLevel(movement: movement, in: view)
-                } catch {
-                    levelUnavailable(kind)
-                }
+                beginLevel(kind, in: view)
+                updateLevel(translationY: Double(movement.y), in: view)
             case .changed:
-                updateLevel(movement: movement, in: view)
+                updateLevel(translationY: Double(movement.y), in: view)
             case .ended, .cancelled, .failed:
-                if gesture.state == .ended { updateLevel(movement: movement, in: view) }
-                levelDrag = nil
-                levelControl.endVolume()
-                owner.state.finishLevel()
+                if gesture.state == .ended { updateLevel(translationY: Double(movement.y), in: view) }
+                finishLevelInteraction()
             default:
                 break
             }
         }
 
-        private func updateLevel(movement: CGPoint, in view: UIView) {
+        @objc private func adjustedIndicator(_ gesture: UILongPressGestureRecognizer) {
+            guard let view = gesture.view else { return }
+            switch gesture.state {
+            case .began:
+                guard let level = owner.state.level, level.value != nil,
+                      let region = owner.state.levelInteractionRegion, region.kind == level.kind else { return }
+                beginLevel(level.kind, in: view, indicatorFrame: region.frame)
+                updateIndicator(gesture, in: view)
+            case .changed:
+                updateIndicator(gesture, in: view)
+            case .ended, .cancelled, .failed:
+                if gesture.state == .ended { updateIndicator(gesture, in: view) }
+                finishLevelInteraction()
+            default:
+                break
+            }
+        }
+
+        private func beginLevel(_ kind: PlayerTouchLevel, in view: UIView, indicatorFrame: CGRect? = nil) {
+            cancelPendingTap()
+            finishHold()
+            owner.state.clearSkip()
+            owner.onGestureStarted()
+            do {
+                let initial = try levelControl.begin(kind, in: view)
+                directLevelFrame = indicatorFrame
+                levelDrag = PlayerTouchLevelDrag(
+                    kind: kind, startValue: indicatorFrame == nil ? initial : 1,
+                    height: Double(indicatorFrame?.height ?? view.bounds.height), initialFeedbackValue: initial
+                )
+            } catch {
+                levelUnavailable(kind)
+            }
+        }
+
+        private func updateIndicator(_ gesture: UIGestureRecognizer, in view: UIView) {
+            guard let frame = directLevelFrame else { return }
+            updateLevel(translationY: Double(gesture.location(in: view.window).y - frame.minY), in: view)
+        }
+
+        private func finishLevelInteraction() {
+            levelDrag = nil
+            directLevelFrame = nil
+            levelControl.endVolume()
+            owner.state.finishLevel()
+        }
+
+        private func updateLevel(translationY: Double, in view: UIView) {
             guard var drag = levelDrag else { return }
-            guard let adjustment = drag.adjustment(translationY: Double(movement.y)) else {
+            guard let adjustment = drag.adjustment(translationY: translationY) else {
                 levelUnavailable(drag.kind)
                 return
             }
             do {
                 try levelControl.set(drag.kind, value: adjustment.value, in: view)
-                if drag.reachedLimit(afterApplying: adjustment.value) {
-                    TouchFeedback.shared.emit(.impact)
+                if let feedback = drag.feedback(afterApplying: adjustment.value) {
+                    TouchFeedback.shared.emit(feedback == .limit ? .impact : .selection)
                 }
                 levelDrag = drag
-                owner.state.showLevel(drag.kind, value: adjustment.value, overshoot: adjustment.overshoot)
+                owner.state.showLevel(
+                    drag.kind, value: adjustment.value, overshoot: adjustment.overshoot,
+                    isDirectInteraction: directLevelFrame != nil
+                )
             } catch {
                 levelUnavailable(drag.kind)
             }
@@ -235,6 +292,7 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
         private func levelUnavailable(_ kind: PlayerTouchLevel) {
             PlozzLog.playback.error("The player gesture could not adjust the device output.")
             levelDrag = nil
+            directLevelFrame = nil
             levelControl.endVolume()
             owner.state.showLevel(kind, value: nil)
             owner.state.finishLevel()
@@ -286,6 +344,10 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
             _ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch
         ) -> Bool {
             guard let view = gestureRecognizer.view else { return false }
+            if gestureRecognizer === indicatorPress {
+                guard let window = view.window else { return false }
+                return canAdjustIndicator(at: touch.location(in: window))
+            }
             let point = touch.location(in: view)
             // Leave edge-origin system navigation and the home indicator alone.
             let edges = view.safeAreaInsets
@@ -349,13 +411,15 @@ struct PlayerTouchGestureFeedbackContent: View {
             }
             ZStack {
                 if let level = state.level {
-                    let inset = level.value == nil ? 0.22 : 0.12
-                    let horizontalPosition = level.kind == .brightness ? inset : 1 - inset
+                    let inset = level.value == nil ? geometry.size.width * 0.22 : 8 + 44 / 2
+                    let x = level.kind == .brightness ? inset : geometry.size.width - inset
                     Group {
                         if let value = level.value {
                             PlayerTouchLevelMeter(
                                 kind: level.kind, value: value, overshoot: level.overshoot,
-                                isDragging: level.isDragging, reduceMotion: reduceMotion
+                                isDragging: level.isDragging, isDirectInteraction: level.isDirectInteraction,
+                                reduceMotion: reduceMotion,
+                                onFrameChange: { state.levelInteractionRegion = (level.kind, $0) }
                             )
                         } else {
                             HStack(spacing: 8) {
@@ -369,16 +433,18 @@ struct PlayerTouchGestureFeedbackContent: View {
                     }
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("player-gesture-level-pill")
-                    .position(x: geometry.size.width * horizontalPosition,
-                              y: geometry.size.height / 2)
-                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(
-                        scale: 0.9, anchor: UnitPoint(x: horizontalPosition, y: 0.5)
+                    .position(x: x, y: geometry.size.height / 2)
+                    .transition(level.value == nil ? .opacity : reduceMotion ? .identity : .offset(
+                        x: level.kind == .brightness ? -60 : 60
+                    ).combined(with: .scale(
+                        scale: 0.8, anchor: UnitPoint(x: x / max(geometry.size.width, 1), y: 0.5)
                     )))
                     .environment(\.layoutDirection, .leftToRight)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
-            .animation(.easeOut(duration: 0.2), value: state.level != nil)
+            .clipped()
+            .animation(.easeInOut(duration: 0.24), value: state.level != nil)
         }
         .foregroundStyle(.white)
         .allowsHitTesting(false)
@@ -390,11 +456,14 @@ private struct PlayerTouchLevelMeter: View {
     let value: Double
     let overshoot: Double
     let isDragging: Bool
+    let isDirectInteraction: Bool
     let reduceMotion: Bool
+    let onFrameChange: (CGRect) -> Void
 
     var body: some View {
         let stretch = reduceMotion ? 0 : 20 * (overshoot / (abs(overshoot) + 80))
         let height = 156 + abs(stretch)
+        let width: Double = isDirectInteraction ? 44 : 32
         ZStack(alignment: .bottom) {
             Color.clear
                 .modifier(PanelGlassBackground(cornerRadius: 999))
@@ -407,14 +476,17 @@ private struct PlayerTouchLevelMeter: View {
                     Rectangle().frame(height: height * value)
                 }
         }
-        .frame(width: 40 * 156 / height, height: height)
+        .frame(width: width * 156 / height, height: height)
         .clipShape(Capsule())
         .offset(y: -stretch / 2)
-        .frame(width: 40, height: 156)
+        .frame(width: width, height: 156)
+        .frame(width: 44, height: 156, alignment: kind == .brightness ? .leading : .trailing)
         .animation(
             .spring(response: 0.35, dampingFraction: 0.72),
-            value: reduceMotion || isDragging ? nil : overshoot
+            value: animationPhase
         )
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onFrameChange($0) }
+        .contentShape(Rectangle())
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kind == .brightness ? "Brightness" : "Volume")
@@ -422,8 +494,14 @@ private struct PlayerTouchLevelMeter: View {
         .accessibilityIdentifier("player-gesture-level-value")
     }
 
+    private var animationPhase: Int? {
+        guard !reduceMotion else { return nil }
+        if isDirectInteraction { return 1 }
+        return isDragging ? nil : 0
+    }
+
     private var icon: some View {
-        Image(systemName: kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
+        Image(systemName: kind.systemImage(at: value))
             .font(.system(size: 16, weight: .semibold))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .padding(.bottom, 18)

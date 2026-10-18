@@ -243,7 +243,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         for reducePanelGlass in [false, true] {
             for kind in [PlayerTouchLevel.brightness, .volume] {
                 try await withFeedback(reducePanelGlass: reducePanelGlass, colorScheme: .light) { fixture, window in
-                    let rect = CGRect(x: kind == .brightness ? 28 : 332, y: 22, width: 40, height: 156)
+                    let rect = CGRect(x: kind == .brightness ? 8 : 360, y: 22, width: 32, height: 156)
                     var frames: [Double: RenderedFrame] = [:]
                     for value in [0.0, 0.5, 1.0] {
                         fixture.state.showLevel(kind, value: value)
@@ -264,21 +264,43 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                         }
                     }
                     let empty = try XCTUnwrap(frames[0])
-                    let full = try XCTUnwrap(frames[1])
+                    var iconReference = empty
+                    var coveredReference = try XCTUnwrap(frames[1])
+                    if kind == .volume {
+                        fixture.state.showLevel(kind, value: 0.001)
+                        try await Task.sleep(for: .milliseconds(160))
+                        iconReference = try self.capture(window, rect: rect, label: "Low-volume icon above the fill")
+                        fixture.state.showLevel(kind, value: 0.30)
+                        try await Task.sleep(for: .milliseconds(160))
+                        coveredReference = try self.capture(window, rect: rect, label: "Low-volume icon covered by fill")
+                    }
                     let upperInk = (12..<96).flatMap { y in
-                        (4..<36).map { x in empty.pixels[y * empty.width + x] }
+                        (4..<28).map { x in empty.pixels[y * empty.width + x] }
                     }.filter { $0 > 220 }
                     XCTAssertTrue(upperInk.isEmpty, "There must be no percentage or other visible label above the icon.")
 
                     let iconInk = (110..<144).flatMap { y in
-                        (2..<38).compactMap { x -> Int? in
+                        (2..<30).compactMap { x -> Int? in
+                            let index = y * empty.width + x
+                            return iconReference.pixels[index] > 240 ? index : nil
+                        }
+                    }
+                    let zeroIconInk = (110..<144).flatMap { y in
+                        (2..<30).compactMap { x -> Int? in
                             let index = y * empty.width + x
                             return empty.pixels[index] > 240 ? index : nil
                         }
                     }
-                    XCTAssertGreaterThan(iconInk.count, 40, "The icon must remain visible at zero.")
+                    XCTAssertGreaterThan(
+                        zeroIconInk.count, kind == .volume ? 20 : 40,
+                        "The native brightness or mute strokes must remain visible at zero."
+                    )
+                    XCTAssertGreaterThan(iconInk.count, 40)
+                    if kind == .volume {
+                        XCTAssertNotEqual(zeroIconInk, iconInk, "Muted and low-volume glyphs must look different.")
+                    }
                     for index in iconInk {
-                        XCTAssertLessThan(full.pixels[index], 60, "The same icon must be dark over full white fill.")
+                        XCTAssertLessThan(coveredReference.pixels[index], 60, "The same icon must be dark over white fill.")
                     }
                     let iconRows = iconInk.map { $0 / empty.width }
                     let firstRow = try XCTUnwrap(iconRows.min())
@@ -301,8 +323,8 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     fixture.state.showLevel(kind, value: 0)
                     try await Task.sleep(for: .milliseconds(160))
                     let drained = try self.capture(window, rect: rect, label: "\(kind) drained back to zero")
-                    for index in iconInk {
-                        XCTAssertGreaterThan(drained.pixels[index], 220, "Draining must restore the entire white icon.")
+                    for index in zeroIconInk {
+                        XCTAssertGreaterThan(drained.pixels[index], 220, "Draining must restore the white brightness or mute icon.")
                     }
                     XCTAssertLessThan(drained.pixels[136 * drained.width + 2], 200, "Zero must not retain fill.")
                 }
@@ -310,43 +332,95 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         }
     }
 
-    func testLevelMetersAnimateEntryAndExitWithFadeOnlyForReduceMotion() async throws {
+    func testVolumeMeterRendersDistinctMutedAndProgressiveWaveIcons() async throws {
+        try await withFeedback { fixture, window in
+            let rect = CGRect(x: 360, y: 22, width: 32, height: 156)
+            var previous: RenderedFrame?
+            for value in [0.0, 0.1, 0.5, 1.0] {
+                fixture.state.showLevel(.volume, value: value)
+                try await Task.sleep(for: .milliseconds(350))
+                let frame = try self.capture(
+                    window, rect: rect, label: PlayerTouchLevel.volume.systemImage(at: value)
+                )
+                let icon = self.cropped(frame, to: CGRect(x: 4, y: 110, width: 24, height: 30))
+                let normalized = value > 0.3
+                    ? RenderedFrame(width: icon.width, height: icon.height, pixels: icon.pixels.map { 255 - $0 })
+                    : icon
+                self.assertVisible(normalized)
+                if let previous {
+                    XCTAssertGreaterThan(self.difference(previous, normalized), 0.01, "Each volume tier must render its own native glyph.")
+                }
+                previous = normalized
+            }
+        }
+    }
+
+    func testLevelMetersSlideAndScaleWithoutFadingAndRespectReduceMotion() async throws {
         for reduceMotion in [false, true] {
             for kind in [PlayerTouchLevel.brightness, .volume] {
                 try await withFeedback(reduceMotion: reduceMotion) { fixture, window in
-                    let rect = CGRect(x: kind == .brightness ? 24 : 328, y: 14, width: 48, height: 172)
+                    let rect = CGRect(x: 0, y: 0, width: 400, height: 200)
                     let started = ContinuousClock.now
                     fixture.state.showLevel(kind, value: 1)
-                    try await Task.sleep(until: started + .milliseconds(60), clock: .continuous)
+                    try await Task.sleep(until: started + .milliseconds(160), clock: .continuous)
                     let entering = try self.capture(window, rect: rect, label: "\(kind) entering, reduced motion \(reduceMotion)")
                     try await Task.sleep(until: started + .milliseconds(300), clock: .continuous)
                     let settled = try self.capture(window, rect: rect, label: "\(kind) settled, reduced motion \(reduceMotion)")
                     let finished = ContinuousClock.now
                     fixture.state.finishLevel()
-                    try await Task.sleep(until: finished + .milliseconds(1260), clock: .continuous)
+                    try await Task.sleep(until: finished + .milliseconds(1360), clock: .continuous)
                     let exiting = try self.capture(window, rect: rect, label: "\(kind) exiting, reduced motion \(reduceMotion)")
                     try await Task.sleep(until: finished + .milliseconds(1500), clock: .continuous)
                     let gone = try self.capture(window, rect: rect, label: "\(kind) removed, reduced motion \(reduceMotion)")
 
-                    let fullEnergy = self.inkEnergy(settled)
-                    let fullBounds = try self.inkBounds(settled, threshold: 10)
-                    XCTAssertEqual(fullBounds.width, 40, accuracy: 1)
+                    let fullBounds = try self.inkBounds(settled, threshold: 128)
+                    XCTAssertEqual(fullBounds.width, 32, accuracy: 1)
                     XCTAssertEqual(fullBounds.height, 156, accuracy: 1)
-                    for frame in [entering, exiting] {
-                        XCTAssertGreaterThan(self.inkEnergy(frame), fullEnergy * 0.02, "Entry and exit must remain briefly visible.")
-                        XCTAssertLessThan(self.inkEnergy(frame), fullEnergy * 0.98, "Entry and exit must fade, not appear or disappear abruptly.")
-                        let bounds = try self.inkBounds(frame, threshold: 10)
-                        XCTAssertEqual(bounds.midX, fullBounds.midX, accuracy: 1)
-                        XCTAssertEqual(bounds.midY, fullBounds.midY, accuracy: 1)
-                        if reduceMotion {
-                            XCTAssertEqual(bounds.width, fullBounds.width, accuracy: 1)
-                            XCTAssertEqual(bounds.height, fullBounds.height, accuracy: 1, "Reduce Motion must not scale the meter.")
-                        } else {
-                            XCTAssertLessThan(bounds.height, fullBounds.height - 2, "Normal motion should gently scale around the meter's center.")
+                    XCTAssertEqual(kind == .brightness ? fullBounds.minX : 400 - fullBounds.maxX, 8, accuracy: 1)
+                    if reduceMotion {
+                        XCTAssertEqual(try self.inkBounds(entering, threshold: 128), fullBounds)
+                        self.assertAbsent(exiting, message: "Reduce Motion must remove the meter without movement or fading.")
+                    } else {
+                        for frame in [entering, exiting] {
+                            self.assertVisible(frame)
+                            XCTAssertGreaterThan(try XCTUnwrap(frame.pixels.max()), 252, "Moving fill must remain fully opaque.")
+                            let bounds = try self.inkBounds(frame, threshold: 128)
+                            let outward = kind == .brightness ? fullBounds.midX - bounds.midX : bounds.midX - fullBounds.midX
+                            XCTAssertGreaterThan(outward, 2, "The capsule must travel through its nearest edge.")
+                            XCTAssertEqual(bounds.midY, fullBounds.midY, accuracy: 1)
+                            XCTAssertLessThan(bounds.height, fullBounds.height - 2, "Entry and exit must also scale the capsule.")
                         }
                     }
                     self.assertAbsent(gone, message: "The meter must disappear after its exit transition.")
                 }
+            }
+        }
+    }
+
+    func testDirectTouchWidensMetersInwardWithoutMovingTheirHitRegions() async throws {
+        for kind in [PlayerTouchLevel.brightness, .volume] {
+            try await withFeedback { fixture, window in
+                let rect = CGRect(x: 0, y: 0, width: 400, height: 200)
+                fixture.state.showLevel(kind, value: 1)
+                try await Task.sleep(for: .milliseconds(350))
+                let resting = try self.inkBounds(self.capture(window, rect: rect, label: "\(kind) passive"), threshold: 128)
+                let region = try XCTUnwrap(fixture.state.levelInteractionRegion)
+                XCTAssertEqual(region.kind, kind)
+                XCTAssertEqual(region.frame.width, 44)
+                XCTAssertEqual(region.frame.height, 156)
+                fixture.state.showLevel(kind, value: 1, isDirectInteraction: true)
+                try await Task.sleep(for: .milliseconds(500))
+                let touched = try self.inkBounds(self.capture(window, rect: rect, label: "\(kind) directly touched"), threshold: 128)
+                XCTAssertEqual(resting.width, 32, accuracy: 1)
+                XCTAssertEqual(touched.width, 44, accuracy: 1)
+                XCTAssertEqual(touched.height, resting.height, accuracy: 1)
+                XCTAssertEqual(kind == .brightness ? touched.minX : 400 - touched.maxX, 8, accuracy: 1)
+                XCTAssertEqual(fixture.state.levelInteractionRegion?.frame, region.frame)
+                fixture.state.finishLevel()
+                try await Task.sleep(for: .milliseconds(500))
+                let released = try self.inkBounds(self.capture(window, rect: rect, label: "\(kind) touch released"), threshold: 128)
+                XCTAssertEqual(released, resting)
+                XCTAssertEqual(fixture.state.levelInteractionRegion?.frame, region.frame)
             }
         }
     }
@@ -359,7 +433,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                         reduceMotion: reduceMotion, reducePanelGlass: reducePanelGlass,
                         feedbackSize: CGSize(width: 400, height: 300)
                     ) { fixture, window in
-                        let rect = CGRect(x: kind == .brightness ? 8 : 312, y: 30, width: 80, height: 240)
+                        let rect = CGRect(x: kind == .brightness ? 0 : 320, y: 30, width: 80, height: 240)
                         let label = "\(kind), reduced motion \(reduceMotion), reduced glass \(reducePanelGlass)"
                         fixture.state.showLevel(kind, value: value)
                         try await Task.sleep(for: .milliseconds(350))
@@ -381,7 +455,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                         let cappedBounds = try self.inkBounds(capped, threshold: 10)
                         let returnBounds = try self.inkBounds(returning, threshold: 10)
                         let releasedBounds = try self.inkBounds(released, threshold: 10)
-                        XCTAssertEqual(restBounds.width, 40, accuracy: 1)
+                        XCTAssertEqual(restBounds.width, 32, accuracy: 1)
                         XCTAssertEqual(restBounds.height, 156, accuracy: 1)
                         if reduceMotion {
                             for bounds in [pulledBounds, cappedBounds, returnBounds] {
@@ -389,7 +463,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                             }
                         } else {
                             XCTAssertEqual(pulledBounds.height - restBounds.height, 20 * 160 / 240, accuracy: 2)
-                            XCTAssertEqual(pulledBounds.width, 40 * 156 / (156 + 20 * 160 / 240), accuracy: 1.5)
+                            XCTAssertEqual(pulledBounds.width, 32 * 156 / (156 + 20 * 160 / 240), accuracy: 1.5)
                             XCTAssertLessThan(pulledBounds.width, restBounds.width)
                             XCTAssertLessThanOrEqual(cappedBounds.height, restBounds.height + 21)
                             XCTAssertGreaterThanOrEqual(cappedBounds.height, restBounds.height + 18)

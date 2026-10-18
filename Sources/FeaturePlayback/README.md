@@ -252,23 +252,37 @@ on-demand and Live TV playback, including while Up Next is visible, but yield to
 menus, sheets, VoiceOver, external playback and inactive scenes. Multiview and
 inline Live TV do not adjust shared device outputs.
 
-Level feedback is a 40-by-156-point monochrome vertical capsule, centered 12%
-inward from the respective feedback area's edge. It fills upward with
+Level feedback is a 32-by-156-point monochrome vertical capsule, inset 8 points
+from the respective safe-area edge. It fills upward with
 the swipe, without revealing the timeline. Only the fill and 16-point native output icon
 are visible; the percentage is available to accessibility, not drawn on screen.
+Volume uses the muted speaker at zero, then native one-, two- and three-wave
+speaker symbols across the lower, middle and upper thirds of its range.
 The icon is white over empty glass and black where covered by the fill, using
 the same bottom-aligned mask as the fill. This preserves contrast through zero,
 partial-icon crossings and full output without flipping the whole symbol at a
 threshold. Native glass and reduced-effects backgrounds share the same layout.
-The capsule fades and gently scales on entry and exit; Reduce Motion uses only
-the fade. Keep the feedback host mounted while idle so expiry can animate out.
+The capsule slides through its nearest edge and scales on entry and exit,
+without fading; Reduce Motion presents and removes it without animation.
+Keep the feedback host mounted while idle so expiry can animate out.
+Once visible, its fixed 44-by-156-point hit region accepts direct taps and drags:
+the finger's vertical position sets the level absolutely, with the top at full.
+Direct contact widens the capsule inward to 44 points, preserving its edge inset;
+release returns it to 32 points. Ordinary screen swipes stay relative to the
+whole player height and do not widen the capsule. The existing gesture surface
+owns both interactions and excludes skipping, play/pause and speed holds during
+direct adjustment. Window-coordinate geometry keeps the hit region aligned
+with the safe-area-padded feedback, including Live TV and rotation. Expiry stays
+cancelled throughout contact and restarts 1.2 seconds after release.
 Dragging beyond full stretches the capsule upward; dragging below zero stretches
 it downward. The opposite end stays anchored while the body gently narrows,
 with increasing resistance and at most 20 points of extra height. Output remains
 clamped, the icon keeps its size, and release springs back without changing the
 level. Reduce Motion disables stretching and the spring.
-Successful swipes emit a light haptic on supported hardware when first reaching
-zero or full output, not on every clamped update. Moving away and reaching a
+Successful adjustments emit subtle selection ticks on supported hardware after
+each further 5% movement from the last tick, in either direction. Small reversals
+do not repeatedly buzz. Reaching zero or full output emits a stronger light
+impact instead of a tick, not on every clamped update. Moving away and reaching a
 limit again re-arms the feedback; starting at a limit does not buzz immediately.
 Unavailable-output messages retain their wider inset and do not emit haptics.
 The system-volume bridge drives an `MPVolumeView`'s

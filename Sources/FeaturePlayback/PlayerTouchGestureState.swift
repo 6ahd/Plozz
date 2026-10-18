@@ -15,6 +15,14 @@ public struct PlayerTouchSkipFeedback: Equatable, Sendable {
 
 public enum PlayerTouchLevel: Equatable, Sendable {
     case brightness, volume
+
+    func systemImage(at value: Double) -> String {
+        guard self == .volume else { return "sun.max.fill" }
+        if value <= 0 { return "speaker.slash.fill" }
+        if value < 1.0 / 3 { return "speaker.wave.1.fill" }
+        if value < 2.0 / 3 { return "speaker.wave.2.fill" }
+        return "speaker.wave.3.fill"
+    }
 }
 
 public struct PlayerTouchLevelFeedback: Equatable, Sendable {
@@ -24,18 +32,26 @@ public struct PlayerTouchLevelFeedback: Equatable, Sendable {
     /// Points dragged past a limit: positive above full, negative below zero.
     public let overshoot: Double
     public let isDragging: Bool
+    public let isDirectInteraction: Bool
 }
 
 struct PlayerTouchLevelDrag {
+    enum Feedback {
+        case step, limit
+    }
+
     let kind: PlayerTouchLevel
     let startValue: Double
     let height: Double
-    private var lastAppliedValue: Double?
+    private var lastAppliedValue: Double
+    private var lastFeedbackValue: Double
 
-    init(kind: PlayerTouchLevel, startValue: Double, height: Double) {
+    init(kind: PlayerTouchLevel, startValue: Double, height: Double, initialFeedbackValue: Double? = nil) {
         self.kind = kind
         self.startValue = startValue
         self.height = height
+        lastAppliedValue = initialFeedbackValue ?? startValue
+        lastFeedbackValue = lastAppliedValue
     }
 
     static func kind(at x: Double, width: Double) -> PlayerTouchLevel? {
@@ -54,10 +70,18 @@ struct PlayerTouchLevelDrag {
         return (value, overshoot)
     }
 
-    mutating func reachedLimit(afterApplying value: Double) -> Bool {
-        let previous = lastAppliedValue ?? startValue
+    mutating func feedback(afterApplying value: Double) -> Feedback? {
+        let previous = lastAppliedValue
         lastAppliedValue = value
-        return (value == 0 || value == 1) && value != previous
+        guard value != previous else { return nil }
+        if value == 0 || value == 1 {
+            lastFeedbackValue = value
+            return .limit
+        }
+        // Measure from the last tick so small reversals around a boundary cannot buzz.
+        guard abs(value - lastFeedbackValue) >= 0.05 else { return nil }
+        lastFeedbackValue = value
+        return .step
     }
 }
 
@@ -69,6 +93,7 @@ public final class PlayerTouchGestureState {
     public private(set) var boostRate: Double?
     public var isPinching = false
     public private(set) var level: PlayerTouchLevelFeedback?
+    @ObservationIgnored var levelInteractionRegion: (kind: PlayerTouchLevel, frame: CGRect)?
     private var feedbackTask: Task<Void, Never>?
     private var levelFeedbackTask: Task<Void, Never>?
     private var pulse = 0
@@ -77,15 +102,21 @@ public final class PlayerTouchGestureState {
 
     public var isActive: Bool { skip != nil || boostRate != nil || isPinching || level != nil }
 
-    public func showLevel(_ kind: PlayerTouchLevel, value: Double?, overshoot: Double = 0) {
+    public func showLevel(
+        _ kind: PlayerTouchLevel, value: Double?, overshoot: Double = 0, isDirectInteraction: Bool = false
+    ) {
         clearSkip()
         clearLevel()
-        level = PlayerTouchLevelFeedback(kind: kind, value: value, overshoot: overshoot, isDragging: true)
+        level = PlayerTouchLevelFeedback(
+            kind: kind, value: value, overshoot: overshoot, isDragging: true, isDirectInteraction: isDirectInteraction
+        )
     }
 
     public func finishLevel() {
         guard let level, levelFeedbackTask == nil else { return }
-        self.level = PlayerTouchLevelFeedback(kind: level.kind, value: level.value, overshoot: 0, isDragging: false)
+        self.level = PlayerTouchLevelFeedback(
+            kind: level.kind, value: level.value, overshoot: 0, isDragging: false, isDirectInteraction: false
+        )
         levelFeedbackTask = Task { @MainActor [weak self] in
             do { try await Task.sleep(for: .milliseconds(1200)) }
             catch { return }

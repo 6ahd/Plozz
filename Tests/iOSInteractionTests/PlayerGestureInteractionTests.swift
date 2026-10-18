@@ -178,6 +178,46 @@ final class PlayerGestureInteractionTests: XCTestCase {
         XCTAssertEqual(Double(app.staticTexts["gesture-system-volume"].label), volume)
     }
 
+    func testRevealedBrightnessMeterAcceptsAbsoluteTapsAndDragsWithoutPlayerShortcuts() throws {
+        point(x: 0.18, y: 0.42).press(forDuration: 0.05, thenDragTo: point(x: 0.18, y: 0.60))
+        XCTAssertTrue(levelMeter.exists, app.debugDescription)
+        let frame = levelMeter.frame
+        let origin = app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
+        let upper = origin.withOffset(CGVector(dx: frame.midX, dy: frame.minY + frame.height * 0.25))
+        let lower = origin.withOffset(CGVector(dx: frame.midX, dy: frame.minY + frame.height * 0.75))
+        upper.tap()
+        try assertLevel(0.75)
+        lower.press(forDuration: 0.05, thenDragTo: upper, withVelocity: .slow, thenHoldForDuration: 1.4)
+        try assertLevel(0.75)
+        let below = origin.withOffset(CGVector(dx: frame.midX, dy: frame.maxY + 28))
+        upper.press(forDuration: 0.05, thenDragTo: below)
+        try assertLevel(0)
+        XCTAssertFalse(app.staticTexts["player-gesture-skip-total"].exists)
+        XCTAssertFalse(app.otherElements["player-timeline"].exists)
+        XCTAssertFalse(app.buttons["Pause"].exists)
+        XCTAssertEqual(app.staticTexts["gesture-maximum-rate"].label, "1.0")
+        XCTAssertEqual(app.staticTexts["rotation-load-count"].label, "Loads 1")
+        capture("direct-brightness")
+        XCUIDevice.shared.orientation = .landscapeRight
+        point(x: 0.18, y: 0.42).press(forDuration: 0.05, thenDragTo: point(x: 0.18, y: 0.60))
+        levelMeter.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75)).tap()
+        try assertLevel(0.25)
+        XCTAssertFalse(app.staticTexts["player-gesture-skip-total"].exists)
+    }
+
+    func testRevealedVolumeMeterAcceptsAbsoluteTouchWhenSystemOutputIsAvailable() throws {
+        point(x: 0.82, y: 0.42).press(forDuration: 0.05, thenDragTo: point(x: 0.82, y: 0.60))
+        XCTAssertTrue(app.otherElements["player-gesture-level-pill"].exists, app.debugDescription)
+        if app.staticTexts["player-gesture-level-unavailable"].exists {
+            XCTAssertFalse(levelMeter.exists)
+        } else {
+            levelMeter.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
+            try assertLevel(0.75)
+        }
+        XCTAssertFalse(app.staticTexts["player-gesture-skip-total"].exists)
+        XCTAssertFalse(app.otherElements["player-timeline"].exists)
+    }
+
     func testDisabledLevelGesturesPreserveTapSkipping() throws {
         app.terminate()
         app.launchArguments.append("--no-level-gestures")
@@ -205,7 +245,7 @@ final class PlayerGestureInteractionTests: XCTestCase {
         )
         // UIKit's pan translation excludes the initial recognition slop.
         XCTAssertEqual(percent / 100, min(max(expected, 0), 1), accuracy: 0.04, file: file, line: line)
-        XCTAssertEqual(levelMeter.frame.width, 40, accuracy: 1, file: file, line: line)
+        XCTAssertEqual(levelMeter.frame.width, 44, accuracy: 1, file: file, line: line)
         XCTAssertEqual(levelMeter.frame.height, 156, accuracy: 1, file: file, line: line)
         XCTAssertEqual(
             app.otherElements["player-gesture-level-pill"].staticTexts.count, 0,

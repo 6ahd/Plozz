@@ -54,6 +54,42 @@ final class PlayerTouchLevelTests: XCTestCase {
         XCTAssertFalse(state.isActive)
     }
 
+    func testDirectPositionUsesTheBarHeightAndHapticsStartFromTheActualOutput() throws {
+        for kind in [PlayerTouchLevel.brightness, .volume] {
+            var drag = PlayerTouchLevelDrag(kind: kind, startValue: 1, height: 156, initialFeedbackValue: 0.4)
+            for (y, expected, overshoot) in [
+                (0.0, 1.0, 0.0), (39, 0.75, 0), (78, 0.5, 0), (156, 0, 0), (-28, 1, 28), (184, 0, -28)
+            ] {
+                let adjustment = try XCTUnwrap(drag.adjustment(translationY: y))
+                XCTAssertEqual(adjustment.value, expected, accuracy: 0.001)
+                XCTAssertEqual(adjustment.overshoot, overshoot, accuracy: 0.001)
+            }
+            XCTAssertEqual(drag.feedback(afterApplying: 1), .limit, "Tapping full from 40% must emit endpoint feedback.")
+            XCTAssertNil(drag.feedback(afterApplying: 1))
+            drag = PlayerTouchLevelDrag(kind: kind, startValue: 1, height: 156, initialFeedbackValue: 0)
+            XCTAssertNil(drag.feedback(afterApplying: 0), "Touching the already-selected minimum must not buzz.")
+            XCTAssertEqual(drag.feedback(afterApplying: 0.5), .step)
+            XCTAssertEqual(drag.feedback(afterApplying: 0), .limit)
+        }
+    }
+
+    func testDirectContactCancelsExpiryUntilReleaseAndDoesNotWidenScreenSwipes() async throws {
+        let state = PlayerTouchGestureState()
+        defer { state.cancel() }
+        state.showLevel(.brightness, value: 0.5)
+        XCTAssertEqual(state.level?.isDirectInteraction, false)
+        state.finishLevel()
+        state.showLevel(.brightness, value: 0.75, isDirectInteraction: true)
+        try await Task.sleep(for: .milliseconds(1400))
+        XCTAssertEqual(state.level?.value, 0.75)
+        XCTAssertEqual(state.level?.isDirectInteraction, true)
+        state.finishLevel()
+        XCTAssertEqual(state.level?.isDirectInteraction, false)
+        XCTAssertEqual(state.level?.isDragging, false)
+        try await Task.sleep(for: .milliseconds(1400))
+        XCTAssertNil(state.level)
+    }
+
     func testLimitFeedbackFiresOnlyOnArrivalAndRearmsAfterLeaving() throws {
         for kind in [PlayerTouchLevel.brightness, .volume] {
             var drag = PlayerTouchLevelDrag(kind: kind, startValue: 0.5, height: 800)
@@ -64,7 +100,7 @@ final class PlayerTouchLevelTests: XCTestCase {
             ]
             for (translation, expected) in movements {
                 let value = try XCTUnwrap(drag.adjustment(translationY: translation)?.value)
-                XCTAssertEqual(drag.reachedLimit(afterApplying: value), expected, "\(kind), \(translation)")
+                XCTAssertEqual(drag.feedback(afterApplying: value) == .limit, expected, "\(kind), \(translation)")
             }
         }
     }
@@ -72,13 +108,41 @@ final class PlayerTouchLevelTests: XCTestCase {
     func testStartingAtALimitDoesNotEmitUntilLeavingAndReturning() {
         for start in [0.0, 1.0] {
             var drag = PlayerTouchLevelDrag(kind: .brightness, startValue: start, height: 800)
-            XCTAssertFalse(drag.reachedLimit(afterApplying: start))
-            XCTAssertFalse(drag.reachedLimit(afterApplying: start))
-            XCTAssertFalse(drag.reachedLimit(afterApplying: 0.5))
-            XCTAssertTrue(drag.reachedLimit(afterApplying: start))
-            XCTAssertFalse(drag.reachedLimit(afterApplying: start))
+            XCTAssertNil(drag.feedback(afterApplying: start))
+            XCTAssertNil(drag.feedback(afterApplying: start))
+            XCTAssertEqual(drag.feedback(afterApplying: 0.5), .step)
+            XCTAssertEqual(drag.feedback(afterApplying: start), .limit)
+            XCTAssertNil(drag.feedback(afterApplying: start))
             drag = PlayerTouchLevelDrag(kind: .brightness, startValue: start, height: 800)
-            XCTAssertFalse(drag.reachedLimit(afterApplying: start), "A new swipe must not inherit old endpoint feedback.")
+            XCTAssertNil(drag.feedback(afterApplying: start), "A new swipe must not inherit old endpoint feedback.")
+        }
+    }
+
+    func testDragTicksTrackMeaningfulMovementInBothDirectionsWithoutRepeatedBuzzing() {
+        for kind in [PlayerTouchLevel.brightness, .volume] {
+            var drag = PlayerTouchLevelDrag(kind: kind, startValue: 0.5, height: 800)
+            let updates: [(Double, PlayerTouchLevelDrag.Feedback?)] = [
+                (0.5, nil), (0.52, nil), (0.56, .step), (0.56, nil), (0.58, nil),
+                (0.50, .step), (0.48, nil), (0.44, .step), (0.01, .step),
+                (0, .limit), (0, nil), (0.02, nil), (0.06, .step),
+                (0.94, .step), (1, .limit), (1, nil), (0.98, nil), (0.94, .step)
+            ]
+            for (value, expected) in updates {
+                XCTAssertEqual(drag.feedback(afterApplying: value), expected, "\(kind), \(value)")
+            }
+        }
+    }
+
+    func testVolumeSymbolsProgressFromMutedThroughThreeWaves() {
+        for (value, symbol) in [
+            (0.0, "speaker.slash.fill"), (0.001, "speaker.wave.1.fill"),
+            (0.32, "speaker.wave.1.fill"), (1.0 / 3, "speaker.wave.2.fill"),
+            (0.65, "speaker.wave.2.fill"), (2.0 / 3, "speaker.wave.3.fill"),
+            (1.0, "speaker.wave.3.fill")
+        ] {
+            XCTAssertEqual(PlayerTouchLevel.volume.systemImage(at: value), symbol)
+            XCTAssertNotNil(UIImage(systemName: symbol))
+            XCTAssertEqual(PlayerTouchLevel.brightness.systemImage(at: value), "sun.max.fill")
         }
     }
 
