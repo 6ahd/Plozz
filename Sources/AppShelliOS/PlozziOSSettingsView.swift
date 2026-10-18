@@ -481,7 +481,7 @@ private struct PlozziOSSettingsSplitView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             ScrollView {
-                LazyVStack(spacing: 18) {
+                VStack(spacing: 18) {
                     // Live media-share scan/enrich progress. Renders nothing when
                     // idle, so Settings is unchanged unless a share is working.
                     ShareScanStatusHeader(
@@ -611,6 +611,7 @@ private struct PlozziOSSettingsSplitView: View {
                         settingsRow(.releaseNotes, title: "Release Notes", systemImage: "doc.text")
                     }
                     PlozziOSCommunitySettingsSection()
+                    PlozziOSMoreAppsSettingsSection()
 
                     SettingsSectionGroup("Support") {
                         settingsRow(.diagnostics, title: "Help & Diagnostics", systemImage: "ladybug")
@@ -835,6 +836,42 @@ private struct PlozziOSSettingsSplitView: View {
     }
 }
 
+struct PlozziOSMoreAppsSettingsSection: View {
+    var body: some View {
+        SettingsSectionGroup("More apps") {
+            Link(destination: AppLinks.mozzTestFlight) {
+                HStack(spacing: 16) {
+                    Image("MozzAppIcon")
+                        .renderingMode(.original)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(verbatim: "Mozz")
+                            .font(.body.weight(.medium))
+                        Text("Music for Plex, Jellyfin & Subsonic")
+                            .font(.footnote)
+                            .plozzForeground(.secondary)
+                        Text("Join the public beta")
+                            .font(.footnote)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "arrow.up.forward")
+                        .font(.subheadline.weight(.semibold))
+                        .plozzForeground(.secondary)
+                        .accessibilityHidden(true)
+                }
+                .multilineTextAlignment(.leading)
+            }
+            .accessibilityHint(Text("Opens TestFlight."))
+            .accessibilityIdentifier("settings-mozz-beta")
+        }
+    }
+}
+
 struct PlozziOSCommunitySettingsSection: View {
     @ScaledMetric(relativeTo: .body) private var iconSize = 22
 
@@ -979,7 +1016,7 @@ private struct PlozziOSSettingsCompactMenu: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 18) {
+            VStack(spacing: 18) {
                 // Live media-share scan/enrich progress. Renders nothing when idle.
                 ShareScanStatusHeader(
                     status: appModel.shareScanStatus,
@@ -1155,6 +1192,7 @@ private struct PlozziOSSettingsCompactMenu: View {
                     }
                 }
                 PlozziOSCommunitySettingsSection()
+                PlozziOSMoreAppsSettingsSection()
 
                 SettingsSectionGroup("Support") {
                     NavigationLink {

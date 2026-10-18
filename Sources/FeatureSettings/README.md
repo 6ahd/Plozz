@@ -77,6 +77,16 @@ and the single place caption customization lives.
   Mobile Community uses standard-height, single-line Discord and GitHub links
   with small brand icons, without subtitles or QR codes. TV keeps its scannable
   community cards.
+  Mobile Settings also includes a **More apps** section linking Mozz to its
+  public TestFlight beta. Both compact and regular layouts share the same native
+  link and preserve the official full-color light/dark app icon. Mozz is not
+  advertised on tvOS. The iOS-only `MozzAppIcon` imageset is copied unchanged from
+  `brandomoore/Mozz` at `b262a5a1257ac20369287599e6fea888462f8284`,
+  `App/Mozz/Assets.xcassets/AppIcon.appiconset`; `AppLinks.mozzTestFlight`
+  owns the invite URL.
+  The compact and regular root menus eagerly lay out their small, fixed set of
+  sections. This keeps variable-height groups stable while scrolling rather
+  than repeatedly revising lazy height estimates as the promotion enters view.
   Kids-profile gates and profile/household storage ownership are unchanged.
   `SettingsLibrarySourcesSummary` shares configured source grouping and profile
   inclusion with TV. Mobile keeps the source icons/names on one horizontal line,

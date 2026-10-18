@@ -157,9 +157,30 @@ final class SettingsInteractionTests: XCTestCase {
             }
             capture("settings-everyone-\(arguments.joined())")
             reveal(button("Help & Diagnostics"), settingsMenu: true)
-            XCTAssertTrue(app.staticTexts["Version"].exists)
+            XCTAssertTrue(app.staticTexts.matching(
+                NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "Version", "Version, ")
+            ).firstMatch.exists)
             XCTAssertTrue(app.links["Discord"].exists || app.buttons["Discord"].exists)
             capture("settings-community-\(arguments.joined())")
+            app.terminate()
+        }
+    }
+
+    func testMozzBetaOpensThePublicInviteFromMobileSettings() {
+        for arguments in [[], ["--compact-settings"], ["--large-text"], ["--kids-settings"]] {
+            launch(settingsRoot: true, arguments: arguments + ["--capture-settings-links"])
+            let link = app.descendants(matching: .any).matching(identifier: "settings-mozz-beta").firstMatch
+            reveal(link, settingsMenu: true, fullyVisible: true)
+            XCTAssertTrue(link.isHittable, app.debugDescription)
+            XCTAssertTrue(link.label.contains("Mozz"), link.label)
+            XCTAssertTrue(link.label.contains("Join the public beta"), link.label)
+            XCTAssertGreaterThanOrEqual(link.frame.height, 44)
+            capture("settings-mozz-beta-\(arguments.joined())")
+            link.tap()
+            let destination = app.staticTexts["fixture-opened-settings-url"]
+            XCTAssertTrue(destination.waitForExistence(timeout: 3), app.debugDescription)
+            XCTAssertEqual(destination.label, "https://testflight.apple.com/join/dmeawSSM")
+            XCTAssertTrue(app.navigationBars["Settings"].exists)
             app.terminate()
         }
     }
