@@ -184,9 +184,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                 )
             }
 
-            if touchGestures.isActive {
-                PlayerTouchGestureFeedbackView(state: touchGestures)
-            }
+            PlayerTouchGestureFeedbackView(state: touchGestures)
 
             if viewModel.controls.skipButtonVisible, !touchGestures.isActive {
                 Button {

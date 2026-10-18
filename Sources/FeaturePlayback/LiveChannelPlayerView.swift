@@ -1054,10 +1054,8 @@ public struct LiveChannelPlayerView: View {
                 onGestureStarted: dismissControls
             )
             .ignoresSafeArea()
-            if touchGestures.isActive {
-                PlayerTouchGestureFeedbackView(state: touchGestures)
-                    .modifier(WindowSafeAreaPadding())
-            }
+            PlayerTouchGestureFeedbackView(state: touchGestures)
+                .modifier(WindowSafeAreaPadding())
         }
     }
     #endif

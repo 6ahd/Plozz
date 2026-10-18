@@ -243,11 +243,11 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         for reducePanelGlass in [false, true] {
             for kind in [PlayerTouchLevel.brightness, .volume] {
                 try await withFeedback(reducePanelGlass: reducePanelGlass, colorScheme: .light) { fixture, window in
-                    let rect = CGRect(x: kind == .brightness ? 62 : 286, y: 22, width: 52, height: 156)
+                    let rect = CGRect(x: kind == .brightness ? 32 : 336, y: 22, width: 32, height: 156)
                     var frames: [Double: RenderedFrame] = [:]
-                    for value in [0.0, 0.2, 0.5, 1.0] {
+                    for value in [0.0, 0.5, 1.0] {
                         fixture.state.showLevel(kind, value: value)
-                        try await Task.sleep(for: .milliseconds(160))
+                        try await Task.sleep(for: .milliseconds(300))
                         let frame = try self.capture(
                             window, rect: rect,
                             label: "\(kind), \(value), \(reducePanelGlass ? "reduced" : "native") glass"
@@ -255,7 +255,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                         frames[value] = frame
                         let boundary = 156 * (1 - value)
                         for y in 30..<144 {
-                            let pixel = frame.pixels[y * frame.width + 8]
+                            let pixel = frame.pixels[y * frame.width + 2]
                             if Double(y) > boundary + 2 {
                                 XCTAssertGreaterThan(pixel, 235, "The fill must rise from the bottom: \(kind), \(value), row \(y)")
                             } else if Double(y) < boundary - 2 {
@@ -265,14 +265,13 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     }
                     let empty = try XCTUnwrap(frames[0])
                     let full = try XCTUnwrap(frames[1])
-                    let partial = try XCTUnwrap(frames[0.2])
                     let upperInk = (12..<96).flatMap { y in
-                        (10..<42).map { x in empty.pixels[y * empty.width + x] }
+                        (4..<28).map { x in empty.pixels[y * empty.width + x] }
                     }.filter { $0 > 220 }
                     XCTAssertTrue(upperInk.isEmpty, "There must be no percentage or other visible label above the icon.")
 
                     let iconInk = (110..<144).flatMap { y in
-                        (8..<44).compactMap { x -> Int? in
+                        (2..<30).compactMap { x -> Int? in
                             let index = y * empty.width + x
                             return empty.pixels[index] > 240 ? index : nil
                         }
@@ -281,7 +280,13 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     for index in iconInk {
                         XCTAssertLessThan(full.pixels[index], 60, "The same icon must be dark over full white fill.")
                     }
-                    let boundary = 156 * (1 - 0.2)
+                    let iconRows = iconInk.map { $0 / empty.width }
+                    let firstRow = try XCTUnwrap(iconRows.min())
+                    let lastRow = try XCTUnwrap(iconRows.max())
+                    let boundary = Double(firstRow + lastRow) / 2
+                    fixture.state.showLevel(kind, value: 1 - boundary / 156)
+                    try await Task.sleep(for: .milliseconds(160))
+                    let partial = try self.capture(window, rect: rect, label: "\(kind) fill crossing the icon's center")
                     let lightPart = iconInk.filter { Double($0 / empty.width) < boundary - 2 }
                     let darkPart = iconInk.filter { Double($0 / empty.width) > boundary + 2 }
                     XCTAssertGreaterThan(lightPart.count, 5)
@@ -299,7 +304,48 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                     for index in iconInk {
                         XCTAssertGreaterThan(drained.pixels[index], 220, "Draining must restore the entire white icon.")
                     }
-                    XCTAssertLessThan(drained.pixels[136 * drained.width + 8], 200, "Zero must not retain fill.")
+                    XCTAssertLessThan(drained.pixels[136 * drained.width + 2], 200, "Zero must not retain fill.")
+                }
+            }
+        }
+    }
+
+    func testLevelMetersAnimateEntryAndExitWithFadeOnlyForReduceMotion() async throws {
+        for reduceMotion in [false, true] {
+            for kind in [PlayerTouchLevel.brightness, .volume] {
+                try await withFeedback(reduceMotion: reduceMotion) { fixture, window in
+                    let rect = CGRect(x: kind == .brightness ? 24 : 328, y: 14, width: 48, height: 172)
+                    let started = ContinuousClock.now
+                    fixture.state.showLevel(kind, value: 1)
+                    try await Task.sleep(until: started + .milliseconds(60), clock: .continuous)
+                    let entering = try self.capture(window, rect: rect, label: "\(kind) entering, reduced motion \(reduceMotion)")
+                    try await Task.sleep(until: started + .milliseconds(300), clock: .continuous)
+                    let settled = try self.capture(window, rect: rect, label: "\(kind) settled, reduced motion \(reduceMotion)")
+                    let finished = ContinuousClock.now
+                    fixture.state.finishLevel()
+                    try await Task.sleep(until: finished + .milliseconds(1260), clock: .continuous)
+                    let exiting = try self.capture(window, rect: rect, label: "\(kind) exiting, reduced motion \(reduceMotion)")
+                    try await Task.sleep(until: finished + .milliseconds(1500), clock: .continuous)
+                    let gone = try self.capture(window, rect: rect, label: "\(kind) removed, reduced motion \(reduceMotion)")
+
+                    let fullEnergy = self.inkEnergy(settled)
+                    let fullBounds = try self.inkBounds(settled, threshold: 10)
+                    XCTAssertEqual(fullBounds.width, 32, accuracy: 1)
+                    XCTAssertEqual(fullBounds.height, 156, accuracy: 1)
+                    for frame in [entering, exiting] {
+                        XCTAssertGreaterThan(self.inkEnergy(frame), fullEnergy * 0.02, "Entry and exit must remain briefly visible.")
+                        XCTAssertLessThan(self.inkEnergy(frame), fullEnergy * 0.98, "Entry and exit must fade, not appear or disappear abruptly.")
+                        let bounds = try self.inkBounds(frame, threshold: 10)
+                        XCTAssertEqual(bounds.midX, fullBounds.midX, accuracy: 1)
+                        XCTAssertEqual(bounds.midY, fullBounds.midY, accuracy: 1)
+                        if reduceMotion {
+                            XCTAssertEqual(bounds.width, fullBounds.width, accuracy: 1)
+                            XCTAssertEqual(bounds.height, fullBounds.height, accuracy: 1, "Reduce Motion must not scale the meter.")
+                        } else {
+                            XCTAssertLessThan(bounds.height, fullBounds.height - 2, "Normal motion should gently scale around the meter's center.")
+                        }
+                    }
+                    self.assertAbsent(gone, message: "The meter must disappear after its exit transition.")
                 }
             }
         }

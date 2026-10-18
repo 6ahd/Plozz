@@ -252,13 +252,20 @@ on-demand and Live TV playback, including while Up Next is visible, but yield to
 menus, sheets, VoiceOver, external playback and inactive scenes. Multiview and
 inline Live TV do not adjust shared device outputs.
 
-Level feedback is a slim, monochrome vertical capsule that fills upward with
-the swipe, without revealing the timeline. Only the fill and native output icon
+Level feedback is a 32-by-156-point monochrome vertical capsule, centered 12%
+inward from the respective feedback area's edge. It fills upward with
+the swipe, without revealing the timeline. Only the fill and 16-point native output icon
 are visible; the percentage is available to accessibility, not drawn on screen.
 The icon is white over empty glass and black where covered by the fill, using
 the same bottom-aligned mask as the fill. This preserves contrast through zero,
 partial-icon crossings and full output without flipping the whole symbol at a
 threshold. Native glass and reduced-effects backgrounds share the same layout.
+The capsule fades and gently scales on entry and exit; Reduce Motion uses only
+the fade. Keep the feedback host mounted while idle so expiry can animate out.
+Successful swipes emit a light haptic on supported hardware when first reaching
+zero or full output, not on every clamped update. Moving away and reaching a
+limit again re-arms the feedback; starting at a limit does not buzz immediately.
+Unavailable-output messages retain their wider inset and do not emit haptics.
 The system-volume bridge drives an `MPVolumeView`'s
 native slider, the same approach used by
 [AetherPlayer](https://github.com/superuser404notfound/AetherPlayer/blob/main/Sources/iOS/Player/PlayerSystemVolume.swift);

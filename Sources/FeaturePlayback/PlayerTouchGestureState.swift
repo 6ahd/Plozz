@@ -27,6 +27,13 @@ struct PlayerTouchLevelDrag {
     let kind: PlayerTouchLevel
     let startValue: Double
     let height: Double
+    private var lastAppliedValue: Double?
+
+    init(kind: PlayerTouchLevel, startValue: Double, height: Double) {
+        self.kind = kind
+        self.startValue = startValue
+        self.height = height
+    }
 
     static func kind(at x: Double, width: Double) -> PlayerTouchLevel? {
         guard x.isFinite, width.isFinite, width > 0, x >= 0, x <= width else { return nil }
@@ -38,6 +45,12 @@ struct PlayerTouchLevelDrag {
     func value(translationY: Double) -> Double? {
         guard translationY.isFinite, startValue.isFinite, height.isFinite, height > 0 else { return nil }
         return min(max(startValue - translationY / height, 0), 1)
+    }
+
+    mutating func reachedLimit(afterApplying value: Double) -> Bool {
+        let previous = lastAppliedValue ?? startValue
+        lastAppliedValue = value
+        return (value == 0 || value == 1) && value != previous
     }
 }
 

@@ -54,6 +54,34 @@ final class PlayerTouchLevelTests: XCTestCase {
         XCTAssertFalse(state.isActive)
     }
 
+    func testLimitFeedbackFiresOnlyOnArrivalAndRearmsAfterLeaving() throws {
+        for kind in [PlayerTouchLevel.brightness, .volume] {
+            var drag = PlayerTouchLevelDrag(kind: kind, startValue: 0.5, height: 800)
+            let movements: [(Double, Bool)] = [
+                (-160, false), (-400, true), (-500, false), (-800, false),
+                (-320, false), (-400, true), (0, false), (400, true),
+                (500, false), (800, false), (320, false), (400, true)
+            ]
+            for (translation, expected) in movements {
+                let value = try XCTUnwrap(drag.value(translationY: translation))
+                XCTAssertEqual(drag.reachedLimit(afterApplying: value), expected, "\(kind), \(translation)")
+            }
+        }
+    }
+
+    func testStartingAtALimitDoesNotEmitUntilLeavingAndReturning() {
+        for start in [0.0, 1.0] {
+            var drag = PlayerTouchLevelDrag(kind: .brightness, startValue: start, height: 800)
+            XCTAssertFalse(drag.reachedLimit(afterApplying: start))
+            XCTAssertFalse(drag.reachedLimit(afterApplying: start))
+            XCTAssertFalse(drag.reachedLimit(afterApplying: 0.5))
+            XCTAssertTrue(drag.reachedLimit(afterApplying: start))
+            XCTAssertFalse(drag.reachedLimit(afterApplying: start))
+            drag = PlayerTouchLevelDrag(kind: .brightness, startValue: start, height: 800)
+            XCTAssertFalse(drag.reachedLimit(afterApplying: start), "A new swipe must not inherit old endpoint feedback.")
+        }
+    }
+
     func testBrightnessRestoresOnTeardownButDoesNotOverwriteAnExternalChange() throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let window = UIWindow(windowScene: scene)

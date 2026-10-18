@@ -2,6 +2,7 @@
 import SwiftUI
 import UIKit
 import CoreNetworking
+import CoreUI
 
 /// Lives behind the native controls, so their touches never become playback shortcuts.
 public struct PlayerTouchGestureSurface: UIViewRepresentable {
@@ -214,13 +215,17 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
         }
 
         private func updateLevel(movement: CGPoint, in view: UIView) {
-            guard let drag = levelDrag else { return }
+            guard var drag = levelDrag else { return }
             guard let value = drag.value(translationY: Double(movement.y)) else {
                 levelUnavailable(drag.kind)
                 return
             }
             do {
                 try levelControl.set(drag.kind, value: value, in: view)
+                if drag.reachedLimit(afterApplying: value) {
+                    TouchFeedback.shared.emit(.impact)
+                }
+                levelDrag = drag
                 owner.state.showLevel(drag.kind, value: value)
             } catch {
                 levelUnavailable(drag.kind)
@@ -342,26 +347,35 @@ struct PlayerTouchGestureFeedbackContent: View {
                 .padding(.top, 16)
                 .frame(maxWidth: .infinity)
             }
-            if let level = state.level {
-                Group {
-                    if let value = level.value {
-                        PlayerTouchLevelMeter(kind: level.kind, value: value)
-                    } else {
-                        HStack(spacing: 8) {
-                            Image(systemName: level.kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
-                                .accessibilityHidden(true)
-                            Text(level.kind == .brightness ? "Brightness unavailable" : "Volume unavailable")
-                                .accessibilityIdentifier("player-gesture-level-unavailable")
+            ZStack {
+                if let level = state.level {
+                    let inset = level.value == nil ? 0.22 : 0.12
+                    let horizontalPosition = level.kind == .brightness ? inset : 1 - inset
+                    Group {
+                        if let value = level.value {
+                            PlayerTouchLevelMeter(kind: level.kind, value: value)
+                        } else {
+                            HStack(spacing: 8) {
+                                Image(systemName: level.kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
+                                    .accessibilityHidden(true)
+                                Text(level.kind == .brightness ? "Brightness unavailable" : "Volume unavailable")
+                                    .accessibilityIdentifier("player-gesture-level-unavailable")
+                            }
+                            .modifier(PlayerTouchFeedbackPill())
                         }
-                        .modifier(PlayerTouchFeedbackPill())
                     }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("player-gesture-level-pill")
+                    .position(x: geometry.size.width * horizontalPosition,
+                              y: geometry.size.height / 2)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(
+                        scale: 0.9, anchor: UnitPoint(x: horizontalPosition, y: 0.5)
+                    )))
+                    .environment(\.layoutDirection, .leftToRight)
                 }
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("player-gesture-level-pill")
-                .position(x: geometry.size.width * (level.kind == .brightness ? 0.22 : 0.78),
-                          y: geometry.size.height / 2)
-                .environment(\.layoutDirection, .leftToRight)
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .animation(.easeOut(duration: 0.2), value: state.level != nil)
         }
         .foregroundStyle(.white)
         .allowsHitTesting(false)
@@ -385,7 +399,7 @@ private struct PlayerTouchLevelMeter: View {
                     Rectangle().frame(height: 156 * value)
                 }
         }
-        .frame(width: 52, height: 156)
+        .frame(width: 32, height: 156)
         .clipShape(Capsule())
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)
@@ -396,7 +410,7 @@ private struct PlayerTouchLevelMeter: View {
 
     private var icon: some View {
         Image(systemName: kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
-            .font(.system(size: 20, weight: .semibold))
+            .font(.system(size: 16, weight: .semibold))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .padding(.bottom, 18)
             .accessibilityHidden(true)
