@@ -27,6 +27,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   otherwise the source order stays unchanged. The additional-language count stays
   inside the same chip (`English | +9`), so it cannot wrap away from its language
   or look like hidden format badges. Accessibility exposes the full language list.
+  For a two-language source, an inline badge stays compact; if the format row
+  cannot fit it, the language row spells out both names. Very large text may
+  separate those names into wrapping chips instead of clipping either one.
   The full track inventory stays in the Audio menu;
   this display priority never changes playback's original/per-content-type policy.
   The compact mobile source-menu disclosure groups edition/picture facts above

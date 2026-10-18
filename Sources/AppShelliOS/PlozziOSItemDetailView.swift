@@ -448,9 +448,10 @@ private struct PlozziOSCanonicalItemDetailView: View {
     }
 
     private func detailContent(_ detail: ItemDetailViewModel.Detail) -> some View {
+        let versionTarget = viewModel.episodeWithEnrichedBadges(seriesPlayTarget ?? detail.item)
         let heroTarget = seriesHeroShowsSeries
             ? detail.item
-            : viewModel.episodeWithEnrichedBadges(seriesPlayTarget ?? detail.item)
+            : versionTarget
         let playableHeroTarget = seriesPlayTarget.map(playbackItem(for:))
             ?? detailPlayableItem(for: detail.item)
         let seasons = detail.children.filter { $0.kind == .season }
@@ -473,7 +474,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
                 versions: [],
                 selectedVersionID: nil
             )
-            : detailPlaybackOptions(for: heroTarget)
+            : detailPlaybackOptions(for: versionTarget)
         let heroStyle: HeroArtworkStyle = horizontalSizeClass == .compact
             ? .compactPortrait
             : .landscape
@@ -504,7 +505,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
                     selectedVersionID: options.selectedVersionID,
                     onSelectSource: selectSource,
                     onSelectVersion: {
-                        selectVersion($0, for: heroTarget)
+                        selectVersion($0, for: versionTarget)
                     },
                     actionHandler: appModel.mediaItemActionHandler,
                     // Re-resolve the play target at FIRE time rather than using
@@ -598,7 +599,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
                         ? nil
                         : options.versions.first {
                             $0.id == options.selectedVersionID
-                        } ?? MediaVersion.synthesized(from: heroTarget),
+                        } ?? MediaVersion.synthesized(from: versionTarget),
                     externalAvailability: detail.externalAvailability,
                     spoilerSettings: appModel.settings.spoilers.settings,
                     overviewAlreadyShown: heroStyle == .compactPortrait

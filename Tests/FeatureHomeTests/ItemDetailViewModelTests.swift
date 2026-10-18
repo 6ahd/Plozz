@@ -2950,6 +2950,74 @@ final class ItemDetailViewModelTests: XCTestCase {
         )
     }
 
+    func testSeriesHeroResolvesEpisodeVersionsWithoutChangingSeriesOrWatchState() async throws {
+        for versions: [MediaVersion] in [[], [.init(id: "hd"), .init(id: "4k")]] {
+            let show = series("show")
+            var sparse = episode("e1", number: 1)
+            sparse.sourceAccountID = "server"
+            sparse.resumePosition = 600
+            sparse.versions = [.init(id: "stale-one"), .init(id: "stale-two")]
+            var rich = sparse
+            rich.resumePosition = 0
+            rich.versions = versions
+            let full = rich
+            let provider = FakeMediaProvider(allItems: [show, sparse])
+            provider.childrenByParent = ["show": []]
+            provider.playbackInventoryRequiresEnrichment = true
+            provider.playbackItemHandler = { id in
+                XCTAssertEqual(id, "e1", "Resolve the playable episode, not its series container.")
+                return full
+            }
+            let vm = ItemDetailViewModel(provider: provider, itemID: "show", sourceAccountID: "server")
+            await vm.load()
+            let result = await vm.enrichEpisodeBadgesIfNeeded(sparse)
+            let target = try XCTUnwrap(result)
+            XCTAssertEqual(target.versions, versions)
+            XCTAssertEqual(target.resumePosition, 600)
+            XCTAssertEqual(target.sourceAccountID, "server")
+            XCTAssertEqual(vm.state.value?.item.kind, .series)
+            XCTAssertTrue(vm.state.value?.item.versions.isEmpty == true)
+            let menuVersions = DetailPlaybackSelection.versions(
+                for: target,
+                sources: [.init(accountID: "server", itemID: "show", kind: .series)],
+                activeAccountID: "server"
+            )
+            XCTAssertEqual(Set(menuVersions.map(\.id)), Set(versions.map(\.id)))
+            XCTAssertEqual(provider.itemCallCount(for: "e1"), 0)
+            vm.suspendEnrichment()
+        }
+    }
+
+    func testEpisodeInventoryFailureAndWrongIdentityCannotPoisonHeroCache() async {
+        let show = series("show")
+        let sparse = episode("e1", number: 1)
+        var full = sparse
+        full.versions = [.init(id: "hd"), .init(id: "4k")]
+        let provider = FakeMediaProvider(allItems: [show])
+        provider.childrenByParent = ["show": []]
+        provider.playbackInventoryRequiresEnrichment = true
+        let vm = ItemDetailViewModel(provider: provider, itemID: "show", sourceAccountID: "server")
+        await vm.load()
+        provider.playbackItemHandler = { _ in throw StreamingQualityError.sourceUnavailable }
+        let failed = await vm.enrichEpisodeBadgesIfNeeded(sparse)
+        XCTAssertNil(failed)
+        for mismatch in ["kind", "account", "id"] {
+            var wrong = full
+            if mismatch == "kind" { wrong.kind = .series }
+            if mismatch == "account" { wrong.sourceAccountID = "another-server" }
+            if mismatch == "id" { wrong.id = "another-episode" }
+            let response = wrong
+            provider.playbackItemHandler = { _ in response }
+            let rejected = await vm.enrichEpisodeBadgesIfNeeded(sparse)
+            XCTAssertNil(rejected)
+        }
+        let response = full
+        provider.playbackItemHandler = { _ in response }
+        let recovered = await vm.enrichEpisodeBadgesIfNeeded(sparse)
+        XCTAssertEqual(recovered?.versions, full.versions)
+        vm.suspendEnrichment()
+    }
+
     /// Enrichment is idempotent: a second focus of the same episode returns the
     /// already-rich cached copy without a second provider fetch.
     func testEpisodeHeroKeepsEnrichedBadgesWhenSparseSeasonArrivesLater() async {

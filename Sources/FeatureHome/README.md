@@ -12,6 +12,10 @@ fallback when the user's server has no attached trailer.
   seed. Leaving cancels the work and returning resumes an unfinished attempt.
   Failure keeps browsing available but never authorizes playback: Play runs its
   own strict gate. Providers with complete detail inventories incur no extra fetch.
+  Series heroes resolve the episode that Play would start through the same
+  inventory contract. Mobile source/version actions use that episode even while
+  the hero shows the series' artwork and description, matching tvOS. Choosing a
+  version therefore remembers the episode/series preference, not a container file.
 
 - **Kids Discovery policy** — both shells consume the live profile's effective
   Hero settings, not a destructive rewrite of saved preferences. Kids profiles

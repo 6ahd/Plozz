@@ -73,17 +73,7 @@ public struct MediaVersionChoiceButton: View {
                         .accessibilityLabel(Text(verbatim: releaseName))
                 }
                 if !presentation.badges.isEmpty {
-                    WrappingHStackLayout(spacing: 8, lineSpacing: 6) {
-                        ForEach(presentation.formatBadges) { badge in
-                            MetadataMediaBadgeChip(badge: badge)
-                        }
-                        if let language = languages.first {
-                            MetadataMediaBadgeChip(badge: MediaBadge(
-                                languages.count > 1 ? "\(language) | +\(languages.count - 1)" : language
-                            ))
-                            .accessibilityLabel(Text(verbatim: languages.joined(separator: ", ")))
-                        }
-                    }
+                    versionBadges(languages: languages)
                     .environment(\.mediaBadgeScale, 0.85)
                 }
             }
@@ -95,6 +85,52 @@ public struct MediaVersionChoiceButton: View {
             }
         }
         .multilineTextAlignment(.leading)
+    }
+
+    @ViewBuilder
+    private func versionBadges(languages: [String]) -> some View {
+        if languages.count == 2 {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    formatBadges
+                    languageBadge("\(languages[0]) | +1", languages: languages)
+                }
+                .fixedSize(horizontal: true, vertical: true)
+                VStack(alignment: .leading, spacing: 6) {
+                    WrappingHStackLayout(spacing: 8, lineSpacing: 6) { formatBadges }
+                    ViewThatFits(in: .horizontal) {
+                        languageBadge(languages.joined(separator: " | "), languages: languages)
+                            .fixedSize(horizontal: true, vertical: true)
+                        WrappingHStackLayout(spacing: 8, lineSpacing: 6) {
+                            ForEach(languages, id: \.self) { language in
+                                languageBadge(language, languages: [language])
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            WrappingHStackLayout(spacing: 8, lineSpacing: 6) {
+                formatBadges
+                if let language = languages.first {
+                    languageBadge(
+                        languages.count > 1 ? "\(language) | +\(languages.count - 1)" : language,
+                        languages: languages
+                    )
+                }
+            }
+        }
+    }
+
+    private var formatBadges: some View {
+        ForEach(presentation.formatBadges) { badge in
+            MetadataMediaBadgeChip(badge: badge)
+        }
+    }
+
+    private func languageBadge(_ label: String, languages: [String]) -> some View {
+        MetadataMediaBadgeChip(badge: MediaBadge(label))
+            .accessibilityLabel(Text(verbatim: languages.joined(separator: ", ")))
     }
 }
 

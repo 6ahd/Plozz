@@ -2248,11 +2248,14 @@ public final class ItemDetailViewModel {
               let full = episodeBadgeEnrichment[episode.id] else { return episode }
         var enriched = episode
         enriched.mediaInfo = full.mediaInfo ?? enriched.mediaInfo
-        if !full.versions.isEmpty { enriched.versions = full.versions }
+        if activeProvider.playbackInventoryRequiresEnrichment || !full.versions.isEmpty {
+            enriched.versions = full.versions
+        }
         return enriched
     }
 
-    /// Fetches full file facts once per episode/source without rewriting the rail.
+    /// Fetches full file facts and deferred versions once per episode/source
+    /// without rewriting the rail or replacing the series' editorial hero.
     public func enrichEpisodeBadgesIfNeeded(_ episode: MediaItem) async -> MediaItem? {
         guard episode.kind == .episode,
               episode.sourceAccountID == nil || activeSourceAccountID == nil
@@ -2263,17 +2266,28 @@ public final class ItemDetailViewModel {
         let generation = sourceGeneration
         let itemID = activeItemID
         let accountID = activeSourceAccountID
+        let provider = activeProvider
         do {
-            let full = try await activeProvider.item(id: episode.id)
-            guard !Task.isCancelled, full.id == episode.id,
+            let full: MediaItem
+            if provider.playbackInventoryRequiresEnrichment {
+                full = try await provider.playbackItem(id: episode.id)
+            } else {
+                full = try await provider.item(id: episode.id)
+            }
+            guard !Task.isCancelled,
                   isCurrentSource(generation: generation, itemID: itemID, accountID: accountID) else { return nil }
+            guard full.id == episode.id, full.kind == .episode,
+                  full.sourceAccountID == nil || full.sourceAccountID == accountID else {
+                PlozzLog.playback.error("Episode version inventory did not match the requested source.")
+                return nil
+            }
             episodeBadgeEnrichment.store(full)
             HandoffDiagnostics.emit("detail episode metadata versions=\(full.versions.count) badges=\(full.technicalBadges.count)")
             return episodeWithEnrichedBadges(episode)
         } catch {
             guard !Task.isCancelled,
                   isCurrentSource(generation: generation, itemID: itemID, accountID: accountID) else { return nil }
-            PlozzLog.networking.error("Episode technical metadata lookup failed")
+            _ = PlaybackVersionChoiceModel.reportFailure(error, stage: "episode-detail")
             return nil
         }
     }

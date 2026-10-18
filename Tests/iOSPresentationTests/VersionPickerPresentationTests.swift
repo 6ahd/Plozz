@@ -83,6 +83,56 @@ final class VersionPickerPresentationTests: XCTestCase {
         )
     }
 
+    func testTwoLanguagesExpandWhenBadgeRowWraps() throws {
+        let version = MediaVersion(
+            id: "bilingual", fileName: "Episode.2160p.mkv",
+            height: 2160, videoCodec: "hevc", videoRange: "DOVI",
+            audioCodec: "truehd", audioChannels: 6,
+            sourceMetadata: .init(
+                video: .init(codec: "hevc", height: 2160, videoRangeType: "DOVIWithHDR10"),
+                audio: .init(codec: "truehd", profile: "Dolby Atmos", channels: 6),
+                audioLanguages: ["eng", "fra"]
+            )
+        )
+        for (width, typeSize, expands) in [
+            (280.0, DynamicTypeSize.large, true),
+            (800.0, .large, false),
+            (320.0, .accessibility3, true)
+        ] {
+            for selected in [false, true] {
+                let renderer = ImageRenderer(content: MediaVersionChoiceButton(
+                    presentation: .init(version, locale: Locale(identifier: "en_US")),
+                    isSelected: selected, action: {}
+                )
+                .frame(width: width)
+                .environment(\.locale, Locale(identifier: "en_US"))
+                .environment(\.versionPickerAudioLanguage, "eng")
+                .environment(\.dynamicTypeSize, typeSize)
+                .environment(\.colorScheme, .dark)
+                .environment(\.themePalette, .dark)
+                .padding(16)
+                .background(.black))
+                renderer.scale = 3
+                let image = try XCTUnwrap(renderer.uiImage)
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "bilingual-\(Int(width))-\(typeSize)-selected-\(selected)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.recognitionLanguages = ["en-US"]
+                request.usesLanguageCorrection = false
+                request.minimumTextHeight = 0.001
+                try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+                let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+                    .joined(separator: " ").uppercased()
+                XCTAssertTrue(text.contains("ENGLISH"), text)
+                XCTAssertEqual(text.contains("FRENCH"), expands, text)
+                XCTAssertEqual(text.contains("+1"), !expands, text)
+            }
+        }
+    }
+
     func testCompactVersionDisclosurePreservesLongProviderNameFallback() async throws {
         try await assertCompactSummary(
             MediaVersion(id: "archive", name: "Festival archive presentation with restored opening credits"),
