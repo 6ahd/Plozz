@@ -206,8 +206,9 @@ final class SettingsCommunityPresentationTests: XCTestCase {
                     name: "mozz-beta-\(width)-\(light)-\(textSize)", initialOnly: true
                 )
                 let readable = text.replacingOccurrences(of: "- ", with: "")
-                for label in ["Mozz", "Plex", "Jellyfin", "Subsonic", "Join the public beta"] {
-                    XCTAssertTrue(readable.contains(label), text)
+                    .replacingOccurrences(of: "-", with: "")
+                for label in ["Mozz", "Free, open-source music player", "TestFlight public beta"] {
+                    XCTAssertTrue(readable.contains(label.replacingOccurrences(of: "-", with: "")), text)
                 }
             }
         }
@@ -233,7 +234,7 @@ final class SettingsCommunityPresentationTests: XCTestCase {
                 )
                 assertCommunity(in: text)
                 XCTAssertTrue(text.contains("Mozz"), text)
-                XCTAssertTrue(text.contains("Join the public beta"), text)
+                XCTAssertTrue(text.contains("TestFlight public beta"), text)
                 XCTAssertTrue(text.contains("Help & Diagnostics"), text)
                 XCTAssertTrue(text.contains("Version"), text)
             }
@@ -259,7 +260,7 @@ final class SettingsCommunityPresentationTests: XCTestCase {
                 )
                 assertCommunity(in: text)
                 XCTAssertTrue(text.contains("Mozz"), text)
-                XCTAssertTrue(text.contains("Join the public beta"), text)
+                XCTAssertTrue(text.contains("TestFlight public beta"), text)
                 XCTAssertTrue(text.contains("Help & Diagnostics"), text)
                 XCTAssertTrue(text.contains("Version"), text)
             }

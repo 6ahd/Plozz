@@ -79,7 +79,9 @@ and the single place caption customization lives.
   community cards.
   Mobile Settings also includes a **More apps** section linking Mozz to its
   public TestFlight beta. Both compact and regular layouts share the same native
-  link and preserve the official full-color light/dark app icon. Mozz is not
+  link and preserve the official full-color light/dark app icon. Its three-line
+  label identifies Mozz as a free, open-source music player and names the
+  TestFlight public beta without adding another line. Mozz is not
   advertised on tvOS. The iOS-only `MozzAppIcon` imageset is copied unchanged from
   `brandomoore/Mozz` at `b262a5a1257ac20369287599e6fea888462f8284`,
   `App/Mozz/Assets.xcassets/AppIcon.appiconset`; `AppLinks.mozzTestFlight`

@@ -173,8 +173,12 @@ final class SettingsInteractionTests: XCTestCase {
             reveal(link, settingsMenu: true, fullyVisible: true)
             XCTAssertTrue(link.isHittable, app.debugDescription)
             XCTAssertTrue(link.label.contains("Mozz"), link.label)
-            XCTAssertTrue(link.label.contains("Join the public beta"), link.label)
+            XCTAssertTrue(link.label.contains("Free, open-source music player"), link.label)
+            XCTAssertTrue(link.label.contains("TestFlight public beta"), link.label)
             XCTAssertGreaterThanOrEqual(link.frame.height, 44)
+            if !arguments.contains("--large-text"), link.frame.width >= 370 {
+                XCTAssertLessThanOrEqual(link.frame.height, 84, "Keep the existing three-line row height.")
+            }
             capture("settings-mozz-beta-\(arguments.joined())")
             link.tap()
             let destination = app.staticTexts["fixture-opened-settings-url"]

@@ -851,10 +851,10 @@ struct PlozziOSMoreAppsSettingsSection: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(verbatim: "Mozz")
                             .font(.body.weight(.medium))
-                        Text("Music for Plex, Jellyfin & Subsonic")
+                        Text("Free, open-source music player")
                             .font(.footnote)
                             .plozzForeground(.secondary)
-                        Text("Join the public beta")
+                        Text("TestFlight public beta")
                             .font(.footnote)
                     }
                     .fixedSize(horizontal: false, vertical: true)
