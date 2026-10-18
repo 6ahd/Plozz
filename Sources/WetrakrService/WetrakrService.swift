@@ -26,6 +26,25 @@ public final class WetrakrService {
     @ObservationIgnored private let coordinator: TrackerTokenCoordinator
     @ObservationIgnored private let generation = TrackerProfileGeneration()
     @ObservationIgnored var connectTask: Task<Void, Never>?
+    @ObservationIgnored private let now: @Sendable () -> Date
+    @ObservationIgnored private var activeNamespace: String??
+    @ObservationIgnored private var statusTask: (id: UUID, scope: StatusScope, task: Task<Void, Never>)?
+    @ObservationIgnored private var lastStatusCheck: (scope: StatusScope, date: Date)?
+    @ObservationIgnored private var publishedScope: StatusScope?
+
+    private struct StatusScope: Equatable {
+        let store: String
+        let identity: String?
+        let credentialVersion: String?
+        init(_ store: any TrackerTokenStoring) {
+            let tokens = store.load()
+            self.store = store.coordinationID
+            self.identity = tokens?.stableAccountIdentity
+            self.credentialVersion = tokens.map {
+                WatchlistReconciliationIdentity.credential($0.accessToken)
+            }
+        }
+    }
 
     public convenience init(
         config: WetrakrConfig, http: any HTTPClient = URLSessionHTTPClient(),
@@ -36,13 +55,15 @@ public final class WetrakrService {
 
     init(
         config: WetrakrConfig, http: any HTTPClient,
-        tokenStore: any TrackerTokenStoring, coordinator: TrackerTokenCoordinator
+        tokenStore: any TrackerTokenStoring, coordinator: TrackerTokenCoordinator,
+        now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.config = config
         self.client = WetrakrClient(config: config, http: http)
         self.auth = WetrakrAuthService(client: client)
         self.tokenStore = tokenStore
         self.coordinator = coordinator
+        self.now = now
         phase = config.isConfigured ? .unknown : .unavailable
         watchlistDestination = config.isConfigured ? WetrakrWatchlistDestination(
             client: client, tokenStore: tokenStore, coordinator: coordinator, generation: generation
@@ -60,7 +81,13 @@ public final class WetrakrService {
     }
 
     public func setActiveProfile(namespace: String?) async {
+        if let activeNamespace, activeNamespace == namespace {
+            await refreshStatus()
+            return
+        }
+        activeNamespace = .some(namespace)
         let version = generation.advance { tokenStore.setNamespace(namespace) }
+        invalidateStatus()
         connectTask?.cancel()
         connectTask = nil
         await watchlistDestination?.clearCache()
@@ -75,23 +102,62 @@ public final class WetrakrService {
         case .authorizing, .connecting, .savingConnection: return
         default: break
         }
+        let scope = StatusScope(tokenStore)
+        if case .connected = phase, let lastStatusCheck,
+           lastStatusCheck.scope == scope, now().timeIntervalSince(lastStatusCheck.date) < 300 {
+            return
+        }
+        if let statusTask, statusTask.scope == scope {
+            await statusTask.task.value
+            return
+        }
+        statusTask?.task.cancel()
+        let id = UUID()
+        let task = Task { await self.performStatusRefresh() }
+        statusTask = (id, scope, task)
+        await task.value
+        if statusTask?.id == id { statusTask = nil }
+    }
+
+    private func invalidateStatus() {
+        statusTask?.task.cancel()
+        statusTask = nil
+        lastStatusCheck = nil
+        publishedScope = nil
+    }
+
+    private func publishConnection() {
+        let scope = StatusScope(tokenStore)
+        guard publishedScope != scope else { return }
+        publishedScope = scope
+        onConnectionChanged?()
+    }
+
+    private func performStatusRefresh() async {
         let version = generation.current
         let store = tokenStore.snapshot()
+        var scope = StatusScope(store)
         do {
             guard let token = try await coordinator.accessToken(store: store, auth: auth) else {
-                guard version == generation.current else { return }
+                guard !Task.isCancelled, version == generation.current,
+                      StatusScope(store) == StatusScope(tokenStore) else { return }
                 phase = .disconnected
                 await watchlistDestination?.clearCache()
-                guard version == generation.current else { return }
-                onConnectionChanged?()
+                guard !Task.isCancelled, version == generation.current,
+                      StatusScope(store) == StatusScope(tokenStore) else { return }
+                publishConnection()
                 return
             }
+            scope = StatusScope(store)
+            try Task.checkCancellation()
+            guard version == generation.current, scope == StatusScope(tokenStore) else { return }
             let user = try await auth.user(accessToken: token)
-            guard version == generation.current else { return }
+            guard !Task.isCancelled, version == generation.current, scope == StatusScope(tokenStore) else { return }
             phase = .connected(username: user.info.username)
-            onConnectionChanged?()
+            lastStatusCheck = (scope, now())
+            publishConnection()
         } catch {
-            guard version == generation.current else { return }
+            guard !Task.isCancelled, version == generation.current, scope == StatusScope(tokenStore) else { return }
             if error is CancellationError || (error as? AppError) == .cancelled { return }
             show(error)
         }
@@ -132,6 +198,7 @@ public final class WetrakrService {
         ) async throws -> TrackerTokens
     ) {
         guard config.isConfigured else { phase = .unavailable; return }
+        invalidateStatus()
         connectTask?.cancel()
         let version = generation.advance()
         let store = tokenStore.snapshot()
@@ -159,11 +226,12 @@ public final class WetrakrService {
                 await watchlistDestination?.clearCache()
                 guard version == generation.current else { return }
                 phase = .connected(username: "WeTrakr")
-                onConnectionChanged?()
+                publishConnection()
                 do {
                     let user = try await auth.user(accessToken: tokens.accessToken)
                     guard version == generation.current else { return }
                     phase = .connected(username: user.info.username)
+                    lastStatusCheck = (StatusScope(store), now())
                 } catch {
                     PlozzLog.app.debug("WeTrakr connected; display information unavailable")
                 }
@@ -197,6 +265,7 @@ public final class WetrakrService {
 
     public func disconnect() async {
         let version = generation.advance()
+        invalidateStatus()
         connectTask?.cancel()
         connectTask = nil
         let store = tokenStore.snapshot()
@@ -206,7 +275,7 @@ public final class WetrakrService {
             await watchlistDestination?.clearCache()
             guard version == generation.current else { return }
             phase = config.isConfigured ? .disconnected : .unavailable
-            onConnectionChanged?()
+            publishConnection()
             if let tokens {
                 do { try await auth.revoke(tokens) }
                 catch {
@@ -219,12 +288,13 @@ public final class WetrakrService {
             guard version == generation.current else { return }
             await watchlistDestination?.clearCache()
             guard version == generation.current else { return }
-            onConnectionChanged?()
+            publishConnection()
             show(error)
         }
     }
 
     private func show(_ error: Error) {
+        publishedScope = nil
         if error is CancellationError || (error as? AppError) == .cancelled {
             phase = tokenStore.load() == nil ? .disconnected : .unknown
             return

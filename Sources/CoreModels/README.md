@@ -36,6 +36,13 @@ language every other module speaks.
 
 ## Public surface, at a glance
 
+The watch-mutation outbox retains WeTrakr completion keys and applied results
+per viewing session. The existing live-session origin/server-user guard supplies
+the boundary shared by checkpoints and final stop, while retries retain the
+first completion timestamp. Ending that session allows a new rewatch key; there
+is no day-wide WeTrakr suppression. Older outboxes without these fields remain
+readable and retain their original retry-key derivation.
+
 | Concept | Entry point |
 | --- | --- |
 | Provider abstraction | `MediaProvider`, `ProviderKind`, `ProviderRegistry` |

@@ -303,15 +303,28 @@ final class WetrakrScrobblingTests: XCTestCase {
         XCTAssertNil(WetrakrScrobbler.body(for: MediaItem(id: "movie", title: "Movie", kind: .movie, providerIDs: ["Tmdb": "1"]), progress: .nan))
     }
 
-    func testScrobblingSendsNinetyPercentThresholdAndSkipsClockTicks() async throws {
+    func testThreeMoviesAnd18000ClockTicksOnlySendLifecycleRequests() async throws {
         let http = RecordingHTTPClient()
         http.stub(pathSuffix: "/scrobble/start", json: #"{"action":"start","progress":50}"#, status: 201)
+        http.stub(pathSuffix: "/scrobble/pause", json: #"{"action":"pause","progress":50}"#, status: 201)
+        http.stub(pathSuffix: "/scrobble/stop", json: #"{"action":"stop","progress":100}"#, status: 201)
         let scrobbler = WetrakrScrobbler(client: .init(config: config, http: http), tokenStore: store(), coordinator: .init())
-        let item = MediaItem(id: "movie", title: "Movie", kind: .movie, providerIDs: ["Tmdb": "1"])
-        await scrobbler.scrobble(item: item, progress: 50, event: .start)
-        await scrobbler.scrobble(item: item, progress: 60, event: .progress)
-        XCTAssertEqual(http.sent.count, 1)
-        XCTAssertEqual(http.sent.first?.queryItems.first(where: { $0.name == "min_progress" })?.value, "90")
+        for movie in 1...3 {
+            let item = MediaItem(id: "movie-\(movie)", title: "Movie", kind: .movie, providerIDs: ["Tmdb": "\(movie)"])
+            await scrobbler.scrobble(item: item, progress: 0, event: .start)
+            for second in 1...6000 {
+                await scrobbler.scrobble(item: item, progress: Double(second) / 60, event: .progress)
+                if second == 3000 {
+                    await scrobbler.scrobble(item: item, progress: 50, event: .pause)
+                    await scrobbler.scrobble(item: item, progress: 50, event: .unpause)
+                }
+            }
+            await scrobbler.scrobble(item: item, progress: 100, event: .stop)
+        }
+        XCTAssertEqual(http.sent.count, 12)
+        for request in http.sent {
+            XCTAssertEqual(request.queryItems.first(where: { $0.name == "min_progress" })?.value, "90")
+        }
     }
 
     func testDurableWatchUsesOriginalTimestampAndStableRetryKey() async throws {
@@ -492,9 +505,211 @@ final class WetrakrWatchlistTests: XCTestCase {
     }
 }
 
+final class WetrakrRequestBudgetTests: XCTestCase {
+    @MainActor
+    func testProfileSwitchCannotPublishAnOldInFlightAccountResponse() async {
+        let started = expectation(description: "Old status request started")
+        let http = HeldWetrakrStatusHTTP(started: started)
+        let service = WetrakrService(config: config, http: http, tokenStore: store(), coordinator: .init())
+        var callbacks = 0
+        service.onConnectionChanged = { callbacks += 1 }
+        let refresh = Task { await service.refreshStatus() }
+        await fulfillment(of: [started], timeout: 3)
+        await service.setActiveProfile(namespace: "other-profile")
+        await http.release()
+        await refresh.value
+        XCTAssertEqual(service.phase, .disconnected)
+        XCTAssertEqual(callbacks, 1)
+    }
+
+    @MainActor
+    func testStatusReadsCoalesceCacheAndPublishOnlyConnectionChanges() async throws {
+        let http = RecordingHTTPClient()
+        http.stub(pathSuffix: "/account/settings", json: #"{"id":42,"info":{"username":"viewer"}}"#)
+        let clock = TestClock()
+        let tokens = store()
+        let service = WetrakrService(
+            config: config, http: http, tokenStore: tokens, coordinator: .init(), now: { clock.now }
+        )
+        var callbacks = 0
+        service.onConnectionChanged = { callbacks += 1 }
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<50 { group.addTask { await service.refreshStatus() } }
+        }
+        XCTAssertEqual(http.sent.count, 1)
+        XCTAssertEqual(callbacks, 1)
+        clock.advance(301)
+        await service.refreshStatus()
+        XCTAssertEqual(http.sent.count, 2)
+        XCTAssertEqual(callbacks, 1)
+        var rotated = try XCTUnwrap(tokens.load())
+        rotated.accessToken = "rotated"
+        try tokens.save(rotated)
+        await service.refreshStatus()
+        XCTAssertEqual(http.sent.count, 3, "Remote token rotation must wake authentication-blocked work")
+        XCTAssertEqual(callbacks, 2)
+        try tokens.clear()
+        await service.refreshStatus()
+        XCTAssertEqual(service.phase, .disconnected)
+        XCTAssertEqual(callbacks, 3)
+    }
+
+    @MainActor
+    func testSameProfileKeepsPlanningBaselineButDifferentProfileDoesNot() async throws {
+        let http = RecordingHTTPClient()
+        http.stub(pathSuffix: "/account/settings", json: #"{"id":42,"info":{"username":"viewer"}}"#)
+        http.stub(pathSuffix: "/sync/last_activities", json: #"{"all":"2026-10-01T00:00:00Z","journal_visible_until":"2026-10-01T00:00:01Z"}"#)
+        http.stub(pathSuffix: "/sync/tracking/planning/all", json: "[]", headers: pageHeaders)
+        let tokens = store()
+        let service = WetrakrService(config: config, http: http, tokenStore: tokens, coordinator: .init())
+        let destination = try XCTUnwrap(service.watchlistDestination)
+        for _ in 0..<20 {
+            await service.setActiveProfile(namespace: nil)
+            _ = try await destination.fetchEntries()
+        }
+        XCTAssertEqual(http.sent.count, 3, "Previously issued 60 requests for this workload")
+        await service.setActiveProfile(namespace: "other-profile")
+        XCTAssertEqual(service.phase, .disconnected)
+        do { _ = try await destination.fetchEntries(); XCTFail("Cannot reuse another profile's cached list") }
+        catch { XCTAssertEqual(error as? WatchlistDestinationError, .authenticationRequired) }
+        await service.setActiveProfile(namespace: nil)
+        _ = try await destination.fetchEntries()
+        XCTAssertEqual(http.sent.count, 6)
+    }
+
+    func testDailyQuotaSurvivesGateRecreationAndBlocksEveryUserOfThatApp() async throws {
+        let suite = "WetrakrQuotaTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let clock = TestClock()
+        let http = RecordingHTTPClient()
+        http.stub(pathSuffix: "/account/settings", json: #"{"error":"APP_QUOTA_EXCEEDED"}"#, status: 429,
+                  headers: ["X-Quota-Reset": "21600"])
+        http.stub(pathSuffix: "/account/settings", json: "{}")
+        let first = WetrakrClient(config: config, http: http, gate: .init(defaults: defaults, now: { clock.now }))
+        do { _ = try await first.send(Endpoint(path: "/account/settings"), accessToken: "one"); XCTFail("Expected quota") }
+        catch { XCTAssertEqual(error as? AppError, .rateLimited(retryAfter: 21600)) }
+        let restored = WetrakrClient(config: config, http: http, gate: .init(defaults: defaults, now: { clock.now }))
+        do { _ = try await restored.send(Endpoint(path: "/account/settings"), accessToken: "two"); XCTFail("Expected app cooldown") }
+        catch { XCTAssertEqual(error as? AppError, .rateLimited(retryAfter: 21600)) }
+        XCTAssertEqual(http.sent.count, 1)
+        let otherApp = WetrakrClient(config: .init(clientID: "different-app"), http: http,
+                                    gate: .init(defaults: defaults, now: { clock.now }))
+        _ = try await otherApp.send(Endpoint(path: "/account/settings"), accessToken: "one")
+        clock.advance(21600)
+        _ = try await restored.send(Endpoint(path: "/account/settings"), accessToken: "two")
+        XCTAssertEqual(http.sent.count, 3)
+    }
+
+    func testUserQuotaDoesNotBlockAnotherUsersCredential() async throws {
+        let http = RecordingHTTPClient()
+        http.stub(pathSuffix: "/account/settings", json: #"{"error":"QUOTA_EXCEEDED"}"#, status: 429,
+                  headers: ["X-Quota-Reset": "3600"])
+        http.stub(pathSuffix: "/account/settings", json: "{}")
+        let client = WetrakrClient(config: config, http: http, gate: .init())
+        for _ in 0..<2 {
+            do { _ = try await client.send(Endpoint(path: "/account/settings"), accessToken: "one"); XCTFail("Expected user cooldown") }
+            catch AppError.rateLimited(let delay) { XCTAssertGreaterThan(delay ?? 0, 3500) }
+        }
+        _ = try await client.send(Endpoint(path: "/account/settings"), accessToken: "two")
+        XCTAssertEqual(http.sent.count, 2)
+    }
+
+    func testLastAllowedResponseStartsCooldownBeforeAnotherRequest() async throws {
+        let http = RecordingHTTPClient()
+        http.stub(pathSuffix: "/account/settings", json: "{}",
+                  headers: ["X-App-Quota-Remaining": "0", "X-Quota-Reset": "600"])
+        let gate = WetrakrRequestGate()
+        let client = WetrakrClient(config: config, http: http, gate: gate)
+        _ = try await client.send(Endpoint(path: "/account/settings"))
+        do { _ = try await client.send(Endpoint(path: "/account/settings")); XCTFail("Should stop before spending more quota") }
+        catch AppError.rateLimited(let delay) { XCTAssertGreaterThan(delay ?? 0, 590) }
+        XCTAssertEqual(http.sent.count, 1)
+        let counts = await gate.requestCounts
+        XCTAssertEqual(counts, [.status: 1])
+    }
+
+    func testQuotaFallbackUsesServerMidnightAndWindowHeadersStayShort() async throws {
+        let cases: [(String, [String: String], TimeInterval)] = [
+            (#"{"error":"APP_USER_QUOTA_EXCEEDED"}"#, ["Date": "Sun, 18 Oct 2026 23:00:00 GMT"], 3600),
+            ("{}", ["Retry-After": "120", "X-Quota-Reset": "21600"], 120),
+            ("{}", ["RateLimit-Reset": "20"], 20),
+            (#"{"error":"CONCURRENCY_LIMIT"}"#, ["Retry-After": "1"], 1),
+            ("{}", ["Retry-After": "NaN"], 60),
+            ("{}", ["Date": "Sun, 18 Oct 2026 23:00:00 GMT",
+                    "Retry-After": "Sun, 18 Oct 2026 23:02:00 GMT"], 120),
+        ]
+        for (json, headers, expected) in cases {
+            let http = RecordingHTTPClient()
+            http.stub(pathSuffix: "/account/settings", json: json, status: 429, headers: headers)
+            let client = WetrakrClient(config: config, http: http, gate: .init())
+            do { _ = try await client.send(Endpoint(path: "/account/settings")); XCTFail("Expected throttle") }
+            catch { XCTAssertEqual(error as? AppError, .rateLimited(retryAfter: expected)) }
+        }
+    }
+
+    func testWritesRebaselineDespiteJournalLagAndDiagnosticsExcludeRequestContents() async throws {
+        let http = RecordingHTTPClient()
+        let gate = WetrakrRequestGate()
+        let client = WetrakrClient(config: config, http: http, gate: gate)
+        http.stub(pathSuffix: "/sync/last_activities", json: #"{"all":"2026-10-01T00:00:00Z","journal_visible_until":"2026-10-01T00:00:01Z"}"#)
+        http.stub(pathSuffix: "/sync/tracking/planning/all", json: "[]", headers: pageHeaders)
+        http.stub(pathSuffix: "/sync/tracking/planning/all",
+                  json: #"[{"id":42,"type":"movie","title":"Private title","ids":{"tmdb":1}}]"#, headers: pageHeaders)
+        http.stub(pathSuffix: "/sync/tracking", json: #"{"added":{"planning":{"movies":1}}}"#)
+        http.stub(pathSuffix: "/sync/journal", json: #"{"visible_until":"2026-10-01T00:00:01Z","journal":[]}"#,
+                  headers: pageHeaders)
+        let destination = WetrakrWatchlistDestination(
+            client: client, tokenStore: store(), coordinator: .init(), generation: .init()
+        )
+        _ = try await destination.fetchEntries()
+        let item = MediaItem(id: "private-id", title: "Private title", kind: .movie, providerIDs: ["Tmdb": "1"])
+        let target = try XCTUnwrap(WatchlistMutationTarget(aliasID: .init(), item: item))
+        let resolved = try await destination.resolve(target)
+        try await destination.apply(.present, to: XCTUnwrap(resolved))
+        let entries = try await destination.fetchEntries()
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(http.sentPaths.filter { $0 == "/sync/tracking/planning/all" }.count, 2)
+        let scrobbler = WetrakrScrobbler(client: client, tokenStore: store(), coordinator: .init())
+        try await scrobbler.recordWatch(item: item, capturedAt: Date(), idempotencyKey: "private-key",
+                                       expectedAccountIdentity: "viewer-one")
+        let counts = await gate.requestCounts
+        XCTAssertEqual(counts[.historyWrite], 1)
+        XCTAssertEqual(counts[.planningWrite], 1)
+        XCTAssertNil(counts[.planningJournal], "The journal is not yet authoritative for this write")
+        let diagnostics = PlozzLog.recentEntries(limit: 100).filter { $0.message.hasPrefix("WeTrakr session=") }
+        XCTAssertFalse(diagnostics.isEmpty)
+        for line in diagnostics {
+            for secret in ["Private title", "private-id", "private-key", "test-client", "viewer-one"] {
+                XCTAssertFalse(line.message.contains(secret))
+            }
+        }
+    }
+}
+
+private actor HeldWetrakrStatusHTTP: HTTPClient {
+    let started: XCTestExpectation
+    private var continuation: CheckedContinuation<Void, Never>?
+    init(started: XCTestExpectation) { self.started = started }
+    func send(_ endpoint: Endpoint, baseURL: URL) async throws -> (Data, HTTPURLResponse) {
+        await withCheckedContinuation {
+            continuation = $0
+            started.fulfill()
+        }
+        return (
+            Data(#"{"id":42,"info":{"username":"old-viewer"}}"#.utf8),
+            try XCTUnwrap(HTTPURLResponse(url: baseURL, statusCode: 200, httpVersion: nil, headerFields: nil))
+        )
+    }
+    func release() {
+        continuation?.resume()
+        continuation = nil
+    }
+}
+
 private final class TestClock: @unchecked Sendable {
     private let lock = NSLock()
     private var value = Date()
     var now: Date { lock.lock(); defer { lock.unlock() }; return value }
-    func advance() { lock.lock(); defer { lock.unlock() }; value.addTimeInterval(61) }
+    func advance(_ seconds: TimeInterval = 61) { lock.lock(); defer { lock.unlock() }; value.addTimeInterval(seconds) }
 }
