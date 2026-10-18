@@ -19,6 +19,7 @@ import RatingsService
 import TraktService
 import SeerService
 import SimklService
+import WetrakrService
 import AniListService
 import MALService
 import LastFmService
@@ -359,6 +360,7 @@ struct MainTabView: View {
     private var ratingsProvider: any ExternalRatingsProviding { syncServices.ratingsProvider }
     private var trakt: TraktService { syncServices.trakt }
     private var simkl: SimklService { syncServices.simkl }
+    private var wetrakr: WetrakrService { syncServices.wetrakr }
     private var seer: SeerService { syncServices.seer }
     private var anilist: AniListService { syncServices.anilist }
     private var mal: MALService { syncServices.mal }
@@ -804,7 +806,8 @@ struct MainTabView: View {
     private var playbackScrobbler: RealtimePlaybackScrobbler {
         RealtimePlaybackScrobbler(
             trakt: trakt.playbackScrobbler(),
-            simkl: SimklServiceFactory.make(namespace: liveTVPreferencesNamespace).scrobbler
+            simkl: SimklServiceFactory.make(namespace: liveTVPreferencesNamespace).scrobbler,
+            wetrakr: wetrakr.playbackScrobbler()
         )
     }
 
@@ -1059,6 +1062,7 @@ struct MainTabView: View {
                 crashReportingConfigured: crashReportingConfigured,
                 trakt: trakt,
                 simkl: simkl,
+                wetrakr: wetrakr,
                 seer: seer,
                 anilist: anilist,
                 mal: mal,
@@ -1074,7 +1078,7 @@ struct MainTabView: View {
                 liveTVPreferencesNamespace: liveTVPreferencesNamespace,
                 automaticSignIn: automaticSignIn,
                 appVersion: AppInfo.version,
-                appBuild: AppInfo.build,
+                appBuild: AppInfo.displayBuild,
                 repoURL: AppInfo.repoURLString,
                 isAccountIncludedInActiveProfile: isAccountIncludedInActiveProfile,
                 onSetAccountIncluded: { accountID, included in

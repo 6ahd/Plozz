@@ -15,6 +15,31 @@ For past failures, attempted repairs and related tests, see the short
 [IPTV troubleshooting history](iptv-history.md). It is historical context,
 not a specification.
 
+## Diagnosing disappearing sources
+
+**Send to Developer** automatically includes a structured Live TV source journal
+on iPhone, iPad and Apple TV, including TestFlight/Release builds. No debug launch
+arguments or playback overlay are required. Reproduce the disappearance and send
+diagnostics before removing or re-adding accounts; the send action captures the
+current account selection, active profile/storage scopes, saved source document
+and enrollment suppression without refreshing a provider.
+
+The local journal retains up to 48 hours, 512 events and 256 KiB across restarts,
+separately from the short Recent Activity buffer. It records missing versus
+unreadable source storage, save/removal and sync origins, suppression changes,
+account membership, Sources/guide admission and loading, enrollment decisions,
+and correlated IPTV catalog progress/failures. Launch IDs, sequence numbers and
+build numbers distinguish sessions and versions. Provider catalog IDs link an
+import to its account; profile, account, source and scope identifiers are hashed.
+Names, server/playlist addresses, credentials, content and error descriptions
+are never journal fields. Source snapshots cap detailed entries at 64 and report
+the omitted count; eviction and persistence failures are explicit in the export.
+
+The journal is local application-support data excluded from backup. Upload still
+requires the existing crash-reporting consent and an explicit diagnostic send;
+recording does not enable automatic uploads. Do not interpret absent events
+after an eviction or storage failure as proof an action never occurred.
+
 ## Cached Home cards
 
 Normal Live TV use publishes a small, profile-scoped **local** Home snapshot:
@@ -1384,6 +1409,41 @@ Both use the same existing CloudKit engine. Source records reuse deployed
 encrypted fields in an isolated zone; old clients cannot erase them.
 Parental approvals, history grants and channel health remain device-local.
 Server sign-in credentials retain their existing authorization flow.
+
+Server-source enablement and enrollment suppression travel through the
+non-secret portable channel. Incoming state cannot overwrite a local re-add,
+removal, or enablement change that has not been captured. A captured server
+change remains protected across restarts until the ledger acknowledges its
+exact digest; delayed cloud state and fallback hydration cannot bypass that
+receipt. Both app shells pass the incoming delta and capture receipts together.
+Confirmed hard deletions retain the removed ledger entry's receipt for that
+apply, so unchanged sources still follow legitimate deletions on other devices.
+This does not delete or replace the authenticated server account.
+The local observation also records suppression caused by accepted remote source
+changes. Split source/enrollment delivery can then re-enable a source without
+mistaking the earlier remote disable for a new local decision. Only the applied
+accounts advance that observation; unrelated local changes stay protected.
+Suppression also keeps its remote origin in the same atomic local document as
+the decision itself, so a failed journal/observation commit cannot lose that
+provenance. Explicit local decisions clear it; saving an already-suppressed
+unrelated source remotely cannot relabel a local restriction.
+Source tombstones retain their account association locally. Enrollment updates
+must also respect that account's uncaptured or unacknowledged source removal,
+including removal of a source that was already disabled.
+Exact remote server records and resulting local-state digests (including
+deletions) are saved atomically with the source configuration, scoped to the
+profile and iCloud account epoch. A
+failed source-record journal write can then be retried or captured without
+mistaking the already-applied remote state for new local intent. Local server
+edits invalidate the affected receipts, including edit-away-and-back sequences.
+Accepted descriptors awaiting native enrollment replace older deletion receipts
+even without a configuration change. Enrollment also protects new, uncaptured
+source IDs for the same account. The encrypted playlist channel retains its
+separate checkpoint.
+`IPTVCloudOverwriteHostedTests` exercises these races on iPhone/iPad through
+the separate presentation test host, isolated Keychain/defaults storage, and
+controlled incoming payloads. It does not mutate the normal app's sources or
+claim to reproduce CloudKit network delivery timing.
 
 These generated-channel snapshots are different from IPTV catalogue/guide
 downloads: they carry immutable library-item inputs so devices agree on the

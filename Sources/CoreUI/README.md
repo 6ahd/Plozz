@@ -6,6 +6,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Touch hero actions** — `HeroActionRow` preserves readable intrinsic widths
+  before falling back to a vertical arrangement. `TouchHeroActionButtonStyle`
+  lets labels wrap and uses bounded 24pt corners so tall accessibility-size
+  content stays inside the button surface. Circular actions retain their 48pt
+  touch targets and cap glyph scaling at XXX Large; text buttons continue to
+  honor the full accessibility text size.
+
 - **Setup presentation** — `ConnectionCodeView` shares the readable monospaced
   code panel across server sign-in and device pairing. `SetupCodeComparisonView`
   keeps both devices' confirmation copy and code treatment consistent while

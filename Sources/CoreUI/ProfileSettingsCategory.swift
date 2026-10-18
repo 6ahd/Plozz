@@ -50,7 +50,7 @@ public enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Sendabl
             "Home, navigation, and detail pages"
             #endif
         case .trackers:
-            "Trakt, Simkl, AniList, MyAnimeList, Last.fm"
+            "Trakt, Simkl, WeTrakr, AniList, MyAnimeList, Last.fm"
         default:
             nil
         }

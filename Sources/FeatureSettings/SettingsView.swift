@@ -6,6 +6,7 @@ import FeatureProfiles
 import TraktService
 import SeerService
 import SimklService
+import WetrakrService
 import AniListService
 import MALService
 import LastFmService
@@ -68,6 +69,7 @@ public struct SettingsView: View {
     private let crashReportingConfigured: Bool
     private let trakt: TraktService
     private let simkl: SimklService
+    private let wetrakr: WetrakrService
     private let seer: SeerService
     private let anilist: AniListService
     private let mal: MALService
@@ -177,6 +179,7 @@ public struct SettingsView: View {
         crashReportingConfigured: Bool,
         trakt: TraktService,
         simkl: SimklService,
+        wetrakr: WetrakrService,
         seer: SeerService,
         anilist: AniListService,
         mal: MALService,
@@ -246,6 +249,7 @@ public struct SettingsView: View {
         self.crashReportingConfigured = crashReportingConfigured
         self.trakt = trakt
         self.simkl = simkl
+        self.wetrakr = wetrakr
         self.seer = seer
         self.anilist = anilist
         self.mal = mal
@@ -995,7 +999,7 @@ public struct SettingsView: View {
         case .spoilers:
             SpoilersDetailView(spoilers: spoilers)
         case .integrations:
-            IntegrationsDetailView(trakt: trakt, simkl: simkl, anilist: anilist, mal: mal, lastfm: lastfm, playback: playback, serverCount: activeProfileServerCount)
+            IntegrationsDetailView(trakt: trakt, simkl: simkl, wetrakr: wetrakr, anilist: anilist, mal: mal, lastfm: lastfm, playback: playback, serverCount: activeProfileServerCount)
         case .metadata:
             if let metadataSettings {
                 MetadataSettingsDetailView(deps: metadataSettings, onOpenArtwork: navigation.openArtwork)

@@ -1,10 +1,11 @@
 #if os(iOS)
 import AuthenticationServices
 import CoreModels
+import CoreNetworking
 import UIKit
 
 @MainActor
-final class TraktBrowserAuthorization: NSObject, ASWebAuthenticationPresentationContextProviding {
+final class TrackerBrowserAuthorization: NSObject, ASWebAuthenticationPresentationContextProviding {
     private var session: ASWebAuthenticationSession?
     private var continuation: CheckedContinuation<URL, Error>?
     private var anchor: UIWindow?
@@ -19,7 +20,10 @@ final class TraktBrowserAuthorization: NSObject, ASWebAuthenticationPresentation
                 .compactMap({ $0 as? UIWindowScene })
                 .filter({ $0.activationState == .foregroundActive })
                 .flatMap(\.windows).first(where: \.isKeyWindow)
-        else { throw AppError.invalidResponse }
+        else {
+            PlozzLog.app.error("Tracker browser authorization has no callback host or presentation window")
+            throw AppError.invalidResponse
+        }
         anchor = window
         let id = UUID()
         attemptID = id
@@ -37,17 +41,20 @@ final class TraktBrowserAuthorization: NSObject, ASWebAuthenticationPresentation
                         } else if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin {
                             self.finish(.failure(CancellationError()))
                         } else {
+                            let code = (error as? ASWebAuthenticationSessionError)?.code.rawValue ?? -1
+                            PlozzLog.app.error("Tracker browser authorization failed: code=\(code)")
                             self.finish(.failure(AppError.invalidResponse))
                         }
                     }
                 }
                 session.presentationContextProvider = self
-                // Household profiles must choose their own Trakt identity.
+                // Household profiles must choose their own tracker identity.
                 session.prefersEphemeralWebBrowserSession = true
                 self.session = session
                 if Task.isCancelled {
                     finish(.failure(CancellationError()))
                 } else if !session.start() {
+                    PlozzLog.app.error("Tracker browser authorization could not start")
                     finish(.failure(AppError.invalidResponse))
                 }
             }
