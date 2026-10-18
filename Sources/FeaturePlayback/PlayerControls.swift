@@ -1492,6 +1492,7 @@ struct PlayerControls: View {
         var isExternal: Bool = false
         var facts: Text?
         var titleLineLimit: Int? = 1
+        var versionPresentation: MediaVersion.PickerPresentation?
         let action: () -> Void
     }
 

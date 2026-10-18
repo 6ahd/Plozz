@@ -1863,6 +1863,7 @@ struct PlozziOSHomeHeroForeground: View {
 }
 
 struct PlozziOSDetailHeroForeground: View {
+    @State private var isVersionPickerPresented = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(PlozziOSAppModel.self) private var appModel
 
@@ -2085,6 +2086,13 @@ struct PlozziOSDetailHeroForeground: View {
         .multilineTextAlignment(style == .compactPortrait ? .center : .leading)
         .contextMenu {
             detailContextMenu
+        }
+        .plozzSheet(isPresented: $isVersionPickerPresented) {
+            MediaVersionPicker(
+                versions: versions,
+                selectedVersionID: selectedVersion?.id,
+                onSelect: onSelectVersion
+            )
         }
     }
 
@@ -2444,25 +2452,10 @@ struct PlozziOSDetailHeroForeground: View {
             }
             .pickerStyle(.menu)
         }
-        if versions.count > 1, let selectedVersion {
-            Picker(
-                selection: Binding(
-                    get: { selectedVersion.id },
-                    set: onSelectVersion
-                )
-            ) {
-                ForEach(versions.sortedForPicker()) { version in
-                    versionTitleText(version.displayLabel)
-                        .tag(version.id)
-                }
-            } label: {
-                Label {
-                    versionTitleText(selectedVersion.displayLabel)
-                } icon: {
-                    Image(systemName: "film.stack")
-                }
+        if versions.count > 1 {
+            Button("Version", systemImage: "film.stack") {
+                isVersionPickerPresented = true
             }
-            .pickerStyle(.menu)
         }
     }
 
@@ -2473,17 +2466,6 @@ struct PlozziOSDetailHeroForeground: View {
 
     private var selectedVersion: MediaVersion? {
         versions.first { $0.id == selectedVersionID } ?? versions.first
-    }
-
-    /// Renders a `MediaVersion` title: the joined technical facts (or provider
-    /// name) verbatim when known, otherwise our own generic "Version" copy —
-    /// kept as a real resource here rather than baked into a `String` so it
-    /// translates like everything else.
-    private func versionTitleText(_ displayLabel: String?) -> Text {
-        if let displayLabel {
-            return Text(verbatim: displayLabel)
-        }
-        return Text("Version", comment: "Generic label for a playback version/source with no distinguishing facts (resolution, edition, etc.) known.")
     }
 
     private func seasonEpisodeText(for item: MediaItem) -> String? {

@@ -278,6 +278,7 @@ struct DetailHeroView: View, Equatable {
     /// otherwise yank focus off Play the moment the page finishes loading, on both
     /// movies and series).
     @State private var userInitiatedSourceSwitch = false
+    @State private var isVersionPickerPresented = false
 
     /// Drives the hero's first-appearance fade-in. Starts hidden and eases to
     /// visible `.onAppear`, so the backdrop + title/metadata dissolve in rather
@@ -1113,6 +1114,11 @@ struct DetailHeroView: View, Equatable {
         .contextMenu {
             heroContextMenu
         }
+        .plozzSheet(isPresented: $isVersionPickerPresented) {
+            MediaVersionPicker(versions: versions, selectedVersionID: selectedVersionID) {
+                onSelectVersion?($0)
+            }
+        }
         // Artwork (including an inherited trailer) is visible immediately. Only
         // the foreground fades, keeping its focus targets and geometry stable.
         .onAppear {
@@ -1516,29 +1522,9 @@ struct DetailHeroView: View, Equatable {
                 .pickerStyle(.menu)
             }
         }
-        if versions.count > 1, let onSelectVersion {
-            let currentVersion = versions.first {
-                $0.id == selectedVersionID
-            } ?? versions.first
-            if let currentVersion {
-                Picker(
-                    selection: Binding(
-                        get: { currentVersion.id },
-                        set: onSelectVersion
-                    )
-                ) {
-                    ForEach(versions.sortedForPicker()) { version in
-                        versionTitleText(version.displayLabel)
-                            .tag(version.id)
-                    }
-                } label: {
-                    Label {
-                        versionTitleText(currentVersion.displayLabel)
-                    } icon: {
-                        Image(systemName: "film.stack")
-                    }
-                }
-                .pickerStyle(.menu)
+        if versions.count > 1, onSelectVersion != nil {
+            Button("Version", systemImage: "film.stack") {
+                isVersionPickerPresented = true
             }
         }
     }
@@ -1740,17 +1726,6 @@ struct DetailHeroView: View, Equatable {
                 .frame(maxWidth: 1200, alignment: .leading)
                 .contentTransition(.opacity)
         }
-    }
-
-    /// Renders a `MediaVersion` title: the joined technical facts (or provider
-    /// name) verbatim when known, otherwise our own generic "Version" copy —
-    /// kept as a real resource here rather than baked into a `String` so it
-    /// translates like everything else.
-    private func versionTitleText(_ displayLabel: String?) -> Text {
-        if let displayLabel {
-            return Text(verbatim: displayLabel)
-        }
-        return Text("Version", comment: "Generic label for a playback version/source with no distinguishing facts (resolution, edition, etc.) known.")
     }
 
     /// The owning show's name, shown above the title when this page's subject is

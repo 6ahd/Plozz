@@ -847,11 +847,13 @@ account/file routing and playback continuation as mobile, swapping players
 inside the existing cover. An explicit choice never silently fails over to
 another source. Resolved file lists refresh the playing source without
 discarding other editions in a combined title.
-Detail and in-player version pickers share `MediaVersion.PickerPresentation`.
-Quality and file size lead; wrapping secondary text adds video format, available
-audio languages, primary audio format, bitrate and runtime when supplied.
-The release filename/name stays on its own tertiary line. These describe the
-source file, not the engine's negotiated output; missing facts are not guessed.
+Pre-play, detail, context-menu and in-player version pickers share
+`MediaVersion.PickerPresentation` and `CoreUI.MediaVersionChoiceButton`.
+Edition/quality/size and release text precede the compact wrapping badge footer,
+including video format, audio format and reported audio languages. Bitrate and
+runtime remain text when supplied. These describe the source file, not the
+engine's negotiated output; missing facts are not guessed. A reported English
+track does not establish that the file is English-only.
 Every native startup resume waits for readiness and verifies both seek completion
 and the actual landing. A rejected seek fails before playback starts at zero,
 allowing the existing alternate-engine fallback to keep the requested position

@@ -6,6 +6,27 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Version choices** — `MediaVersionChoiceButton` is the shared native rounded
+  card for pre-play, detail, and in-player pickers. It keeps edition/size and
+  release text above the smaller wrapping format/language badges, with one
+  trailing selected checkmark. Hosts retain selection, dismissal, and focus
+  ownership. `MediaVersionPicker` supplies the sheet used by mobile playback
+  and hero context-menu actions; context menus link to it rather than rendering
+  a second text-only version list.
+  Edition/size, source quality, bitrate and runtime share one naturally wrapping
+  summary instead of separate size-only or runtime-only rows on either platform.
+  Release filenames preserve their original script and wrap to their full height,
+  including at accessibility text sizes; they have no two-line truncation cap.
+  Display-only break opportunities after dots/underscores prevent an orphaned
+  `Spider-` prefix. Stored filenames and accessibility labels remain unchanged.
+  Language chips prioritize the profile's explicit audio language, or the device
+  language when no explicit preference is set. Only reported matches move first;
+  otherwise the source order stays unchanged. The additional-language count stays
+  inside the same chip (`English | +9`), so it cannot wrap away from its language
+  or look like hidden format badges. Accessibility exposes the full language list.
+  The full track inventory stays in the Audio menu;
+  this display priority never changes playback's original/per-content-type policy.
+
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
   error layout, bounded symbol inline with the heading, readable summary, adaptive
   native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns

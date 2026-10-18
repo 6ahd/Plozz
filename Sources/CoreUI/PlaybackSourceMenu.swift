@@ -587,41 +587,21 @@ struct PlaybackSourceMenuPanel: View {
 
     @ViewBuilder
     private var versionRows: some View {
-        ForEach(Array(versions.enumerated()), id: \.element.id) { index, version in
-            #if !os(tvOS)
-            if index > 0 { rowSeparator }
-            #endif
-            let presentation = MediaVersion.PickerPresentation(version, locale: locale)
-            menuRowButton(id: "version.\(version.id)") {
-                onSelectVersion(version.id)
-            } label: {
-                HStack(alignment: .top, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        versionTitleText(presentation.title)
-                            .font(rowTitleFont)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if !presentation.supplementalFacts.isEmpty {
-                            Text(verbatim: presentation.supplementalFacts.joined(separator: " · "))
-                                .font(rowDetailFont)
-                                .settingsRowSecondary()
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if let fileName = presentation.releaseName {
-                            Text(verbatim: fileName)
-                                .font(fileNameFont)
-                                .settingsRowSecondary()
-                                .lineLimit(2)
-                                .truncationMode(.middle)
-                        }
-                    }
-                    .multilineTextAlignment(.leading)
-                    Spacer(minLength: 12)
-                    if version.id == selectedVersionID {
-                        Image(systemName: "checkmark")
-                            .font(.headline.weight(.bold))
-                    }
+        VStack(spacing: 12) {
+            ForEach(versions.sortedForPicker()) { version in
+                let rowID = "version.\(version.id)"
+                MediaVersionChoiceButton(
+                    presentation: .init(version, locale: locale),
+                    isSelected: version.id == selectedVersionID,
+                    isFocused: focusedRowID == rowID
+                ) {
+                    onSelectVersion(version.id)
                 }
-                .accessibilityAddTraits(version.id == selectedVersionID ? .isSelected : [])
+                .focused($focusedRowID, equals: rowID)
+                .accessibilityIdentifier(rowID)
+                #if os(tvOS)
+                .prefersDefaultFocus(rowID == initialRowID, in: panelFocusScope)
+                #endif
             }
         }
     }
@@ -826,13 +806,6 @@ struct PlaybackSourceMenuPanel: View {
         #endif
     }
 
-    private var fileNameFont: Font {
-        #if os(tvOS)
-        .system(size: 17)
-        #else
-        .caption
-        #endif
-    }
 }
 
 private struct PlaybackSourceMenuRowHeight: ViewModifier {

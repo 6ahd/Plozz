@@ -1441,7 +1441,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             container: originalContainer,
             streams: originalStreams,
             sourceRevision: sourceRevision,
-            fileSizeBytes: originalSource.Size
+            fileSizeBytes: Self.fileSizeBytes(for: originalSource),
+            declaredAudioLanguages: Self.declaredAudioLanguages(for: originalSource)
         )
         if cachedProbe.completed, let facts = cachedProbe.facts {
             let selectedSourceID = originalSource.Id ?? itemID
@@ -1462,7 +1463,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                     version.width = selectedMetadata.video?.width
                     version.height = selectedMetadata.video?.height
                     version.bitrate = originalSource.Bitrate ?? selectedMetadata.video?.bitrate
-                    version.sizeBytes = originalSource.Size
+                    version.sizeBytes = Self.fileSizeBytes(for: originalSource)
                     version.duration = originalSource.RunTimeTicks.map { TimeInterval($0) / 10_000_000 }
                     version.videoCodec = selectedMetadata.video?.codec
                     version.videoRange = selectedMetadata.video?.videoRangeType ?? selectedMetadata.video?.videoRange
@@ -1812,7 +1813,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         streams: [MediaStreamDto],
         sourceRevision: String? = nil,
         fileSizeBytes: Int64? = nil,
-        fileName: String? = nil
+        fileName: String? = nil,
+        declaredAudioLanguages: [String] = []
     ) -> MediaSourceMetadata? {
         let video = streams.first { $0.`Type` == "Video" }
         let audio = streams.first { ($0.`Type` == "Audio") && ($0.IsDefault ?? false) }
@@ -1860,6 +1862,11 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             )
         }
 
+        var audioLanguages = streams.filter { $0.`Type` == "Audio" }.compactMap(\.Language)
+        for language in declaredAudioLanguages
+        where !audioLanguages.contains(where: { LanguageMatch.matches($0, language) }) {
+            audioLanguages.append(language)
+        }
         let metadata = MediaSourceMetadata(
             container: container,
             fileSizeBytes: fileSizeBytes,
@@ -1868,7 +1875,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             video: videoStream,
             audio: audioStream,
             subtitle: subtitleStream,
-            audioLanguages: streams.filter { $0.`Type` == "Audio" }.compactMap(\.Language)
+            audioLanguages: audioLanguages
         )
         return metadata.isEmpty ? nil : metadata
     }
@@ -2284,8 +2291,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 sourceRevision: dto.MediaSources?.first.map {
                     Self.sourceRevision(itemID: dto.Id, source: $0)
                 },
-                fileSizeBytes: dto.MediaSources?.first?.Size,
-                fileName: dto.MediaSources?.first?.Path.flatMap(Self.fileName(fromPath:))
+                fileSizeBytes: dto.MediaSources?.first.flatMap { Self.fileSizeBytes(for: $0) },
+                fileName: dto.MediaSources?.first?.Path.flatMap(Self.fileName(fromPath:)),
+                declaredAudioLanguages: Self.declaredAudioLanguages(for: dto.MediaSources?.first)
             ),
             versions: Self.versions(
                 from: dto.MediaSources,
@@ -2359,7 +2367,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 width: video?.Width,
                 height: video?.Height,
                 bitrate: source.Bitrate ?? video?.BitRate,
-                sizeBytes: source.Size,
+                sizeBytes: Self.fileSizeBytes(for: source),
                 duration: source.RunTimeTicks.map { TimeInterval($0) / 10_000_000 },
                 isDefault: index == 0,
                 videoCodec: video?.Codec,
@@ -2372,8 +2380,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 sourceMetadata: Self.sourceMetadata(
                     container: source.Container,
                     streams: streams,
-                    fileSizeBytes: source.Size,
-                    fileName: source.Path.flatMap(Self.fileName(fromPath:))
+                    fileSizeBytes: Self.fileSizeBytes(for: source),
+                    fileName: source.Path.flatMap(Self.fileName(fromPath:)),
+                    declaredAudioLanguages: Self.declaredAudioLanguages(for: source)
                 )
             )
         }
@@ -2381,6 +2390,24 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
 
     private static func fileName(fromPath path: String) -> String? {
         MediaSourceDisplayName.fileName(from: path)
+    }
+
+    private static func declaredAudioLanguages(for source: MediaSourceInfo?) -> [String] {
+        guard let source, source.IsRemote == true else { return [] }
+        return MediaSourceDisplayName.declaredAudioLanguages(from: source.Name)
+    }
+
+    static func fileSizeBytes(for source: MediaSourceInfo) -> Int64? {
+        guard source.IsRemote == true,
+              let declared = MediaSourceDisplayName.declaredFileSizeBytes(from: source.Name) else {
+            return source.Size
+        }
+        if source.Size != declared {
+            PlozzLog.networking.info(
+                "Remote source uses explicitly labeled file size: declaredBytes=\(declared) structuredBytes=\(source.Size ?? 0)"
+            )
+        }
+        return declared
     }
 
     private static func sourceRevision(

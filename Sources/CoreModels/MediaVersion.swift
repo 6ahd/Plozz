@@ -390,12 +390,31 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         public let title: String? // l10n:content — provider edition/name and technical facts
         public let supplementalFacts: [String]
         public let releaseName: String? // l10n:content — provider release name or file basename
-        public let badges: [MediaBadge]
+        public let formatBadges: [MediaBadge]
+        public let audioLanguages: [String]
         public let supplementalFactsWithoutBadges: [String]
+
+        public var badges: [MediaBadge] {
+            formatBadges + audioLanguages.map { MediaBadge($0) }
+        }
+
+        public func prioritizedAudioLanguages(
+            preferredLanguage: String?, locale: Locale = .current
+        ) -> [String] {
+            guard let code = LanguageMatch.normalized(preferredLanguage),
+                  let name = TrackLabeling.languageName(forCode: code, in: locale),
+                  audioLanguages.contains(name) else { return audioLanguages }
+            return [name] + audioLanguages.filter { $0 != name }
+        }
 
         public var titleWithoutBadges: String? {
             guard let title else { return nil }
             let facts = title.components(separatedBy: " · ").filter { !badgeLabels.contains($0) }
+            return facts.isEmpty ? nil : facts.joined(separator: " · ")
+        }
+
+        public var summaryWithoutBadges: String? {
+            let facts = [titleWithoutBadges].compactMap { $0 } + supplementalFactsWithoutBadges
             return facts.isEmpty ? nil : facts.joined(separator: " · ")
         }
 
@@ -432,8 +451,8 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
                 formats.append(MediaBadge(codec))
             }
             let languages = version.audioLanguageNames(in: locale)
-            formats.append(contentsOf: languages.map { MediaBadge($0) })
-            badges = formats
+            formatBadges = formats
+            audioLanguages = languages
             let rangeFacts = version.sourceMetadata?.dynamicRangeBadges.map(\.label) ?? []
             supplementalFacts = (rangeFacts + [
                 version.sourceQualityLabel ?? EditionParser.sourceQuality(from: fileName),
@@ -444,7 +463,7 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
                 version.bitrateLabel,
                 version.durationLabel
             ].compactMap { $0 }).filter { !titleFacts.contains($0) }
-            let representedFacts = Set(formats.flatMap { [$0.label, $0.accessibilityText] })
+            let representedFacts = Set(formats.flatMap { [$0.label, $0.accessibilityText] } + languages)
             supplementalFactsWithoutBadges = supplementalFacts
                 .filter { $0 != languages.joined(separator: ", ") }
                 .flatMap { $0.components(separatedBy: " + ") }
@@ -471,14 +490,14 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         let audio = sourceMetadata?.audio
         let codec = audio?.codec ?? audioCodec
         let format = PlaybackDiagnostics.friendlyAudioName(codec: codec, profile: audio?.profile ?? audioProfile)
-        if format == "Dolby Atmos" || format == "DTS:X" {
-            let base = PlaybackDiagnostics.friendlyCodecName(codec)
-            return [base == format ? nil : base, format].compactMap { $0 }.joined(separator: " + ")
-        }
         let layout = audio?.channelLayout?.trimmingCharacters(in: .whitespacesAndNewlines)
         let channels = layout?.isEmpty == false ? layout : TrackLabeling.audioFormatHint(
             codec: nil, channels: audio?.channels ?? audioChannels, isAtmos: false
         )
+        if format == "Dolby Atmos" || format == "DTS:X" {
+            let base = PlaybackDiagnostics.friendlyCodecName(codec)
+            return [base == format ? nil : base, format, channels].compactMap { $0 }.joined(separator: " + ")
+        }
         let parts = [format, channels].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }

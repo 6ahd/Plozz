@@ -249,6 +249,10 @@ public struct PlozziOSRootView: View {
         }
         .background { AppBackground(palette: resolvedPalette) }
         .environment(\.familyGuidanceProvider, appModel.familyGuidance)
+        .environment(
+            \.versionPickerAudioLanguage,
+            appModel.settings.playback.settings.audioLanguagePreference.explicitLanguageCode
+        )
         // See the tvOS root: reading `dynamicTypeSize` is what rebuilds the metrics
         // when the reader's text size changes, rather than only on relaunch.
         .environment(

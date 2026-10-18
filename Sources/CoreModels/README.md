@@ -86,21 +86,37 @@ cached payloads readable and also survives synthesized edition versions.
 The playback-choice dialog reuses the detail page's per-version badges, adding
 video-codec, full audio-format and localized audio-language chips. Unlike the
 compact hero summary, it keeps the underlying codec alongside spatial audio
-(for example, Dolby TrueHD and Dolby Atmos). Companion text omits those badge
+(for example, Dolby TrueHD and Dolby Atmos), retaining reported source-channel
+counts alongside spatial formats. Companion text omits those badge
 facts, retaining edition/source quality, size, bit depth and bitrate/runtime.
 The smaller badges sit below the release filename and wrap for narrow widths
 and Dynamic Type. The dialog uses native rounded rectangle buttons rather than
-capsules. Detail heroes and other pickers retain their existing presentation.
+capsules. Every version picker shares `CoreUI.MediaVersionChoiceButton`; the
+detail hero's compact summary badges remain unchanged.
+Audio-language chips list reported languages, not an assertion that no other
+languages exist. Providers can supplement stream language codes with explicitly
+named source-description languages via `MediaSourceDisplayName.declaredAudioLanguages`.
+It accepts dedicated globe-marked or Audio/Languages fields and the bridge's
+compact language-flag/size header, not filenames, subtitle fields or arbitrary
+country flags. `Multi` is not a language and adds no count.
+These display facts never create selectable tracks or change track preferences.
+The compact row highlights a reported preferred language and counts the rest
+(`English | +9` in one chip) without discarding the complete language inventory.
 `MediaSourceDisplayName` extracts a readable `torrent_name` from URL/query-backed
 sources (including percent-encoded names) before taking a basename. It also
 cleans cached locator-like names at presentation time. Only the decoded name,
 not unrelated query parameters, supplies release text or edition/quality hints;
 playback locators and source IDs remain unchanged.
 Multiline remote-source labels can identify their release file on a folder-marked
-line; presentation extracts that filename rather than displaying the entire
-provider description. Extensionless URL endpoints are not release filenames,
-so opaque stream paths cannot override a readable source name. Display labels
-never manufacture audio-track language or other technical metadata.
+line, including continuation lines through the file extension; presentation
+extracts that filename rather than displaying the entire provider description.
+Original Unicode filenames are retained and the shared card wraps them without
+a line cap. Extensionless URL endpoints are not release filenames,
+so opaque stream paths cannot override a readable source name. Filename extraction
+never manufactures audio-track language or other technical metadata.
+The separate `declaredFileSizeBytes` extractor reads unambiguous, explicitly
+byte-unit quantities from descriptions. Providers decide whether that declaration
+is authoritative; bitrate units and filename/locator text never become byte sizes.
 
 ## Artwork and profile presentation
 

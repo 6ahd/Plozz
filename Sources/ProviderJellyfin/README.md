@@ -111,6 +111,28 @@ and Emby. Universal-profile syntax is defined by released Jellyfin's
 
 ## Playback negotiation
 
+Remote-source descriptions can explicitly declare a file size while the bridge's
+structured `Size` field contains a conflicting value derived from another field.
+For remote sources only, one unambiguous byte-unit size in the source description
+owns the displayed/mapped file size and version sorting. Decimal GB/MB and French
+Go/Mo are distinct from bitrate tokens such as Mb/Mbps; binary GiB/MiB keep their
+binary multipliers. Filenames, locators, and conflicting size declarations are not
+size evidence. Local sources retain the structured byte count, and raw source
+revisions/IDs/playback locators are unchanged.
+
+Remote descriptions may also explicitly name languages that the bridge omits
+from `MediaStreams`. Dedicated fields such as `🌍 French | Multi | English`
+supplement the same source's display-language inventory before playback, on
+detail pages, and in the player. Named languages are deduplicated against the
+structured codes; `Multi` is not counted. Local files keep their stream metadata.
+The bridge's compact `🇫🇷 🇨🇦 🇬🇧 ✓ • 💾 87,8 Go` and globe-prefixed variant
+also carry language flags. Those explicit headers supply French/English before
+playback; the Canadian variant does not become a third language. Flag parsing
+requires the compact header's size-field shape; arbitrary country/subtitle
+labels and filenames are not language evidence.
+Description languages never create selectable audio tracks, change playback
+preferences, override codecs, or leak into other versions.
+
 Remote movie/episode detail responses sometimes expose one generic source while
 `GET /Items/{id}/PlaybackInfo?UserId=...` contains the actual inventory. Only that
 explicitly remote single-source case requests the read-only inventory. Each

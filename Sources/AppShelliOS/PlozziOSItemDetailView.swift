@@ -1419,48 +1419,19 @@ struct PlozziOSVersionPickerPopover: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 2) {
-                ForEach(versions) { version in
-                    let presentation = MediaVersion.PickerPresentation(version, locale: locale)
-                    Button {
+            LazyVStack(alignment: .leading, spacing: 12) {
+                ForEach(versions.sortedForPicker()) { version in
+                    MediaVersionChoiceButton(
+                        presentation: .init(version, locale: locale),
+                        isSelected: version.id == selectedVersionID
+                    ) {
                         onSelectVersion(version.id)
                         dismiss()
-                    } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Image(systemName: "checkmark")
-                                .frame(width: 18)
-                                .opacity(version.id == selectedVersionID ? 1 : 0)
-                                .accessibilityHidden(version.id != selectedVersionID)
-                            VStack(alignment: .leading, spacing: 4) {
-                                versionTitleText(presentation.title)
-                                if !presentation.supplementalFacts.isEmpty {
-                                    Text(verbatim: presentation.supplementalFacts.joined(separator: " · "))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                if let release = presentation.releaseName {
-                                    Text(verbatim: release)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
-                                        .truncationMode(.middle)
-                                }
-                            }
-                            .multilineTextAlignment(.leading)
-                            Spacer(minLength: 0)
-                        }
-                        .contentShape(Rectangle())
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 11)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(
-                        version.id == selectedVersionID ? .isSelected : []
-                    )
+                    .accessibilityIdentifier("version-choice-\(version.id)")
                 }
             }
-            .padding(.vertical, 8)
+            .padding(16)
         }
         .frame(minWidth: 320, idealWidth: 380, maxWidth: 440, maxHeight: 440)
     }

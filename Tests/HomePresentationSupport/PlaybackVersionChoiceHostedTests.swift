@@ -1,4 +1,5 @@
 import CoreModels
+import CoreImage
 import CoreUI
 import FeatureHomeCore
 import Observation
@@ -28,7 +29,107 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
     func testLongVersionCardsStayReadableInLightAppearance() async throws {
         try await exercise(width: 390, typeSize: .large, versionCount: 8, colorScheme: .light)
     }
+
+    func testFilenameBreaksAvoidWastedLinesWithoutCappingContent() {
+        let filename = "Spider-Man.Brand.New.Day.2026.IMAX.MULTI.VF2.2160p.CORE.WEB-DL.DV.HDR10+.DDP.Atmos.5.1.HEVC-HYPERION.mkv"
+        func height(_ text: String, width: CGFloat) -> CGFloat {
+            let host = UIHostingController(rootView:
+                Text(verbatim: text).font(.caption2)
+                    .lineLimit(nil).fixedSize(horizontal: false, vertical: true)
+                    .environment(\.dynamicTypeSize, .large)
+                    .environment(\.locale, Locale(identifier: "en_US"))
+            )
+            return host.sizeThatFits(in: CGSize(width: width, height: 1_000)).height
+        }
+        let wrapped = MediaSourceDisplayName.wrappingFileName(filename)
+        for (width, lines): (CGFloat, Int) in [(330, 3), (390, 2)] {
+            let reference = Array(repeating: "Full line", count: lines).joined(separator: "\n")
+            XCTAssertEqual(height(wrapped, width: width), height(reference, width: width), accuracy: 1)
+            XCTAssertLessThanOrEqual(height(wrapped, width: width), height(filename, width: width))
+        }
+        let measurements = stride(from: CGFloat(280), through: 440, by: 10).map { width in
+            (width: width, original: height(filename, width: width), wrapped: height(wrapped, width: width))
+        }
+        let evidence = measurements.map { "\($0.width)pt: original=\($0.original), wrapped=\($0.wrapped)" }
+            .joined(separator: "\n")
+        let attachment = XCTAttachment(string: evidence)
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        for measurement in measurements {
+            XCTAssertLessThanOrEqual(measurement.wrapped, measurement.original, evidence)
+        }
+        XCTAssertTrue(measurements.contains { $0.wrapped < $0.original }, evidence)
+    }
     #endif
+
+    func testInternationalReleaseNamesWrapWithoutTruncation() async throws {
+        #if os(tvOS)
+        let layouts: [(CGFloat, DynamicTypeSize)] = [(720, .large), (1_100, .accessibility1)]
+        #else
+        let layouts: [(CGFloat, DynamicTypeSize)] = [(320, .accessibility2), (768, .large)]
+        #endif
+        let names: [(String, String, LayoutDirection)] = [
+            ("Example.Brand.New.Day.Special.Edition.", "en_US", .leftToRight),
+            ("Le.Fabuleux.Destin.d’Amélie.Édition.spéciale.", "fr_FR", .leftToRight),
+            ("千と千尋の神隠し.特別版.日本語.", "ja_JP", .leftToRight),
+            ("رحلة.إلى.القمر.نسخة.خاصة.", "ar", .rightToLeft)
+        ]
+        try await waitUntil {
+            UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        for (width, typeSize) in layouts {
+            for (prefix, localeID, direction) in names {
+                let filename = String(repeating: prefix, count: 12) + "2160p.WEB-DL.HEVC-GROUP.mkv"
+                let locale = Locale(identifier: localeID)
+                let presentation = MediaVersion.PickerPresentation(.init(
+                    id: "international", fileName: filename, height: 2160,
+                    sourceMetadata: .init(audioLanguages: ["eng", "fra"])
+                ), locale: locale)
+                XCTAssertEqual(presentation.releaseName, filename)
+                let contentWidth = width - 32
+                let reference = UIHostingController(rootView:
+                    Text(verbatim: MediaSourceDisplayName.wrappingFileName(filename)).font(.caption2)
+                        .lineLimit(nil).fixedSize(horizontal: false, vertical: true)
+                        .environment(\.dynamicTypeSize, typeSize)
+                        .environment(\.locale, locale)
+                        .environment(\.layoutDirection, direction)
+                )
+                let fullTextHeight = reference.sizeThatFits(in: CGSize(width: contentWidth, height: 10_000)).height
+                let card = MediaVersionChoiceButton(presentation: presentation, isFocused: true) {}
+                    .environment(\.dynamicTypeSize, typeSize)
+                    .environment(\.locale, locale)
+                    .environment(\.layoutDirection, direction)
+                    .environment(\.versionPickerAudioLanguage, "en")
+                    .environment(\.themePalette, .dark)
+                    .environment(\.colorScheme, .dark)
+                let sizingHost = UIHostingController(rootView: card)
+                let size = sizingHost.sizeThatFits(in: CGSize(width: contentWidth, height: 10_000))
+                XCTAssertGreaterThanOrEqual(size.height, fullTextHeight,
+                                            "The card must accommodate every filename line for \(localeID), not truncate it.")
+                XCTAssertLessThanOrEqual(size.width, contentWidth + 1)
+
+                let previous = scene.windows.first(where: \.isKeyWindow)
+                let window = UIWindow(windowScene: scene)
+                window.frame = CGRect(x: 0, y: 0, width: width, height: width >= 720 ? 1080 : 844)
+                window.overrideUserInterfaceStyle = .dark
+                window.rootViewController = UIHostingController(rootView:
+                    ScrollView { card.padding(16) }.background(.black)
+                )
+                window.makeKeyAndVisible()
+                defer {
+                    window.isHidden = true
+                    window.rootViewController = nil
+                    previous?.makeKeyAndVisible()
+                }
+                window.layoutIfNeeded()
+                let scroll = try XCTUnwrap(scrollViews(in: window).first)
+                XCTAssertLessThanOrEqual(scroll.contentSize.width, scroll.bounds.width + 1)
+                _ = try await visibleText(in: window, name: "version-filename-\(localeID)-\(Int(width))")
+            }
+        }
+    }
 
     private func exercise(
         width: CGFloat, typeSize: DynamicTypeSize, versionCount: Int = 2, reduceTransparency: Bool = false,
@@ -71,6 +172,7 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
             .environment(\.themePalette, colorScheme == .dark ? .dark : .light)
             .environment(\.colorScheme, colorScheme)
             .environment(\.locale, Locale(identifier: "en_US"))
+            .environment(\.versionPickerAudioLanguage, "en")
             .environment(\.dynamicTypeSize, typeSize)
             .environment(\.plozzReduceTransparency, reduceTransparency)
         )
@@ -102,7 +204,7 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertNil(probe.selected, "Choosing the mode alone must not select a file.")
         XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
         let choices = try await visibleText(in: window, name: "version-choice-\(Int(width))-\(typeSize)")
-        for fact in ["Choose a version", "4K", "42 GB", "English", "French", "HEVC", "TrueHD"] {
+        for fact in ["Choose a version", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD"] {
             XCTAssertTrue(choices.localizedCaseInsensitiveContains(fact), "Missing \(fact): \(choices)")
         }
         #if os(tvOS)
@@ -181,8 +283,39 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .accurate
             request.recognitionLanguages = ["en-US"]
-            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-            result += " " + (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+            request.usesLanguageCorrection = false
+            request.minimumTextHeight = 0.001
+            request.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
+            let cgImage = try XCTUnwrap(image.cgImage)
+            let inverted = CIImage(cgImage: cgImage).applyingFilter("CIColorInvert")
+            let invertedImage = try XCTUnwrap(CIContext().createCGImage(inverted, from: inverted.extent))
+            // Vision can omit small white-on-black resolution chips in a whole-screen pass.
+            for recognitionImage in [cgImage, invertedImage] {
+                try VNImageRequestHandler(cgImage: recognitionImage).perform([request])
+                let observations = request.results ?? []
+                result += " " + observations.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                #if os(tvOS)
+                // TV's tiny badge lettering needs a cropped pass; scaling a whole screen is downsampled by Vision.
+                for observation in observations where observation.boundingBox.height * CGFloat(cgImage.height) < 24 {
+                    let box = observation.boundingBox
+                    let rect = CGRect(
+                        x: box.minX * CGFloat(cgImage.width),
+                        y: (1 - box.maxY) * CGFloat(cgImage.height),
+                        width: box.width * CGFloat(cgImage.width),
+                        height: box.height * CGFloat(cgImage.height)
+                    ).insetBy(dx: -8, dy: -8).intersection(
+                        CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height)
+                    )
+                    let crop = try XCTUnwrap(recognitionImage.cropping(to: rect))
+                    let enlarged = CIImage(cgImage: crop).applyingFilter(
+                        "CILanczosScaleTransform", parameters: [kCIInputScaleKey: 4]
+                    )
+                    let enlargedImage = try XCTUnwrap(CIContext().createCGImage(enlarged, from: enlarged.extent))
+                    try VNImageRequestHandler(cgImage: enlargedImage).perform([request])
+                    result += " " + (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                }
+                #endif
+            }
         }
         return result
     }

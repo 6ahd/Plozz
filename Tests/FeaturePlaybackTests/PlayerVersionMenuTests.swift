@@ -53,6 +53,8 @@ final class PlayerVersionMenuTests: XCTestCase {
         XCTAssertNil(row.titleLineLimit)
         XCTAssertEqual(row.facts, Text(verbatim: "Remux · HEVC · French, English · Dolby TrueHD 7.1 · 2h"))
         XCTAssertEqual(row.subtitle, Text(verbatim: "Movie.REMUX.mkv"))
+        XCTAssertEqual(row.versionPresentation, .init(version, locale: Locale(identifier: "en_US")))
+        XCTAssertEqual(row.versionPresentation?.supplementalFactsWithoutBadges, ["Remux", "2h"])
         row.action()
         XCTAssertTrue(closed)
         XCTAssertEqual(selected, "file")

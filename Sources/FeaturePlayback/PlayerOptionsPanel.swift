@@ -761,6 +761,7 @@ struct PlayerOptionsPanel: View {
                 facts: presentation.supplementalFacts.isEmpty ? nil
                     : Text(verbatim: presentation.supplementalFacts.joined(separator: " · ")),
                 titleLineLimit: nil,
+                versionPresentation: presentation,
                 action: {
                     withAnimation { close() }
                     model.versions.select(option.id)
