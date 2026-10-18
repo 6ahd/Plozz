@@ -32,18 +32,20 @@ public enum PlozziOSWindowOrientation {
 @Observable
 final class PlozziOSPlayerOrientation {
     private(set) var preference: PlaybackOrientation
+    private(set) var isPlaybackActive: Bool
     private(set) var hasGeometryRequestFailed = false
     private(set) var isAvailable = false
     let status = TransientStatusPresenter()
     @ObservationIgnored weak var host: PlozziOSOrientationHostingController?
     @ObservationIgnored var close: () -> Void = {}
 
-    init(preference: PlaybackOrientation) {
+    init(preference: PlaybackOrientation, isPlaybackActive: Bool = true) {
         self.preference = preference
+        self.isPlaybackActive = isPlaybackActive
     }
 
     var requestedMask: UIInterfaceOrientationMask {
-        hasGeometryRequestFailed ? .all : Self.mask(for: preference)
+        !isPlaybackActive || hasGeometryRequestFailed ? .all : Self.mask(for: preference)
     }
 
     var supportedMask: UIInterfaceOrientationMask { isAvailable ? requestedMask : .all }
@@ -80,6 +82,12 @@ final class PlozziOSPlayerOrientation {
     func updatePreference(_ value: PlaybackOrientation) {
         guard preference != value else { return }
         preference = value
+        host?.applyOrientation()
+    }
+
+    func beginPlayback() {
+        guard !isPlaybackActive else { return }
+        isPlaybackActive = true
         host?.applyOrientation()
     }
 
@@ -394,7 +402,7 @@ struct PlozziOSPlayerPresentation<Content: View>: UIViewControllerRepresentable 
             var presenter: UIViewController = anchor
             while let parent = presenter.parent { presenter = parent }
             guard presenter.presentedViewController == nil, !presenter.isBeingDismissed else { return }
-            let orientation = PlozziOSPlayerOrientation(preference: preference)
+            let orientation = PlozziOSPlayerOrientation(preference: preference, isPlaybackActive: false)
             orientation.close = { [weak self] in self?.close(request.id) }
             let host = PlozziOSOrientationHostingController(
                 rootView: makeContent(request, orientation), orientation: orientation

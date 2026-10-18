@@ -160,6 +160,7 @@ struct PlozziOSPlayerView: View {
             do {
                 item = try await prepareVersion(request.item, session: session)
                 activeItem = item
+                orientation.beginPlayback()
             } catch is CancellationError {
                 if isPresented { dismiss() }
                 return
