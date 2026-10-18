@@ -734,6 +734,10 @@ the player and Settings share its `panelWidth` rather than separate layout width
 Mobile's existing forms live in `MobileSubtitleStyleEditor`, shared by Settings
 and the player through `SubtitleStyleEditingContext`. There is no reduced second
 set of settings or separate preference store.
+Each mobile subtitle destination (file formatting, shadow/outline, background,
+and dual subtitles) owns the shared native settings switch style. This keeps
+enabled switches green under the Settings and player's monochrome accents
+without changing neighboring pickers, sliders, navigation, or menu checkmarks.
 
 The preview renders real `SubtitleCue` data through `SubtitleOverlayView`. On TV,
 it lays out a 1920x1080 playback canvas and scales the entire result into the

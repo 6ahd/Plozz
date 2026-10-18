@@ -271,6 +271,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   toggle in a button, or override its native animation/accessibility.
   The switch alone clears inherited tint so monochrome page accents do not
   hide its thumb against the enabled track; neighboring controls keep their tint.
+  Each standalone or pushed settings `Form` must apply
+  `SettingsSwitchToggleStyle` itself; a style on the presenting form does not
+  establish the style for its navigation destinations. Leave native menu toggles
+  as checkmarks rather than applying a switch style to the entire app.
   tvOS uses native On/Off toggles with shared settings row typography, not drawn
   switch tracks. Focus-gated and side-effectful action rows retain their owned
   buttons and show the same On/Off text.
