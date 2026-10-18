@@ -129,6 +129,7 @@ extension AppState {
                 guard let appState else { return }
                 await appState.traktService.refreshStatus()
                 await appState.simklService.refreshStatus()
+                await appState.wetrakrService.refreshStatus()
                 await appState.anilistService.refreshStatus()
                 await appState.malService.refreshStatus()
             }

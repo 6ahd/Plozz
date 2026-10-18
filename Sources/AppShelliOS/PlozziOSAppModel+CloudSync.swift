@@ -88,6 +88,7 @@ extension PlozziOSAppModel {
                 guard let model else { return }
                 await model.traktService.refreshStatus()
                 await model.simklService.refreshStatus()
+                await model.wetrakrService.refreshStatus()
                 await model.anilistService.refreshStatus()
                 await model.malService.refreshStatus()
             }

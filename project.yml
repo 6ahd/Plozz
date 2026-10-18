@@ -47,6 +47,12 @@ settings:
     # Display-only date/revision version from the selected catalog entry.
     # Empty for local builds; never written to CFBundleShortVersionString.
     PLOZZ_RELEASE_VERSION: ""
+    PLOZZ_DEV_FEATURE_LABEL: ""
+  configs:
+    Debug:
+      PLOZZ_DEV_FEATURE: "$(PLOZZ_DEV_FEATURE_LABEL)"
+    Release:
+      PLOZZ_DEV_FEATURE: ""
 
 # Local Swift package providing all modular feature/code libraries.
 packages:
@@ -114,6 +120,7 @@ targets:
         PlozzReleaseChannel: "$(PLOZZ_RELEASE_CHANNEL)"
         PlozzReleaseID: "$(PLOZZ_RELEASE_ID)"
         PlozzReleaseVersion: "$(PLOZZ_RELEASE_VERSION)"
+        PlozzDevelopmentFeature: "$(PLOZZ_DEV_FEATURE)"
         # Background audio keeps music playing while the user browses other
         # screens or the tvOS screensaver starts. Required for the music MVP's
         # background/Now-Playing behaviour (AVAudioSession .playback).
@@ -195,6 +202,7 @@ targets:
         # Public client ID for secretless PKCE/device-code OAuth.
         # Config/Secrets.local.xcconfig supplies the registration-specific value.
         TraktClientID: "$(TRAKT_CLIENT_ID)"
+        WetrakrClientID: "$(WETRAKR_CLIENT_ID)"
         # MyAnimeList client ID for anime tracking (device-code OAuth). Substituted
         # from MAL_CLIENT_ID build setting (gitignored Config/Secrets.local.xcconfig).
         # Empty by default, which disables MAL sync.
@@ -343,6 +351,7 @@ targets:
         PlozzReleaseChannel: "$(PLOZZ_RELEASE_CHANNEL)"
         PlozzReleaseID: "$(PLOZZ_RELEASE_ID)"
         PlozzReleaseVersion: "$(PLOZZ_RELEASE_VERSION)"
+        PlozzDevelopmentFeature: "$(PLOZZ_DEV_FEATURE)"
         UILaunchScreen: {}
         UIRequiresFullScreen: false
         BGTaskSchedulerPermittedIdentifiers:
@@ -418,6 +427,7 @@ targets:
             CFBundleURLSchemes:
               - ${PLOZZ_URL_SCHEME}
         TraktClientID: "$(TRAKT_CLIENT_ID)"
+        WetrakrClientID: "$(WETRAKR_CLIENT_ID)"
         SimklClientID: "$(SIMKL_CLIENT_ID)"
         AniListClientID: "$(ANILIST_CLIENT_ID)"
         AniListClientSecret: "$(ANILIST_CLIENT_SECRET)"

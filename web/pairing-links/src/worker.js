@@ -1,6 +1,6 @@
 // Plozz pairing links Worker.
 //
-// Serves pairing, Trakt authentication, and community shortcuts (see wrangler.toml routes):
+// Serves pairing, tracker authentication, and community shortcuts (see wrangler.toml routes):
 //   1. /.well-known/apple-app-site-association
 //        The Apple App Site Association (AASA) file that lets iOS treat
 //        https://plozz.app/pair as a Universal Link into the Plozz app.
@@ -73,11 +73,15 @@ export default {
       });
     }
 
-    if (url.pathname === "/auth/trakt/callback") {
+    const tracker = {
+      "/auth/trakt/callback": "Trakt",
+      "/auth/wetrakr/callback": "WeTrakr",
+    }[url.pathname];
+    if (tracker) {
       // ASWebAuthenticationSession intercepts this navigation on a verified app.
       // Never echo, persist or exchange the authorization code on the server.
       return new Response(
-        "Return to Plozz to finish connecting Trakt. If Plozz did not receive the sign-in, cancel and start Connect Trakt again in the app.",
+        `Return to Plozz to finish connecting ${tracker}. If Plozz did not receive the sign-in, cancel and start Connect ${tracker} again in the app.`,
         {
           headers: {
             "content-type": "text/plain; charset=utf-8",

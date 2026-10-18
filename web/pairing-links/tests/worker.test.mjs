@@ -44,8 +44,9 @@ test("AASA retains pairing and verifies native HTTPS authentication", async () =
   assert.deepEqual(aasa.webcredentials.apps, ["N8Z5T4AK3X.com.thatcube.Plozz"]);
 });
 
-test("OAuth fallback never reflects a code or state and prevents caching/referrers", async () => {
-  const response = await worker.fetch(new Request("https://plozz.app/auth/trakt/callback?code=secret-code&state=secret-state"));
+for (const tracker of ["trakt", "wetrakr"]) {
+test(`${tracker} OAuth fallback never reflects a code or state and prevents caching/referrers`, async () => {
+  const response = await worker.fetch(new Request(`https://plozz.app/auth/${tracker}/callback?code=secret-code&state=secret-state`));
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
@@ -55,6 +56,7 @@ test("OAuth fallback never reflects a code or state and prevents caching/referre
   assert.ok(!body.includes("secret-code"));
   assert.ok(!body.includes("secret-state"));
 });
+}
 
 test("The worker does not claim unrelated pages", async () => {
   assert.equal((await worker.fetch(new Request("https://plozz.app/unrelated"))).status, 404);
