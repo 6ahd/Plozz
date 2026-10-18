@@ -21,7 +21,48 @@ final class WetrakrAuthorizationTests: XCTestCase {
     func testConfigurationRejectsUnexpandedSettingsAndUsesEnvironment() {
         XCTAssertFalse(WetrakrConfig(clientID: "$(WETRAKR_CLIENT_ID)").isConfigured)
         XCTAssertFalse(WetrakrConfig(clientID: "  ").isConfigured)
-        XCTAssertEqual(WetrakrConfig.resolved(environment: ["WETRAKR_CLIENT_ID": "configured"]).clientID, "configured")
+        XCTAssertEqual(WetrakrConfig.resolved(
+            environment: ["WETRAKR_CLIENT_ID": "configured"],
+            featureFlags: .init(enabled: [.wetrakr])
+        ).clientID, "configured")
+    }
+
+    @MainActor
+    func testProductionRolloutDisablesSavedConnectionsWithoutRequestsOrErasure() async throws {
+        XCTAssertFalse(RuntimeFeatureFlags.productionDefault.isEnabled(.wetrakr))
+        XCTAssertTrue(RuntimeFeatureFlags.productionDefault.isEnabled(.universalWatchlist))
+        let disabled = WetrakrConfig.resolved(environment: ["WETRAKR_CLIENT_ID": "configured"])
+        XCTAssertFalse(disabled.isConfigured)
+        XCTAssertNil(disabled.clientID)
+        let http = RecordingHTTPClient()
+        let tokens = store()
+        let saved = tokens.load()
+        let service = WetrakrService(config: disabled, http: http, tokenStore: tokens, coordinator: .init())
+
+        await service.refreshStatus()
+        await service.setActiveProfile(namespace: nil)
+        service.connect()
+        await service.connectTask?.value
+        service.connect { _, _ in
+            XCTFail("Disabled integration must not open browser authorization")
+            throw CancellationError()
+        }
+        await service.connectTask?.value
+        XCTAssertEqual(service.phase, .unavailable)
+        XCTAssertFalse(service.isConfigured)
+        XCTAssertNil(service.accountIdentity)
+        XCTAssertNil(service.watchlistDestination)
+
+        let scrobbler = service.playbackScrobbler()
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie, providerIDs: ["Imdb": "tt1234567"])
+        XCTAssertNil(scrobbler.accountIdentity)
+        await scrobbler.scrobble(item: item, progress: 50, event: .start)
+        try await scrobbler.recordWatch(
+            item: item, capturedAt: Date(), idempotencyKey: "disabled-watch",
+            expectedAccountIdentity: "viewer-one"
+        )
+        XCTAssertTrue(http.sent.isEmpty)
+        XCTAssertEqual(tokens.load(), saved)
     }
 
     func testPKCEUsesRegisteredCallbackAndValidatesState() throws {

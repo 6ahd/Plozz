@@ -9,6 +9,12 @@ public struct WetrakrWatchlistLink: View {
     public init(url: URL) { self.url = url }
 
     public var body: some View {
+        if RuntimeFeatureFlags.productionDefault.isEnabled(.wetrakr) {
+            link
+        }
+    }
+
+    private var link: some View {
         #if os(tvOS)
         Button("View on WeTrakr") { showsCode = true }
             .sheet(isPresented: $showsCode) {

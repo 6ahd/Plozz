@@ -543,6 +543,22 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testTrackersHideUnreleasedWetrakr() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        try focus(section("integrations", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["settings-page-trakt"].waitForExistence(timeout: 5), app.debugDescription)
+        for tracker in ["trakt", "simkl", "anilist", "mal", "lastfm"] {
+            XCTAssertTrue(app.buttons["settings-page-\(tracker)"].exists, app.debugDescription)
+        }
+        XCTAssertFalse(app.buttons["settings-page-wetrakr"].exists, app.debugDescription)
+        XCTAssertFalse(app.staticTexts["WeTrakr"].exists, app.debugDescription)
+        #else
+        throw XCTSkip("Simulator-only Settings review.")
+        #endif
+    }
+
     func testPlaybackLiveTVAndTrackerChildPages() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings(style: "tabBar")
@@ -1022,19 +1038,17 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         if diagnostics { app.launchEnvironment["PLZHFOCUS"] = "1" }
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        if app.staticTexts["Choose Home layout for this profile"].waitForExistence(timeout: 2) {
-            try focus(app.buttons["Continue"], in: app)
+        if app.buttons["Looks good"].waitForExistence(timeout: 2) {
+            try focus(app.buttons["Looks good"], in: app)
             XCUIRemote.shared.press(.select)
         }
+        try completeAppearanceChoices(in: app)
         let alex = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", profile)).firstMatch
         if alex.waitForExistence(timeout: 2) {
             try focus(alex, in: app)
             XCUIRemote.shared.press(.select)
         }
-        if app.staticTexts["Choose Home layout for this profile"].waitForExistence(timeout: 2) {
-            try focus(app.buttons["Continue"], in: app)
-            XCUIRemote.shared.press(.select)
-        }
+        try completeAppearanceChoices(in: app)
         let keepPreviewsOff = app.buttons["live-tv-preview-disable"]
         if keepPreviewsOff.waitForExistence(timeout: 2) {
             try focus(keepPreviewsOff, in: app)
@@ -1043,6 +1057,19 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         if sources { capture("source-fixture-entry", in: app) }
         try openSettingsIfNeeded(in: app)
         return app
+    }
+
+    private func completeAppearanceChoices(in app: XCUIApplication) throws {
+        for title in [
+            "Choose theme for this profile",
+            "Choose navigation for this profile",
+            "Choose Home layout for this profile"
+        ] {
+            if app.staticTexts[title].waitForExistence(timeout: 2) {
+                try focus(app.buttons["Continue"], in: app)
+                XCUIRemote.shared.press(.select)
+            }
+        }
     }
 
     private func openSettingsIfNeeded(in app: XCUIApplication) throws {

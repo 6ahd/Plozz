@@ -58,7 +58,7 @@ struct IntegrationsDetailView: View {
     private var rows: [SettingsSplitRow] {
         @Bindable var playback = playback
 
-        let trackers: [SettingsSplitRow] = [
+        var trackers: [SettingsSplitRow] = [
             SettingsSplitRow(
                 id: "trakt",
                 verbatimTitle: "Trakt",
@@ -215,12 +215,12 @@ struct IntegrationsDetailView: View {
         #if os(tvOS)
         if inWorkspace {
             let phases = [traktRowPhase, simklRowPhase, wetrakrRowPhase, anilistRowPhase, malRowPhase, lastfmRowPhase]
-            return zip(trackers, phases).map { row, phase in
+            trackers = zip(trackers, phases).map { row, phase in
                 row.page(summary: statusLabel(phase))
-            } + watchStatus
+            }
         }
         #endif
-        return trackers + watchStatus
+        return trackers.filter { $0.id != "wetrakr" || wetrakr.isConfigured } + watchStatus
     }
 
     private func statusLabel(_ phase: TrackerRowPhase) -> Text {

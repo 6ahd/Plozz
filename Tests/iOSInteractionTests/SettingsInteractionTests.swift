@@ -126,6 +126,16 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertFalse(app.buttons["Micro"].exists)
     }
 
+    func testTrackersHideUnreleasedWetrakr() {
+        openSettingsPage("Trackers")
+        let wetrakr = NSPredicate(format: "label CONTAINS[c] %@", "WeTrakr")
+        for _ in 0..<3 {
+            XCTAssertEqual(app.buttons.matching(wetrakr).count, 0, app.debugDescription)
+            XCTAssertEqual(app.staticTexts.matching(wetrakr).count, 0, app.debugDescription)
+            app.collectionViews.firstMatch.swipeUp()
+        }
+    }
+
     func testRootOrganizationMatchesAcrossAdaptiveLayouts() {
         let titles = [
             "Playback", "Subtitles", "Live TV", "Libraries", "Appearance",
