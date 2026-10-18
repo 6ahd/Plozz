@@ -343,27 +343,19 @@ struct PlayerTouchGestureFeedbackContent: View {
                 .frame(maxWidth: .infinity)
             }
             if let level = state.level {
-                VStack(spacing: 6) {
-                    HStack(spacing: 8) {
-                        Image(systemName: level.kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
-                            .accessibilityHidden(true)
-                        if let value = level.value {
-                            Text(value, format: .percent.precision(.fractionLength(0)))
-                                .monospacedDigit()
-                                .accessibilityIdentifier("player-gesture-level-value")
-                        } else {
+                Group {
+                    if let value = level.value {
+                        PlayerTouchLevelMeter(kind: level.kind, value: value)
+                    } else {
+                        HStack(spacing: 8) {
+                            Image(systemName: level.kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
+                                .accessibilityHidden(true)
                             Text(level.kind == .brightness ? "Brightness unavailable" : "Volume unavailable")
                                 .accessibilityIdentifier("player-gesture-level-unavailable")
                         }
-                    }
-                    if let value = level.value {
-                        ProgressView(value: value)
-                            .tint(.white)
-                            .frame(width: 96)
-                            .accessibilityLabel(level.kind == .brightness ? "Brightness" : "Volume")
+                        .modifier(PlayerTouchFeedbackPill())
                     }
                 }
-                .modifier(PlayerTouchFeedbackPill())
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("player-gesture-level-pill")
                 .position(x: geometry.size.width * (level.kind == .brightness ? 0.22 : 0.78),
@@ -373,6 +365,41 @@ struct PlayerTouchGestureFeedbackContent: View {
         }
         .foregroundStyle(.white)
         .allowsHitTesting(false)
+    }
+}
+
+private struct PlayerTouchLevelMeter: View {
+    let kind: PlayerTouchLevel
+    let value: Double
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.clear
+                .modifier(PanelGlassBackground(cornerRadius: 999))
+            Rectangle()
+                .fill(.white)
+                .frame(height: 156 * value)
+            icon.foregroundStyle(.white)
+            icon.foregroundStyle(.black)
+                .mask(alignment: .bottom) {
+                    Rectangle().frame(height: 156 * value)
+                }
+        }
+        .frame(width: 52, height: 156)
+        .clipShape(Capsule())
+        .environment(\.colorScheme, .dark)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(kind == .brightness ? "Brightness" : "Volume")
+        .accessibilityValue(Text(value, format: .percent.precision(.fractionLength(0))))
+        .accessibilityIdentifier("player-gesture-level-value")
+    }
+
+    private var icon: some View {
+        Image(systemName: kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
+            .font(.system(size: 20, weight: .semibold))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 18)
+            .accessibilityHidden(true)
     }
 }
 

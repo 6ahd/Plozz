@@ -239,6 +239,72 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         }
     }
 
+    func testVerticalLevelMetersMaskIconContrastAtZeroPartialAndFullWithoutVisibleNumbers() async throws {
+        for reducePanelGlass in [false, true] {
+            for kind in [PlayerTouchLevel.brightness, .volume] {
+                try await withFeedback(reducePanelGlass: reducePanelGlass, colorScheme: .light) { fixture, window in
+                    let rect = CGRect(x: kind == .brightness ? 62 : 286, y: 22, width: 52, height: 156)
+                    var frames: [Double: RenderedFrame] = [:]
+                    for value in [0.0, 0.2, 0.5, 1.0] {
+                        fixture.state.showLevel(kind, value: value)
+                        try await Task.sleep(for: .milliseconds(160))
+                        let frame = try self.capture(
+                            window, rect: rect,
+                            label: "\(kind), \(value), \(reducePanelGlass ? "reduced" : "native") glass"
+                        )
+                        frames[value] = frame
+                        let boundary = 156 * (1 - value)
+                        for y in 30..<144 {
+                            let pixel = frame.pixels[y * frame.width + 8]
+                            if Double(y) > boundary + 2 {
+                                XCTAssertGreaterThan(pixel, 235, "The fill must rise from the bottom: \(kind), \(value), row \(y)")
+                            } else if Double(y) < boundary - 2 {
+                                XCTAssertLessThan(pixel, 200, "The unfilled area must remain dark: \(kind), \(value), row \(y)")
+                            }
+                        }
+                    }
+                    let empty = try XCTUnwrap(frames[0])
+                    let full = try XCTUnwrap(frames[1])
+                    let partial = try XCTUnwrap(frames[0.2])
+                    let upperInk = (12..<96).flatMap { y in
+                        (10..<42).map { x in empty.pixels[y * empty.width + x] }
+                    }.filter { $0 > 220 }
+                    XCTAssertTrue(upperInk.isEmpty, "There must be no percentage or other visible label above the icon.")
+
+                    let iconInk = (110..<144).flatMap { y in
+                        (8..<44).compactMap { x -> Int? in
+                            let index = y * empty.width + x
+                            return empty.pixels[index] > 240 ? index : nil
+                        }
+                    }
+                    XCTAssertGreaterThan(iconInk.count, 40, "The icon must remain visible at zero.")
+                    for index in iconInk {
+                        XCTAssertLessThan(full.pixels[index], 60, "The same icon must be dark over full white fill.")
+                    }
+                    let boundary = 156 * (1 - 0.2)
+                    let lightPart = iconInk.filter { Double($0 / empty.width) < boundary - 2 }
+                    let darkPart = iconInk.filter { Double($0 / empty.width) > boundary + 2 }
+                    XCTAssertGreaterThan(lightPart.count, 5)
+                    XCTAssertGreaterThan(darkPart.count, 5)
+                    for index in lightPart {
+                        XCTAssertGreaterThan(partial.pixels[index], 220, "Uncovered icon pixels must stay white.")
+                    }
+                    for index in darkPart {
+                        XCTAssertLessThan(partial.pixels[index], 60, "Only covered icon pixels should turn dark.")
+                    }
+
+                    fixture.state.showLevel(kind, value: 0)
+                    try await Task.sleep(for: .milliseconds(160))
+                    let drained = try self.capture(window, rect: rect, label: "\(kind) drained back to zero")
+                    for index in iconInk {
+                        XCTAssertGreaterThan(drained.pixels[index], 220, "Draining must restore the entire white icon.")
+                    }
+                    XCTAssertLessThan(drained.pixels[136 * drained.width + 8], 200, "Zero must not retain fill.")
+                }
+            }
+        }
+    }
+
     private func assertFlight(direction: PlayerTouchSkipDirection) async throws {
         try await withFeedback(direction: direction) { fixture, window in
             let interval: TimeInterval = direction == .forward ? 25 : -25

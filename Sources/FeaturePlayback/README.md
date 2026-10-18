@@ -252,8 +252,14 @@ on-demand and Live TV playback, including while Up Next is visible, but yield to
 menus, sheets, VoiceOver, external playback and inactive scenes. Multiview and
 inline Live TV do not adjust shared device outputs.
 
-The level and percentage use the existing gesture feedback surface without
-revealing the timeline. The system-volume bridge drives an `MPVolumeView`'s
+Level feedback is a slim, monochrome vertical capsule that fills upward with
+the swipe, without revealing the timeline. Only the fill and native output icon
+are visible; the percentage is available to accessibility, not drawn on screen.
+The icon is white over empty glass and black where covered by the fill, using
+the same bottom-aligned mask as the fill. This preserves contrast through zero,
+partial-icon crossings and full output without flipping the whole symbol at a
+threshold. Native glass and reduced-effects backgrounds share the same layout.
+The system-volume bridge drives an `MPVolumeView`'s
 native slider, the same approach used by
 [AetherPlayer](https://github.com/superuser404notfound/AetherPlayer/blob/main/Sources/iOS/Player/PlayerSystemVolume.swift);
 it does not attenuate the engine or amplify past the system limit. The bridge

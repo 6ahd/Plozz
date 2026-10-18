@@ -151,7 +151,7 @@ final class PlayerGestureInteractionTests: XCTestCase {
         )
         XCTAssertTrue(app.otherElements["player-gesture-level-pill"].exists, app.debugDescription)
         if app.staticTexts["player-gesture-level-unavailable"].exists {
-            XCTAssertFalse(app.staticTexts["player-gesture-level-value"].exists)
+            XCTAssertFalse(levelMeter.exists)
             XCTAssertEqual(Double(volume.label), initial)
         } else {
             try assertLevel(initial + (initial > 0.4 ? -0.23 : 0.20))
@@ -198,13 +198,23 @@ final class PlayerGestureInteractionTests: XCTestCase {
     }
 
     private func assertLevel(_ expected: Double, file: StaticString = #filePath, line: UInt = #line) throws {
-        let label = app.staticTexts["player-gesture-level-value"].label
+        let label = try XCTUnwrap(levelMeter.value as? String, file: file, line: line)
         let percent = try XCTUnwrap(
             Double(label.replacingOccurrences(of: "%", with: "").trimmingCharacters(in: .whitespaces)),
             file: file, line: line
         )
         // UIKit's pan translation excludes the initial recognition slop.
         XCTAssertEqual(percent / 100, min(max(expected, 0), 1), accuracy: 0.04, file: file, line: line)
+        XCTAssertEqual(levelMeter.frame.width, 52, accuracy: 1, file: file, line: line)
+        XCTAssertEqual(levelMeter.frame.height, 156, accuracy: 1, file: file, line: line)
+        XCTAssertEqual(
+            app.otherElements["player-gesture-level-pill"].staticTexts.count, 0,
+            "Successful level feedback must not display a percentage or any other text.", file: file, line: line
+        )
+    }
+
+    private var levelMeter: XCUIElement {
+        app.descendants(matching: .any).matching(identifier: "player-gesture-level-value").firstMatch
     }
 
     private func point(x: CGFloat, y: CGFloat) -> XCUICoordinate {
