@@ -6,6 +6,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Reorder-only lists** — `LiftableReorderList(allowsHiding: false)` presents
+  enabled entries only and keeps them enabled through native dragging, remote
+  lift-and-move and context-menu movement. It has no Hidden divider or Hide/Show
+  actions. Existing callers keep the reorder-and-hide behavior by default.
+
 - **First-use choices** — `FirstUseChoiceView` shares the Live TV preview and
   playback-version introduction heading, native actions, and Settings reminder.
   Hosts own persistence and cancellation; dismissing a version prompt never

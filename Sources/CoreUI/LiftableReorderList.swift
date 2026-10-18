@@ -54,6 +54,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
     private let disabledSectionTitle: LocalizedStringResource
     private let disabledPlaceholder: LocalizedStringResource
     private let requiredEnabled: Set<Element>
+    private let allowsHiding: Bool
     /// Mirrors "a row is currently lifted" outward so the host page can disable its
     /// other controls while a reorder is in progress.
     @Binding private var isLifting: Bool
@@ -74,6 +75,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
         disabledPlaceholder: LocalizedStringResource,
         isLifting: Binding<Bool>,
         requiredEnabled: Set<Element> = [],
+        allowsHiding: Bool = true,
         row: @escaping (Element) -> Row,
         onChange: @escaping (OrderedVisibilityList.Sections<Element>) -> Void
     ) {
@@ -81,7 +83,8 @@ public struct LiftableReorderList<Element: Hashable>: View {
         self.disabledSectionTitle = disabledSectionTitle
         self.disabledPlaceholder = disabledPlaceholder
         self._isLifting = isLifting
-        self.requiredEnabled = requiredEnabled
+        self.requiredEnabled = allowsHiding ? requiredEnabled : requiredEnabled.union(sections.enabled)
+        self.allowsHiding = allowsHiding
         self.row = row
         self.onChange = onChange
     }
@@ -93,24 +96,26 @@ public struct LiftableReorderList<Element: Hashable>: View {
                 rowView(element, isEnabled: true, rank: index + 1)
             }
 
-            ReorderDisabledDivider(
-                title: disabledSectionTitle,
-                isDropTarget: liftedElement != nil
-            )
-
-            if sections.disabled.isEmpty {
-                ReorderDisabledPlaceholder(
-                    message: disabledPlaceholder,
-                    isReordering: liftedElement != nil
+            if allowsHiding {
+                ReorderDisabledDivider(
+                    title: disabledSectionTitle,
+                    isDropTarget: liftedElement != nil
                 )
-                .disabled(pinnedFocusTarget != nil)
-                .focused($isDisabledPlaceholderFocused)
-                .onChange(of: isDisabledPlaceholderFocused) { _, isFocused in
-                    handleEmptyDisabledDropTargetFocus(isFocused)
-                }
-            } else {
-                ForEach(sections.disabled, id: \.self) { element in
-                    rowView(element, isEnabled: false, rank: nil)
+
+                if sections.disabled.isEmpty {
+                    ReorderDisabledPlaceholder(
+                        message: disabledPlaceholder,
+                        isReordering: liftedElement != nil
+                    )
+                    .disabled(pinnedFocusTarget != nil)
+                    .focused($isDisabledPlaceholderFocused)
+                    .onChange(of: isDisabledPlaceholderFocused) { _, isFocused in
+                        handleEmptyDisabledDropTargetFocus(isFocused)
+                    }
+                } else {
+                    ForEach(sections.disabled, id: \.self) { element in
+                        rowView(element, isEnabled: false, rank: nil)
+                    }
                 }
             }
         }
@@ -243,7 +248,9 @@ public struct LiftableReorderList<Element: Hashable>: View {
     }
 
     public var body: some View {
-        let items = OrderedVisibilityList.listItems(for: sections)
+        let items = allowsHiding
+            ? OrderedVisibilityList.listItems(for: sections)
+            : sections.enabled.map(OrderedVisibilityList.ListItem.element)
         return List {
             ForEach(items, id: \.self) { item in
                 listRow(item)
@@ -336,10 +343,10 @@ public struct LiftableReorderList<Element: Hashable>: View {
 
     @ViewBuilder
     private func rowMenu(_ element: Element) -> some View {
-        if sections.enabled.contains(element) {
+        if allowsHiding, sections.enabled.contains(element) {
             Button("Hide", systemImage: "eye.slash") { perform(.hide, on: element) }
                 .disabled(requiredEnabled.contains(element))
-        } else {
+        } else if allowsHiding {
             Button(
                 LocalizedStringResource("Show", comment: "Action verb: unhide a navigation item. Not the noun meaning a TV series."),
                 systemImage: "eye"

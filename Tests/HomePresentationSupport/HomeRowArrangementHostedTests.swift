@@ -5,7 +5,7 @@ import CoreUI
 #elseif os(iOS)
 @testable import AppShelliOS
 #endif
-import FeatureSettings
+@testable import FeatureSettings
 import Observation
 import SwiftUI
 import UIKit
@@ -40,17 +40,17 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     let lines = try await self.capture(window, name: "Merge Next Up \(scheme) \(size)")
                     let text = lines.map(\.0).joined(separator: " ")
                     XCTAssertTrue(text.contains("Merge Next Up rows"), text)
-                    XCTAssertTrue(text.contains("other rows stay unchanged"), text)
+                    XCTAssertTrue(text.contains("next episodes"), text)
                     visibility.setGlobalRowEnabled(false, for: .continueWatching)
                     let disabled = try await self.capture(window, name: "Merge Next Up with hidden Continue Watching")
-                    XCTAssertTrue(disabled.map(\.0).joined(separator: " ").contains("Rows on Home"), text)
+                    XCTAssertTrue(disabled.map(\.0).joined(separator: " ").contains("Add Continue Watching"), text)
                 }
             }
         }
     }
 
     #if os(iOS)
-    func testMobileCustomizeHomeKeepsArtworkWithoutDuplicatingTheMergeSwitch() async throws {
+    func testMobileCustomizeHomeListsSectionsWithoutDetachedArtworkOrMergeControls() async throws {
         let suite = "MobileHomeNextUp.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -69,10 +69,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         } inspect: { window in
             let lines = try await self.capture(window, name: "Mobile Home artwork without duplicate merge toggle")
             let text = lines.map(\.0).joined(separator: " ")
-            XCTAssertTrue(text.contains("Rows on Home"), text)
-            XCTAssertTrue(text.contains("Artwork"), text)
+            XCTAssertTrue(text.contains("Reorder"), text)
+            XCTAssertTrue(text.contains("Hero"), text)
+            XCTAssertTrue(text.contains("Continue Watching"), text)
+            XCTAssertFalse(text.contains("Artwork"), text)
             XCTAssertFalse(text.contains("Merge Next Up rows"), text)
-            XCTAssertFalse(text.contains("LIBRARIES"), "Customize Home must not duplicate library availability.")
             XCTAssertFalse(text.contains("No video libraries are available"), text)
             XCTAssertTrue(store.load().mergeNextUpIntoContinueWatching)
 
@@ -86,7 +87,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         }
     }
 
-    func testMobileRowArrangerMergeSwitchPersistsWithoutChangingPreset() async throws {
+    func testMobileSectionMergeSwitchPersistsWithoutChangingPreset() async throws {
         let suite = "MobileHomeRowsNextUp.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -94,9 +95,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         let visibility = HomeLibraryVisibilityModel(store: store)
         visibility.useRowDefaults(.combined)
         try await withWindow {
-            ScrollView {
-                HomeRowsSettingsView(libraries: [], accounts: [], visibility: visibility)
-                    .padding(24)
+            NavigationStack {
+                HomeSectionSettingsView(
+                    choice: HomeRowChoice.shared.first { $0.id == .global(.continueWatching) }!,
+                    inventory: HomeSectionCatalogModel(), visibility: visibility
+                )
             }
         } inspect: { window in
             _ = try await self.capture(window, name: "Mobile Rows on Home merge setting")
@@ -111,7 +114,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             XCTAssertTrue(store.load().mergeNextUpIntoContinueWatching)
             XCTAssertEqual(visibility.visibility.rowCustomization?.defaults, .combined)
             let text = lines.map(\.0).joined(separator: " ")
-            XCTAssertTrue(text.contains("Combined rows"), text)
+            XCTAssertTrue(text.contains("Continue Watching"), text)
             XCTAssertTrue(text.contains("Merge Next Up rows"), text)
         }
     }
@@ -188,8 +191,8 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             XCTAssertEqual(offlineRequests, 1)
             let lines = try await self.capture(window, name: "Home customization with an offline server")
             let text = lines.map(\.0).joined(separator: " ")
-            XCTAssertTrue(text.contains("Rows on Home"), text)
-            XCTAssertTrue(text.contains("Hero content sources"), text)
+            XCTAssertTrue(text.contains("Reorder"), text)
+            XCTAssertTrue(text.contains("Hero"), text)
             XCTAssertFalse(text.contains("Available server"), "Whole-library controls belong in Settings > Libraries.")
             XCTAssertFalse(text.contains("Movies"), text)
             XCTAssertFalse(text.contains("LIBRARIES"), text)
@@ -232,9 +235,9 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 XCTAssertEqual(requests, 1, title)
                 let lines = try await self.capture(window, name: "Home settings \(title)")
                 let text = lines.map(\.0).joined(separator: " ")
-                XCTAssertTrue(text.contains("Rows on Home"), text)
-                XCTAssertTrue(text.contains("Hero content sources"), text)
-                XCTAssertFalse(text.contains(title), "Discovery must not restore the removed library management list.")
+                XCTAssertTrue(text.contains("Reorder"), text)
+                XCTAssertTrue(text.contains("Hero"), text)
+                XCTAssertTrue(text.contains(title), "The section source must follow the active viewer.")
             }
         }
     }
@@ -272,12 +275,12 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             let currentRequests = await current.libraryRequests
             XCTAssertEqual(currentRequests, 1)
             let before = try await self.capture(window, name: "Current account libraries")
-            XCTAssertTrue(before.map(\.0).joined(separator: " ").contains("Rows on Home"))
+            XCTAssertTrue(before.map(\.0).joined(separator: " ").contains("Reorder"))
             await delayed.resumeLibraries()
             let after = try await self.capture(window, name: "Current libraries after stale failure")
             let text = after.map(\.0).joined(separator: " ")
-            XCTAssertTrue(text.contains("Hero content sources"), text)
-            XCTAssertFalse(text.contains("Current movies"), text)
+            XCTAssertTrue(text.contains("Hero"), text)
+            XCTAssertTrue(text.contains("Current movies"), text)
             XCTAssertFalse(text.contains("Original movies"), text)
         }
     }
@@ -299,10 +302,12 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         }
         await visibility.prepareServerDefaults(accounts: accounts)
         XCTAssertEqual(visibility.serverMatchFailures.count, 3)
+        let inventory = HomeSectionCatalogModel()
+        await inventory.load(libraries: [], accounts: accounts, visibility: visibility)
 
         try await withWindow {
             ScrollView {
-                HomeRowsSettingsView(libraries: [], accounts: accounts, visibility: visibility)
+                HomeCatalogStatus(inventory: inventory, accounts: accounts, libraries: [], retry: {})
                     .padding(24)
             }
             #if os(tvOS)
@@ -313,7 +318,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             let text = lines.map(\.0).joined(separator: " ")
             XCTAssertTrue(text.contains("Basement is offline."), text)
             XCTAssertTrue(text.contains("Sign in to Cinema again."), text)
-            XCTAssertTrue(text.contains("load Home rows from Loft."), text)
+            XCTAssertTrue(text.contains("load sections from Loft."), text)
             XCTAssertFalse(text.contains("Cinema is offline"), text)
             XCTAssertFalse(text.contains("Loft is offline"), text)
             XCTAssertFalse(text.contains("Available server is offline"), text)
@@ -321,12 +326,12 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             XCTAssertFalse(text.contains("Keeping known rows"), text)
 
             await offline.setHomeError(nil)
-            await visibility.prepareServerDefaults(accounts: accounts)
+            await inventory.load(libraries: [], accounts: accounts, visibility: visibility)
             let recovered = try await self.capture(window, name: "Recovered Home server")
             let recoveredText = recovered.map(\.0).joined(separator: " ")
             XCTAssertFalse(recoveredText.contains("Basement is offline"), recoveredText)
             XCTAssertTrue(recoveredText.contains("Sign in to Cinema again."), recoveredText)
-            XCTAssertTrue(recoveredText.contains("load Home rows from Loft."), recoveredText)
+            XCTAssertTrue(recoveredText.contains("load sections from Loft."), recoveredText)
         }
     }
 
@@ -336,11 +341,15 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
         let visibility = HomeLibraryVisibilityModel(store: store)
-        let libraries = ["Alpha", "Beta"].map {
+        let accounts = ["Alpha", "Beta"].map { name in
+            let provider = HomeSettingsLibraryProvider(name: name, kind: .mediaShare)
+            return ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        }
+        let libraries = accounts.map {
             AggregatedLibrary(
-                accountID: $0, accountName: "Viewer", serverName: "Server",
+                accountID: $0.account.id, accountName: "Viewer", serverName: "Server",
                 providerKind: .mediaShare,
-                library: MediaLibrary(id: $0, title: "\($0) Movies", kind: .movie)
+                library: MediaLibrary(id: $0.account.server.name, title: "\($0.account.server.name) Movies", kind: .movie)
             )
         }
 
@@ -353,16 +362,18 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         visibility.applyRows(.init(enabled: ids, disabled: hidden), choices: choices)
 
         try await withWindow {
-            ScrollView {
-                HomeRowsSettingsView(libraries: libraries, accounts: [], visibility: visibility)
-                    .padding(24)
+            #if os(iOS)
+            NavigationStack {
+                HomeRowsSettingsView(libraries: libraries, accounts: accounts, visibility: visibility)
             }
-            #if os(tvOS)
+            #else
+            HomeRowsSettingsView(libraries: libraries, accounts: accounts, visibility: visibility)
             .frame(width: 1050)
             #endif
         } inspect: { window in
             let before = try await self.capture(window, name: "Home arranger original order")
-            XCTAssertTrue(before.contains { $0.0.contains("Merge Next Up rows") })
+            XCTAssertFalse(before.contains { $0.0.contains("Merge Next Up rows") })
+            XCTAssertTrue(before.contains { $0.0.contains("Hero") })
             XCTAssertGreaterThan(try self.y("Alpha", in: before), try self.y("Beta", in: before))
             XCTAssertTrue(before.contains { $0.0.contains("All libraries") })
             visibility.applyRows(.init(enabled: Array(ids.reversed()), disabled: hidden), choices: choices)
@@ -407,10 +418,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         )
         for size in [DynamicTypeSize.large, .accessibility3] {
             try await withWindow {
-                ScrollView {
-                    HomeRowsSettingsView(libraries: [], accounts: [], visibility: visibility)
-                        .padding(24)
-                }
+                HomeRowPresetsView(visibility: visibility, accounts: [])
                 .environment(\.dynamicTypeSize, size)
                 #if os(tvOS)
                 .frame(width: 1050)
@@ -424,27 +432,6 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     try self.y("Match server", in: lines),
                     try self.y("Combined rows", in: lines)
                 )
-                XCTAssertGreaterThan(
-                    try self.y("Combined rows", in: lines),
-                    try self.y("CONTINUE", in: lines)
-                )
-                func scrollViews(_ view: UIView) -> [UIScrollView] {
-                    (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap(scrollViews)
-                }
-                var visible = lines
-                if !visible.contains(where: { $0.0 == "ROWS" }) {
-                    let scroll = try XCTUnwrap(scrollViews(window).first {
-                        $0.contentSize.height > $0.bounds.height
-                    })
-                    for step in 1...4 {
-                        scroll.setContentOffset(
-                            CGPoint(x: 0, y: CGFloat(step) * scroll.bounds.height * 0.4), animated: false
-                        )
-                        visible = try await self.capture(window, name: "Home rows scrolled at \(size)")
-                        if visible.contains(where: { $0.0 == "ROWS" }) { break }
-                    }
-                }
-                XCTAssertTrue(visible.contains { $0.0 == "ROWS" }, "The row arranger must remain reachable by scrolling.")
             }
         }
     }
@@ -487,6 +474,8 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         window.overrideUserInterfaceStyle = .dark
         window.rootViewController = UIHostingController(rootView:
             content()
+                .environment(HeroSettingsModel(store: InMemoryHeroSettingsStore()))
+                .environment(HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()))
                 .environment(\.themePalette, ThemePalette.dark)
                 .environment(\.colorScheme, .dark)
                 .environment(\.locale, Locale(identifier: "en_US"))

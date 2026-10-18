@@ -30,6 +30,8 @@ struct ContinueWatchingArtworkPicker: View {
                     accent: palette.accent,
                     compact: true,
                     swatchHeight: swatchHeight,
+                    titleLineLimit: nil,
+                    titleSizeGroup: ContinueWatchingArtworkStyle.allCases.map(\.displayName),
                     action: { style = option }
                 ) {
                     ContinueWatchingArtworkSwatch(
@@ -37,6 +39,8 @@ struct ContinueWatchingArtworkPicker: View {
                         cornerRadius: PlozzTheme.Metrics.Radius.content
                     )
                 }
+                .accessibilityLabel(Text(option.displayName))
+                .accessibilityAddTraits(style == option ? .isSelected : [])
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

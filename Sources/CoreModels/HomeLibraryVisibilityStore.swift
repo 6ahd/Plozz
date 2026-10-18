@@ -233,6 +233,22 @@ public final class HomeLibraryVisibilityModel {
         store.save(visibility)
     }
 
+    public func setHomeSectionVisible(
+        _ visible: Bool, id: HomeRowID, catalog: HomeSectionCatalog
+    ) throws {
+        let updated = try catalog.settingVisible(visible, id: id, in: visibility)
+        guard updated != visibility else { return }
+        visibility = updated
+        store.save(visibility)
+    }
+
+    public func reorderHomeSections(_ order: [HomeRowID], catalog: HomeSectionCatalog) throws {
+        let updated = try catalog.reordering(order, in: visibility)
+        guard updated != visibility else { return }
+        visibility = updated
+        store.save(visibility)
+    }
+
     public func useRowDefaults(_ defaults: HomeRowCustomization.Defaults) {
         serverRequest?.cancel()
         serverRequest = nil

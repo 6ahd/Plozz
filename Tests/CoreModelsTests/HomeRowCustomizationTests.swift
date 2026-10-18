@@ -2,6 +2,96 @@ import XCTest
 @testable import CoreModels
 
 final class HomeRowCustomizationTests: XCTestCase {
+    func testSectionCatalogPreservesEveryProviderAndDeduplicatesNativeRows() {
+        let kinds: [ProviderKind] = [.jellyfin, .emby, .plex, .silo, .mediaShare]
+        let libraries = kinds.flatMap { kind in
+            [library(kind.rawValue, "movies", provider: kind),
+             library(kind.rawValue, "shows", provider: kind, kind: .series)]
+        }
+        let native = HomeServerRowDefinition(
+            accountID: "silo", serverName: "Silo", providerKind: .silo,
+            section: .init(id: "native", kind: .nextUp)
+        )
+        let catalog = HomeSectionCatalog(libraries: libraries, serverRows: [native, native])
+        XCTAssertEqual(Set(catalog.choices.map(\.id)).count, catalog.choices.count)
+        XCTAssertEqual(catalog.choices.filter { $0.id == native.id }.count, 1)
+        for source in libraries {
+            XCTAssertTrue(catalog.choices.contains { $0.id == .library(source.key, kind: .recentlyAdded) })
+            XCTAssertEqual(
+                catalog.choices.contains { $0.id == .library(source.key, kind: .nextUp) },
+                [.jellyfin, .emby].contains(source.providerKind) && source.library.kind == .series
+            )
+        }
+        XCTAssertTrue(catalog.choices.contains { $0.id == .liveTV })
+        XCTAssertTrue(catalog.choices.contains { $0.id == .libraries })
+        XCTAssertFalse(catalog.choices.contains { $0.id == .library("mediaShare:shows", kind: .nextUp) })
+    }
+
+    func testSectionEditsPreservePresetsUntilARealChangeAndDoNotDisableLibraries() throws {
+        let source = library("a", "movies")
+        let catalog = HomeSectionCatalog(libraries: [source])
+        for preset: HomeRowCustomization.Defaults in [.combined, .provider, .legacy, .custom, .matchServer] {
+            var original = HomeLibraryVisibility(rowCustomization: .init(defaults: preset))
+            if preset == .custom {
+                original.rowCustomization = .init(
+                    defaults: .custom, order: [.global(.continueWatching)],
+                    shown: [.global(.continueWatching)]
+                )
+            }
+            original.continueWatchingShowsSeriesArtwork = false
+            let sections = catalog.sections(in: original)
+            XCTAssertEqual(try catalog.reordering(sections.enabled, in: original), original)
+            let target = try XCTUnwrap(sections.enabled.first)
+            XCTAssertEqual(try catalog.settingVisible(true, id: target, in: original), original)
+            let removed = try catalog.settingVisible(false, id: target, in: original)
+            XCTAssertFalse(catalog.sections(in: removed).enabled.contains(target))
+            XCTAssertTrue(removed.isEnabled(source.key))
+            XCTAssertFalse(removed.continueWatchingShowsSeriesArtwork)
+            let restored = try catalog.settingVisible(true, id: target, in: removed)
+            XCTAssertEqual(catalog.sections(in: restored).enabled.last, target)
+            XCTAssertFalse(restored.continueWatchingShowsSeriesArtwork)
+        }
+    }
+
+    func testSectionEditsPreserveOfflineAndMergedRowsAndRejectStaleOrders() throws {
+        let source = library("a", "shows")
+        let nextID = HomeRowID.library(source.key, kind: .nextUp)
+        let offlineID = HomeRowID.library("offline:shows", kind: .recentlyAdded)
+        let catalog = HomeSectionCatalog(libraries: [library("a", "shows", kind: .series)])
+        let original = HomeLibraryVisibility(
+            rowCustomization: .init(
+                defaults: .custom,
+                order: [offlineID, nextID, .global(.continueWatching), .libraries],
+                shown: [offlineID, nextID, .global(.continueWatching), .libraries]
+            ),
+            mergeNextUpIntoContinueWatching: true
+        )
+        let visible = catalog.sections(in: original).enabled
+        let reordered = try catalog.reordering(Array(visible.reversed()), in: original)
+        XCTAssertEqual(reordered.rowCustomization?.order.first, offlineID)
+        XCTAssertEqual(reordered.rowCustomization?.order[1], nextID)
+        XCTAssertTrue(reordered.rowCustomization?.shown.contains(offlineID) == true)
+        XCTAssertTrue(reordered.rowCustomization?.shown.contains(nextID) == true)
+        XCTAssertThrowsError(try catalog.settingVisible(true, id: nextID, in: reordered))
+        XCTAssertThrowsError(try catalog.reordering(visible + [visible[0]], in: original))
+        XCTAssertThrowsError(try catalog.reordering(Array(visible.dropFirst()), in: original))
+        let hiddenContinue = try catalog.settingVisible(false, id: .global(.continueWatching), in: original)
+        XCTAssertTrue(catalog.sections(in: hiddenContinue).enabled.contains(nextID))
+    }
+
+    func testSectionCatalogExcludesDisabledLibraryAndRetiredChoices() {
+        let source = library("a", "movies")
+        let native = HomeServerRowDefinition(
+            accountID: "a", serverName: "Server", providerKind: .jellyfin,
+            section: .init(id: "latest", kind: .recentlyAdded, libraryID: "movies")
+        )
+        let catalog = HomeSectionCatalog(libraries: [source], serverRows: [native])
+        var visibility = HomeLibraryVisibility.default
+        visibility.setEnabled(false, for: source.key)
+        XCTAssertFalse(catalog.availableChoices(in: visibility).contains { $0.library != nil || $0.id == native.id })
+        XCTAssertThrowsError(try catalog.settingVisible(true, id: native.id, in: visibility))
+    }
+
     private func library(
         _ account: String, _ id: String, provider: ProviderKind = .emby, kind: MediaItemKind = .movie
     ) -> AggregatedLibrary {

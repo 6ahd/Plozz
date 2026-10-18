@@ -14,8 +14,10 @@ fallback when the user's server has no attached trailer.
   off. Public provider caches stay profile-independent; server-owned library titles
   continue to follow the selected server user's access rather than an invented
   app-wide maturity threshold.
-- **Home row customization** — Settings > Customize Home > Rows on Home uses
-  the same individual-row arranger on TV, iPhone and iPad. Rows from different
+- **Home section customization** — Settings > Screens & Navigation > Customize Home
+  uses the same section editor on TV, iPhone and iPad. Tap a section to configure
+  it, Reorder to move it, or Add section to show another existing feed. Hero
+  stays configurable at the top, outside the movable row list. Rows from different
   libraries can be interleaved, reordered or hidden, including the Libraries
   tiles. `HomeRowCustomization` stores typed identity, order and explicit
   visibility inside the profile's existing Home settings blob; profile transfer
@@ -34,8 +36,8 @@ fallback when the user's server has no attached trailer.
   Global rows say **All libraries**; native server and library rows identify their
   source. All can be freely interleaved. Changing presets requires confirmation;
   selecting the already active preset does nothing.
-  **Merge Next Up rows** is a profile-scoped setting inside **Rows on Home** on
-  every platform, not a duplicate control on the parent Customize Home page.
+  **Merge Next Up rows** is a profile-scoped setting inside the **Continue Watching**
+  section's configuration on every platform, alongside its artwork choice.
   It uses the provider's combined resume/next-episode feed without changing the
   preset, library exclusions, or other row choices. Separate Next Up rows are
   neither requested nor presented while merged; the arranger omits them rather
@@ -65,7 +67,10 @@ fallback when the user's server has no attached trailer.
   that server's status; failures never reset saved row choices.
   Mobile library discovery follows the effective credential and Plex Home viewer,
   and cancelled lookups cannot restore another viewer's library choices.
-  The arranger enumerates optional recommendations only while open. Home omits
+  The section catalog enumerates optional recommendations only while the editor
+  is open. Section editing retains `HomeRowID` and the existing renderer; there
+  are no duplicate section instances, mixed feeds, per-section source filters
+  or new card layouts in this foundation. Home omits
   unselected row-family requests and stops a recommendation family after all its
   known rows are hidden. The separate library Recommended screen and Showcase's
   optional external Discover row are not redefined by these Home preferences.

@@ -10,11 +10,24 @@ and the single place caption customization lives.
 ## Responsibility
 
 - **Libraries** owns profile-wide library availability. Mobile Customize Home
-  does not duplicate its Enabled controls: Rows on Home manages row presentation,
+  does not duplicate its Enabled controls: the Home editor manages section presentation,
   and Hero source selection uses the enabled library inventory. Discovering
   libraries for those controls must not restore a separate management list.
-- **Rows on Home** owns the Merge Next Up rows control on TV and mobile.
-  Customize Home keeps Continue Watching artwork choices, not a second merge toggle.
+- **Customize Home** is one shared section editor on TV, iPhone and iPad.
+  Normal rows open their own settings. Reorder/Done switches to native movement
+  controls without a Hidden drop zone; Hero stays pinned and cannot move.
+  Add section offers available existing rows not already shown. Removing a
+  section hides it without erasing its configuration or disabling its libraries.
+  Continue Watching owns its merge and artwork controls. Hero owns its sources
+  and presentation, including the existing TV Home Layout/Showcase options.
+  Starting layout retains the confirmed Match server and Combined rows presets.
+  Merely opening the editor, a destination, or Reorder does not freeze a preset.
+  Shared `InlineErrorMessage` warnings name affected sources and offer retry.
+- `HomeSectionCatalog` owns typed choice deduplication and validated section
+  edits; `HomeSectionCatalogModel` owns bounded, identity-fenced discovery.
+  The UI writes through the existing profile-scoped `HomeLibraryVisibilityModel`.
+  See [CoreModels](../CoreModels/README.md#home-section-editing) for ownership
+  and extension boundaries. This editor does not introduce another feed engine.
 - Individual profile settings expose the existing device-wide Automatically
   Sign In preference below Kids Profile, followed by a separate Delete Profile
   group. Everyone → Profiles keeps the same control and binding. Shared

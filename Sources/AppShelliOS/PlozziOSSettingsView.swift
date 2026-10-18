@@ -1897,67 +1897,12 @@ struct PlozziOSHomeSettingsView: View {
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
     @State private var libraries: [HomeLibraryChoice] = []
-    @State private var showHomeRows = false
 
     var body: some View {
-        List {
-            SettingsSectionGroup("Rows") {
-                Button {
-                    showHomeRows = true
-                } label: {
-                    HStack {
-                        Text("Rows on Home")
-                        Spacer()
-                        Image(systemName: "chevron.forward")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            if visibility.isGlobalRowEnabled(.continueWatching) {
-                SettingsSectionGroup("Continue Watching") {
-                    Picker(
-                        "Artwork",
-                        selection: Binding<ContinueWatchingArtworkStyle>(
-                            get: {
-                                visibility.continueWatchingShowsSeriesArtwork
-                                    ? .logoAndArtwork
-                                    : .thumbnail
-                            },
-                            set: {
-                                visibility.setContinueWatchingShowsSeriesArtwork($0 == .logoAndArtwork)
-                            }
-                        )
-                    ) {
-                        ForEach(ContinueWatchingArtworkStyle.allCases, id: \.self) { option in
-                            Text(option.displayName).tag(option)
-                        }
-                    }
-                }
-            }
-
-            HeroSettingsControls(
-                libraries: aggregatedHomeLibraries.filter { visibility.isVisibleOnHome($0.key) },
-                accounts: accounts
-            )
-        }
+        HomeRowsSettingsView(libraries: aggregatedHomeLibraries, accounts: accounts, visibility: visibility)
+        .id(ObjectIdentifier(visibility))
         .environment(hero)
         .environment(heroBackground)
-        .settingsPageSurface()
-        .navigationTitle("Customize Home")
-        .navigationDestination(isPresented: $showHomeRows) {
-            ScrollView {
-                HomeRowsSettingsView(
-                    libraries: aggregatedHomeLibraries, accounts: accounts,
-                    visibility: visibility
-                )
-                .id(ObjectIdentifier(visibility))
-                .padding()
-            }
-            .navigationTitle("Rows on Home")
-            .settingsPageSurface()
-        }
         .task(id: accounts.map {
             [$0.account.id, $0.credentialRevision.rawValue.uuidString,
              $0.provider.session.userID, $0.plexHomeUserID ?? ""]

@@ -333,15 +333,15 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let home = app.buttons["settings-page-customize-home"]
         try focus(home, in: app)
         XCUIRemote.shared.press(.select)
-        XCTAssertTrue(app.staticTexts["Home Layout"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.buttons["home-section-hero"].waitForExistence(timeout: 5), app.debugDescription)
         capture("customize-home", in: app)
         assertCenteredSettingsColumn(in: app)
-        try focus(app.buttons["settings-page-home-rows-all"], in: app)
+        try focus(app.buttons["home-section-home-continueWatching"], in: app)
         XCUIRemote.shared.press(.select)
         capture("home-rows", in: app)
         assertCenteredSettingsColumn(in: app)
         XCUIRemote.shared.press(.menu)
-        waitForEnabled(app.buttons["settings-page-home-rows-all"])
+        waitForEnabled(app.buttons["home-section-home-continueWatching"])
         XCUIRemote.shared.press(.menu)
         waitForEnabled(home)
         XCTAssertTrue(hasFocus(home))
@@ -564,6 +564,59 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testHomeSectionEditorKeepsHeroFixedAndUsesNativeBack() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-customize-home"], in: app)
+        XCUIRemote.shared.press(.select)
+        let hero = app.buttons["home-section-hero"]
+        XCTAssertTrue(hero.waitForExistence(timeout: 5), app.debugDescription)
+        let heroY = hero.frame.minY
+        let reorder = app.buttons["home-section-reorder"]
+        try focus(reorder, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertFalse(hero.isEnabled)
+        XCTAssertFalse(app.staticTexts["HIDDEN"].exists)
+        let watching = app.buttons.containing(.staticText, identifier: "Continue Watching").firstMatch
+        try focus(watching, in: app)
+        let originalY = watching.frame.minY
+        let watchlist = app.buttons.containing(.staticText, identifier: "Watchlist").firstMatch
+        let movingUp = originalY > watchlist.frame.minY
+        XCUIRemote.shared.press(.select)
+        XCUIRemote.shared.press(movingUp ? .up : .down)
+        let moved = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in
+                watching.exists && self.hasFocus(watching)
+                    && (movingUp ? watching.frame.minY < originalY : watching.frame.minY > originalY)
+            }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 5), .completed, app.debugDescription)
+        XCUIRemote.shared.press(.select)
+        waitForEnabled(reorder)
+        try focus(reorder, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(hero.isEnabled)
+        XCTAssertEqual(hero.frame.minY, heroY, accuracy: 1)
+        let configured = app.buttons["home-section-home-continueWatching"]
+        try focus(configured, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["home-section-remove"].waitForExistence(timeout: 5), app.debugDescription)
+        capture("home-section-continue-watching", in: app)
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(configured)
+        XCTAssertTrue(hasFocus(configured), "Back must restore the section that opened its configuration.")
+        try focus(reorder, in: app)
+        XCUIRemote.shared.press(.left)
+        XCTAssertTrue(hasFocus(pageBack("settings-workspace-back", in: app)), app.debugDescription)
+        capture("home-section-header-back", in: app)
+        #else
+        throw XCTSkip("Simulator-only Home editor navigation.")
+        #endif
+    }
+
     func testHeroEditorsRemainInsideTheSettingsPane() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
@@ -571,13 +624,13 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.select)
         try focus(app.buttons["settings-page-customize-home"], in: app)
         XCUIRemote.shared.press(.select)
+        let hero = app.buttons["home-section-hero"]
+        XCTAssertTrue(hero.waitForExistence(timeout: 5))
+        try focus(hero, in: app)
+        XCUIRemote.shared.press(.select)
         let fullscreen = app.buttons["Fullscreen Hero"]
         XCTAssertTrue(fullscreen.waitForExistence(timeout: 5))
         try focus(fullscreen, in: app)
-        XCUIRemote.shared.press(.select)
-        let hero = app.buttons["settings-page-hero"]
-        XCTAssertTrue(hero.waitForExistence(timeout: 5))
-        try focus(hero, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.buttons["hero-settings-titles"].waitForExistence(timeout: 5))
         capture("hero", in: app)

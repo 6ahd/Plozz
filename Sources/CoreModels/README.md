@@ -42,6 +42,38 @@ language every other module speaks.
 | UI state | `LoadState`, `AppError` |
 | Subtitles | `SubtitleBehavior`, `SubtitleStyle` (rendered by `FeaturePlayback`) |
 
+## Home section editing
+
+`HomeSectionCatalog` adapts the existing `HomeRowChoice` inventory into section
+editing without creating a second identity or storage format. Global, native
+server, and library row IDs remain account/library qualified; provider-authored
+titles are display content, never identifiers. `LibraryHomeRowKind.available`
+and `MediaProvider` retain Jellyfin, Emby, Plex, Silo and share capability
+differences. Live TV remains its existing typed channel-shortcut section,
+with tuning and authorization owned by the Live TV runtime.
+
+Add/remove/reorder validate against the current editable catalog, then use
+`HomeLibraryVisibility.applyRows`. This preserves unavailable IDs, merged-away
+Next Up rows and their saved positions. Remove means hidden, not deleted;
+re-adding appends the section and retains its other settings. No-op actions
+do not turn a preset into a custom arrangement. Writes use the existing
+profile-scoped store and never mutate whole-library availability.
+
+`HomeSectionCatalogModel` discovers native layout metadata and optional
+recommendations with at most three concurrent catalog requests. Accounts,
+credential revisions, effective server/Plex viewers, enabled libraries and the
+profile model fence publications. Same-scope failures retain known choices
+and expose typed errors; cancellation and stale tasks cannot publish into a
+newer catalog. There is no timer, full-feed loader, playback resolution or
+new provider-specific API in the editor.
+
+Hero stays in `HeroSettings`, fixed above `HomePresentationRow`; Showcase remains
+a page layout. Future custom source scopes, mixed feeds, duplicate instances,
+curated sections and new appearances need explicit configuration and capability
+contracts before they can become templates in this editor. Do not overload an
+existing `HomeRowID` to represent independent instances or change provider IDs
+to make them unique in the UI.
+
 ## Version picker facts
 
 `MediaVersion.PickerPresentation` is the shared detail/player summary on TV and

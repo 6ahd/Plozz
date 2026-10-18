@@ -24,11 +24,11 @@ public struct ContinueWatchingNextUpControl: View {
             .accessibilityIdentifier("home-merge-next-up")
 
             if visibility.isGlobalRowEnabled(.continueWatching) {
-                Text("Move separate Next Up rows into Continue Watching. Your other rows stay unchanged.")
+                Text("Include next episodes in this section.")
                     .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("Show Continue Watching in Rows on Home to merge Next Up into it.")
+                Text("Add Continue Watching to Home to include Next Up.")
                     .settingsHelperText()
                     .fixedSize(horizontal: false, vertical: true)
             }
