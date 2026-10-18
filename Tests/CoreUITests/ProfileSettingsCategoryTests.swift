@@ -14,7 +14,7 @@ final class ProfileSettingsCategoryTests: XCTestCase {
         XCTAssertNotNil(ProfileSettingsCategory.screensNavigation.summary)
         XCTAssertEqual(
             ProfileSettingsCategory.trackers.summary,
-            "Trakt, WeTrakr, Simkl, AniList, MyAnimeList, Last.fm"
+            "Trakt, Simkl, WeTrakr, AniList, MyAnimeList, Last.fm"
         )
         XCTAssertNil(ProfileSettingsCategory.libraries.summary, "Libraries uses the actual included sources.")
         XCTAssertTrue(ProfileSettingsCategory.allCases.allSatisfy { !$0.symbol.isEmpty })

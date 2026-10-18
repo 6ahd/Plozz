@@ -78,6 +78,10 @@ registry.
 - **Profile-namespacing on switch.** Every per-user model must be
   rebuilt on profile change (`rebuildSettingsModels`) so settings,
   Trakt, and watched-state stay isolated.
+  Tracker connection callbacks defer until every tracker is scoped and the
+  watchlist reconciler matches the complete profile/identity/account scope.
+  Authentication retries and native refreshes share the setup, PIN, and
+  server-identity admission gates; callbacks never restart tracker scoping.
 
 ## Appearance onboarding
 

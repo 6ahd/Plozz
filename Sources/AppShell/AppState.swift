@@ -2626,21 +2626,20 @@ public final class AppState {
     @ObservationIgnored private var trackerScopedIdentityGeneration: Int?
 
     /// See `UniversalWatchlistHost.ensureTrackersScopedToActiveProfile()`.
-    public func ensureTrackersScopedToActiveProfile() async {
-        let ns = profilesModel.activeNamespace
+    public var trackersAreScopedToActiveProfile: Bool {
         // Scoped by the Plex identity as well as the profile. Switching
         // "watching as" changes who the app is reading for without changing the
         // profile, so a namespace-only check reported "already scoped" and
         // returned — leaving Home, Continue Watching and the watchlist showing
         // the PREVIOUS user's world until the viewer switched profiles away and
         // back, which is the only thing that moved the namespace.
-        let generation = plexHomeUsers.plexIdentityGeneration
-        if let scoped = trackerScopedNamespace,
-           scoped == ns,
-           trackerScopedIdentityGeneration == generation {
-            return
-        }
-        trackerScopedIdentityGeneration = generation
+        guard let scoped = trackerScopedNamespace else { return false }
+        return scoped == profilesModel.activeNamespace
+            && trackerScopedIdentityGeneration == plexHomeUsers.plexIdentityGeneration
+    }
+
+    public func ensureTrackersScopedToActiveProfile() async {
+        guard !trackersAreScopedToActiveProfile else { return }
         await updateTraktForActiveProfile()
     }
 
@@ -2648,6 +2647,8 @@ public final class AppState {
         let ns = profilesModel.activeNamespace
         trackerProfileGeneration &+= 1
         let generation = trackerProfileGeneration
+        let identityGeneration = plexHomeUsers.plexIdentityGeneration
+        trackerScopedNamespace = nil
         // Only a real change of WHO IS WATCHING invalidates the library index.
         // This runs on every profile-flow event and on every watchlist prepare,
         // and flushing the index cancels the library scan that was filling it —
@@ -2697,6 +2698,7 @@ public final class AppState {
         await lastfmService.setActiveProfile(namespace: ns)
         guard generation == trackerProfileGeneration else { return }
         trackerScopedNamespace = .some(ns)
+        trackerScopedIdentityGeneration = identityGeneration
         // Refill what the reset emptied, now that the trackers are actually
         // scoped to this viewer. Last, not inline with the reset: an index warmed
         // before the re-scope finished would be built for whoever was watching a

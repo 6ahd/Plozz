@@ -1709,9 +1709,13 @@ final class PlozziOSAppModel {
     private var trackerScopedNamespace: String??
 
     /// See `UniversalWatchlistHost.ensureTrackersScopedToActiveProfile()`.
+    var trackersAreScopedToActiveProfile: Bool {
+        guard let scoped = trackerScopedNamespace else { return false }
+        return scoped == profiles.activeNamespace
+    }
+
     func ensureTrackersScopedToActiveProfile() async {
-        let ns = profiles.activeNamespace
-        if let scoped = trackerScopedNamespace, scoped == ns { return }
+        guard !trackersAreScopedToActiveProfile else { return }
         await updateTrackersForActiveProfile()
     }
 
@@ -1719,6 +1723,7 @@ final class PlozziOSAppModel {
         let namespace = profiles.activeNamespace
         trackerProfileGeneration &+= 1
         let generation = trackerProfileGeneration
+        trackerScopedNamespace = nil
         guard generation == trackerProfileGeneration else { return }
         await traktService.setActiveProfile(namespace: namespace)
         guard generation == trackerProfileGeneration else { return }
