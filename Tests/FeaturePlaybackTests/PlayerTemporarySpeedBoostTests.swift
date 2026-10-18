@@ -324,7 +324,7 @@ final class PlayerTemporarySpeedBoostTests: XCTestCase {
         XCTAssertNil(model.temporarySpeedBoostRate)
         model.endTemporarySpeedBoost()
         XCTAssertNil(model.beginTemporarySpeedBoost())
-        XCTAssertTrue(engine.commands.isEmpty)
+        XCTAssertEqual(engine.commands, [.stop], "Terminal failure stops playback without restoring a rate.")
         XCTAssertTrue(preferences.writes.isEmpty)
         await model.stop()
     }

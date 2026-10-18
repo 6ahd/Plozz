@@ -4,6 +4,16 @@ Optional, profile-scoped movie/episode scrobbling and bidirectional planning-lis
 sync. All media backends use the same tracker boundary. Live channels and media
 without an identifiable movie or episode are not scrobbled.
 
+## Release availability
+
+WeTrakr is currently disabled in `RuntimeFeatureFlags.productionDefault` while
+API rate-limit behavior is investigated. Both platforms hide its tracker setup
+and watchlist links. Resolved configuration remains unavailable even when a
+client ID and saved connection exist, so status refresh, watchlist sync, and
+playback tracking cannot contact WeTrakr. Stored connections are not erased.
+Tests may explicitly enable the flag or inject a test configuration; restoring
+the production flag is a separate release decision.
+
 ## Registration
 
 Set `WETRAKR_CLIENT_ID` in the ignored `Config/Secrets.local.xcconfig`.

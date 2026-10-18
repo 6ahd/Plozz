@@ -128,12 +128,12 @@ final class LiveChannelPlayerModelTests: XCTestCase {
 
     func testLiveFailureCopyDoesNotAskPublicChannelViewersToSignInAgain() {
         let messages: [(AppError, String)] = [
-            (.notFound, "playlist link may be outdated"),
-            (.unauthorized, "provider refused access"),
+            (.notFound, "could not find this stream"),
+            (.unauthorized, "did not authorize access"),
             (.serverUnreachable, "streaming server"),
             (.invalidResponse, "playlist or video data"),
             (.decoding, "could not decode"),
-            (.rateLimited(retryAfter: nil), "Wait before trying again"),
+            (.rateLimited(retryAfter: nil), "limiting requests"),
             (.unknown("https://example.invalid/?token=fixture-secret"), "could not start playback")
         ]
         for (error, expected) in messages {
@@ -1069,7 +1069,12 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         engine.status = .failed(.invalidResponse)
         model.refreshFromEngine()
         XCTAssertEqual(report?.diagnostic?.evidence?.nativeErrors.first?.code, -12939)
+        XCTAssertEqual(model.failureReport, report, "The visible interruption retains the same report as the guide.")
         XCTAssertNil(engine.livePlaybackFailureDiagnostic, "Capture must precede teardown.")
+        engine.status = .ready
+        engine.liveSnapshot.phase = .loading
+        await model.retry()
+        XCTAssertNil(model.failureReport, "The next attempt starts with fresh diagnostic evidence.")
     }
 
     func testManualRetriesAreBounded() async {

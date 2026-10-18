@@ -316,7 +316,7 @@ struct PrototypeSheetContent: View {
                 case .organization:
                     LiveTVChannelOrganizationView(model: model, imports: imports, canMutate: canMutate)
                 case .diagnostics(let report):
-                    LiveTVDiagnosticDetailsView(report: report)
+                    PlaybackDiagnosticDetailsView(report: report)
                 case .multiviewFavorites:
                     LiveTVMultiviewFavoritesView(model: model, open: openMultiview)
                 case .filters:

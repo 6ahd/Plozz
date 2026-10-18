@@ -186,7 +186,7 @@ final class IPTVPlaybackHostedTests: XCTestCase {
         XCTAssertEqual(evidence.delivery?.root?.playlist?.mediaSequence, 100)
         XCTAssertEqual(evidence.delivery?.firstFailure?.status, 404)
         XCTAssertEqual(evidence.delivery?.firstFailure?.resource, .child)
-        let text = LiveTVDiagnosticReport.playback(failure).supportText
+        let text = PlaybackDiagnosticReport.playback(failure).supportText
         XCTAssertTrue(text.contains("upstream_first_failure.http_status=404"))
         for secret in ["private", "token", "secret", base.absoluteString] {
             XCTAssertFalse(text.contains(secret))

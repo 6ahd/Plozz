@@ -6,6 +6,15 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
+  error layout, bounded symbol inline with the heading, readable summary, adaptive
+  native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns
+  its dark palette without changing browsing themes. Its opaque themed surface
+  stays legible over video without depending on glass or motion.
+  `PlaybackDiagnosticDetailsView` is shared by on-demand playback, Live TV and
+  IPTV setup. It renders and shares only the structured `PlaybackDiagnosticReport`,
+  including app/OS identity; it is not the continuously sampled diagnostics HUD.
+
 - **Touch hero actions** — `HeroActionRow` preserves readable intrinsic widths
   before falling back to a vertical arrangement. `TouchHeroActionButtonStyle`
   lets labels wrap and uses bounded 24pt corners so tall accessibility-size

@@ -1,3 +1,4 @@
+import CoreModels
 import Foundation
 
 public struct WetrakrConfig: Sendable, Equatable {
@@ -19,9 +20,11 @@ public struct WetrakrConfig: Sendable, Equatable {
 
     public static func resolved(
         bundle: Bundle = .main,
-        environment: [String: String] = ProcessInfo.processInfo.environment
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        featureFlags: RuntimeFeatureFlags = .productionDefault
     ) -> Self {
-        Self(clientID: sanitize(bundle.object(forInfoDictionaryKey: "WetrakrClientID") as? String)
+        guard featureFlags.isEnabled(.wetrakr) else { return Self() }
+        return Self(clientID: sanitize(bundle.object(forInfoDictionaryKey: "WetrakrClientID") as? String)
             ?? sanitize(environment["WETRAKR_CLIENT_ID"]))
     }
 

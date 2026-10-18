@@ -10,6 +10,9 @@ language every other module speaks.
 - The dual-provider abstraction: `MediaProvider` protocol, `ProviderKind`,
   `ProviderRegistry` / `ProviderResolving`, `ResolvedAccount`.
 - Cross-cutting UI state: `LoadState`, `AppError`.
+- `PlaybackDiagnosticReport` supplies privacy-safe failure Details for on-demand
+  playback, Live TV and IPTV setup. Preserve typed reasons and numeric causes,
+  distinguish preparation/opening/playback, and never export raw error text.
 - Shared decode/encode helpers: `JSONDecoder.plozz`, `JSONEncoder.plozz`.
 - Subtitle behaviour + appearance model: `SubtitleBehavior`, `SubtitleStyle`,
   plus the neutral `SubtitleColor` / `SubtitleEdgeStyle` / `SubtitleMode` primitives.

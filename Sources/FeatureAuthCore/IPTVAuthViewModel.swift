@@ -50,7 +50,7 @@ public final class IPTVAuthViewModel {
     public private(set) var progress = IPTVImportProgress(stage: .connecting)
     public var progressMessage: LocalizedStringResource { progress.message }
     public private(set) var issue: LocalizedStringResource?
-    public private(set) var failureReport: LiveTVDiagnosticReport?
+    public private(set) var failureReport: PlaybackDiagnosticReport?
     private let deviceID: String
     private let onAuthenticated: (UserSession) throws -> Void
     private let signIn: SignIn
@@ -189,7 +189,7 @@ public final class IPTVAuthViewModel {
                         let failure: IPTVSetupDiagnostic.Failure = error is CompletionError
                             ? .init(.storage) : (error as? IPTVError)?.setupFailure ?? .sanitized(error)
                         attempt?.finish(failure)
-                        self.failureReport = attempt?.diagnostic.map(LiveTVDiagnosticReport.setup)
+                        self.failureReport = attempt?.diagnostic.map(PlaybackDiagnosticReport.setup)
                         self.isConnecting = false
                         self.show(error)
                     }
@@ -197,7 +197,7 @@ public final class IPTVAuthViewModel {
             }
         } catch {
             attempt?.finish(.init(.invalidInput))
-            failureReport = attempt?.diagnostic.map(LiveTVDiagnosticReport.setup)
+            failureReport = attempt?.diagnostic.map(PlaybackDiagnosticReport.setup)
             show(error, duringValidation: true)
         }
     }

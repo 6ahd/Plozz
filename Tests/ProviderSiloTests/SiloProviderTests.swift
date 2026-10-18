@@ -196,10 +196,56 @@ extension SiloProviderTests {
     do {
       _ = try await provider.playbackInfo(for: "movie:1")
       XCTFail("A shifted timeline must not report incorrect progress")
-    } catch { XCTAssertEqual(error as? AppError, .invalidResponse) }
+    } catch {
+      XCTAssertEqual(error as? StreamingQualityError, .serverRefusal(
+        "Silo returned a playback timeline offset that Plozz does not support.", reason: .unsupportedTimeline
+      ))
+    }
     let requests = await http.requests
     XCTAssertTrue(
       requests.contains { $0.method == .delete && $0.path == "/api/v2/playback/session1" })
+  }
+
+  func testNonseekableFallbackExplainsRefusalAndReleasesSessionExactlyOnce() async throws {
+    let raw = try credential().encoded()
+    var responses = playbackResponses()
+    responses["/api/v2/playback/start"] = responses["/api/v2/playback/start"]?
+      .replacingOccurrences(of: "\"can_seek_anywhere\":true", with: "\"can_seek_anywhere\":false")
+      .replacingOccurrences(of: "\"delivery\":\"original_http\"", with: "\"delivery\":\"server_transcode_hls\"")
+    let http = SiloHTTPStub(responses)
+    let provider = try SiloProvider(context: context(raw), credentials: SiloCredentialStub(raw), http: http)
+    do {
+      _ = try await provider.playbackInfo(for: "movie:1", forceTranscode: true)
+      XCTFail("A nonseekable plan must not bypass timeline validation")
+    } catch {
+      XCTAssertEqual(error as? StreamingQualityError, .serverRefusal(
+        "Silo returned a stream without seeking support. Plozz requires a seekable stream for this playback path.", reason: .nonSeekable
+      ))
+    }
+    let requests = await http.requests
+    XCTAssertEqual(requests.filter {
+      $0.method == .delete && $0.path == "/api/v2/playback/session1"
+    }.count, 1)
+  }
+
+  func testOrdinaryPlaybackPreservesTerminalRefusalWithoutQualityOptions() async throws {
+    let raw = try credential().encoded()
+    for reason in ["transcoding_disabled", "session_expired", "private server detail"] {
+      var responses = playbackResponses()
+      responses["/api/v2/playback/start"] = """
+        {"protocol_version":3,"outcome":"adaptation_unavailable","terminal":{"reason":"\(reason)","retryable":false}}
+        """
+      let http = SiloHTTPStub(responses)
+      let provider = try SiloProvider(context: context(raw), credentials: SiloCredentialStub(raw), http: http)
+      do {
+        _ = try await provider.playbackInfo(for: "movie:1")
+        XCTFail("The server refused playback")
+      } catch {
+        let failure = try XCTUnwrap(error as? StreamingQualityError)
+        XCTAssertEqual(failure, SiloStreamingSelection.refusal(reason))
+        XCTAssertFalse(String(localized: failure.userMessage).contains("private"))
+      }
+    }
   }
 
   func testUncertainRefreshIsNotReplayedAfterRecreatingProvider() async throws {
@@ -634,7 +680,11 @@ final class SiloProviderTests: XCTestCase {
     do {
       _ = try await provider.playbackInfo(for: "movie:1")
       XCTFail("A different returned file must not play")
-    } catch { XCTAssertEqual(error as? AppError, .invalidResponse) }
+    } catch {
+      XCTAssertEqual(error as? StreamingQualityError, .serverRefusal(
+        "Silo returned a different file than the selected version. Plozz stopped playback to avoid playing the wrong file.", reason: .sourceMismatch
+      ))
+    }
     let requests = await http.requests
     XCTAssertTrue(
       requests.contains { $0.method == .delete && $0.path == "/api/v2/playback/session1" })

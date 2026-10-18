@@ -31,8 +31,10 @@ struct PlozziOSTrackerSettingsView: View {
             SettingsSectionGroup(verbatim: "Simkl") {
                 SimklSettingsContent(service: appModel.simklService)
             }
-            SettingsSectionGroup(verbatim: "WeTrakr") {
-                WetrakrSettingsContent(service: appModel.wetrakrService)
+            if appModel.wetrakrService.isConfigured {
+                SettingsSectionGroup(verbatim: "WeTrakr") {
+                    WetrakrSettingsContent(service: appModel.wetrakrService)
+                }
             }
 
             SettingsSectionGroup(verbatim: "AniList") {

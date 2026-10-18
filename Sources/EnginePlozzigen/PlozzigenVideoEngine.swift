@@ -411,8 +411,11 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     // MARK: - VideoEngine Lifecycle
 
+    public private(set) var streamingFailure: StreamingPlaybackFailure?
+
     public func load(request: PlaybackRequest, startPosition: TimeInterval) async {
         guard let outputGeneration = await beginOutputLoad() else { return }
+        streamingFailure = nil
         invalidateScrubStills()
         activeTransportReader?.closeAllReaders()
         activeTransportReader = nil
@@ -554,7 +557,10 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
                 "Plozzigen load failed at \(stage): "
                     + HandoffDiagnostics.redactedDetail(detail)
             )
-            let err: AppError = .unknown(detail)
+            streamingFailure = PlozzigenPlaybackFailure.classify(
+                stage == "resolve" ? nil : engine.errorInfo, fallbackError: error
+            )
+            let err: AppError = error as? AppError ?? .unknown(detail)
             status = .failed(err)
             onFailure?(err)
         }
@@ -562,6 +568,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     public func loadLive(url: URL, httpHeaders: [String: String]) async {
         guard let outputGeneration = await beginOutputLoad() else { return }
+        streamingFailure = nil
         liveScrubThumbnails = LiveHLSScrubThumbnails(playlistURL: url, headers: httpHeaders) { [weak self] in
             (self?.engine.currentAVPlayer?.currentItem?.accessLog()?.events.last?.uri).flatMap(URL.init(string:))
         }
@@ -1685,6 +1692,8 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
                         "Plozzigen playback failed: "
                             + HandoffDiagnostics.redactedDetail(msg)
                     )
+                    let info = self.engine.errorInfo.flatMap { $0.message == msg ? $0 : nil }
+                    self.streamingFailure = PlozzigenPlaybackFailure.classify(info)
                     let err: AppError = .unknown(msg)
                     self.status = .failed(err)
                     if !self.suppressFailureCallbackForForegroundReload {

@@ -56,8 +56,6 @@ struct PlozziOSPlayerView: View {
     @State private var activeItem: MediaItem?
     @State private var activePlaylist: VideoPlaylistPlaybackContext?
     @State private var presentsVersions = false
-    @State private var showsSDRVersions = false
-    @State private var selectedSDRAlternative = false
     @State private var announcedSDRPlayer: UUID?
     @State private var playbackStatus = TransientStatusPresenter()
     @State private var versionChoice = PlaybackVersionChoiceModel()
@@ -93,13 +91,6 @@ struct PlozziOSPlayerView: View {
                     viewModel: viewModel,
                     showDiagnostics: appModel.settings.diagnostics.settings.isEnabled,
                     showsSharedControls: false,
-                    onChangeQuality: { presentsStreamingQuality = true },
-                    onChangeVersion: PlayerVersionSelection.versions(for: versionItem).count > 1
-                        ? { showVersions(onlySDR: false) } : nil,
-                    onPlaySDRVersion: viewModel.streamingHasHDRConversionError
-                        && !PlayerVersionSelection.sdrAlternatives(
-                            for: versionItem, mediaSourceID: viewModel.currentMediaSourceID
-                        ).isEmpty ? { showVersions(onlySDR: true) } : nil,
                     onDismiss: orientation.close
                 )
                 .id(playerIdentity)
@@ -109,7 +100,7 @@ struct PlozziOSPlayerView: View {
                         keyboardActions: keyboardActions,
                         hasVersions: PlayerVersionSelection.versions(for: versionItem).count > 1,
                         versionsPresented: presentsVersions,
-                        onShowVersions: { showVersions(onlySDR: false) },
+                        onShowVersions: { presentsVersions = true },
                         onClose: { dismiss() }
                     )
                     .id(playerIdentity)
@@ -212,7 +203,7 @@ struct PlozziOSPlayerView: View {
         .plozzSheet(isPresented: $presentsVersions) {
             PlozziOSPlayerVersionSheet(
                 item: versionItem, mediaSourceID: viewModel?.currentMediaSourceID,
-                onlySDR: showsSDRVersions,
+                onlySDR: false,
                 onSelect: switchVersion
             )
         }
@@ -272,7 +263,6 @@ struct PlozziOSPlayerView: View {
                 }
                 viewModel = incoming
                 activeItem = next
-                selectedSDRAlternative = false
                 playerIdentity = UUID()
                 handoffTask = nil
             }
@@ -306,7 +296,6 @@ struct PlozziOSPlayerView: View {
                 let incoming = makeViewModel(item: selected, startPosition: 0)
                 viewModel = incoming
                 activeItem = selected
-                selectedSDRAlternative = false
                 playerIdentity = UUID()
                 handoffTask = nil
             }
@@ -398,15 +387,10 @@ struct PlozziOSPlayerView: View {
         )
     }
 
-    private func showVersions(onlySDR: Bool) {
-        showsSDRVersions = onlySDR
-        presentsVersions = true
-    }
-
     private func presentSDRNoticeIfReady() {
         guard let viewModel, viewModel.phase == .ready, !viewModel.showBringUpSpinner,
               announcedSDRPlayer != playerIdentity,
-              selectedSDRAlternative || viewModel.streamingUsesSDRConversion else { return }
+              viewModel.streamingUsesSDRConversion else { return }
         announcedSDRPlayer = playerIdentity
         playbackStatus.present(icon: "display", text: "Playing in SDR")
     }
@@ -415,9 +399,6 @@ struct PlozziOSPlayerView: View {
         guard let outgoing = viewModel, handoffTask == nil,
               let incomingItem = PlayerVersionSelection.selecting(id, in: versionItem) else { return }
         let continuation = outgoing.continuationForVersionChange()
-        let choseSDR = showsSDRVersions && PlayerVersionSelection.sdrAlternatives(
-            for: versionItem, mediaSourceID: outgoing.currentMediaSourceID
-        ).contains { $0.id == id }
         if let version = PlayerVersionSelection.versions(for: versionItem).first(where: { $0.id == id }) {
             appModel.versionPreferences.rememberVersion(
                 version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: versionItem)
@@ -433,7 +414,6 @@ struct PlozziOSPlayerView: View {
                 item: incomingItem, startPosition: continuation.position, continuation: continuation
             )
             activeItem = incomingItem
-            selectedSDRAlternative = choseSDR
             viewModel = incoming
             playerIdentity = UUID()
             handoffTask = nil

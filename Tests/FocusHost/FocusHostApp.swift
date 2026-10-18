@@ -8,7 +8,9 @@ import FeaturePlayback
 struct FocusHostApp: App {
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--setup-picker-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--playback-failure-fixture") {
+                PlaybackFailureFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--setup-picker-fixture") {
                 SetupPickerFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--setup-summary-fixture") {
                 SetupSummaryFixture()
