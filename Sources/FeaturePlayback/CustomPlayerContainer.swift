@@ -204,7 +204,13 @@ struct ThemePaletteBox {
 /// cell is disabled. Returning to playback must not focus every parked card.
 final class PlayerInputView: UIView {
     var allowsFocus = true
-    override var canBecomeFocused: Bool { allowsFocus }
+    override var canBecomeFocused: Bool {
+#if os(tvOS)
+        allowsFocus
+#else
+        false
+#endif
+    }
 }
 
 /// Owns the focusable input surface, hosts the engine's bare video output view,
@@ -351,7 +357,9 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
 
     override func viewDidLoad() {
         super.viewDidLoad()
+#if os(tvOS)
         installGestures()
+#endif
     }
 
     override func viewDidLayoutSubviews() {
@@ -361,10 +369,12 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+#if os(tvOS)
         // Make sure our input surface owns the focus so the Siri Remote's presses
         // and indirect-touch pans reach our gesture recognizers.
         setNeedsFocusUpdate()
         updateFocusIfNeeded()
+#endif
         startRefreshLoop()
         startSubtitleClock()
 #if os(tvOS)
@@ -389,7 +399,13 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
 #endif
     }
 
-    override var canBecomeFirstResponder: Bool { true }
+    override var canBecomeFirstResponder: Bool {
+#if os(tvOS)
+        true
+#else
+        false
+#endif
+    }
 
     func configureScrubPreview(
         _ source: ScrubPreviewSource?,
@@ -730,7 +746,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     private func enterSkipButton(stealFocus: Bool = true) {
         presentingSkipButton = true
         model.skipSegments.isPresentingButton = true
-        guard stealFocus else {
+        guard stealFocus, skipButtonHost != nil else {
             // Passive present (a grace-window seek landed here): the button is
             // visible but the scrub surface keeps focus and stays fully
             // interactive, so the seek is never hijacked. An Up press grabs the
@@ -838,7 +854,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     private func enterUpNext(stealFocus: Bool = true) {
         presentingUpNext = true
         model.upNextCard.isPresenting = true
-        guard stealFocus else {
+        guard stealFocus, upNextHost != nil else {
             // Passive present (a grace-window seek landed in credits): the card is
             // visible but the scrub surface keeps focus, so the seek is never
             // hijacked. An Up press grabs the card (see `handleUp`).
@@ -893,6 +909,7 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
     // MARK: Focus
 
     override var preferredFocusEnvironments: [UIFocusEnvironment] {
+#if os(tvOS)
         // While the bottom control bar is active, hand focus to it so the Siri
         // Remote drives its native buttons; the skip button likewise grabs focus
         // while it's presented; otherwise the input surface owns focus so
@@ -907,6 +924,9 @@ final class PlayerInputViewController: UIViewController, UIGestureRecognizerDele
             return [controlBarHost.view]
         }
         return [playerInputView]
+#else
+        return super.preferredFocusEnvironments
+#endif
     }
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {

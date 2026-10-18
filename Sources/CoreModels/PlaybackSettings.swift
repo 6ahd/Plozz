@@ -36,6 +36,8 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// iOS only. Keep video audio playing on lock/app background without PiP.
     /// Opt-in so existing profiles retain pause-on-lock behavior.
     public var backgroundAudio: Bool
+    /// iPhone/iPad vertical swipes: brightness on the left, system volume on the right.
+    public var volumeBrightnessGestures: Bool
     /// iPhone full-screen player preference. iPad follows system rotation.
     public var orientation: PlaybackOrientation
     public var streaming: StreamingQualitySettings
@@ -165,6 +167,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         fadeOnDynamicRangeChange: Bool = true,
         fadeOnFrameRateChange: Bool = true,
         backgroundAudio: Bool = false,
+        volumeBrightnessGestures: Bool = true,
         orientation: PlaybackOrientation = .landscape,
         streaming: StreamingQualitySettings = .default,
         versionSelectionMode: PlaybackVersionSelectionMode? = nil
@@ -188,6 +191,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         self.fadeOnDynamicRangeChange = fadeOnDynamicRangeChange
         self.fadeOnFrameRateChange = fadeOnFrameRateChange
         self.backgroundAudio = backgroundAudio
+        self.volumeBrightnessGestures = volumeBrightnessGestures
         self.orientation = orientation
         self.streaming = streaming
         self.versionSelectionMode = versionSelectionMode
@@ -217,6 +221,7 @@ public extension PlaybackSettings {
         case skipForwardInterval
         case resumeRewindInterval
         case backgroundAudio
+        case volumeBrightnessGestures
         case orientation
         case streaming
         case versionSelectionMode
@@ -282,6 +287,9 @@ public extension PlaybackSettings {
             (try? container.decodeIfPresent(ResumeRewindInterval.self, forKey: .resumeRewindInterval))
             .flatMap { $0 } ?? defaults.resumeRewindInterval
         self.backgroundAudio = try container.decodeIfPresent(Bool.self, forKey: .backgroundAudio) ?? false
+        self.volumeBrightnessGestures =
+            try container.decodeIfPresent(Bool.self, forKey: .volumeBrightnessGestures)
+            ?? defaults.volumeBrightnessGestures
         self.orientation = (try? container.decode(PlaybackOrientation.self, forKey: .orientation))
             ?? defaults.orientation
         self.streaming = (try? container.decode(StreamingQualitySettings.self, forKey: .streaming)) ?? .default
@@ -351,6 +359,7 @@ public extension PlaybackSettings {
         try container.encode(skipForwardInterval, forKey: .skipForwardInterval)
         try container.encode(resumeRewindInterval, forKey: .resumeRewindInterval)
         try container.encode(backgroundAudio, forKey: .backgroundAudio)
+        try container.encode(volumeBrightnessGestures, forKey: .volumeBrightnessGestures)
         try container.encode(orientation, forKey: .orientation)
         try container.encode(streaming, forKey: .streaming)
         try container.encodeIfPresent(versionSelectionMode, forKey: .versionSelectionMode)

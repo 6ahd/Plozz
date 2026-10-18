@@ -35,6 +35,7 @@ struct PlozziOSPlaybackRequest: Identifiable {
 struct PlozziOSPlayerView: View {
     @Environment(HeroTrailerController.self) private var trailerController
     @Environment(PlozziOSAppModel.self) private var appModel
+    @Environment(\.scenePhase) private var scenePhase
     let orientation: PlozziOSPlayerOrientation
     /// Installed by the enclosing navigation stack. Used by the Cast card's
     /// credit posters, which leave the film for a title's own page — the same
@@ -43,6 +44,7 @@ struct PlozziOSPlayerView: View {
     /// Likewise for "See more" on a cast member, which opens their own page.
     @Environment(\.mediaPersonSourceNavigator) private var navigateToPerson
     @State private var viewModel: PlayerViewModel?
+    @State private var keyboardActions = PlozziOSPlayerKeyboardActions()
     @State private var playbackSession: PlozziOSAppModel.PlaybackSession?
     @State private var playerIdentity = UUID()
     @State private var handoffTask: Task<Void, Never>?
@@ -79,6 +81,13 @@ struct PlozziOSPlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
+            PlozziOSPlayerKeyboardControls(
+                isEnabled: keyboardCommandsEnabled,
+                canSeek: keyboardActions.canSeek,
+                onSkip: { keyboardActions.skip?($0) },
+                onPlayPause: { keyboardActions.playPause?() }
+            )
+
             if let viewModel {
                 PlayerView(
                     viewModel: viewModel,
@@ -97,6 +106,7 @@ struct PlozziOSPlayerView: View {
                 if viewModel.phase == .ready, !viewModel.showBringUpSpinner {
                     PlozziOSPlayerControlsOverlay(
                         viewModel: viewModel,
+                        keyboardActions: keyboardActions,
                         hasVersions: PlayerVersionSelection.versions(for: versionItem).count > 1,
                         versionsPresented: presentsVersions,
                         onShowVersions: { showVersions(onlySDR: false) },
@@ -114,6 +124,7 @@ struct PlozziOSPlayerView: View {
             }
         }
         .statusBarHidden()
+        .playerTouchLevelSession(isActive: viewModel?.externalPlaybackRouteName == nil)
         .overlay(alignment: .top) {
             VStack {
                 TransientStatusView(presenter: playbackStatus)
@@ -127,6 +138,7 @@ struct PlozziOSPlayerView: View {
         }
         .onDisappear {
             isPresented = false
+            keyboardActions.clear()
             versionChoice.cancel()
             playbackStatus.dismiss()
             handoffTask?.cancel()
@@ -147,6 +159,7 @@ struct PlozziOSPlayerView: View {
                 if let outgoing { await outgoing.stop() }
                 if let heroOwner { heroController.resumeAfterPlayback(owner: heroOwner) }
             }
+
         }
         .task {
             suspendHeroPlayback()
@@ -298,6 +311,13 @@ struct PlozziOSPlayerView: View {
                 handoffTask = nil
             }
         }
+    }
+
+    private var keyboardCommandsEnabled: Bool {
+        keyboardActions.isEnabled && scenePhase == .active
+            && !presentsStreamingQuality && !presentsVersions
+            && versionChoice.prompt == nil && !versionChoiceFailed
+            && viewModel?.controls.diagnosticsEnabled != true
     }
 
     private var closeButton: some View {
