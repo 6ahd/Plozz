@@ -96,6 +96,7 @@ private struct PlaybackVersionChoiceList: View {
     let select: (String) -> Void
     @Environment(\.locale) private var locale
     @Environment(\.themePalette) private var palette
+    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var focusedID: String?
 
     var body: some View {
@@ -111,8 +112,15 @@ private struct PlaybackVersionChoiceList: View {
                 ForEach(prompt.versions) { version in
                     Button { select(version.id) } label: {
                         PlaybackVersionChoiceLabel(presentation: .init(version, locale: locale))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 8)
+                            #if os(tvOS)
+                            .environment(\.themePalette, focusedID == version.id ? .light : palette)
+                            .environment(\.colorScheme, focusedID == version.id ? .light : colorScheme)
+                            #endif
                     }
                     .plozzActionButton(role: .secondary)
+                    .buttonBorderShape(.roundedRectangle(radius: 16))
                     .focused($focusedID, equals: version.id)
                     .accessibilityIdentifier("version-choice-\(version.id)")
                 }
@@ -131,11 +139,23 @@ private struct PlaybackVersionChoiceLabel: View {
     let presentation: MediaVersion.PickerPresentation
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let title = presentation.title { Text(verbatim: title) }
-            else { Text("Original") }
-            if !presentation.supplementalFacts.isEmpty {
-                Text(verbatim: presentation.supplementalFacts.joined(separator: " · "))
+        VStack(alignment: .leading, spacing: 8) {
+            if !presentation.badges.isEmpty {
+                WrappingHStackLayout(spacing: 10, lineSpacing: 8) {
+                    ForEach(presentation.badges) { badge in
+                        MetadataMediaBadgeChip(badge: badge)
+                    }
+                }
+            }
+            if let title = presentation.titleWithoutBadges {
+                Text(verbatim: title)
+                    .font(.subheadline.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if presentation.badges.isEmpty {
+                Text("Original")
+            }
+            if !presentation.supplementalFactsWithoutBadges.isEmpty {
+                Text(verbatim: presentation.supplementalFactsWithoutBadges.joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

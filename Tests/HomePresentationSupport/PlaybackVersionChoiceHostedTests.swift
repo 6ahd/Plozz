@@ -24,10 +24,15 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
     func testLongVersionListStaysBoundedWithReducedTransparencyAndLargerText() async throws {
         try await exercise(width: 1920, typeSize: .accessibility1, versionCount: 12, reduceTransparency: true)
     }
+    #else
+    func testLongVersionCardsStayReadableInLightAppearance() async throws {
+        try await exercise(width: 390, typeSize: .large, versionCount: 8, colorScheme: .light)
+    }
     #endif
 
     private func exercise(
-        width: CGFloat, typeSize: DynamicTypeSize, versionCount: Int = 2, reduceTransparency: Bool = false
+        width: CGFloat, typeSize: DynamicTypeSize, versionCount: Int = 2, reduceTransparency: Bool = false,
+        colorScheme: ColorScheme = .dark
     ) async throws {
         try await waitUntil {
             UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
@@ -42,9 +47,14 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         let preferences = VersionPreferenceStore(defaults: defaults)
         let model = PlaybackVersionChoiceModel()
         var versions: [MediaVersion] = [
-            .init(id: "4k", fileName: "Example.2160p.REMUX-GROUP.mkv", height: 2160, sizeBytes: 42_000_000_000,
+            .init(id: "4k", fileName: "Example.Movie.2026.MULTi.2160p.Dolby.Vision.TrueHD.Atmos.REMUX-GROUP.mkv",
+                  height: 2160, sizeBytes: 42_000_000_000,
                   duration: 7_200, videoCodec: "hevc", videoRange: "HDR10",
-                  audioCodec: "truehd", sourceMetadata: .init(audioLanguages: ["eng", "fra"])),
+                  audioCodec: "truehd", sourceMetadata: .init(
+                      video: .init(codec: "hevc", width: 3840, height: 2160, videoRangeType: "DOVIWithHDR10"),
+                      audio: .init(codec: "truehd", profile: "Atmos"),
+                      audioLanguages: ["eng", "fra"]
+                  )),
             .init(id: "1080", height: 1080, videoRange: "SDR")
         ]
         for index in 2..<versionCount {
@@ -53,12 +63,13 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         let item = MediaItem(id: "movie", title: "Version fixture", kind: .movie, versions: versions)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: width, height: width >= 768 ? 1080 : 844)
-        window.overrideUserInterfaceStyle = .dark
+        window.overrideUserInterfaceStyle = colorScheme == .dark ? .dark : .light
         window.rootViewController = UIHostingController(rootView:
             VersionChoiceHostedFixture(
                 model: model, probe: probe, item: item, settings: settings, preferences: preferences
             )
-            .environment(\.themePalette, .dark)
+            .environment(\.themePalette, colorScheme == .dark ? .dark : .light)
+            .environment(\.colorScheme, colorScheme)
             .environment(\.locale, Locale(identifier: "en_US"))
             .environment(\.dynamicTypeSize, typeSize)
             .environment(\.plozzReduceTransparency, reduceTransparency)

@@ -390,6 +390,22 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         public let title: String? // l10n:content — provider edition/name and technical facts
         public let supplementalFacts: [String]
         public let releaseName: String? // l10n:content — provider release name or file basename
+        public let badges: [MediaBadge]
+
+        public var titleWithoutBadges: String? {
+            guard let title else { return nil }
+            let facts = title.components(separatedBy: " · ").filter { !badgeLabels.contains($0) }
+            return facts.isEmpty ? nil : facts.joined(separator: " · ")
+        }
+
+        public var supplementalFactsWithoutBadges: [String] {
+            supplementalFacts.flatMap { $0.components(separatedBy: " + ") }
+                .filter { !badgeLabels.contains($0) }
+        }
+
+        private var badgeLabels: Set<String> {
+            Set(badges.flatMap { [$0.label, $0.accessibilityText] })
+        }
 
         public init(_ version: MediaVersion, locale: Locale = .current) {
             let fileName = MediaSourceDisplayName.fileName(from: version.fileName)
@@ -397,11 +413,17 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
             title = version.displayLabel
             let titleFacts = Set((title ?? "").components(separatedBy: " · "))
             let video = version.sourceMetadata?.video
+            let codec = PlaybackDiagnostics.friendlyCodecName(video?.codec ?? version.videoCodec)
+            var formats = version.technicalBadges
+            if let codec, !formats.contains(where: { $0.label == codec }) {
+                formats.append(MediaBadge(codec))
+            }
+            badges = formats
             let languages = version.audioLanguageNames(in: locale)
             let rangeFacts = version.sourceMetadata?.dynamicRangeBadges.map(\.label) ?? []
             supplementalFacts = (rangeFacts + [
                 version.sourceQualityLabel ?? EditionParser.sourceQuality(from: fileName),
-                PlaybackDiagnostics.friendlyCodecName(video?.codec ?? version.videoCodec),
+                codec,
                 PlaybackDiagnostics.colorDescription(bitDepth: video?.bitDepth, transfer: nil, rangeType: nil),
                 languages.isEmpty ? nil : languages.joined(separator: ", "),
                 version.audioFormatLabel,
