@@ -46,6 +46,9 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// or explicitly chooses a mode in Settings.
     public var versionSelectionMode: PlaybackVersionSelectionMode?
 
+    /// Reuse explicit version choices across episodes, independently of whether the picker is shown.
+    public var rememberVersionPerSeries: Bool
+
     /// Whether finishing/resuming/marking a title converges your watch state on
     /// **every** server that holds it (the default), or only the server you
     /// actually watched on. ON (default) preserves today's cross-server fan-out;
@@ -170,7 +173,8 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         volumeBrightnessGestures: Bool = true,
         orientation: PlaybackOrientation = .landscape,
         streaming: StreamingQualitySettings = .default,
-        versionSelectionMode: PlaybackVersionSelectionMode? = nil
+        versionSelectionMode: PlaybackVersionSelectionMode? = nil,
+        rememberVersionPerSeries: Bool = true
     ) {
         self.skipIntros = skipIntros
         self.skipModeOverrides = skipModeOverrides
@@ -195,6 +199,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         self.orientation = orientation
         self.streaming = streaming
         self.versionSelectionMode = versionSelectionMode
+        self.rememberVersionPerSeries = rememberVersionPerSeries
     }
 
     public static let `default` = PlaybackSettings()
@@ -225,6 +230,7 @@ public extension PlaybackSettings {
         case orientation
         case streaming
         case versionSelectionMode
+        case rememberVersionPerSeries
         case syncWatchAcrossServers
         case seekWithoutPausing
         case autoPlayNextEpisode
@@ -294,6 +300,9 @@ public extension PlaybackSettings {
             ?? defaults.orientation
         self.streaming = (try? container.decode(StreamingQualitySettings.self, forKey: .streaming)) ?? .default
         self.versionSelectionMode = try? container.decode(PlaybackVersionSelectionMode.self, forKey: .versionSelectionMode)
+        self.rememberVersionPerSeries =
+            (try? container.decodeIfPresent(Bool.self, forKey: .rememberVersionPerSeries))
+            ?? defaults.rememberVersionPerSeries
         self.syncWatchAcrossServers =
             (try? container.decodeIfPresent(Bool.self, forKey: .syncWatchAcrossServers))
             .flatMap { $0 } ?? defaults.syncWatchAcrossServers
@@ -363,6 +372,7 @@ public extension PlaybackSettings {
         try container.encode(orientation, forKey: .orientation)
         try container.encode(streaming, forKey: .streaming)
         try container.encodeIfPresent(versionSelectionMode, forKey: .versionSelectionMode)
+        try container.encode(rememberVersionPerSeries, forKey: .rememberVersionPerSeries)
         try container.encode(syncWatchAcrossServers, forKey: .syncWatchAcrossServers)
         try container.encode(seekWithoutPausing, forKey: .seekWithoutPausing)
         try container.encode(autoPlayNextEpisode, forKey: .autoPlayNextEpisode)

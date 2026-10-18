@@ -1464,6 +1464,7 @@ struct SeriesDetailView: View {
     /// this show in 4K", and every later episode matches the same shape.
     private func selectVersion(_ id: String) {
         versionOverride = id
+        guard versionPreferences.remembersSeriesVersions else { return }
         guard let target = playTarget,
               let version = playVersions.first(where: { $0.id == id }) else {
             if let target = playTarget {

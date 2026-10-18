@@ -118,6 +118,13 @@ The separate `declaredFileSizeBytes` extractor reads unambiguous, explicitly
 byte-unit quantities from descriptions. Providers decide whether that declaration
 is authoritative; bitrate units and filename/locator text never become byte sizes.
 
+Playback version prompting and series memory are independent profile settings.
+`versionSelectionMode` stays unanswered until first multi-version playback or a
+Settings choice; `rememberVersionPerSeries` defaults on. Legacy `rememberChoice`
+decodes as `automatic`. `VersionPreferenceStore` reads the live playback policy
+from its own namespace, so all existing request/detail resolvers honor the toggle
+without another unscoped preference. Automatic resolution never writes a memory.
+
 ## Artwork and profile presentation
 
 `MediaItem.artworkReferences` supplies library artwork: server URLs and local

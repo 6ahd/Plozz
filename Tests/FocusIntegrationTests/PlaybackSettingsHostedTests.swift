@@ -143,7 +143,8 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                 if offset >= bottom { break }
             }
             for label in [
-                "Version selection", "Choose on first play", "Ask every time", "Remember my choice",
+                "Version selection", "Choose on first play", "Ask every time", "Choose automatically",
+                "Remember series version choices",
                 "Skip intros, credits", "Set each marker separately", "Use community markers",
                 "Video buffer", "1 minute", "5 minutes", "10 minutes", "Maximum available"
             ] {

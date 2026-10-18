@@ -97,15 +97,15 @@ private struct PlaybackVersionChoiceContent: View {
         if prompt.needsIntroduction {
             FirstUseChoiceView(
                 symbol: "square.stack",
-                title: "How would you like to choose versions?",
-                message: "Some videos have more than one version. Choose each time, including the next episode, or remember your choice for this movie or series.",
+                title: "Do you want to choose a version every time?",
+                message: "Some videos have more than one version. Choose before each video, including the next episode, or let Plozz choose automatically.",
                 firstAction: "Ask every time",
-                secondAction: "Remember my choice",
-                footer: "If a remembered version isn't available, we'll ask again. Change this any time in Settings > Playback > Version selection.",
+                secondAction: "Choose automatically",
+                footer: "Change this any time in Settings > Playback > Version selection.",
                 firstIdentifier: "version-choice-ask",
-                secondIdentifier: "version-choice-remember"
+                secondIdentifier: "version-choice-automatic"
             ) { ask in
-                model.chooseMode(ask ? .askEveryTime : .rememberChoice, promptID: prompt.id)
+                model.chooseMode(ask ? .askEveryTime : .automatic, promptID: prompt.id)
             }
         } else {
             PlaybackVersionChoiceList(prompt: prompt) {
@@ -137,6 +137,7 @@ private struct PlaybackVersionChoiceList: View {
                 ForEach(prompt.versions) { version in
                     MediaVersionChoiceButton(
                         presentation: .init(version, locale: locale),
+                        isSelected: prompt.selectedVersionID == version.id,
                         isFocused: focusedID == version.id
                     ) {
                         select(version.id)
@@ -150,7 +151,7 @@ private struct PlaybackVersionChoiceList: View {
             .frame(maxWidth: .infinity)
         }
         #if os(tvOS)
-        .defaultFocus($focusedID, prompt.versions.first?.id, priority: .userInitiated)
+        .defaultFocus($focusedID, prompt.selectedVersionID ?? prompt.versions.first?.id, priority: .userInitiated)
         #endif
     }
 }

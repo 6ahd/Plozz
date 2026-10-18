@@ -21,6 +21,14 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         }
     }
 
+    func testAutomaticIntroductionStartsPlaybackWithoutShowingVersionChoices() async throws {
+        #if os(tvOS)
+        try await exercise(width: 1920, typeSize: .large, automaticAtIntroduction: true)
+        #else
+        try await exercise(width: 390, typeSize: .large, automaticAtIntroduction: true)
+        #endif
+    }
+
     #if os(tvOS)
     func testLongVersionListStaysBoundedWithReducedTransparencyAndLargerText() async throws {
         try await exercise(width: 1920, typeSize: .accessibility1, versionCount: 12, reduceTransparency: true)
@@ -137,7 +145,8 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
 
     private func exercise(
         width: CGFloat, typeSize: DynamicTypeSize, versionCount: Int = 2, reduceTransparency: Bool = false,
-        colorScheme: ColorScheme = .dark, closeInsteadOfSelect: Bool = false
+        colorScheme: ColorScheme = .dark, closeInsteadOfSelect: Bool = false,
+        automaticAtIntroduction: Bool = false
     ) async throws {
         try await waitUntil {
             UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
@@ -195,9 +204,10 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertNil(probe.selected)
         XCTAssertNil(probe.error)
         let introduction = try await visibleText(in: window, name: "version-introduction-\(Int(width))-\(typeSize)")
-        for label in ["choose versions", "Ask every time", "Remember my choice", "Settings"] {
+        for label in ["choose a version every time", "Ask every time", "Choose automatically", "Settings"] {
             XCTAssertTrue(introduction.localizedCaseInsensitiveContains(label), "Missing \(label): \(introduction)")
         }
+        XCTAssertFalse(introduction.contains("Remember"), "Remembering is a separate default-on setting, not a first-use choice.")
         #if os(tvOS)
         XCTAssertTrue(introduction.contains("Cancel"))
         XCTAssertNotNil(UIFocusSystem(for: window)?.focusedItem, "An introduction action must own native focus.")
@@ -207,7 +217,18 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         _ = try assertCloseToolbar(in: window)
         #endif
         let id = try XCTUnwrap(model.prompt?.id)
-        model.chooseMode(.rememberChoice, promptID: id)
+        if automaticAtIntroduction {
+            model.chooseMode(.automatic, promptID: id)
+            XCTAssertNil(model.prompt)
+            try await waitUntil { probe.selected != nil }
+            XCTAssertNil(probe.error)
+            XCTAssertFalse(probe.disappeared)
+            XCTAssertTrue(settings.settings.rememberVersionPerSeries)
+            XCTAssertEqual(settings.settings.versionSelectionMode, .automatic)
+            XCTAssertNil(preferences.preferredVersionID(forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item)))
+            return
+        }
+        model.chooseMode(.askEveryTime, promptID: id)
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertNil(probe.selected, "Choosing the mode alone must not select a file.")
         XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
@@ -240,7 +261,7 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         model.chooseVersion("4k", promptID: id)
         try await waitUntil { probe.selected != nil }
         XCTAssertEqual(probe.selected?.selectedVersionID, "4k")
-        XCTAssertEqual(settings.settings.versionSelectionMode, .rememberChoice)
+        XCTAssertEqual(settings.settings.versionSelectionMode, .askEveryTime)
         XCTAssertFalse(probe.disappeared)
         XCTAssertNil(probe.error)
     }

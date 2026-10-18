@@ -1016,6 +1016,7 @@ public struct ItemDetailView: View {
     /// time, keyed per title (per series for an episode).
     private func selectVersion(_ id: String, for item: MediaItem) {
         versionOverride = id
+        guard versionPreferences.shouldRememberVersion(for: item) else { return }
         let key = versionPreferenceKey(for: item)
         guard let version = effectiveVersions(
             for: item,

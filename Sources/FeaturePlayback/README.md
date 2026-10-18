@@ -300,12 +300,21 @@ System volume remains at the user's chosen level.
 ## Mobile playback settings
 
 Before the first multi-version movie or episode, both platforms ask the profile
-to **Ask every time** or **Remember my choice**, using the shared Live TV
-introduction layout. Both answers lead to the version picker for that video.
+to **Ask every time** or **Choose automatically**, using the shared Live TV
+introduction layout. Asking opens the version picker; choosing automatically
+immediately resolves and starts that video without another choice.
 Settings > Playback > Version selection can change the mode later; the existing
 profile settings payload carries it through switching, transfer, and cloud sync.
 Unanswered older profiles retain their per-title memories but still see the
 introduction on their first multi-version playback.
+The old Remember my choice mode migrates to automatic selection.
+
+**Remember series version choices** is an independent, default-on profile setting,
+not a first-use question. It controls reads and writes of episode/series version
+preferences across detail pages, player switches, and the pre-play picker.
+Disabling it retains stored preferences without applying or replacing them;
+movie-specific memories and explicit selections remain intact. Asking always
+opens the picker, with the preferred/recommended version selected.
 
 On tvOS, the introduction and version list stay in the player's existing overlay
 as centered, content-sized cards, up to 1,100 points wide and 860 points tall.
@@ -313,10 +322,12 @@ Longer content scrolls within the available safe-area height; shorter content
 must not stretch the card or push Cancel to the screen edge.
 
 `PlaybackVersionChoiceModel` gates player creation and next-episode/playlist
-handoffs. Ask every time includes autoplay. Remember reuses a movie's exact
-file, or matches all known descriptor facts across a series; it does not silently
-substitute a different resolution, range, or cut. Missing matches ask again,
-including when only one fallback remains. Cancelling does not start playback
+handoffs. Ask every time includes autoplay. Automatic selection uses the shared
+detail-page resolver: explicit selection, permitted movie/series preference,
+then the existing device-capability recommendation and server-default fallback.
+A missing preference never opens a picker in automatic mode, even when only one
+version remains. Automatic choices do not overwrite explicit memories or turn
+an automatic source into a manually locked source. Cancelling does not start playback
 or record an unchosen file. In-player version changes and retry/failover do not
 repeat the introduction. Qualified picker IDs still resolve to original
 account/item/file identities before playback.

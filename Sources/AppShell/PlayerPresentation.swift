@@ -230,9 +230,11 @@ struct PlayerPresentation: View {
             return
         }
         let continuation = outgoing.continuationForVersionChange()
-        versionPreferences.rememberVersion(
-            version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item)
-        )
+        if versionPreferences.shouldRememberVersion(for: item) {
+            versionPreferences.rememberVersion(
+                version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item)
+            )
+        }
         triedAccountIDs = []
         replacePlayback(
             with: PlayRequest(

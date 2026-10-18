@@ -12,6 +12,7 @@ public final class PlaybackVersionChoiceModel {
         public let id: UUID
         public let item: MediaItem
         public let versions: [MediaVersion]
+        public let selectedVersionID: String?
         public var needsIntroduction: Bool
     }
 
@@ -21,6 +22,7 @@ public final class PlaybackVersionChoiceModel {
     @ObservationIgnored private var settings: PlaybackSettingsModel?
     @ObservationIgnored private var preferences: (any VersionPreferenceStoring)?
     @ObservationIgnored private var isCurrent: () -> Bool = { false }
+    @ObservationIgnored private var capabilities: MediaCapabilities = .default
 
     public init() {}
 
@@ -32,6 +34,7 @@ public final class PlaybackVersionChoiceModel {
         settings: PlaybackSettingsModel,
         preferences: any VersionPreferenceStoring,
         offlineResolver: (any OfflinePlaybackResolving)? = nil,
+        capabilities: MediaCapabilities = .detected(),
         isCurrent: @escaping () -> Bool = { true }
     ) async throws -> MediaItem {
         guard owner == nil else {
@@ -64,27 +67,31 @@ public final class PlaybackVersionChoiceModel {
         try Task.checkCancellation()
         guard owner == id, isCurrent() else { throw CancellationError() }
         let versions = PlayerVersionSelection.versions(for: item)
-        guard !versions.isEmpty else { return item }
-        if settings.settings.versionSelectionMode == .rememberChoice,
-           let remembered = Self.rememberedVersion(in: versions, item: item, preferences: preferences),
-           let selected = PlayerVersionSelection.selecting(remembered.id, in: item) {
+        guard versions.count > 1 else { return item }
+        let selectedID = DetailPlaybackSelection.preferredVersionID(
+            for: item, versions: versions, versionOverride: nil,
+            preferences: preferences, capabilities: capabilities
+        )
+        if settings.settings.versionSelectionMode == .automatic {
+            guard let selectedID,
+                  let selected = PlayerVersionSelection.selecting(
+                    selectedID, in: item, explicit: item.explicitSourceSelection
+                  ) else {
+                PlozzLog.playback.error("Could not resolve an automatic playback version.")
+                throw AppError.invalidResponse
+            }
             return selected
         }
-        let key = DetailPlaybackSelection.versionPreferenceKey(for: item)
-        let hasRememberedChoice = preferences.preferredVersionID(forTitle: key) != nil
-            || preferences.preferredVersionDescriptor(forTitle: key) != nil
-            || preferences.preferredVersionDescriptor(forTitle: item.seriesID ?? item.id) != nil
-        guard versions.count > 1
-            || (settings.settings.versionSelectionMode == .rememberChoice && hasRememberedChoice) else { return item }
         self.settings = settings
         self.preferences = preferences
         self.isCurrent = isCurrent
+        self.capabilities = capabilities
         return try await withTaskCancellationHandler {
             try Task.checkCancellation()
             return try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
                 prompt = Prompt(
-                    id: id, item: item, versions: versions,
+                    id: id, item: item, versions: versions, selectedVersionID: selectedID,
                     needsIntroduction: settings.settings.versionSelectionMode == nil
                 )
             }
@@ -97,7 +104,23 @@ public final class PlaybackVersionChoiceModel {
         guard let prompt, prompt.id == promptID, prompt.needsIntroduction else { return }
         guard isCurrent() else { cancel(); return }
         settings?.settings.versionSelectionMode = mode
-        self.prompt?.needsIntroduction = false
+        if mode == .askEveryTime {
+            self.prompt?.needsIntroduction = false
+        } else {
+            guard let preferences,
+                  let id = DetailPlaybackSelection.preferredVersionID(
+                    for: prompt.item, versions: prompt.versions, versionOverride: nil,
+                    preferences: preferences, capabilities: capabilities
+                  ),
+                  let item = PlayerVersionSelection.selecting(
+                    id, in: prompt.item, explicit: prompt.item.explicitSourceSelection
+                  ) else {
+                PlozzLog.playback.error("Could not resolve the first automatic playback version.")
+                finish(.failure(AppError.invalidResponse), owner: prompt.id)
+                return
+            }
+            finish(.success(item), owner: prompt.id)
+        }
     }
 
     public func chooseVersion(_ versionID: String, promptID: UUID) {
@@ -108,14 +131,14 @@ public final class PlaybackVersionChoiceModel {
             PlozzLog.playback.error("The requested playback version is no longer available.")
             return
         }
-        preferences?.rememberVersion(version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: prompt.item))
-        if DetailPlaybackSelection.versionPreferenceKey(for: item)
-            != DetailPlaybackSelection.versionPreferenceKey(for: prompt.item) {
-            preferences?.rememberVersion(version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item))
+        if let preferences, preferences.shouldRememberVersion(for: prompt.item) {
+            preferences.rememberVersion(version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: prompt.item))
+            if DetailPlaybackSelection.versionPreferenceKey(for: item)
+                != DetailPlaybackSelection.versionPreferenceKey(for: prompt.item) {
+                preferences.rememberVersion(version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item))
+            }
         }
-        let continuation = self.continuation
-        clear(owner: prompt.id)
-        continuation?.resume(returning: item)
+        finish(.success(item), owner: prompt.id)
     }
 
     public func cancel() {
@@ -124,10 +147,14 @@ public final class PlaybackVersionChoiceModel {
     }
 
     private func cancel(owner id: UUID) {
+        finish(.failure(CancellationError()), owner: id)
+    }
+
+    private func finish(_ result: Result<MediaItem, Error>, owner id: UUID) {
         guard owner == id else { return }
         let continuation = self.continuation
         clear(owner: id)
-        continuation?.resume(throwing: CancellationError())
+        continuation?.resume(with: result)
     }
 
     private func clear(owner id: UUID) {
@@ -140,21 +167,4 @@ public final class PlaybackVersionChoiceModel {
         owner = nil
     }
 
-    public static func rememberedVersion(
-        in versions: [MediaVersion], item: MediaItem, preferences: any VersionPreferenceStoring
-    ) -> MediaVersion? {
-        let key = DetailPlaybackSelection.versionPreferenceKey(for: item)
-        if item.seriesID == nil, let id = preferences.preferredVersionID(forTitle: key),
-           let exact = versions.first(where: { version in
-               version.id == id || (item.sourceAccountID.map { account in
-                   version.qualified(accountID: account, itemID: version.sourceItemID ?? item.id).id == id
-               } ?? false)
-           }) {
-            return exact
-        }
-        let descriptor = preferences.preferredVersionDescriptor(forTitle: key)
-            ?? preferences.preferredVersionDescriptor(forTitle: item.seriesID ?? item.id)
-        guard let descriptor else { return nil }
-        return versions.filter { descriptor.matchesForAutomaticSelection($0) }.bestMatch(for: descriptor)
-    }
 }

@@ -41,7 +41,7 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         return Task {
             try await model.prepare(
                 item, provider: FakeMediaProvider(allItems: [item]),
-                settings: settings, preferences: preferences, isCurrent: isCurrent
+                settings: settings, preferences: preferences, capabilities: .default, isCurrent: isCurrent
             )
         }
     }
@@ -64,10 +64,13 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         }
     }
 
-    func testFirstUseAsksModeThenVersionForBothAnswers() async throws {
+    func testFirstUseAskOpensPickerAndAutomaticStartsWithoutPicking() async throws {
         for mode in PlaybackVersionSelectionMode.allCases {
             settings.settings.versionSelectionMode = nil
             let movie = item()
+            let key = DetailPlaybackSelection.versionPreferenceKey(for: movie)
+            preferences.setPreferredVersionID(nil, forTitle: key)
+            preferences.setPreferredVersionDescriptor(nil, forTitle: key)
             let task = start(movie)
             defer { task.cancel() }
             let prompt = try await pending()
@@ -76,11 +79,17 @@ final class PlaybackVersionChoiceTests: XCTestCase {
             XCTAssertNotNil(model.prompt, "The introduction requires an explicit mode choice.")
             model.chooseMode(mode, promptID: prompt.id)
             XCTAssertEqual(settings.settings.versionSelectionMode, mode)
-            XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
-            model.chooseVersion(movie.versions[1].id, promptID: prompt.id)
+            if mode == .askEveryTime {
+                XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
+                model.chooseVersion(movie.versions[1].id, promptID: prompt.id)
+            } else {
+                XCTAssertNil(model.prompt, "Automatic must not require a second version choice.")
+                XCTAssertNil(preferences.preferredVersionID(forTitle: key))
+            }
             let selected = try await task.value
             XCTAssertEqual(selected.selectedVersionID, movie.versions[1].id)
             XCTAssertEqual(selected.sourceAccountID, "server")
+            XCTAssertEqual(selected.explicitSourceSelection, mode == .askEveryTime)
             XCTAssertNil(model.prompt)
         }
     }
@@ -99,8 +108,8 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         }
     }
 
-    func testRememberedSeriesMatchesDifferentFileIDsButNeverFallsBackToDifferentQuality() async throws {
-        settings.settings.versionSelectionMode = .rememberChoice
+    func testAutomaticSeriesMatchesDifferentFileIDsAndNeverPromptsForMissingPreference() async throws {
+        settings.settings.versionSelectionMode = .automatic
         let first = item("episode-1", series: "series")
         preferences.rememberVersion(first.versions[1], forTitle: DetailPlaybackSelection.versionPreferenceKey(for: first))
         let next = item("episode-2", series: "series")
@@ -109,27 +118,26 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         XCTAssertNil(model.prompt)
         var missing = item("episode-3", series: "series")
         missing.versions.removeLast()
-        let task = start(missing)
-        defer { task.cancel() }
-        let prompt = try await pending()
-        XCTAssertEqual(prompt.versions.count, 1, "Even a sole remaining fallback needs consent.")
-        model.cancel()
-        await assertCancelled(task)
+        let sole = try await start(missing).value
+        XCTAssertEqual(sole, missing)
+        XCTAssertNil(model.prompt)
+        missing.versions.append(.init(id: "episode-3-720", height: 720, videoRange: "SDR"))
+        let fallback = try await start(missing).value
+        XCTAssertEqual(fallback.selectedVersionID, "episode-3-1080")
+        XCTAssertNil(model.prompt)
         XCTAssertEqual(preferences.preferredVersionDescriptor(forTitle: DetailPlaybackSelection.versionPreferenceKey(for: first))?.height, 2160)
     }
 
-    func testRememberedMovieKeepsExactFileAndNewTitlesAsk() async throws {
-        settings.settings.versionSelectionMode = .rememberChoice
+    func testAutomaticMovieKeepsExactFileAndNewTitlesNeverAsk() async throws {
+        settings.settings.versionSelectionMode = .automatic
         let movie = item()
         preferences.rememberVersion(movie.versions[0], forTitle: DetailPlaybackSelection.versionPreferenceKey(for: movie))
         let selected = try await start(movie).value
         XCTAssertEqual(selected.selectedVersionID, "movie-1080")
-        let task = start(item("other"))
-        defer { task.cancel() }
-        let prompt = try await pending()
-        XCTAssertFalse(prompt.needsIntroduction)
-        model.cancel()
-        await assertCancelled(task)
+        let other = try await start(item("other")).value
+        XCTAssertEqual(other.selectedVersionID, "other-4k")
+        XCTAssertNil(model.prompt)
+        XCTAssertNil(preferences.preferredVersionID(forTitle: DetailPlaybackSelection.versionPreferenceKey(for: other)))
     }
 
     func testSingleVersionAndNonVideoDoNotConsumeIntroduction() async throws {
@@ -163,10 +171,10 @@ final class PlaybackVersionChoiceTests: XCTestCase {
     func testCancelAfterModeKeepsModeButDoesNotInventFilePreference() async throws {
         let task = start(item())
         let prompt = try await pending()
-        model.chooseMode(.rememberChoice, promptID: prompt.id)
+        model.chooseMode(.askEveryTime, promptID: prompt.id)
         model.cancel()
         await assertCancelled(task)
-        XCTAssertEqual(settings.settings.versionSelectionMode, .rememberChoice)
+        XCTAssertEqual(settings.settings.versionSelectionMode, .askEveryTime)
         XCTAssertNil(preferences.preferredVersionID(forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item())))
     }
 
@@ -177,7 +185,7 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         model.chooseMode(.askEveryTime, promptID: UUID())
         XCTAssertNil(settings.settings.versionSelectionMode)
         current = false
-        model.chooseMode(.rememberChoice, promptID: prompt.id)
+        model.chooseMode(.automatic, promptID: prompt.id)
         await assertCancelled(task)
         XCTAssertNil(settings.settings.versionSelectionMode)
     }
@@ -185,7 +193,7 @@ final class PlaybackVersionChoiceTests: XCTestCase {
     func testSettingsChoiceSkipsIntroductionAndCanChangeBetweenPlays() async throws {
         let movie = item()
         preferences.rememberVersion(movie.versions[1], forTitle: DetailPlaybackSelection.versionPreferenceKey(for: movie))
-        settings.settings.versionSelectionMode = .rememberChoice
+        settings.settings.versionSelectionMode = .automatic
         let remembered = try await start(movie).value
         XCTAssertEqual(remembered.selectedVersionID, "movie-4k")
         settings.settings.versionSelectionMode = .askEveryTime
@@ -199,7 +207,7 @@ final class PlaybackVersionChoiceTests: XCTestCase {
 
     func testProfileInvalidationDuringFileChoiceCannotSavePreference() async throws {
         var current = true
-        settings.settings.versionSelectionMode = .rememberChoice
+        settings.settings.versionSelectionMode = .askEveryTime
         let movie = item()
         let task = start(movie, isCurrent: { current })
         let prompt = try await pending()
@@ -214,6 +222,7 @@ final class PlaybackVersionChoiceTests: XCTestCase {
             func localPlaybackURL(for item: MediaItem, versionID: String?) async -> URL? {
                 URL(fileURLWithPath: "/fixture/download.mkv")
             }
+
         }
         var movie = item()
         movie.versions = []
@@ -225,6 +234,66 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         XCTAssertEqual(selected, movie)
         XCTAssertEqual(provider.itemCallCount(for: movie.id), 0)
         XCTAssertNil(settings.settings.versionSelectionMode)
+    }
+
+    func testSeriesMemoryToggleAppliesImmediatelyToGateAndExistingRequestResolver() async throws {
+        settings.settings.versionSelectionMode = .automatic
+        let first = item("episode-1", series: "series")
+        let key = DetailPlaybackSelection.versionPreferenceKey(for: first)
+        preferences.rememberVersion(first.versions[0], forTitle: key)
+        let next = item("episode-2", series: "series")
+        let remembered = try await start(next).value
+        XCTAssertEqual(remembered.selectedVersionID, "episode-2-1080")
+        settings.settings.rememberVersionPerSeries = false
+        let automatic = try await start(next).value
+        XCTAssertEqual(automatic.selectedVersionID, "episode-2-4k")
+        XCTAssertEqual(
+            DetailPlaybackSelection.playbackReady(next, preferences: preferences, capabilities: .default).selectedVersionID,
+            "episode-2-4k"
+        )
+        XCTAssertEqual(preferences.preferredVersionDescriptor(forTitle: key)?.height, 1080)
+        settings.settings.rememberVersionPerSeries = true
+        let restored = try await start(next).value
+        XCTAssertEqual(restored.selectedVersionID, "episode-2-1080")
+    }
+
+    func testAskHighlightsRememberedVersionButDisabledMemoryNeverReplacesIt() async throws {
+        settings.settings.versionSelectionMode = .askEveryTime
+        let first = item("episode-1", series: "series")
+        let key = DetailPlaybackSelection.versionPreferenceKey(for: first)
+        preferences.rememberVersion(first.versions[0], forTitle: key)
+        let next = item("episode-2", series: "series")
+        let task = start(next)
+        defer { task.cancel() }
+        let prompt = try await pending()
+        XCTAssertEqual(prompt.selectedVersionID, "episode-2-1080")
+        model.cancel()
+        await assertCancelled(task)
+        settings.settings.rememberVersionPerSeries = false
+        let second = start(next)
+        defer { second.cancel() }
+        let unremembered = try await pending()
+        XCTAssertEqual(unremembered.selectedVersionID, "episode-2-4k")
+        model.chooseVersion("episode-2-4k", promptID: unremembered.id)
+        let selected = try await second.value
+        XCTAssertEqual(selected.selectedVersionID, "episode-2-4k")
+        XCTAssertEqual(preferences.preferredVersionDescriptor(forTitle: key)?.height, 1080)
+    }
+
+    func testAutomaticHonorsManualSelectionAndNativeCapabilityRecommendation() async throws {
+        settings.settings.versionSelectionMode = .automatic
+        var movie = item()
+        movie.versions = [
+            .init(id: "hdr", height: 2160, videoCodec: "hevc", videoRange: "DOVI", audioCodec: "aac"),
+            .init(id: "sdr", height: 1080, videoCodec: "h264", videoRange: "SDR", audioCodec: "aac")
+        ]
+        let recommended = try await start(movie).value
+        XCTAssertEqual(recommended.selectedVersionID, "sdr")
+        XCTAssertFalse(recommended.explicitSourceSelection)
+        let manual = try XCTUnwrap(PlayerVersionSelection.selecting("hdr", in: movie))
+        let honored = try await start(manual).value
+        XCTAssertEqual(honored.selectedVersionID, "hdr")
+        XCTAssertTrue(honored.explicitSourceSelection)
     }
 
     func testUnknownVersionsAreLoadedBeforeTheGateForBothServerKinds() async throws {

@@ -29,11 +29,11 @@ public enum PlayerVersionSelection {
                 || (mediaSourceID == nil && version.isDefault))
     }
 
-    public static func selecting(_ id: String, in item: MediaItem) -> MediaItem? {
+    public static func selecting(_ id: String, in item: MediaItem, explicit: Bool = true) -> MediaItem? {
         guard versions(for: item).contains(where: { $0.id == id }) else { return nil }
         return DetailPlaybackSelection.playItem(
             for: item, sources: item.sources, activeAccountID: item.sourceAccountID,
-            versionID: id, explicit: true
+            versionID: id, explicit: explicit
         )
     }
 

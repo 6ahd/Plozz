@@ -399,7 +399,8 @@ struct PlozziOSPlayerView: View {
         guard let outgoing = viewModel, handoffTask == nil,
               let incomingItem = PlayerVersionSelection.selecting(id, in: versionItem) else { return }
         let continuation = outgoing.continuationForVersionChange()
-        if let version = PlayerVersionSelection.versions(for: versionItem).first(where: { $0.id == id }) {
+        if appModel.versionPreferences.shouldRememberVersion(for: versionItem),
+           let version = PlayerVersionSelection.versions(for: versionItem).first(where: { $0.id == id }) {
             appModel.versionPreferences.rememberVersion(
                 version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: versionItem)
             )

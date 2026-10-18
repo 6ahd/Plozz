@@ -1022,6 +1022,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
 
     private func selectVersion(_ id: String, for item: MediaItem) {
         versionOverride = id
+        guard appModel.versionPreferences.shouldRememberVersion(for: item) else { return }
         let key = DetailPlaybackSelection.versionPreferenceKey(for: item)
         guard let version = detailPlaybackOptions(for: item).versions.first(where: { $0.id == id })
         else {
