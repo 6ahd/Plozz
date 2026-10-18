@@ -7,8 +7,8 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 ## Responsibility
 
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
-  error layout, bounded symbol, readable summary, adaptive native actions and
-  optional Details sheet. Hosts own retry and dismissal; the error surface owns
+  error layout, bounded symbol inline with the heading, readable summary, adaptive
+  native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns
   its dark palette without changing browsing themes. Its opaque themed surface
   stays legible over video without depending on glass or motion.
   `PlaybackDiagnosticDetailsView` is shared by on-demand playback, Live TV and

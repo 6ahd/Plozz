@@ -77,14 +77,18 @@ private struct PlaybackFailureHeading: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.title2)
-                .foregroundStyle(.yellow)
-                .accessibilityHidden(true)
-            Text(title)
-                .font(.title2.bold())
-                .foregroundStyle(.primary)
-                .accessibilityAddTraits(.isHeader)
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.title2)
+                    .foregroundStyle(.yellow)
+                    .fixedSize()
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.title2.bold())
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+            }
             Text(message)
                 .font(.body)
                 .foregroundStyle(.secondary)
