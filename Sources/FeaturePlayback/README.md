@@ -208,8 +208,20 @@ while Up Next is visible. Commands yield to open menus, sheets, expanded cards,
 scrubbing, external playback, and inactive scenes. Mobile key events do not also
 enter the Apple TV remote recognizers. The native keyboard owner remains attached
 through loading and engine handoffs; the visible overlay supplies its current
-actions. This path is pending physical-keyboard verification; full-player keyboard
-interaction tests currently fail despite the isolated native handler passing.
+actions. Left/Right and Space have been confirmed on a physical iPad; simulated
+full-player key delivery remains an unresolved interaction-test limitation.
+
+Mobile Up Next uses a tappable episode card with spoiler-aware artwork, the show
+name and episode metadata, plus a separate dismiss control. There is no separate
+Play button; selecting the card advances to the next episode. Its countdown still
+follows playback time. The card shares a bottom stack with the measured transport
+content and stays above that reserved band even while controls are hidden, so
+revealing the timeline cannot cover the card or move its tap target. While the
+card is present, play/pause and both skip buttons sit above it in the same stack,
+with the title and timeline below it, instead of overlapping the card at the
+center of a narrow or large-text player. The thumbnail fills its content row,
+preserving equal outer insets even when the adjacent title wraps. Open player
+menus, expanded information cards and scrubbing temporarily hide Up Next.
 
 Holding on-demand video for at least one second temporarily accelerates moving
 playback to at most 2x when the engine supports it; shorter presses do not boost
@@ -228,8 +240,30 @@ Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
 uses the existing session-only zoom state without reloading video or revealing
 the timeline. Authored subtitle geometry follows the displayed picture; ordinary
 captions retain their screen-relative placement. Inline, tvOS, and external
-playback keep their existing geometry. Horizontal seeking and brightness/volume
-swipes are not implemented.
+playback keep their existing geometry. Horizontal seeking on the video surface
+is not implemented.
+
+Vertical, one-finger swipes in the outer 30% of the video adjust screen brightness
+on the left and **system** volume on the right. The center, horizontal movement,
+system-edge gestures and native controls do not change either level. The
+profile-scoped Playback setting enables these gestures by default without
+changing tap-skipping, pinch or keyboard preferences. They work in full-screen
+on-demand and Live TV playback, including while Up Next is visible, but yield to
+menus, sheets, VoiceOver, external playback and inactive scenes. Multiview and
+inline Live TV do not adjust shared device outputs.
+
+The level and percentage use the existing gesture feedback surface without
+revealing the timeline. The system-volume bridge drives an `MPVolumeView`'s
+native slider, the same approach used by
+[AetherPlayer](https://github.com/superuser404notfound/AetherPlayer/blob/main/Sources/iOS/Player/PlayerSystemVolume.swift);
+it does not attenuate the engine or amplify past the system limit. The bridge
+belongs to the actual player view and is removed when the swipe ends, preserving
+the system hardware-button HUD elsewhere. An unavailable native output reports
+unavailability rather than pretending to change volume. Brightness is restored
+when playback leaves the foreground or closes, unless something else has since
+changed it. The fullscreen presentation owns that brightness lifetime across
+episode, channel and engine handoffs, not each replaceable gesture overlay.
+System volume remains at the user's chosen level.
 
 ## Mobile playback settings
 

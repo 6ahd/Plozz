@@ -2301,6 +2301,16 @@ struct PlozziOSPlaybackSettingsView: View {
             SettingsSectionGroup("Playback") {
                 PlaybackVersionPreferencePicker(model: model)
                 Toggle("Background Audio", isOn: $model.settings.backgroundAudio)
+                Toggle(isOn: $model.settings.volumeBrightnessGestures) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Volume and brightness gestures")
+                        Text("Swipe up or down on the left for brightness, or on the right for system volume.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityIdentifier("playback-volume-brightness-gestures")
                 Toggle("Seek without pausing", isOn: $model.settings.seekWithoutPausing)
                 // Autoplay first: whether the next episode starts at all, then
                 // whether the card announces it. Independent switches.

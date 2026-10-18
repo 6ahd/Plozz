@@ -121,6 +121,92 @@ final class PlayerGestureInteractionTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["gesture-video-fit"].wait(for: \.label, toEqual: "safe", timeout: 5))
     }
 
+    func testVerticalBrightnessSwipeShowsLevelWithoutSeekingOrRevealingTimeline() throws {
+        let brightness = app.staticTexts["gesture-screen-brightness"]
+        let initial = try XCTUnwrap(Double(brightness.label))
+        point(x: 0.18, y: 0.42).press(
+            forDuration: 0.05, thenDragTo: point(x: 0.18, y: initial > 0.4 ? 0.65 : 0.22)
+        )
+        XCTAssertTrue(app.otherElements["player-gesture-level-pill"].exists, app.debugDescription)
+        XCTAssertFalse(app.staticTexts["player-gesture-level-unavailable"].exists)
+        try assertLevel(initial + (initial > 0.4 ? -0.23 : 0.20))
+        #if !targetEnvironment(simulator)
+        let changed = NSPredicate { _, _ in
+            guard let value = Double(brightness.label) else { return false }
+            return abs(value - initial) > 0.1
+        }
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation(for: changed, evaluatedWith: brightness)], timeout: 3), .completed)
+        #endif
+        XCTAssertFalse(app.otherElements["player-timeline"].exists)
+        XCTAssertFalse(app.staticTexts["player-gesture-skip-total"].exists)
+        XCTAssertEqual(app.staticTexts["rotation-load-count"].label, "Loads 1")
+        capture("brightness-swipe")
+    }
+
+    func testVerticalVolumeSwipeUsesSystemOutputOrReportsUnavailable() throws {
+        let volume = app.staticTexts["gesture-system-volume"]
+        let initial = try XCTUnwrap(Double(volume.label))
+        point(x: 0.82, y: 0.42).press(
+            forDuration: 0.05, thenDragTo: point(x: 0.82, y: initial > 0.4 ? 0.65 : 0.22)
+        )
+        XCTAssertTrue(app.otherElements["player-gesture-level-pill"].exists, app.debugDescription)
+        if app.staticTexts["player-gesture-level-unavailable"].exists {
+            XCTAssertFalse(app.staticTexts["player-gesture-level-value"].exists)
+            XCTAssertEqual(Double(volume.label), initial)
+        } else {
+            try assertLevel(initial + (initial > 0.4 ? -0.23 : 0.20))
+            #if !targetEnvironment(simulator)
+            let changed = NSPredicate { _, _ in
+                guard let value = Double(volume.label) else { return false }
+                return abs(value - initial) > 0.1
+            }
+            XCTAssertEqual(XCTWaiter.wait(for: [expectation(for: changed, evaluatedWith: volume)], timeout: 3), .completed)
+            #endif
+        }
+        XCTAssertFalse(app.staticTexts["player-gesture-skip-total"].exists)
+        XCTAssertFalse(app.otherElements["player-timeline"].exists)
+        capture("system-volume-swipe")
+    }
+
+    func testCenterAndHorizontalSwipesDoNotChangeLevels() throws {
+        let brightness = try XCTUnwrap(Double(app.staticTexts["gesture-screen-brightness"].label))
+        let volume = try XCTUnwrap(Double(app.staticTexts["gesture-system-volume"].label))
+        point(x: 0.5, y: 0.28).press(forDuration: 0.05, thenDragTo: point(x: 0.5, y: 0.48))
+        point(x: 0.18, y: 0.28).press(forDuration: 0.05, thenDragTo: point(x: 0.38, y: 0.28))
+        XCTAssertFalse(app.otherElements["player-gesture-level-pill"].exists)
+        XCTAssertEqual(Double(app.staticTexts["gesture-screen-brightness"].label), brightness)
+        XCTAssertEqual(Double(app.staticTexts["gesture-system-volume"].label), volume)
+    }
+
+    func testDisabledLevelGesturesPreserveTapSkipping() throws {
+        app.terminate()
+        app.launchArguments.append("--no-level-gestures")
+        app.launch()
+        XCTAssertTrue(app.buttons["Open rotation player"].waitForExistence(timeout: 10))
+        app.buttons["Open rotation player"].tap()
+        XCTAssertTrue(app.buttons["Pause"].waitForExistence(timeout: 25))
+        let brightness = try XCTUnwrap(Double(app.staticTexts["gesture-screen-brightness"].label))
+        let volume = try XCTUnwrap(Double(app.staticTexts["gesture-system-volume"].label))
+        for x in [0.18, 0.82] {
+            point(x: x, y: 0.42).press(forDuration: 0.05, thenDragTo: point(x: x, y: 0.65))
+        }
+        XCTAssertFalse(app.otherElements["player-gesture-level-pill"].exists)
+        XCTAssertEqual(Double(app.staticTexts["gesture-screen-brightness"].label), brightness)
+        XCTAssertEqual(Double(app.staticTexts["gesture-system-volume"].label), volume)
+        point(x: 0.8, y: 0.43).doubleTap()
+        XCTAssertEqual(app.staticTexts["player-gesture-skip-total"].label, "+5")
+    }
+
+    private func assertLevel(_ expected: Double, file: StaticString = #filePath, line: UInt = #line) throws {
+        let label = app.staticTexts["player-gesture-level-value"].label
+        let percent = try XCTUnwrap(
+            Double(label.replacingOccurrences(of: "%", with: "").trimmingCharacters(in: .whitespaces)),
+            file: file, line: line
+        )
+        // UIKit's pan translation excludes the initial recognition slop.
+        XCTAssertEqual(percent / 100, min(max(expected, 0), 1), accuracy: 0.04, file: file, line: line)
+    }
+
     private func point(x: CGFloat, y: CGFloat) -> XCUICoordinate {
         app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y))
     }

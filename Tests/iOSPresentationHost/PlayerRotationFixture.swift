@@ -16,6 +16,8 @@ final class RotationLoadProbe {
     var playbackRate: Double?
     var maximumRate: Double?
     var videoFit = ""
+    var brightness: Double?
+    var systemVolume: Double?
     private var server: IPTVTestHTTPServer?
     private var streamingURL: URL?
 
@@ -49,6 +51,7 @@ final class RotationLoadProbe {
 }
 
 struct PlayerRotationFixture: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: PlozziOSAppModel
     @State private var hero = HeroTrailerController()
     @State private var probe = RotationLoadProbe()
@@ -64,6 +67,9 @@ struct PlayerRotationFixture: View {
         if arguments.contains("--gesture-player-fixture") {
             model.settings.playback.settings.skipForwardInterval = .five
             model.settings.playback.settings.skipBackwardInterval = .thirty
+        }
+        if arguments.contains("--no-level-gestures") {
+            model.settings.playback.settings.volumeBrightnessGestures = false
         }
         if arguments.contains("--keyboard-up-next-fixture") {
             model.settings.playback.settings.autoPlayNextEpisode = false
@@ -90,6 +96,9 @@ struct PlayerRotationFixture: View {
         .environment(hero)
         .environment(\.plozzMetrics, .touch(density: .standard))
         .environment(\.locale, Locale(identifier: "en_US"))
+        .dynamicTypeSize(
+            ProcessInfo.processInfo.arguments.contains("--large-player-text") ? .accessibility3 : dynamicTypeSize
+        )
     }
 
     private var playerSurface: some View {
@@ -140,14 +149,23 @@ struct PlayerRotationFixture: View {
                     Text(verbatim: probe.maximumRate.map { String($0) } ?? "unavailable")
                         .accessibilityIdentifier("gesture-maximum-rate")
                     Text(verbatim: probe.videoFit).accessibilityIdentifier("gesture-video-fit")
+                    Text(verbatim: probe.brightness.map { String($0) } ?? "unavailable")
+                        .accessibilityIdentifier("gesture-screen-brightness")
+                    Text(verbatim: probe.systemVolume.map { String($0) } ?? "unavailable")
+                        .accessibilityIdentifier("gesture-system-volume")
                 }
             }
             .foregroundStyle(.white)
+            .font(.caption2)
+            .dynamicTypeSize(.xSmall)
+            .allowsHitTesting(false)
         }
         .task {
             while !Task.isCancelled {
                 if let window = orientation.host?.view.window {
                     markVideo(in: window)
+                    probe.brightness = window.windowScene.map { Double($0.screen.brightness) }
+                    probe.systemVolume = Double(AVAudioSession.sharedInstance().outputVolume)
                     let value = window.windowScene?.effectiveGeometry.interfaceOrientation.rawValue ?? 0
                     if probe.interfaceOrientation != value {
                         probe.interfaceOrientation = value
@@ -211,9 +229,11 @@ private struct RotationProvider: MediaProvider, StreamingQualityProviding {
         )
     }
     private static func episode(index: Int) -> MediaItem {
-        MediaItem(
+        let seriesTitle = ProcessInfo.processInfo.arguments.contains("--long-up-next-title")
+            ? "The exceptionally long series title for thumbnail layout" : "Keyboard fixture"
+        return MediaItem(
             id: index == 1 ? "rotation" : "rotation-next",
-            title: "Keyboard episode \(index)", kind: .episode, parentTitle: "Keyboard fixture",
+            title: "Keyboard episode \(index)", kind: .episode, parentTitle: seriesTitle,
             seasonNumber: 1, episodeNumber: index,
             seriesID: "keyboard-series", seasonID: "keyboard-season", runtime: 180,
             allowsTitleBasedMetadataMatching: false
@@ -233,7 +253,9 @@ private struct RotationProvider: MediaProvider, StreamingQualityProviding {
     func libraries() async throws -> [MediaLibrary] { [] }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
-    func item(id: String) async throws -> MediaItem { Self.media }
+    func item(id: String) async throws -> MediaItem {
+        Self.keyboardUpNext && id == "rotation-next" ? Self.episode(index: 2) : Self.media
+    }
     func children(of itemID: String) async throws -> [MediaItem] {
         Self.keyboardUpNext && itemID == "keyboard-season"
             ? [Self.episode(index: 1), Self.episode(index: 2)] : []

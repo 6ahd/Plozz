@@ -124,6 +124,7 @@ struct PlozziOSPlayerView: View {
             }
         }
         .statusBarHidden()
+        .playerTouchLevelSession(isActive: viewModel?.externalPlaybackRouteName == nil)
         .overlay(alignment: .top) {
             VStack {
                 TransientStatusView(presenter: playbackStatus)

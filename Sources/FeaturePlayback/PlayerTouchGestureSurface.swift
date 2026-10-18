@@ -1,11 +1,15 @@
 #if os(iOS)
 import SwiftUI
 import UIKit
+import CoreNetworking
 
 /// Lives behind the native controls, so their touches never become playback shortcuts.
 public struct PlayerTouchGestureSurface: UIViewRepresentable {
+    @Environment(\.playerTouchLevelControl) private var sharedLevelControl
     let state: PlayerTouchGestureState
     let shortcutsEnabled: Bool
+    let levelsEnabled: Bool
+    let isActive: Bool
     let canSeek: Bool
     let canBoost: Bool
     let canZoom: Bool
@@ -17,6 +21,7 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
 
     public init(
         state: PlayerTouchGestureState, shortcutsEnabled: Bool,
+        levelsEnabled: Bool = false, isActive: Bool = true,
         canSeek: Bool, canBoost: Bool, canZoom: Bool,
         onTap: @escaping () -> Void,
         onSkip: @escaping (PlayerTouchSkipDirection) -> Void,
@@ -26,6 +31,8 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
     ) {
         self.state = state
         self.shortcutsEnabled = shortcutsEnabled
+        self.levelsEnabled = levelsEnabled
+        self.isActive = isActive
         self.canSeek = canSeek
         self.canBoost = canBoost
         self.canZoom = canZoom
@@ -36,7 +43,9 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
         self.onGestureStarted = onGestureStarted
     }
 
-    public func makeCoordinator() -> Coordinator { Coordinator(self) }
+    public func makeCoordinator() -> Coordinator {
+        Coordinator(self, sharedLevelControl: sharedLevelControl)
+    }
 
     public func makeUIView(context: Context) -> UIView {
         let view = UIView()
@@ -64,8 +73,16 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
         private var pinchApplied = false
         private let hold = UILongPressGestureRecognizer()
         private let pinch = UIPinchGestureRecognizer()
+        private let pan = UIPanGestureRecognizer()
+        private let levelControl: PlayerTouchLevelControl
+        private let ownsLevelControl: Bool
+        private var levelDrag: PlayerTouchLevelDrag?
 
-        init(_ owner: PlayerTouchGestureSurface) { self.owner = owner }
+        init(_ owner: PlayerTouchGestureSurface, sharedLevelControl: PlayerTouchLevelControl?) {
+            self.owner = owner
+            levelControl = sharedLevelControl ?? PlayerTouchLevelControl()
+            ownsLevelControl = sharedLevelControl == nil
+        }
 
         func install(in view: UIView) {
             let tap = UITapGestureRecognizer(target: self, action: #selector(tapped(_:)))
@@ -73,7 +90,9 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
             hold.minimumPressDuration = 1
             hold.allowableMovement = 12
             pinch.addTarget(self, action: #selector(pinched(_:)))
-            for gesture in [tap, hold, pinch] {
+            pan.addTarget(self, action: #selector(panned(_:)))
+            pan.maximumNumberOfTouches = 1
+            for gesture in [tap, hold, pinch, pan] {
                 gesture.allowedPressTypes = []
                 gesture.delegate = self
                 view.addGestureRecognizer(gesture)
@@ -84,15 +103,28 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
 
         func update(_ owner: PlayerTouchGestureSurface) {
             self.owner = owner
-            let enabled = owner.shortcutsEnabled && !UIAccessibility.isVoiceOverRunning
+            let enabled = owner.shortcutsEnabled && owner.isActive && !UIAccessibility.isVoiceOverRunning
             hold.isEnabled = enabled && owner.canBoost
             pinch.isEnabled = enabled && owner.canZoom
-            if !enabled { cancel() }
+            pan.isEnabled = owner.levelsEnabled && owner.isActive && !UIAccessibility.isVoiceOverRunning
+            if !enabled {
+                cancelPendingTap()
+                finishHold()
+                owner.state.isPinching = false
+            }
+            if !owner.isActive { cancel(restoringBrightness: true) }
         }
 
-        func cancel() {
+        func cancel(restoringBrightness: Bool = false) {
             cancelPendingTap()
             finishHold()
+            levelDrag = nil
+            if ownsLevelControl || restoringBrightness {
+                levelControl.deactivate()
+            } else {
+                levelControl.endVolume()
+            }
+            owner.state.clearLevel()
             owner.state.isPinching = false
         }
 
@@ -104,6 +136,7 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
 
         @objc private func tapped(_ gesture: UITapGestureRecognizer) {
             guard let view = gesture.view else { return }
+            owner.state.clearLevel()
             let x = gesture.location(in: view).x
             let direction: PlayerTouchSkipDirection? = x < view.bounds.width * 0.35
                 ? .backward : (x > view.bounds.width * 0.65 ? .forward : nil)
@@ -137,6 +170,71 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
             }
         }
 
+        public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard gestureRecognizer === pan else { return true }
+            guard owner.levelsEnabled, owner.isActive, !UIAccessibility.isVoiceOverRunning,
+                  let view = pan.view else { return false }
+            let movement = pan.translation(in: view)
+            let startX = pan.location(in: view).x - movement.x
+            return abs(movement.y) > abs(movement.x) * 1.25
+                && PlayerTouchLevelDrag.kind(at: Double(startX), width: Double(view.bounds.width)) != nil
+        }
+
+        @objc private func panned(_ gesture: UIPanGestureRecognizer) {
+            guard let view = gesture.view else { return }
+            let movement = gesture.translation(in: view)
+            switch gesture.state {
+            case .began:
+                guard let kind = PlayerTouchLevelDrag.kind(
+                    at: Double(gesture.location(in: view).x - movement.x), width: Double(view.bounds.width)
+                ) else { return }
+                cancelPendingTap()
+                finishHold()
+                owner.state.clearSkip()
+                owner.onGestureStarted()
+                do {
+                    levelDrag = PlayerTouchLevelDrag(
+                        kind: kind, startValue: try levelControl.begin(kind, in: view),
+                        height: Double(view.bounds.height)
+                    )
+                    updateLevel(movement: movement, in: view)
+                } catch {
+                    levelUnavailable(kind)
+                }
+            case .changed:
+                updateLevel(movement: movement, in: view)
+            case .ended, .cancelled, .failed:
+                if gesture.state == .ended { updateLevel(movement: movement, in: view) }
+                levelDrag = nil
+                levelControl.endVolume()
+                owner.state.finishLevel()
+            default:
+                break
+            }
+        }
+
+        private func updateLevel(movement: CGPoint, in view: UIView) {
+            guard let drag = levelDrag else { return }
+            guard let value = drag.value(translationY: Double(movement.y)) else {
+                levelUnavailable(drag.kind)
+                return
+            }
+            do {
+                try levelControl.set(drag.kind, value: value, in: view)
+                owner.state.showLevel(drag.kind, value: value)
+            } catch {
+                levelUnavailable(drag.kind)
+            }
+        }
+
+        private func levelUnavailable(_ kind: PlayerTouchLevel) {
+            PlozzLog.playback.error("The player gesture could not adjust the device output.")
+            levelDrag = nil
+            levelControl.endVolume()
+            owner.state.showLevel(kind, value: nil)
+            owner.state.finishLevel()
+        }
+
         @objc private func held(_ gesture: UILongPressGestureRecognizer) {
             switch gesture.state {
             case .began:
@@ -162,6 +260,7 @@ public struct PlayerTouchGestureSurface: UIViewRepresentable {
                 cancelPendingTap()
                 finishHold()
                 owner.state.clearSkip()
+                owner.state.clearLevel()
                 owner.state.isPinching = true
                 pinchApplied = false
                 owner.onGestureStarted()
@@ -242,6 +341,34 @@ struct PlayerTouchGestureFeedbackContent: View {
                 .accessibilityIdentifier("player-gesture-speed-pill")
                 .padding(.top, 16)
                 .frame(maxWidth: .infinity)
+            }
+            if let level = state.level {
+                VStack(spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: level.kind == .brightness ? "sun.max.fill" : "speaker.wave.2.fill")
+                            .accessibilityHidden(true)
+                        if let value = level.value {
+                            Text(value, format: .percent.precision(.fractionLength(0)))
+                                .monospacedDigit()
+                                .accessibilityIdentifier("player-gesture-level-value")
+                        } else {
+                            Text(level.kind == .brightness ? "Brightness unavailable" : "Volume unavailable")
+                                .accessibilityIdentifier("player-gesture-level-unavailable")
+                        }
+                    }
+                    if let value = level.value {
+                        ProgressView(value: value)
+                            .tint(.white)
+                            .frame(width: 96)
+                            .accessibilityLabel(level.kind == .brightness ? "Brightness" : "Volume")
+                    }
+                }
+                .modifier(PlayerTouchFeedbackPill())
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("player-gesture-level-pill")
+                .position(x: geometry.size.width * (level.kind == .brightness ? 0.22 : 0.78),
+                          y: geometry.size.height / 2)
+                .environment(\.layoutDirection, .leftToRight)
             }
         }
         .foregroundStyle(.white)

@@ -164,6 +164,9 @@ struct PlozziOSLiveTVDestination: View {
                     let settings = PlaybackSettingsStore(namespace: preferencesNamespace).load()
                     return (settings.skipBackwardInterval, settings.skipForwardInterval)
                 },
+                touchLevelsEnabled: {
+                    PlaybackSettingsStore(namespace: preferencesNamespace).load().volumeBrightnessGestures
+                },
                 networkBlock: effectiveNetworkBlock,
                 isAuthorized: playback.isAuthorized && isCurrentProfileScope,
                 presentationControls: { AnyView(PlozziOSLivePresentationControls(context: $0)) },
