@@ -152,9 +152,17 @@ public struct MediaVersionPicker: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
+                #if os(iOS)
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close", systemImage: "xmark") { dismiss() }
+                        .labelStyle(.iconOnly)
+                        .accessibilityIdentifier("version-picker-close")
+                }
+                #else
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+                #endif
             }
             #if os(tvOS)
             .defaultFocus($focusedID, selectedVersionID ?? versions.sortedForPicker().first?.id)

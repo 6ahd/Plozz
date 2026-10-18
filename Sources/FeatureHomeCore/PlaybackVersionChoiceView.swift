@@ -60,25 +60,22 @@ public struct PlaybackVersionChoiceView: View {
 
     public var body: some View {
         if let prompt = model.prompt {
+            #if os(iOS)
+            NavigationStack {
+                PlaybackVersionChoiceContent(model: model, prompt: prompt)
+                    .navigationTitle("Choose a version")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close", systemImage: "xmark") { model.cancel() }
+                                .labelStyle(.iconOnly)
+                                .accessibilityIdentifier("version-choice-cancel")
+                        }
+                    }
+            }
+            #else
             VStack(spacing: 0) {
-                if prompt.needsIntroduction {
-                    FirstUseChoiceView(
-                        symbol: "square.stack",
-                        title: "How would you like to choose versions?",
-                        message: "Some videos have more than one version. Choose each time, including the next episode, or remember your choice for this movie or series.",
-                        firstAction: "Ask every time",
-                        secondAction: "Remember my choice",
-                        footer: "If a remembered version isn't available, we'll ask again. Change this any time in Settings > Playback > Version selection.",
-                        firstIdentifier: "version-choice-ask",
-                        secondIdentifier: "version-choice-remember"
-                    ) { ask in
-                        model.chooseMode(ask ? .askEveryTime : .rememberChoice, promptID: prompt.id)
-                    }
-                } else {
-                    PlaybackVersionChoiceList(prompt: prompt) {
-                        model.chooseVersion($0, promptID: prompt.id)
-                    }
-                }
+                PlaybackVersionChoiceContent(model: model, prompt: prompt)
                 Button("Cancel") { model.cancel() }
                     .plozzActionButton(role: .secondary)
                     .accessibilityIdentifier("version-choice-cancel")
@@ -87,6 +84,33 @@ public struct PlaybackVersionChoiceView: View {
             #if os(tvOS)
             .onExitCommand { model.cancel() }
             #endif
+            #endif
+        }
+    }
+}
+
+private struct PlaybackVersionChoiceContent: View {
+    let model: PlaybackVersionChoiceModel
+    let prompt: PlaybackVersionChoiceModel.Prompt
+
+    var body: some View {
+        if prompt.needsIntroduction {
+            FirstUseChoiceView(
+                symbol: "square.stack",
+                title: "How would you like to choose versions?",
+                message: "Some videos have more than one version. Choose each time, including the next episode, or remember your choice for this movie or series.",
+                firstAction: "Ask every time",
+                secondAction: "Remember my choice",
+                footer: "If a remembered version isn't available, we'll ask again. Change this any time in Settings > Playback > Version selection.",
+                firstIdentifier: "version-choice-ask",
+                secondIdentifier: "version-choice-remember"
+            ) { ask in
+                model.chooseMode(ask ? .askEveryTime : .rememberChoice, promptID: prompt.id)
+            }
+        } else {
+            PlaybackVersionChoiceList(prompt: prompt) {
+                model.chooseVersion($0, promptID: prompt.id)
+            }
         }
     }
 }
@@ -101,10 +125,12 @@ private struct PlaybackVersionChoiceList: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                #if !os(iOS)
                 Text("Choose a version")
                     .font(.title.bold())
                     .foregroundStyle(palette.primaryText)
                     .accessibilityAddTraits(.isHeader)
+                #endif
                 Text(verbatim: prompt.item.title)
                     .font(.headline)
                     .foregroundStyle(palette.secondaryText)

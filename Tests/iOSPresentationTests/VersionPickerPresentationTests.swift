@@ -41,7 +41,8 @@ final class VersionPickerPresentationTests: XCTestCase {
             for width in [320.0, 768.0] {
                 try await assertFacts(
                     PlozziOSPlayerVersionSheet(item: item, mediaSourceID: "current", onlySDR: onlySDR, onSelect: { _ in }),
-                    width: width, typeSize: .large, name: onlySDR ? "version-player-sdr" : "version-player"
+                    width: width, typeSize: .large, name: onlySDR ? "version-player-sdr" : "version-player",
+                    expectedTitle: onlySDR ? "SDR versions" : "Version"
                 )
             }
         }
@@ -50,7 +51,7 @@ final class VersionPickerPresentationTests: XCTestCase {
     func testContextMenuPickerUsesTheSameVersionCards() async throws {
         try await assertFacts(
             MediaVersionPicker(versions: versions, selectedVersionID: "remux", onSelect: { _ in }),
-            width: 390, typeSize: .large, name: "version-context"
+            width: 390, typeSize: .large, name: "version-context", expectedTitle: "Version"
         )
     }
 
@@ -64,7 +65,8 @@ final class VersionPickerPresentationTests: XCTestCase {
 
     private func assertFacts<Content: View>(
         _ content: Content, width: CGFloat, typeSize: DynamicTypeSize, name: String,
-        preferredLanguage: String = "en", visibleLanguage: String = "English", hiddenLanguage: String = "French"
+        preferredLanguage: String = "en", visibleLanguage: String = "English", hiddenLanguage: String = "French",
+        expectedTitle: String? = nil
     ) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
@@ -94,6 +96,17 @@ final class VersionPickerPresentationTests: XCTestCase {
         window.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertEqual(window.bounds.width, width, accuracy: 0.5)
+        if let expectedTitle {
+            let bar = try XCTUnwrap(navigationBar(in: window))
+            let item = try XCTUnwrap(bar.topItem)
+            XCTAssertEqual(item.title, expectedTitle)
+            XCTAssertLessThanOrEqual(bar.bounds.height, 64)
+            let buttons = (item.leftBarButtonItems ?? []) + item.leadingItemGroups.flatMap(\.barButtonItems)
+            XCTAssertEqual(buttons.count, 1)
+            XCTAssertNotNil(buttons.first?.image)
+            XCTAssertTrue((item.rightBarButtonItems ?? []).isEmpty && item.trailingItemGroups.isEmpty,
+                          "The leading X replaces Done.")
+        }
         let scroll = try XCTUnwrap(scrollView(in: window))
         XCTAssertLessThanOrEqual(scroll.contentSize.width, scroll.bounds.width + 1)
         let top = -scroll.adjustedContentInset.top
@@ -147,6 +160,10 @@ final class VersionPickerPresentationTests: XCTestCase {
     private func scrollView(in view: UIView) -> UIScrollView? {
         if let scroll = view as? UIScrollView { return scroll }
         return view.subviews.lazy.compactMap { self.scrollView(in: $0) }.first
+    }
+
+    private func navigationBar(in view: UIView) -> UINavigationBar? {
+        (view as? UINavigationBar) ?? view.subviews.lazy.compactMap { self.navigationBar(in: $0) }.first
     }
 }
 #endif

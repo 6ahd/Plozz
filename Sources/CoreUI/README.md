@@ -13,6 +13,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   ownership. `MediaVersionPicker` supplies the sheet used by mobile playback
   and hero context-menu actions; context menus link to it rather than rendering
   a second text-only version list.
+  On iOS/iPadOS, version sheets use an inline centered navigation title and a
+  leading native X close action, with no bottom Cancel button. The pre-play X
+  cancels the pending playback choice; tvOS retains its existing dialog controls.
   Edition/size, source quality, bitrate and runtime share one naturally wrapping
   summary instead of separate size-only or runtime-only rows on either platform.
   Release filenames preserve their original script and wrap to their full height,

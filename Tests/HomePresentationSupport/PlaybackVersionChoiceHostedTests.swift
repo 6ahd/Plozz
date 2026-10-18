@@ -30,6 +30,10 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         try await exercise(width: 390, typeSize: .large, versionCount: 8, colorScheme: .light)
     }
 
+    func testLeadingCloseCancelsWithoutSelectingOrStartingPlayback() async throws {
+        try await exercise(width: 390, typeSize: .large, closeInsteadOfSelect: true)
+    }
+
     func testFilenameBreaksAvoidWastedLinesWithoutCappingContent() {
         let filename = "Spider-Man.Brand.New.Day.2026.IMAX.MULTI.VF2.2160p.CORE.WEB-DL.DV.HDR10+.DDP.Atmos.5.1.HEVC-HYPERION.mkv"
         func height(_ text: String, width: CGFloat) -> CGFloat {
@@ -133,7 +137,7 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
 
     private func exercise(
         width: CGFloat, typeSize: DynamicTypeSize, versionCount: Int = 2, reduceTransparency: Bool = false,
-        colorScheme: ColorScheme = .dark
+        colorScheme: ColorScheme = .dark, closeInsteadOfSelect: Bool = false
     ) async throws {
         try await waitUntil {
             UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
@@ -191,12 +195,16 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertNil(probe.selected)
         XCTAssertNil(probe.error)
         let introduction = try await visibleText(in: window, name: "version-introduction-\(Int(width))-\(typeSize)")
-        for label in ["choose versions", "Ask every time", "Remember my choice", "Settings", "Cancel"] {
+        for label in ["choose versions", "Ask every time", "Remember my choice", "Settings"] {
             XCTAssertTrue(introduction.localizedCaseInsensitiveContains(label), "Missing \(label): \(introduction)")
         }
         #if os(tvOS)
+        XCTAssertTrue(introduction.contains("Cancel"))
         XCTAssertNotNil(UIFocusSystem(for: window)?.focusedItem, "An introduction action must own native focus.")
         try assertCompactCard(in: window, maximumHeight: typeSize.isAccessibilitySize ? 860 : 800)
+        #else
+        XCTAssertFalse(introduction.contains("Cancel"), "The leading X replaces the bottom Cancel button.")
+        _ = try assertCloseToolbar(in: window)
         #endif
         let id = try XCTUnwrap(model.prompt?.id)
         model.chooseMode(.rememberChoice, promptID: id)
@@ -216,6 +224,18 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
             let lastFile = try XCTUnwrap(model.prompt?.versions.last?.fileName)
             XCTAssertTrue(choices.contains(lastFile), "The final version must remain reachable.")
         }
+        #else
+        XCTAssertFalse(choices.contains("Cancel"), "The picker must not retain a second bottom dismissal action.")
+        let close = try assertCloseToolbar(in: window)
+        if closeInsteadOfSelect {
+            let action = try XCTUnwrap(close.action)
+            XCTAssertTrue(UIApplication.shared.sendAction(action, to: close.target, from: close, for: nil))
+            try await waitUntil { !model.isPreparing }
+            XCTAssertNil(model.prompt)
+            XCTAssertNil(probe.selected)
+            XCTAssertFalse(probe.disappeared)
+            return
+        }
         #endif
         model.chooseVersion("4k", promptID: id)
         try await waitUntil { probe.selected != nil }
@@ -224,6 +244,30 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertFalse(probe.disappeared)
         XCTAssertNil(probe.error)
     }
+
+    #if os(iOS)
+    private func assertCloseToolbar(in window: UIWindow) throws -> UIBarButtonItem {
+        func navigationBar(in view: UIView) -> UINavigationBar? {
+            (view as? UINavigationBar) ?? view.subviews.lazy.compactMap { navigationBar(in: $0) }.first
+        }
+        func titleLabel(in view: UIView) -> UILabel? {
+            if let label = view as? UILabel, label.text == "Choose a version" { return label }
+            return view.subviews.lazy.compactMap { titleLabel(in: $0) }.first
+        }
+        let bar = try XCTUnwrap(navigationBar(in: window))
+        let item = try XCTUnwrap(bar.topItem)
+        XCTAssertEqual(item.title, "Choose a version")
+        XCTAssertLessThanOrEqual(bar.bounds.height, 64, "The title must use the inline navigation bar.")
+        let label = try XCTUnwrap(titleLabel(in: bar))
+        XCTAssertEqual(label.convert(label.bounds, to: bar).midX, bar.bounds.midX, accuracy: 2)
+        let buttons = (item.leftBarButtonItems ?? []) + item.leadingItemGroups.flatMap(\.barButtonItems)
+        XCTAssertEqual(buttons.count, 1, "The X must be the single leading toolbar action.")
+        XCTAssertTrue((item.rightBarButtonItems ?? []).isEmpty && item.trailingItemGroups.isEmpty)
+        let close = try XCTUnwrap(buttons.first)
+        XCTAssertNotNil(close.image, "The close action must show an icon rather than a text button.")
+        return close
+    }
+    #endif
 
     #if os(tvOS)
     private func assertCompactCard(in window: UIWindow, maximumHeight: CGFloat) throws {
