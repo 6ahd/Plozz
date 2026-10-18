@@ -1168,17 +1168,26 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
             mediaIndex: mediaIndex,
             partIndex: partIndex
         ) ?? resolved.url
-        let originalFileSource = originalFileSource(
+        let originalFileSource = originalPartSource(
             itemID: itemID,
             mediaSourceID: selectedMediaSourceID,
             client: client,
             part: part,
-            container: media.container ?? part.container
+            container: media.container ?? part.container,
+            forDownload: true
+        )
+        let originalPlaybackSource = originalPartSource(
+            itemID: itemID,
+            mediaSourceID: selectedMediaSourceID,
+            client: client,
+            part: part,
+            container: media.container ?? part.container,
+            forDownload: false
         )
         let localRemuxSource = localRemuxSourceDescriptor(
             itemID: itemID,
             mediaSourceID: media.id.map(String.init),
-            originalSource: originalFileSource,
+            originalSource: originalPlaybackSource,
             referencePlaybackURL: referenceURL,
             referencePlaySessionID: playbackSessionID,
             durationSeconds: mappedItem.runtime,
@@ -1216,7 +1225,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
             sourceFileName: PlaybackRequest.sourceFileName(from: part.file)
                 ?? PlaybackRequest.sourceFileName(from: part.key)
         )
-        request.scrubStillSource = originalFileSource
+        request.scrubStillSource = originalPlaybackSource
         request.streamingSessionID = resolved.isTranscoding ? playbackSessionID : nil
         if let streaming {
             request.streamingOptions = streaming
@@ -1505,21 +1514,23 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
         )
     }
 
-    private func originalFileSource(
+    private func originalPartSource(
         itemID: String,
         mediaSourceID: String?,
         client: PlexClient,
         part: PlexPart,
-        container: String?
+        container: String?,
+        forDownload: Bool
     ) -> PlaybackSource? {
         guard let key = part.key,
-              let originalURL = client.downloadURL(forPartKey: key),
+              let originalURL = forDownload
+                ? client.downloadURL(forPartKey: key) : client.streamURL(forPartKey: key),
               let locator = try? authenticatedPlaybackLocator(
                   itemID: itemID,
                   mediaSourceID: mediaSourceID,
                   url: originalURL,
                   deliveryMode: .directFile,
-                  purpose: .originalFile,
+                  purpose: forDownload ? .originalFile : .mediaStream,
                   playSessionID: nil,
                   formatHint: container
               ) else {

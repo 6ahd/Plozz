@@ -1869,10 +1869,11 @@ final class PlexProviderMappingTests: XCTestCase {
         }
         XCTAssertEqual(original.resource.pathBase, .configuredBaseURL)
         XCTAssertEqual(original.resource.path, "library/parts/2/16000/file.mkv")
-        XCTAssertEqual(
-            original.resource.queryItems.first { $0.name == "download" }?.value,
-            "1"
-        )
+        XCTAssertEqual(original.purpose, .mediaStream)
+        XCTAssertNil(original.resource.queryItems.first { $0.name == "download" })
+        XCTAssertEqual(request.scrubStillSource, localRemux.originalSource)
+        XCTAssertNotEqual(request.scrubStillSource, request.originalFileSource)
+        XCTAssertTrue(localRemux.byteRangeSupported)
         XCTAssertEqual(
             reference.resource.path,
             "video/:/transcode/universal/start.m3u8"
@@ -2034,6 +2035,20 @@ final class PlexProviderMappingTests: XCTestCase {
         )
         XCTAssertEqual(locator.deliveryMode, .directFile)
         XCTAssertNil(locator.playSessionID)
+        XCTAssertNil(locator.resource.queryItems.first { $0.name == "download" })
+        let localRemux = try XCTUnwrap(request.localRemuxSource)
+        guard case .authenticatedHTTP(let original) = localRemux.originalSource,
+              case .some(.authenticatedHTTP(let download)) = request.originalFileSource else {
+            return XCTFail("expected separate playback and download locators")
+        }
+        XCTAssertEqual(original.resource.path, locator.resource.path)
+        XCTAssertEqual(original.purpose, .mediaStream)
+        XCTAssertNil(original.resource.queryItems.first { $0.name == "download" })
+        XCTAssertEqual(request.scrubStillSource, localRemux.originalSource)
+        XCTAssertEqual(download.resource.path, locator.resource.path)
+        XCTAssertEqual(download.purpose, .originalFile)
+        XCTAssertEqual(download.resource.queryItems.first { $0.name == "download" }?.value, "1")
+        XCTAssertEqual(request.downloadableOriginalSource, request.originalFileSource)
         XCTAssertFalse(
             locator.resource.queryItems.contains {
                 $0.name.localizedCaseInsensitiveContains("token")
@@ -2095,6 +2110,10 @@ final class PlexProviderMappingTests: XCTestCase {
             original.resource.path,
             "library/parts/2/selected.mkv"
         )
+        XCTAssertEqual(original.mediaSourceID, "22")
+        XCTAssertEqual(original.purpose, .mediaStream)
+        XCTAssertNil(original.resource.queryItems.first { $0.name == "download" })
+        XCTAssertEqual(request.scrubStillSource, localRemux.originalSource)
         guard case .some(.authenticatedHTTP(let downloadableOriginal)) =
             request.originalFileSource else {
             return XCTFail("expected selected version's downloadable original")
@@ -2104,6 +2123,7 @@ final class PlexProviderMappingTests: XCTestCase {
             downloadableOriginal.resource.path,
             "library/parts/2/selected.mkv"
         )
+        XCTAssertEqual(downloadableOriginal.resource.queryItems.first { $0.name == "download" }?.value, "1")
     }
 
     func testPlaybackInfoBuildsPlexBIFScrubPreviewWhenIndexed() async throws {
