@@ -316,6 +316,7 @@ private struct SettingsInteractionFixture: View {
     @State private var language = AppLanguageSettingsModel()
     @State private var showingSettings = false
     @State private var showingProfiles = false
+    @State private var capturedSettingsURL: String?
     @State private var deferredPairingURL: URL?
     @State private var sidebarGeometry = PlozziOSSidebarGeometryModel()
     @State private var heroTrailers = HeroTrailerController()
@@ -361,6 +362,19 @@ private struct SettingsInteractionFixture: View {
                         }
                     }
                     .dynamicTypeSize(ProcessInfo.processInfo.arguments.contains("--large-text") ? .accessibility2 : .large)
+                    .environment(\.openURL, OpenURLAction { url in
+                        guard ProcessInfo.processInfo.arguments.contains("--capture-settings-links") else {
+                            return .systemAction
+                        }
+                        capturedSettingsURL = url.absoluteString
+                        return .handled
+                    })
+                    .overlay(alignment: .bottom) {
+                        if let capturedSettingsURL {
+                            Text(verbatim: capturedSettingsURL)
+                                .accessibilityIdentifier("fixture-opened-settings-url")
+                        }
+                    }
             } else {
                 NavigationStack {
                     PlozziOSAppearanceSettingsView(

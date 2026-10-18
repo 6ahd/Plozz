@@ -6,6 +6,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Reorder-only lists** — `LiftableReorderList(allowsHiding: false)` presents
+  enabled entries only and keeps them enabled through native dragging, remote
+  lift-and-move and context-menu movement. It has no Hidden divider or Hide/Show
+  actions. Existing callers keep the reorder-and-hide behavior by default.
+
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
   error layout, bounded symbol inline with the heading, readable summary, adaptive
   native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns

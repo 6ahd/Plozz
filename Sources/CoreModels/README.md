@@ -56,6 +56,52 @@ readable and retain their original retry-key derivation.
 | UI state | `LoadState`, `AppError` |
 | Subtitles | `SubtitleBehavior`, `SubtitleStyle` (rendered by `FeaturePlayback`) |
 
+## Home section editing
+
+`HomeSectionCatalog` adapts the existing `HomeRowChoice` inventory into section
+editing without creating a second identity or storage format. Global, native
+server, and library row IDs remain account/library qualified; provider-authored
+titles are display content, never identifiers. `LibraryHomeRowKind.available`
+and `MediaProvider` retain Jellyfin, Emby, Plex, Silo and share capability
+differences. Live TV remains its existing typed channel-shortcut section,
+with tuning and authorization owned by the Live TV runtime.
+
+Add/remove/reorder validate against the current editable catalog, then use
+`HomeLibraryVisibility.applyRows`. This preserves unavailable IDs, merged-away
+Next Up rows and their saved positions. Remove means hidden, not deleted;
+re-adding appends the section and retains its other settings. No-op actions
+do not turn a preset into a custom arrangement. Writes use the existing
+profile-scoped store and never mutate whole-library availability.
+
+Next Up merges into Continue Watching by default for every preset and for stored
+settings without a merge preference. An explicit opt-out remains profile-scoped
+and survives preset changes and reloads. Merging preserves separate rows' saved
+order and visibility; hiding Continue Watching suspends the merge.
+
+`HomeSectionCatalogModel` discovers native layout metadata and optional
+recommendations with at most three concurrent catalog requests. Accounts,
+credential revisions, effective server/Plex viewers, enabled libraries and the
+profile model fence publications. Same-scope failures retain known choices
+and expose typed errors; cancellation and stale tasks cannot publish into a
+newer catalog. There is no timer, full-feed loader, playback resolution or
+new provider-specific API in the editor.
+
+The root (including its inline preset selector), section and Add section pages
+participate in the same identity- and preset-keyed load. Concurrent pages share its work; leaving the
+last consumer cancels it. A pushed page can restart a cancelled load, and preset
+selections refresh both resolved native sections and discovery errors; freezing
+a preset during a row edit does not restart discovery. Library metadata changes
+also invalidate the catalog even when account/library keys remain stable. Section
+mutations wait for discovery so an incomplete catalog cannot freeze a preset
+without its newly discovered rows.
+
+Hero stays in `HeroSettings`, fixed above `HomePresentationRow`; Showcase remains
+a page layout. Future custom source scopes, mixed feeds, duplicate instances,
+curated sections and new appearances need explicit configuration and capability
+contracts before they can become templates in this editor. Do not overload an
+existing `HomeRowID` to represent independent instances or change provider IDs
+to make them unique in the UI.
+
 ## Profile deletion and namespace ownership
 
 Any profile may be deleted while at least one remains. Both cloud adapters apply

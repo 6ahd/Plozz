@@ -176,6 +176,44 @@ final class SettingsCommunityPresentationTests: XCTestCase {
         }
     }
 
+    func testMozzUsesOfficialLightAndDarkAppIconResources() throws {
+        let light = try XCTUnwrap(UIImage(
+            named: "MozzAppIcon", in: .main, compatibleWith: UITraitCollection(userInterfaceStyle: .light)
+        ))
+        let dark = try XCTUnwrap(UIImage(
+            named: "MozzAppIcon", in: .main, compatibleWith: UITraitCollection(userInterfaceStyle: .dark)
+        ))
+        for image in [light, dark] {
+            XCTAssertEqual(image.size.width, image.size.height)
+            XCTAssertGreaterThanOrEqual(image.size.width, 144)
+        }
+        XCTAssertNotEqual(light.pngData(), dark.pngData(), "Preserve Mozz's separate official dark icon.")
+        XCTAssertEqual(AppLinks.mozzTestFlight.absoluteString, "https://testflight.apple.com/join/dmeawSSM")
+    }
+
+    func testMozzBetaRowStaysReadableOnPhoneAndPadInBothThemes() async throws {
+        for light in [false, true] {
+            for (width, textSize) in [
+                (320.0, DynamicTypeSize.large), (320.0, .accessibility3), (768.0, .large)
+            ] {
+                let text = try await renderedText(
+                    ScrollView {
+                        PlozziOSMoreAppsSettingsSection()
+                    }
+                    .settingsPageSurface()
+                    .environment(\.dynamicTypeSize, textSize),
+                    size: CGSize(width: width, height: 900), light: light,
+                    name: "mozz-beta-\(width)-\(light)-\(textSize)", initialOnly: true
+                )
+                let readable = text.replacingOccurrences(of: "- ", with: "")
+                    .replacingOccurrences(of: "-", with: "")
+                for label in ["Mozz", "Free, open-source music player", "TestFlight public beta"] {
+                    XCTAssertTrue(readable.contains(label.replacingOccurrences(of: "-", with: "")), text)
+                }
+            }
+        }
+    }
+
     func testCompactSettingsExposeCommunityLinksInBothThemes() async throws {
         let model = PlozziOSAppModel()
         let originalTheme = model.settings.theme.theme
@@ -195,6 +233,8 @@ final class SettingsCommunityPresentationTests: XCTestCase {
                     name: "compact-settings-community-\(Int(size.width))-\(light)"
                 )
                 assertCommunity(in: text)
+                XCTAssertTrue(text.contains("Mozz"), text)
+                XCTAssertTrue(text.contains("TestFlight public beta"), text)
                 XCTAssertTrue(text.contains("Help & Diagnostics"), text)
                 XCTAssertTrue(text.contains("Version"), text)
             }
@@ -219,6 +259,8 @@ final class SettingsCommunityPresentationTests: XCTestCase {
                     leadingColumn: true
                 )
                 assertCommunity(in: text)
+                XCTAssertTrue(text.contains("Mozz"), text)
+                XCTAssertTrue(text.contains("TestFlight public beta"), text)
                 XCTAssertTrue(text.contains("Help & Diagnostics"), text)
                 XCTAssertTrue(text.contains("Version"), text)
             }

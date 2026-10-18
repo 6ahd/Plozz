@@ -14,8 +14,10 @@ fallback when the user's server has no attached trailer.
   off. Public provider caches stay profile-independent; server-owned library titles
   continue to follow the selected server user's access rather than an invented
   app-wide maturity threshold.
-- **Home row customization** — Settings > Customize Home > Rows on Home uses
-  the same individual-row arranger on TV, iPhone and iPad. Rows from different
+- **Home section customization** — Settings > Screens & Navigation > Customize Home
+  uses the same section editor on TV, iPhone and iPad. Tap a section to configure
+  it, Reorder to move it, or Add section to show another existing feed. Hero
+  stays configurable at the top, outside the movable row list. Rows from different
   libraries can be interleaved, reordered or hidden, including the Libraries
   tiles. `HomeRowCustomization` stores typed identity, order and explicit
   visibility inside the profile's existing Home settings blob; profile transfer
@@ -34,6 +36,17 @@ fallback when the user's server has no attached trailer.
   Global rows say **All libraries**; native server and library rows identify their
   source. All can be freely interleaved. Changing presets requires confirmation;
   selecting the already active preset does nothing.
+  **Merge Next Up rows** is a profile-scoped setting inside the **Continue Watching**
+  section's configuration on every platform, alongside its artwork choice.
+  It uses the provider's combined resume/next-episode feed without changing the
+  preset, library exclusions, or other row choices. Separate Next Up rows are
+  neither requested nor presented while merged; the arranger omits them rather
+  than treating them as explicitly hidden. Their previous visibility and positions
+  survive other row edits and return when merging is turned off. Hiding Continue
+  Watching suspends the merge so Next Up does not disappear with it. Preset changes
+  retain the merge preference, and older profiles keep their existing behavior.
+  Providers whose native feed already combines next episodes retain that behavior
+  when the override is off. This does not synthesize Next Up for network shares.
   Jellyfin uses its saved web Home preferences, Emby its native Home sections
   with an older-server fallback, and Plex its promoted hubs—not another client's
   private sidebar pins. Unsupported providers retain their normal default rows.
@@ -54,7 +67,10 @@ fallback when the user's server has no attached trailer.
   that server's status; failures never reset saved row choices.
   Mobile library discovery follows the effective credential and Plex Home viewer,
   and cancelled lookups cannot restore another viewer's library choices.
-  The arranger enumerates optional recommendations only while open. Home omits
+  The section catalog enumerates optional recommendations only while the editor
+  is open. Section editing retains `HomeRowID` and the existing renderer; there
+  are no duplicate section instances, mixed feeds, per-section source filters
+  or new card layouts in this foundation. Home omits
   unselected row-family requests and stops a recommendation family after all its
   known rows are hidden. The separate library Recommended screen and Showcase's
   optional external Discover row are not redefined by these Home preferences.
@@ -74,6 +90,10 @@ fallback when the user's server has no attached trailer.
   On mobile, a root-owned `LazyViewState` retains the shared Home/Watchlist
   model by profile, credentials and active accounts. Rebuilding the tab shell
   for settings/theme changes must not construct and rehydrate throwaway models.
+  Watchlist artwork rehydration shares URL sanitization and signing only within
+  one synchronous publication batch, including repeated cast images. Cache keys
+  preserve artwork ownership, playback fallback account and requested size;
+  no signed result survives into another profile or credential publication.
   Mobile cards defer identity-index source resolution until direct-play activation
   or the detail destination's body. Browsing and metadata updates do not resolve
   every visible card. Activation reads current accounts/index contents while

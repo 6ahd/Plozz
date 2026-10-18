@@ -7,6 +7,13 @@ import ProviderJellyfin
 import ProviderPlex
 import ProviderSilo
 
+private struct WatchlistArtworkRequest: Hashable {
+    let url: URL
+    let accountID: String?
+    let playbackAccountID: String?
+    let maxWidth: Int?
+}
+
 /// The shell-side dependencies the universal watchlist needs.
 ///
 /// This exists because `AppState+UniversalWatchlist.swift` (tvOS) and
@@ -636,15 +643,37 @@ public extension UniversalWatchlistHost {
                 accountsProviders.provider(forAccountID: accountID)
         }
 
+        // Only reuse work within this synchronous batch. The next publication
+        // must resolve current profile/provider credentials again.
+        var sanitizedKeys: [URL: String] = [:]
+        func artworkKey(_ url: URL) -> String {
+            if let key = sanitizedKeys[url] { return key }
+            let key = SyncURLSanitizer.sanitize(url).absoluteString
+            sanitizedKeys[url] = key
+            return key
+        }
+        var discoverURLs: [WatchlistArtworkRequest: URL?] = [:]
+        var localURLs: [WatchlistArtworkRequest: (url: URL, accountID: String)?] = [:]
+
         return items.map { persistedItem in
             var item = persistedItem
             var rehydratedArtworkSources: [(URL, String)] = []
 
-            func rehydratedDiscoverURL(_ url: URL?) -> URL? {
+            @MainActor func rehydratedDiscoverURL(_ url: URL?) -> URL? {
                 guard let url else { return nil }
                 let accountID =
-                    item.artworkSourceAccountID(for: url)
+                    item.artworkSourceAccountIDsByURL[artworkKey(url)]
                     ?? item.sourceAccountID
+                let request = WatchlistArtworkRequest(
+                    url: url, accountID: accountID, playbackAccountID: nil, maxWidth: nil
+                )
+                if let cached = discoverURLs[request] {
+                    if let cached, let accountID {
+                        rehydratedArtworkSources.append((cached, accountID))
+                    }
+                    return cached ?? url
+                }
+                discoverURLs.updateValue(nil, forKey: request)
                 guard let accountID,
                       let signer = discoverSigners.first(where: {
                           $0.accountID == accountID
@@ -655,6 +684,7 @@ public extension UniversalWatchlistHost {
                     url,
                     discoverToken: signer.token
                 ) else { return url }
+                discoverURLs[request] = signed
                 rehydratedArtworkSources.append((signed, accountID))
                 return signed
             }
@@ -685,13 +715,10 @@ public extension UniversalWatchlistHost {
                 return person
             }
 
-            func finalizedItem() -> MediaItem {
+            @MainActor func finalizedItem() -> MediaItem {
                 var result = item
                 for (url, accountID) in rehydratedArtworkSources {
-                    result.recordArtworkSource(
-                        accountID: accountID,
-                        for: [url]
-                    )
+                    result.artworkSourceAccountIDsByURL[artworkKey(url)] = accountID
                 }
                 return result
             }
@@ -705,12 +732,24 @@ public extension UniversalWatchlistHost {
                 providersByAccountID[$0]
             }
 
-            func reauthenticatedLocalURL(
+            @MainActor func reauthenticatedLocalURL(
                 _ url: URL?,
                 maxWidth: Int?
             ) -> URL? {
                 guard let url else { return nil }
-                if let accountID = item.artworkSourceAccountID(for: url) {
+                let artworkAccountID = item.artworkSourceAccountIDsByURL[artworkKey(url)]
+                let request = WatchlistArtworkRequest(
+                    url: url, accountID: artworkAccountID,
+                    playbackAccountID: playbackAccountID, maxWidth: maxWidth
+                )
+                if let cached = localURLs[request] {
+                    if let cached {
+                        rehydratedArtworkSources.append((cached.url, cached.accountID))
+                    }
+                    return cached?.url
+                }
+                localURLs.updateValue(nil, forKey: request)
+                if let accountID = artworkAccountID {
                     guard let provider = providersByAccountID[accountID],
                           provider.ownsPersistedImageURL(url)
                     else { return nil }
@@ -718,6 +757,7 @@ public extension UniversalWatchlistHost {
                         url,
                         maxWidth: maxWidth
                     ) else { return nil }
+                    localURLs[request] = (signed, accountID)
                     rehydratedArtworkSources.append((signed, accountID))
                     return signed
                 }
@@ -749,6 +789,7 @@ public extension UniversalWatchlistHost {
                     url,
                     maxWidth: maxWidth
                 ) else { return nil }
+                localURLs[request] = (signed, owners[0].accountID)
                 rehydratedArtworkSources.append((
                     signed,
                     owners[0].accountID
