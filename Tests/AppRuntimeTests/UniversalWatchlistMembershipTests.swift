@@ -8,6 +8,7 @@ import Foundation
 import ProviderJellyfin
 @testable import ProviderPlex
 import XCTest
+@testable import TestSupportPerformance
 
 /// The read and the write have to agree about which alias a title is watchlisted
 /// as, including for a subject that carries no ids of its own.
@@ -23,6 +24,53 @@ import XCTest
 /// button still offering to add it.
 @MainActor
 final class UniversalWatchlistMembershipTests: XCTestCase {
+    func testPerformanceWatchlistArtworkRehydration() async throws {
+        try PerformanceProbe.requireEnabled()
+        let hosts = try await [
+            UniversalWatchlistHostDouble(providerKind: .plex),
+            UniversalWatchlistHostDouble(providerKind: .jellyfin)
+        ]
+        let fixtures = try hosts.map { host in
+            let provider = try XCTUnwrap(host.accountsProviders.provider(
+                forAccountID: UniversalWatchlistHostDouble.accountID
+            ))
+            func savedImage(_ id: String) throws -> URL {
+                SyncURLSanitizer.sanitize(try XCTUnwrap(
+                    provider.imageURL(itemID: id, kind: .primary, maxWidth: 500)
+                ))
+            }
+            let people = try (0..<768).map { index in
+                MediaPerson(id: "person-\(index)", name: "Person \(index)",
+                            imageURL: try savedImage("person-\(index)"))
+            }
+            return try (0..<180).map { index in
+                MediaItem(
+                    id: "title-\(index)", title: "Title \(index)", kind: .movie,
+                    people: (0..<64).map { people[(index * 17 + $0) % people.count] },
+                    posterURL: try savedImage("title-\(index)"),
+                    locallyValidatedPlayableSource: true
+                ).taggingSource(UniversalWatchlistHostDouble.accountID)
+            }
+        }
+        try await PerformanceProbe.measure(self, scenario: "watchlist-artwork-rehydration") {
+            var items = 0
+            var credits = 0
+            for (host, fixture) in zip(hosts, fixtures) {
+                let result = host.rehydratedPersistedArtwork(fixture)
+                XCTAssertEqual(result.count, 180)
+                for item in result {
+                    XCTAssertEqual(item.people.count, 64)
+                    XCTAssertTrue(item.posterURL?.absoluteString.contains("CURRENT-TOKEN") == true)
+                    XCTAssertTrue(item.people.allSatisfy {
+                        $0.imageURL?.absoluteString.contains("CURRENT-TOKEN") == true
+                    })
+                    items += 1
+                    credits += item.people.count
+                }
+            }
+            return ["items": items, "credits": credits, "providers": hosts.count]
+        }
+    }
 
     /// The promoted subject exactly as `MediaItem.watchlistSubject` mints it.
     private var promotedSeries: MediaItem {

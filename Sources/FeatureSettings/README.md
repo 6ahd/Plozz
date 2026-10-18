@@ -444,6 +444,9 @@ watch history and planning-list behavior are documented in
   changes navigation insets; declining only the SwiftUI selection binding can
   move a scrolled page. Forward other delegate callbacks and restore the prior
   delegate when the action bridge is removed.
+  Replacement bridges take over the original delegate directly rather than
+  chaining through an older bridge; overlapping SwiftUI lifetimes must not
+  create a forwarding cycle or let a removed bridge uninstall its replacement.
 - **Automatic iCloud sync.** The main sync page does not show a separate Live TV
   explanation panel. Recovery lives in Troubleshooting, with a warning above
   Reload and Reset explaining that neither is normally needed. Both platforms
