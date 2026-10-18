@@ -29,6 +29,7 @@ import RatingsService
 import TraktService
 import SeerService
 import SimklService
+import WetrakrService
 import LastFmService
 import AniListService
 import MALService
@@ -240,6 +241,7 @@ public final class AppState {
 
     /// Simkl sync: device-code OAuth + history scrobble. Mirrors Trakt's pattern.
     public let simklService: SimklService
+    public let wetrakrService: WetrakrService
 
     /// Seerr (Overseerr / Jellyseerr) discovery: backs the Home hero's featured
     /// seam (`trending`) and the Settings connect flow. Inert until the user
@@ -416,6 +418,9 @@ public final class AppState {
         let boundSimklScrobbler = SimklServiceFactory.make(
             namespace: trackerNamespace
         ).scrobbler
+        let boundWetrakrScrobbler = WetrakrServiceFactory.make(
+            namespace: trackerNamespace
+        ).playbackScrobbler()
         let boundAniListScrobbler = AniListServiceFactory.make(
             namespace: trackerNamespace
         ).scrobbler
@@ -493,6 +498,13 @@ public final class AppState {
                     item: intent.makeScrobbleItem(),
                     progress: intent.progress,
                     event: .stop
+                )
+            },
+            wetrakrAccountIdentity: { boundWetrakrScrobbler.accountIdentity },
+            applyWetrakr: { intent, capturedAt, key, identity in
+                try await boundWetrakrScrobbler.recordWatch(
+                    item: intent.makeScrobbleItem(), capturedAt: capturedAt,
+                    idempotencyKey: key, expectedAccountIdentity: identity
                 )
             },
             allAccountIDs: { [weak self] in
@@ -1013,6 +1025,7 @@ public final class AppState {
         ratingsProvider: (any ExternalRatingsProviding)? = nil,
         traktService: TraktService? = nil,
         simklService: SimklService? = nil,
+        wetrakrService: WetrakrService? = nil,
         seerService: SeerService? = nil,
         anilistService: AniListService? = nil,
         malService: MALService? = nil,
@@ -1204,6 +1217,7 @@ public final class AppState {
         self.traktService = traktService ?? TraktServiceFactory.make(namespace: ns)
         // Seed other trackers with the same profile namespace.
         self.simklService = simklService ?? SimklServiceFactory.make(namespace: ns)
+        self.wetrakrService = wetrakrService ?? WetrakrServiceFactory.make(namespace: ns)
         // Seerr uses ONE shared household connection (user-independent Keychain);
         // profiles differ only by which Seerr user they request as (per request).
         self.seerService = seerService ?? Self.makeDefaultSeerService()
@@ -1484,6 +1498,12 @@ public final class AppState {
         // on) and start observing local config changes to publish them.
         self.traktService.onConnectionAvailable = { [weak self] in
             Task { await self?.resumeUniversalWatchlistAuthentication() }
+        }
+        self.wetrakrService.onConnectionChanged = { [weak self] in
+            Task {
+                guard let self, let destination = self.wetrakrService.watchlistDestination else { return }
+                await self.trackerWatchlistConnectionChanged(destination: destination)
+            }
         }
         prepareMediaAliasLedger()
         startCloudSyncIfEnabled()
@@ -2665,6 +2685,8 @@ public final class AppState {
         await traktService.setActiveProfile(namespace: ns)
         guard generation == trackerProfileGeneration else { return }
         await simklService.setActiveProfile(namespace: ns)
+        guard generation == trackerProfileGeneration else { return }
+        await wetrakrService.setActiveProfile(namespace: ns)
         guard generation == trackerProfileGeneration else { return }
         await seerService.setActiveProfile(namespace: ns)
         guard generation == trackerProfileGeneration else { return }

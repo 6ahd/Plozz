@@ -7,6 +7,11 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+Trackers includes WeTrakr on both platforms, using device codes on TV and
+verified HTTPS PKCE on canonical mobile builds. Its connection is profile-scoped;
+watch history and planning-list behavior are documented in
+[WetrakrService](../WetrakrService/README.md).
+
 ## Responsibility
 
 - Individual profile settings expose the existing device-wide Automatically

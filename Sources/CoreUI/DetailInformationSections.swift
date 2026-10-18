@@ -70,6 +70,10 @@ public struct DetailInformationSections: View {
     }
 
     public var body: some View {
+        if let url = item.metadataProvenance.wetrakrWatchlistURL {
+            WetrakrWatchlistLink(url: url)
+                .padding(.horizontal, horizontalInset)
+        }
         if hasContent {
             sectionBody
                 .environment(\.plozzNativeInformationFocus, true)

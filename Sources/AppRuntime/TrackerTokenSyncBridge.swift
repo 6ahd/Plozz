@@ -21,8 +21,10 @@ import TraktService
 public enum TrackerTokenSyncBridge {
     public static func erasureStores(profileNamespaces: [String?]) -> [any TraktTokenStoring] {
         // Register inactive profiles as well as the currently constructed services.
-        var stores: [any TraktTokenStoring] = Set(profileNamespaces + [nil]).map {
-            KeychainTraktTokenStore(namespace: $0)
+        var stores: [any TraktTokenStoring] = Set(profileNamespaces + [nil]).flatMap { namespace in
+            ["trakt.oauth", "wetrakr.oauth"].map {
+                KeychainTraktTokenStore(account: $0, namespace: namespace)
+            }
         }
         let existing = Set(stores.map(\.coordinationID))
         stores += SyncedTokenRegistry.shared.knownAccounts().filter {

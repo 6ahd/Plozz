@@ -1146,7 +1146,8 @@ public extension UniversalWatchlistHost {
                     kind: resolved.1.kind,
                     presentation: resolved.1.presentation,
                     presentationAccountID: resolved.1.presentationAccountID,
-                    index: offset
+                    index: offset,
+                    attribution: resolved.1.attribution
                 )
             }
             loadingView.applySuccess(
@@ -1289,7 +1290,8 @@ public extension UniversalWatchlistHost {
                     // the badge flip now but left Discover artwork on screen
                     // until a later Home rebuild happened to find the full local
                     // MediaItem.
-                    ownedPresentation: owned?.presentation
+                    ownedPresentation: owned?.presentation,
+                    attribution: entry.attribution
                 ) else { continue }
                 entries.append(value)
             }
@@ -2026,6 +2028,18 @@ public extension UniversalWatchlistHost {
         _ = try? await reconciler.resumeAuthentication()
         _ = await reconciler.drain(profileID: profiles.activeProfileID)
         await universalWatchlistRetryScheduler?.reschedule()
+    }
+
+    func trackerWatchlistConnectionChanged(destination: any WatchlistDestination) async {
+        guard universalWatchlistNativeViewLoaded else { return }
+        var view = universalWatchlistNativeView
+        view.discardCachedEntries(
+            for: destination.id, unlessIdentityScopeMatches: destination.cacheIdentityScope
+        )
+        persistUniversalWatchlistNativeView(view)
+        announceUniversalWatchlistDidChange()
+        await resumeUniversalWatchlistAuthentication()
+        await refreshNativeWatchlistView()
     }
 
     /// Tell every surface the watchlist moved, and drop the memoized membership

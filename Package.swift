@@ -40,6 +40,8 @@ let package = Package(
         .library(name: "ProviderTrailers", targets: ["ProviderTrailers"]),
         .library(name: "RatingsService", targets: ["RatingsService"]),
         .library(name: "TraktService", targets: ["TraktService"]),
+        .library(name: "CoreTrackerAuth", targets: ["CoreTrackerAuth"]),
+        .library(name: "WetrakrService", targets: ["WetrakrService"]),
         .library(name: "SeerService", targets: ["SeerService"]),
         .library(name: "SimklService", targets: ["SimklService"]),        .library(name: "AniListService", targets: ["AniListService"]),
         .library(name: "MALService", targets: ["MALService"]),
@@ -389,7 +391,15 @@ let package = Package(
         ),
         .target(
             name: "TraktService",
+            dependencies: ["CoreModels", "CoreNetworking", "CoreSecureStore", "CoreTrackerAuth"]
+        ),
+        .target(
+            name: "CoreTrackerAuth",
             dependencies: ["CoreModels", "CoreNetworking", "CoreSecureStore"]
+        ),
+        .target(
+            name: "WetrakrService",
+            dependencies: ["CoreModels", "CoreNetworking", "CoreSecureStore", "CoreTrackerAuth"]
         ),
         .target(
             name: "SeerService",
@@ -487,7 +497,7 @@ let package = Package(
         ),
         .target(
             name: "FeatureSettings",
-            dependencies: ["CoreModels", "CoreUI", "CoreNetworking", "CrashReporting", "FeatureProfiles", "TraktService", "SeerService", "SimklService", "AniListService", "MALService", "LastFmService"]
+            dependencies: ["CoreModels", "CoreUI", "CoreNetworking", "CrashReporting", "FeatureProfiles", "TraktService", "WetrakrService", "SeerService", "SimklService", "AniListService", "MALService", "LastFmService"]
         ),
         .target(
             name: "FeatureProfiles",
@@ -857,6 +867,7 @@ let package = Package(
                 "TraktService",
                 "SeerService",
                 "SimklService",
+                "WetrakrService",
                 "AniListService",
                 "MALService",
                 "LastFmService",
@@ -911,6 +922,7 @@ let package = Package(
                 "SeerService",
                 "TraktService",
                 "SimklService",
+                "WetrakrService",
                 "AniListService",
                 "MALService",
                 "FeatureSyncSetup",
@@ -1018,7 +1030,11 @@ let package = Package(
         ),
         .testTarget(
             name: "TraktServiceTests",
-            dependencies: ["TraktService", "CoreModels", "CoreNetworking", "TestSupportNetworking"]
+            dependencies: ["TraktService", "CoreTrackerAuth", "CoreModels", "CoreNetworking", "TestSupportNetworking"]
+        ),
+        .testTarget(
+            name: "WetrakrServiceTests",
+            dependencies: ["WetrakrService", "CoreTrackerAuth", "CoreModels", "CoreNetworking", "TestSupportNetworking"]
         ),
         .testTarget(
             name: "SimklServiceTests",

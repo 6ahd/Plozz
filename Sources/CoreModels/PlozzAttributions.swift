@@ -196,7 +196,7 @@ public enum PlozzAttributions {
         PlozzAttribution(
             title: "Watch Tracking",
             detail:
-                "Watch-history sync integrations — Trakt (trakt.tv), Simkl (simkl.com), "
+                "Watch-history sync integrations — Trakt (trakt.tv), WeTrakr (wetrakr.com), Simkl (simkl.com), "
                 + "AniList (anilist.co), and MyAnimeList (myanimelist.net) — use their "
                 + "respective public APIs. None endorses or is affiliated with Plozz.",
             licenses: [.init("API", family: .api)]

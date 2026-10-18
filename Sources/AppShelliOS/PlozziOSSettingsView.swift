@@ -896,7 +896,7 @@ private struct PlozziOSSettingsVersionSection<ReleaseLink: View>: View {
                 }
             }
             LabeledContent("Build") {
-                Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—")
+                Text(AppVersionIdentity.current.displayBuild)
             }
             if ReleaseNotesModel.shared.isAvailable { releaseLink() }
         }
