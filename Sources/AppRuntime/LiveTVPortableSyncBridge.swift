@@ -851,11 +851,12 @@ public final class LiveTVPortableSyncBridge {
     }
 
     private func removedProfiles() throws -> Set<String> {
+        let pending = profiles.pendingSyncedDeletionProfileIDs
         let url = metadataDirectory.appendingPathComponent("removed-profiles.json")
-        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        guard FileManager.default.fileExists(atPath: url.path) else { return pending }
         let data = try Data(contentsOf: url)
         guard data.count <= 1_024 * 1_024 else { throw LiveTVPortableStateError.tooLarge }
-        return Set(try JSONDecoder().decode([String].self, from: data))
+        return Set(try JSONDecoder().decode([String].self, from: data)).union(pending)
     }
 
     private var metadataDirectory: URL {
@@ -873,6 +874,10 @@ public final class LiveTVPortableSyncBridge {
 
     private func finishDiagnostic(_ operation: LiveTVSyncDiagnostic.Operation, profileID: String) {
         guard statuses[profileID] != .unavailable else { return }
+        LiveTVSourceDiagnostics.shared.record(
+            .syncFinished, identities: [.profile: profileID], flags: [.capture: operation == .capture],
+            deduplicate: true
+        )
         clearDiagnosticFailures(operation, profileID: profileID)
         LiveTVSyncDiagnostic(operation: operation, stage: .finish, outcome: .succeeded).publish()
     }
@@ -897,6 +902,10 @@ public final class LiveTVPortableSyncBridge {
             return
         }
         let failure = Self.diagnosticFailure(error)
+        LiveTVSourceDiagnostics.shared.record(
+            .syncFailed, identities: [.profile: profileID], flags: [.capture: operation == .capture],
+            error: error
+        )
         let diagnostic = LiveTVSyncDiagnostic(
             operation: operation, stage: stage, outcome: .failed,
             failure: failure

@@ -990,6 +990,10 @@ public final class LiveTVPortableSyncAdapter: @unchecked Sendable {
                 report.guideMappings.updateValue(record.channel?.guideMapping, forKey: recordKey.entityID)
                 report.identityHints.updateValue(record.channel?.identityHint, forKey: recordKey.entityID)
             case .source:
+                LiveTVSourceDiagnostics.shared.record(
+                    .syncSourceRecord, identities: [.profile: profileID, .source: recordKey.entityID],
+                    flags: [.deleted: record.isDeleted]
+                )
                 applySource(record, id: recordKey.entityID, configuration: &configuration)
             case .library, .snapshot:
                 break

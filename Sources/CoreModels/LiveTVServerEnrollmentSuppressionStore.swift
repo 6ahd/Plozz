@@ -10,6 +10,8 @@ public final class LiveTVServerEnrollmentSuppressionStore: @unchecked Sendable {
 
     private let defaults: UserDefaults
     private let key: String
+    private let profileID: String
+    private let namespace: String?
     private static let lock = NSLock()
 
     public convenience init(defaults: UserDefaults = .standard, profileID: String) {
@@ -21,6 +23,8 @@ public final class LiveTVServerEnrollmentSuppressionStore: @unchecked Sendable {
 
     public init(defaults: UserDefaults = .standard, profileID: String, namespace: String?) {
         self.defaults = defaults
+        self.profileID = profileID
+        self.namespace = namespace
         key = SettingsKey.scoped(
             "com.plozz.liveTV.serverEnrollment.v1",
             namespace: namespace
@@ -50,6 +54,11 @@ public final class LiveTVServerEnrollmentSuppressionStore: @unchecked Sendable {
         }
         document.records[accountID] = value
         defaults.set(try JSONEncoder().encode(document), forKey: key)
+        LiveTVSourceDiagnostics.shared.record(
+            .suppressionChanged,
+            identities: [.profile: profileID, .namespace: namespace ?? "default", .account: accountID],
+            flags: [.suppressed: value], deduplicate: true
+        )
     }
 
     /// Restrictions precede the write. A failed source save may keep a server

@@ -79,6 +79,10 @@ struct LiveTVSourcesRuntimeHost<Content: View>: View {
                         runtime.scanBinding.synchronizeVisibility()
                     }
                     .onChange(of: runtime.authorityID) { previous, current in
+                        LiveTVSourceDiagnostics.shared.record(
+                            .authorityChanged, identities: [.profile: profileID],
+                            flags: [.present: current != nil, .sameAuthority: previous == current]
+                        )
                         HandoffDiagnostics.emit(
                             "SOURCES event=authorityChanged previousPresent=\(previous != nil) currentPresent=\(current != nil)"
                         )
@@ -90,6 +94,22 @@ struct LiveTVSourcesRuntimeHost<Content: View>: View {
                         isSceneActive: scenePhase == .active,
                         sourceRevision: sourceRevision
                     )) {
+                        LiveTVSourceDiagnostics.shared.record(
+                            .sourcesRestore, identities: [
+                                .profile: profileID, .activeProfile: profiles.activeProfileID,
+                                .namespace: namespace ?? "default",
+                                .storageNamespace: LiveTVLibraryStorage.preferencesNamespace(
+                                    profileID: profileID, profiles: profiles
+                                ) ?? "default"
+                            ],
+                            flags: [
+                                .active: isPresented, .sceneActive: scenePhase == .active,
+                                .authorized: isProfileAuthorized(), .profileMatches: profiles.activeProfileID == profileID,
+                                .namespaceMatches: profiles.activeNamespace == namespace,
+                                .identityPending: profiles.activeProfile.awaitsIdentity(amongAccounts: accounts.activeAccountIDs),
+                                .actionableIdentityPending: accounts.activeProfileAwaitsIdentity
+                            ]
+                        )
                         HandoffDiagnostics.emit(
                             "SOURCES event=restoreRequested presented=\(isPresented) active=\(scenePhase == .active)"
                             + " profileAuthorized=\(isProfileAuthorized()) profileMatches=\(profiles.activeProfileID == profileID)"
@@ -161,6 +181,13 @@ struct LiveTVSourcesRuntimeHost<Content: View>: View {
     }
 
     private func restoreChangedSources(_ notification: Notification) {
+        LiveTVSourceDiagnostics.shared.record(
+            .sourceNotification, identities: [.profile: profileID],
+            flags: [
+                .profileMatches: notification.object as? String == profileID, .active: isPresented,
+                .sceneActive: scenePhase == .active, .current: runtime?.isCurrent == true
+            ]
+        )
         guard notification.object as? String == profileID,
               isPresented, scenePhase == .active, let runtime, !runtime.isCurrent else { return }
         // Saves can arrive during an import. Retire that snapshot and readmit

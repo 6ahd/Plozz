@@ -170,6 +170,8 @@ public struct LiveTVSourcesView: View {
         .onChange(of: model.mutationRevision) { _, _ in
             if refreshAfterMutation { refresh?() }
         }
+        .onChange(of: model.configuration, initial: true) { _, _ in recordSourceScreen() }
+        .onChange(of: [model.hasLoaded, model.loadIssue != nil]) { _, _ in recordSourceScreen() }
         .onChange(of: catalog?.imports.configuration) { _, _ in
             model.reload()
         }
@@ -203,6 +205,22 @@ public struct LiveTVSourcesView: View {
         } message: {
             if let issue = model.mutationIssue { Text(issue.message) }
         }
+    }
+
+    private func recordSourceScreen() {
+        var identities: [LiveTVSourceDiagnostics.Identity: String] = [:]
+        identities[.profile] = catalog?.profileID
+        LiveTVSourceDiagnostics.shared.record(
+            .sourcesScreen, identities: identities,
+            counts: [
+                .playlists: model.configuration.playlists.count, .servers: model.configuration.servers.count,
+                .choices: serverChoices.count
+            ],
+            flags: [
+                .present: model.hasLoaded, .failed: model.loadIssue != nil,
+                .hasSnapshot: catalog != nil, .current: catalog?.isPresentationCurrent ?? true
+            ]
+        )
     }
 
     private var sourceRetry: (@MainActor (String) async throws -> Void)? {

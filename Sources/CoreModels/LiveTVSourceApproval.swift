@@ -328,6 +328,9 @@ public final class LiveTVApprovalAwareSourcesStore: LiveTVPortableSourcesStoring
     public func applySyncedConfiguration(_ configuration: LiveTVSourcesConfiguration) throws {
         Self.lock.lock()
         defer { Self.lock.unlock() }
+        LiveTVSourceDiagnostics.shared.configuration(
+            configuration, namespace: approvals.namespace, event: .syncMutation
+        )
         try configuration.validate()
         let previous = try underlying.load()
         try approvals.invalidateChangedSources(previous: previous, updated: configuration)
@@ -339,6 +342,9 @@ public final class LiveTVApprovalAwareSourcesStore: LiveTVPortableSourcesStoring
     public func save(_ configuration: LiveTVSourcesConfiguration) throws {
         Self.lock.lock()
         defer { Self.lock.unlock() }
+        LiveTVSourceDiagnostics.shared.configuration(
+            configuration, namespace: approvals.namespace, event: .localMutation
+        )
         try configuration.validate()
         let previous = try load()
         var configuration = configuration

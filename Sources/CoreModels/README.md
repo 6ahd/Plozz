@@ -42,6 +42,25 @@ language every other module speaks.
 | UI state | `LoadState`, `AppError` |
 | Subtitles | `SubtitleBehavior`, `SubtitleStyle` (rendered by `FeaturePlayback`) |
 
+## Profile deletion and namespace ownership
+
+Any profile may be deleted while at least one remains. Both cloud adapters apply
+the original/default profile's deletion and omit deleted profiles, membership and
+settings from capture, allowing the existing durable sync ledger to delete their
+CloudKit records. A deletion arriving before the remaining profile records holds
+a persisted, non-publishing placeholder until a replacement arrives or is added;
+`profilesForSync` excludes it so a restart cannot recreate the deleted record.
+Live TV and media-state captures also exclude `pendingSyncedDeletionProfileIDs`,
+including preserved fallback records, without erasing the temporary local data.
+The revisioned household Parental PIN moves to the first surviving profile rather
+than disappearing with its former anchor.
+
+Legacy unnamespaced settings have a recorded owner. Retain that former owner's
+stored ID after deletion, even though the live `rootNamespaceOwnerID` is nil.
+Erasing this marker reruns migration on launch and hands the deleted profile's
+settings and Live TV source storage to another profile. Survivor namespaces never
+change because the roster is reordered or its first entry is deleted.
+
 ## Version picker facts
 
 `MediaVersion.PickerPresentation` is the shared detail/player summary on TV and

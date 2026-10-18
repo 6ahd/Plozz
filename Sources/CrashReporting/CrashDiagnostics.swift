@@ -1,4 +1,5 @@
 import Foundation
+import CoreModels
 #if canImport(Sentry)
 import Sentry
 #endif
@@ -25,6 +26,7 @@ public enum CrashDiagnostics {
             logText: logText,
             note: note,
             isEnabled: SentrySDK.isEnabled,
+            sourceDiagnostics: { LiveTVSourceDiagnostics.captureReport() },
             captureEvent: { event, attachment in
                 SentrySDK.capture(event: event) { scope in
                     scope.addAttachment(attachment)
@@ -43,13 +45,18 @@ public enum CrashDiagnostics {
         logText: String,
         note: String?,
         isEnabled: Bool,
+        sourceDiagnostics: @MainActor () -> String = { "" },
         captureEvent: (Event, Attachment) -> SentryId,
         captureFeedback: (Event) -> SentryId
     ) -> Bool {
         guard isEnabled else { return false }
 
         let trimmed = logText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let body = trimmed.isEmpty ? "(recent activity log was empty)" : trimmed
+        var body = trimmed.isEmpty ? "(recent activity log was empty)" : trimmed
+        let sourceJournal = sourceDiagnostics()
+        if !sourceJournal.isEmpty {
+            body += "\n\n--- Persistent Live TV source diagnostics ---\n" + sourceJournal
+        }
         let trimmedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let message = trimmedNote.isEmpty ? "User diagnostics report" : trimmedNote
         let attachment = Attachment(
