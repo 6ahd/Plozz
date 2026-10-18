@@ -391,16 +391,12 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         public let supplementalFacts: [String]
         public let releaseName: String? // l10n:content — provider release name or file basename
         public let badges: [MediaBadge]
+        public let supplementalFactsWithoutBadges: [String]
 
         public var titleWithoutBadges: String? {
             guard let title else { return nil }
             let facts = title.components(separatedBy: " · ").filter { !badgeLabels.contains($0) }
             return facts.isEmpty ? nil : facts.joined(separator: " · ")
-        }
-
-        public var supplementalFactsWithoutBadges: [String] {
-            supplementalFacts.flatMap { $0.components(separatedBy: " + ") }
-                .filter { !badgeLabels.contains($0) }
         }
 
         private var badgeLabels: Set<String> {
@@ -415,11 +411,29 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
             let video = version.sourceMetadata?.video
             let codec = PlaybackDiagnostics.friendlyCodecName(video?.codec ?? version.videoCodec)
             var formats = version.technicalBadges
+            for fact in version.audioFormatLabel?.components(separatedBy: " + ") ?? [] {
+                guard !formats.contains(where: { $0.label == fact || $0.accessibilityText == fact }) else { continue }
+                if let index = formats.firstIndex(where: { fact.hasPrefix($0.label + " ") }) {
+                    formats[index].detail = String(fact.dropFirst(formats[index].label.count + 1))
+                } else {
+                    // Keep the underlying codec alongside spatial audio, unlike the compact hero summary.
+                    let style: MediaBadge.Style = fact.hasPrefix("Dolby ") ? .dolby
+                        : fact.hasPrefix("DTS") ? .dts : .spec
+                    let badge = MediaBadge(fact, style: style)
+                    if style == .dolby, let index = formats.lastIndex(where: { $0.style == .dolby }) {
+                        formats.insert(badge, at: index + 1)
+                    } else {
+                        formats.append(badge)
+                    }
+                    formats.removeAll { $0.style == .spec && fact.hasSuffix(" " + $0.label) }
+                }
+            }
             if let codec, !formats.contains(where: { $0.label == codec }) {
                 formats.append(MediaBadge(codec))
             }
-            badges = formats
             let languages = version.audioLanguageNames(in: locale)
+            formats.append(contentsOf: languages.map { MediaBadge($0) })
+            badges = formats
             let rangeFacts = version.sourceMetadata?.dynamicRangeBadges.map(\.label) ?? []
             supplementalFacts = (rangeFacts + [
                 version.sourceQualityLabel ?? EditionParser.sourceQuality(from: fileName),
@@ -430,6 +444,11 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
                 version.bitrateLabel,
                 version.durationLabel
             ].compactMap { $0 }).filter { !titleFacts.contains($0) }
+            let representedFacts = Set(formats.flatMap { [$0.label, $0.accessibilityText] })
+            supplementalFactsWithoutBadges = supplementalFacts
+                .filter { $0 != languages.joined(separator: ", ") }
+                .flatMap { $0.components(separatedBy: " + ") }
+                .filter { !representedFacts.contains($0) }
             let release = fileName ?? MediaSourceDisplayName.name(from: version.name)
             releaseName = release == title ? nil : release
         }

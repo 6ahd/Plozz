@@ -140,13 +140,6 @@ private struct PlaybackVersionChoiceLabel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !presentation.badges.isEmpty {
-                WrappingHStackLayout(spacing: 10, lineSpacing: 8) {
-                    ForEach(presentation.badges) { badge in
-                        MetadataMediaBadgeChip(badge: badge)
-                    }
-                }
-            }
             if let title = presentation.titleWithoutBadges {
                 Text(verbatim: title)
                     .font(.subheadline.weight(.medium))
@@ -166,6 +159,14 @@ private struct PlaybackVersionChoiceLabel: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .truncationMode(.middle)
+            }
+            if !presentation.badges.isEmpty {
+                WrappingHStackLayout(spacing: 8, lineSpacing: 6) {
+                    ForEach(presentation.badges) { badge in
+                        MetadataMediaBadgeChip(badge: badge)
+                    }
+                }
+                .environment(\.mediaBadgeScale, 0.85)
             }
         }
         .multilineTextAlignment(.leading)

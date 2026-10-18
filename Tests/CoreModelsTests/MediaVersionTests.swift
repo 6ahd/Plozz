@@ -160,11 +160,12 @@ final class MediaVersionTests: XCTestCase {
             "HDR10", "HEVC", "10-bit", "English, French", "Dolby TrueHD + Dolby Atmos", "80 Mbps", "2h"
         ])
         XCTAssertEqual(row.releaseName, "Film.Extended.2160p.REMUX-GROUP.mkv")
-        XCTAssertEqual(row.badges.map(\.label), ["4K", "Dolby Vision", "Dolby Atmos", "HDR10", "HEVC"])
-        XCTAssertEqual(row.titleWithoutBadges, "Extended · Remux · 42 GB")
-        XCTAssertEqual(row.supplementalFactsWithoutBadges, [
-            "10-bit", "English, French", "Dolby TrueHD", "80 Mbps", "2h"
+        XCTAssertEqual(row.badges.map(\.label), [
+            "4K", "Dolby Vision", "Dolby Atmos", "Dolby TrueHD", "HDR10", "HEVC", "English", "French"
         ])
+        XCTAssertEqual(row.badges.first { $0.label == "Dolby TrueHD" }?.style, .dolby)
+        XCTAssertEqual(row.titleWithoutBadges, "Extended · Remux · 42 GB")
+        XCTAssertEqual(row.supplementalFactsWithoutBadges, ["10-bit", "80 Mbps", "2h"])
         XCTAssertEqual(
             version.audioLanguageNames(in: Locale(identifier: "es_ES")),
             ["Inglés", "Francés"]
@@ -194,7 +195,7 @@ final class MediaVersionTests: XCTestCase {
         XCTAssertNil(MediaVersion(id: "invalid", duration: .nan).durationLabel)
     }
 
-    func testPickerBadgesUseOnlyThisVersionsFactsAndKeepUnrepresentedAudioDetails() {
+    func testPickerBadgesUseOnlyThisVersionsFactsAndIncludeAudioDetails() {
         let surround = MediaVersion.PickerPresentation(.init(
             id: "surround", height: 1080, videoCodec: "h264", videoRange: "SDR",
             audioCodec: "ac3", audioChannels: 6
@@ -203,13 +204,51 @@ final class MediaVersionTests: XCTestCase {
         XCTAssertNil(surround.titleWithoutBadges)
         XCTAssertTrue(surround.supplementalFactsWithoutBadges.isEmpty)
         let stereo = MediaVersion.PickerPresentation(.init(id: "stereo", height: 720, audioCodec: "aac", audioChannels: 2))
-        XCTAssertEqual(stereo.badges.map(\.label), ["720p"])
-        XCTAssertEqual(stereo.supplementalFactsWithoutBadges, ["AAC Stereo"])
+        XCTAssertEqual(stereo.badges.map(\.label), ["720p", "AAC Stereo"])
+        XCTAssertTrue(stereo.supplementalFactsWithoutBadges.isEmpty)
         XCTAssertFalse(stereo.badges.contains { $0.style == .dolby || $0.style == .sdr })
         XCTAssertEqual(
             MediaVersion.PickerPresentation(.init(id: "named", name: "Server copy")).titleWithoutBadges,
             "Server copy"
         )
+    }
+
+    func testPickerAudioBadgesPreserveCodecAndLayoutWithoutDuplicateChannelChips() {
+        let cases: [(MediaVersion, [MediaBadge])] = [
+            (.init(id: "truehd", audioCodec: "truehd", audioChannels: 6),
+             [MediaBadge("Dolby TrueHD", style: .dolby, detail: "5.1")]),
+            (.init(id: "atmos", audioCodec: "truehd", audioProfile: "Atmos"),
+             [MediaBadge("Dolby Atmos", style: .dolby), MediaBadge("Dolby TrueHD", style: .dolby)]),
+            (.init(id: "ddp", audioCodec: "eac3", audioProfile: "Atmos"),
+             [MediaBadge("Dolby Atmos", style: .dolby), MediaBadge("Dolby Digital+", style: .dolby)]),
+            (.init(id: "dts", audioCodec: "dts", audioChannels: 8, audioProfile: "DTS-HD MA"),
+             [MediaBadge("DTS-HD", style: .dts, detail: "MA 7.1")]),
+            (.init(id: "aac", audioCodec: "aac", audioChannels: 6),
+             [MediaBadge("AAC 5.1")]),
+            (.init(id: "channels", audioChannels: 6), [MediaBadge("5.1")])
+        ]
+        for (version, expected) in cases {
+            let row = MediaVersion.PickerPresentation(version)
+            XCTAssertEqual(row.badges, expected, version.id)
+            XCTAssertTrue(row.supplementalFactsWithoutBadges.isEmpty, version.id)
+        }
+        XCTAssertEqual(
+            cases[1].0.technicalBadges,
+            [MediaBadge("Dolby Atmos", style: .dolby)],
+            "The detail hero keeps its compact format summary."
+        )
+    }
+
+    func testPickerLanguageBadgesAreLocalizedUniqueAndExcludeUnknownLanguages() {
+        let version = MediaVersion(id: "languages", sourceMetadata: .init(
+            audio: .init(language: "eng"),
+            audioLanguages: ["en", "eng", "fra", "und", "zxx", ""]
+        ))
+        let row = MediaVersion.PickerPresentation(version, locale: Locale(identifier: "es_ES"))
+        XCTAssertEqual(row.badges, [MediaBadge("Inglés"), MediaBadge("Francés")])
+        XCTAssertEqual(row.supplementalFacts, ["Inglés, Francés"])
+        XCTAssertTrue(row.supplementalFactsWithoutBadges.isEmpty)
+        XCTAssertTrue(MediaVersion.PickerPresentation(.init(id: "unknown")).badges.isEmpty)
     }
 
     func testPickerReleaseFallbackAndFilenameQualityDoNotChangeVersionIdentity() {

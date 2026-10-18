@@ -103,7 +103,7 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
         let choices = try await visibleText(in: window, name: "version-choice-\(Int(width))-\(typeSize)")
         for fact in ["Choose a version", "4K", "42 GB", "English", "French", "HEVC", "TrueHD"] {
-            XCTAssertTrue(choices.contains(fact), "Missing \(fact): \(choices)")
+            XCTAssertTrue(choices.localizedCaseInsensitiveContains(fact), "Missing \(fact): \(choices)")
         }
         #if os(tvOS)
         XCTAssertNotNil(UIFocusSystem(for: window)?.focusedItem, "The version picker must receive native focus.")

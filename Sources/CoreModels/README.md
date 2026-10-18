@@ -83,12 +83,14 @@ to that physical file; subtitle languages never become audio languages. Unknown
 facts remain absent, and these source facts do not claim a playback mode or
 active output format. Optional `MediaSourceMetadata.audioLanguages` keeps older
 cached payloads readable and also survives synthesized edition versions.
-The playback-choice dialog reuses the detail page's per-version badges plus the
-video-codec chip. Its companion text omits facts already represented by those
-badges, retaining edition/source quality, size, languages, bitrate/runtime and
-audio details the compact marks do not express. The dialog uses native rounded
-rectangle buttons rather than capsules; badge rows wrap for narrow widths and
-Dynamic Type. Other picker presentations retain their existing plain-text form.
+The playback-choice dialog reuses the detail page's per-version badges, adding
+video-codec, full audio-format and localized audio-language chips. Unlike the
+compact hero summary, it keeps the underlying codec alongside spatial audio
+(for example, Dolby TrueHD and Dolby Atmos). Companion text omits those badge
+facts, retaining edition/source quality, size, bit depth and bitrate/runtime.
+The smaller badges sit below the release filename and wrap for narrow widths
+and Dynamic Type. The dialog uses native rounded rectangle buttons rather than
+capsules. Detail heroes and other pickers retain their existing presentation.
 `MediaSourceDisplayName` extracts a readable `torrent_name` from URL/query-backed
 sources (including percent-encoded names) before taking a basename. It also
 cleans cached locator-like names at presentation time. Only the decoded name,
