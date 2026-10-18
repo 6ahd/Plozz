@@ -789,8 +789,8 @@ public final class PlayerViewModel {
                     let facts = failureEvidence
                     let canRetry = facts?.allowsCodecFallback ?? (error == .invalidResponse)
                     if (canRetry || facts?.kind == .hdrConversion), self.retryStreamingCodecIfNeeded(failure: facts) { return }
-                    self.streamingQuality.error = Self.streamingFailure(error, evidence: facts)
                 }
+                self.streamingQuality.error = Self.streamingFailure(error, evidence: failureEvidence)
                 await self.engineHandoff.handleEngineFailure(
                     error,
                     sourceEngineToken: callbackEngineToken
@@ -1170,15 +1170,13 @@ public final class PlayerViewModel {
             return
         } catch let error as StreamingQualityError {
             guard !didStop, streamingGeneration == streamingLoadGeneration else { return }
-            PlozzLog.playback.error("Selected streaming quality could not be delivered.")
+            PlozzLog.playback.error("Playback negotiation failed: \(error.diagnosticCode ?? "serverRefusal")")
             streamingQuality.error = error
             nextEpisodeCoordinator.clearFirstFrameWait()
             phase = .failed(.invalidResponse)
         } catch let error as AppError {
             guard !Task.isCancelled, !didStop, streamingGeneration == streamingLoadGeneration else { return }
-            if streamingOptions != nil {
-                streamingQuality.error = Self.streamingFailure(error, streamWasSupplied: false)
-            }
+            streamingQuality.error = Self.streamingFailure(error, streamWasSupplied: false)
             HandoffDiagnostics.emit(
                 "bringup FAILED item=\(itemID) provider=\(provider.kind.rawValue) "
                     + "error=\(HandoffDiagnostics.errorCode(error))"
@@ -1192,6 +1190,7 @@ public final class PlayerViewModel {
                     + "error=nonAppError"
             )
             nextEpisodeCoordinator.clearFirstFrameWait()
+            streamingQuality.error = .negotiationFailed
             phase = .failed(.unknown(""))
         }
     }
@@ -1425,6 +1424,13 @@ public final class PlayerViewModel {
         guard streamingOptions?.matchesSelection(options) != true || failed else { return }
         streamingQuality.options = options
         streamingQuality.fallbackCodec = nil
+        restartStreamingRendition()
+    }
+
+    public func retryPlayback() {
+        guard !didStop, case .failed = phase else { return }
+        streamingQuality.fallbackCodec = nil
+        engineHandoff.resetFallbackState()
         restartStreamingRendition()
     }
 
@@ -2853,7 +2859,7 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
                 Task { @MainActor [self] in await releaseStreamingSession(request) }
             }
         }
-        if case .failed(let error) = phase, streamingOptions != nil {
+        if case .failed(let error) = phase {
             if streamingQuality.error == nil {
                 streamingQuality.error = Self.streamingFailure(error, evidence: engine.streamingFailure)
             }
@@ -2873,7 +2879,7 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
     }
 
     func handoffHandleStartupTimeout() -> Bool {
-        guard streamingOptions != nil, !didStop else { return false }
+        guard !didStop else { return false }
         HandoffDiagnostics.emit("streaming STARTUP_TIMEOUT provider=\(provider.kind.rawValue) suppliedStream=\(request != nil)")
         let evidence = engine.streamingFailure
         if (evidence?.allowsCodecFallback != false || evidence?.kind == .hdrConversion),
@@ -2887,9 +2893,18 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
     ) -> StreamingQualityError? {
         if let evidence { return .playback(evidence) }
         switch error {
+        case .serverUnreachable: return .playback(.init(kind: .network))
+        case .unauthorized, .invalidCredentials: return .permissionDenied
+        case .accessRestricted: return .playback(.init(kind: .accessRestricted))
+        case .rateLimited: return .playback(.init(kind: .rateLimited))
+        case .notFound:
+            return streamWasSupplied ? .playback(.init(kind: .unavailable)) : .sourceUnavailable
+        case .conflict:
+            return .serverRefusal("The server could not start playback in its current state. Close other playback sessions and try again.")
         case .invalidResponse, .unknown:
             return streamWasSupplied ? .playback(.init(kind: .unknown)) : .negotiationFailed
-        case .decoding: return .malformedResponse
+        case .decoding:
+            return streamWasSupplied ? .playback(.init(kind: .unsupportedFormat)) : .malformedResponse
         default: return nil
         }
     }
@@ -2931,7 +2946,7 @@ extension PlayerViewModel: ForegroundReloadCoordinatorHost {
     }
 
     func reloadFail(_ error: AppError) {
-        phase = .failed(error)
+        handoffSetPhase(.failed(error))
     }
 }
 

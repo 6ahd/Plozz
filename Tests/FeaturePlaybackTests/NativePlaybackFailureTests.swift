@@ -613,17 +613,33 @@ final class NativePlaybackFailureTests: XCTestCase {
     func testHTTPAndDecoderFailuresRemainDistinct() {
         for (status, kind) in [
             (401, StreamingPlaybackFailure.Kind.accessDenied), (403, .accessDenied),
-            (404, .unavailable), (500, .server), (503, .server), (504, .timedOut)
+            (404, .unavailable), (410, .unavailable), (429, .rateLimited), (451, .accessRestricted),
+            (500, .server), (503, .server), (504, .timedOut), (509, .rateLimited)
         ] {
             let result = NativePlaybackFailure.classify(nil, httpStatus: status)
             XCTAssertEqual(result.kind, kind)
             XCTAssertEqual(result.diagnosticCode, "HTTP \(status)")
-            XCTAssertEqual(result.allowsCodecFallback, kind == .unavailable)
+            XCTAssertFalse(result.allowsCodecFallback)
         }
         let error = NSError(domain: AVFoundationErrorDomain, code: AVError.Code.decodeFailed.rawValue)
         let result = NativePlaybackFailure.classify(error)
         XCTAssertEqual(result.kind, .unsupportedFormat)
         XCTAssertTrue(result.allowsCodecFallback)
+    }
+
+    func testNetworkMessagesExplainKnownOfflineDNSAndCertificateFailures() {
+        for (code, expected) in [
+            (URLError.notConnectedToInternet, "offline"),
+            (.cannotFindHost, "address"),
+            (.dnsLookupFailed, "DNS"),
+            (.serverCertificateUntrusted, "certificate"),
+            (.serverCertificateHasBadDate, "certificate")
+        ] {
+            let failure = NativePlaybackFailure.classify(URLError(code) as NSError)
+            XCTAssertEqual(failure.kind, .network)
+            XCTAssertFalse(failure.allowsCodecFallback)
+            XCTAssertTrue(String(localized: failure.userMessage).contains(expected))
+        }
     }
 
     func testUnknownDomainsAndMessagesCannotLeakIntoDiagnostics() {

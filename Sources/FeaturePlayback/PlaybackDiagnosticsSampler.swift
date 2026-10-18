@@ -572,7 +572,9 @@ public final class PlaybackDiagnosticsSampler {
     private static func playbackStateText(item: AVPlayerItem, player: AVPlayer?) -> String {   // l10n:content — playback diagnostic
         switch item.status {
         case .failed:
-            if let error = item.error { return "Failed: \(error.localizedDescription)" }
+            if let code = NativePlaybackFailure.classify(item.error as NSError?).diagnosticCode {
+                return "Failed: \(code)"
+            }
             return "Failed"
         case .unknown:
             return "Loading"

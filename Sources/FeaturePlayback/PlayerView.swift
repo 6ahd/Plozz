@@ -324,14 +324,17 @@ public struct PlayerView: View {
                     && viewModel.streamingOptions?.requiresConversionPolicy == true ? {
                         viewModel.changeStreamingOptions(.init(quality: .original))
                     } : nil,
-                onRetry: viewModel.streamingQualityAvailable ? {
-                    if let options = viewModel.streamingOptions { viewModel.changeStreamingOptions(options) }
-                } : nil,
+                onRetry: { viewModel.retryPlayback() },
                 onShowDiagnostics: { viewModel.controls.diagnosticsEnabled = true },
                 onDismiss: { dismissPlayer() }
             )
             #else
-            PlaybackErrorView(message: viewModel.streamingQualityError?.userMessage ?? error.userMessage) { dismissPlayer() }
+            PlaybackErrorView(
+                message: viewModel.streamingQualityError?.userMessage ?? error.userMessage,
+                code: viewModel.streamingQualityError?.diagnosticCode,
+                onRetry: { viewModel.retryPlayback() },
+                onDismiss: { dismissPlayer() }
+            )
             #endif
         }
     }
@@ -561,6 +564,8 @@ private struct DisplaySettleObserver: ViewModifier {
 /// Graceful playback error state with a way back.
 private struct PlaybackErrorView: View {
     let message: LocalizedStringResource
+    let code: String?
+    let onRetry: () -> Void
     let onDismiss: () -> Void
 
     var body: some View {
@@ -576,8 +581,16 @@ private struct PlaybackErrorView: View {
                 .plozzForeground(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 800)
-            Button("Back", action: onDismiss)
-                .buttonStyle(.borderedProminent)
+            if let code {
+                Text(verbatim: code)
+                    .font(.caption)
+                    .plozzForeground(.secondary)
+            }
+            HStack {
+                Button("Retry", action: onRetry)
+                Button("Back", action: onDismiss)
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
 }

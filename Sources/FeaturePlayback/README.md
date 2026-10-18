@@ -785,7 +785,10 @@ the resumed position; it does not force playback merely to advance the clock.
 tvOS episode handoffs use the same range preparation for automatic advance, Next,
 Previous, and episode-picker selections. A matching in-flight/ready prefetch is
 reused; other selections from Plozzigen HDR playback resolve and probe before
-the outgoing engine stops. Matching HDR display classes retain Aether's display
+the outgoing engine stops. Silo is excluded from both speculative prefetch and
+pre-teardown HDR preparation: its inactive sessions can end before a signed
+URL expires. The incoming player negotiates a fresh session at playback time.
+Matching HDR display classes retain Aether's display
 criteria; unknown ranges, SDR, or native-engine transitions still reset normally.
 Cancelled handoffs release unadopted sessions and clear retained display criteria.
 The source-range decision does not establish HDMI output; physical-TV verification
@@ -823,6 +826,14 @@ Server decision codes, HTTP failures, native player errors, and startup timeouts
 remain distinct. Only allowlisted error domains and numeric codes enter the UI
 and playback journal; raw server messages and authenticated URLs do not.
 Transport failures and explicit authorization errors are not treated as codec incompatibility.
+Ordinary original-quality playback retains the same structured failure evidence
+as quality-limited playback on both platforms. Plozzigen uses the pinned engine's
+typed `errorInfo`, never message parsing. Expired/missing streams, rate limits,
+certificate failures, and exhausted device storage do not trigger engine swaps
+or server conversion. Retry negotiates again while retaining the selected file,
+quality, playback position, and account. TV also shows safe numeric error codes.
+Live interruptions retain their existing provider diagnostics and offer an
+action after startup, buffering, or end-of-stream failures.
 Plex bounded streams first validate the server's universal-transcoder decision
 with the same session and settings as the start request. HEVC uses fragmented
 MP4 HLS. Decision parsing reads only status codes and the output format; it must
@@ -831,8 +842,8 @@ Automatic recovery uses the observed/negotiated codec: a failed H.264
 conversion can request HEVC on a capable device; HEVC can fall back to H.264.
 There is one compatibility retry, not a loop through the same codec.
 The Plex H.264 fallback requests MPEG-TS at the unchanged budget.
-A missing converted resource may trigger this fallback too; it never falls back
-to the uncapped original. Decision status and numeric codes are retained without
+Missing or ended resources require a fresh user retry, not a codec change; retry
+never falls back to the uncapped original. Decision status and numeric codes are retained without
 copying raw server descriptions into the player.
 
 On iPhone/iPad diagnostics use a separate large, scrollable sheet, with stacked

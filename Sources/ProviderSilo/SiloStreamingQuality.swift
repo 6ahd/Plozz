@@ -147,6 +147,8 @@ struct SiloStreamingSelection {
 
     static func refusal(_ reason: String?) -> StreamingQualityError {
         switch reason {
+        case "session_expired":
+            .playback(.init(kind: .unavailable, provider: .silo))
         case "transcoding_disabled":
             .serverRefusal("Transcoding is disabled on this Silo server.")
         case "conversion_tool_unavailable":

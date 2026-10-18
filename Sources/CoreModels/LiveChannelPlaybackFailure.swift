@@ -12,13 +12,13 @@ public enum LiveChannelPlaybackFailure: Equatable, Sendable {
 
     public var message: LocalizedStringResource {
         switch self {
-        case .startupTimedOut: "The channel did not present video in time."
-        case .bufferingTimedOut: "The channel stopped delivering playable video."
+        case .startupTimedOut: "The channel did not start in time. Check your connection, then retry or choose another channel."
+        case .bufferingTimedOut: "The channel stopped delivering playable video. Check your connection, then retry or choose another channel."
         case .recoveryExhausted: "This channel keeps disconnecting. Try again or choose another channel."
         case .engine(let error): Self.engineMessage(error)
         case .input(let error): error.message
         case .library(let error): error.message
-        case .ended: "The channel stopped playing."
+        case .ended: "The channel’s stream ended. Retry or choose another channel."
         case .initializationFailed: "The player could not be started. Close playback and try again."
         }
     }
