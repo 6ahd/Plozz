@@ -102,6 +102,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   keeps visible title-and-icon labels and uses the same `playerGlassButton`
   treatment, including native menus. Only the existing reduced-transparency
   playback path draws the shared frosted fallback.
+  `playerSurfaceAppearance()` keeps native playback glass dark across browsing
+  themes, scoped to each surface and its contents. Fallback surfaces inherit the
+  app appearance and pair light fills with dark foregrounds; never apply the
+  modifier to the full player or a sheet presenter.
 - **Settings steppers** — TV makes the whole labeled row one focus target using
   the existing `SettingsFormButtonStyle`, including its helper, persistent minus/plus cues and
   `SettingsRowMetrics.titleFont` value. Labels must be supplied to the shared

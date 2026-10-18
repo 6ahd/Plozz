@@ -83,7 +83,7 @@ struct ScrubBar: View {
                 ZStack(alignment: .leading) {
                     PlayerScrubTrackSurface(height: barHeight)
                     Capsule()
-                        .fill(.white.opacity(0.14))
+                        .fill(Color.primary.opacity(0.14))
                         .frame(width: width * CGFloat(model.bufferedFraction), height: barHeight)
                     UnevenRoundedRectangle(
                         topLeadingRadius: 10,
@@ -92,7 +92,7 @@ struct ScrubBar: View {
                         topTrailingRadius: 0,
                         style: .continuous
                     )
-                        .fill(.white.opacity(focused ? 0.62 : 0.32))
+                        .fill(Color.primary.opacity(focused ? 0.62 : 0.32))
                         .frame(width: knobX, height: barHeight)
                 }
                 .mask {
@@ -102,7 +102,7 @@ struct ScrubBar: View {
                     .equatable()
                 }
                 RoundedRectangle(cornerRadius: focused ? knobWidth / 2 : 0, style: .continuous)
-                    .fill(.white)
+                    .fill(Color.primary)
                     .frame(width: knobWidth, height: knobHeight)
                     .offset(x: knobX - knobWidth / 2)
                     .shadow(radius: 4)
@@ -113,6 +113,7 @@ struct ScrubBar: View {
                 }
             }
             .frame(maxHeight: .infinity, alignment: .center)
+            .playerSurfaceAppearance()
             .animation(.easeOut(duration: 0.12), value: model.isScrubbing)
             .animation(.easeOut(duration: 0.2), value: model.controlBarVisible)
             .animation(.easeOut(duration: 0.2), value: model.controlsVisible)
@@ -149,10 +150,14 @@ struct ScrubBar: View {
             // preview hugs the bar.
             let thumbnailLift: CGFloat = 34
             Group {
-                if #available(iOS 26.0, tvOS 26.0, *) {
+                if #available(iOS 26.0, tvOS 26.0, *), !reducePanelGlass {
                     content
                         .padding(border)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: corner + border, style: .continuous))
+                        .background {
+                            PlayerNativeGlassSurface(RoundedRectangle(
+                                cornerRadius: corner + border, style: .continuous
+                            ))
+                        }
                 } else {
                     content
                         .overlay(
@@ -293,12 +298,14 @@ struct InfoActionButtonStyle: ButtonStyle {
         let hPadding: CGFloat
         let vPadding: CGFloat
         @Environment(\.isFocused) private var nativeFocus
+        @Environment(\.playerSurfaceColorScheme) private var colorScheme
 
         var body: some View {
             let hasFocus = focused ?? nativeFocus
-            let fill: Color = hasFocus ? .white : .white.opacity(prominent ? 0.24 : 0.12)
+            let foreground: Color = colorScheme == .light ? .black : .white
+            let fill = hasFocus ? foreground : foreground.opacity(prominent ? 0.24 : 0.12)
             return configuration.label
-                .foregroundStyle(hasFocus ? Color.black : .white)
+                .foregroundStyle(hasFocus ? (colorScheme == .light ? Color.white : .black) : foreground)
                 .padding(.horizontal, hPadding)
                 .padding(.vertical, vPadding)
                 .background(Capsule(style: .continuous).fill(fill))
@@ -329,8 +336,8 @@ struct InfoActionButtonStyle: ButtonStyle {
 /// underneath it. The semantic values these replace were `.headline` (45.35pt
 /// per line) and `.footnote` (34.61) — both a size larger than this card, at
 /// three metres, actually needs.
-/// The scrub bar's base track: Liquid Glass on 26+, or a light translucent
-/// flat fill when performance/accessibility reduces glass and on older systems.
+/// The scrub bar's base track: dark Liquid Glass on 26+, or a theme-aware
+/// flat fill when accessibility reduces glass and on older systems.
 ///
 /// Shared by the remote and touch scrub bars. They had drifted apart — the touch
 /// one drew a plain white fill — which is how the same control ended up looking
@@ -340,24 +347,26 @@ public struct PlayerScrubTrackSurface: View {
     static let flatFillOpacity = 0.22
     static let glassBackingOpacity = 0.10
 
-    @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
+    @Environment(\.playerUsesNativeGlass) private var usesNativeGlass
+    @Environment(\.colorScheme) private var colorScheme
 
     public init(height: CGFloat) {
         self.height = height
     }
 
     public var body: some View {
-        if #available(iOS 26.0, tvOS 26.0, *), !reducePanelGlass {
-            Capsule()
-                .fill(.clear)
+        if #available(iOS 26.0, tvOS 26.0, *), usesNativeGlass {
+            PlayerNativeGlassSurface(Capsule())
                 .frame(height: height)
-                .glassEffect(.regular, in: Capsule())
                 .background {
                     Capsule().fill(.white.opacity(Self.glassBackingOpacity))
                 }
+                .playerSurfaceAppearance()
         } else {
             Capsule()
-                .fill(.white.opacity(Self.flatFillOpacity))
+                .fill(colorScheme == .light
+                    ? PlozzFrostedSurface.fill(colorScheme: .light)
+                    : .white.opacity(Self.flatFillOpacity))
                 .frame(height: height)
         }
     }
@@ -383,9 +392,9 @@ public struct PlayerGlassCircleSurface: View {
                 .plozzFrostedBackground(shape)
                 .plozzFrostedBorder(shape)
         } else if #available(iOS 26.0, tvOS 26.0, *) {
-            Color.clear.glassEffect(.regular, in: shape)
+            PlayerNativeGlassSurface(shape)
         } else {
-            shape.fill(.white.opacity(0.18))
+            shape.fill(.clear).plozzFrostedBackground(shape).plozzFrostedBorder(shape)
         }
     }
 }
@@ -413,7 +422,7 @@ public struct PlayerGlassCircleButtonStyle: ButtonStyle {
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.primary)
             .frame(width: diameter, height: diameter)
             .background { PlayerGlassCircleSurface() }
             .clipShape(Circle())
@@ -425,6 +434,7 @@ public struct PlayerGlassCircleButtonStyle: ButtonStyle {
             // schedule — which is what made the tab row look like its two
             // buttons were moving at different speeds.
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .playerSurfaceAppearance()
     }
 
 }
@@ -444,6 +454,7 @@ struct PlayerTabButtonStyle: ButtonStyle {
     /// when playback starts and stops, never while focus is moving, so the view
     /// tree stays a stable shape mid-swipe.
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
+    @Environment(\.playerSurfaceColorScheme) private var colorScheme
 
     func makeBody(configuration: Configuration) -> some View {
         // ONE geometry for both states: the label, font and padding are applied
@@ -454,7 +465,7 @@ struct PlayerTabButtonStyle: ButtonStyle {
         // tab jumping rather than travelling.
         configuration.label
             .font(.callout.weight(.semibold))
-            .foregroundStyle(focused ? .black : .white)
+            .foregroundStyle(focused ? (colorScheme == .light ? Color.white : .black) : .primary)
             // 0.65 was too far down over glass: the pill's own brightness eats
             // most of the remaining contrast, and a closed tab read as disabled
             // rather than merely inactive. Selection is carried by the tint
@@ -494,14 +505,15 @@ struct PlayerTabButtonStyle: ButtonStyle {
             // settle, simply travelled. Both moved together; only one was also
             // finishing a scale.
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .playerSurfaceAppearance()
     }
 
     @ViewBuilder
     private var background: some View {
         let shape = Capsule(style: .continuous)
         if focused {
-            shape.fill(.white)
-        } else if reducePanelGlass {
+            shape.fill(Color.primary)
+        } else if reducePanelGlass || reduceTransparency {
             // The same material the panel behind these falls back to. Matching
             // it is the whole point: a glass pill sitting on a frosted panel
             // reads as two materials that do not belong together.
@@ -524,12 +536,11 @@ struct PlayerTabButtonStyle: ButtonStyle {
             // material — an opaque wash sitting ON the glass rather than the
             // glass itself being coloured — and it left the label looking greyed
             // out, as though the tab were disabled.
-            Color.clear.glassEffect(
-                selected ? .regular.tint(.white.opacity(0.30)) : .regular,
-                in: shape
-            )
+            PlayerNativeGlassSurface(shape, highlighted: selected)
         } else {
-            shape.fill(.white.opacity(selected ? 0.34 : 0.16))
+            shape.fill(.clear)
+                .plozzFrostedBackground(shape, raised: selected)
+                .plozzFrostedBorder(shape)
         }
     }
 }
@@ -563,6 +574,12 @@ extension AnyTransition {
 
 typealias PlozzMoveCommandDirection = SettingsMoveCommandDirection
 
+public extension View {
+    func playerPanelBackground(cornerRadius: CGFloat = 32) -> some View {
+        modifier(PanelGlassBackground(cornerRadius: cornerRadius))
+    }
+}
+
 /// The floating panel's translucent backing. Native **Liquid Glass** on tvOS
 /// 26+, with the profile/accessibility choice and pre-26 fallback retained.
 ///
@@ -577,34 +594,25 @@ struct PanelGlassBackground: ViewModifier {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: cornerRadius, style: .continuous) }
 
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
+    @Environment(\.plozzReduceTransparency) private var reduceTransparency
 
     func body(content: Content) -> some View {
-        if reducePanelGlass {
-            content
-                .plozzFrostedBackground(shape)
-                .plozzFrostedBorder(shape)
-        } else if #available(iOS 26.0, tvOS 26.0, *) {
-            content
-                .background { PlayerPanelGlassSurface(cornerRadius: cornerRadius) }
-                .overlay(shape.stroke(.white.opacity(0.12), lineWidth: 1))
-        } else {
-            content
-                .background(Color.black.opacity(0.8))
-                .clipShape(shape)
-                .overlay(shape.stroke(.white.opacity(0.14), lineWidth: 1))
+        Group {
+            if reducePanelGlass || reduceTransparency {
+                content
+                    .plozzFrostedBackground(shape)
+                    .plozzFrostedBorder(shape)
+            } else if #available(iOS 26.0, tvOS 26.0, *) {
+                content
+                    .background { PlayerNativeGlassSurface(shape) }
+                    .overlay(shape.stroke(.white.opacity(0.12), lineWidth: 1))
+            } else {
+                content
+                    .plozzFrostedBackground(shape)
+                    .plozzFrostedBorder(shape)
+            }
         }
-    }
-}
-
-@available(iOS 26.0, tvOS 26.0, *)
-private struct PlayerPanelGlassSurface: View {
-    let cornerRadius: CGFloat
-
-    var body: some View {
-        Color.clear.glassEffect(
-            .regular,
-            in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        )
+        .playerSurfaceAppearance()
     }
 }
 

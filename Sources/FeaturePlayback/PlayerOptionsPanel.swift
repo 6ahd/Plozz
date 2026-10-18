@@ -255,7 +255,7 @@ struct PlayerOptionsPanel: View {
         // HDR-compensated like the borders, and for the same reason: this sits
         // inside the panel whose edge it has to match, and both are drawn into a
         // signal that maps SDR white brighter than SDR mode does.
-        PlozzFrostedSurface.dividerColor(hdrDisplayActive: hdrDisplayActive)
+        Color.primary.opacity(hdrDisplayActive ? 0.10 : 0.16)
             .frame(height: PlozzFrostedSurface.dividerHeight)
     }
 
@@ -295,18 +295,6 @@ struct PlayerOptionsPanel: View {
         .fixedSize(horizontal: false, vertical: true)
         .modifier(PanelGlassBackground())
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-        // OUTSIDE the background, not inside it.
-        //
-        // `.colorScheme` sets the environment for the subtree it is attached to,
-        // and a `.background` added by a later modifier is not in that subtree —
-        // so with this above `PanelGlassBackground` the panel's CONTENT was dark
-        // while its material resolved against the ambient scheme. A `Material`
-        // is scheme-dependent and `.thickMaterial` in light mode is white, which
-        // is the white slab that appeared before the panel settled.
-        //
-        // It never showed while the panel was glass: `glassEffect` is not a
-        // Material and does not flip on colour scheme.
-        .colorScheme(.dark)
         // Drive the height change explicitly (see note above). The first
         // measurement for a given panel snaps in (no grow-from-zero / no
         // shrink-from-stale); later changes *within the same panel* (the
@@ -462,7 +450,7 @@ struct PlayerOptionsPanel: View {
                 for: category, subtitleScreen: subtitleScreen, playbackScreen: playbackScreen
             ))
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.primary)
             Spacer(minLength: 12)
             if category == .subtitles && subtitleScreen == .tracks {
                 // Timing (Sync) chip — only when the app's overlay owns the active

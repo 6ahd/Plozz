@@ -5,6 +5,35 @@ import XCTest
 
 @MainActor
 final class PlayerGlassEnvironmentTests: XCTestCase {
+    func testNativePlayerAppearanceIsDarkAndFallbackPreservesTheCurrentScheme() {
+        for scheme in [ColorScheme.light, .dark] {
+            for reduced in [false, true] {
+                var environment = EnvironmentValues()
+                environment.colorScheme = scheme
+                environment.plozzReduceTransparency = reduced
+                if #available(iOS 26.0, tvOS 26.0, *) {
+                    XCTAssertEqual(environment.playerUsesNativeGlass, !reduced)
+                    XCTAssertEqual(environment.playerSurfaceColorScheme, reduced ? scheme : .dark)
+                } else {
+                    XCTAssertFalse(environment.playerUsesNativeGlass)
+                    XCTAssertEqual(environment.playerSurfaceColorScheme, scheme)
+                }
+                environment.plozzReducePanelGlass = true
+                XCTAssertFalse(environment.playerUsesNativeGlass)
+                XCTAssertEqual(environment.playerSurfaceColorScheme, scheme)
+            }
+        }
+    }
+
+    func testExplicitPanelPreviewCannotOverrideReducedTransparency() {
+        var environment = EnvironmentValues()
+        environment.colorScheme = .light
+        environment.plozzReduceTransparency = true
+        environment.plozzReducePanelGlass = false
+        XCTAssertFalse(environment.playerUsesNativeGlass)
+        XCTAssertEqual(environment.playerSurfaceColorScheme, .light)
+    }
+
     func testPanelsFollowTheResolvedProfileAndAccessibilityPreferenceWithoutAnotherGate() {
         for preference in TransparencyPreference.allCases {
             for systemReduced in [false, true] {

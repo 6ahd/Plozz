@@ -1024,7 +1024,7 @@ struct LiveChannelOverlay: View {
             }
         }
         .frame(height: cardHeight)
-        .colorScheme(.dark)
+        .playerSurfaceAppearance()
     }
 
     /// The EPG grid in the Info card's container — the same panel surface,
@@ -1274,25 +1274,13 @@ extension LiveChannelOverlay {
                         availableSize = frame.size
                     }
                     .allowsHitTesting(false)
-                // Stood up, the video is a band across the middle with room
-                // all round, so the buttons sit on it, as VOD's do. On its
-                // side there's no such room: they take the gap between the top
-                // bar and the transport so they can't land on the title.
-                if isTouchPortrait, !cardOpen, openMenu == nil {
-                    centerTransport
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .opacity(touchTimelineOnly ? 0 : 1)
-                        .allowsHitTesting(!touchTimelineOnly)
-                        .accessibilityHidden(touchTimelineOnly)
-                        .transition(.opacity)
-                }
                 VStack(spacing: 0) {
                     topBar
                         .opacity(touchTimelineOnly ? 0 : 1)
                         .allowsHitTesting(!touchTimelineOnly)
                         .accessibilityHidden(touchTimelineOnly)
                     Spacer(minLength: 0)
-                    if !isTouchPortrait, !cardOpen, openMenu == nil {
+                    if !cardOpen, openMenu == nil {
                         centerTransport
                             .opacity(touchTimelineOnly ? 0 : 1)
                             .allowsHitTesting(!touchTimelineOnly)
@@ -1367,7 +1355,7 @@ extension LiveChannelOverlay {
                 if isBusy {
                     ProgressView()
                         .controlSize(.large)
-                        .tint(.white)
+                        .tint(Color.primary)
                         .accessibilityLabel(Text(phase.activityLabel))
                 } else if phase == .paused {
                     Label("Play", systemImage: "play.fill")
@@ -1566,10 +1554,11 @@ extension LiveChannelOverlay {
         .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
         .overlay {
             if prominent {
-                Circle().strokeBorder(.white.opacity(0.9), lineWidth: 2)
+                Circle().strokeBorder(Color.primary.opacity(0.9), lineWidth: 2)
                     .allowsHitTesting(false)
             }
         }
+        .playerSurfaceAppearance()
     }
 
     /// VOD's touch tab row: tapping a tab opens its card, tapping it again
@@ -1760,27 +1749,27 @@ private struct LiveChannelInfoCard: View {
                 if let subtitle = program?.subtitle {
                     Text(subtitle)
                         .font(metrics.captionFont)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(Color.primary.opacity(0.75))
                         .lineLimit(1)
                 }
                 if let program {
                     LiveChannelProgramTiming(program: program)
                         .font(metrics.captionFont)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Color.primary.opacity(0.6))
                         .lineLimit(compact ? 2 : 1)
                     if !compact, let description = program.description {
                         Text(description)
                             .font(metrics.bodyFont)
-                            .foregroundStyle(.white.opacity(0.85))
+                            .foregroundStyle(Color.primary.opacity(0.85))
                             .lineLimit(metrics.overviewLineLimit)
                     }
                 } else {
                     Text("No guide information for this channel.")
                         .font(metrics.bodyFont)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Color.primary.opacity(0.6))
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.primary)
             .frame(maxWidth: metrics.textColumnMaxWidth, maxHeight: .infinity, alignment: .topLeading)
             Spacer(minLength: 0)
         }
@@ -1885,28 +1874,28 @@ struct LiveChannelGuideInfoColumn: View {
                 if program != nil {
                     Text(title)
                         .font(metrics.captionFont)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(Color.primary.opacity(0.75))
                         .lineLimit(1)
                 }
                 if let program {
                     LiveChannelProgramTiming(program: program)
                         .font(metrics.captionFont)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Color.primary.opacity(0.6))
                         .lineLimit(2)
                     if let description = program.description {
                         Text(description)
                             .font(metrics.bodyFont)
-                            .foregroundStyle(.white.opacity(0.85))
+                            .foregroundStyle(Color.primary.opacity(0.85))
                             // Whatever height is left, truncated rather than clipped.
                             .frame(maxHeight: .infinity, alignment: .top)
                     }
                 } else {
                     Text("No guide information for this channel.")
                         .font(metrics.bodyFont)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Color.primary.opacity(0.6))
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.primary)
             .padding(metrics.contentPadding)
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
         }
@@ -1914,7 +1903,7 @@ struct LiveChannelGuideInfoColumn: View {
         .plozzSurface(
             .raised, cornerRadius: max(0, metrics.panelCornerRadius - metrics.contentPadding)
         )
-        .environment(\.themePalette, .dark)
+        .playerSurfaceAppearance()
     }
 }
 #endif
@@ -2030,14 +2019,14 @@ private struct LiveChannelTimeline: View {
                 ZStack(alignment: .leading) {
                     PlayerScrubTrackSurface(height: barHeight)
                     Rectangle()
-                        .fill(.white.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
+                        .fill(Color.primary.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
                         .frame(width: max(0, width * CGFloat(layout.aired) - fillStart), height: barHeight)
                         .offset(x: fillStart)
                     // The bright fill means "you can go here": without a rewind
                     // window only the faint aired span shows.
                     if layout.seekableStart != nil {
                         Rectangle()
-                            .fill(.white.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
+                            .fill(Color.primary.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
                             .frame(width: max(0, knobX - fillStart), height: barHeight)
                             .offset(x: fillStart)
                     }
@@ -2051,13 +2040,14 @@ private struct LiveChannelTimeline: View {
                         .transition(.opacity)
                 }
                 RoundedRectangle(cornerRadius: focused || scrubbing ? knobWidth / 2 : 0, style: .continuous)
-                    .fill(.white)
+                    .fill(Color.primary)
                     .frame(width: knobWidth, height: knobHeight)
                     .offset(x: knobX - knobWidth / 2)
                     .shadow(radius: 4)
             }
             .frame(maxHeight: .infinity, alignment: .center)
             .animation(.easeOut(duration: 0.2), value: focused)
+            .playerSurfaceAppearance()
         }
     }
 
@@ -2163,7 +2153,11 @@ private struct LiveChannelScrubThumbnail: View {
             if #available(iOS 26.0, tvOS 26.0, *), !reduceTransparency {
                 content
                     .padding(Self.border)
-                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: Self.corner + Self.border, style: .continuous))
+                    .background {
+                        PlayerNativeGlassSurface(RoundedRectangle(
+                            cornerRadius: Self.corner + Self.border, style: .continuous
+                        ))
+                    }
             } else {
                 content.overlay(
                     RoundedRectangle(cornerRadius: Self.corner, style: .continuous)
@@ -2409,7 +2403,7 @@ private struct LiveChannelTrackPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(kind.title)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.primary)
                 .padding(.horizontal, 18)
                 .padding(.top, 18)
             let rows = rows
@@ -2433,7 +2427,6 @@ private struct LiveChannelTrackPanel: View {
         .padding(.horizontal, 14)
         .frame(width: Self.width, alignment: .leading)
         .modifier(PanelGlassBackground())
-        .colorScheme(.dark)
         .plozzFocusSection()
     }
 
@@ -2492,9 +2485,10 @@ struct LiveChannelOnNowPanel: View {
         if items.isEmpty {
             Text("Nothing else is on right now.")
                 .font(metrics.bodyFont)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Color.primary.opacity(0.7))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background { PlayerOverVideoSurface(cornerRadius: metrics.panelCornerRadius) }
+                .playerSurfaceAppearance()
         } else {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 row(now: context.date)
@@ -2618,11 +2612,11 @@ struct LiveChannelOnNowCard: View {
                 .overlay(alignment: .topLeading) { watchingBadge }
             VStack(alignment: .leading, spacing: 3) {
                 MarqueeText(text: headline, font: metrics.castNameFont, isFocused: focused)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.primary)
                 if let detail = Self.detail(for: item, now: now) {
                     detail
                         .font(metrics.castRoleFont)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Color.primary.opacity(0.6))
                         .lineLimit(1)
                 }
             }
@@ -2642,7 +2636,7 @@ struct LiveChannelOnNowCard: View {
                 Image(systemName: "play.fill")
             }
             .font(metrics.castRoleFont.weight(.semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.primary)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             // A capsule: the corner radius clamps to half its height.

@@ -39,23 +39,28 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         XCTAssertTrue(SkipMarkerTrackLayout.ranges(segments: segments, duration: 100).isEmpty)
     }
 
-    func testFlatPerformanceTrackUsesLightTranslucencyWithoutChangingProgressLayers() throws {
+    func testFlatPerformanceTrackPairsItsSurfaceWithTheAppAppearance() throws {
         XCTAssertEqual(PlayerScrubTrackSurface.flatFillOpacity, 0.22)
         for height in [CGFloat(12), 20] {
-            for background in [Color.black, .gray, .cyan] {
-                let actual = try pixels(
-                    PlayerScrubTrackSurface(height: height)
-                        .frame(width: 320, height: 44)
-                        .environment(\.plozzReducePanelGlass, true)
-                        .background(background)
-                )
-                let reference = try pixels(
-                    Capsule().fill(.white.opacity(0.22)).frame(height: height)
-                        .frame(width: 320, height: 44)
-                        .background(background)
-                )
-                XCTAssertEqual(actual.bytes, reference.bytes,
-                               "The performance track is a static white tint, not the dark panel fill or a blur.")
+            for scheme in [ColorScheme.light, .dark] {
+                for background in [Color.black, .gray, .cyan] {
+                    let actual = try pixels(
+                        PlayerScrubTrackSurface(height: height)
+                            .frame(width: 320, height: 44)
+                            .environment(\.plozzReducePanelGlass, true)
+                            .environment(\.colorScheme, scheme)
+                            .background(background)
+                    )
+                    let reference = try pixels(
+                        Capsule().fill(scheme == .light
+                            ? PlozzFrostedSurface.fill(colorScheme: .light)
+                            : .white.opacity(0.22)).frame(height: height)
+                            .frame(width: 320, height: 44)
+                            .background(background)
+                    )
+                    XCTAssertEqual(actual.bytes, reference.bytes,
+                                   "The fallback track uses a static themed fill, never a live blur.")
+                }
             }
         }
     }

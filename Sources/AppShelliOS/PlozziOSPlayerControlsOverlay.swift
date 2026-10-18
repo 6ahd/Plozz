@@ -41,6 +41,7 @@ struct PlozziOSPlayerControlsOverlay: View {
     @State private var forwardSpins = 0
     @State private var autoHideTask: Task<Void, Never>?
     @State private var touchGestures = PlayerTouchGestureState()
+    @State private var availableSize: CGSize = .zero
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pictureInPicture = PlozziOSPictureInPictureController()
 
@@ -63,7 +64,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                 },
                 onGestureStarted: beginTouchInteraction
             )
-                .ignoresSafeArea()
+            .ignoresSafeArea()
 
             if isPlayingElsewhere {
                 PlozziOSExternalPlaybackPlaceholder(
@@ -76,7 +77,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                 LinearGradient(
                     colors: [
                         .black.opacity(controlsVisible ? 0.65 : 0), .clear,
-                        .black.opacity(controlsVisible ? 0.82 : 0.45)
+                        .black.opacity(controlsVisible ? 0.82 : 0.45),
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -85,103 +86,103 @@ struct PlozziOSPlayerControlsOverlay: View {
                 .allowsHitTesting(false)
             }
 
-            if controlsVisible {
-                // Skip / play / skip, centred — where a thumb reaches on a
-                // held device. Hidden while a card is open, matching tvOS,
-                // where the card owns the screen.
-                if !isCardOpen && !showsUpNext {
-                    primaryPlaybackControls(compact: false)
-                }
-
-                PlozziOSPlayerTopBar(
-                    pictureInPictureAvailable: pictureInPicture.isAvailable,
-                    onTogglePictureInPicture: {
-                        pictureInPicture.toggle()
-                        noteInteraction()
-                    },
-                    onClose: onClose
-                )
-            }
-
             if controlsVisible || touchGestures.skip != nil || showsUpNext {
-                PlozziOSPlayerTransport(
-                    viewModel: viewModel,
-                    showsTransport: controlsVisible || touchGestures.skip != nil,
-                    showsUpNext: showsUpNext,
-                    playbackControls: primaryPlaybackControls(compact: true),
-                    timelineOnly: !controlsVisible,
-                    displayedSeconds: isScrubbing
-                        ? scrubSeconds
-                        : (touchGestures.skip?.target ?? viewModel.controls.currentSeconds),
-                    isScrubbing: isScrubbing,
-                    scrubPreviewImage: scrubPreviewCoordinator?.image,
-                    showsScrubPreview: scrubPreviewCoordinator?.isAvailable == true,
-                    pictureInPictureAvailable: pictureInPicture.isAvailable,
-                    onTogglePictureInPicture: {
-                        pictureInPicture.toggle()
-                        noteInteraction()
-                    },
-                    onScrubChanged: { value in
-                        scrubSeconds = value
-                        scrubPreviewCoordinator?.update(for: value)
-                        noteInteraction()
-                    },
-                    onScrubEditingChanged: { editing in
-                        isScrubbing = editing
-                        if editing {
-                            controlsVisible = true
-                            scrubSeconds = viewModel.controls.currentSeconds
+                VStack(spacing: 0) {
+                    if controlsVisible {
+                        PlozziOSPlayerTopBar(
+                            pictureInPictureAvailable: pictureInPicture.isAvailable,
+                            onTogglePictureInPicture: {
+                                pictureInPicture.toggle()
+                                noteInteraction()
+                            },
+                            onClose: onClose
+                        )
+                    }
+                    Spacer(minLength: 0)
+                    if controlsVisible && !isCardOpen && !showsUpNext {
+                        primaryPlaybackControls(compact: false)
+                    }
+                    Spacer(minLength: 0)
+                    PlozziOSPlayerTransport(
+                        viewModel: viewModel,
+                        showsTransport: controlsVisible || touchGestures.skip != nil,
+                        showsUpNext: showsUpNext,
+                        playbackControls: primaryPlaybackControls(compact: true),
+                        timelineOnly: !controlsVisible,
+                        displayedSeconds: isScrubbing
+                            ? scrubSeconds
+                            : (touchGestures.skip?.target ?? viewModel.controls.currentSeconds),
+                        isScrubbing: isScrubbing,
+                        scrubPreviewImage: scrubPreviewCoordinator?.image,
+                        showsScrubPreview: scrubPreviewCoordinator?.isAvailable == true,
+                        pictureInPictureAvailable: pictureInPicture.isAvailable,
+                        onTogglePictureInPicture: {
+                            pictureInPicture.toggle()
+                            noteInteraction()
+                        },
+                        onScrubChanged: { value in
+                            scrubSeconds = value
+                            scrubPreviewCoordinator?.update(for: value)
+                            noteInteraction()
+                        },
+                        onScrubEditingChanged: { editing in
+                            isScrubbing = editing
+                            if editing {
+                                controlsVisible = true
+                                scrubSeconds = viewModel.controls.currentSeconds
+                                cancelAutoHide()
+                            } else {
+                                viewModel.requestSeek(to: scrubSeconds)
+                                scrubPreviewCoordinator?.clear()
+                                scheduleAutoHide()
+                            }
+                        },
+                        onSkipBackward: {
+                            seek(by: -viewModel.controls.skipGesture.backwardInterval.seconds)
+                        },
+                        onPlayPause: {
+                            viewModel.togglePlayPause()
+                            noteInteraction()
+                        },
+                        onSkipForward: {
+                            seek(by: viewModel.controls.skipGesture.forwardInterval.seconds)
+                        },
+                        onShowSpeed: {
+                            presentedSheet = .speed
                             cancelAutoHide()
-                        } else {
-                            viewModel.requestSeek(to: scrubSeconds)
-                            scrubPreviewCoordinator?.clear()
-                            scheduleAutoHide()
-                        }
-                    },
-                    onSkipBackward: {
-                        seek(by: -viewModel.controls.skipGesture.backwardInterval.seconds)
-                    },
-                    onPlayPause: {
-                        viewModel.togglePlayPause()
-                        noteInteraction()
-                    },
-                    onSkipForward: {
-                        seek(by: viewModel.controls.skipGesture.forwardInterval.seconds)
-                    },
-                    onShowSpeed: {
-                        presentedSheet = .speed
-                        cancelAutoHide()
-                    },
-                    supportsVideoZoom: !isPlayingElsewhere
-                        && viewModel.controls.engineCapabilities.contains(.videoZoom),
-                    onShowCustomZoom: {
-                        presentedSheet = .zoom
-                        cancelAutoHide()
-                    },
-                    onShowSubtitles: {
-                        presentedSheet = .subtitles
-                        cancelAutoHide()
-                    },
-                    onShowSync: {
-                        presentedSheet = .sync
-                        cancelAutoHide()
-                    },
-                    onShowQuality: {
-                        presentedSheet = .quality
-                        cancelAutoHide()
-                    },
-                    hasVersions: hasVersions,
-                    onShowVersions: {
-                        cancelAutoHide()
-                        onShowVersions()
-                    },
-                    onOptionsMenuPresentationChange: { presented in
-                        optionsMenuPresented = presented
-                        if presented { cancelAutoHide() } else { scheduleAutoHide() }
-                    },
-                    isCardOpen: $isCardOpen,
-                    onInteraction: noteInteraction
-                )
+                        },
+                        supportsVideoZoom: !isPlayingElsewhere
+                            && viewModel.controls.engineCapabilities.contains(.videoZoom),
+                        onShowCustomZoom: {
+                            presentedSheet = .zoom
+                            cancelAutoHide()
+                        },
+                        onShowSubtitles: {
+                            presentedSheet = .subtitles
+                            cancelAutoHide()
+                        },
+                        onShowSync: {
+                            presentedSheet = .sync
+                            cancelAutoHide()
+                        },
+                        onShowQuality: {
+                            presentedSheet = .quality
+                            cancelAutoHide()
+                        },
+                        hasVersions: hasVersions,
+                        onShowVersions: {
+                            cancelAutoHide()
+                            onShowVersions()
+                        },
+                        onOptionsMenuPresentationChange: { presented in
+                            optionsMenuPresented = presented
+                            if presented { cancelAutoHide() } else { scheduleAutoHide() }
+                        },
+                        isCardOpen: $isCardOpen,
+                        onInteraction: noteInteraction,
+                        availableSize: availableSize
+                    )
+                }
             }
 
             PlayerTouchGestureFeedbackView(state: touchGestures)
@@ -205,6 +206,11 @@ struct PlozziOSPlayerControlsOverlay: View {
                 .padding(24)
             }
 
+        }
+        .onGeometryChange(for: CGSize.self) {
+            $0.size
+        } action: {
+            availableSize = $0
         }
         .animation(.easeInOut(duration: 0.2), value: controlsVisible)
         .onChange(of: controlsVisible) { _, visible in
@@ -574,12 +580,15 @@ private struct PlozziOSAirPlayRouteButton: UIViewRepresentable {
         let view = AVRoutePickerView()
         // Surfaces Apple TV class receivers ahead of audio-only routes.
         view.prioritizesVideoDevices = true
-        view.tintColor = .white
-        view.activeTintColor = .white
+        view.tintColor = context.environment.playerSurfaceColorScheme == .light ? .black : .white
+        view.activeTintColor = view.tintColor
         return view
     }
 
-    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
+        uiView.tintColor = context.environment.playerSurfaceColorScheme == .light ? .black : .white
+        uiView.activeTintColor = uiView.tintColor
+    }
 }
 
 /// Close, AirPlay and Picture in Picture — all leading.
@@ -620,8 +629,9 @@ private struct PlozziOSPlayerTopBar: View {
             Spacer(minLength: 0)
         }
         .foregroundStyle(.white)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding()
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.horizontal)
+        .padding(.top)
     }
 }
 
@@ -750,9 +760,8 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
     let onOptionsMenuPresentationChange: (Bool) -> Void
     @Binding var isCardOpen: Bool
     let onInteraction: () -> Void
-    /// The player's own bounds, which decide the card's layout — see the
-    /// geometry reader at the foot of `body`.
-    @State private var availableSize: CGSize = .zero
+    /// The full player bounds, not this bottom cluster's intrinsic size.
+    let availableSize: CGSize
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 16) {
@@ -790,14 +799,7 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 18)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .background {
-            GeometryReader { geometry in
-                Color.clear
-                    .onAppear { availableSize = geometry.size }
-                    .onChange(of: geometry.size) { _, size in availableSize = size }
-            }
-        }
+        .frame(maxWidth: .infinity, alignment: .bottom)
     }
 
     private var transportControls: some View {
@@ -1105,7 +1107,7 @@ private struct PlozziOSSkipGlyph: View {
                 // is centred a little below the circle's own centre.
                 .offset(y: size * 0.06)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(Color.primary)
     }
 }
 
@@ -1430,14 +1432,14 @@ private struct PlozziOSUpNextCard: View {
                             .font(.caption.weight(.heavy))
                             .tracking(1)
                             .textCase(.uppercase)
-                            .foregroundStyle(.white.opacity(0.65))
+                            .foregroundStyle(Color.primary.opacity(0.65))
                         info.showName
                             .font(.headline)
                             .lineLimit(2)
                         if let metaLine = info.metaLine {
                             Text(metaLine)
                                 .font(.caption)
-                                .foregroundStyle(.white.opacity(0.75))
+                                .foregroundStyle(Color.primary.opacity(0.75))
                                 .lineLimit(1)
                         }
                     }
@@ -1464,9 +1466,8 @@ private struct PlozziOSUpNextCard: View {
             .padding(.trailing, metrics.cardInset)
         }
         .frame(maxWidth: 460)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: metrics.landscapeCardCornerRadius))
-        .foregroundStyle(.white)
-        .environment(\.colorScheme, .dark)
+        .foregroundStyle(Color.primary)
+        .playerPanelBackground(cornerRadius: metrics.landscapeCardCornerRadius)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("player-up-next-card")
     }
@@ -1485,9 +1486,9 @@ private struct PlozziOSUpNextCard: View {
                     asyncFallbackURL: source.fallbackURL, pinIdentity: source.pinIdentity
                 ) {
                     ZStack {
-                        Rectangle().fill(.white.opacity(0.08))
+                        Rectangle().fill(Color.primary.opacity(0.08))
                         Image(systemName: "play.rectangle.fill")
-                            .foregroundStyle(.white.opacity(0.35))
+                            .foregroundStyle(Color.primary.opacity(0.35))
                     }
                 }
             }
@@ -1500,10 +1501,10 @@ private struct PlozziOSUpNextCard: View {
     private func countdown(remaining: TimeInterval) -> some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.25), lineWidth: 3)
+                .stroke(Color.primary.opacity(0.25), lineWidth: 3)
             Circle()
                 .trim(from: 0, to: min(max(remaining / SkipIntrosMode.autoSkipDelay, 0), 1))
-                .stroke(.white, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .stroke(Color.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text(Int(ceil(remaining)), format: .number)
                 .font(.caption.monospacedDigit().bold())

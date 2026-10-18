@@ -63,6 +63,23 @@ bounded language-match/accessibility flags without track titles or URLs.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## Player appearance
+
+Player transport buttons, timelines, tabs, cards, and inline panels share a
+surface-local appearance: native Liquid Glass stays dark in both app themes;
+the reduced-glass/older-system fallback follows light and dark mode with paired
+foreground colors. Text directly over video stays white. UIKit-backed route and
+options buttons resolve the same icon contrast without forcing their presented
+menus or sheets into the player's appearance.
+Native surfaces use clear glass with a fixed dark tint; regular glass's adaptive
+coloration can wash out white controls over bright video despite a dark scheme.
+Native capsule buttons use black-tinted prominent glass on tvOS and iOS 26.0;
+iOS 26.1+ supports the clear material in its native button style.
+
+On iPhone and iPad, the main transport row is centered in the remaining space
+between the top buttons and bottom controls, rather than the full screen.
+Both layouts use the controls' intrinsic heights, including after rotation.
+
 ## Live rewind scrubbing
 
 The live timeline previews a pending seek without moving playback. On tvOS,
