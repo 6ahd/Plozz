@@ -49,20 +49,20 @@ final class PlaybackFailureInteractionTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["failure-fixture-closed"].waitForExistence(timeout: 5))
     }
 
-    func testLongCopyAndRecoveryOptionsRemainReachable() {
-        launch(["--failure-long", "--failure-options", "--failure-reduced"])
+    func testLongCopyKeepsOnlyDetailsRetryAndBack() {
+        launch(["--failure-long", "--failure-reduced"])
         let message = app.staticTexts["playback-failure-message"]
         XCTAssertTrue(message.waitForExistence(timeout: 5))
         XCTAssertLessThanOrEqual(message.frame.maxX, app.frame.maxX)
         XCTAssertGreaterThanOrEqual(message.frame.minX, app.frame.minX)
+        XCTAssertEqual(app.buttons.count, 3, app.debugDescription)
+        XCTAssertFalse(app.buttons["Playback options"].exists)
+        XCTAssertFalse(app.buttons["player-failed-streaming-quality"].exists)
         capture("long-summary")
-        activate(app.buttons["player-failed-streaming-quality"])
-        #if os(tvOS)
-        activate(app.cells.containing(.any, identifier: "Quality").firstMatch)
-        #else
-        activate(app.buttons["Quality"])
-        #endif
-        XCTAssertTrue(app.staticTexts["Quality selected"].waitForExistence(timeout: 5))
+        activate(app.buttons["playback-failure-retry"])
+        XCTAssertTrue(app.staticTexts["Retried"].waitForExistence(timeout: 5))
+        activate(app.buttons["player-failed-back"])
+        XCTAssertTrue(app.staticTexts["failure-fixture-closed"].waitForExistence(timeout: 5))
     }
 
     func testLiveFailureUsesTheSameDetailsAndNativeActions() {
@@ -77,7 +77,7 @@ final class PlaybackFailureInteractionTests: XCTestCase {
 
     #if os(iOS)
     func testLargeTextAndRightToLeftLayoutCanScrollToDetailsAndBack() {
-        launch(["--failure-long", "--failure-large", "--failure-rtl", "--failure-options"])
+        launch(["--failure-long", "--failure-large", "--failure-rtl"])
         capture("accessibility-rtl-top")
         activate(app.buttons["playback-failure-details"])
         XCTAssertTrue(app.staticTexts["playback-diagnostic-report"].waitForExistence(timeout: 5))
@@ -89,7 +89,7 @@ final class PlaybackFailureInteractionTests: XCTestCase {
     func testLandscapeActionsRemainReachable() {
         XCUIDevice.shared.orientation = .portrait
         defer { XCUIDevice.shared.orientation = .portrait }
-        launch(["--failure-long", "--failure-options"])
+        launch(["--failure-long"])
         XCUIDevice.shared.orientation = .landscapeLeft
         let landscape = NSPredicate { [self] _, _ in
             MainActor.assumeIsolated {

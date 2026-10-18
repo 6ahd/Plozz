@@ -35,13 +35,8 @@ struct StreamingPlaybackLoadingView: View {
 struct StreamingPlaybackFailureView: View {
     let message: LocalizedStringResource
     let report: PlaybackDiagnosticReport?
-    let onChangeQuality: (() -> Void)?
-    let onChangeVersion: (() -> Void)?
-    let onPlaySDRVersion: (() -> Void)?
-    let onPlayOriginal: (() -> Void)?
     let onRetry: (() -> Void)?
     let onDismiss: () -> Void
-    @State private var confirmsOriginal = false
 
     var body: some View {
         PlaybackFailureView(message: message, report: report) {
@@ -50,37 +45,9 @@ struct StreamingPlaybackFailureView: View {
                     .plozzActionButton(role: .primary)
                     .accessibilityIdentifier("playback-failure-retry")
             }
-            if onChangeVersion != nil || onChangeQuality != nil || onPlaySDRVersion != nil || onPlayOriginal != nil {
-                Menu {
-                    if let onChangeVersion {
-                        Button("Version", systemImage: "rectangle.stack", action: onChangeVersion)
-                    }
-                    if let onChangeQuality {
-                        Button("Quality", systemImage: "slider.horizontal.3", action: onChangeQuality)
-                    }
-                    if let onPlaySDRVersion {
-                        Button("Play an SDR version", systemImage: "rectangle.stack", action: onPlaySDRVersion)
-                    }
-                    if onPlayOriginal != nil {
-                        Button("Play original quality") { confirmsOriginal = true }
-                    }
-                } label: {
-                    Label("Playback options", systemImage: "slider.horizontal.3")
-                }
-                .plozzActionButton(role: .secondary)
-                .accessibilityIdentifier("player-failed-streaming-quality")
-            }
             Button("Back", action: onDismiss)
                 .plozzActionButton(role: .secondary)
                 .accessibilityIdentifier("player-failed-back")
-        }
-        .confirmationDialog("Play original quality?", isPresented: $confirmsOriginal, titleVisibility: .visible) {
-            if let onPlayOriginal {
-                Button("Play original quality", action: onPlayOriginal)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This keeps your selected version but removes the streaming quality limit. It may use substantially more data, especially on cellular.")
         }
     }
 }

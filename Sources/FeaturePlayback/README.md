@@ -909,8 +909,8 @@ certificate failures, and exhausted device storage do not trigger engine swaps
 or server conversion. Retry negotiates again while retaining the selected file,
 quality, playback position, and account. Full-screen TV/mobile and Live TV
 interruptions use CoreUI's shared `PlaybackFailureView`: a short factual summary,
-native contextual actions, and optional Details. Playback options remain available
-when the host supplies them; no recovery action promises success.
+Details, Retry and Back/Close actions. Quality and version controls remain in the
+regular player, not on the error screen; no recovery action promises success.
 Failure reports are captured before engine teardown and cleared for a new attempt.
 Details retains the provider, actual failure stage, engine, typed engine reason,
 bounded underlying error chain, HTTP status and known provider rejection codes.

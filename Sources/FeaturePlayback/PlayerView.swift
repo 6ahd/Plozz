@@ -45,9 +45,6 @@ public struct PlayerView: View {
     private let showDiagnostics: Bool
     private let themePalette: ThemePalette
     private let showsSharedControls: Bool
-    private let onChangeQuality: (() -> Void)?
-    private let onChangeVersion: (() -> Void)?
-    private let onPlaySDRVersion: (() -> Void)?
     private let onDismiss: (() -> Void)?
 
     public init(
@@ -55,18 +52,12 @@ public struct PlayerView: View {
         showDiagnostics: Bool = false,
         themePalette: ThemePalette = .dark,
         showsSharedControls: Bool = true,
-        onChangeQuality: (() -> Void)? = nil,
-        onChangeVersion: (() -> Void)? = nil,
-        onPlaySDRVersion: (() -> Void)? = nil,
         onDismiss: (() -> Void)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
         self.showDiagnostics = showDiagnostics
         self.themePalette = themePalette
         self.showsSharedControls = showsSharedControls
-        self.onChangeQuality = onChangeQuality
-        self.onChangeVersion = onChangeVersion
-        self.onPlaySDRVersion = onPlaySDRVersion
         self.onDismiss = onDismiss
     }
 
@@ -316,13 +307,6 @@ public struct PlayerView: View {
                     ?? viewModel.streamingQualityError?.userMessage
                     ?? StreamingPlaybackFailure(kind: .unknown).userMessage,
                 report: viewModel.playbackFailureReport,
-                onChangeQuality: viewModel.streamingQualityAvailable ? onChangeQuality : nil,
-                onChangeVersion: onChangeVersion,
-                onPlaySDRVersion: onPlaySDRVersion,
-                onPlayOriginal: viewModel.streamingHasHDRConversionError
-                    && viewModel.streamingOptions?.requiresConversionPolicy == true ? {
-                        viewModel.changeStreamingOptions(.init(quality: .original))
-                    } : nil,
                 onRetry: { viewModel.retryPlayback() },
                 onDismiss: { dismissPlayer() }
             )

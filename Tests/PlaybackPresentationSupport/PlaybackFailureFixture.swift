@@ -34,9 +34,6 @@ struct PlaybackFailureFixture: View {
             } else {
                 StreamingPlaybackFailureView(
                     message: report.message!, report: report,
-                    onChangeQuality: arguments.contains("--failure-options") ? { action = "Quality selected" } : nil,
-                    onChangeVersion: arguments.contains("--failure-options") ? { action = "Version selected" } : nil,
-                    onPlaySDRVersion: nil, onPlayOriginal: nil,
                     onRetry: { action = "Retried" }, onDismiss: { closed = true }
                 )
             }
