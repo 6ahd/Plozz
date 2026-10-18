@@ -5,6 +5,14 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+- **Deferred version inventory** — providers that advertise lazy file discovery
+  refresh movie/episode choices after detail first paint and the existing dwell
+  gate. Inventory publication is fenced by the current source and cancellation;
+  later cross-server discovery cannot overwrite it with the original sparse
+  seed. Leaving cancels the work and returning resumes an unfinished attempt.
+  Failure keeps browsing available but never authorizes playback: Play runs its
+  own strict gate. Providers with complete detail inventories incur no extra fetch.
+
 - **Kids Discovery policy** — both shells consume the live profile's effective
   Hero settings, not a destructive rewrite of saved preferences. Kids profiles
   exclude external Discovery, including Showcase, cached attributed titles, and

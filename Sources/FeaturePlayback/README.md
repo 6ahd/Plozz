@@ -321,6 +321,11 @@ remote discovery cannot fall through into playback. Local downloads remain
 usable without a server lookup. tvOS shows a loading indicator during this wait.
 Cached automatic recommendations are recomputed against the complete inventory;
 deliberate selections keep their precedence.
+Discovered primary references are stamped with that fresh inventory before a
+choice is routed, so selecting one file cannot collapse the remaining choices.
+Preparation failures retain their typed message on both platforms and record a
+safe stage/error code in the playback journal; raw server descriptions and URLs
+are not shown.
 
 **Remember series version choices** is an independent, default-on profile setting,
 not a first-use question. It controls reads and writes of episode/series version

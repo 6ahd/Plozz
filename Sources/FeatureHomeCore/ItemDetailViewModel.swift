@@ -1203,7 +1203,55 @@ public final class ItemDetailViewModel {
             self.enrichmentGeneration = token
             self.startAlternateSourceEnrichment(primaryID: item.id)
             self.startCrossServerDiscovery(for: taggedItem)
-            self.enrichmentComplete = true
+            let completed = await self.refreshPlaybackInventory(for: taggedItem, token: token)
+            guard !Task.isCancelled, self.enrichmentGeneration == token else { return }
+            self.enrichmentComplete = completed
+        }
+    }
+
+    private func refreshPlaybackInventory(for item: MediaItem, token: UInt64) async -> Bool {
+        let provider = activeProvider
+        guard provider.playbackInventoryRequiresEnrichment,
+              item.kind == .movie || item.kind == .episode else { return true }
+        let generation = sourceGeneration
+        let accountID = activeSourceAccountID
+        do {
+            guard let result = await EnrichmentScheduler.shared.run(token: token, {
+                () async -> Result<MediaItem, Error> in
+                do {
+                    try Task.checkCancellation()
+                    return .success(try await provider.playbackItem(id: item.id))
+                } catch {
+                    return .failure(error)
+                }
+            }) else { return false }
+            let resolved = try result.get()
+            guard !Task.isCancelled, enrichmentGeneration == token,
+                  isCurrentSource(generation: generation, itemID: item.id, accountID: accountID),
+                  var detail = state.value else { return false }
+            guard resolved.id == item.id, resolved.kind == item.kind,
+                  resolved.sourceAccountID == nil || resolved.sourceAccountID == accountID else {
+                PlozzLog.playback.error("Detail version inventory did not match the requested source.")
+                return false
+            }
+            detail.item.versions = resolved.versions
+            detail.item.sources = detail.item.sources.map {
+                stampedPrimarySource($0, from: detail.item, preservingWatchState: true)
+            }
+            state = .loaded(detail)
+            sources = sources.map {
+                stampedPrimarySource($0, from: detail.item, preservingWatchState: true)
+            }
+            persistSnapshot()
+            return true
+        } catch {
+            guard !Task.isCancelled, (error as? AppError) != .cancelled,
+                  !(error is CancellationError),
+                  isCurrentSource(generation: generation, itemID: item.id, accountID: accountID) else { return false }
+            // Browsing remains available; Play still requires its own successful
+            // inventory and presents the typed error instead of trusting this fallback.
+            _ = PlaybackVersionChoiceModel.reportFailure(error, stage: "detail")
+            return false
         }
     }
 
@@ -2735,6 +2783,11 @@ public final class ItemDetailViewModel {
     }
 
     private func applyDiscoveredSources(_ resolution: CrossServerSourceResolution, primary: MediaItem) async {
+        var primary = primary
+        if let latest = state.value?.item,
+           latest.id == primary.id, latest.sourceAccountID == primary.sourceAccountID {
+            primary = latest
+        }
         retainSourceRejections(resolution.rejectedSourceIDs)
         if let accountID = activeSourceAccountID {
             rejectedSourceIDs.remove("\(accountID):\(primary.id)")

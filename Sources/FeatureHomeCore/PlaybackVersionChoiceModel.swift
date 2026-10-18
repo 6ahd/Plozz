@@ -84,6 +84,13 @@ public final class PlaybackVersionChoiceModel {
             }
             for index in item.sources.indices
             where item.sources[index].accountID == item.sourceAccountID
+                && item.sources[index].itemID == item.id
+                && (item.sources[index].kind == nil || item.sources[index].kind == item.kind) {
+                item.sources[index].versions = item.versions.isEmpty
+                    ? [MediaVersion.synthesized(from: item)] : item.versions
+            }
+            for index in item.sources.indices
+            where item.sources[index].accountID == item.sourceAccountID
                 && item.sources[index].itemID != item.id
                 && (item.sources[index].kind == nil || item.sources[index].kind == item.kind) {
                 let source = item.sources[index]
@@ -183,6 +190,24 @@ public final class PlaybackVersionChoiceModel {
     public func cancel() {
         guard let owner else { return }
         cancel(owner: owner)
+    }
+
+    public static func reportFailure(_ error: Error, stage: String = "preparation") -> LocalizedStringResource {
+        let code: String
+        let message: LocalizedStringResource
+        if let streaming = error as? StreamingQualityError {
+            code = streaming.diagnosticCode ?? "unspecified"
+            message = streaming.userMessage
+        } else if let app = error as? AppError {
+            code = HandoffDiagnostics.errorCode(app)
+            message = app.userMessage
+        } else {
+            code = "unknown"
+            message = StreamingQualityError.negotiationFailed.userMessage
+        }
+        PlozzLog.playback.error("Could not prepare playback versions: \(code)")
+        HandoffDiagnostics.emit("versions FAILED stage=\(stage) code=\(code)")
+        return message
     }
 
     private func cancel(owner id: UUID) {

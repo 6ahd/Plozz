@@ -204,6 +204,49 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         }
     }
 
+    func testDiscoveredPrimaryCannotMaskOrCollapseAuthoritativeVersionsAfterSelection() async throws {
+        for staleVersions: [MediaVersion] in [[], [.init(id: "stale")]] {
+            settings.settings.versionSelectionMode = .askEveryTime
+            let full = item()
+            let reference = MediaSourceRef(
+                accountID: "server", itemID: full.id, kind: full.kind, versions: staleVersions
+            )
+            let choice = model!
+            let settings = settings!
+            let preferences = preferences!
+            let task = Task {
+                try await choice.prepare(
+                    full, provider: FakeMediaProvider(allItems: [full]),
+                    settings: settings, preferences: preferences,
+                    sourceResolver: { _ in CrossServerSourceResolution(sources: [reference]) }
+                )
+            }
+            defer { task.cancel() }
+            let prompt = try await pending()
+            XCTAssertEqual(Set(prompt.versions.compactMap(\.playbackMediaSourceID)), Set(full.versions.map(\.id)))
+            model.chooseVersion(prompt.versions[1].id, promptID: prompt.id)
+            let selected = try await task.value
+            XCTAssertEqual(PlayerVersionSelection.versions(for: selected).count, 2)
+            XCTAssertEqual(selected.versions.map(\.id), full.versions.map(\.id))
+        }
+    }
+
+    func testVersionFailurePreservesTypedCopyWithoutDisplayingUnknownDetails() {
+        XCTAssertEqual(
+            String(localized: PlaybackVersionChoiceModel.reportFailure(StreamingQualityError.sourceUnavailable)),
+            String(localized: StreamingQualityError.sourceUnavailable.userMessage)
+        )
+        XCTAssertEqual(
+            String(localized: PlaybackVersionChoiceModel.reportFailure(AppError.serverUnreachable)),
+            String(localized: AppError.serverUnreachable.userMessage)
+        )
+        struct UnknownFailure: Error {}
+        XCTAssertEqual(
+            String(localized: PlaybackVersionChoiceModel.reportFailure(UnknownFailure())),
+            String(localized: StreamingQualityError.negotiationFailed.userMessage)
+        )
+    }
+
     func testAskEveryTimeStillAsksAfterRememberingIncludingNextEpisode() async throws {
         settings.settings.versionSelectionMode = .askEveryTime
         for id in ["episode-1", "episode-1", "episode-2"] {

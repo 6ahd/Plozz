@@ -147,6 +147,13 @@ playback cannot mistake that fallback for a confirmed single-version title.
 Both paths use GETs without selecting or starting a source. Missing or duplicate
 IDs and unsupported/failed inventory requests block playback through its error
 presentation while leaving browsing available. Cancellation still propagates.
+An explicitly remote source whose ID is the item ID and whose description starts
+with the bridge's `No streams · ` marker is a negative lookup, not a file. It is
+excluded from inventories and rejected before creating a playback locator, even
+when the bridge supplies invented tracks and direct-play support. Ordinary file
+names and local files are not classified by loose keyword matching.
+Both backends advertise deferred inventory enrichment so detail menus can refresh
+through the same authoritative endpoint after their hero has painted.
 
 Inventory GET does not send a device profile, open a stream, or report playback.
 Its generated `PlaySessionId` is not an owned encoding session and needs no stop

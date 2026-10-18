@@ -5,6 +5,23 @@ import XCTest
 @testable import ProviderJellyfin
 
 final class JellyfinPlaybackNegotiationTests: XCTestCase {
+    func testUnavailablePlaceholderNeverBecomesAPlaybackLocatorAndReleasesSession() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            let http = fixtureHTTP(decisions: ["""
+            {"PlaySessionId":"refused","MediaSources":[
+            {"Id":"movie","IsRemote":true,"Name":"No streams · Unavailable",
+             "Container":"mkv","SupportsDirectPlay":true,"SupportsTranscoding":false}]}
+            """])
+            do {
+                _ = try await provider(kind, http: http).playbackInfo(for: "movie")
+                XCTFail("Do not manufacture a stream URL from a negative lookup.")
+            } catch {
+                XCTAssertEqual(error as? StreamingQualityError, .sourceUnavailable)
+            }
+            XCTAssertEqual(releasedSessions(http), ["refused"])
+        }
+    }
+
     func testOnlyForcedConversionDisablesBothCopyPermissionsInBodyAndQuery() async throws {
         for kind in [ProviderKind.jellyfin, .emby] {
             for streaming in [nil, StreamingPlaybackOptions(quality: .hd720)] {

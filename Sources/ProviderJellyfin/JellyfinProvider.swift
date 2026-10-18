@@ -8,6 +8,8 @@ import CoreNetworking
 /// provider-agnostic `CoreModels` types. Feature modules depend only on
 /// `MediaProvider`; this is the single place Jellyfin specifics live.
 public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIdentityProviding, AuthenticatedHTTPOriginProviding, ServerAddressUpdating {
+    public var playbackInventoryRequiresEnrichment: Bool { true }
+
     public let kind: ProviderKind
     public let session: UserSession
     public let accountID: String
@@ -655,8 +657,13 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                       Set(ids).count == ids.count else { throw AppError.invalidResponse }
                 // Placeholder item streams must not overwrite the real first
                 // source's language, codec, or quality facts.
-                item.versions = Self.versions(from: inventory.MediaSources)
-                await probeDescriptors.remember(itemID: id, sources: inventory.MediaSources)
+                let sources = inventory.MediaSources.filter { !Self.isUnavailablePlaceholder($0, itemID: id) }
+                guard !sources.isEmpty else {
+                    PlozzLog.playback.error("The server returned an unavailable-source placeholder.")
+                    throw StreamingQualityError.sourceUnavailable
+                }
+                item.versions = Self.versions(from: sources)
+                await probeDescriptors.remember(itemID: id, sources: sources)
             } catch {
                 try Task.checkCancellation()
                 if requiresSourceInventory || (error as? AppError) == .cancelled || error is CancellationError {
@@ -2053,6 +2060,13 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
 
     // MARK: - Mapping
 
+    private static func isUnavailablePlaceholder(_ source: MediaSourceInfo, itemID: String) -> Bool {
+        // Add-on bridges can encode a negative lookup as a nominal MKV source
+        // with invented tracks instead of returning PlaybackInfo.ErrorCode.
+        source.IsRemote == true && source.Id == itemID
+            && source.Name?.hasPrefix("No streams · ") == true
+    }
+
     func authenticatedPlaybackLocator(
         itemID: String,
         source: MediaSourceInfo,
@@ -2061,6 +2075,10 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         forceDirect: Bool = false,
         purpose: AuthenticatedHTTPResourcePurpose = .mediaStream
     ) throws -> AuthenticatedHTTPPlaybackLocator {
+        guard !Self.isUnavailablePlaceholder(source, itemID: itemID) else {
+            PlozzLog.playback.error("Refusing to open the server's unavailable-source placeholder.")
+            throw StreamingQualityError.sourceUnavailable
+        }
         let container = source.Container ?? "mp4"
         let sourceID = source.Id ?? itemID
         let deliveryMode: AuthenticatedHTTPDeliveryMode

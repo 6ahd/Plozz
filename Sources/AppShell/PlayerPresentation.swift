@@ -57,6 +57,7 @@ struct PlayerPresentation: View {
     @Environment(\.dismiss) private var dismiss
     @State private var versionChoice = PlaybackVersionChoiceModel()
     @State private var versionChoiceFailed = false
+    @State private var versionChoiceFailureMessage: LocalizedStringResource = "Please try playing this video again."
 
     /// The currently-active play request; changes when auto-advancing episodes.
     @State private var activeRequest: PlayRequest
@@ -118,7 +119,7 @@ struct PlayerPresentation: View {
                     if isPresented { dismiss() }
                     return
                 } catch {
-                    showVersionChoiceFailure()
+                    showVersionChoiceFailure(error)
                     return
                 }
                 updateVersionMenu()
@@ -156,7 +157,7 @@ struct PlayerPresentation: View {
         .alert("Couldn't load versions", isPresented: $versionChoiceFailed) {
             Button("Close player") { dismiss() }
         } message: {
-            Text("Please try playing this video again.")
+            Text(versionChoiceFailureMessage)
         }
         .onChange(of: versionItem) { _, _ in updateVersionMenu() }
         .onChange(of: viewModel?.currentMediaSourceID) { _, _ in updateVersionMenu() }
@@ -273,7 +274,7 @@ struct PlayerPresentation: View {
                 return
             } catch {
                 handoffTask = nil
-                showVersionChoiceFailure()
+                showVersionChoiceFailure(error)
                 return
             }
             let prepared = preparesEpisodeHandoff
@@ -312,10 +313,10 @@ struct PlayerPresentation: View {
         )
     }
 
-    private func showVersionChoiceFailure() {
+    private func showVersionChoiceFailure(_ error: Error) {
         guard isPresented else { return }
         viewModel?.setPaused(true)
-        PlozzLog.playback.error("Could not prepare playback version choices.")
+        versionChoiceFailureMessage = PlaybackVersionChoiceModel.reportFailure(error)
         versionChoiceFailed = true
     }
 }

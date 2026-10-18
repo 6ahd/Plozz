@@ -7,6 +7,88 @@ import Observation
 
 @MainActor
 final class ItemDetailViewModelTests: XCTestCase {
+    func testDeferredInventoryUpdatesDetailMenuWithoutBlockingHeroOrLosingToDiscovery() async throws {
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie, sourceAccountID: "account")
+        var resolved = item
+        resolved.versions = [.init(id: "hd"), .init(id: "4k")]
+        let inventory = resolved
+        let entered = AsyncGate()
+        let release = AsyncGate()
+        let discoveryRelease = AsyncGate()
+        let primary = MediaSourceRef(accountID: "account", itemID: item.id, kind: .movie)
+        let alternate = MediaSourceRef(
+            accountID: "account", itemID: "alternate", kind: .movie, versions: [.init(id: "alternate-file")]
+        )
+        let provider = FakeMediaProvider(allItems: [item])
+        provider.playbackInventoryRequiresEnrichment = true
+        provider.playbackItemHandler = { _ in
+            entered.open()
+            await release.wait()
+            return inventory
+        }
+        let vm = ItemDetailViewModel(
+            provider: provider, itemID: item.id,
+            sourceAccountID: "account",
+            onlineTrailerResolver: { _ in [] }, playableVideoIDResolver: { _ in nil },
+            trailerCache: TrailerResolutionCache(),
+            crossServerSourceResolver: { _ in
+                await discoveryRelease.wait()
+                return CrossServerSourceResolution(sources: [primary, alternate])
+            }
+        )
+        defer {
+            release.open()
+            discoveryRelease.open()
+            vm.suspendEnrichment()
+        }
+        await vm.load()
+        await entered.wait()
+        XCTAssertEqual(vm.state.value?.item.title, "Movie")
+        XCTAssertEqual(vm.state.value?.item.versions, [])
+        release.open()
+        await waitUntil { vm.state.value?.item.versions.count == 2 }
+        discoveryRelease.open()
+        await waitUntil { vm.sources.count == 2 }
+        let displayed = try XCTUnwrap(vm.state.value?.item)
+        let versions = DetailPlaybackSelection.versions(for: displayed, sources: vm.sources, activeAccountID: "account")
+        XCTAssertEqual(Set(versions.compactMap(\.playbackMediaSourceID)), ["hd", "4k", "alternate-file"])
+    }
+
+    func testSuspendedDetailCannotPublishLateVersionInventoryAndRetriesOnReturn() async {
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie, sourceAccountID: "account")
+        var resolved = item
+        resolved.versions = [.init(id: "hd"), .init(id: "4k")]
+        let inventory = resolved
+        let entered = AsyncGate()
+        let release = AsyncGate()
+        let returned = AsyncGate()
+        let calls = LockedCounter()
+        let provider = FakeMediaProvider(allItems: [item])
+        provider.playbackInventoryRequiresEnrichment = true
+        provider.playbackItemHandler = { _ in
+            let call = calls.increment()
+            entered.open()
+            await release.wait()
+            if call == 1 { returned.open() }
+            return inventory
+        }
+        let vm = ItemDetailViewModel(
+            provider: provider, itemID: item.id, sourceAccountID: "account",
+            onlineTrailerResolver: { _ in [] }, playableVideoIDResolver: { _ in nil },
+            trailerCache: TrailerResolutionCache()
+        )
+        await vm.load()
+        await entered.wait()
+        vm.suspendEnrichment()
+        release.open()
+        await returned.wait()
+        XCTAssertEqual(vm.state.value?.item.versions, [])
+        vm.resumeEnrichmentIfNeeded()
+        await waitUntil { vm.state.value?.item.versions.count == 2 }
+        XCTAssertEqual(calls.value, 2)
+        vm.suspendEnrichment()
+    }
+
     func testAllProvidersFillDetailGapsAfterHydrationWithoutReplacingServerCrew() async {
         for kind: ProviderKind in [.plex, .jellyfin, .emby, .silo, .mediaShare] {
             let director = MediaPerson(id: "server-director", name: "Server director", kind: "Director")

@@ -22,6 +22,10 @@ public protocol MediaProvider: Sendable {
     /// before publishing those cards as complete identity-index/search evidence.
     var catalogIdentityRequiresEnrichment: Bool { get }
 
+    /// Browsing metadata may omit lazily resolved files. Detail pages should
+    /// refresh `playbackItem` after first paint, without opening a stream.
+    var playbackInventoryRequiresEnrichment: Bool { get }
+
     // MARK: Library browsing
 
     /// Top-level libraries/views available to the user.
@@ -467,6 +471,7 @@ public enum MediaProviderURLIdentity {
 // conformer to implement it.
 public extension MediaProvider {
     var catalogIdentityRequiresEnrichment: Bool { false }
+    var playbackInventoryRequiresEnrichment: Bool { false }
 
     func playbackItem(id: String) async throws -> MediaItem {
         try await item(id: id)

@@ -61,6 +61,7 @@ struct PlozziOSPlayerView: View {
     @State private var playbackStatus = TransientStatusPresenter()
     @State private var versionChoice = PlaybackVersionChoiceModel()
     @State private var versionChoiceFailed = false
+    @State private var versionChoiceFailureMessage: LocalizedStringResource = "Please try playing this video again."
     /// See the bisect note in `body`.
 
     let request: PlozziOSPlaybackRequest
@@ -166,7 +167,7 @@ struct PlozziOSPlayerView: View {
                 if isPresented { dismiss() }
                 return
             } catch {
-                showVersionChoiceFailure()
+                showVersionChoiceFailure(error)
                 return
             }
             guard usesStreamingQuality else {
@@ -197,7 +198,7 @@ struct PlozziOSPlayerView: View {
         .alert("Couldn't load versions", isPresented: $versionChoiceFailed) {
             Button("Close player") { dismiss() }
         } message: {
-            Text("Please try playing this video again.")
+            Text(versionChoiceFailureMessage)
         }
         .plozzSheet(isPresented: $presentsStreamingQuality) {
             if let viewModel { PlozziOSStreamingQualitySheet(viewModel: viewModel) }
@@ -237,7 +238,7 @@ struct PlozziOSPlayerView: View {
                     return
                 } catch {
                     handoffTask = nil
-                    showVersionChoiceFailure()
+                    showVersionChoiceFailure(error)
                     return
                 }
                 let prefetched = await outgoing.prepareEpisodeHandoff(to: next)
@@ -285,7 +286,7 @@ struct PlozziOSPlayerView: View {
                     return
                 } catch {
                     handoffTask = nil
-                    showVersionChoiceFailure()
+                    showVersionChoiceFailure(error)
                     return
                 }
                 await outgoing.stop()
@@ -354,10 +355,10 @@ struct PlozziOSPlayerView: View {
         return selected
     }
 
-    private func showVersionChoiceFailure() {
+    private func showVersionChoiceFailure(_ error: Error) {
         guard isPresented else { return }
         viewModel?.setPaused(true)
-        PlozzLog.playback.error("Could not prepare playback version choices.")
+        versionChoiceFailureMessage = PlaybackVersionChoiceModel.reportFailure(error)
         versionChoiceFailed = true
     }
 

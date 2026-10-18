@@ -212,6 +212,44 @@ final class JellyfinVersionsWatchlistRefreshTests: XCTestCase {
         }
     }
 
+    func testUnavailableBridgePlaceholderCannotCountAsAConfirmedSingleFile() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            for itemType in ["Movie", "Episode"] {
+                let stub = StubHTTPClient()
+                stub.stub(pathSuffix: "/Users/u1/Items/i1", json:
+                    #"{"Id":"i1","Name":"Title","Type":"\#(itemType)"}"#)
+                stub.stub(pathSuffix: "/Items/i1/PlaybackInfo", json: """
+                {"MediaSources":[{"Id":"i1","IsRemote":true,"Name":"No streams · Unavailable",
+                "Container":"mkv","SupportsDirectPlay":true,
+                "MediaStreams":[{"Index":0,"Type":"Video","Codec":"h264"},{"Index":1,"Type":"Audio","Codec":"ac3"}]}]}
+                """)
+                var session = makeSession()
+                session.server.provider = kind
+                do {
+                    _ = try await JellyfinProvider(session: session, http: stub).playbackItem(id: "i1")
+                    XCTFail("A negative add-on lookup must not open a player.")
+                } catch {
+                    XCTAssertEqual(error as? StreamingQualityError, .sourceUnavailable)
+                }
+                XCTAssertEqual(stub.sentMethods, [.get, .get])
+            }
+        }
+    }
+
+    func testPlaceholderRecognitionDoesNotRejectRealFilesOrUnrelatedNames() async throws {
+        for source in [
+            #"{"Id":"i1","IsRemote":false,"Name":"No streams · Unavailable"}"#,
+            #"{"Id":"file","IsRemote":true,"Name":"No streams · Unavailable"}"#,
+            #"{"Id":"i1","IsRemote":true,"Name":"No streams documentary"}"#
+        ] {
+            let stub = StubHTTPClient()
+            stub.stub(pathSuffix: "/Users/u1/Items/i1", json: #"{"Id":"i1","Name":"Title","Type":"Movie"}"#)
+            stub.stub(pathSuffix: "/Items/i1/PlaybackInfo", json: #"{"MediaSources":[\#(source)]}"#)
+            let item = try await JellyfinProvider(session: makeSession(), http: stub).playbackItem(id: "i1")
+            XCTAssertTrue(item.versions.isEmpty)
+        }
+    }
+
     func testPlaybackAcceptsConfirmedSingleFileWithoutKeepingCachedVersions() async throws {
         for kind in [ProviderKind.jellyfin, .emby] {
             let stub = StubHTTPClient()
