@@ -198,7 +198,7 @@ extension SiloProviderTests {
       XCTFail("A shifted timeline must not report incorrect progress")
     } catch {
       XCTAssertEqual(error as? StreamingQualityError, .serverRefusal(
-        "Silo returned a stream with an unsupported playback timeline. Try original quality or another version."
+        "Silo returned a playback timeline offset that Plozz does not support.", reason: .unsupportedTimeline
       ))
     }
     let requests = await http.requests
@@ -219,7 +219,7 @@ extension SiloProviderTests {
       XCTFail("A nonseekable plan must not bypass timeline validation")
     } catch {
       XCTAssertEqual(error as? StreamingQualityError, .serverRefusal(
-        "Silo returned a stream that does not support seeking. Plozz cannot play this stream. Try original quality or another version."
+        "Silo returned a stream without seeking support. Plozz requires a seekable stream for this playback path.", reason: .nonSeekable
       ))
     }
     let requests = await http.requests
@@ -682,7 +682,7 @@ final class SiloProviderTests: XCTestCase {
       XCTFail("A different returned file must not play")
     } catch {
       XCTAssertEqual(error as? StreamingQualityError, .serverRefusal(
-        "Silo returned a different file than the selected version. Playback was stopped to avoid playing the wrong file. Choose another version or check the server’s playback log."
+        "Silo returned a different file than the selected version. Plozz stopped playback to avoid playing the wrong file.", reason: .sourceMismatch
       ))
     }
     let requests = await http.requests

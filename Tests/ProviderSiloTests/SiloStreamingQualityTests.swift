@@ -169,11 +169,19 @@ extension SiloProviderTests {
     func testUnknownSiloRefusalDoesNotAssertThatTranscodingWasRequested() {
         let error = SiloStreamingSelection.refusal("adaptation_unavailable")
         XCTAssertEqual(error, .serverRefusal(
-            "Silo couldn’t prepare a playable stream for this file. Check the server’s playback log for details."
+            "Silo did not return a playable stream. No recognized reason was supplied.", reason: .unspecified
         ))
         XCTAssertEqual(SiloStreamingSelection.refusal("transcoding_disabled"), .serverRefusal(
-            "Transcoding is disabled on this Silo server."
+            "Silo reported that transcoding is disabled.", reason: .transcodingDisabled
         ))
+    }
+
+    func testKnownSiloReasonsSurviveWithoutSpeculativeRemedies() {
+        let hdr = SiloStreamingSelection.refusal("hdr_transcode_unsupported")
+        XCTAssertEqual(hdr.diagnosticCode, "hdr_transcode_unsupported")
+        XCTAssertFalse(String(localized: hdr.userMessage).contains("tone"))
+        XCTAssertEqual(SiloStreamingSelection.refusal("session_expired"),
+                       .playback(.init(kind: .unavailable, provider: .silo, providerReason: .sessionExpired)))
     }
 
     func testSiloWillNotSilentlyReturnOriginalOrNormalizeAnUnsupportedQuality() async throws {

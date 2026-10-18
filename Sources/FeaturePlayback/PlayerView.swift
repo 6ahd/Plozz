@@ -310,13 +310,12 @@ public struct PlayerView: View {
         case .ready:
             readyPlayerContainer
 
-        case let .failed(error):
-            #if os(iOS)
-            MobilePlaybackFailureView(
-                message: viewModel.streamingQualityError?.userMessage ?? error.userMessage,
-                code: viewModel.streamingQualityError?.diagnosticCode,
-                retryMessage: viewModel.streamingCodecRetryMessage,
-                negotiatedCodec: viewModel.streamingNegotiatedVideoCodec,
+        case .failed:
+            StreamingPlaybackFailureView(
+                message: viewModel.playbackFailureReport?.message
+                    ?? viewModel.streamingQualityError?.userMessage
+                    ?? StreamingPlaybackFailure(kind: .unknown).userMessage,
+                report: viewModel.playbackFailureReport,
                 onChangeQuality: viewModel.streamingQualityAvailable ? onChangeQuality : nil,
                 onChangeVersion: onChangeVersion,
                 onPlaySDRVersion: onPlaySDRVersion,
@@ -325,17 +324,8 @@ public struct PlayerView: View {
                         viewModel.changeStreamingOptions(.init(quality: .original))
                     } : nil,
                 onRetry: { viewModel.retryPlayback() },
-                onShowDiagnostics: { viewModel.controls.diagnosticsEnabled = true },
                 onDismiss: { dismissPlayer() }
             )
-            #else
-            PlaybackErrorView(
-                message: viewModel.streamingQualityError?.userMessage ?? error.userMessage,
-                code: viewModel.streamingQualityError?.diagnosticCode,
-                onRetry: { viewModel.retryPlayback() },
-                onDismiss: { dismissPlayer() }
-            )
-            #endif
         }
     }
 
@@ -558,40 +548,6 @@ private struct DisplaySettleObserver: ViewModifier {
         #else
         content
         #endif
-    }
-}
-
-/// Graceful playback error state with a way back.
-private struct PlaybackErrorView: View {
-    let message: LocalizedStringResource
-    let code: String?
-    let onRetry: () -> Void
-    let onDismiss: () -> Void
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(.yellow)
-            Text("Can’t play this right now")
-                .font(.title).bold()
-                .foregroundStyle(.white)
-            Text(message)
-                .font(.title3)
-                .plozzForeground(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 800)
-            if let code {
-                Text(verbatim: code)
-                    .font(.caption)
-                    .plozzForeground(.secondary)
-            }
-            HStack {
-                Button("Retry", action: onRetry)
-                Button("Back", action: onDismiss)
-            }
-            .buttonStyle(.borderedProminent)
-        }
     }
 }
 

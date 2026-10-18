@@ -121,7 +121,8 @@ public enum NativePlaybackFailure {
         }
         return .init(
             kind: kind, domain: domain, code: evidence?.code, httpStatus: http,
-            provider: kind == .hdrConversion || kind == .hdrConversionUnconfirmed ? provider : nil
+            provider: kind == .hdrConversion || kind == .hdrConversionUnconfirmed ? provider : nil,
+            underlyingErrors: PlaybackFailureEvidence.ErrorCode.chain(error)
         )
     }
 }

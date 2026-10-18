@@ -439,7 +439,7 @@ final class NativePlaybackFailureTests: XCTestCase {
         return NativePlaybackFailure.VideoFormat(try XCTUnwrap(description))
     }
 
-    func testHDRH264FailureGivesSpecificAdviceWithoutClaimingToReadServerSettings() throws {
+    func testHDRH264FailureExplainsObservedIncompatibilityWithoutGuessingServerSettings() throws {
         for transfer in [
             kCMFormatDescriptionTransferFunction_SMPTE_ST_2084_PQ,
             kCMFormatDescriptionTransferFunction_ITU_R_2100_HLG
@@ -453,8 +453,10 @@ final class NativePlaybackFailureTests: XCTestCase {
             var message = result.userMessage
             message.locale = Locale(identifier: "en_US")
             let text = String(localized: message)
-            XCTAssertTrue(text.contains("requires Emby Premiere"))
-            XCTAssertTrue(text.contains("SDR version"))
+            XCTAssertTrue(text.contains("HDR video"))
+            XCTAssertTrue(text.contains("cannot decode"))
+            XCTAssertFalse(text.contains("Premiere"))
+            XCTAssertFalse(text.contains("tone mapping"))
             XCTAssertFalse(text.contains("disabled"))
         }
     }
@@ -501,7 +503,7 @@ final class NativePlaybackFailureTests: XCTestCase {
         }
     }
 
-    func testHDRContextGivesConditionalAdviceWhenDecoderFailsBeforeFormatArrives() throws {
+    func testHDRContextAdmitsUnconfirmedOutputWhenDecoderFailsBeforeFormatArrives() throws {
         let failure = NativePlaybackFailure.classify(
             NSError(domain: "CoreMediaErrorDomain", code: -12927),
             provider: .emby, convertingHDRSource: true
@@ -511,7 +513,8 @@ final class NativePlaybackFailureTests: XCTestCase {
         var message = failure.userMessage
         message.locale = Locale(identifier: "en_US")
         let text = String(localized: message)
-        XCTAssertTrue(text.contains("may be needed"))
+        XCTAssertTrue(text.contains("could not be confirmed"))
+        XCTAssertFalse(text.contains("tone mapping"))
         XCTAssertFalse(text.contains("disabled"))
         XCTAssertEqual(NativePlaybackFailure.classify(
             NSError(domain: "CoreMediaErrorDomain", code: -12927), provider: .emby
@@ -606,6 +609,7 @@ final class NativePlaybackFailureTests: XCTestCase {
         let result = NativePlaybackFailure.classify(outer)
         XCTAssertEqual(result.kind, .timedOut)
         XCTAssertEqual(result.diagnosticCode, "URL -1001")
+        XCTAssertEqual(result.underlyingErrors.map(\.code), [-11800, -1001])
         XCTAssertFalse(result.allowsCodecFallback)
         XCTAssertFalse(String(localized: result.userMessage).contains("private"))
     }
@@ -631,9 +635,9 @@ final class NativePlaybackFailureTests: XCTestCase {
         for (code, expected) in [
             (URLError.notConnectedToInternet, "offline"),
             (.cannotFindHost, "address"),
-            (.dnsLookupFailed, "DNS"),
-            (.serverCertificateUntrusted, "certificate"),
-            (.serverCertificateHasBadDate, "certificate")
+            (.dnsLookupFailed, "resolved"),
+            (.serverCertificateUntrusted, "secure connection"),
+            (.serverCertificateHasBadDate, "secure connection")
         ] {
             let failure = NativePlaybackFailure.classify(URLError(code) as NSError)
             XCTAssertEqual(failure.kind, .network)

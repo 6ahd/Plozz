@@ -2,10 +2,10 @@
 import CoreModels
 import SwiftUI
 
-public struct LiveTVDiagnosticDetailsView: View {
-    public let report: LiveTVDiagnosticReport
+public struct PlaybackDiagnosticDetailsView: View {
+    public let report: PlaybackDiagnosticReport
 
-    public init(report: LiveTVDiagnosticReport) { self.report = report }
+    public init(report: PlaybackDiagnosticReport) { self.report = report }
 
     private var supportText: String { // l10n:content — technical support report
         let version = AppVersionIdentity.current
@@ -24,43 +24,60 @@ public struct LiveTVDiagnosticDetailsView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 24) {
+                Text("Details")
+                    .font(.largeTitle.bold())
+                    .accessibilityAddTraits(.isHeader)
                 if let message = report.message {
-                    Text(message).font(.body)
+                    Text(message).font(.body).fixedSize(horizontal: false, vertical: true)
                 }
-                Text("Sharing this report is optional. It contains no addresses, credentials, account names, or channel names.")
-                    .font(.callout)
+                if case .onDemand(let error, _, _, _, _, _) = report,
+                   case .playback(let failure) = error,
+                   failure.engineFailure != .sourceRefused, failure.engineFailure != .nativeItemFailed,
+                   let reason = failure.engineFailure?.message, reason != report.message {
+                    Text(reason).font(.callout).foregroundStyle(.secondary)
+                }
                 Text(verbatim: supportText)
+                    #if os(tvOS)
                     .font(.system(.body, design: .monospaced))
+                    #else
+                    .font(.system(.callout, design: .monospaced))
+                    #endif
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(24)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 18))
                     #if os(iOS)
                     .textSelection(.enabled)
                     #elseif os(tvOS)
                     .focusable()
                     #endif
-                    .accessibilityIdentifier("live-tv-diagnostic-report")
+                    .accessibilityIdentifier("playback-diagnostic-report")
+                Text("Sharing is optional. This report excludes server addresses, credentials, account names, and media titles.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                 #if os(iOS)
                 ShareLink(item: supportText) { Label("Share details", systemImage: "square.and.arrow.up") }
+                    .plozzActionButton(role: .primary)
                 #endif
             }
             .frame(maxWidth: 1_000, alignment: .leading)
             .padding(32)
             .frame(maxWidth: .infinity)
         }
-        .navigationTitle("Details")
         .background { SettingsPageBackground() }
     }
 }
 
-public struct LiveTVDiagnosticDetailsSheet: View {
-    private let report: LiveTVDiagnosticReport
+public struct PlaybackDiagnosticDetailsSheet: View {
+    private let report: PlaybackDiagnosticReport
     @Environment(\.dismiss) private var dismiss
 
-    public init(report: LiveTVDiagnosticReport) { self.report = report }
+    public init(report: PlaybackDiagnosticReport) { self.report = report }
 
     public var body: some View {
         NavigationStack {
-            LiveTVDiagnosticDetailsView(report: report)
+            PlaybackDiagnosticDetailsView(report: report)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }

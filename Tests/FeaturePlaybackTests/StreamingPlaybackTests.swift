@@ -746,7 +746,7 @@ final class StreamingPlaybackTests: XCTestCase {
     }
 
     func testAuthenticationErrorsRemainAuthenticationErrors() {
-        XCTAssertEqual(PlayerViewModel.streamingFailure(.unauthorized), .permissionDenied)
+        XCTAssertEqual(PlayerViewModel.streamingFailure(.unauthorized), .authenticationRequired)
         XCTAssertEqual(PlayerViewModel.streamingFailure(.serverUnreachable), .playback(.init(kind: .network)))
         XCTAssertEqual(PlayerViewModel.streamingFailure(.notFound, streamWasSupplied: false), .sourceUnavailable)
         XCTAssertEqual(PlayerViewModel.streamingFailure(.notFound), .playback(.init(kind: .unavailable)))
@@ -899,6 +899,8 @@ final class StreamingPlaybackTests: XCTestCase {
         XCTAssertEqual(model.streamingQualityError, .playback(failure))
         XCTAssertEqual(model.streamingQualityError?.diagnosticCode, "HTTP 410")
         XCTAssertEqual(engine.status, .idle)
+        XCTAssertTrue(model.playbackFailureReport?.supportText.contains("http_status=410") == true)
+        XCTAssertTrue(model.playbackFailureReport?.supportText.contains("stage=opening") == true)
         let before = await provider.ordinaryCalls
         XCTAssertEqual(before, 1)
         XCTAssertFalse(String(localized: model.streamingQualityError!.userMessage).contains("secret"))
@@ -910,6 +912,7 @@ final class StreamingPlaybackTests: XCTestCase {
         XCTAssertEqual(after, 2, "Retry must negotiate a fresh session, not reopen the ended URL.")
         XCTAssertEqual(engine.positions.last, 125)
         XCTAssertNil(model.streamingQualityError)
+        XCTAssertNil(model.playbackFailureReport, "A retry must not show the previous attempt’s evidence.")
         await model.stop()
     }
 
@@ -918,7 +921,7 @@ final class StreamingPlaybackTests: XCTestCase {
         await model.load()
         engine.onFailure?(.unauthorized)
         await wait { if case .failed = model.phase { return true }; return false }
-        XCTAssertEqual(model.streamingQualityError, .permissionDenied)
+        XCTAssertEqual(model.streamingQualityError, .authenticationRequired)
         let ordinaryCalls = await provider.ordinaryCalls
         XCTAssertEqual(ordinaryCalls, 1)
         await model.stop()

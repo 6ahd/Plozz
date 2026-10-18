@@ -831,9 +831,17 @@ as quality-limited playback on both platforms. Plozzigen uses the pinned engine'
 typed `errorInfo`, never message parsing. Expired/missing streams, rate limits,
 certificate failures, and exhausted device storage do not trigger engine swaps
 or server conversion. Retry negotiates again while retaining the selected file,
-quality, playback position, and account. TV also shows safe numeric error codes.
-Live interruptions retain their existing provider diagnostics and offer an
-action after startup, buffering, or end-of-stream failures.
+quality, playback position, and account. Full-screen TV/mobile and Live TV
+interruptions use CoreUI's shared `PlaybackFailureView`: a short factual summary,
+native contextual actions, and optional Details. Playback options remain available
+when the host supplies them; no recovery action promises success.
+Failure reports are captured before engine teardown and cleared for a new attempt.
+Details retains the provider, actual failure stage, engine, typed engine reason,
+bounded underlying error chain, HTTP status and known provider rejection codes.
+Readiness timeouts are not network timeouts, and HTTP 410 alone is not proof of
+idle-session expiry. Unknown causes stay unknown. Raw descriptions, URLs and
+credentials never enter a shareable report. Live TV retains its existing report
+format; retry exhaustion does not overwrite the original failure with advice.
 Plex bounded streams first validate the server's universal-transcoder decision
 with the same session and settings as the start request. HEVC uses fragmented
 MP4 HLS. Decision parsing reads only status codes and the output format; it must

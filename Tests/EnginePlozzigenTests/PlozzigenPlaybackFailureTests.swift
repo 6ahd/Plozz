@@ -17,6 +17,7 @@ final class PlozzigenPlaybackFailureTests: XCTestCase {
             let failure = try XCTUnwrap(PlozzigenPlaybackFailure.classify(info))
             XCTAssertEqual(failure.kind, kind)
             XCTAssertEqual(failure.diagnosticCode, "HTTP \(status)")
+            XCTAssertEqual(failure.engineFailure, .sourceRefused)
             XCTAssertFalse(failure.allowsCodecFallback)
             XCTAssertFalse(String(localized: failure.userMessage).contains("secret"))
         }
@@ -37,7 +38,8 @@ final class PlozzigenPlaybackFailureTests: XCTestCase {
 
     func testDecoderFailureStillAllowsCompatibilityFallback() {
         let failure = PlozzigenPlaybackFailure.classify(.init(kind: .softwarePipelineFailed, message: "private"))
-        XCTAssertEqual(failure?.kind, .unsupportedFormat)
+        XCTAssertEqual(failure?.kind, .processingFailed)
+        XCTAssertEqual(failure?.engineFailure, .softwarePipelineFailed)
         XCTAssertEqual(failure?.allowsCodecFallback, true)
     }
 
@@ -59,5 +61,24 @@ final class PlozzigenPlaybackFailureTests: XCTestCase {
         XCTAssertEqual(failure?.kind, .unknown)
         XCTAssertNil(failure?.httpStatus)
         XCTAssertNil(failure?.diagnosticCode)
+        XCTAssertEqual(failure?.underlyingErrors, [.init(domain: "private-domain", code: 410)])
+        XCTAssertEqual(failure?.underlyingErrors.first?.domain, .other)
+    }
+
+    func testReadinessTimeoutIsNotReportedAsANetworkTimeout() throws {
+        for kind in [PlaybackErrorKind.noPlayableTrackWithinBudget, .liveReloadNeverReady] {
+            let failure = try XCTUnwrap(PlozzigenPlaybackFailure.classify(.init(kind: kind, message: "private")))
+            XCTAssertEqual(failure.kind, .readinessTimedOut)
+            XCTAssertEqual(failure.engineFailure?.rawValue, kind.rawValue)
+            XCTAssertFalse(failure.allowsCodecFallback)
+            XCTAssertFalse(String(localized: failure.userMessage).contains("request"))
+        }
+    }
+
+    func testUnrecognizedEngineKindCannotEnterTheReport() throws {
+        let failure = try XCTUnwrap(PlozzigenPlaybackFailure.classify(.init(
+            kind: .init(rawValue: "https://private.test?token=secret"), message: "private"
+        )))
+        XCTAssertEqual(failure.engineFailure, .unknown)
     }
 }

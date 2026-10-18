@@ -32,82 +32,47 @@ struct StreamingPlaybackLoadingView: View {
     }
 }
 
-#if os(iOS)
-struct MobilePlaybackFailureView: View {
+struct StreamingPlaybackFailureView: View {
     let message: LocalizedStringResource
-    let code: String? // l10n:content — allowlisted diagnostic domain and numeric code
-    let retryMessage: LocalizedStringResource?
-    let negotiatedCodec: DirectPlayVideoCodec?
+    let report: PlaybackDiagnosticReport?
     let onChangeQuality: (() -> Void)?
     let onChangeVersion: (() -> Void)?
     let onPlaySDRVersion: (() -> Void)?
     let onPlayOriginal: (() -> Void)?
     let onRetry: (() -> Void)?
-    let onShowDiagnostics: () -> Void
     let onDismiss: () -> Void
     @State private var confirmsOriginal = false
 
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: 18) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.yellow)
-                    Text("Can’t play this right now").font(.title2.bold())
-                    Text(message).font(.body).foregroundStyle(.white.opacity(0.8))
-                    if let retryMessage {
-                        Text(retryMessage)
-                            .font(.footnote).foregroundStyle(.white.opacity(0.7))
+        PlaybackFailureView(message: message, report: report) {
+            if let onRetry {
+                Button("Retry", action: onRetry)
+                    .plozzActionButton(role: .primary)
+                    .accessibilityIdentifier("playback-failure-retry")
+            }
+            if onChangeVersion != nil || onChangeQuality != nil || onPlaySDRVersion != nil || onPlayOriginal != nil {
+                Menu {
+                    if let onChangeVersion {
+                        Button("Version", systemImage: "rectangle.stack", action: onChangeVersion)
                     }
-                    if let negotiatedCodec {
-                        Text("Negotiated codec: \(PlaybackDiagnostics.friendlyCodecName(negotiatedCodec.rawValue) ?? negotiatedCodec.rawValue)")
-                            .font(.footnote).foregroundStyle(.white.opacity(0.7))
-                    }
-                    if let code {
-                        Text(verbatim: code).font(.caption.monospaced())
-                            .textSelection(.enabled)
+                    if let onChangeQuality {
+                        Button("Quality", systemImage: "slider.horizontal.3", action: onChangeQuality)
                     }
                     if let onPlaySDRVersion {
                         Button("Play an SDR version", systemImage: "rectangle.stack", action: onPlaySDRVersion)
-                            .buttonStyle(.borderedProminent)
-                    } else if onPlayOriginal != nil {
-                        Text("No SDR version found on this server.")
-                            .font(.footnote)
-                            .foregroundStyle(.white.opacity(0.7))
                     }
                     if onPlayOriginal != nil {
                         Button("Play original quality") { confirmsOriginal = true }
-                            .buttonStyle(.bordered)
                     }
-                    if let onChangeVersion {
-                        Menu {
-                            Button("Version", systemImage: "rectangle.stack", action: onChangeVersion)
-                            if let onChangeQuality {
-                                Button("Quality", systemImage: "slider.horizontal.3", action: onChangeQuality)
-                            }
-                        } label: {
-                            Label("Playback options", systemImage: "slider.horizontal.3")
-                        }
-                        .buttonStyle(.borderedProminent)
-                    } else if let onChangeQuality {
-                        Button("Change quality", systemImage: "slider.horizontal.3", action: onChangeQuality)
-                            .buttonStyle(.borderedProminent)
-                            .accessibilityIdentifier("player-failed-streaming-quality")
-                    }
-                    if let onRetry { Button("Try again", action: onRetry).buttonStyle(.bordered) }
-                    Button("Playback Diagnostics", action: onShowDiagnostics).buttonStyle(.bordered)
-                    Button("Back", action: onDismiss).buttonStyle(.bordered)
-                        .accessibilityIdentifier("player-failed-back")
+                } label: {
+                    Label("Playback options", systemImage: "slider.horizontal.3")
                 }
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 520)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 60)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: geometry.size.height)
+                .plozzActionButton(role: .secondary)
+                .accessibilityIdentifier("player-failed-streaming-quality")
             }
+            Button("Back", action: onDismiss)
+                .plozzActionButton(role: .secondary)
+                .accessibilityIdentifier("player-failed-back")
         }
         .confirmationDialog("Play original quality?", isPresented: $confirmsOriginal, titleVisibility: .visible) {
             if let onPlayOriginal {
@@ -119,5 +84,4 @@ struct MobilePlaybackFailureView: View {
         }
     }
 }
-#endif
 #endif

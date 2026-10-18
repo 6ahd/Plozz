@@ -15,13 +15,13 @@ final class PlaybackFailureDiagnosticTests: XCTestCase {
         XCTAssertEqual(attempt.diagnostic?.code, -1001)
         let report = LiveChannelFailureReport(failure: .engine(.serverUnreachable), diagnostic: attempt.diagnostic)
         XCTAssertTrue(String(localized: report.message).contains("did not respond in time"))
-        XCTAssertFalse(LiveTVDiagnosticReport.playback(report).supportText.contains("http_status"))
+        XCTAssertFalse(PlaybackDiagnosticReport.playback(report).supportText.contains("http_status"))
     }
 
     func testSupportReportNeverExportsUnknownErrorDescriptions() {
         let privateDescription = "https://private.invalid/live/user/password?token=private-secret"
         let report = LiveChannelFailureReport(failure: .engine(.unknown(privateDescription)))
-        XCTAssertEqual(LiveTVDiagnosticReport.playback(report).supportText,
+        XCTAssertEqual(PlaybackDiagnosticReport.playback(report).supportText,
                        "format=plozz-live-tv-2\noperation=playback\nfailure=unknown")
         XCTAssertFalse(String(localized: report.message).contains("private"))
     }
@@ -97,7 +97,7 @@ final class PlaybackFailureDiagnosticTests: XCTestCase {
         ))
         attempt.fail(stage: .playback, engineFailure: .nativeItemFailed, domain: .avfoundation,
                      code: -11850, evidence: evidence)
-        let report = LiveTVDiagnosticReport.playback(.init(
+        let report = PlaybackDiagnosticReport.playback(.init(
             failure: .engine(.invalidResponse), diagnostic: attempt.diagnostic
         )).supportText
         XCTAssertTrue(report.contains("native_error_0=avfoundation:-11850"))

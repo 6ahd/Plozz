@@ -16,22 +16,30 @@ enum PlozzigenPlaybackFailure {
             return NSError(domain: domain, code: code)
         } ?? (fallbackError as NSError?)
         let classified = NativePlaybackFailure.classify(underlying, httpStatus: httpStatus)
-        if info?.kind == .sourceRateLimited {
-            return .init(kind: .rateLimited, httpStatus: classified.httpStatus)
+        guard let info else { return classified.kind == .unknown ? nil : classified }
+        var kind = classified.kind
+        if info.kind == .sourceRateLimited {
+            kind = .rateLimited
+        } else if kind == .unknown {
+            switch info.kind {
+            case .storageExhausted: kind = .storageExhausted
+            case .audioSessionFailed: kind = .audioOutputFailed
+            case .dolbyVisionRequiresHardware, .demuxedAudioLiveUnsupported:
+                kind = .unsupportedFormat
+            case .softwarePipelineFailed, .audioBridgeProducedNoOutput: kind = .processingFailed
+            case .noPlayableTrackWithinBudget, .liveReloadNeverReady: kind = .readinessTimedOut
+            case .sourceCertificateRejected, .liveSourceUnavailable: kind = .network
+            default: kind = .unknown
+            }
         }
-        if classified.kind != .unknown { return classified }
-        guard let info else { return nil }
-        let kind: StreamingPlaybackFailure.Kind
-        switch info.kind {
-        case .storageExhausted: kind = .storageExhausted
-        case .audioSessionFailed: kind = .audioOutputFailed
-        case .dolbyVisionRequiresHardware, .softwarePipelineFailed,
-             .audioBridgeProducedNoOutput, .demuxedAudioLiveUnsupported:
-            kind = .unsupportedFormat
-        case .noPlayableTrackWithinBudget, .liveReloadNeverReady: kind = .timedOut
-        case .sourceCertificateRejected, .liveSourceUnavailable: kind = .network
-        default: kind = .unknown
+        var underlyingErrors = classified.underlyingErrors
+        if underlyingErrors.isEmpty, let code = info.underlyingCode, httpStatus == nil {
+            underlyingErrors = [.init(domain: info.underlyingDomain, code: code)]
         }
-        return .init(kind: kind, domain: classified.domain, code: classified.code, httpStatus: classified.httpStatus)
+        return .init(
+            kind: kind, domain: classified.domain, code: classified.code, httpStatus: classified.httpStatus,
+            engineFailure: .init(rawValue: info.kind.rawValue) ?? .unknown,
+            underlyingErrors: underlyingErrors
+        )
     }
 }

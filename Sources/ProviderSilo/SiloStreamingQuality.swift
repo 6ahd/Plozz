@@ -148,15 +148,15 @@ struct SiloStreamingSelection {
     static func refusal(_ reason: String?) -> StreamingQualityError {
         switch reason {
         case "session_expired":
-            .playback(.init(kind: .unavailable, provider: .silo))
+            .playback(.init(kind: .unavailable, provider: .silo, providerReason: .sessionExpired))
         case "transcoding_disabled":
-            .serverRefusal("Transcoding is disabled on this Silo server.")
+            .serverRefusal("Silo reported that transcoding is disabled.", reason: .transcodingDisabled)
         case "conversion_tool_unavailable":
-            .serverRefusal("Silo has no available video encoder for these settings.")
+            .serverRefusal("Silo reported that its conversion tool is unavailable.", reason: .conversionToolUnavailable)
         case "hdr_transcode_unsupported":
-            .serverRefusal("Silo can’t convert this HDR file with its current tone-mapping configuration.")
+            .serverRefusal("Silo reported that HDR conversion is unsupported for this file.", reason: .hdrTranscodeUnsupported)
         default:
-            .serverRefusal("Silo couldn’t prepare a playable stream for this file. Check the server’s playback log for details.")
+            .serverRefusal("Silo did not return a playable stream. No recognized reason was supplied.", reason: .unspecified)
         }
     }
 }

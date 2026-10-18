@@ -336,7 +336,7 @@ private struct IPTVConnectionStatus: View {
         }
         .plozzSheet(isPresented: $showsDetails) {
             if let report = model.failureReport {
-                LiveTVDiagnosticDetailsSheet(report: report)
+                PlaybackDiagnosticDetailsSheet(report: report)
             }
         }
     }
