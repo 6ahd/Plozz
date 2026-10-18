@@ -334,7 +334,7 @@ public final class LiveTVApprovalAwareSourcesStore: LiveTVPortableSourcesStoring
         try configuration.validate()
         let previous = try underlying.load()
         try approvals.invalidateChangedSources(previous: previous, updated: configuration)
-        try suppression.prepareChange(previous: previous, updated: configuration)
+        try suppression.prepareChange(previous: previous, updated: configuration, fromSync: true)
         try underlying.save(configuration)
         NotificationCenter.default.post(name: .plozzLiveTVPortableStateDidChange, object: approvals.profileID)
     }
@@ -347,8 +347,18 @@ public final class LiveTVApprovalAwareSourcesStore: LiveTVPortableSourcesStoring
         )
         try configuration.validate()
         let previous = try load()
+        let rawPrevious = try underlying.load()
         var configuration = configuration
         configuration.syncCheckpoint = previous.syncCheckpoint
+        configuration.serverSyncCheckpoint = rawPrevious.serverSyncCheckpoint
+        let oldServers = Dictionary(uniqueKeysWithValues: rawPrevious.servers.map { ($0.id, $0) })
+        let newServers = Dictionary(uniqueKeysWithValues: configuration.servers.map { ($0.id, $0) })
+        for id in Set(oldServers.keys).union(newServers.keys) where oldServers[id] != newServers[id] {
+            configuration.serverSyncCheckpoint?.observed[id] = nil
+        }
+        for source in configuration.playlists {
+            configuration.serverSyncCheckpoint?.observed[source.id] = nil
+        }
         try approvals.invalidateChangedSources(previous: previous, updated: configuration)
         try suppression.prepareChange(previous: previous, updated: configuration)
         try underlying.save(configuration)

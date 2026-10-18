@@ -90,6 +90,112 @@ final class IPTVCloudOverwriteHostedTests: XCTestCase {
         XCTAssertEqual(try fixture.suppression.suppressedAccountIDs(), [fixture.server.accountID])
     }
 
+    func testSplitCloudDisableAndReenableConvergeThroughApprovalStore() async throws {
+        let fixture = try makeFixture()
+        try fixture.sources.save(.init(servers: [fixture.server]))
+        let initial = await fixture.bridge.capture(fallback: [:])
+        var ledger = SyncLedger()
+        _ = ledger.reconcileLocal(desired: initial, now: 1)
+        let receipts = ledger.entries.compactMapValues(\.localCaptureDigest)
+        let enrollmentKey = LiveTVPortableRecordKey(
+            profileID: fixture.profiles.activeProfileID, kind: .serverEnrollment, entityID: fixture.server.accountID
+        ).recordName
+        await fixture.bridge.apply([
+            fixture.sourceKey: try LiveTVPortableRecord(source: .init(
+                kind: .server, name: fixture.server.name, isEnabled: false, accountID: fixture.server.accountID
+            )).encoded()
+        ], localCaptureDigests: receipts)
+        XCTAssertEqual(try fixture.sources.load().servers.first?.isEnabled, false)
+        let restarted = fixture.makeBridge()
+        await restarted.apply([
+            enrollmentKey: try LiveTVPortableRecord(serverEnrollmentSuppressed: true).encoded()
+        ], localCaptureDigests: receipts)
+        await restarted.apply([
+            fixture.sourceKey: try XCTUnwrap(initial[fixture.sourceKey])
+        ], localCaptureDigests: receipts)
+        await restarted.apply([
+            enrollmentKey: try XCTUnwrap(initial[enrollmentKey])
+        ], localCaptureDigests: receipts)
+
+        XCTAssertEqual(try fixture.sources.load().servers, [fixture.server])
+        XCTAssertTrue(try fixture.suppression.suppressedAccountIDs().isEmpty)
+    }
+
+    func testRemovingDisabledServerKeepsEnrollmentSuppressedUntilCaptureAcknowledgment() async throws {
+        let fixture = try makeFixture()
+        try fixture.sources.save(.init(servers: [fixture.server]))
+        let initial = await fixture.bridge.capture(fallback: [:])
+        var ledger = SyncLedger()
+        _ = ledger.reconcileLocal(desired: initial, now: 1)
+        let receipts = ledger.entries.compactMapValues(\.localCaptureDigest)
+        let enrollmentKey = LiveTVPortableRecordKey(
+            profileID: fixture.profiles.activeProfileID, kind: .serverEnrollment, entityID: fixture.server.accountID
+        ).recordName
+        let disabled: [String: Data] = [
+            fixture.sourceKey: try LiveTVPortableRecord(source: .init(
+                kind: .server, name: fixture.server.name, isEnabled: false, accountID: fixture.server.accountID
+            )).encoded(),
+            enrollmentKey: try LiveTVPortableRecord(serverEnrollmentSuppressed: true).encoded()
+        ]
+        await fixture.bridge.apply(disabled.mapValues(Optional.some), localCaptureDigests: receipts)
+        try fixture.sources.save(.empty)
+        let removal = await fixture.bridge.capture(fallback: disabled)
+        let restarted = fixture.makeBridge()
+        let reenable: SyncLocalChanges = [enrollmentKey: try XCTUnwrap(initial[enrollmentKey])]
+        await restarted.apply(reenable, localCaptureDigests: receipts)
+        XCTAssertTrue(try fixture.sources.load().servers.isEmpty)
+        XCTAssertEqual(try fixture.suppression.suppressedAccountIDs(), [fixture.server.accountID])
+
+        _ = ledger.reconcileLocal(desired: removal, now: 2)
+        await restarted.apply(reenable, localCaptureDigests: ledger.entries.compactMapValues(\.localCaptureDigest))
+        XCTAssertTrue(try fixture.suppression.suppressedAccountIDs().isEmpty)
+    }
+
+    func testSourceSaveSurvivesJournalFailureAndBridgeRestart() async throws {
+        let fixture = try makeFixture()
+        try fixture.sources.save(.init(servers: [fixture.server]))
+        let initial = await fixture.bridge.capture(fallback: [:])
+        var ledger = SyncLedger()
+        _ = ledger.reconcileLocal(desired: initial, now: 1)
+        let receipts = ledger.entries.compactMapValues(\.localCaptureDigest)
+        let sourceKey = fixture.sourceKey
+        let adapter = LiveTVPortableSyncAdapter(
+            directory: fixture.directory, profileID: fixture.profiles.activeProfileID,
+            defaults: fixture.defaults, namespace: fixture.profiles.activeNamespace,
+            requiresPreparedJournal: true, includesPlaylistSources: false,
+            writeFile: { data, url in
+                if url.pathExtension == "record",
+                   let record = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   record["name"] as? String == sourceKey {
+                    throw CocoaError(.fileWriteNoPermission)
+                }
+                try data.write(to: url, options: .atomic)
+            }
+        )
+        let disable: SyncLocalChanges = [
+            sourceKey: try LiveTVPortableRecord(source: .init(
+                kind: .server, name: fixture.server.name, isEnabled: false,
+                accountID: fixture.server.accountID
+            )).encoded()
+        ]
+        try await adapter.prepareForOperation(records: disable)
+        do {
+            _ = try await adapter.committingJournal {
+                try adapter.apply(disable, sourceStore: fixture.sources, localCaptureDigests: receipts)
+            }
+            XCTFail("The source journal write must fail")
+        } catch {
+            XCTAssertEqual((error as NSError).code, CocoaError.fileWriteNoPermission.rawValue)
+        }
+        XCTAssertEqual(try fixture.sources.loadSyncConfiguration().servers.first?.isEnabled, false)
+        XCTAssertNotNil(try fixture.sources.loadSyncConfiguration().serverSyncCheckpoint)
+        let restarted = fixture.makeBridge()
+        _ = await restarted.capture(fallback: initial)
+        await restarted.apply(initial.mapValues(Optional.some), localCaptureDigests: receipts)
+        XCTAssertEqual(try fixture.sources.load().servers, [fixture.server])
+        XCTAssertTrue(try fixture.suppression.suppressedAccountIDs().isEmpty)
+    }
+
     private func makeFixture() throws -> IPTVCloudOverwriteFixture {
         let suite = "IPTVCloudOverwriteHostedTests." + UUID().uuidString
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -111,7 +217,7 @@ private final class IPTVCloudOverwriteFixture {
     let defaults: UserDefaults
     let directory: URL
     let profiles: ProfilesModel
-    let sources: LiveTVSourcesStore
+    let sources: LiveTVApprovalAwareSourcesStore
     let server = LiveTVServerSource(id: "test-server", name: "Test IPTV", accountID: "test-iptv-account")
     lazy var bridge = makeBridge()
     var sourceKey: String {
@@ -125,7 +231,12 @@ private final class IPTVCloudOverwriteFixture {
         self.defaults = defaults
         self.directory = directory
         profiles = ProfilesModel(store: ProfileStore(defaults: defaults))
-        sources = LiveTVSourcesStore(secureStore: keychain)
+        sources = LiveTVApprovalAwareSourcesStore(
+            underlying: LiveTVSourcesStore(secureStore: keychain),
+            approvals: .init(
+                defaults: defaults, profileID: profiles.activeProfileID, namespace: profiles.activeNamespace
+            )
+        )
         SyncSetupFeatureFlag(defaults: defaults).isEnabled = true
     }
 

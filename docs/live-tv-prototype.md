@@ -1419,6 +1419,27 @@ receipt. Both app shells pass the incoming delta and capture receipts together.
 Confirmed hard deletions retain the removed ledger entry's receipt for that
 apply, so unchanged sources still follow legitimate deletions on other devices.
 This does not delete or replace the authenticated server account.
+The local observation also records suppression caused by accepted remote source
+changes. Split source/enrollment delivery can then re-enable a source without
+mistaking the earlier remote disable for a new local decision. Only the applied
+accounts advance that observation; unrelated local changes stay protected.
+Suppression also keeps its remote origin in the same atomic local document as
+the decision itself, so a failed journal/observation commit cannot lose that
+provenance. Explicit local decisions clear it; saving an already-suppressed
+unrelated source remotely cannot relabel a local restriction.
+Source tombstones retain their account association locally. Enrollment updates
+must also respect that account's uncaptured or unacknowledged source removal,
+including removal of a source that was already disabled.
+Exact remote server records and resulting local-state digests (including
+deletions) are saved atomically with the source configuration, scoped to the
+profile and iCloud account epoch. A
+failed source-record journal write can then be retried or captured without
+mistaking the already-applied remote state for new local intent. Local server
+edits invalidate the affected receipts, including edit-away-and-back sequences.
+Accepted descriptors awaiting native enrollment replace older deletion receipts
+even without a configuration change. Enrollment also protects new, uncaptured
+source IDs for the same account. The encrypted playlist channel retains its
+separate checkpoint.
 `IPTVCloudOverwriteHostedTests` exercises these races on iPhone/iPad through
 the separate presentation test host, isolated Keychain/defaults storage, and
 controlled incoming payloads. It does not mutate the normal app's sources or
