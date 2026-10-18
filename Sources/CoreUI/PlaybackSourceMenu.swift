@@ -291,6 +291,7 @@ struct PlaybackSourceMenuPanel: View {
     #endif
     @FocusState private var focusedRowID: String?
     #if !os(tvOS)
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var navDirection: Edge = .trailing
     @State private var contentHeight: CGFloat = 220
     /// The page the current `contentHeight` was measured for. Height changes
@@ -484,8 +485,11 @@ struct PlaybackSourceMenuPanel: View {
             drillInRow(
                 id: "root.versions",
                 title: "Version",
-                detail: selectedVersion.map { versionTitleText($0.displayLabel) }
-                    ?? Text("Choose a version", comment: "Placeholder shown in Settings when no playback version is selected yet."),
+                detail: PlaybackSourceMenuVersionSummary(
+                    version: selectedVersion,
+                    fallback: selectedVersion.map { versionTitleText($0.displayLabel) }
+                        ?? Text("Choose a version", comment: "Placeholder shown in Settings when no playback version is selected yet.")
+                ),
                 destination: .versions
             ) {
                 Image(systemName: "film.stack")
@@ -617,32 +621,53 @@ struct PlaybackSourceMenuPanel: View {
         return Text("Version", comment: "Generic label for a playback version/source with no distinguishing facts (resolution, edition, etc.) known.")
     }
 
-    private func drillInRow<Icon: View>(
+    private func drillInRow<Detail: View, Icon: View>(
         id: String,
         title: LocalizedStringKey,
-        detail: Text,
+        detail: Detail,
         destination: PlaybackSourceMenuButtonPage,
         @ViewBuilder icon: () -> Icon
     ) -> some View {
         let iconView = icon()
+        let category = Text(title)
+            .font(rowCategoryFont)
+            .textCase(.uppercase)
+            .tracking(0.8)
+            .settingsRowSecondary()
+        let chevron = Image(systemName: "chevron.forward")
+            .settingsRowSecondary()
+        #if os(tvOS)
+        let stacksSummary = false
+        #else
+        let stacksSummary = destination == .versions && dynamicTypeSize.isAccessibilitySize
+        #endif
         return menuRowButton(id: id, fixedHeight: rootRowHeight) {
             navigate(to: destination)
         } label: {
-            HStack(spacing: 14) {
-                iconView
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                       .font(rowCategoryFont)
-                       .textCase(.uppercase)
-                       .tracking(0.8)
-                       .settingsRowSecondary()
+            if stacksSummary {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        category
+                        Spacer(minLength: 12)
+                        chevron
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    }
                     detail
-                       .font(rowTitleFont)
-                       .lineLimit(2)
+                        .font(rowTitleFont)
                 }
-                Spacer(minLength: 12)
-                Image(systemName: "chevron.forward")
-                    .settingsRowSecondary()
+                .multilineTextAlignment(.leading)
+            } else {
+                HStack(spacing: 14) {
+                    iconView
+                    VStack(alignment: .leading, spacing: 4) {
+                        category
+                        detail
+                            .font(rowTitleFont)
+                            .lineLimit(2)
+                    }
+                    Spacer(minLength: 12)
+                    chevron
+                }
             }
         }
     }
@@ -807,6 +832,67 @@ struct PlaybackSourceMenuPanel: View {
     }
 
 }
+
+private struct PlaybackSourceMenuVersionSummary: View {
+    let version: MediaVersion?
+    let fallback: Text
+
+    var body: some View {
+        #if os(tvOS)
+        fallback
+        #else
+        let pictureFacts = [
+            ("edition", version?.editionLabel),
+            ("resolution", version?.resolutionLabel),
+            ("range", version?.hdrLabel)
+        ].compactMap { id, text in text.map { (id: id, text: $0) } }
+        let fileFacts = [
+            ("source", version?.sourceQualityLabel),
+            ("size", version?.sizeLabel)
+        ].compactMap { id, text in text.map { (id: id, text: $0) } }
+        VStack(alignment: .leading, spacing: 4) {
+            if !pictureFacts.isEmpty {
+                PlaybackSourceMenuSummaryFacts(facts: pictureFacts)
+                if !fileFacts.isEmpty {
+                    PlaybackSourceMenuSummaryFacts(facts: fileFacts)
+                        .font(.subheadline)
+                        .settingsRowSecondary()
+                }
+            } else if !fileFacts.isEmpty {
+                PlaybackSourceMenuSummaryFacts(facts: fileFacts)
+            } else {
+                fallback
+            }
+        }
+        .lineLimit(nil)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(fallback)
+        #endif
+    }
+}
+
+#if !os(tvOS)
+private struct PlaybackSourceMenuSummaryFacts: View {
+    let facts: [(id: String, text: String)]
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(verbatim: facts.map(\.text).joined(separator: " · "))
+                .fixedSize()
+            // Separators belong only to a complete inline group, never a line edge.
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(facts, id: \.id) { fact in
+                    Text(verbatim: fact.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+}
+#endif
 
 private struct PlaybackSourceMenuRowHeight: ViewModifier {
     let fixedHeight: CGFloat?

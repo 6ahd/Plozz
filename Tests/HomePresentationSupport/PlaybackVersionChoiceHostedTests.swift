@@ -415,7 +415,7 @@ private struct VersionChoiceHostedFixture: View {
             .task {
                 do {
                     probe.selected = try await model.prepare(
-                        item, provider: VersionChoiceHostedProvider(),
+                        item, provider: VersionChoiceHostedProvider(resolvedItem: item),
                         settings: settings, preferences: preferences
                     )
                 } catch is CancellationError {
@@ -432,6 +432,7 @@ private struct VersionChoiceHostedFixture: View {
 }
 
 private struct VersionChoiceHostedProvider: MediaProvider {
+    let resolvedItem: MediaItem
     var kind: ProviderKind { .jellyfin }
     var session: UserSession {
         UserSession(
@@ -442,7 +443,10 @@ private struct VersionChoiceHostedProvider: MediaProvider {
     func libraries() async throws -> [MediaLibrary] { [] }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
-    func item(id: String) async throws -> MediaItem { throw AppError.notFound }
+    func item(id: String) async throws -> MediaItem {
+        guard id == resolvedItem.id else { throw AppError.notFound }
+        return resolvedItem
+    }
     func children(of itemID: String) async throws -> [MediaItem] { [] }
     func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
         MediaPage(items: [], startIndex: 0, totalCount: 0)

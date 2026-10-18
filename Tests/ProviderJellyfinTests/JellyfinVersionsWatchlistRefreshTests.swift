@@ -161,6 +161,85 @@ final class JellyfinVersionsWatchlistRefreshTests: XCTestCase {
         }
     }
 
+    func testPlaybackInventoryFailureNeverFallsBackToPlaceholderMetadata() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            for json in [
+                #"{"MediaSources":[]}"#, #"{"MediaSources":[{"Id":"same"},{"Id":"same"}]}"#,
+                #"{"MediaSources":[{}]}"#, #"{"MediaSources":[{"Id":"  "}]}"#,
+                #"{"MediaSources":[],"ErrorCode":"NoCompatibleStream"}"#
+            ] {
+                let stub = StubHTTPClient()
+                stub.stub(pathSuffix: "/Users/u1/Items/i1", json:
+                    #"{"Id":"i1","Name":"Title","Type":"Movie","MediaSources":[{"Id":"placeholder","IsRemote":true}]}"#)
+                stub.stub(pathSuffix: "/Items/i1/PlaybackInfo", json: json)
+                var session = makeSession()
+                session.server.provider = kind
+                let provider: any MediaProvider = JellyfinProvider(session: session, http: stub)
+                do {
+                    _ = try await provider.playbackItem(id: "i1")
+                    XCTFail("A failed or malformed inventory must block playback.")
+                } catch let error as AppError {
+                    XCTAssertEqual(error, .invalidResponse)
+                } catch let error as StreamingQualityError {
+                    XCTAssertEqual(error, .noCompatibleStream)
+                }
+                XCTAssertEqual(stub.sentMethods, [.get, .get])
+            }
+        }
+    }
+
+    func testPlaybackResolvesInventoryRegardlessOfCachedCountOrRemoteFlag() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            for sources in [
+                "null", "[]", #"[{"Id":"placeholder","IsRemote":true}]"#,
+                #"[{"Id":"placeholder"}]"#, #"[{"Id":"placeholder","IsRemote":false}]"#,
+                #"[{"Id":"cached-hd"},{"Id":"cached-sd"}]"#
+            ] {
+                let stub = StubHTTPClient()
+                stub.stub(pathSuffix: "/Users/u1/Items/i1", json:
+                    #"{"Id":"i1","Name":"Title","Type":"Episode","MediaSources":\#(sources)}"#)
+                stub.stub(pathSuffix: "/Items/i1/PlaybackInfo", json:
+                    #"{"MediaSources":[{"Id":"4k"},{"Id":"hd"}]}"#)
+                var session = makeSession()
+                session.server.provider = kind
+                let provider: any MediaProvider = JellyfinProvider(session: session, http: stub)
+                let item = try await provider.playbackItem(id: "i1")
+                XCTAssertEqual(item.versions.map(\.playbackMediaSourceID), ["4k", "hd"])
+                XCTAssertEqual(stub.sentMethods, [.get, .get])
+                XCTAssertTrue(stub.sentBodies.isEmpty)
+                XCTAssertEqual(stub.queryItems(forPathSuffix: "/PlaybackInfo"), [.init(name: "UserId", value: "u1")])
+            }
+        }
+    }
+
+    func testPlaybackAcceptsConfirmedSingleFileWithoutKeepingCachedVersions() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            let stub = StubHTTPClient()
+            stub.stub(pathSuffix: "/Users/u1/Items/i1", json:
+                #"{"Id":"i1","Name":"Title","Type":"Movie","MediaSources":[{"Id":"old-one"},{"Id":"old-two"}]}"#)
+            stub.stub(pathSuffix: "/Items/i1/PlaybackInfo", json:
+                #"{"MediaSources":[{"Id":"only-file","IsRemote":false}]}"#)
+            var session = makeSession()
+            session.server.provider = kind
+            let provider: any MediaProvider = JellyfinProvider(session: session, http: stub)
+            let item = try await provider.playbackItem(id: "i1")
+            XCTAssertTrue(item.versions.isEmpty, "A confirmed single file needs no version picker.")
+            XCTAssertEqual(stub.sentMethods, [.get, .get])
+        }
+    }
+
+    func testUnsupportedPlaybackInventoryAndCancellationBothPropagate() async throws {
+        for cancelled in [false, true] {
+            let provider = JellyfinProvider(session: makeSession(), http: InventoryFailureHTTP(cancelled: cancelled))
+            do {
+                _ = try await provider.playbackItem(id: "i1")
+                XCTFail("Read-only discovery failure must not start playback.")
+            } catch let error as AppError {
+                XCTAssertEqual(error, cancelled ? .cancelled : .notFound)
+            }
+        }
+    }
+
     func testOnlyRemoteSingleSourceVideoDetailsRequestInventory() async throws {
         for (type, sources) in [
             ("Movie", #"[]"#),

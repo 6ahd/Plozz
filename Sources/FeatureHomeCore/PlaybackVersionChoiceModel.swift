@@ -34,6 +34,7 @@ public final class PlaybackVersionChoiceModel {
         settings: PlaybackSettingsModel,
         preferences: any VersionPreferenceStoring,
         offlineResolver: (any OfflinePlaybackResolving)? = nil,
+        sourceResolver: (@Sendable (MediaItem) async -> CrossServerSourceResolution)? = nil,
         capabilities: MediaCapabilities = .detected(),
         isCurrent: @escaping () -> Bool = { true }
     ) async throws -> MediaItem {
@@ -50,18 +51,56 @@ public final class PlaybackVersionChoiceModel {
         try Task.checkCancellation()
         guard isCurrent() else { throw CancellationError() }
         var item = opened
-        if opened.versions.isEmpty,
-           PlayerVersionSelection.versions(for: opened).count <= 1 {
-            let local = await offlineResolver?.localPlaybackURL(for: opened, versionID: opened.selectedVersionID)
-            if local == nil {
-                let resolved = try await provider.item(id: opened.id)
-                guard resolved.id == opened.id, resolved.kind == opened.kind,
-                      resolved.sourceAccountID == nil || resolved.sourceAccountID == opened.sourceAccountID else {
-                    PlozzLog.playback.error("Version details did not match the requested title.")
+        let local = await offlineResolver?.localPlaybackURL(for: opened, versionID: opened.selectedVersionID)
+        try Task.checkCancellation()
+        guard owner == id, isCurrent() else { throw CancellationError() }
+        if local == nil {
+            let resolved = try await provider.playbackItem(id: opened.id)
+            try Task.checkCancellation()
+            guard owner == id, isCurrent() else { throw CancellationError() }
+            guard resolved.id == opened.id, resolved.kind == opened.kind,
+                  resolved.sourceAccountID == nil || resolved.sourceAccountID == opened.sourceAccountID else {
+                PlozzLog.playback.error("Version details did not match the requested title.")
+                throw AppError.invalidResponse
+            }
+            item = PlayerVersionSelection.item(opened: opened, resolved: resolved, authoritativeVersions: true)
+            if item.seriesID == nil { item.seriesID = resolved.seriesID }
+            if let sourceResolver {
+                var discoveryItem = resolved
+                discoveryItem.sourceAccountID = item.sourceAccountID
+                discoveryItem.sources = item.sources
+                discoveryItem.rejectedSourceIDs.formUnion(item.rejectedSourceIDs)
+                let discovery = await sourceResolver(discoveryItem)
+                try Task.checkCancellation()
+                guard owner == id, isCurrent() else { throw CancellationError() }
+                item.rejectedSourceIDs.formUnion(discovery.rejectedSourceIDs)
+                let rejected = item.rejectedSourceIDs
+                item.sources.removeAll { rejected.contains($0.id) }
+                var known = Set(item.sources.map(\.id))
+                for source in discovery.sources
+                where !item.rejectedSourceIDs.contains(source.id) && known.insert(source.id).inserted {
+                    item.sources.append(source)
+                }
+            }
+            for index in item.sources.indices
+            where item.sources[index].accountID == item.sourceAccountID
+                && item.sources[index].itemID != item.id
+                && (item.sources[index].kind == nil || item.sources[index].kind == item.kind) {
+                let source = item.sources[index]
+                let alternate = try await provider.playbackItem(id: source.itemID)
+                try Task.checkCancellation()
+                guard owner == id, isCurrent() else { throw CancellationError() }
+                guard alternate.id == source.itemID, alternate.kind == item.kind,
+                      alternate.sourceAccountID == nil || alternate.sourceAccountID == source.accountID else {
+                    PlozzLog.playback.error("Version details did not match the alternate source.")
                     throw AppError.invalidResponse
                 }
-                item = PlayerVersionSelection.item(opened: opened, resolved: resolved)
-                if item.seriesID == nil { item.seriesID = resolved.seriesID }
+                item.sources[index].versions = alternate.versions.isEmpty
+                    ? [MediaVersion.synthesized(from: alternate)] : alternate.versions
+                item.sources[index].edition = alternate.edition ?? source.edition
+            }
+            if !item.explicitSourceSelection {
+                item.selectedVersionID = nil
             }
         }
         try Task.checkCancellation()

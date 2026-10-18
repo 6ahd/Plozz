@@ -2,6 +2,7 @@
 import CoreModels
 import CoreUI
 import CoreNetworking
+import AppRuntime
 import FeatureHomeCore
 import FeaturePlayback
 import SwiftUI
@@ -337,10 +338,15 @@ struct PlozziOSPlayerView: View {
         _ item: MediaItem, session: PlozziOSAppModel.PlaybackSession
     ) async throws -> MediaItem {
         let model = appModel
+        let sourceSnapshot = model.identityIndex.identitySnapshotStore.current
         let selected = try await versionChoice.prepare(
             item, provider: provider, settings: model.settings.playback,
             preferences: model.versionPreferences,
             offlineResolver: model.downloads.offlineResolver,
+            sourceResolver: crossServerSourceResolver(
+                in: model.accountsProviders.resolvedActiveAccounts,
+                identitySources: { sourceSnapshot.sourceRefs(for: $0) }
+            ),
             isCurrent: { model.isCurrentPlaybackSession(session) }
         )
         try Task.checkCancellation()

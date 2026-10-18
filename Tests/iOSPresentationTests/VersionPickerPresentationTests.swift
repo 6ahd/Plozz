@@ -1,7 +1,7 @@
 #if os(iOS)
 import CoreModels
 import CoreImage
-import CoreUI
+@testable import CoreUI
 import SwiftUI
 import UIKit
 import Vision
@@ -61,6 +61,134 @@ final class VersionPickerPresentationTests: XCTestCase {
             width: 390, typeSize: .large, name: "version-french-preference",
             preferredLanguage: "fra", visibleLanguage: "French", hiddenLanguage: "English"
         )
+    }
+
+    func testCompactVersionDisclosureKeepsFactsLeadingAndUntruncated() async throws {
+        let version = MediaVersion(
+            id: "imax", name: "Movie.IMAX.2160p.WEB-DL", edition: "IMAX",
+            height: 2160, sizeBytes: 87_800_000_000, videoRange: "DOVI"
+        )
+        for (width, typeSize) in [
+            (320.0, DynamicTypeSize.large), (390.0, .large), (768.0, .large),
+            (320.0, .accessibility3), (390.0, .accessibility3)
+        ] {
+            try await assertCompactSummary(
+                version, expectedFacts: ["IMAX", "4K", "Dolby Vision", "WEB-DL", "87.8 GB"],
+                width: width, typeSize: typeSize
+            )
+        }
+        try await assertCompactSummary(
+            version, expectedFacts: ["IMAX", "4K", "Dolby Vision", "WEB-DL", "87.8 GB"],
+            width: 390, typeSize: .large, direction: .rightToLeft
+        )
+    }
+
+    func testCompactVersionDisclosurePreservesLongProviderNameFallback() async throws {
+        try await assertCompactSummary(
+            MediaVersion(id: "archive", name: "Festival archive presentation with restored opening credits"),
+            expectedFacts: ["Festival", "archive", "presentation", "restored", "opening", "credits"],
+            width: 320, typeSize: .accessibility2
+        )
+    }
+
+    private func assertCompactSummary(
+        _ version: MediaVersion, expectedFacts: [String], width: CGFloat, typeSize: DynamicTypeSize,
+        direction: LayoutDirection = .leftToRight
+    ) async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: width, height: 1024)
+        window.overrideUserInterfaceStyle = .dark
+        let panel = PlaybackSourceMenuPanel(
+            page: .constant(.root), maxHeight: 880,
+            sources: [], selectedSourceID: nil,
+            versions: [version, .init(id: "other", height: 1080)], selectedVersionID: version.id,
+            actions: [], onSelectSource: { _ in }, onSelectVersion: { _ in }, onPerformAction: { _ in }
+        )
+        window.rootViewController = UIHostingController(rootView: panel
+            .frame(width: min(390, width - 32))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.black)
+            .multilineTextAlignment(.center)
+            .environment(\.locale, Locale(identifier: "en_US"))
+            .environment(\.themePalette, .dark)
+            .environment(\.colorScheme, .dark)
+            .environment(\.dynamicTypeSize, typeSize)
+            .environment(\.layoutDirection, direction)
+        )
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        window.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(300))
+        let scroll = try XCTUnwrap(scrollView(in: window))
+        XCTAssertLessThanOrEqual(scroll.contentSize.width, scroll.bounds.width + 1)
+        XCTAssertLessThanOrEqual(scroll.contentSize.height, scroll.bounds.height + 1,
+                                 "These compact summaries should fit without hidden rows.")
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "version-summary-\(version.id)-\(Int(width))-\(typeSize)-\(direction)"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        request.usesLanguageCorrection = false
+        request.minimumTextHeight = 0.001
+        request.customWords = ["IMAX", "4K", "Dolby Vision", "WEB-DL"]
+        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        let lines = (request.results ?? []).compactMap { result -> (String, CGRect)? in
+            result.topCandidates(1).first.map { ($0.string, result.boundingBox) }
+        }
+        let visible = lines.map(\.0).joined(separator: "\n")
+        // Native text can hyphenate a word at a line boundary. Do not remove
+        // in-line hyphens from source facts such as WEB-DL.
+        let unhyphenated = visible.replacingOccurrences(
+            of: "(?<=\\p{L})-\\s*\\n\\s*(?=\\p{L})", with: "", options: .regularExpression
+        )
+        let compactVisible = unhyphenated.filter { !$0.isWhitespace }
+        let compactOriginal = visible.filter { !$0.isWhitespace }
+        for fact in expectedFacts {
+            let expected = fact.filter { !$0.isWhitespace }
+            XCTAssertTrue(compactVisible.localizedCaseInsensitiveContains(expected)
+                          || compactOriginal.localizedCaseInsensitiveContains(expected),
+                          "Missing compact fact \(fact) at \(width)/\(typeSize): \(visible)")
+        }
+        let heading = try XCTUnwrap(try (request.results ?? []).compactMap { result -> CGRect? in
+            guard let candidate = result.topCandidates(1).first,
+                  let range = candidate.string.range(of: "VERSION", options: .caseInsensitive) else { return nil }
+            return try candidate.boundingBox(for: range)?.boundingBox
+        }.first, "The category must remain intact, including beside its accessibility-layout chevron: \(visible)")
+        let factWords = expectedFacts.flatMap { $0.split(separator: " ").map(String.init) }
+        let factLines = lines.filter { line in
+            factWords.contains { line.0.localizedCaseInsensitiveContains($0) }
+        }
+        for (text, bounds) in factLines {
+            let expected = direction == .leftToRight ? heading.minX : heading.maxX
+            let actual = direction == .leftToRight ? bounds.minX : bounds.maxX
+            let inwardOffset = (actual - expected) * width * (direction == .leftToRight ? 1 : -1)
+            // Large glyphs can expand Vision's leading box into the empty margin.
+            // Keep the inward limit strict so centered shorter lines still fail.
+            let outwardTolerance: CGFloat = typeSize.isAccessibilitySize ? 10 : 5
+            XCTAssertGreaterThanOrEqual(inwardOffset, -outwardTolerance,
+                                        "Unexpected outward OCR bound for \(text) at \(width)/\(typeSize)/\(direction)")
+            XCTAssertLessThanOrEqual(inwardOffset, 5,
+                                     "Each fact line should follow the heading's leading edge: \(text) at \(width)/\(typeSize)/\(direction)")
+            XCTAssertFalse(text.hasPrefix("·") || text.hasSuffix("·") || text.contains("…"),
+                           "Compact facts must not leave orphan separators or truncate: \(text)")
+        }
     }
 
     private func assertFacts<Content: View>(

@@ -34,13 +34,16 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         )
     }
 
-    private func start(_ item: MediaItem, isCurrent: @escaping () -> Bool = { true }) -> Task<MediaItem, Error> {
+    private func start(
+        _ item: MediaItem, provider: FakeMediaProvider? = nil,
+        isCurrent: @escaping () -> Bool = { true }
+    ) -> Task<MediaItem, Error> {
         let model = self.model!
         let settings = self.settings!
         let preferences = self.preferences!
         return Task {
             try await model.prepare(
-                item, provider: FakeMediaProvider(allItems: [item]),
+                item, provider: provider ?? FakeMediaProvider(allItems: [item]),
                 settings: settings, preferences: preferences, capabilities: .default, isCurrent: isCurrent
             )
         }
@@ -62,6 +65,113 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
+    }
+
+    func testColdSingleVersionSeedWaitsForInventoryBeforeFirstAndEveryTimePicker() async throws {
+        for mode: PlaybackVersionSelectionMode? in [nil, .askEveryTime, .automatic] {
+            settings.settings.versionSelectionMode = mode
+            let full = item()
+            var seed = full
+            seed.versions = [full.versions[0]]
+            seed.selectedVersionID = full.versions[0].id
+            let provider = FakeMediaProvider(allItems: [full])
+            let gate = VersionInventoryGate()
+            provider.itemGate = [full.id: { await gate.wait() }]
+            let task = start(seed, provider: provider)
+            defer { task.cancel() }
+            let deadline = ContinuousClock.now + .seconds(2)
+            while provider.itemCallCount(for: full.id) == 0, ContinuousClock.now < deadline {
+                await Task.yield()
+            }
+            XCTAssertEqual(provider.itemCallCount(for: full.id), 1)
+            XCTAssertTrue(model.isPreparing, "A seed's single version is not a complete inventory.")
+            XCTAssertNil(model.prompt, "Do not show an incomplete picker either.")
+            await gate.release()
+            if mode == .automatic {
+                let selected = try await task.value
+                XCTAssertEqual(selected.selectedVersionID, full.versions[1].id)
+            } else {
+                let prompt = try await pending()
+                XCTAssertEqual(prompt.versions.count, 2)
+                XCTAssertEqual(prompt.needsIntroduction, mode == nil)
+                model.cancel()
+                await assertCancelled(task)
+            }
+        }
+    }
+
+    func testCachedVersionsCannotBypassInventoryFailureOrRevokedProfile() async throws {
+        settings.settings.versionSelectionMode = .askEveryTime
+        do {
+            _ = try await start(item(), provider: FakeMediaProvider(allItems: [])).value
+            XCTFail("Cached metadata must not turn a failed inventory into playback.")
+        } catch let error as AppError {
+            XCTAssertEqual(error, .notFound)
+        }
+        var current = true
+        let full = item()
+        let gate = VersionInventoryGate()
+        let provider = FakeMediaProvider(allItems: [full])
+        provider.itemGate = [full.id: { await gate.wait() }]
+        let task = start(full, provider: provider, isCurrent: { current })
+        let deadline = ContinuousClock.now + .seconds(2)
+        while provider.itemCallCount(for: full.id) == 0, ContinuousClock.now < deadline {
+            await Task.yield()
+        }
+        current = false
+        await gate.release()
+        await assertCancelled(task)
+        XCTAssertNil(model.prompt)
+    }
+
+    func testFreshSingleVersionInventoryReplacesStaleMultipleVersions() async throws {
+        var cached = item()
+        cached.selectedVersionID = cached.versions[1].id
+        var fresh = cached
+        fresh.versions = []
+        let selected = try await start(cached, provider: FakeMediaProvider(allItems: [fresh])).value
+        XCTAssertTrue(selected.versions.isEmpty)
+        XCTAssertNil(selected.selectedVersionID)
+        XCTAssertNil(model.prompt)
+    }
+
+    func testFirstPlayAwaitsSourceDiscoveryAndLoadsDiscoveredEditionFiles() async throws {
+        settings.settings.versionSelectionMode = .askEveryTime
+        var primary = item()
+        primary.versions.removeLast()
+        let alternate = item("edition")
+        let provider = FakeMediaProvider(allItems: [primary, alternate])
+        let gate = VersionInventoryGate()
+        let references = [primary, alternate].map {
+            MediaSourceRef(accountID: "server", itemID: $0.id, kind: $0.kind)
+        } + [MediaSourceRef(accountID: "foreign", itemID: "ignored", kind: .movie)]
+        let choice = model!
+        let settings = settings!
+        let preferences = preferences!
+        let task = Task {
+            try await choice.prepare(
+                primary, provider: provider, settings: settings, preferences: preferences,
+                sourceResolver: { _ in
+                    await gate.wait()
+                    return CrossServerSourceResolution(sources: references)
+                }
+            )
+        }
+        defer { task.cancel() }
+        let deadline = ContinuousClock.now + .seconds(2)
+        while provider.itemCallCount(for: primary.id) == 0, ContinuousClock.now < deadline {
+            await Task.yield()
+        }
+        XCTAssertTrue(model.isPreparing)
+        XCTAssertNil(model.prompt)
+        await gate.release()
+        let prompt = try await pending()
+        XCTAssertEqual(prompt.versions.count, 3)
+        XCTAssertEqual(provider.itemCallCount(for: alternate.id), 1)
+        XCTAssertEqual(provider.itemCallCount(for: "ignored"), 0)
+        XCTAssertTrue(prompt.versions.allSatisfy { $0.sourceAccountID == "server" })
+        model.cancel()
+        await assertCancelled(task)
     }
 
     func testFirstUseAskOpensPickerAndAutomaticStartsWithoutPicking() async throws {
@@ -341,7 +451,8 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         combined.sources = [first, extended, foreign].map {
             MediaSourceRef(accountID: $0.sourceAccountID!, itemID: $0.id, kind: $0.kind, versions: $0.versions)
         }
-        let task = start(combined)
+        let provider = FakeMediaProvider(allItems: [first, extended])
+        let task = start(combined, provider: provider)
         defer { task.cancel() }
         let prompt = try await pending()
         XCTAssertTrue(prompt.versions.allSatisfy { $0.sourceAccountID == "server" })
@@ -352,5 +463,22 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         XCTAssertEqual(selected.sourceAccountID, "server")
         XCTAssertEqual(selected.selectedVersionID, version.playbackMediaSourceID)
         XCTAssertNotEqual(selected.selectedVersionID, version.id)
+        XCTAssertEqual(provider.itemCallCount(for: "extended"), 1)
+    }
+}
+
+private actor VersionInventoryGate {
+    private var released = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        guard !released else { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        released = true
+        for waiter in waiters { waiter.resume() }
+        waiters.removeAll()
     }
 }

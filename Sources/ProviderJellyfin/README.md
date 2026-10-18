@@ -134,12 +134,19 @@ Description languages never create selectable audio tracks, change playback
 preferences, override codecs, or leak into other versions.
 
 Remote movie/episode detail responses sometimes expose one generic source while
-`GET /Items/{id}/PlaybackInfo?UserId=...` contains the actual inventory. Only that
-explicitly remote single-source case requests the read-only inventory. Each
+`GET /Items/{id}/PlaybackInfo?UserId=...` contains the actual inventory. During
+browsing, only that explicitly remote single-source case requests the inventory. Each
 version retains its original source ID and its own technical/audio-language
 facts; generic item streams must not overwrite the real default source.
-Missing or duplicate IDs and unsupported/failed inventory requests are logged,
-leaving ordinary detail/Play available. Cancellation still propagates.
+The playback gate uses `playbackItem(id:)`, which always requests this inventory
+for movies and episodes and requires it to succeed. Add-on servers can resolve
+their streams lazily at this endpoint; item-detail source counts and `IsRemote`
+flags do not establish completeness, even after an earlier playback.
+Browsing can retain lightweight metadata after a failed inventory request, but
+playback cannot mistake that fallback for a confirmed single-version title.
+Both paths use GETs without selecting or starting a source. Missing or duplicate
+IDs and unsupported/failed inventory requests block playback through its error
+presentation while leaving browsing available. Cancellation still propagates.
 
 Inventory GET does not send a device profile, open a stream, or report playback.
 Its generated `PlaySessionId` is not an owned encoding session and needs no stop

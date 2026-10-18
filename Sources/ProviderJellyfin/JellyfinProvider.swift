@@ -629,11 +629,22 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     public func item(id: String) async throws -> MediaItem {
+        try await item(id: id, requiresSourceInventory: false)
+    }
+
+    public func playbackItem(id: String) async throws -> MediaItem {
+        try await item(id: id, requiresSourceInventory: true)
+    }
+
+    private func item(id: String, requiresSourceInventory: Bool) async throws -> MediaItem {
         let dto = try await client.item(userID: session.userID, id: id)
         await probeDescriptors.remember(itemID: id, sources: dto.MediaSources)
         var item = map(item: dto)
+        let remotePlaceholder = dto.MediaSources?.count == 1 && dto.MediaSources?.first?.IsRemote == true
+        // Add-on servers may resolve streams only through PlaybackInfo, even
+        // when item detail already contains sources or omits IsRemote.
         if (item.kind == .movie || item.kind == .episode),
-           dto.MediaSources?.count == 1, dto.MediaSources?.first?.IsRemote == true {
+           requiresSourceInventory || remotePlaceholder {
             do {
                 let inventory = try await client.playbackSourceInventory(userID: session.userID, itemID: id)
                 try Task.checkCancellation()
@@ -648,7 +659,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 await probeDescriptors.remember(itemID: id, sources: inventory.MediaSources)
             } catch {
                 try Task.checkCancellation()
-                if (error as? AppError) == .cancelled || error is CancellationError { throw error }
+                if requiresSourceInventory || (error as? AppError) == .cancelled || error is CancellationError {
+                    throw error
+                }
                 PlozzLog.networking.error(
                     "Remote source inventory unavailable; retaining item metadata: \(String(describing: error))"
                 )

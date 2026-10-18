@@ -98,6 +98,9 @@ struct PlayerPresentation: View {
                     themePalette: themePalette
                 )
                 .id(activeRequest.traceID)
+            } else if versionChoice.prompt == nil, !versionChoiceFailed {
+                ProgressView()
+                    .tint(.white)
             }
         }
         .task {

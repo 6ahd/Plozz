@@ -58,6 +58,11 @@ public protocol MediaProvider: Sendable {
     /// Full detail for a single item.
     func item(id: String) async throws -> MediaItem
 
+    /// Authoritative file inventory before playback, without opening a stream.
+    /// Unlike browsing detail, unresolved source discovery must throw rather than
+    /// return a placeholder that could bypass the version picker.
+    func playbackItem(id: String) async throws -> MediaItem
+
     /// Trailers / preview clips for an item (movie or series).
     ///
     /// Returned items are ordinary playable `MediaItem`s whose `id` resolves to a
@@ -462,6 +467,10 @@ public enum MediaProviderURLIdentity {
 // conformer to implement it.
 public extension MediaProvider {
     var catalogIdentityRequiresEnrichment: Bool { false }
+
+    func playbackItem(id: String) async throws -> MediaItem {
+        try await item(id: id)
+    }
 
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
         throw AppError.notFound

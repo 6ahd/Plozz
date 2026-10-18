@@ -29,6 +29,12 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   or look like hidden format badges. Accessibility exposes the full language list.
   The full track inventory stays in the Audio menu;
   this display priority never changes playback's original/per-content-type policy.
+  The compact mobile source-menu disclosure groups edition/picture facts above
+  quieter source/size facts. Each group stays inline only while it fits; narrower
+  widths and larger text stack complete facts with leading alignment, without
+  dangling separators or truncating the selected version's accessible summary.
+  At accessibility sizes, the category and chevron sit above the full-width
+  summary; the decorative film icon yields its space to readable text.
 
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
   error layout, bounded symbol inline with the heading, readable summary, adaptive

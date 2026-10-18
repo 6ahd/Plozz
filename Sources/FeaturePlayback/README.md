@@ -312,6 +312,16 @@ Unanswered older profiles retain their per-title memories but still see the
 introduction on their first multi-version playback.
 The old Remember my choice mode migrates to automatic selection.
 
+Before deciding whether a picker is needed, the gate awaits the provider's
+authoritative `playbackItem(id:)` inventory, even for a cached one-version seed.
+Both shells await the existing bounded cross-server discovery rather than relying
+on the detail page's speculative background pass. Same-account edition sources
+are refreshed before presenting their files; partial lists and failed
+remote discovery cannot fall through into playback. Local downloads remain
+usable without a server lookup. tvOS shows a loading indicator during this wait.
+Cached automatic recommendations are recomputed against the complete inventory;
+deliberate selections keep their precedence.
+
 **Remember series version choices** is an independent, default-on profile setting,
 not a first-use question. It controls reads and writes of episode/series version
 preferences across detail pages, player switches, and the pre-play picker.
