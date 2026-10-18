@@ -754,8 +754,11 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
     private var loadingContent: some View {
         presentedContent
         .onChange(of: isInitialCatalogLoading, initial: true) { _, loading in
+            recordSourceDiagnostics(.guideState)
             HandoffDiagnostics.emit("LIVE_TV event=guideLoading loading=\(loading) channels=\(model.channels.count)")
         }
+        .onChange(of: model.channels.count) { _, _ in recordSourceDiagnostics(.guideState) }
+        .onChange(of: sheet != nil) { _, _ in recordSourceDiagnostics(.sheetChanged) }
         .task(id: isActive && isProfileAuthorized() ? reloadRequest : -1) {
             await reloadCatalog()
         }
@@ -901,6 +904,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             refreshSourceAuthority()
         }
         .onChange(of: serverAuthorizationID) { _, _ in
+            recordSourceDiagnostics(.authorityChanged)
             enrollment.invalidate()
             playbackResolvers.update(
                 serverProviderResolver: serverProviderResolver,
@@ -959,6 +963,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
     private var lifecycleContent: some View {
         browsingObservedContent
         .onChange(of: scenePhase, initial: true) { _, _ in
+            recordSourceDiagnostics(.guideState)
             updatePlaybackAvailability()
             handleHomeSelection()
         }
@@ -974,6 +979,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             handleHomeSelection()
         }
         .onChange(of: isActive, initial: true) { wasActive, active in
+            recordSourceDiagnostics(.guideState)
             if !active {
                 if wasActive { homeModel?.cancelRequest() }
                 enrollment.invalidate()
@@ -1328,6 +1334,8 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
     }
 
     private func reloadCatalog() async {
+        recordSourceDiagnostics(.guideReload)
+        defer { recordSourceDiagnostics(.guideReloaded) }
         guard isActive, isProfileAuthorized(), loadedRequest != reloadRequest else { return }
         installCatalogHooks()
         let request = reloadRequest
@@ -1360,7 +1368,23 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
             choices: serverChoices, resolver: serverProviderResolver,
             store: sourceStore,
             suppressedAccountIDs: { try enrollmentSuppression.suppressedAccountIDs() },
-            isAuthorized: isProfileAuthorized
+            isAuthorized: isProfileAuthorized, diagnosticProfileID: profileID
+        )
+    }
+
+    private func recordSourceDiagnostics(_ event: LiveTVSourceDiagnostics.Event) {
+        LiveTVSourceDiagnostics.shared.record(
+            event, identities: [.profile: profileID],
+            counts: [
+                .channels: model.channels.count, .playlists: sources?.configuration.playlists.count ?? 0,
+                .servers: sources?.configuration.servers.count ?? 0, .choices: serverChoices.count
+            ],
+            flags: [
+                .active: isActive, .authorized: isProfileAuthorized(), .loading: isInitialCatalogLoading,
+                .failed: sourceApplicationFailed, .present: sources?.hasLoaded == true,
+                .current: loadedRequest == reloadRequest, .cancelled: Task.isCancelled,
+                .sheet: sheet != nil, .sceneActive: scenePhase == .active
+            ]
         )
     }
 

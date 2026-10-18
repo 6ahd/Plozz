@@ -56,13 +56,20 @@ early (the decision tree in §4 routes you):
 Crash-reporting consent gates all uploads. Automatic UI/network breadcrumbs and
 performance tracing remain disabled. Reports retain a bounded history of fixed
 screen categories and typed Live TV sync stages; failures include only an
-allowlisted reason and, for known system errors, a numeric code. No source/profile
+allowlisted reason and, for known system errors, a numeric code. No raw source/profile
 identity, playlist URL, media title, error description or user-info dictionary is
 included. Repeated sync failures are reported once per profile/operation/stage
 until recovery. Expected schedule deferrals and cancellation are not failures.
 Numeric SDK memory measurements and its low-memory flag survive redaction;
 device names, installation IDs and arbitrary contexts do not.
 The `PLZLTVSYNC` local log uses the same non-secret vocabulary.
+
+Manual **Send to Developer** reports additionally attach the persistent,
+Release-capable [Live TV source journal](live-tv-prototype.md#diagnosing-disappearing-sources).
+This is separate from automatic Sentry events and the in-memory performance
+snapshot below. It captures pseudonymous source/account/profile transitions and
+a fresh source-storage snapshot so a disappearing source can be distinguished
+from failed enrollment, suppression, changed profile scope or stale presentation.
 
 Opted-in reports also carry a bounded, in-memory performance snapshot. It records
 coarse operation/provider categories, elapsed time, start-thread identity,

@@ -48,6 +48,7 @@ public struct LiveChannelPlayerView: View {
     private let isMultiview: Bool
     private let trackPreferences: LiveChannelTrackPreferences?
     private let touchSkipIntervals: @MainActor () -> (backward: SkipInterval, forward: SkipInterval)
+    private let touchLevelsEnabled: @MainActor () -> Bool
     private let networkBlock: LiveTVNetworkBlock?
     private let presentationControls: (@MainActor (LiveChannelPresentationContext) -> AnyView)?
     private let onExternalContinuationChanged: @MainActor (Bool) -> Void
@@ -138,6 +139,7 @@ public struct LiveChannelPlayerView: View {
         touchSkipIntervals: @escaping @MainActor () -> (backward: SkipInterval, forward: SkipInterval) = {
             (PlaybackSettings.default.skipBackwardInterval, PlaybackSettings.default.skipForwardInterval)
         },
+        touchLevelsEnabled: @escaping @MainActor () -> Bool = { PlaybackSettings.default.volumeBrightnessGestures },
         networkBlock: LiveTVNetworkBlock? = nil,
         isAuthorized: Bool = true,
         presentationControls: (@MainActor (LiveChannelPresentationContext) -> AnyView)? = nil,
@@ -180,6 +182,7 @@ public struct LiveChannelPlayerView: View {
         self.isMultiview = isMultiview
         self.trackPreferences = trackPreferences
         self.touchSkipIntervals = touchSkipIntervals
+        self.touchLevelsEnabled = touchLevelsEnabled
         self.networkBlock = networkBlock
         self.isAuthorized = isAuthorized
         self.presentationControls = presentationControls
@@ -227,6 +230,7 @@ public struct LiveChannelPlayerView: View {
         touchSkipIntervals: @escaping @MainActor () -> (backward: SkipInterval, forward: SkipInterval) = {
             (PlaybackSettings.default.skipBackwardInterval, PlaybackSettings.default.skipForwardInterval)
         },
+        touchLevelsEnabled: @escaping @MainActor () -> Bool = { PlaybackSettings.default.volumeBrightnessGestures },
         networkBlock: LiveTVNetworkBlock? = nil,
         isAuthorized: Bool = true,
         presentationControls: (@MainActor (LiveChannelPresentationContext) -> AnyView)? = nil,
@@ -253,6 +257,7 @@ public struct LiveChannelPlayerView: View {
             outputGroup: outputGroup, outputID: outputID, isAudible: isAudible,
             countsAsWatching: countsAsWatching, isMultiview: isMultiview, trackPreferences: trackPreferences,
             touchSkipIntervals: touchSkipIntervals,
+            touchLevelsEnabled: touchLevelsEnabled,
             networkBlock: networkBlock, isAuthorized: isAuthorized, presentationControls: presentationControls,
             onExternalContinuationChanged: onExternalContinuationChanged,
             onRestoreUI: onRestoreUI, onStopPlayback: onStopPlayback,
@@ -516,6 +521,12 @@ public struct LiveChannelPlayerView: View {
     // Split in two so the modifier chain type-checks in reasonable time.
     public var body: some View {
         presentationObservedRoot
+            #if os(iOS)
+            .playerTouchLevelSession(
+                isActive: isActive && isAuthorized && isExpanded && !isMultiview
+                    && model?.continuesExternally != true
+            )
+            #endif
             .onChange(of: isExpanded) { _, expanded in
                 expansionChanged(expanded)
             }
@@ -1012,6 +1023,12 @@ public struct LiveChannelPlayerView: View {
                     && model.networkBlock == nil && model.hasPresentedFrame && !model.continuesExternally
                     && !tracksArePresented && !guidePresented && !diagnosticsEnabled
                     && scenePhase == .active,
+                levelsEnabled: touchLevelsEnabled() && isExpanded && !isMultiview
+                    && isActive && isAuthorized && sourceMatchesCurrentModel
+                    && model.networkBlock == nil && model.hasPresentedFrame && !model.continuesExternally
+                    && !tracksArePresented && !guidePresented && !diagnosticsEnabled,
+                isActive: isActive && isAuthorized && isExpanded && !isMultiview
+                    && !model.continuesExternally && scenePhase == .active,
                 canSeek: model.canSeekWindow,
                 canBoost: false,
                 canZoom: model.engine.capabilities.contains(.videoZoom),
@@ -1038,10 +1055,8 @@ public struct LiveChannelPlayerView: View {
                 onGestureStarted: dismissControls
             )
             .ignoresSafeArea()
-            if touchGestures.isActive {
-                PlayerTouchGestureFeedbackView(state: touchGestures)
-                    .modifier(WindowSafeAreaPadding())
-            }
+            PlayerTouchGestureFeedbackView(state: touchGestures)
+                .modifier(WindowSafeAreaPadding())
         }
     }
     #endif

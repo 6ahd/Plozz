@@ -270,6 +270,7 @@ public final class PlayerViewModel {
     /// Per-profile playback prefs, including the per-kind skip modes and which
     /// community marker sources to consult.
     private let playbackSettings: PlaybackSettings
+    public var volumeBrightnessGesturesEnabled: Bool { playbackSettings.volumeBrightnessGestures }
     private let streamingQuality = StreamingPlaybackState()
     public var streamingOptions: StreamingPlaybackOptions? { streamingQuality.options }
     public var streamingQualitySupport: StreamingQualitySupport {

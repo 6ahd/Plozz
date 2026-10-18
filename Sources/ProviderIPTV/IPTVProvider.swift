@@ -27,6 +27,11 @@ public final class IPTVProvider: MediaProvider, CapabilityReporting, MediaSortFi
         client = try IPTVClient(credential: credential, directory: cacheDirectory, configuration: configuration)
         watch = LocalMediaWatchStore(localMediaContext: local, durableStore: durableStore)
         playback = IPTVPlaybackSessions(client: client, configuration: configuration)
+        LiveTVSourceDiagnostics.shared.record(
+            .providerCreated,
+            identities: [.account: context.accountID, .catalog: credential.identity.uuidString],
+            flags: [.xtream: credential.mode == .xtream, .localFile: credential.mode == .file]
+        )
     }
 
     public var capabilities: ProviderCapability { [.video] }
