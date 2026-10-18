@@ -126,8 +126,14 @@ actor IPTVClient {
         refreshHasBackgroundOwner = background
         refresh = Task {
             let started = ContinuousClock.now
+            let diagnosticIDs: [LiveTVSourceDiagnostics.Identity: String] = [
+                .catalog: credential.identity.uuidString, .request: UUID().uuidString
+            ]
+            LiveTVSourceDiagnostics.shared.record(
+                .catalogRefreshStarted, identities: diagnosticIDs, flags: [.background: background]
+            )
             let performance = PerformanceDiagnostics.shared.begin(.playlistImport, provider: .iptv)
-            let metrics = performance == nil ? nil : IPTVPerformanceMetrics()
+            let metrics = IPTVPerformanceMetrics()
             HandoffDiagnostics.emit("IPTV catalogRefresh begin background=\(background)")
             let result: Result<Void, Error>
             do {
@@ -136,14 +142,16 @@ actor IPTVClient {
                 }
                 self.refreshRetryAfter[scope] = nil
                 result = .success(())
-                performance?.finish(.succeeded, metrics: metrics?.snapshot ?? .init())
+                performance?.finish(.succeeded, metrics: metrics.snapshot)
+                recordCatalogRefresh(diagnosticIDs, metrics: metrics, started: started, error: nil)
                 HandoffDiagnostics.emit("IPTV catalogRefresh complete elapsed=\(started.duration(to: .now))")
             } catch {
                 self.refreshRetryAfter[scope] = Date().addingTimeInterval(60)
                 performance?.finish(
-                    IPTVPerformanceMetrics.outcome(for: error), metrics: metrics?.snapshot ?? .init()
+                    IPTVPerformanceMetrics.outcome(for: error), metrics: metrics.snapshot
                 )
                 let reason = IPTVSetupDiagnostic.Failure.sanitized(error).reason.rawValue
+                recordCatalogRefresh(diagnosticIDs, metrics: metrics, started: started, error: error)
                 PlozzLog.networking.error("IPTV catalogue refresh failed reason=\(reason)")
                 HandoffDiagnostics.emit("IPTV catalogRefresh failed reason=\(reason) elapsed=\(started.duration(to: .now))")
                 result = .failure(error)
@@ -155,6 +163,23 @@ actor IPTVClient {
             self.refreshWaiters.removeAll()
             for waiter in waiters { waiter.resume(with: result) }
         }
+    }
+
+    private func recordCatalogRefresh(
+        _ identities: [LiveTVSourceDiagnostics.Identity: String], metrics: IPTVPerformanceMetrics,
+        started: ContinuousClock.Instant, error: (any Error)?
+    ) {
+        let snapshot = metrics.snapshot
+        let elapsed = started.duration(to: .now).components
+        LiveTVSourceDiagnostics.shared.record(
+            .catalogRefreshFinished, identities: identities,
+            counts: [
+                .entries: snapshot.items ?? 0, .bytes: snapshot.bytes ?? 0, .requests: snapshot.requests ?? 0,
+                .elapsedMilliseconds: Int(elapsed.seconds * 1_000 + elapsed.attoseconds / 1_000_000_000_000_000),
+                .waiters: refreshWaiters.count
+            ],
+            flags: [.failed: error != nil, .cancelled: Task.isCancelled], error: error
+        )
     }
 
     private func catalogCommittedAt(_ scope: String) throws -> Date? {
@@ -311,6 +336,12 @@ actor IPTVClient {
                     try store(record, overwrite: record.item.kind != .series && record.item.kind != .season, into: .incoming)
                 }
                 count += 1
+                if count.isMultiple(of: 10_000) {
+                    LiveTVSourceDiagnostics.shared.record(
+                        .catalogProgress, identities: [.catalog: credential.identity.uuidString],
+                        counts: [.entries: count, .bytes: parser.byteCount]
+                    )
+                }
                 if count.isMultiple(of: 1_000) { progress(IPTVImportProgress(stage: .playlist, entries: count)) }
             }
         }
@@ -499,6 +530,10 @@ actor IPTVClient {
         let scope = credential.mode == .xtream ? "live" : Self.playlistCatalogScope
         let committed = credential.mode == .file
             ? try catalog.state("playlist") != nil : try catalogCommittedAt(scope) != nil
+        LiveTVSourceDiagnostics.shared.record(
+            .catalogRead, identities: [.catalog: credential.identity.uuidString],
+            flags: [.committed: committed], deduplicate: true
+        )
         guard committed else { return nil }
         let supportsGuide = try credential.mode == .xtream || !credential.explicitGuideURLs.isEmpty
             || catalog.count(where: "kind = ?", values: [MediaItemKind.unknown.rawValue]) > 0

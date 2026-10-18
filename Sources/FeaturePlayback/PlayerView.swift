@@ -45,9 +45,6 @@ public struct PlayerView: View {
     private let showDiagnostics: Bool
     private let themePalette: ThemePalette
     private let showsSharedControls: Bool
-    private let onChangeQuality: (() -> Void)?
-    private let onChangeVersion: (() -> Void)?
-    private let onPlaySDRVersion: (() -> Void)?
     private let onDismiss: (() -> Void)?
 
     public init(
@@ -55,18 +52,12 @@ public struct PlayerView: View {
         showDiagnostics: Bool = false,
         themePalette: ThemePalette = .dark,
         showsSharedControls: Bool = true,
-        onChangeQuality: (() -> Void)? = nil,
-        onChangeVersion: (() -> Void)? = nil,
-        onPlaySDRVersion: (() -> Void)? = nil,
         onDismiss: (() -> Void)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
         self.showDiagnostics = showDiagnostics
         self.themePalette = themePalette
         self.showsSharedControls = showsSharedControls
-        self.onChangeQuality = onChangeQuality
-        self.onChangeVersion = onChangeVersion
-        self.onPlaySDRVersion = onPlaySDRVersion
         self.onDismiss = onDismiss
     }
 
@@ -310,29 +301,15 @@ public struct PlayerView: View {
         case .ready:
             readyPlayerContainer
 
-        case let .failed(error):
-            #if os(iOS)
-            MobilePlaybackFailureView(
-                message: viewModel.streamingQualityError?.userMessage ?? error.userMessage,
-                code: viewModel.streamingQualityError?.diagnosticCode,
-                retryMessage: viewModel.streamingCodecRetryMessage,
-                negotiatedCodec: viewModel.streamingNegotiatedVideoCodec,
-                onChangeQuality: viewModel.streamingQualityAvailable ? onChangeQuality : nil,
-                onChangeVersion: onChangeVersion,
-                onPlaySDRVersion: onPlaySDRVersion,
-                onPlayOriginal: viewModel.streamingHasHDRConversionError
-                    && viewModel.streamingOptions?.requiresConversionPolicy == true ? {
-                        viewModel.changeStreamingOptions(.init(quality: .original))
-                    } : nil,
-                onRetry: viewModel.streamingQualityAvailable ? {
-                    if let options = viewModel.streamingOptions { viewModel.changeStreamingOptions(options) }
-                } : nil,
-                onShowDiagnostics: { viewModel.controls.diagnosticsEnabled = true },
+        case .failed:
+            StreamingPlaybackFailureView(
+                message: viewModel.playbackFailureReport?.message
+                    ?? viewModel.streamingQualityError?.userMessage
+                    ?? StreamingPlaybackFailure(kind: .unknown).userMessage,
+                report: viewModel.playbackFailureReport,
+                onRetry: { viewModel.retryPlayback() },
                 onDismiss: { dismissPlayer() }
             )
-            #else
-            PlaybackErrorView(message: viewModel.streamingQualityError?.userMessage ?? error.userMessage) { dismissPlayer() }
-            #endif
         }
     }
 
@@ -555,30 +532,6 @@ private struct DisplaySettleObserver: ViewModifier {
         #else
         content
         #endif
-    }
-}
-
-/// Graceful playback error state with a way back.
-private struct PlaybackErrorView: View {
-    let message: LocalizedStringResource
-    let onDismiss: () -> Void
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(.yellow)
-            Text("Can’t play this right now")
-                .font(.title).bold()
-                .foregroundStyle(.white)
-            Text(message)
-                .font(.title3)
-                .plozzForeground(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 800)
-            Button("Back", action: onDismiss)
-                .buttonStyle(.borderedProminent)
-        }
     }
 }
 

@@ -2,8 +2,8 @@ import Foundation
 import CoreModels
 import CoreNetworking
 
-extension TraktTokenCoordinator {
-    func retireSharedStateForErasure(store: any TraktTokenStoring) throws {
+extension TrackerTokenCoordinator {
+    func retireSharedStateForErasure(store: any TrackerTokenStoring) throws {
         guard let configuration = sharedRefresh,
               var journal = try loadSharedState(store.coordinationID, configuration: configuration) else { return }
         journal.pending = nil
@@ -14,10 +14,10 @@ extension TraktTokenCoordinator {
     /// There is deliberately no lease timeout. Once an exchange might have
     /// reached Trakt, neither its owner nor another device may replay that token.
     func sharedAccess(
-        store: any TraktTokenStoring,
-        configuration: TraktSharedRefreshConfiguration,
+        store: any TrackerTokenStoring,
+        configuration: TrackerSharedRefreshConfiguration,
         revision: UInt64,
-        exchange: (@Sendable (String) async throws -> TraktTokens)?
+        exchange: (@Sendable (String) async throws -> TrackerTokens)?
     ) async throws -> String? {
         let key = store.coordinationID
         let state = try loadSharedState(key, configuration: configuration)
@@ -38,7 +38,7 @@ extension TraktTokenCoordinator {
         // Reattempt a failed Keychain write before making any irreversible call.
         try persistSharedState(journal, key: key, configuration: configuration)
         for _ in 0..<8 {
-            let remote: TraktSharedRecord?
+            let remote: TrackerSharedRecord?
             do {
                 remote = try await configuration.transport.read(scope: key, accountID: account)
             } catch {
@@ -51,7 +51,7 @@ extension TraktTokenCoordinator {
                 throw error
             }
             try checkSharedRevision(key, revision)
-            let current = try remote.map { try TraktSharedGrant.decode($0.value) }
+            let current = try remote.map { try TrackerSharedGrant.decode($0.value) }
 
             if let pending = journal.pending {
                 switch pending.kind {
@@ -65,7 +65,7 @@ extension TraktTokenCoordinator {
                             if let current {
                                 _ = try acceptShared(current, journal: &journal, store: store, configuration: configuration)
                             }
-                            throw TraktSharedRefreshError.superseded
+                            throw TrackerSharedRefreshError.superseded
                         }
                         journal.pending?.expectedEpoch = current?.epoch
                         journal.pending?.needsBaseline = false
@@ -95,7 +95,7 @@ extension TraktTokenCoordinator {
                         if let current {
                             _ = try acceptShared(current, journal: &journal, store: store, configuration: configuration)
                         }
-                        throw TraktSharedRefreshError.superseded
+                        throw TrackerSharedRefreshError.superseded
                     }
                     do {
                         var proposed = pending.grant
@@ -111,17 +111,17 @@ extension TraktTokenCoordinator {
                         let access = try acceptShared(proposed, journal: &journal, store: store, configuration: configuration)
                         if proposed.tokens?.isExpired == true, exchange != nil { continue }
                         return access
-                    } catch TraktSharedRefreshError.conflict {
+                    } catch TrackerSharedRefreshError.conflict {
                         continue
                     }
                 case .claimPrepared:
                     if current == pending.grant {
                         if let deadline = pending.retryNotBefore, now() < deadline {
-                            throw TraktSharedRefreshError.retryable(retryNotBefore: deadline)
+                            throw TrackerSharedRefreshError.retryable(retryNotBefore: deadline)
                         }
-                        guard let exchange else { throw TraktSharedRefreshError.refreshInProgress }
+                        guard let exchange else { throw TrackerSharedRefreshError.refreshInProgress }
                         guard let previous = pending.grant.tokens else {
-                            throw TraktSharedRefreshError.invalidRecord
+                            throw TrackerSharedRefreshError.invalidRecord
                         }
                         journal.pending?.kind = .exchangeStarted
                         do {
@@ -136,7 +136,7 @@ extension TraktTokenCoordinator {
                         }
                         // Persisting exchangeStarted is the irrevocable boundary.
                         // A timeout is not proof that Trakt did not consume it.
-                        let refreshed: TraktTokens
+                        let refreshed: TrackerTokens
                         do {
                             refreshed = try await exchange(previous.refreshToken)
                                 .inheritingAccountIdentity(from: previous)
@@ -157,10 +157,10 @@ extension TraktTokenCoordinator {
                                     retryNotBefore: now().addingTimeInterval(delay)
                                 )
                             }
-                            throw TraktSharedRefreshError.outcomeUnknown
+                            throw TrackerSharedRefreshError.outcomeUnknown
                         } catch {
                             try checkSharedRevision(key, revision)
-                            throw TraktSharedRefreshError.outcomeUnknown
+                            throw TrackerSharedRefreshError.outcomeUnknown
                         }
                         try checkSharedRevision(key, revision)
                         var successor = pending.grant
@@ -183,7 +183,7 @@ extension TraktTokenCoordinator {
                             )
                             try checkSharedRevision(key, revision)
                             continue
-                        } catch TraktSharedRefreshError.conflict {
+                        } catch TrackerSharedRefreshError.conflict {
                             continue
                         }
                     }
@@ -192,7 +192,7 @@ extension TraktTokenCoordinator {
                     journal.pending = nil
                     try persistSharedState(journal, key: key, configuration: configuration)
                 case .exchangeStarted:
-                    if current == pending.grant { throw TraktSharedRefreshError.outcomeUnknown }
+                    if current == pending.grant { throw TrackerSharedRefreshError.outcomeUnknown }
                     journal.pending = nil
                     try persistSharedState(journal, key: key, configuration: configuration)
                 }
@@ -201,7 +201,7 @@ extension TraktTokenCoordinator {
             guard let current else {
                 // A previously observed record cannot disappear legitimately:
                 // sign-out is a durable value, never a CKRecord deletion.
-                guard journal.accepted == nil else { throw TraktSharedRefreshError.missingRecord }
+                guard journal.accepted == nil else { throw TrackerSharedRefreshError.missingRecord }
                 if configuration.isLocallySignedOut(key) {
                     journal.pending = .init(
                         kind: .disconnect,
@@ -213,7 +213,7 @@ extension TraktTokenCoordinator {
                 let legacy = try await configuration.transport.readLegacyTokens(scope: key, accountID: account)
                 try checkSharedRevision(key, revision)
                 guard let tokens = legacy ?? store.load() else { return nil }
-                let initial = TraktSharedGrant.ready(tokens)
+                let initial = TrackerSharedGrant.ready(tokens)
                 journal.pending = .init(kind: .connect, grant: initial)
                 try persistSharedState(journal, key: key, configuration: configuration)
                 continue
@@ -221,7 +221,7 @@ extension TraktTokenCoordinator {
             let access = try acceptShared(current, journal: &journal, store: store, configuration: configuration)
             guard let tokens = current.tokens else { return nil }
             guard tokens.isExpired else { return access }
-            guard current.phase == .ready else { throw TraktSharedRefreshError.refreshInProgress }
+            guard current.phase == .ready else { throw TrackerSharedRefreshError.refreshInProgress }
             guard exchange != nil else { return access }
             var claim = current
             claim.phase = .refreshing
@@ -231,11 +231,11 @@ extension TraktTokenCoordinator {
             )
             try persistSharedState(journal, key: key, configuration: configuration)
         }
-        throw TraktSharedRefreshError.conflict
+        throw TrackerSharedRefreshError.conflict
     }
 
     func prepareSharedConnection(
-        store: any TraktTokenStoring, configuration: TraktSharedRefreshConfiguration,
+        store: any TrackerTokenStoring, configuration: TrackerSharedRefreshConfiguration,
         revision: UInt64, id: UUID
     ) async throws {
         let key = store.coordinationID
@@ -244,7 +244,7 @@ extension TraktTokenCoordinator {
         try checkSharedRevision(key, revision)
         let remote = try await configuration.transport.read(scope: key, accountID: account)
         try checkSharedRevision(key, revision)
-        let current = try remote.map { try TraktSharedGrant.decode($0.value) }
+        let current = try remote.map { try TrackerSharedGrant.decode($0.value) }
         _ = try bindSharedAccount(account, state: state, store: store, configuration: configuration)
         preparedConnections[key] = ConnectionContext(
             id: id, scope: key, revision: revision, accountID: account, expectedEpoch: current?.epoch
@@ -252,8 +252,8 @@ extension TraktTokenCoordinator {
     }
 
     func changeSharedConnection(
-        _ tokens: TraktTokens?, store: any TraktTokenStoring,
-        configuration: TraktSharedRefreshConfiguration,
+        _ tokens: TrackerTokens?, store: any TrackerTokenStoring,
+        configuration: TrackerSharedRefreshConfiguration,
         context: ConnectionContext? = nil
     ) async throws {
         let key = store.coordinationID
@@ -264,10 +264,10 @@ extension TraktTokenCoordinator {
         let account: String
         if tokens != nil {
             guard let preparedAccount = context?.accountID else {
-                throw TraktSharedRefreshError.superseded
+                throw TrackerSharedRefreshError.superseded
             }
             guard state?.accountID == preparedAccount else {
-                throw TraktSharedRefreshError.accountChanged
+                throw TrackerSharedRefreshError.accountChanged
             }
             account = preparedAccount
         } else {
@@ -280,7 +280,7 @@ extension TraktTokenCoordinator {
         try checkSharedRevision(key, revision)
         var journal = try bindSharedAccount(account, state: state, store: store, configuration: configuration)
         let baseline = journal.accepted
-        let grant: TraktSharedGrant
+        let grant: TrackerSharedGrant
         if let tokens {
             grant = .ready(tokens)
         } else {
@@ -303,9 +303,9 @@ extension TraktTokenCoordinator {
     }
 
     private func retainUnspentClaim(
-        journal: inout TraktSharedJournalState, key: String,
-        configuration: TraktSharedRefreshConfiguration, retryNotBefore: Date?
-    ) -> TraktSharedRefreshError {
+        journal: inout TrackerSharedJournalState, key: String,
+        configuration: TrackerSharedRefreshConfiguration, retryNotBefore: Date?
+    ) -> TrackerSharedRefreshError {
         journal.pending?.kind = .claimPrepared
         journal.pending?.retryNotBefore = retryNotBefore
         // persistSharedState retains this exact recoverable state in memory if
@@ -320,41 +320,41 @@ extension TraktTokenCoordinator {
     }
 
     private func loadSharedState(
-        _ key: String, configuration: TraktSharedRefreshConfiguration
-    ) throws -> TraktSharedJournalState? {
+        _ key: String, configuration: TrackerSharedRefreshConfiguration
+    ) throws -> TrackerSharedJournalState? {
         if let retained = sharedJournalRecovery[key] { return retained }
         guard let data = try configuration.journal.read(scope: key) else { return nil }
-        let state = try JSONDecoder().decode(TraktSharedJournalState.self, from: data)
-        guard state.format == 1, !state.accountID.isEmpty else { throw TraktSharedRefreshError.invalidRecord }
-        if let accepted = state.accepted { _ = try TraktSharedGrant.decode(accepted.encoded()) }
+        let state = try JSONDecoder().decode(TrackerSharedJournalState.self, from: data)
+        guard state.format == 1, !state.accountID.isEmpty else { throw TrackerSharedRefreshError.invalidRecord }
+        if let accepted = state.accepted { _ = try TrackerSharedGrant.decode(accepted.encoded()) }
         if let pending = state.pending {
-            _ = try TraktSharedGrant.decode(pending.grant.encoded())
-            let expectedPhase: TraktSharedGrant.Phase
+            _ = try TrackerSharedGrant.decode(pending.grant.encoded())
+            let expectedPhase: TrackerSharedGrant.Phase
             switch pending.kind {
             case .connect, .successor: expectedPhase = .ready
             case .disconnect: expectedPhase = .disconnected
             case .claimPrepared, .exchangeStarted: expectedPhase = .refreshing
             }
-            guard pending.grant.phase == expectedPhase else { throw TraktSharedRefreshError.invalidRecord }
+            guard pending.grant.phase == expectedPhase else { throw TrackerSharedRefreshError.invalidRecord }
         }
         return state
     }
 
     private func permitsOfflineAccess(after error: Error) -> Bool {
         if error is CancellationError { return false }
-        if let shared = error as? TraktSharedRefreshError { return shared == .unavailable }
+        if let shared = error as? TrackerSharedRefreshError { return shared == .unavailable }
         return true
     }
 
     private func persistSharedState(
-        _ state: TraktSharedJournalState, key: String, configuration: TraktSharedRefreshConfiguration
+        _ state: TrackerSharedJournalState, key: String, configuration: TrackerSharedRefreshConfiguration
     ) throws {
         sharedJournalRecovery[key] = state
         do {
             try configuration.journal.write(JSONEncoder().encode(state), scope: key)
         } catch {
             if state.pending?.kind == .claimPrepared {
-                throw TraktSharedRefreshError.retryable(retryNotBefore: state.pending?.retryNotBefore)
+                throw TrackerSharedRefreshError.retryable(retryNotBefore: state.pending?.retryNotBefore)
             }
             throw error
         }
@@ -362,28 +362,28 @@ extension TraktTokenCoordinator {
     }
 
     private func bindSharedAccount(
-        _ account: String, state: TraktSharedJournalState?,
-        store: any TraktTokenStoring, configuration: TraktSharedRefreshConfiguration
-    ) throws -> TraktSharedJournalState {
+        _ account: String, state: TrackerSharedJournalState?,
+        store: any TrackerTokenStoring, configuration: TrackerSharedRefreshConfiguration
+    ) throws -> TrackerSharedJournalState {
         if let state, state.accountID == account { return state }
-        let fresh = TraktSharedJournalState(accountID: account)
+        let fresh = TrackerSharedJournalState(accountID: account)
         if state != nil {
             // Clear before rebinding. Failure leaves the old binding in place.
             try store.clear()
             try persistSharedState(fresh, key: store.coordinationID, configuration: configuration)
-            throw TraktSharedRefreshError.accountChanged
+            throw TrackerSharedRefreshError.accountChanged
         }
         try persistSharedState(fresh, key: store.coordinationID, configuration: configuration)
         return fresh
     }
 
     private func acceptShared(
-        _ grant: TraktSharedGrant, journal: inout TraktSharedJournalState,
-        store: any TraktTokenStoring, configuration: TraktSharedRefreshConfiguration
+        _ grant: TrackerSharedGrant, journal: inout TrackerSharedJournalState,
+        store: any TrackerTokenStoring, configuration: TrackerSharedRefreshConfiguration
     ) throws -> String? {
         if let accepted = journal.accepted, accepted.epoch == grant.epoch,
            grant.generation < accepted.generation {
-            throw TraktSharedRefreshError.superseded
+            throw TrackerSharedRefreshError.superseded
         }
         // Keep pending results until the local store also succeeds. On failure,
         // the server (or the journal) still contains the only valid successor.

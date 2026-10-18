@@ -35,6 +35,7 @@ struct PlozziOSPlaybackRequest: Identifiable {
 struct PlozziOSPlayerView: View {
     @Environment(HeroTrailerController.self) private var trailerController
     @Environment(PlozziOSAppModel.self) private var appModel
+    @Environment(\.scenePhase) private var scenePhase
     let orientation: PlozziOSPlayerOrientation
     /// Installed by the enclosing navigation stack. Used by the Cast card's
     /// credit posters, which leave the film for a title's own page — the same
@@ -43,6 +44,7 @@ struct PlozziOSPlayerView: View {
     /// Likewise for "See more" on a cast member, which opens their own page.
     @Environment(\.mediaPersonSourceNavigator) private var navigateToPerson
     @State private var viewModel: PlayerViewModel?
+    @State private var keyboardActions = PlozziOSPlayerKeyboardActions()
     @State private var playbackSession: PlozziOSAppModel.PlaybackSession?
     @State private var playerIdentity = UUID()
     @State private var handoffTask: Task<Void, Never>?
@@ -54,8 +56,6 @@ struct PlozziOSPlayerView: View {
     @State private var activeItem: MediaItem?
     @State private var activePlaylist: VideoPlaylistPlaybackContext?
     @State private var presentsVersions = false
-    @State private var showsSDRVersions = false
-    @State private var selectedSDRAlternative = false
     @State private var announcedSDRPlayer: UUID?
     @State private var playbackStatus = TransientStatusPresenter()
     @State private var versionChoice = PlaybackVersionChoiceModel()
@@ -79,27 +79,28 @@ struct PlozziOSPlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
+            PlozziOSPlayerKeyboardControls(
+                isEnabled: keyboardCommandsEnabled,
+                canSeek: keyboardActions.canSeek,
+                onSkip: { keyboardActions.skip?($0) },
+                onPlayPause: { keyboardActions.playPause?() }
+            )
+
             if let viewModel {
                 PlayerView(
                     viewModel: viewModel,
                     showDiagnostics: appModel.settings.diagnostics.settings.isEnabled,
                     showsSharedControls: false,
-                    onChangeQuality: { presentsStreamingQuality = true },
-                    onChangeVersion: PlayerVersionSelection.versions(for: versionItem).count > 1
-                        ? { showVersions(onlySDR: false) } : nil,
-                    onPlaySDRVersion: viewModel.streamingHasHDRConversionError
-                        && !PlayerVersionSelection.sdrAlternatives(
-                            for: versionItem, mediaSourceID: viewModel.currentMediaSourceID
-                        ).isEmpty ? { showVersions(onlySDR: true) } : nil,
                     onDismiss: orientation.close
                 )
                 .id(playerIdentity)
                 if viewModel.phase == .ready, !viewModel.showBringUpSpinner {
                     PlozziOSPlayerControlsOverlay(
                         viewModel: viewModel,
+                        keyboardActions: keyboardActions,
                         hasVersions: PlayerVersionSelection.versions(for: versionItem).count > 1,
                         versionsPresented: presentsVersions,
-                        onShowVersions: { showVersions(onlySDR: false) },
+                        onShowVersions: { presentsVersions = true },
                         onClose: { dismiss() }
                     )
                     .id(playerIdentity)
@@ -114,6 +115,7 @@ struct PlozziOSPlayerView: View {
             }
         }
         .statusBarHidden()
+        .playerTouchLevelSession(isActive: viewModel?.externalPlaybackRouteName == nil)
         .overlay(alignment: .top) {
             VStack {
                 TransientStatusView(presenter: playbackStatus)
@@ -127,6 +129,7 @@ struct PlozziOSPlayerView: View {
         }
         .onDisappear {
             isPresented = false
+            keyboardActions.clear()
             versionChoice.cancel()
             playbackStatus.dismiss()
             handoffTask?.cancel()
@@ -147,6 +150,7 @@ struct PlozziOSPlayerView: View {
                 if let outgoing { await outgoing.stop() }
                 if let heroOwner { heroController.resumeAfterPlayback(owner: heroOwner) }
             }
+
         }
         .task {
             suspendHeroPlayback()
@@ -199,7 +203,7 @@ struct PlozziOSPlayerView: View {
         .plozzSheet(isPresented: $presentsVersions) {
             PlozziOSPlayerVersionSheet(
                 item: versionItem, mediaSourceID: viewModel?.currentMediaSourceID,
-                onlySDR: showsSDRVersions,
+                onlySDR: false,
                 onSelect: switchVersion
             )
         }
@@ -259,7 +263,6 @@ struct PlozziOSPlayerView: View {
                 }
                 viewModel = incoming
                 activeItem = next
-                selectedSDRAlternative = false
                 playerIdentity = UUID()
                 handoffTask = nil
             }
@@ -293,11 +296,17 @@ struct PlozziOSPlayerView: View {
                 let incoming = makeViewModel(item: selected, startPosition: 0)
                 viewModel = incoming
                 activeItem = selected
-                selectedSDRAlternative = false
                 playerIdentity = UUID()
                 handoffTask = nil
             }
         }
+    }
+
+    private var keyboardCommandsEnabled: Bool {
+        keyboardActions.isEnabled && scenePhase == .active
+            && !presentsStreamingQuality && !presentsVersions
+            && versionChoice.prompt == nil && !versionChoiceFailed
+            && viewModel?.controls.diagnosticsEnabled != true
     }
 
     private var closeButton: some View {
@@ -378,15 +387,10 @@ struct PlozziOSPlayerView: View {
         )
     }
 
-    private func showVersions(onlySDR: Bool) {
-        showsSDRVersions = onlySDR
-        presentsVersions = true
-    }
-
     private func presentSDRNoticeIfReady() {
         guard let viewModel, viewModel.phase == .ready, !viewModel.showBringUpSpinner,
               announcedSDRPlayer != playerIdentity,
-              selectedSDRAlternative || viewModel.streamingUsesSDRConversion else { return }
+              viewModel.streamingUsesSDRConversion else { return }
         announcedSDRPlayer = playerIdentity
         playbackStatus.present(icon: "display", text: "Playing in SDR")
     }
@@ -395,9 +399,6 @@ struct PlozziOSPlayerView: View {
         guard let outgoing = viewModel, handoffTask == nil,
               let incomingItem = PlayerVersionSelection.selecting(id, in: versionItem) else { return }
         let continuation = outgoing.continuationForVersionChange()
-        let choseSDR = showsSDRVersions && PlayerVersionSelection.sdrAlternatives(
-            for: versionItem, mediaSourceID: outgoing.currentMediaSourceID
-        ).contains { $0.id == id }
         if let version = PlayerVersionSelection.versions(for: versionItem).first(where: { $0.id == id }) {
             appModel.versionPreferences.rememberVersion(
                 version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: versionItem)
@@ -413,7 +414,6 @@ struct PlozziOSPlayerView: View {
                 item: incomingItem, startPosition: continuation.position, continuation: continuation
             )
             activeItem = incomingItem
-            selectedSDRAlternative = choseSDR
             viewModel = incoming
             playerIdentity = UUID()
             handoffTask = nil

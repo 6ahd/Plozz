@@ -27,6 +27,9 @@ public struct Profile: Codable, Hashable, Identifiable, Sendable {
     public var colorIndex: Int
     /// When the profile was created — used for stable ordering.
     public var createdAt: Date
+    /// Local recovery marker when a cloud deletion arrives before its replacement
+    /// profile. Retained across restart, but excluded from ProfileSyncDTO.
+    var pendingSyncedDeletion: Bool? = nil
     /// Optional `Account.id` this profile is *backed by* (e.g. a signed-in Plex
     /// or Jellyfin account). Seeds the name/avatar and narrows the active set;
     /// `nil` for a plain app-owned profile.
@@ -127,9 +130,8 @@ public struct Profile: Codable, Hashable, Identifiable, Sendable {
     /// It rides a profile record because there is no household-level sync record,
     /// and adding a `SyncRecordKind` would be unsafe: an older peer can't parse an
     /// unknown kind, drops it from its captured set, and capture is authoritative
-    /// — so the first old device to sync would delete the household's PIN. The
-    /// first profile always exists and can't be deleted, which makes it a stable
-    /// anchor.
+    /// — so the first old device to sync would delete the household's PIN.
+    /// Deleting that anchor moves the revisioned PIN to the first survivor.
     ///
     /// Read it through ``ProfilesModel/parentalPIN``; nothing should reach for
     /// this field directly.

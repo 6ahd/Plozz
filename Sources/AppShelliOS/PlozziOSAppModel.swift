@@ -23,6 +23,7 @@ import ProviderSilo
 import ProviderShare
 import SeerService
 import SimklService
+import WetrakrService
 import TraktService
 import UIKit
 
@@ -361,6 +362,7 @@ final class PlozziOSAppModel {
     let seerService: SeerService
     let traktService: TraktService
     let simklService: SimklService
+    let wetrakrService: WetrakrService
     let anilistService: AniListService
     let malService: MALService
     let crashReporting: CrashReportingSettingsModel
@@ -401,8 +403,8 @@ final class PlozziOSAppModel {
     /// the capture environment seeded this launch — see ``PlozziOSScreenshotSeed``.
     let screenshotDirector = PlozziOSScreenshotDirector()
     /// A pairing invite captured from a Sync & Setup universal link
-    /// (`https://plozz.app/pair#…`). When set, the root presents the pairing send
-    /// flow and auto-sends this device's setup to the device that showed the QR.
+    /// (`https://plozz.app/pair#…`). The invite type selects receiving from a TV
+    /// or the existing send flow; either direction requires its own confirmation.
     var pendingPairingInvite: String?
     @ObservationIgnored
     private(set) var plexHomeUsers: PlexHomeUsersModel!
@@ -633,6 +635,7 @@ final class PlozziOSAppModel {
         TraktSharedRefreshBootstrap.install()
         let traktService = TraktServiceFactory.make(namespace: trackerNamespace)
         let simklService = SimklServiceFactory.make(namespace: trackerNamespace)
+        let wetrakrService = WetrakrServiceFactory.make(namespace: trackerNamespace)
         let anilistService = AniListServiceFactory.make(namespace: trackerNamespace)
         let malService = MALServiceFactory.make(namespace: trackerNamespace)
         self.accountStore = accountStore
@@ -671,6 +674,7 @@ final class PlozziOSAppModel {
         }
         self.traktService = traktService
         self.simklService = simklService
+        self.wetrakrService = wetrakrService
         self.anilistService = anilistService
         self.malService = malService
         self.crashReporting = CrashReportingSettingsModel()
@@ -864,6 +868,12 @@ final class PlozziOSAppModel {
         // on) and start observing local config changes to publish them.
         self.traktService.onConnectionAvailable = { [weak self] in
             Task { await self?.resumeUniversalWatchlistAuthentication() }
+        }
+        self.wetrakrService.onConnectionChanged = { [weak self] in
+            Task {
+                guard let self, let destination = self.wetrakrService.watchlistDestination else { return }
+                await self.trackerWatchlistConnectionChanged(destination: destination)
+            }
         }
         prepareMediaAliasLedger()
         startCloudSyncIfEnabled()
@@ -1078,7 +1088,8 @@ final class PlozziOSAppModel {
     /// presentation via `pendingPairingInvite`.
     @discardableResult
     func handleIncomingURL(_ url: URL) -> Bool {
-        guard SyncPairingInvite.decode(url.absoluteString) != nil else { return false }
+        guard SyncPairingInvite.decode(url.absoluteString) != nil
+            || SyncSetupSourceInvite.decode(url.absoluteString) != nil else { return false }
         // Following a pairing link sends this household's servers, profiles and
         // credentials to the device that produced it, and that device opens in a
         // grown-up profile — so it's withheld inside an enforced Kids Profile.
@@ -1698,9 +1709,13 @@ final class PlozziOSAppModel {
     private var trackerScopedNamespace: String??
 
     /// See `UniversalWatchlistHost.ensureTrackersScopedToActiveProfile()`.
+    var trackersAreScopedToActiveProfile: Bool {
+        guard let scoped = trackerScopedNamespace else { return false }
+        return scoped == profiles.activeNamespace
+    }
+
     func ensureTrackersScopedToActiveProfile() async {
-        let ns = profiles.activeNamespace
-        if let scoped = trackerScopedNamespace, scoped == ns { return }
+        guard !trackersAreScopedToActiveProfile else { return }
         await updateTrackersForActiveProfile()
     }
 
@@ -1708,10 +1723,13 @@ final class PlozziOSAppModel {
         let namespace = profiles.activeNamespace
         trackerProfileGeneration &+= 1
         let generation = trackerProfileGeneration
+        trackerScopedNamespace = nil
         guard generation == trackerProfileGeneration else { return }
         await traktService.setActiveProfile(namespace: namespace)
         guard generation == trackerProfileGeneration else { return }
         await simklService.setActiveProfile(namespace: namespace)
+        guard generation == trackerProfileGeneration else { return }
+        await wetrakrService.setActiveProfile(namespace: namespace)
         guard generation == trackerProfileGeneration else { return }
         await anilistService.setActiveProfile(namespace: namespace)
         guard generation == trackerProfileGeneration else { return }
@@ -1770,6 +1788,7 @@ final class PlozziOSAppModel {
             scrobbler: PlozziOSTrackerScrobbler(
                 trakt: traktService.playbackScrobbler(),
                 simkl: SimklServiceFactory.make(namespace: namespace).scrobbler,
+                wetrakr: wetrakrService.playbackScrobbler(),
                 anilist: AniListServiceFactory.make(namespace: namespace).scrobbler,
                 mal: MALServiceFactory.make(namespace: namespace).scrobbler
             )
@@ -1944,6 +1963,7 @@ final class PlozziOSAppModel {
         let namespace = profile.settingsNamespace(isDefault: profiles.isDefault(profile))
         let trakt = TraktServiceFactory.make(namespace: namespace).scrobbler
         let simkl = SimklServiceFactory.make(namespace: namespace).scrobbler
+        let wetrakr = WetrakrServiceFactory.make(namespace: namespace).playbackScrobbler()
         let anilist = AniListServiceFactory.make(namespace: namespace).scrobbler
         let mal = MALServiceFactory.make(namespace: namespace).scrobbler
         let store: any WatchMutationStoring
@@ -2014,6 +2034,13 @@ final class PlozziOSAppModel {
                     item: intent.makeScrobbleItem(),
                     progress: intent.progress,
                     event: .stop
+                )
+            },
+            wetrakrAccountIdentity: { wetrakr.accountIdentity },
+            applyWetrakr: { intent, capturedAt, key, identity in
+                try await wetrakr.recordWatch(
+                    item: intent.makeScrobbleItem(), capturedAt: capturedAt,
+                    idempotencyKey: key, expectedAccountIdentity: identity
                 )
             },
             allAccountIDs: { [weak self] in

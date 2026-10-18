@@ -201,6 +201,28 @@ retains its existing feedback lifetime. Reduce Motion shows one steady chevron
 instead, and enabling it removes any moving chevrons immediately. Single taps
 still toggle controls; native controls and open menus keep their own touches.
 
+The mobile on-demand player owns hardware-keyboard playback commands: Space
+toggles play/pause and Left/Right skip by the profile's configured intervals.
+Keyboard skips reuse the cumulative gesture feedback and real timeline, including
+while Up Next is visible. Commands yield to open menus, sheets, expanded cards,
+scrubbing, external playback, and inactive scenes. Mobile key events do not also
+enter the Apple TV remote recognizers. The native keyboard owner remains attached
+through loading and engine handoffs; the visible overlay supplies its current
+actions. Left/Right and Space have been confirmed on a physical iPad; simulated
+full-player key delivery remains an unresolved interaction-test limitation.
+
+Mobile Up Next uses a tappable episode card with spoiler-aware artwork, the show
+name and episode metadata, plus a separate dismiss control. There is no separate
+Play button; selecting the card advances to the next episode. Its countdown still
+follows playback time. The card shares a bottom stack with the measured transport
+content and stays above that reserved band even while controls are hidden, so
+revealing the timeline cannot cover the card or move its tap target. While the
+card is present, play/pause and both skip buttons sit above it in the same stack,
+with the title and timeline below it, instead of overlapping the card at the
+center of a narrow or large-text player. The thumbnail fills its content row,
+preserving equal outer insets even when the adjacent title wraps. Open player
+menus, expanded information cards and scrubbing temporarily hide Up Next.
+
 Holding on-demand video for at least one second temporarily accelerates moving
 playback to at most 2x when the engine supports it; shorter presses do not boost
 speed. Releasing, pausing, seeking, leaving the player, or backgrounding cancels
@@ -218,8 +240,62 @@ Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
 uses the existing session-only zoom state without reloading video or revealing
 the timeline. Authored subtitle geometry follows the displayed picture; ordinary
 captions retain their screen-relative placement. Inline, tvOS, and external
-playback keep their existing geometry. Horizontal seeking and brightness/volume
-swipes are not implemented.
+playback keep their existing geometry. Horizontal seeking on the video surface
+is not implemented.
+
+Vertical, one-finger swipes in the outer 30% of the video adjust screen brightness
+on the left and **system** volume on the right. The center, horizontal movement,
+system-edge gestures and native controls do not change either level. The
+profile-scoped Playback setting enables these gestures by default without
+changing tap-skipping, pinch or keyboard preferences. They work in full-screen
+on-demand and Live TV playback, including while Up Next is visible, but yield to
+menus, sheets, VoiceOver, external playback and inactive scenes. Multiview and
+inline Live TV do not adjust shared device outputs.
+
+Level feedback is a 32-by-156-point monochrome vertical capsule, inset 8 points
+from the respective safe-area edge. It fills upward with
+the swipe, without revealing the timeline. Only the fill and 16-point native output icon
+are visible; the percentage is available to accessibility, not drawn on screen.
+Volume uses the muted speaker at zero, then native one-, two- and three-wave
+speaker symbols across the lower, middle and upper thirds of its range.
+The icon is white over empty glass and black where covered by the fill, using
+the same bottom-aligned mask as the fill. This preserves contrast through zero,
+partial-icon crossings and full output without flipping the whole symbol at a
+threshold. Native glass and reduced-effects backgrounds share the same layout.
+The capsule slides through its nearest edge and scales on entry and exit,
+without fading; Reduce Motion presents and removes it without animation.
+Keep the feedback host mounted while idle so expiry can animate out.
+Once visible, its fixed 44-by-156-point hit region accepts direct taps and drags:
+the finger's vertical position sets the level absolutely, with the top at full.
+Direct contact widens the capsule inward to 44 points, preserving its edge inset;
+release returns it to 32 points. Ordinary screen swipes stay relative to the
+whole player height and do not widen the capsule. The existing gesture surface
+owns both interactions and excludes skipping, play/pause and speed holds during
+direct adjustment. Window-coordinate geometry keeps the hit region aligned
+with the safe-area-padded feedback, including Live TV and rotation. Expiry stays
+cancelled throughout contact and restarts 1.2 seconds after release.
+Dragging beyond full stretches the capsule upward; dragging below zero stretches
+it downward. The opposite end stays anchored while the body gently narrows,
+with increasing resistance and at most 20 points of extra height. Output remains
+clamped, the icon keeps its size, and release springs back without changing the
+level. Reduce Motion disables stretching and the spring.
+Successful adjustments emit subtle selection ticks on supported hardware after
+each further 5% movement from the last tick, in either direction. Small reversals
+do not repeatedly buzz. Reaching zero or full output emits a stronger light
+impact instead of a tick, not on every clamped update. Moving away and reaching a
+limit again re-arms the feedback; starting at a limit does not buzz immediately.
+Unavailable-output messages retain their wider inset and do not emit haptics.
+The system-volume bridge drives an `MPVolumeView`'s
+native slider, the same approach used by
+[AetherPlayer](https://github.com/superuser404notfound/AetherPlayer/blob/main/Sources/iOS/Player/PlayerSystemVolume.swift);
+it does not attenuate the engine or amplify past the system limit. The bridge
+belongs to the actual player view and is removed when the swipe ends, preserving
+the system hardware-button HUD elsewhere. An unavailable native output reports
+unavailability rather than pretending to change volume. Brightness is restored
+when playback leaves the foreground or closes, unless something else has since
+changed it. The fullscreen presentation owns that brightness lifetime across
+episode, channel and engine handoffs, not each replaceable gesture overlay.
+System volume remains at the user's chosen level.
 
 ## Mobile playback settings
 
@@ -785,7 +861,10 @@ the resumed position; it does not force playback merely to advance the clock.
 tvOS episode handoffs use the same range preparation for automatic advance, Next,
 Previous, and episode-picker selections. A matching in-flight/ready prefetch is
 reused; other selections from Plozzigen HDR playback resolve and probe before
-the outgoing engine stops. Matching HDR display classes retain Aether's display
+the outgoing engine stops. Silo is excluded from both speculative prefetch and
+pre-teardown HDR preparation: its inactive sessions can end before a signed
+URL expires. The incoming player negotiates a fresh session at playback time.
+Matching HDR display classes retain Aether's display
 criteria; unknown ranges, SDR, or native-engine transitions still reset normally.
 Cancelled handoffs release unadopted sessions and clear retained display criteria.
 The source-range decision does not establish HDMI output; physical-TV verification
@@ -823,6 +902,22 @@ Server decision codes, HTTP failures, native player errors, and startup timeouts
 remain distinct. Only allowlisted error domains and numeric codes enter the UI
 and playback journal; raw server messages and authenticated URLs do not.
 Transport failures and explicit authorization errors are not treated as codec incompatibility.
+Ordinary original-quality playback retains the same structured failure evidence
+as quality-limited playback on both platforms. Plozzigen uses the pinned engine's
+typed `errorInfo`, never message parsing. Expired/missing streams, rate limits,
+certificate failures, and exhausted device storage do not trigger engine swaps
+or server conversion. Retry negotiates again while retaining the selected file,
+quality, playback position, and account. Full-screen TV/mobile and Live TV
+interruptions use CoreUI's shared `PlaybackFailureView`: a short factual summary,
+Details, Retry and Back/Close actions. Quality and version controls remain in the
+regular player, not on the error screen; no recovery action promises success.
+Failure reports are captured before engine teardown and cleared for a new attempt.
+Details retains the provider, actual failure stage, engine, typed engine reason,
+bounded underlying error chain, HTTP status and known provider rejection codes.
+Readiness timeouts are not network timeouts, and HTTP 410 alone is not proof of
+idle-session expiry. Unknown causes stay unknown. Raw descriptions, URLs and
+credentials never enter a shareable report. Live TV retains its existing report
+format; retry exhaustion does not overwrite the original failure with advice.
 Plex bounded streams first validate the server's universal-transcoder decision
 with the same session and settings as the start request. HEVC uses fragmented
 MP4 HLS. Decision parsing reads only status codes and the output format; it must
@@ -831,8 +926,8 @@ Automatic recovery uses the observed/negotiated codec: a failed H.264
 conversion can request HEVC on a capable device; HEVC can fall back to H.264.
 There is one compatibility retry, not a loop through the same codec.
 The Plex H.264 fallback requests MPEG-TS at the unchanged budget.
-A missing converted resource may trigger this fallback too; it never falls back
-to the uncapped original. Decision status and numeric codes are retained without
+Missing or ended resources require a fresh user retry, not a codec change; retry
+never falls back to the uncapped original. Decision status and numeric codes are retained without
 copying raw server descriptions into the player.
 
 On iPhone/iPad diagnostics use a separate large, scrollable sheet, with stacked

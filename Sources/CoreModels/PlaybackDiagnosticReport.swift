@@ -1,12 +1,20 @@
 import Foundation
 
 /// A local, user-shared report. Only closed-vocabulary facts are exported.
-public enum LiveTVDiagnosticReport: Equatable, Sendable {
+public enum PlaybackDiagnosticReport: Equatable, Sendable {
+    public enum Stage: String, Sendable { case preparation, opening, playback }
+
     case setup(IPTVSetupDiagnostic)
     case playback(LiveChannelFailureReport)
+    case onDemand(
+        error: StreamingQualityError, provider: ProviderKind, engine: PlaybackEngineKind?,
+        stage: Stage, negotiatedCodec: DirectPlayVideoCodec? = nil,
+        retryCodec: DirectPlayVideoCodec? = nil
+    )
 
     public var message: LocalizedStringResource? {
         switch self {
+        case .onDemand(let error, _, _, _, _, _): return error.userMessage
         case .playback(let report): return report.message
         case .setup(let diagnostic):
             guard diagnostic.outcome == .failed, let failure = diagnostic.failure else { return nil }
@@ -29,6 +37,27 @@ public enum LiveTVDiagnosticReport: Equatable, Sendable {
         }
         func number(_ key: String, _ value: Int?) { field(key, value.map(String.init)) }
         switch self {
+        case .onDemand(let error, let provider, let engine, let stage, let codec, let retryCodec):
+            fields[0] = "format=plozz-playback-1"
+            field("operation", "playback")
+            field("content", "onDemand")
+            field("provider", provider.rawValue)
+            field("engine", engine?.rawValue)
+            field("stage", stage.rawValue)
+            field("failure", error.diagnosticCode)
+            field("negotiated_codec", codec?.rawValue)
+            field("retried_codec", retryCodec?.rawValue)
+            if case .playback(let failure) = error {
+                field("reason", failure.kind.rawValue)
+                field("engine_failure", failure.engineFailure?.rawValue)
+                field("provider_reason", failure.providerReason?.rawValue)
+                field("domain", failure.domain?.rawValue)
+                number("code", failure.code)
+                number("http_status", failure.httpStatus)
+                for (index, error) in failure.underlyingErrors.enumerated() {
+                    field("underlying_error_\(index)", "\(error.domain.rawValue):\(error.code)")
+                }
+            }
         case .setup(let diagnostic):
             field("operation", "setup")
             field("source", diagnostic.source.rawValue)
@@ -116,30 +145,33 @@ public enum LiveTVDiagnosticReport: Equatable, Sendable {
     static func providerMessage(httpStatus: Int?, networkCode: Int?) -> LocalizedStringResource? {
         switch httpStatus {
         case 401:
-            return "The provider rejected the login (HTTP 401). Check your account details."
+            return "The provider did not accept authorization for this request (HTTP 401)."
         case 403:
-            return "The provider refused access (HTTP 403). Contact your provider to check this account's access."
-        case 404, 410:
-            return "The provider could not find this playlist or stream. Refresh the source or check the address."
+            return "The provider refused access (HTTP 403)."
+        case 404:
+            return "The provider could not find the requested playlist or stream (HTTP 404)."
+        case 410:
+            return "The provider reported that this playlist or stream is no longer available (HTTP 410)."
         case 429, 509:
-            return "The provider is limiting requests. Wait before trying again."
+            return "The provider is limiting requests."
         case 451:
-            return AppError.accessRestricted.userMessage
+            return "The provider has restricted access to this stream (HTTP 451)."
         case .some(let status) where (500...599).contains(status):
-            return "The provider returned a server error (HTTP \(String(status))). Try again later."
+            return "The provider returned a server error (HTTP \(String(status)))."
         default: break
         }
         switch networkCode {
         case URLError.timedOut.rawValue:
-            return "The provider did not respond in time. Check your connection, then try again."
+            return "The request to the provider did not respond in time."
         case URLError.notConnectedToInternet.rawValue:
-            return "Your device is offline. Connect to the internet and try again."
+            return "Your device is offline."
         case URLError.cannotFindHost.rawValue, URLError.dnsLookupFailed.rawValue:
-            return "The provider's address could not be found. Check the address and your network's DNS settings."
+            return "The provider’s address could not be resolved."
         case URLError.secureConnectionFailed.rawValue, URLError.serverCertificateHasBadDate.rawValue,
              URLError.serverCertificateUntrusted.rawValue, URLError.serverCertificateHasUnknownRoot.rawValue,
-             URLError.serverCertificateNotYetValid.rawValue:
-            return "A secure connection to the provider could not be established. Check your device's date and contact your provider."
+             URLError.serverCertificateNotYetValid.rawValue,
+             URLError.clientCertificateRejected.rawValue, URLError.clientCertificateRequired.rawValue:
+            return "A secure connection to the provider could not be established."
         default: return nil
         }
     }

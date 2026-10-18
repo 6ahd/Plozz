@@ -7,6 +7,31 @@ import XCTest
 
 final class CrashDiagnosticsTests: XCTestCase {
     @MainActor
+    func testEveryDiagnosticSendAppendsSourceSnapshotAfterConsentCheck() {
+        var snapshots = 0
+        XCTAssertFalse(CrashDiagnostics.send(
+            logText: "activity", note: nil, isEnabled: false,
+            sourceDiagnostics: { snapshots += 1; return "source evidence" },
+            captureEvent: { _, _ in XCTFail("No consent"); return .empty },
+            captureFeedback: { _ in XCTFail("No consent"); return .empty }
+        ))
+        XCTAssertEqual(snapshots, 0)
+        XCTAssertTrue(CrashDiagnostics.send(
+            logText: "activity", note: nil, isEnabled: true,
+            sourceDiagnostics: { snapshots += 1; return "source evidence" },
+            captureEvent: { _, attachment in
+                XCTAssertEqual(
+                    attachment.data,
+                    Data("activity\n\n--- Persistent Live TV source diagnostics ---\nsource evidence".utf8)
+                )
+                return SentryId()
+            },
+            captureFeedback: { _ in SentryId() }
+        ))
+        XCTAssertEqual(snapshots, 1)
+    }
+
+    @MainActor
     func testSubmissionLinksAnonymousFeedbackToCapturedEventAndPreservesLog() {
         let capturedID = SentryId()
         var didCaptureEvent = false

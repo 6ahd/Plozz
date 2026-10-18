@@ -270,6 +270,7 @@ public final class PlayerViewModel {
     /// Per-profile playback prefs, including the per-kind skip modes and which
     /// community marker sources to consult.
     private let playbackSettings: PlaybackSettings
+    public var volumeBrightnessGesturesEnabled: Bool { playbackSettings.volumeBrightnessGestures }
     private let streamingQuality = StreamingPlaybackState()
     public var streamingOptions: StreamingPlaybackOptions? { streamingQuality.options }
     public var streamingQualitySupport: StreamingQualitySupport {
@@ -294,6 +295,7 @@ public final class PlayerViewModel {
         )
     }
     public var streamingQualityError: StreamingQualityError? { streamingQuality.error }
+    public var playbackFailureReport: PlaybackDiagnosticReport? { streamingQuality.failureReport }
     public var streamingPreparation: StreamingPreparationPhase { streamingQuality.preparation }
     public var streamingUsedH264Fallback: Bool { streamingQuality.fallbackCodec == .preferH264 }
     public var streamingUsedHEVCFallback: Bool { streamingQuality.fallbackCodec == .preferHEVC }
@@ -789,8 +791,8 @@ public final class PlayerViewModel {
                     let facts = failureEvidence
                     let canRetry = facts?.allowsCodecFallback ?? (error == .invalidResponse)
                     if (canRetry || facts?.kind == .hdrConversion), self.retryStreamingCodecIfNeeded(failure: facts) { return }
-                    self.streamingQuality.error = Self.streamingFailure(error, evidence: facts)
                 }
+                self.streamingQuality.error = Self.streamingFailure(error, evidence: failureEvidence)
                 await self.engineHandoff.handleEngineFailure(
                     error,
                     sourceEngineToken: callbackEngineToken
@@ -1069,6 +1071,7 @@ public final class PlayerViewModel {
     private func startPlayback(forceTranscode: Bool, resumeOverride: TimeInterval?) async {
         let streamingGeneration = streamingLoadGeneration
         streamingQuality.error = nil
+        streamingQuality.failureReport = nil
         streamingQuality.preparation = .requesting
         phase = .loading
         let bringUpStart = Date()
@@ -1170,15 +1173,15 @@ public final class PlayerViewModel {
             return
         } catch let error as StreamingQualityError {
             guard !didStop, streamingGeneration == streamingLoadGeneration else { return }
-            PlozzLog.playback.error("Selected streaming quality could not be delivered.")
+            PlozzLog.playback.error("Playback negotiation failed: \(error.diagnosticCode ?? "serverRefusal")")
             streamingQuality.error = error
+            capturePlaybackFailure(stage: .preparation)
             nextEpisodeCoordinator.clearFirstFrameWait()
             phase = .failed(.invalidResponse)
         } catch let error as AppError {
             guard !Task.isCancelled, !didStop, streamingGeneration == streamingLoadGeneration else { return }
-            if streamingOptions != nil {
-                streamingQuality.error = Self.streamingFailure(error, streamWasSupplied: false)
-            }
+            streamingQuality.error = Self.streamingFailure(error, streamWasSupplied: false)
+            capturePlaybackFailure(stage: .preparation)
             HandoffDiagnostics.emit(
                 "bringup FAILED item=\(itemID) provider=\(provider.kind.rawValue) "
                     + "error=\(HandoffDiagnostics.errorCode(error))"
@@ -1192,6 +1195,8 @@ public final class PlayerViewModel {
                     + "error=nonAppError"
             )
             nextEpisodeCoordinator.clearFirstFrameWait()
+            streamingQuality.error = .negotiationFailed
+            capturePlaybackFailure(stage: .preparation)
             phase = .failed(.unknown(""))
         }
     }
@@ -1425,6 +1430,13 @@ public final class PlayerViewModel {
         guard streamingOptions?.matchesSelection(options) != true || failed else { return }
         streamingQuality.options = options
         streamingQuality.fallbackCodec = nil
+        restartStreamingRendition()
+    }
+
+    public func retryPlayback() {
+        guard !didStop, case .failed = phase else { return }
+        streamingQuality.fallbackCodec = nil
+        engineHandoff.resetFallbackState()
         restartStreamingRendition()
     }
 
@@ -1882,10 +1894,9 @@ public final class PlayerViewModel {
     }
 
     /// Community markers for `item`, or none when no source is enabled or the item
-    /// lacks the ids the databases key on. For an episode without series ids, the
-    /// series' ids are resolved first (the injected resolver, then the provider's
-    /// series item).
-    private static func communitySegments(
+    /// lacks the ids the databases key on. The owning provider's series supplies
+    /// missing identity and numbering context without changing the playable item.
+    static func communitySegments(
         for item: MediaItem?,
         sources: CommunitySkipMarkerSources,
         duration: TimeInterval?,
@@ -1893,18 +1904,37 @@ public final class PlayerViewModel {
         seriesIDResolver: (@Sendable () async -> [String: String]?)?,
         service: any CommunitySkipMarkerFetching
     ) async -> [MediaSegment] {
-        guard !sources.isEmpty, var item else { return [] }
+        guard !sources.isEmpty, !Task.isCancelled, var item else { return [] }
+        if item.kind == .episode, let end = item.episodeNumberEnd, end != item.episodeNumber {
+            PlozzLog.playback.debug("Community markers omitted for a combined or invalid episode range")
+            return []
+        }
         var series: MediaItem?
-        if CommunitySkipMarkerQuery.needsSeriesIDs(item) {
-            if let resolved = await seriesIDResolver?(), !resolved.isEmpty {
-                if let imdb = resolved.providerID(.imdb) { item.providerIDs["SeriesImdb"] = imdb }
-                if let tmdb = resolved.providerID(.tmdb) { item.providerIDs["SeriesTmdb"] = tmdb }
-            }
-            if CommunitySkipMarkerQuery.needsSeriesIDs(item), let seriesID = item.seriesID {
-                series = try? await provider.item(id: seriesID)
+        let needsOrder = item.kind == .episode && sources.contains(.theIntroDB)
+            && item.episodeOrdering == nil
+        let needsTVDB = item.kind == .episode && sources.contains(.theIntroDB)
+            && item.providerID(.seriesTvdb) == nil
+        if CommunitySkipMarkerQuery.needsSeriesIDs(item) || needsOrder || needsTVDB {
+            if let seriesID = item.seriesID {
+                do {
+                    let candidate = try await provider.item(id: seriesID)
+                    guard !Task.isCancelled else { return [] }
+                    if candidate.kind == .series, candidate.id == seriesID {
+                        series = candidate
+                    } else {
+                        PlozzLog.playback.error("Community marker lookup received unrelated series metadata")
+                    }
+                } catch {
+                    guard !Task.isCancelled else { return [] }
+                    PlozzLog.playback.debug("Community marker series lookup failed; retaining known identity")
+                }
+            } else if let resolved = await seriesIDResolver?() {
+                guard !Task.isCancelled else { return [] }
+                item.providerIDs.mergeSeriesProviderIDs(from: resolved)
             }
         }
-        guard let query = CommunitySkipMarkerQuery(item: item, series: series, duration: duration) else { return [] }
+        guard !Task.isCancelled,
+              let query = CommunitySkipMarkerQuery(item: item, series: series, duration: duration) else { return [] }
         return await service.segments(for: query, sources: sources)
     }
 
@@ -2835,10 +2865,12 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
                 Task { @MainActor [self] in await releaseStreamingSession(request) }
             }
         }
-        if case .failed(let error) = phase, streamingOptions != nil {
+        if case .failed(let error) = phase {
             if streamingQuality.error == nil {
                 streamingQuality.error = Self.streamingFailure(error, evidence: engine.streamingFailure)
             }
+            capturePlaybackFailure(stage: request == nil ? .preparation
+                : engine.hasPresentedVideoFrame ? .playback : .opening)
             if self.phase == .ready {
                 streamingResumePosition = controls.pendingSeekTarget ?? currentResumePosition()
                 streamingTrackSnapshot = subtitleController.streamSnapshot()
@@ -2854,8 +2886,22 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
         self.phase = phase
     }
 
+    private func capturePlaybackFailure(stage: PlaybackDiagnosticReport.Stage) {
+        let retryCodec: DirectPlayVideoCodec?
+        switch streamingQuality.fallbackCodec {
+        case .preferHEVC: retryCodec = .hevc
+        case .preferH264: retryCodec = .h264
+        default: retryCodec = nil
+        }
+        streamingQuality.failureReport = .onDemand(
+            error: streamingQuality.error ?? .playback(.init(kind: .unknown)),
+            provider: provider.kind, engine: stage == .preparation ? nil : currentEngineKind,
+            stage: stage, negotiatedCodec: streamingNegotiatedVideoCodec, retryCodec: retryCodec
+        )
+    }
+
     func handoffHandleStartupTimeout() -> Bool {
-        guard streamingOptions != nil, !didStop else { return false }
+        guard !didStop else { return false }
         HandoffDiagnostics.emit("streaming STARTUP_TIMEOUT provider=\(provider.kind.rawValue) suppliedStream=\(request != nil)")
         let evidence = engine.streamingFailure
         if (evidence?.allowsCodecFallback != false || evidence?.kind == .hdrConversion),
@@ -2869,9 +2915,18 @@ extension PlayerViewModel: EngineHandoffCoordinatorHost {
     ) -> StreamingQualityError? {
         if let evidence { return .playback(evidence) }
         switch error {
+        case .serverUnreachable: return .playback(.init(kind: .network))
+        case .unauthorized, .invalidCredentials: return .authenticationRequired
+        case .accessRestricted: return .playback(.init(kind: .accessRestricted))
+        case .rateLimited: return .playback(.init(kind: .rateLimited))
+        case .notFound:
+            return streamWasSupplied ? .playback(.init(kind: .unavailable)) : .sourceUnavailable
+        case .conflict:
+            return .serverRefusal("The playback request conflicts with the server’s current state.", reason: .conflictingState)
         case .invalidResponse, .unknown:
             return streamWasSupplied ? .playback(.init(kind: .unknown)) : .negotiationFailed
-        case .decoding: return .malformedResponse
+        case .decoding:
+            return streamWasSupplied ? .playback(.init(kind: .unsupportedFormat)) : .malformedResponse
         default: return nil
         }
     }
@@ -2913,7 +2968,7 @@ extension PlayerViewModel: ForegroundReloadCoordinatorHost {
     }
 
     func reloadFail(_ error: AppError) {
-        phase = .failed(error)
+        handoffSetPhase(.failed(error))
     }
 }
 

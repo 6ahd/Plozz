@@ -15,6 +15,7 @@ struct PlozziOSSyncSetupSettingsView: View {
     @State private var showScanner = false
     @State private var showCodeEntry = false
     @State private var showReceive = false
+    @State private var scannedSourceInvite: SyncSetupSourceInvite?
     @State private var serverToReceive: SyncedAccountDescriptor?
     @State private var serverToSignIn: SyncedAccountDescriptor?
     @State private var serverPrompt: SyncedAccountDescriptor?
@@ -60,7 +61,9 @@ struct PlozziOSSyncSetupSettingsView: View {
         .onAppear { if case .idle = model.phase { model.startDiscovery() } }
         .onDisappear { model.stopDiscovery() }
         .plozzFullScreenCover(isPresented: $showReceive) {
-            PlozziOSSyncSetupReceiveView(appModel: appModel) { showReceive = false }
+            PlozziOSSyncSetupReceiveView(appModel: appModel, sourceInvite: scannedSourceInvite) {
+                showReceive = false
+            }
         }
         .plozzFullScreenCover(item: $serverToReceive) { server in
             PlozziOSSyncSetupReceiveView(appModel: appModel, requestedServer: server) {
@@ -98,9 +101,16 @@ struct PlozziOSSyncSetupSettingsView: View {
             )
             .presentationSizing(.page)
         }
-        .plozzFullScreenCover(isPresented: $showScanner) {
+        .plozzFullScreenCover(isPresented: $showScanner, onDismiss: {
+            if scannedSourceInvite != nil { showReceive = true }
+        }) {
             SyncSetupScannerScreen(
                 onCode: { code in
+                    if let invite = SyncSetupSourceInvite.decode(code) {
+                        scannedSourceInvite = invite
+                        showScanner = false
+                        return
+                    }
                     showScanner = false
                     guard !handled else { return }
                     handled = true
@@ -203,7 +213,7 @@ struct PlozziOSSyncSetupSettingsView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                Button { showScanner = true } label: {
+                Button { scannedSourceInvite = nil; showScanner = true } label: {
                     Label("Scan QR Code", systemImage: "qrcode.viewfinder")
                 }
                 Button { showCodeEntry = true } label: {
@@ -214,7 +224,7 @@ struct PlozziOSSyncSetupSettingsView: View {
             }
 
             SettingsSectionGroup("This Device") {
-                Button { showReceive = true } label: {
+                Button { scannedSourceInvite = nil; showReceive = true } label: {
                     Label("Set Up From Another Device", systemImage: "qrcode")
                 }
             }

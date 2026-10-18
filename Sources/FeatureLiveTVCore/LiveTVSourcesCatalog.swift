@@ -120,7 +120,7 @@ public final class LiveTVSourcesCatalog {
         do {
             guard let current = try admission.authority(),
                   current.authorization.profileID == admission.profileID else {
-                recordAdmissionFailure(stage: "initial")
+                recordAdmissionFailure(stage: .initial)
                 invalidate()
                 issue = .authorization
                 return
@@ -128,7 +128,7 @@ public final class LiveTVSourcesCatalog {
             try current.configuration.validate()
             authority = current
         } catch {
-            recordAdmissionFailure(stage: "configuration")
+            recordAdmissionFailure(stage: .configuration)
             invalidate()
             issue = .configuration
             return
@@ -157,7 +157,7 @@ public final class LiveTVSourcesCatalog {
             guard revision == request, !Task.isCancelled else { return }
             guard let prepared = try admission.authority(),
                   prepared.authorization.profileID == admission.profileID else {
-                recordAdmissionFailure(stage: "prepared")
+                recordAdmissionFailure(stage: .prepared)
                 invalidate()
                 issue = .authorization
                 return
@@ -182,7 +182,7 @@ public final class LiveTVSourcesCatalog {
             guard revision == request else { return }
             guard !Task.isCancelled, admission.isCurrent else {
                 let authorizationChanged = !admission.isCurrent
-                if authorizationChanged { recordAdmissionFailure(stage: "completed") }
+                if authorizationChanged { recordAdmissionFailure(stage: .completed) }
                 invalidate()
                 if authorizationChanged { issue = .authorization }
                 return
@@ -196,28 +196,40 @@ public final class LiveTVSourcesCatalog {
             guard revision == request else { return }
             if (Task.isCancelled || error is CancellationError), admission.isCurrent { return }
             let failure: Issue = admission.isCurrent ? .catalog : .authorization
-            if failure == .authorization { recordAdmissionFailure(stage: "error") }
+            if failure == .authorization { recordAdmissionFailure(stage: .error) }
             invalidate()
             issue = failure
         }
     }
 
-    private func recordAdmissionFailure(stage: String) {
-        guard HandoffDiagnostics.isEnabled else { return }
+    private func recordAdmissionFailure(stage: LiveTVSourceDiagnostics.Stage) {
+        var flags: [LiveTVSourceDiagnostics.Flag: Bool] = [
+            .hasSnapshot: admission.snapshot != nil, .authorized: admission.presentationIsAuthorized()
+        ]
         let state: String
         do {
             if let current = try admission.authority() {
+                flags[.present] = true
+                flags[.profileMatches] = current.authorization.profileID == admission.profileID
+                flags[.sameConfiguration] = current.configuration == admission.snapshot?.configuration
+                flags[.sameAuthority] = current.authorization == admission.snapshot?.authorization
                 state = "authorityPresent=true profileMatches=\(current.authorization.profileID == admission.profileID)"
                     + " configurationMatches=\(current.configuration == admission.snapshot?.configuration)"
                     + " authorizationMatches=\(current.authorization == admission.snapshot?.authorization)"
             } else {
+                flags[.present] = false
                 state = "authorityPresent=false"
             }
         } catch {
+            flags[.failed] = true
             state = "authorityReadFailed=true"
         }
+        LiveTVSourceDiagnostics.shared.record(
+            .sourcesRejected, identities: [.profile: admission.profileID], flags: flags,
+            reason: .authorizationChanged, stage: stage
+        )
         HandoffDiagnostics.emit(
-            "SOURCES event=rejected stage=\(stage) snapshotPresent=\(admission.snapshot != nil)"
+            "SOURCES event=rejected stage=\(stage.rawValue) snapshotPresent=\(admission.snapshot != nil)"
             + " presentationAuthorized=\(admission.presentationIsAuthorized()) \(state)"
         )
     }

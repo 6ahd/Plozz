@@ -40,6 +40,32 @@ public struct PlaybackFailureDiagnostic: Codable, Equatable, Sendable {
         case masterPlaylistRejected, vodSourceFailed, sourceRateLimited, softwarePipelineFailed
         case audioSessionFailed, reloadFailed, liveReloadNeverReady, audioTrackSwitchFailed
         case audioBridgeProducedNoOutput
+        case sourceCertificateRejected, storageExhausted
+
+        public var message: LocalizedStringResource? {
+            switch self {
+            case .sourceOpenFailed, .customSourceProbeFailed: "The player couldn’t open the playback source."
+            case .sourceRefused: "The server refused the playback request."
+            case .liveSourceUnavailable: "The player couldn’t open the live stream within its retry limit."
+            case .hlsPlaylistOnRawLivePath: "The player received an HLS playlist on a path that does not support playlists."
+            case .dolbyVisionRequiresHardware: "This Dolby Vision video requires a compatible hardware playback path."
+            case .demuxedAudioLiveUnsupported: "This playback path does not support the live stream’s audio delivery."
+            case .nativeItemFailed: "The system player reported a playback failure."
+            case .noPlayableTrackWithinBudget: "The player did not find a playable track before the startup time limit."
+            case .masterPlaylistRejected: "The system player rejected the HLS master playlist."
+            case .vodSourceFailed: "The playback source stopped providing media."
+            case .sourceRateLimited: "The streaming server is limiting requests."
+            case .softwarePipelineFailed: "The player’s software decoding pipeline failed."
+            case .audioSessionFailed: "The player could not start the audio session."
+            case .reloadFailed: "The player could not reload the playback source."
+            case .liveReloadNeverReady: "The player did not become ready after reloading the live stream."
+            case .audioTrackSwitchFailed: "The player could not switch audio tracks."
+            case .audioBridgeProducedNoOutput: "Audio conversion produced no encoded audio."
+            case .sourceCertificateRejected: "The secure connection failed certificate authentication."
+            case .storageExhausted: "The player ran out of space for temporary video data."
+            case .none, .unknown: nil
+            }
+        }
     }
 
     public let layer: Layer

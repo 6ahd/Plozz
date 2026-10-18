@@ -655,7 +655,7 @@ private struct LiveTVMultiviewPaneControl: View {
             if let failure = pane.preparation.failure {
                 LiveTVMultiviewFailure(
                     message: pane.preparation.playbackFailure?.message ?? failure.userDescription,
-                    report: pane.preparation.playbackFailure.map(LiveTVDiagnosticReport.playback),
+                    report: pane.preparation.playbackFailure.map(PlaybackDiagnosticReport.playback),
                     hasCurrentPicture: pane.preparation.current != nil,
                     retry: retry, replace: replace, editing: editing
                 )
@@ -736,7 +736,7 @@ private struct LiveTVMultiviewCaption: View {
 
 private struct LiveTVMultiviewFailure: View {
     let message: LocalizedStringResource
-    let report: LiveTVDiagnosticReport?
+    let report: PlaybackDiagnosticReport?
     let hasCurrentPicture: Bool
     let retry: () -> Void
     let replace: () -> Void
@@ -755,7 +755,7 @@ private struct LiveTVMultiviewFailure: View {
         .frame(maxWidth: .infinity, maxHeight: hasCurrentPicture ? nil : .infinity)
         .background(.black.opacity(0.78))
         .plozzSheet(isPresented: $showsDetails) {
-            if let report { LiveTVDiagnosticDetailsSheet(report: report) }
+            if let report { PlaybackDiagnosticDetailsSheet(report: report) }
         }
     }
 

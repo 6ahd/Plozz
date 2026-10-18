@@ -232,6 +232,26 @@ struct PlexMetadata: Decodable {
     /// Plex Pass intro/credits markers, present only when the metadata request
     /// passes `includeMarkers=1`. Offsets are in milliseconds.
     let Marker: [PlexMarker]?
+    let Preferences: PlexItemPreferences?
+}
+
+struct PlexItemPreferences: Decodable {
+    struct Entry: Decodable {
+        let id: String
+        let episodeOrdering: String?
+
+        private enum CodingKeys: String, CodingKey { case id, value }
+
+        init(from decoder: Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            id = try values.decode(String.self, forKey: .id)
+            // Other settings can have numeric/bool values; they are not order metadata.
+            episodeOrdering = id == "episodeOrdering"
+                ? try values.decodeIfPresent(String.self, forKey: .value) : nil
+        }
+    }
+
+    let Setting: [Entry]?
 }
 
 /// One entry from a Plex item's `Image` array. `type` names the variant

@@ -44,6 +44,19 @@ first-class backends; co-equal with `ProviderJellyfin`.
   rewrites the stored admin account's token; per-user tokens live in a
   short-lived override map.
 
+## Episode identity and order
+
+Full item metadata requests include GUIDs and preferences. The series'
+`Preferences.Setting` entry named `episodeOrdering` supplies the explicit
+TVDB aired/DVD/absolute or TMDB aired numbering system. Unrecognized values
+stay unknown, and an absent/inherited order is not guessed from the library
+agent or title. Episode `Guid` TVDB IDs remain episode IDs, separate from
+the parent's TVDB identity; community markers can pin that exact episode.
+Preference retrieval follows
+[PlexAPI's advanced-settings contract](https://github.com/pushingkarmaorg/python-plexapi/blob/master/plexapi/mixins/advanced_settings.py);
+Plex's [metadata-provider schema](https://developer.plex.tv/pms/) documents
+the `SeasonType` identifiers.
+
 ## Home recommendations
 
 `homeHubs` reads `/hubs/promoted` for the current user's Home-promoted rows,
@@ -202,6 +215,19 @@ improve startup. [Apple's HLS specification](https://developer.apple.com/documen
 requires fMP4 for HEVC and separate WebVTT text files.
 
 Tests: `PlexStreamingQualityTests` and `StreamingPlaybackTests`.
+
+## Original-file playback versus downloads
+
+Native playback, Plozzigen's local-remux source, and scrub-frame extraction use
+the original `/library/parts/...` URL without `download=1`. Only the explicit
+offline-download source includes that flag. Reusing the download URL for player
+buffering can make Plex's activity dashboard show transient download tasks.
+Both variants retain the same selected media part, credential-free locator,
+original bytes, and current-account authentication. This does not change engine
+selection, quality limits, or server-transcode negotiation.
+
+Tests: `ProviderPlexTests` covers MKV local remux, native MP4 playback, scrubbing,
+selected media versions, and the separately preserved offline-download URL.
 
 ## Playback session reporting
 

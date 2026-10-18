@@ -6,6 +6,7 @@ import CrashReporting
 import FeatureHomeCore
 import FeatureProfiles
 import FeatureSettings
+import FeatureSyncSetup
 import Foundation
 import SwiftUI
 import UIKit
@@ -387,11 +388,20 @@ public struct PlozziOSRootView: View {
             }
         }
         .plozzSheet(item: pendingPairingBinding) { pairing in
-            PlozziOSSyncSetupDeepLinkView(
-                appModel: appModel,
-                invite: pairing.invite,
-                onClose: { appModel.pendingPairingInvite = nil }
-            )
+            Group {
+                if let invite = SyncSetupSourceInvite.decode(pairing.invite) {
+                    PlozziOSSyncSetupReceiveView(
+                        appModel: appModel, sourceInvite: invite,
+                        onClose: { appModel.pendingPairingInvite = nil }
+                    )
+                } else {
+                    PlozziOSSyncSetupDeepLinkView(
+                        appModel: appModel,
+                        invite: pairing.invite,
+                        onClose: { appModel.pendingPairingInvite = nil }
+                    )
+                }
+            }
             .preferredColorScheme(resolvedPalette.isLight ? .light : .dark)
         }
         .environment(\.themePalette, resolvedPalette)
@@ -1595,7 +1605,7 @@ struct PlozziOSDownloadsTabLabel: View {
 
 // Reject the native transition before it changes navigation insets or scroll position.
 // Rejecting only the SwiftUI selection binding is too late for an action-only tab.
-private struct PlozziOSSettingsTabAction: UIViewControllerRepresentable {
+struct PlozziOSSettingsTabAction: UIViewControllerRepresentable {
     let tabIndex: Int?
     let action: () -> Void
 
@@ -1645,6 +1655,11 @@ private struct PlozziOSSettingsTabAction: UIViewControllerRepresentable {
                         owner = tabs
                     }
                     if tabs.delegate !== self {
+                        // SwiftUI can overlap old and replacement bridges. Never
+                        // chain them: a later layout would link the old one back.
+                        if let previous = tabs.delegate as? Controller {
+                            previous.restore()
+                        }
                         previousDelegate = tabs.delegate
                         tabs.delegate = self
                     }

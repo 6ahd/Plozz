@@ -2,6 +2,88 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/058",
+      "version": "2026.10.18",
+      "marketingVersion": "2026.9.25",
+      "build": 58,
+      "releasedAt": "2026-10-18",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "Scan a QR code on Apple TV to set up Plozz on your iPhone or iPad on the same Wi-Fi.",
+            {
+              "text": "Use a connected keyboard to play or pause on-demand video with Space and skip with the arrow keys.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Swipe up or down on full-screen video to adjust brightness on the left or volume on the right. Tap or drag the level meter for finer adjustments.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Requested future seasons show “Requested · Unreleased” instead of “Processing.”",
+            "Clearer sign-in codes and device setup summaries, with full names and scrollable lists.",
+            "Automatically Sign In is now in individual profile settings, with clearer device-only guidance.",
+            "Community skip markers better match episode order and runtime, and avoid single-episode timings for combined files.",
+            "Clearer playback errors with optional technical Details and simpler controls.",
+            "Retry playback while keeping the selected version, quality and playback position.",
+            {
+              "text": "Detail-page actions wrap more clearly on smaller screens and at larger text sizes.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Up Next shows episode artwork in a tappable card that stays clear of the playback controls.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            {
+              "text": "Device setup closing when competing startup prompts appear.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Automatic device setup hiding progress, errors, Retry or Cancel.",
+              "platforms": ["tvOS"]
+            },
+            "Device setup waiting indefinitely for an unavailable nearby connection.",
+            {
+              "text": "Nearby-device setup codes becoming difficult to read when focused.",
+              "platforms": ["tvOS"]
+            },
+            "Disabled Plex sources asking for a Home PIN when entering a profile.",
+            {
+              "text": "iCloud settings updates interrupting Plex PIN entry or resetting the current Plex sign-in.",
+              "platforms": ["iOS"]
+            },
+            "Plex playback and scrub previews being treated as download requests.",
+            "Deleted profiles returning through iCloud, including after missed deletions.",
+            "Deleting a profile affecting the remaining profiles' settings or the household parental PIN.",
+            "Old or interrupted iCloud updates overwriting changes to Live TV sources from media servers.",
+            "Playback Info badges becoming unreadable when browsing in a light theme.",
+            {
+              "text": "Player labels and screen transitions ignoring Reduce Motion, or reduced effects shifting detail layouts.",
+              "platforms": ["tvOS"]
+            },
+            "Home artwork transitions not respecting Reduce Motion.",
+            {
+              "text": "Episode thumbnails appearing enlarged before receiving focus.",
+              "platforms": ["tvOS"]
+            },
+            "Silo next-episode playback reusing a session that could expire before playback began.",
+            "Missing or expired streams triggering unnecessary player compatibility retries.",
+            "Live TV losing the original failure details after automatic retries."
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/057",
       "version": "2026.10.17",
       "marketingVersion": "2026.9.25",

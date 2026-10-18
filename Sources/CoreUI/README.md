@@ -11,6 +11,42 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   lift-and-move and context-menu movement. It has no Hidden divider or Hide/Show
   actions. Existing callers keep the reorder-and-hide behavior by default.
 
+- **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
+  error layout, bounded symbol inline with the heading, readable summary, adaptive
+  native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns
+  its dark palette without changing browsing themes. Its opaque themed surface
+  stays legible over video without depending on glass or motion.
+  `PlaybackDiagnosticDetailsView` is shared by on-demand playback, Live TV and
+  IPTV setup. It renders and shares only the structured `PlaybackDiagnosticReport`,
+  including app/OS identity; it is not the continuously sampled diagnostics HUD.
+
+- **Touch hero actions** — `HeroActionRow` preserves readable intrinsic widths
+  before falling back to a vertical arrangement. `TouchHeroActionButtonStyle`
+  lets labels wrap and uses bounded 24pt corners so tall accessibility-size
+  content stays inside the button surface. Circular actions retain their 48pt
+  touch targets and cap glyph scaling at XXX Large; text buttons continue to
+  honor the full accessibility text size.
+
+- **Setup presentation** — `ConnectionCodeView` shares the readable monospaced
+  code panel across server sign-in and device pairing. `SetupCodeComparisonView`
+  keeps both devices' confirmation copy and code treatment consistent while
+  callers retain confirmation and cancellation ownership. `SetupSectionCard`
+  groups methods and counted summaries without styling native controls.
+  `SetupSummaryView` scrolls the heading, full server names, and supplied profile
+  grid while keeping Done/Continue reachable. TV rows and profile tiles provide
+  native focus targets so the remote can reach long summaries. TV summaries scroll
+  to the page's top edge, with initial header spacing inside the scroll content
+  rather than an inset clipping boundary. `VerticalEdgeFadeMask` softens only the
+  bottom above the fixed action while more content remains; the final rows stay
+  undimmed at the end.
+
+- **Reduce Motion** — `ReducedMotion` suppresses explicit and implicit SwiftUI
+  animations at the TV app root without removing layout offsets or replacing
+  view identity. Native hero artwork uses a crossfade instead of a parallax wipe;
+  changing the system preference finishes an in-flight wipe. Timeline-driven
+  liquid backgrounds and player-menu marquees also stop their decorative motion.
+  Native focus feedback and meaningful playback/countdown progress remain available.
+
 - **First-use choices** — `FirstUseChoiceView` shares the Live TV preview and
   playback-version introduction heading, native actions, and Settings reminder.
   Hosts own persistence and cancellation; dismissing a version prompt never
@@ -414,6 +450,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   The alpha-derived highlight mask produced an offset crescent at extreme tilt.
   Continue Watching, landscape/square artwork, transparent landscape library
   covers keep their no-internal-zoom alpha-masked path.
+  Alpha-masked images arm native enlargement only on actual focus and release
+  it after the native defocus animation. This keeps newly mounted episode
+  previews at their 480pt artwork width with 40pt gaps, rather than painting
+  every preview at its enlarged focus width. Portraits keep UIKit's mask active
+  at rest so opaque artwork retains its native rounded corners.
   Portrait artwork and placeholders are opaque rectangles; UIKit alone rounds
   the visible surface. Pre-rounded alpha pixels beneath that native mask create
   a second corner silhouette that can separate from the highlight. Transparent

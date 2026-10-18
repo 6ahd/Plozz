@@ -746,8 +746,12 @@ final class StreamingPlaybackTests: XCTestCase {
     }
 
     func testAuthenticationErrorsRemainAuthenticationErrors() {
-        XCTAssertNil(PlayerViewModel.streamingFailure(.unauthorized))
-        XCTAssertNil(PlayerViewModel.streamingFailure(.serverUnreachable))
+        XCTAssertEqual(PlayerViewModel.streamingFailure(.unauthorized), .authenticationRequired)
+        XCTAssertEqual(PlayerViewModel.streamingFailure(.serverUnreachable), .playback(.init(kind: .network)))
+        XCTAssertEqual(PlayerViewModel.streamingFailure(.notFound, streamWasSupplied: false), .sourceUnavailable)
+        XCTAssertEqual(PlayerViewModel.streamingFailure(.notFound), .playback(.init(kind: .unavailable)))
+        XCTAssertEqual(PlayerViewModel.streamingFailure(.decoding, streamWasSupplied: false), .malformedResponse)
+        XCTAssertEqual(PlayerViewModel.streamingFailure(.decoding), .playback(.init(kind: .unsupportedFormat)))
         XCTAssertEqual(PlayerViewModel.streamingFailure(.invalidResponse), .playback(.init(kind: .unknown)))
         XCTAssertEqual(PlayerViewModel.streamingFailure(.invalidResponse, streamWasSupplied: false), .negotiationFailed)
     }
@@ -872,19 +876,63 @@ final class StreamingPlaybackTests: XCTestCase {
         await model.stop()
     }
 
-    func testMissingConvertedResourceRetriesAFreshH264SessionOnce() async {
+    func testMissingConvertedResourceDoesNotPretendChangingCodecWillFixIt() async {
         let (model, engine, provider) = make(options: .init(quality: .low, codec: .preferHEVC))
         await model.load()
         engine.streamingFailure = .init(kind: .unavailable, domain: .url, code: -1100)
         engine.onFailure?(.invalidResponse)
-        await wait { engine.positions.count == 2 && model.phase == .ready }
-        let calls = await provider.calls
-        XCTAssertEqual(calls.map { $0.options.quality }, [.low, .low])
-        XCTAssertEqual(calls.last?.options.codec, .preferH264)
-        engine.onFailure?(.invalidResponse)
         await wait { if case .failed = model.phase { return true }; return false }
         let final = await provider.calls
-        XCTAssertEqual(final.count, 2)
+        XCTAssertEqual(final.count, 1)
+        XCTAssertEqual(model.streamingQualityError, .playback(.init(kind: .unavailable, domain: .url, code: -1100)))
+        await model.stop()
+    }
+
+    func testOrdinaryPlaybackRetainsEndedSessionEvidenceAndRetryResolvesAgain() async {
+        let (model, engine, provider) = make(options: nil)
+        await model.load()
+        engine.currentTime = 125
+        let failure = StreamingPlaybackFailure(kind: .unavailable, httpStatus: 410, provider: .silo)
+        engine.streamingFailure = failure
+        engine.onFailure?(.unknown("https://private.test?token=secret"))
+        await wait { if case .failed = model.phase { return true }; return false }
+        XCTAssertEqual(model.streamingQualityError, .playback(failure))
+        XCTAssertEqual(model.streamingQualityError?.diagnosticCode, "HTTP 410")
+        XCTAssertEqual(engine.status, .idle)
+        XCTAssertTrue(model.playbackFailureReport?.supportText.contains("http_status=410") == true)
+        XCTAssertTrue(model.playbackFailureReport?.supportText.contains("stage=opening") == true)
+        let before = await provider.ordinaryCalls
+        XCTAssertEqual(before, 1)
+        XCTAssertFalse(String(localized: model.streamingQualityError!.userMessage).contains("secret"))
+
+        engine.streamingFailure = nil
+        model.retryPlayback()
+        await wait { model.phase == .ready && engine.positions.count == 2 }
+        let after = await provider.ordinaryCalls
+        XCTAssertEqual(after, 2, "Retry must negotiate a fresh session, not reopen the ended URL.")
+        XCTAssertEqual(engine.positions.last, 125)
+        XCTAssertNil(model.streamingQualityError)
+        XCTAssertNil(model.playbackFailureReport, "A retry must not show the previous attempt’s evidence.")
+        await model.stop()
+    }
+
+    func testOrdinaryPlaybackAuthenticationDoesNotAttemptConversion() async {
+        let (model, engine, provider) = make(options: nil)
+        await model.load()
+        engine.onFailure?(.unauthorized)
+        await wait { if case .failed = model.phase { return true }; return false }
+        XCTAssertEqual(model.streamingQualityError, .authenticationRequired)
+        let ordinaryCalls = await provider.ordinaryCalls
+        XCTAssertEqual(ordinaryCalls, 1)
+        await model.stop()
+    }
+
+    func testOrdinaryStartupTimeoutRetainsItsCause() async {
+        let (model, _, _) = make(options: nil)
+        await model.load()
+        XCTAssertFalse(model.handoffHandleStartupTimeout())
+        model.handoffSetPhase(.failed(.invalidResponse))
+        XCTAssertEqual(model.streamingQualityError, .startupTimedOut)
         await model.stop()
     }
 

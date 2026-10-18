@@ -129,6 +129,7 @@ extension AppState {
                 guard let appState else { return }
                 await appState.traktService.refreshStatus()
                 await appState.simklService.refreshStatus()
+                await appState.wetrakrService.refreshStatus()
                 await appState.anilistService.refreshStatus()
                 await appState.malService.refreshStatus()
             }
@@ -210,7 +211,7 @@ extension AppState {
     /// no code, no QR. Mirrors the iOS source-side behavior so a TV can set up a phone.
     public func checkForSyncSetupOffer() {
         guard SyncSetupFeatureFlag().isEnabled,
-              !isAutoAdoptingSyncSetup,
+              !isPresentingSyncSetup,
               cloudSyncUI.pendingSyncSetupOffer == nil else { return }
         let localIDs = Set(accountsProviders.accounts.map(\.id))
         guard !localIDs.isEmpty else { return }   // nothing to give
@@ -229,26 +230,12 @@ extension AppState {
         cloudSyncUI.pendingSyncSetupOffer = offer
     }
 
-    /// The user confirmed — push config + credentials to the offered device over the
-    /// local pairing channel (pinned key ⇒ no SAS, no typing).
-    public func confirmSyncSetupOffer() {
-        guard !profileFlow.managementRequiresParentalPIN else { return }
-        guard let offer = cloudSyncUI.pendingSyncSetupOffer else { return }
-        cloudSyncUI.pendingSyncSetupOffer = nil
-        isAutoAdoptingSyncSetup = true
-        let model = SyncSetupPairingModel(service: syncSetup)
-        Task { @MainActor in
-            await model.adopt(offer)
-            isAutoAdoptingSyncSetup = false
+    /// The user closed this offer's flow. Do not discard a newer, unseen request.
+    public func declineSyncSetupOffer(_ offer: SyncPairingRendezvous) {
+        dismissedSyncSetupOfferKeys.insert(Self.syncSetupOfferKey(offer))
+        if cloudSyncUI.pendingSyncSetupOffer == offer {
+            cloudSyncUI.pendingSyncSetupOffer = nil
         }
-    }
-
-    /// The user declined — don't re-prompt for this exact offer this session.
-    public func declineSyncSetupOffer() {
-        if let offer = cloudSyncUI.pendingSyncSetupOffer {
-            dismissedSyncSetupOfferKeys.insert(Self.syncSetupOfferKey(offer))
-        }
-        cloudSyncUI.pendingSyncSetupOffer = nil
     }
 
     private static func syncSetupOfferKey(_ offer: SyncPairingRendezvous) -> String {
@@ -371,7 +358,7 @@ extension AppState {
     /// invariant). NEVER tokens; NOT the device-local active-profile selection.
     public func captureSyncRecords(fallback: [SyncRecordID: Data]) -> [SyncRecordID: Data] {
         var out: [SyncRecordID: Data] = [:]
-        let localProfileIDs = Set(profilesModel.profiles.map(\.id))
+        let localProfileIDs = Set(profilesModel.profilesForSync.map(\.id))
 
         // Descriptors: this device's signed-in accounts PLUS the ones it has synced
         // but isn't signed into (pending). H2: keep the last-synced bytes when the
@@ -395,9 +382,8 @@ extension AppState {
                 out[SyncRecordKey(kind: .removal, id: id).recordName] = data
             }
         }
-        // Profiles (default ALWAYS included ⇒ never sync-deleted), their membership,
-        // and per-key settings.
-        for p in profilesModel.profiles {
+        // The surviving profiles, their membership, and per-key settings.
+        for p in profilesModel.profilesForSync {
             if let data = CanonicalJSON.encode(ProfileSyncDTO(profile: p)) {
                 out[SyncRecordKey(kind: .profile, id: p.id).recordName] = data
             }
@@ -552,7 +538,7 @@ extension AppState {
 
         accountsProviders.applySyncedMediaShareLibraries(receivedDescriptors)
 
-        // 1. Profiles: cosmetic upserts + deletions (default never deleted).
+        // 1. Profiles: cosmetic upserts + authoritative deletions.
         // Accounts this device KNOWS aren't Plex. Synced ids for servers not
         // signed in here have an unknown provider, and are deliberately treated
         // as possibly-Plex — see `noteIdentityQuestions`.
@@ -572,8 +558,7 @@ extension AppState {
         // parental gate can only tell that happened if it knows where we were.
         let outgoingProfile = profilesModel.activeProfile
         if !profileUpserts.isEmpty || !profileDeletes.isEmpty {
-            for profileID in profileDeletes
-            where profileID != ProfileStore.defaultProfileID {
+            for profileID in profileDeletes {
                 removeMediaAliases(forProfileID: profileID)
             }
             profilesModel.applySyncedProfileDTOs(profileUpserts, deletions: profileDeletes)
@@ -896,12 +881,13 @@ extension AppState {
     func captureMediaStateSyncRecords(
         fallback: [SyncRecordID: Data]
     ) async -> [SyncRecordID: Data] {
+        var captured = fallback
         do {
-            var captured = try await mediaAliasLedger.captureAllAliasSyncRecords(
-                profileIDs: profilesModel.profiles.map(\.id),
+            captured = try await mediaAliasLedger.captureAllAliasSyncRecords(
+                profileIDs: profilesModel.profilesForSync.map(\.id),
                 fallback: fallback
             )
-            for profile in profilesModel.profiles {
+            for profile in profilesModel.profilesForSync {
                 try universalWatchlist.hydrate(profileID: profile.id)
                 captured.merge(
                     try universalWatchlist.captureSyncRecords(
@@ -911,12 +897,17 @@ extension AppState {
                     uniquingKeysWith: { _, watchlist in watchlist }
                 )
             }
-            return captured
         } catch {
             PlozzLog.sync.error(
                 "Media aliases: capture failed; preserving sync baseline: \(error.localizedDescription)"
             )
-            return fallback
+            captured = fallback
+        }
+        let pending = profilesModel.pendingSyncedDeletionProfileIDs
+        return captured.filter { name, _ in
+            let profileID = MediaStateRecordKey.parse(name)?.profileID
+                ?? WatchlistMediaStateRecordKey.parse(name)?.profileID
+            return profileID.map { !pending.contains($0) } ?? true
         }
     }
 

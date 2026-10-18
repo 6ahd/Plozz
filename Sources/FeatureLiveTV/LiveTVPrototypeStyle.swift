@@ -417,7 +417,7 @@ struct PrototypeControlSurface: View {
 enum PrototypeSheet: Identifiable {
     case filters, sources, guideTime, addPlaylist, serverSetup, multiviewFavorites, organization
     case program(LiveTVPrototypeProgram)
-    case diagnostics(LiveTVDiagnosticReport)
+    case diagnostics(PlaybackDiagnosticReport)
 
     var id: String {
         switch self {

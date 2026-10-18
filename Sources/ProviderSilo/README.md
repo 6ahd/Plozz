@@ -145,7 +145,13 @@ These Home and device-login contracts were checked at upstream revision
   includes Silo's `hls` stream-container token, not only segment containers.
   The provider accepts original HTTP or HLS
   plans with a source-aligned seekable timeline; incompatible plans are released,
-  not played with an incorrect clock. Progress samples are sequenced and stop
+  not played with an incorrect clock. Refusals explain the rejected timeline,
+  missing seek support, source mismatch, or unsupported delivery/authentication,
+  including ordinary TV playback without explicit quality options. Raw server
+  text and signed addresses are never user-facing explanations.
+  Next-episode playback resolves on demand, not during the previous episode:
+  protocol-3 sessions without playback activity can expire independently of
+  their signed URL's expiry. Progress samples are sequenced and stop
   requests carry an idempotent stop identifier.
 - Watched state and the native Silo watchlist write back to Silo. Batched resume
   synchronization checks each result, not only HTTP success.

@@ -12,37 +12,37 @@ public enum LiveChannelPlaybackFailure: Equatable, Sendable {
 
     public var message: LocalizedStringResource {
         switch self {
-        case .startupTimedOut: "The channel did not present video in time."
-        case .bufferingTimedOut: "The channel stopped delivering playable video."
-        case .recoveryExhausted: "This channel keeps disconnecting. Try again or choose another channel."
+        case .startupTimedOut: "The player did not present channel video before the startup time limit."
+        case .bufferingTimedOut: "The player did not resume channel video before the buffering time limit."
+        case .recoveryExhausted: "The player could not recover this channel within its retry limit."
         case .engine(let error): Self.engineMessage(error)
         case .input(let error): error.message
         case .library(let error): error.message
-        case .ended: "The channel stopped playing."
-        case .initializationFailed: "The player could not be started. Close playback and try again."
+        case .ended: "The channel’s stream ended."
+        case .initializationFailed: "The player could not be started."
         }
     }
 
     public static func engineMessage(_ error: AppError) -> LocalizedStringResource {
         switch error {
         case .notFound:
-            "The channel provider could not find this stream. Its playlist link may be outdated, or the feed may be temporarily off air."
+            "The channel provider could not find this stream."
         case .unauthorized, .invalidCredentials:
-            "The channel provider refused access to this stream. Check your account details or contact your provider."
+            "The channel provider did not authorize access to this stream."
         case .accessRestricted:
-            error.userMessage
+            "The provider has restricted access to this stream."
         case .serverUnreachable:
-            "Plozz could not reach the channel's streaming server. Check your internet connection or try again later."
+            "Plozz could not reach the channel’s streaming server."
         case .rateLimited:
-            "The channel provider is limiting requests. Wait before trying again."
+            "The channel provider is limiting requests."
         case .invalidResponse:
-            "The channel's playlist or video data could not be opened. Its link may be outdated or the feed may be temporarily unavailable."
+            "The channel’s playlist or video data could not be opened."
         case .decoding:
-            "The player could not decode this channel's audio or video. Try another stream version or channel."
+            "The player could not decode this channel’s audio or video."
         case .cancelled:
             "Opening this channel was cancelled."
         default:
-            "Plozz could not start playback. Retry or choose another channel."
+            "Plozz could not start playback. No more specific cause was captured."
         }
     }
 
@@ -85,10 +85,10 @@ public struct LiveChannelFailureReport: Equatable, Sendable {
     public var message: LocalizedStringResource {
         switch failure {
         case .engine:
-            LiveTVDiagnosticReport.providerMessage(
+            PlaybackDiagnosticReport.providerMessage(
                 httpStatus: diagnostic?.httpStatus,
                 networkCode: diagnostic?.domain == .url ? diagnostic?.code : nil
-            ) ?? failure.message
+            ) ?? diagnostic?.engineFailure.message ?? failure.message
         default: failure.message
         }
     }

@@ -10,6 +10,9 @@ language every other module speaks.
 - The dual-provider abstraction: `MediaProvider` protocol, `ProviderKind`,
   `ProviderRegistry` / `ProviderResolving`, `ResolvedAccount`.
 - Cross-cutting UI state: `LoadState`, `AppError`.
+- `PlaybackDiagnosticReport` supplies privacy-safe failure Details for on-demand
+  playback, Live TV and IPTV setup. Preserve typed reasons and numeric causes,
+  distinguish preparation/opening/playback, and never export raw error text.
 - Shared decode/encode helpers: `JSONDecoder.plozz`, `JSONEncoder.plozz`.
 - Subtitle behaviour + appearance model: `SubtitleBehavior`, `SubtitleStyle`,
   plus the neutral `SubtitleColor` / `SubtitleEdgeStyle` / `SubtitleMode` primitives.
@@ -88,6 +91,34 @@ contracts before they can become templates in this editor. Do not overload an
 existing `HomeRowID` to represent independent instances or change provider IDs
 to make them unique in the UI.
 
+## Profile deletion and namespace ownership
+
+Any profile may be deleted while at least one remains. Both cloud adapters apply
+the original/default profile's deletion and omit deleted profiles, membership and
+settings from capture, allowing the existing durable sync ledger to delete their
+CloudKit records. A deletion arriving before the remaining profile records holds
+a persisted, non-publishing placeholder until a replacement arrives or is added;
+`profilesForSync` excludes it so a restart cannot recreate the deleted record.
+Live TV and media-state captures also exclude `pendingSyncedDeletionProfileIDs`,
+including preserved fallback records, without erasing the temporary local data.
+The revisioned household Parental PIN moves to the first surviving profile rather
+than disappearing with its former anchor.
+
+Legacy unnamespaced settings have a recorded owner. Retain that former owner's
+stored ID after deletion, even though the live `rootNamespaceOwnerID` is nil.
+Erasing this marker reruns migration on launch and hands the deleted profile's
+settings and Live TV source storage to another profile. Survivor namespaces never
+change because the roster is reordered or its first entry is deleted.
+
+The shared CloudKit inventory repair also heals deletions missed by an older
+incremental cursor. Inventory absence alone never authorizes removal: only an
+explicit per-record `unknownItem` can remove an unchanged, previously synced
+entry. New uploads, dirty edits, pending local deletions, and changes made during
+verification are retained. Repair is fenced by engine, iCloud account, and
+channel authority; it uses the normal persisted ledger and profile apply path.
+Startup and foreground checks are throttled only after a complete repair, while
+manual Sync Now checks the inventory without that throttle.
+
 ## Version picker facts
 
 `MediaVersion.PickerPresentation` is the shared detail/player summary on TV and
@@ -155,6 +186,22 @@ device, outside `PlaybackSettings` and `ProfileSettingsTransfer`. Profile change
 sync and transfer must not overwrite this local storage/network choice.
 Missing or invalid values use `PlaybackReadAhead.default` (Automatic); invalid
 persisted values are logged without their contents.
+
+## Season request status
+
+Season request labels distinguish approved requests awaiting a known future
+season premiere from Seerr's generic processing state. `SeasonRequestPresentation`
+and per-season statuses share the calendar-day policy, independent of the release
+badge. Pending approval, missing dates, release-day/past premieres, failures,
+declines, library coverage, and download-queue evidence never claim that release
+is the only remaining wait. Seerr's existing TV detail response supplies the
+premiere date; this presentation needs no additional metadata requests.
+TV and touch heroes use "S1 Requested · Unreleased" to keep the confirmation and
+release state in one label. Mobile detail heroes move secondary actions into
+the existing overflow menu before falling back to primary buttons above a
+wrapping row of the secondary icons.
+That stacked layout restores direct access to the icons, keeping a menu only
+for source/version selection or file browsing; the status does not gain a subtitle.
 
 ## Watch-state replay identity
 

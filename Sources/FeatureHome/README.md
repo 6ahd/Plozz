@@ -90,6 +90,10 @@ fallback when the user's server has no attached trailer.
   On mobile, a root-owned `LazyViewState` retains the shared Home/Watchlist
   model by profile, credentials and active accounts. Rebuilding the tab shell
   for settings/theme changes must not construct and rehydrate throwaway models.
+  Watchlist artwork rehydration shares URL sanitization and signing only within
+  one synchronous publication batch, including repeated cast images. Cache keys
+  preserve artwork ownership, playback fallback account and requested size;
+  no signed result survives into another profile or credential publication.
   Mobile cards defer identity-index source resolution until direct-play activation
   or the detail destination's body. Browsing and metadata updates do not resolve
   every visible card. Activation reads current accounts/index contents while
@@ -241,6 +245,10 @@ fallback when the user's server has no attached trailer.
   A spring's logical completion leaves
   several points of upward travel after the apparent landing, even when the
   outer page never scrolls.
+  Reduce Motion keeps the same resting hero placement and browser geometry:
+  the resting content offset is structural, not optional animation travel.
+  Movie hero focus restoration likewise skips its animated scroll under
+  Reduce Motion instead of changing the hero's dimensions or artwork crop.
   When pinned navigation hides on detail pages, horizontal rows draw through
   the empty side gutter to the screen edge, including focused episode artwork.
   The sidebar's mask changes without replacing the scroll view, preserving

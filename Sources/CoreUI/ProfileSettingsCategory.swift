@@ -1,3 +1,4 @@
+import CoreModels
 import Foundation
 
 /// The same profile-owned categories, in the same order, on every platform.
@@ -50,7 +51,11 @@ public enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Sendabl
             "Home, navigation, and detail pages"
             #endif
         case .trackers:
-            "Trakt, Simkl, AniList, MyAnimeList, Last.fm"
+            if RuntimeFeatureFlags.productionDefault.isEnabled(.wetrakr) {
+                "Trakt, Simkl, WeTrakr, AniList, MyAnimeList, Last.fm"
+            } else {
+                "Trakt, Simkl, AniList, MyAnimeList, Last.fm"
+            }
         default:
             nil
         }

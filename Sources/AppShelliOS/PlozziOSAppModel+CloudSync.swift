@@ -88,6 +88,7 @@ extension PlozziOSAppModel {
                 guard let model else { return }
                 await model.traktService.refreshStatus()
                 await model.simklService.refreshStatus()
+                await model.wetrakrService.refreshStatus()
                 await model.anilistService.refreshStatus()
                 await model.malService.refreshStatus()
             }
@@ -151,7 +152,7 @@ extension PlozziOSAppModel {
 
     func captureSyncRecords(fallback: [SyncRecordID: Data]) -> [SyncRecordID: Data] {
         var out: [SyncRecordID: Data] = [:]
-        let localProfileIDs = Set(profiles.profiles.map(\.id))
+        let localProfileIDs = Set(profiles.profilesForSync.map(\.id))
         // Household-removed (tombstoned) accounts are excluded from descriptors and get
         // a `.removal` record instead, so peers sign them out and stop re-publishing.
         let removedStore = RemovedAccountsStore()
@@ -167,7 +168,7 @@ extension PlozziOSAppModel {
                 out[SyncRecordKey(kind: .removal, id: id).recordName] = data
             }
         }
-        for p in profiles.profiles {
+        for p in profiles.profilesForSync {
             if let data = CanonicalJSON.encode(ProfileSyncDTO(profile: p)) {
                 out[SyncRecordKey(kind: .profile, id: p.id).recordName] = data
             }
@@ -316,8 +317,7 @@ extension PlozziOSAppModel {
         // parental gate can only tell that happened if it knows where we were.
         let outgoingProfile = profiles.activeProfile
         if !profileUpserts.isEmpty || !profileDeletes.isEmpty {
-            for profileID in profileDeletes
-            where profileID != ProfileStore.defaultProfileID {
+            for profileID in profileDeletes {
                 removeMediaAliases(forProfileID: profileID)
             }
             profiles.applySyncedProfileDTOs(profileUpserts, deletions: profileDeletes)
@@ -771,12 +771,13 @@ extension PlozziOSAppModel {
     func captureMediaStateSyncRecords(
         fallback: [SyncRecordID: Data]
     ) async -> [SyncRecordID: Data] {
+        var captured = fallback
         do {
-            var captured = try await mediaAliasLedger.captureAllAliasSyncRecords(
-                profileIDs: profiles.profiles.map(\.id),
+            captured = try await mediaAliasLedger.captureAllAliasSyncRecords(
+                profileIDs: profiles.profilesForSync.map(\.id),
                 fallback: fallback
             )
-            for profile in profiles.profiles {
+            for profile in profiles.profilesForSync {
                 try universalWatchlist.hydrate(profileID: profile.id)
                 captured.merge(
                     try universalWatchlist.captureSyncRecords(
@@ -786,12 +787,17 @@ extension PlozziOSAppModel {
                     uniquingKeysWith: { _, watchlist in watchlist }
                 )
             }
-            return captured
         } catch {
             PlozzLog.sync.error(
                 "Media aliases: capture failed; preserving sync baseline: \(error.localizedDescription)"
             )
-            return fallback
+            captured = fallback
+        }
+        let pending = profiles.pendingSyncedDeletionProfileIDs
+        return captured.filter { name, _ in
+            let profileID = MediaStateRecordKey.parse(name)?.profileID
+                ?? WatchlistMediaStateRecordKey.parse(name)?.profileID
+            return profileID.map { !pending.contains($0) } ?? true
         }
     }
 

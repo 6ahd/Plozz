@@ -239,6 +239,270 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         }
     }
 
+    func testVerticalLevelMetersMaskIconContrastAtZeroPartialAndFullWithoutVisibleNumbers() async throws {
+        for reducePanelGlass in [false, true] {
+            for kind in [PlayerTouchLevel.brightness, .volume] {
+                try await withFeedback(reducePanelGlass: reducePanelGlass, colorScheme: .light) { fixture, window in
+                    let rect = CGRect(x: kind == .brightness ? 8 : 360, y: 22, width: 32, height: 156)
+                    var frames: [Double: RenderedFrame] = [:]
+                    for value in [0.0, 0.5, 1.0] {
+                        fixture.state.showLevel(kind, value: value)
+                        try await Task.sleep(for: .milliseconds(300))
+                        let frame = try self.capture(
+                            window, rect: rect,
+                            label: "\(kind), \(value), \(reducePanelGlass ? "reduced" : "native") glass"
+                        )
+                        frames[value] = frame
+                        let boundary = 156 * (1 - value)
+                        for y in 30..<144 {
+                            let pixel = frame.pixels[y * frame.width + 2]
+                            if Double(y) > boundary + 2 {
+                                XCTAssertGreaterThan(pixel, 235, "The fill must rise from the bottom: \(kind), \(value), row \(y)")
+                            } else if Double(y) < boundary - 2 {
+                                XCTAssertLessThan(pixel, 200, "The unfilled area must remain dark: \(kind), \(value), row \(y)")
+                            }
+                        }
+                    }
+                    let empty = try XCTUnwrap(frames[0])
+                    var iconReference = empty
+                    var coveredReference = try XCTUnwrap(frames[1])
+                    if kind == .volume {
+                        fixture.state.showLevel(kind, value: 0.001)
+                        try await Task.sleep(for: .milliseconds(160))
+                        iconReference = try self.capture(window, rect: rect, label: "Low-volume icon above the fill")
+                        fixture.state.showLevel(kind, value: 0.30)
+                        try await Task.sleep(for: .milliseconds(160))
+                        coveredReference = try self.capture(window, rect: rect, label: "Low-volume icon covered by fill")
+                    }
+                    let upperInk = (12..<96).flatMap { y in
+                        (4..<28).map { x in empty.pixels[y * empty.width + x] }
+                    }.filter { $0 > 220 }
+                    XCTAssertTrue(upperInk.isEmpty, "There must be no percentage or other visible label above the icon.")
+
+                    let iconInk = (110..<144).flatMap { y in
+                        (2..<30).compactMap { x -> Int? in
+                            let index = y * empty.width + x
+                            return iconReference.pixels[index] > 240 ? index : nil
+                        }
+                    }
+                    let zeroIconInk = (110..<144).flatMap { y in
+                        (2..<30).compactMap { x -> Int? in
+                            let index = y * empty.width + x
+                            return empty.pixels[index] > 240 ? index : nil
+                        }
+                    }
+                    XCTAssertGreaterThan(
+                        zeroIconInk.count, kind == .volume ? 20 : 40,
+                        "The native brightness or mute strokes must remain visible at zero."
+                    )
+                    XCTAssertGreaterThan(iconInk.count, 40)
+                    if kind == .volume {
+                        XCTAssertNotEqual(zeroIconInk, iconInk, "Muted and low-volume glyphs must look different.")
+                    }
+                    for index in iconInk {
+                        XCTAssertLessThan(coveredReference.pixels[index], 60, "The same icon must be dark over white fill.")
+                    }
+                    let iconRows = iconInk.map { $0 / empty.width }
+                    let firstRow = try XCTUnwrap(iconRows.min())
+                    let lastRow = try XCTUnwrap(iconRows.max())
+                    let boundary = Double(firstRow + lastRow) / 2
+                    fixture.state.showLevel(kind, value: 1 - boundary / 156)
+                    try await Task.sleep(for: .milliseconds(160))
+                    let partial = try self.capture(window, rect: rect, label: "\(kind) fill crossing the icon's center")
+                    let lightPart = iconInk.filter { Double($0 / empty.width) < boundary - 2 }
+                    let darkPart = iconInk.filter { Double($0 / empty.width) > boundary + 2 }
+                    XCTAssertGreaterThan(lightPart.count, 5)
+                    XCTAssertGreaterThan(darkPart.count, 5)
+                    for index in lightPart {
+                        XCTAssertGreaterThan(partial.pixels[index], 220, "Uncovered icon pixels must stay white.")
+                    }
+                    for index in darkPart {
+                        XCTAssertLessThan(partial.pixels[index], 60, "Only covered icon pixels should turn dark.")
+                    }
+
+                    fixture.state.showLevel(kind, value: 0)
+                    try await Task.sleep(for: .milliseconds(160))
+                    let drained = try self.capture(window, rect: rect, label: "\(kind) drained back to zero")
+                    for index in zeroIconInk {
+                        XCTAssertGreaterThan(drained.pixels[index], 220, "Draining must restore the white brightness or mute icon.")
+                    }
+                    XCTAssertLessThan(drained.pixels[136 * drained.width + 2], 200, "Zero must not retain fill.")
+                }
+            }
+        }
+    }
+
+    func testVolumeMeterRendersDistinctMutedAndProgressiveWaveIcons() async throws {
+        try await withFeedback { fixture, window in
+            let rect = CGRect(x: 360, y: 22, width: 32, height: 156)
+            var previous: RenderedFrame?
+            for value in [0.0, 0.1, 0.5, 1.0] {
+                fixture.state.showLevel(.volume, value: value)
+                try await Task.sleep(for: .milliseconds(350))
+                let frame = try self.capture(
+                    window, rect: rect, label: PlayerTouchLevel.volume.systemImage(at: value)
+                )
+                let icon = self.cropped(frame, to: CGRect(x: 4, y: 110, width: 24, height: 30))
+                let normalized = value > 0.3
+                    ? RenderedFrame(width: icon.width, height: icon.height, pixels: icon.pixels.map { 255 - $0 })
+                    : icon
+                self.assertVisible(normalized)
+                if let previous {
+                    XCTAssertGreaterThan(self.difference(previous, normalized), 0.01, "Each volume tier must render its own native glyph.")
+                }
+                previous = normalized
+            }
+        }
+    }
+
+    func testLevelMetersSlideAndScaleWithoutFadingAndRespectReduceMotion() async throws {
+        for reduceMotion in [false, true] {
+            for kind in [PlayerTouchLevel.brightness, .volume] {
+                try await withFeedback(reduceMotion: reduceMotion) { fixture, window in
+                    let rect = CGRect(x: 0, y: 0, width: 400, height: 200)
+                    let started = ContinuousClock.now
+                    fixture.state.showLevel(kind, value: 1)
+                    try await Task.sleep(until: started + .milliseconds(160), clock: .continuous)
+                    let entering = try self.capture(window, rect: rect, label: "\(kind) entering, reduced motion \(reduceMotion)")
+                    try await Task.sleep(until: started + .milliseconds(300), clock: .continuous)
+                    let settled = try self.capture(window, rect: rect, label: "\(kind) settled, reduced motion \(reduceMotion)")
+                    let finished = ContinuousClock.now
+                    fixture.state.finishLevel()
+                    try await Task.sleep(until: finished + .milliseconds(1360), clock: .continuous)
+                    let exiting = try self.capture(window, rect: rect, label: "\(kind) exiting, reduced motion \(reduceMotion)")
+                    try await Task.sleep(until: finished + .milliseconds(1500), clock: .continuous)
+                    let gone = try self.capture(window, rect: rect, label: "\(kind) removed, reduced motion \(reduceMotion)")
+
+                    let fullBounds = try self.inkBounds(settled, threshold: 128)
+                    XCTAssertEqual(fullBounds.width, 32, accuracy: 1)
+                    XCTAssertEqual(fullBounds.height, 156, accuracy: 1)
+                    XCTAssertEqual(kind == .brightness ? fullBounds.minX : 400 - fullBounds.maxX, 8, accuracy: 1)
+                    if reduceMotion {
+                        XCTAssertEqual(try self.inkBounds(entering, threshold: 128), fullBounds)
+                        self.assertAbsent(exiting, message: "Reduce Motion must remove the meter without movement or fading.")
+                    } else {
+                        for frame in [entering, exiting] {
+                            self.assertVisible(frame)
+                            XCTAssertGreaterThan(try XCTUnwrap(frame.pixels.max()), 252, "Moving fill must remain fully opaque.")
+                            let bounds = try self.inkBounds(frame, threshold: 128)
+                            let outward = kind == .brightness ? fullBounds.midX - bounds.midX : bounds.midX - fullBounds.midX
+                            XCTAssertGreaterThan(outward, 2, "The capsule must travel through its nearest edge.")
+                            XCTAssertEqual(bounds.midY, fullBounds.midY, accuracy: 1)
+                            XCTAssertLessThan(bounds.height, fullBounds.height - 2, "Entry and exit must also scale the capsule.")
+                        }
+                    }
+                    self.assertAbsent(gone, message: "The meter must disappear after its exit transition.")
+                }
+            }
+        }
+    }
+
+    func testDirectTouchWidensMetersInwardWithoutMovingTheirHitRegions() async throws {
+        for kind in [PlayerTouchLevel.brightness, .volume] {
+            try await withFeedback { fixture, window in
+                let rect = CGRect(x: 0, y: 0, width: 400, height: 200)
+                fixture.state.showLevel(kind, value: 1)
+                try await Task.sleep(for: .milliseconds(350))
+                let resting = try self.inkBounds(self.capture(window, rect: rect, label: "\(kind) passive"), threshold: 128)
+                let region = try XCTUnwrap(fixture.state.levelInteractionRegion)
+                XCTAssertEqual(region.kind, kind)
+                XCTAssertEqual(region.frame.width, 44)
+                XCTAssertEqual(region.frame.height, 156)
+                fixture.state.showLevel(kind, value: 1, isDirectInteraction: true)
+                try await Task.sleep(for: .milliseconds(500))
+                let touched = try self.inkBounds(self.capture(window, rect: rect, label: "\(kind) directly touched"), threshold: 128)
+                XCTAssertEqual(resting.width, 32, accuracy: 1)
+                XCTAssertEqual(touched.width, 44, accuracy: 1)
+                XCTAssertEqual(touched.height, resting.height, accuracy: 1)
+                XCTAssertEqual(kind == .brightness ? touched.minX : 400 - touched.maxX, 8, accuracy: 1)
+                XCTAssertEqual(fixture.state.levelInteractionRegion?.frame, region.frame)
+                fixture.state.finishLevel()
+                try await Task.sleep(for: .milliseconds(500))
+                let released = try self.inkBounds(self.capture(window, rect: rect, label: "\(kind) touch released"), threshold: 128)
+                XCTAssertEqual(released, resting)
+                XCTAssertEqual(fixture.state.levelInteractionRegion?.frame, region.frame)
+            }
+        }
+    }
+
+    func testLevelOverdragStretchesTowardTheLimitAndSpringsBackWithoutScalingIcons() async throws {
+        for reducePanelGlass in [false, true] {
+            for reduceMotion in [false, true] {
+                for (kind, value, overshoot) in [(PlayerTouchLevel.brightness, 1.0, 160.0), (.volume, 0.0, -160.0)] {
+                    try await withFeedback(
+                        reduceMotion: reduceMotion, reducePanelGlass: reducePanelGlass,
+                        feedbackSize: CGSize(width: 400, height: 300)
+                    ) { fixture, window in
+                        let rect = CGRect(x: kind == .brightness ? 0 : 320, y: 30, width: 80, height: 240)
+                        let label = "\(kind), reduced motion \(reduceMotion), reduced glass \(reducePanelGlass)"
+                        fixture.state.showLevel(kind, value: value)
+                        try await Task.sleep(for: .milliseconds(350))
+                        let resting = try self.capture(window, rect: rect, label: "Resting \(label)")
+                        fixture.state.showLevel(kind, value: value, overshoot: overshoot)
+                        try await Task.sleep(for: .milliseconds(100))
+                        let pulled = try self.capture(window, rect: rect, label: "Overdrag \(label)")
+                        fixture.state.showLevel(kind, value: value, overshoot: overshoot * 1000)
+                        try await Task.sleep(for: .milliseconds(100))
+                        let capped = try self.capture(window, rect: rect, label: "Extreme overdrag \(label)")
+                        fixture.state.finishLevel()
+                        try await Task.sleep(for: .milliseconds(80))
+                        let returning = try self.capture(window, rect: rect, label: "Spring return \(label)")
+                        try await Task.sleep(for: .milliseconds(520))
+                        let released = try self.capture(window, rect: rect, label: "Released \(label)")
+
+                        let restBounds = try self.inkBounds(resting, threshold: 10)
+                        let pulledBounds = try self.inkBounds(pulled, threshold: 10)
+                        let cappedBounds = try self.inkBounds(capped, threshold: 10)
+                        let returnBounds = try self.inkBounds(returning, threshold: 10)
+                        let releasedBounds = try self.inkBounds(released, threshold: 10)
+                        XCTAssertEqual(restBounds.width, 32, accuracy: 1)
+                        XCTAssertEqual(restBounds.height, 156, accuracy: 1)
+                        if reduceMotion {
+                            for bounds in [pulledBounds, cappedBounds, returnBounds] {
+                                XCTAssertEqual(bounds, restBounds, "Reduce Motion must keep the capsule stationary.")
+                            }
+                        } else {
+                            XCTAssertEqual(pulledBounds.height - restBounds.height, 20 * 160 / 240, accuracy: 2)
+                            XCTAssertEqual(pulledBounds.width, 32 * 156 / (156 + 20 * 160 / 240), accuracy: 1.5)
+                            XCTAssertLessThan(pulledBounds.width, restBounds.width)
+                            XCTAssertLessThanOrEqual(cappedBounds.height, restBounds.height + 21)
+                            XCTAssertGreaterThanOrEqual(cappedBounds.height, restBounds.height + 18)
+                            XCTAssertGreaterThan(returnBounds.height, restBounds.height + 2, "Release must spring back, not snap.")
+                            XCTAssertLessThan(returnBounds.height, cappedBounds.height - 2)
+                            for bounds in [pulledBounds, cappedBounds, returnBounds] {
+                                XCTAssertEqual(bounds.midX, restBounds.midX, accuracy: 1)
+                                if overshoot > 0 {
+                                    XCTAssertEqual(bounds.maxY, restBounds.maxY, accuracy: 1, "Upward stretching must anchor the bottom.")
+                                } else {
+                                    XCTAssertEqual(bounds.minY, restBounds.minY, accuracy: 1, "Downward stretching must anchor the top.")
+                                }
+                            }
+                        }
+                        XCTAssertEqual(releasedBounds.minX, restBounds.minX, accuracy: 1)
+                        XCTAssertEqual(releasedBounds.minY, restBounds.minY, accuracy: 1)
+                        XCTAssertEqual(releasedBounds.width, restBounds.width, accuracy: 1)
+                        XCTAssertEqual(releasedBounds.height, restBounds.height, accuracy: 1)
+                        XCTAssertEqual(fixture.state.level?.value, value)
+                        XCTAssertEqual(fixture.state.level?.overshoot, 0)
+
+                        @MainActor func iconFrame(_ frame: RenderedFrame, bounds: CGRect) -> RenderedFrame {
+                            let icon = self.cropped(frame, to: CGRect(
+                                x: bounds.midX - 12, y: bounds.maxY - 38, width: 24, height: 24
+                            ))
+                            return value == 1
+                                ? RenderedFrame(width: icon.width, height: icon.height, pixels: icon.pixels.map { 255 - $0 })
+                                : icon
+                        }
+                        let restIcon = try self.inkBounds(iconFrame(resting, bounds: restBounds))
+                        let pulledIcon = try self.inkBounds(iconFrame(pulled, bounds: pulledBounds))
+                        XCTAssertEqual(pulledIcon.width, restIcon.width, accuracy: 1)
+                        XCTAssertEqual(pulledIcon.height, restIcon.height, accuracy: 1, "The symbol must not stretch with the capsule.")
+                    }
+                }
+            }
+        }
+    }
+
     private func assertFlight(direction: PlayerTouchSkipDirection) async throws {
         try await withFeedback(direction: direction) { fixture, window in
             let interval: TimeInterval = direction == .forward ? 25 : -25
@@ -536,6 +800,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
     private func withFeedback(
         direction: PlayerTouchSkipDirection? = nil, reduceMotion: Bool = false, reducePanelGlass: Bool = true,
         colorScheme: ColorScheme = .dark,
+        feedbackSize: CGSize = CGSize(width: 400, height: 200),
         _ operation: (FeedbackFixture, UIWindow) async throws -> Void
     ) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
@@ -548,7 +813,7 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         let previous = scene.windows.first(where: \.isKeyWindow)
         let fixture = FeedbackFixture(
             reduceMotion: direction == nil ? reduceMotion : false,
-            reducePanelGlass: reducePanelGlass, colorScheme: colorScheme
+            reducePanelGlass: reducePanelGlass, colorScheme: colorScheme, feedbackSize: feedbackSize
         )
         let host = UIHostingController(rootView: FeedbackFixtureView(fixture: fixture))
         host.safeAreaRegions = []
@@ -850,11 +1115,13 @@ private final class FeedbackFixture {
     var showsTypographyReferences = true
     let reducePanelGlass: Bool
     let colorScheme: ColorScheme
+    let feedbackSize: CGSize
 
-    init(reduceMotion: Bool, reducePanelGlass: Bool, colorScheme: ColorScheme) {
+    init(reduceMotion: Bool, reducePanelGlass: Bool, colorScheme: ColorScheme, feedbackSize: CGSize) {
         self.reduceMotion = reduceMotion
         self.reducePanelGlass = reducePanelGlass
         self.colorScheme = colorScheme
+        self.feedbackSize = feedbackSize
     }
 
     func seek(by interval: TimeInterval) {
@@ -867,7 +1134,7 @@ private struct FeedbackFixtureView: View {
 
     var body: some View {
         PlayerTouchGestureFeedbackContent(state: fixture.state, reduceMotion: fixture.reduceMotion)
-            .frame(width: 400, height: 200)
+            .frame(width: fixture.feedbackSize.width, height: fixture.feedbackSize.height)
             .fixedSize()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.black)

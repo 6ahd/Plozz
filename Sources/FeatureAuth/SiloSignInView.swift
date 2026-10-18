@@ -301,25 +301,21 @@ private struct SiloPairingInstructions<Footer: View>: View {
                     #endif
             }
             HStack(spacing: 24) {
-                Text(code)
-                    #if os(tvOS)
-                    .font(.plozzCode(size: 64))
-                    #else
-                    .font(.largeTitle.monospaced().bold())
-                    #endif
-                    .lineLimit(1).minimumScaleFactor(0.6)
+                ConnectionCodeView(code, size: codeSize)
                     .accessibilityLabel("Sign-in code: \(code)")
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 20)
-                    .background {
-                        RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.panel)
-                            .fill(Color.black.opacity(palette.isLight ? 0.06 : 0.26))
-                    }
                 LinkCodeExpiryCountdown(expiresAt: expiresAt, lifetime: lifetime, size: 88, showsMinutes: true)
             }
             .fixedSize(horizontal: false, vertical: true)
             footer()
         }
+    }
+
+    private var codeSize: CGFloat? {
+        #if os(tvOS)
+        64
+        #else
+        nil
+        #endif
     }
 
     private static func displayAddress(_ url: URL) -> String {

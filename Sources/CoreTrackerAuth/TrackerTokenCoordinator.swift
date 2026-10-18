@@ -3,12 +3,12 @@ import Foundation
 
 /// Single-use refresh tokens need one owner across Settings, realtime playback,
 /// watchlist sync and independently constructed durable-outbox services.
-actor TraktTokenCoordinator {
-    static let shared = TraktTokenCoordinator()
+public actor TrackerTokenCoordinator {
+    public static let shared = TrackerTokenCoordinator()
 
     /// Captured before OAuth starts. A nil epoch means confirmed server absence,
     /// never an unknown baseline that may be filled in after authorization.
-    struct ConnectionContext: Sendable {
+    public struct ConnectionContext: Sendable {
         let id: UUID
         let scope: String
         let revision: UInt64
@@ -24,8 +24,8 @@ actor TraktTokenCoordinator {
     }
 
     private struct PendingWrite {
-        let previous: TraktTokens
-        let refreshed: TraktTokens
+        let previous: TrackerTokens
+        let refreshed: TrackerTokens
     }
 
     var revisions: [String: UInt64] = [:]
@@ -33,34 +33,34 @@ actor TraktTokenCoordinator {
     private var inFlightOperations: [UUID: (key: String, task: Task<String?, Error>)] = [:]
     private var pendingWrites: [String: PendingWrite] = [:]
     private var erasures: [String: UUID] = [:]
-    let sharedConfiguration: TraktSharedRefreshConfiguration?
-    var sharedJournalRecovery: [String: TraktSharedJournalState] = [:]
+    let sharedConfiguration: TrackerSharedRefreshConfiguration?
+    var sharedJournalRecovery: [String: TrackerSharedJournalState] = [:]
     var preparedConnections: [String: ConnectionContext] = [:]
     let now: @Sendable () -> Date
 
-    init(
-        sharedConfiguration: TraktSharedRefreshConfiguration? = nil,
+    public init(
+        sharedConfiguration: TrackerSharedRefreshConfiguration? = nil,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.sharedConfiguration = sharedConfiguration
         self.now = now
     }
 
-    var sharedRefresh: TraktSharedRefreshConfiguration? {
-        sharedConfiguration ?? TraktSharedRefresh.shared.current
+    var sharedRefresh: TrackerSharedRefreshConfiguration? {
+        sharedConfiguration ?? TrackerSharedRefresh.shared.current
     }
 
-    func accessToken(store: any TraktTokenStoring, auth: TraktAuthService) async throws -> String? {
+    public func accessToken(store: any TrackerTokenStoring, auth: any TrackerTokenRefreshing) async throws -> String? {
         try Task.checkCancellation()
         let key = store.coordinationID
-        guard erasures[key] == nil else { throw TraktSharedRefreshError.superseded }
+        guard erasures[key] == nil else { throw TrackerSharedRefreshError.superseded }
         if let configuration = sharedRefresh {
             let revision = revisions[key, default: 0]
             while let refresh = refreshes[key] {
                 let access: String?
                 do {
                     access = try await refresh.task.value
-                } catch TraktSharedRefreshError.refreshInProgress where !refresh.renewsExpiredTokens {
+                } catch TrackerSharedRefreshError.refreshInProgress where !refresh.renewsExpiredTokens {
                     try checkSharedRevision(key, revision)
                     continue
                 }
@@ -134,10 +134,10 @@ actor TraktTokenCoordinator {
         return try await task.value
     }
 
-    func prepareConnection(store: any TraktTokenStoring) async throws -> ConnectionContext {
+    public func prepareConnection(store: any TrackerTokenStoring) async throws -> ConnectionContext {
         try Task.checkCancellation()
         let key = store.coordinationID
-        guard erasures[key] == nil else { throw TraktSharedRefreshError.superseded }
+        guard erasures[key] == nil else { throw TrackerSharedRefreshError.superseded }
         let revision = revisions[key, default: 0]
         guard let configuration = sharedRefresh else {
             return ConnectionContext(
@@ -165,26 +165,26 @@ actor TraktTokenCoordinator {
         }
         try checkSharedRevision(key, revision)
         guard let context = preparedConnections[key], context.id == id else {
-            throw TraktSharedRefreshError.superseded
+            throw TrackerSharedRefreshError.superseded
         }
         return context
     }
 
-    func save(
-        _ tokens: TraktTokens, store: any TraktTokenStoring, context: ConnectionContext? = nil
+    public func save(
+        _ tokens: TrackerTokens, store: any TrackerTokenStoring, context: ConnectionContext? = nil
     ) async throws {
         try Task.checkCancellation()
         let key = store.coordinationID
-        guard erasures[key] == nil else { throw TraktSharedRefreshError.superseded }
+        guard erasures[key] == nil else { throw TrackerSharedRefreshError.superseded }
         if let context {
             guard context.scope == key, context.revision == revisions[key, default: 0] else {
-                throw TraktSharedRefreshError.superseded
+                throw TrackerSharedRefreshError.superseded
             }
         }
         if let configuration = sharedRefresh {
             guard let context, context.accountID != nil,
                   preparedConnections[key]?.id == context.id else {
-                throw TraktSharedRefreshError.superseded
+                throw TrackerSharedRefreshError.superseded
             }
             invalidate(key)
             let refresh = startSharedOperation(key: key, renewsExpiredTokens: false) {
@@ -204,8 +204,8 @@ actor TraktTokenCoordinator {
         try store.save(tokens)
     }
 
-    func disconnect(store: any TraktTokenStoring) async throws -> TraktTokens? {
-        guard erasures[store.coordinationID] == nil else { throw TraktSharedRefreshError.superseded }
+    public func disconnect(store: any TrackerTokenStoring) async throws -> TrackerTokens? {
+        guard erasures[store.coordinationID] == nil else { throw TrackerSharedRefreshError.superseded }
         let tokens = store.load()
         invalidate(store.coordinationID)
         if let configuration = sharedRefresh {
@@ -224,10 +224,10 @@ actor TraktTokenCoordinator {
         return tokens
     }
 
-    func synchronizeShared(store: any TraktTokenStoring) async throws {
+    func synchronizeShared(store: any TrackerTokenStoring) async throws {
         guard let configuration = sharedRefresh else { return }
         let key = store.coordinationID
-        guard erasures[key] == nil else { throw TraktSharedRefreshError.superseded }
+        guard erasures[key] == nil else { throw TrackerSharedRefreshError.superseded }
         let revision = revisions[key, default: 0]
         while let refresh = refreshes[key] {
             _ = try await refresh.task.value
@@ -244,9 +244,9 @@ actor TraktTokenCoordinator {
 
     /// Drain single-use exchanges before cloud erasure, then discard local replay
     /// state. A pending connect/successor must not recreate the just-erased grant.
-    func beginCloudErasure(stores: [any TraktTokenStoring]) async throws -> UUID {
+    func beginCloudErasure(stores: [any TrackerTokenStoring]) async throws -> UUID {
         let keys = Set(stores.map(\.coordinationID))
-        guard keys.allSatisfy({ erasures[$0] == nil }) else { throw TraktSharedRefreshError.superseded }
+        guard keys.allSatisfy({ erasures[$0] == nil }) else { throw TrackerSharedRefreshError.superseded }
         let owner = UUID()
         let tasks = inFlightOperations.values.filter { keys.contains($0.key) }.map(\.task)
         for key in keys {
