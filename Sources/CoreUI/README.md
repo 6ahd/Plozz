@@ -6,6 +6,26 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Touch hero actions** — `HeroActionRow` preserves readable intrinsic widths
+  before falling back to a vertical arrangement. `TouchHeroActionButtonStyle`
+  lets labels wrap and uses bounded 24pt corners so tall accessibility-size
+  content stays inside the button surface. Circular actions retain their 48pt
+  touch targets and cap glyph scaling at XXX Large; text buttons continue to
+  honor the full accessibility text size.
+
+- **Setup presentation** — `ConnectionCodeView` shares the readable monospaced
+  code panel across server sign-in and device pairing. `SetupCodeComparisonView`
+  keeps both devices' confirmation copy and code treatment consistent while
+  callers retain confirmation and cancellation ownership. `SetupSectionCard`
+  groups methods and counted summaries without styling native controls.
+  `SetupSummaryView` scrolls the heading, full server names, and supplied profile
+  grid while keeping Done/Continue reachable. TV rows and profile tiles provide
+  native focus targets so the remote can reach long summaries. TV summaries scroll
+  to the page's top edge, with initial header spacing inside the scroll content
+  rather than an inset clipping boundary. `VerticalEdgeFadeMask` softens only the
+  bottom above the fixed action while more content remains; the final rows stay
+  undimmed at the end.
+
 - **Reduce Motion** — `ReducedMotion` suppresses explicit and implicit SwiftUI
   animations at the TV app root without removing layout offsets or replacing
   view identity. Native hero artwork uses a crossfade instead of a parallax wipe;

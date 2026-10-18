@@ -210,7 +210,7 @@ extension AppState {
     /// no code, no QR. Mirrors the iOS source-side behavior so a TV can set up a phone.
     public func checkForSyncSetupOffer() {
         guard SyncSetupFeatureFlag().isEnabled,
-              !isAutoAdoptingSyncSetup,
+              !isPresentingSyncSetup,
               cloudSyncUI.pendingSyncSetupOffer == nil else { return }
         let localIDs = Set(accountsProviders.accounts.map(\.id))
         guard !localIDs.isEmpty else { return }   // nothing to give
@@ -229,26 +229,12 @@ extension AppState {
         cloudSyncUI.pendingSyncSetupOffer = offer
     }
 
-    /// The user confirmed — push config + credentials to the offered device over the
-    /// local pairing channel (pinned key ⇒ no SAS, no typing).
-    public func confirmSyncSetupOffer() {
-        guard !profileFlow.managementRequiresParentalPIN else { return }
-        guard let offer = cloudSyncUI.pendingSyncSetupOffer else { return }
-        cloudSyncUI.pendingSyncSetupOffer = nil
-        isAutoAdoptingSyncSetup = true
-        let model = SyncSetupPairingModel(service: syncSetup)
-        Task { @MainActor in
-            await model.adopt(offer)
-            isAutoAdoptingSyncSetup = false
+    /// The user closed this offer's flow. Do not discard a newer, unseen request.
+    public func declineSyncSetupOffer(_ offer: SyncPairingRendezvous) {
+        dismissedSyncSetupOfferKeys.insert(Self.syncSetupOfferKey(offer))
+        if cloudSyncUI.pendingSyncSetupOffer == offer {
+            cloudSyncUI.pendingSyncSetupOffer = nil
         }
-    }
-
-    /// The user declined — don't re-prompt for this exact offer this session.
-    public func declineSyncSetupOffer() {
-        if let offer = cloudSyncUI.pendingSyncSetupOffer {
-            dismissedSyncSetupOfferKeys.insert(Self.syncSetupOfferKey(offer))
-        }
-        cloudSyncUI.pendingSyncSetupOffer = nil
     }
 
     private static func syncSetupOfferKey(_ offer: SyncPairingRendezvous) -> String {

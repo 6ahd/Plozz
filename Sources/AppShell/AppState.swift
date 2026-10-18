@@ -766,9 +766,9 @@ public final class AppState {
     @ObservationIgnored
     var cloudPublishTask: Task<Void, Never>?
 
-    /// Guards against overlapping same-Apple-ID credential auto-adopt attempts.
+    /// Suppresses automatic offers while the user owns a device-setup flow.
     @ObservationIgnored
-    var isAutoAdoptingSyncSetup = false
+    var isPresentingSyncSetup = false
 
     /// Rendezvous offers the user declined this session, so they aren't re-prompted.
     @ObservationIgnored

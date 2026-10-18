@@ -2,6 +2,34 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testDeviceSetupOpensAndReturnsToICloudSettings() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("syncSetup", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        for attempt in 1...2 {
+            let setup = app.buttons.containing(.staticText, identifier: "Set Up Another Device").firstMatch
+            XCTAssertTrue(setup.waitForExistence(timeout: 5), app.debugDescription)
+            try focus(setup, in: app)
+            XCUIRemote.shared.press(.select)
+            let heading = app.staticTexts["Set up another device"]
+            XCTAssertTrue(heading.waitForExistence(timeout: 5), app.debugDescription)
+            let disappeared = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in !heading.exists }, object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [disappeared], timeout: 2), .timedOut,
+                           "Setup must not disappear without user input.")
+            capture("device-setup-open-\(attempt)", in: app)
+            XCUIRemote.shared.press(.menu)
+            XCTAssertTrue(setup.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(heading.exists)
+        }
+        #else
+        throw XCTSkip("Simulator-only setup presentation review.")
+        #endif
+    }
+
     func testSettingsMenusShareWholeRowFocusAndRestoreChoices() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()

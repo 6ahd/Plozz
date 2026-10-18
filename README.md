@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/YkXnmB8rcF"><img src="https://img.shields.io/badge/Join_the_community-5865F2?style=for-the-badge&amp;logo=discord&amp;logoColor=white" alt="Join the Plozz community on Discord" /></a>
+  <a href="https://plozz.app/discord"><img src="https://img.shields.io/badge/Join_the_community-5865F2?style=for-the-badge&amp;logo=discord&amp;logoColor=white" alt="Join the Plozz community on Discord" /></a>
 </p>
 
 <p align="center">
