@@ -264,7 +264,7 @@ The capsule fades and gently scales on entry and exit; Reduce Motion uses only
 the fade. Keep the feedback host mounted while idle so expiry can animate out.
 Dragging beyond full stretches the capsule upward; dragging below zero stretches
 it downward. The opposite end stays anchored while the body gently narrows,
-with increasing resistance and at most 28 points of extra height. Output remains
+with increasing resistance and at most 20 points of extra height. Output remains
 clamped, the icon keeps its size, and release springs back without changing the
 level. Reduce Motion disables stretching and the spring.
 Successful swipes emit a light haptic on supported hardware when first reaching

@@ -393,7 +393,7 @@ private struct PlayerTouchLevelMeter: View {
     let reduceMotion: Bool
 
     var body: some View {
-        let stretch = reduceMotion ? 0 : 28 * (overshoot / (abs(overshoot) + 80))
+        let stretch = reduceMotion ? 0 : 20 * (overshoot / (abs(overshoot) + 80))
         let height = 156 + abs(stretch)
         ZStack(alignment: .bottom) {
             Color.clear

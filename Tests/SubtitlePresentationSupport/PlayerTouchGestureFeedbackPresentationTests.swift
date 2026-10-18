@@ -388,10 +388,11 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
                                 XCTAssertEqual(bounds, restBounds, "Reduce Motion must keep the capsule stationary.")
                             }
                         } else {
-                            XCTAssertEqual(pulledBounds.height - restBounds.height, 28 * 160 / 240, accuracy: 2)
-                            XCTAssertLessThan(pulledBounds.width, restBounds.width - 2)
-                            XCTAssertLessThanOrEqual(cappedBounds.height, restBounds.height + 29)
-                            XCTAssertGreaterThanOrEqual(cappedBounds.height, restBounds.height + 26)
+                            XCTAssertEqual(pulledBounds.height - restBounds.height, 20 * 160 / 240, accuracy: 2)
+                            XCTAssertEqual(pulledBounds.width, 40 * 156 / (156 + 20 * 160 / 240), accuracy: 1.5)
+                            XCTAssertLessThan(pulledBounds.width, restBounds.width)
+                            XCTAssertLessThanOrEqual(cappedBounds.height, restBounds.height + 21)
+                            XCTAssertGreaterThanOrEqual(cappedBounds.height, restBounds.height + 18)
                             XCTAssertGreaterThan(returnBounds.height, restBounds.height + 2, "Release must spring back, not snap.")
                             XCTAssertLessThan(returnBounds.height, cappedBounds.height - 2)
                             for bounds in [pulledBounds, cappedBounds, returnBounds] {
