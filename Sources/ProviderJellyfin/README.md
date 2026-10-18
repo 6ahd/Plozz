@@ -111,6 +111,22 @@ and Emby. Universal-profile syntax is defined by released Jellyfin's
 
 ## Playback negotiation
 
+Remote movie/episode detail responses sometimes expose one generic source while
+`GET /Items/{id}/PlaybackInfo?UserId=...` contains the actual inventory. Only that
+explicitly remote single-source case requests the read-only inventory. Each
+version retains its original source ID and its own technical/audio-language
+facts; generic item streams must not overwrite the real default source.
+Missing or duplicate IDs and unsupported/failed inventory requests are logged,
+leaving ordinary detail/Play available. Cancellation still propagates.
+
+Inventory GET does not send a device profile, open a stream, or report playback.
+Its generated `PlaySessionId` is not an owned encoding session and needs no stop
+request. This differs from playback negotiation below; see the pinned
+[`MediaInfoController`](https://github.com/jellyfin/jellyfin/blob/e53a6d3e6ae29cb05c55c7b8edf2d237a1f75c16/Jellyfin.Api/Controllers/MediaInfoController.cs)
+and `MediaInfoHelper`. If actual negotiation omits an explicitly selected source,
+both ordinary and quality-controlled playback fail rather than substitute a
+different version, and release any negotiation session they own.
+
 Forced conversion disables both `AllowVideoStreamCopy` and
 `AllowAudioStreamCopy` in PlaybackInfo's body and query. Disabling DirectStream
 alone does not prohibit codec copying inside HLS. A rejected forced rendition

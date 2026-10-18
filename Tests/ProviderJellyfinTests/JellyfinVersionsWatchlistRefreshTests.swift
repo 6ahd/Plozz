@@ -15,6 +15,107 @@ final class JellyfinVersionsWatchlistRefreshTests: XCTestCase {
 
     // MARK: - Feature A: versions mapping
 
+    func testRemotePlaceholderLoadsReadOnlyInventoryWithSourceLocalFacts() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            for itemType in ["Movie", "Episode"] {
+                let stub = StubHTTPClient()
+                stub.stub(pathSuffix: "/Users/u1/Items/i1", json: """
+                {"Id":"i1","Name":"Title","Type":"\(itemType)",
+                 "MediaStreams":[{"Index":0,"Type":"Video","Height":1080},
+                                 {"Index":1,"Type":"Audio","Language":"eng"}],
+                 "MediaSources":[{"Id":"placeholder","IsRemote":true}]}
+                """)
+                stub.stub(pathSuffix: "/Items/i1/PlaybackInfo", json: """
+                {"PlaySessionId":"unused-metadata-id","MediaSources":[
+                  {"Id":"real-4k","IsRemote":true,"Name":"4K","Path":"https://media.example/opaque",
+                   "MediaStreams":[{"Index":0,"Type":"Video","Codec":"hevc","Height":2160},
+                                   {"Index":1,"Type":"Audio","Language":"fra"}]},
+                  {"Id":"real-hd","IsRemote":true,"Name":"HD","Path":"/media/Film.mkv",
+                   "MediaStreams":[{"Index":0,"Type":"Video","Codec":"h264","Height":1080},
+                                   {"Index":1,"Type":"Audio","Language":"jpn"}]}
+                ]}
+                """)
+                var session = makeSession()
+                session.server.provider = kind
+                let item = try await JellyfinProvider(session: session, http: stub).item(id: "i1")
+                XCTAssertEqual(item.versions.map(\.playbackMediaSourceID), ["real-4k", "real-hd"])
+                let first = try XCTUnwrap(item.versions.first)
+                let last = try XCTUnwrap(item.versions.last)
+                XCTAssertEqual(first.height, 2160)
+                XCTAssertEqual(first.audioLanguageNames(in: Locale(identifier: "en")), ["French"])
+                XCTAssertEqual(last.audioLanguageNames(in: Locale(identifier: "en")), ["Japanese"])
+                XCTAssertNil(first.fileName)
+                XCTAssertTrue(first.isDefault)
+                XCTAssertEqual(stub.sentMethods, [.get, .get])
+                XCTAssertTrue(stub.sentBodies.isEmpty)
+                XCTAssertEqual(stub.sentPaths, ["/Users/u1/Items/i1", "/Items/i1/PlaybackInfo"])
+                XCTAssertEqual(stub.queryItems(forPathSuffix: "/PlaybackInfo"), [.init(name: "UserId", value: "u1")])
+                XCTAssertNotNil(stub.sentHeaders.last?["Authorization"])
+            }
+        }
+    }
+
+    func testInventoryFailurePreservesPlayableDetailWithoutInventingVersions() async throws {
+        for json in [
+            #"{"MediaSources":[]}"#, #"{"MediaSources":[{"Id":"same"},{"Id":"same"}]}"#,
+            #"{"MediaSources":[{}]}"#, #"{"MediaSources":[{"Id":"  "}]}"#,
+            #"{"MediaSources":[],"ErrorCode":"NoCompatibleStream"}"#
+        ] {
+            let stub = StubHTTPClient()
+            stub.stub(pathSuffix: "/Users/u1/Items/i1", json:
+                #"{"Id":"i1","Name":"Title","Type":"Movie","MediaSources":[{"Id":"placeholder","IsRemote":true}]}"#)
+            stub.stub(pathSuffix: "/Items/i1/PlaybackInfo", json: json)
+            let item = try await JellyfinProvider(session: makeSession(), http: stub).item(id: "i1")
+            XCTAssertEqual(item.id, "i1")
+            XCTAssertTrue(item.versions.isEmpty)
+        }
+    }
+
+    func testOnlyRemoteSingleSourceVideoDetailsRequestInventory() async throws {
+        for (type, sources) in [
+            ("Movie", #"[]"#),
+            ("Movie", #"[{"Id":"one","IsRemote":false}]"#),
+            ("Movie", #"[{"Id":"one"}]"#),
+            ("Movie", #"[{"Id":"one","IsRemote":true},{"Id":"two","IsRemote":true}]"#),
+            ("Series", #"[{"Id":"one","IsRemote":true}]"#)
+        ] {
+            let stub = StubHTTPClient()
+            stub.stub(pathSuffix: "/Users/u1/Items/i1", json:
+                #"{"Id":"i1","Name":"Title","Type":"\#(type)","MediaSources":\#(sources)}"#)
+            _ = try await JellyfinProvider(session: makeSession(), http: stub).item(id: "i1")
+            XCTAssertEqual(stub.sentPaths, ["/Users/u1/Items/i1"])
+        }
+    }
+
+    func testUnsupportedInventoryFallsBackButCancellationPropagates() async throws {
+        for cancelled in [false, true] {
+            let provider = JellyfinProvider(session: makeSession(), http: InventoryFailureHTTP(cancelled: cancelled))
+            do {
+                let item = try await provider.item(id: "i1")
+                XCTAssertFalse(cancelled, "Inventory cancellation must propagate.")
+                XCTAssertTrue(item.versions.isEmpty)
+                XCTAssertEqual(item.id, "i1")
+            } catch let error as AppError {
+                XCTAssertTrue(cancelled)
+                XCTAssertEqual(error, .cancelled)
+            }
+        }
+    }
+
+    private struct InventoryFailureHTTP: HTTPClient {
+        let cancelled: Bool
+        func send(_ endpoint: Endpoint, baseURL: URL) async throws -> (Data, HTTPURLResponse) {
+            if endpoint.path.hasSuffix("/PlaybackInfo") {
+                throw cancelled ? AppError.cancelled : AppError.notFound
+            }
+            return (
+                Data(#"{"Id":"i1","Name":"Title","Type":"Movie","MediaSources":[{"Id":"placeholder","IsRemote":true}]}"#.utf8),
+                HTTPURLResponse(url: baseURL.appendingPathComponent(endpoint.path),
+                                statusCode: 200, httpVersion: nil, headerFields: nil)!
+            )
+        }
+    }
+
     func testItemMapsMultipleMediaSourcesToVersions() async throws {
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/Users/u1/Items/i1", json: """
@@ -74,6 +175,7 @@ final class JellyfinVersionsWatchlistRefreshTests: XCTestCase {
         let item = try await provider.item(id: "i2")
         XCTAssertFalse(item.hasMultipleVersions)
         XCTAssertEqual(item.versions, [])
+        XCTAssertEqual(stub.sentPaths, ["/Users/u1/Items/i2"], "Local single-source details need no inventory request.")
     }
 
     func testTorrentSourcePathOnlyChangesTheDisplayFilename() throws {

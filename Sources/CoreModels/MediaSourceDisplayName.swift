@@ -5,6 +5,13 @@ import Foundation
 public enum MediaSourceDisplayName {
     public static func name(from rawValue: String?) -> String? {
         guard let value = nonempty(rawValue) else { return nil }
+        if value.contains(where: \.isNewline),
+           let releaseLine = value.components(separatedBy: .newlines).last(where: {
+               let line = $0.trimmingCharacters(in: .whitespaces)
+               return line.unicodeScalars.first.map { ["🗂", "📁", "📂"].contains(String($0)) } ?? false
+           }) {
+            return name(from: String(releaseLine.trimmingCharacters(in: .whitespaces).dropFirst()))
+        }
         let isQueryOnly = value.lowercased().hasPrefix("torrent_name=")
         guard isQueryOnly || value.contains("?") || value.contains("://")
                 || value.hasPrefix("//") || value.hasPrefix("file:") else { return value }
@@ -29,8 +36,9 @@ public enum MediaSourceDisplayName {
             || queryItems.contains { $0.value != nil }
         guard isLocator else { return value }
         guard let fileName = basename(components.path) else { return nil }
-        // A query-bearing endpoint such as /stream is not a release filename.
-        if components.query != nil, (fileName as NSString).pathExtension.isEmpty { return nil }
+        // A streaming endpoint or opaque locator ID is not a release filename,
+        // whether or not its URL also carries query parameters.
+        if (fileName as NSString).pathExtension.isEmpty { return nil }
         return fileName
     }
 

@@ -710,4 +710,17 @@ final class JellyfinStreamingQualityTests: XCTestCase {
             XCTFail("Wrong source should fail")
         } catch is StreamingQualityError {} catch { XCTFail("Unexpected error: \(error)") }
     }
+
+    func testOrdinaryPlaybackCannotSubstituteAnUnavailableSelectedVersion() async {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            let (provider, http) = fixture(kind: kind, rendition: true)
+            do {
+                _ = try await provider.playbackInfo(for: "movie", mediaSourceID: "missing", forceTranscode: false)
+                XCTFail("A disappeared source must not silently play another version.")
+            } catch let error as StreamingQualityError {
+                XCTAssertEqual(error, .sourceUnavailable)
+            } catch { XCTFail("Unexpected error: \(error)") }
+            XCTAssertEqual(http.method(forPathSuffix: "/Videos/ActiveEncodings"), .delete)
+        }
+    }
 }

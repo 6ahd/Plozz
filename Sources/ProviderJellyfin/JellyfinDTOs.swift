@@ -284,6 +284,7 @@ struct MediaSourceInfo: Decodable {
     let SupportsTranscoding: Bool?
     let RequiresOpening: Bool?
     let RequiresClosing: Bool?
+    let IsRemote: Bool?
     let VideoType: String?
     let IsInfiniteStream: Bool?
     let Container: String?

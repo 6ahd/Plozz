@@ -278,6 +278,8 @@ final class MediaVersionTests: XCTestCase {
             ("https://media.example/stream?torrent_name=&id=tt123", nil),
             ("torrent_name=%E6%8C&id=tt123", nil),
             ("https://media.example/stream?token=fixture", nil),
+            ("https://media.example/stream", nil),
+            ("https://media.example/Zk9xa1JpN25vY2xEMnJpcFQ5dGxY", nil),
             ("?token=fixture", nil),
             ("torrent_name=https%3A%2F%2Fmedia.example%2Fstream%3Ftoken%3Dfixture", nil)
         ]
@@ -289,6 +291,25 @@ final class MediaVersionTests: XCTestCase {
             id: "fallback", name: "Server copy", fileName: "stream?token=fixture", height: 1080
         ))
         XCTAssertEqual(fallback.releaseName, "Server copy")
+    }
+
+    func testMultilineSourceDescriptionUsesItsMarkedReleaseFilename() {
+        let providerName = """
+        [Source] Remote
+        2160p • WEB-DL
+        Audio • English • French
+        🗂️ Film.2026.MULTi.2160p.WEB-DL.DDP5.1-GROUP.mkv
+        """
+        let version = MediaVersion(
+            id: "original-id", name: providerName,
+            fileName: "https://media.example/opaque-source-endpoint", height: 2160
+        )
+        let row = MediaVersion.PickerPresentation(version)
+        XCTAssertEqual(row.releaseName, "Film.2026.MULTi.2160p.WEB-DL.DDP5.1-GROUP.mkv")
+        XCTAssertFalse(row.releaseName?.contains("\n") ?? true)
+        XCTAssertEqual(version.name, providerName)
+        XCTAssertEqual(version.playbackMediaSourceID, "original-id")
+        XCTAssertTrue(version.audioLanguageNames().isEmpty, "Display text must not invent audio-track metadata.")
     }
 
     func testFileSizeUsesAtMostOneFractionDigit() {

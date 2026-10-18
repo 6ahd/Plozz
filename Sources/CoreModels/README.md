@@ -88,6 +88,11 @@ sources (including percent-encoded names) before taking a basename. It also
 cleans cached locator-like names at presentation time. Only the decoded name,
 not unrelated query parameters, supplies release text or edition/quality hints;
 playback locators and source IDs remain unchanged.
+Multiline remote-source labels can identify their release file on a folder-marked
+line; presentation extracts that filename rather than displaying the entire
+provider description. Extensionless URL endpoints are not release filenames,
+so opaque stream paths cannot override a readable source name. Display labels
+never manufacture audio-track language or other technical metadata.
 
 ## Artwork and profile presentation
 

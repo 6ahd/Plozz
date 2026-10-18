@@ -154,12 +154,17 @@ public struct JellyfinClient: Sendable {
     /// `GET /System/Info/Public` — used to validate a manual URL and read the
     /// server's identity/name. No auth required.
     public func publicSystemInfo() async throws -> MediaServer {
-        let endpoint = Endpoint(path: "/System/Info/Public", headers: authHeaders)
-        let info = try await http.decode(PublicSystemInfo.self, from: endpoint, baseURL: baseURL)
+        let endpoint = Endpoint(path: "/System/Info/Public")
+        let (info, response) = try await http.decodeResponse(
+            PublicSystemInfo.self, from: endpoint, baseURL: baseURL
+        )
+        let resolvedURL = try ServerURLNormalizer.resolvedBaseURL(
+            requested: baseURL, responseURL: response.url, endpointPath: endpoint.path
+        )
         return MediaServer(
-            id: info.Id ?? baseURL.absoluteString,
-            name: info.ServerName ?? baseURL.host ?? "\(providerKind.displayName) Server",
-            baseURL: baseURL,
+            id: info.Id ?? resolvedURL.absoluteString,
+            name: info.ServerName ?? resolvedURL.host ?? "\(providerKind.displayName) Server",
+            baseURL: resolvedURL,
             provider: providerKind,
             version: info.Version
         )
@@ -1063,6 +1068,20 @@ public struct JellyfinClient: Sendable {
     }
 
     var canRequestHEVC: Bool { capabilityProfile.canRequestHEVC }
+
+    /// GET enumerates sources without a device profile, stream opening, or
+    /// playback reporting. Its generated PlaySessionId is not an encoding lease.
+    func playbackSourceInventory(userID: String, itemID: String) async throws -> PlaybackInfoResponse {
+        try await interactiveHTTP.decode(
+            PlaybackInfoResponse.self,
+            from: Endpoint(
+                path: "/Items/\(itemID)/PlaybackInfo",
+                queryItems: [URLQueryItem(name: "UserId", value: userID)],
+                headers: authHeaders
+            ),
+            baseURL: baseURL
+        )
+    }
 
     func playbackInfo(
         userID: String, itemID: String, mediaSourceID: String? = nil,

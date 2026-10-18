@@ -631,7 +631,30 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     public func item(id: String) async throws -> MediaItem {
         let dto = try await client.item(userID: session.userID, id: id)
         await probeDescriptors.remember(itemID: id, sources: dto.MediaSources)
-        return map(item: dto)
+        var item = map(item: dto)
+        if (item.kind == .movie || item.kind == .episode),
+           dto.MediaSources?.count == 1, dto.MediaSources?.first?.IsRemote == true {
+            do {
+                let inventory = try await client.playbackSourceInventory(userID: session.userID, itemID: id)
+                try Task.checkCancellation()
+                try validateStreamingDecision(inventory)
+                let ids = inventory.MediaSources.compactMap(\.Id)
+                guard !ids.isEmpty, ids.count == inventory.MediaSources.count,
+                      ids.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }),
+                      Set(ids).count == ids.count else { throw AppError.invalidResponse }
+                // Placeholder item streams must not overwrite the real first
+                // source's language, codec, or quality facts.
+                item.versions = Self.versions(from: inventory.MediaSources)
+                await probeDescriptors.remember(itemID: id, sources: inventory.MediaSources)
+            } catch {
+                try Task.checkCancellation()
+                if (error as? AppError) == .cancelled || error is CancellationError { throw error }
+                PlozzLog.networking.error(
+                    "Remote source inventory unavailable; retaining item metadata: \(String(describing: error))"
+                )
+            }
+        }
+        return item
     }
 
     public func trailers(for itemID: String) async throws -> [MediaItem] {
@@ -1265,7 +1288,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             if streaming != nil { throw StreamingQualityError.sourceUnavailable }
             throw AppError.notFound
         }
-        if streaming != nil || forceTranscode, let mediaSourceID, source.Id != mediaSourceID {
+        if let mediaSourceID, source.Id != mediaSourceID {
             PlozzLog.playback.error("Streaming quality negotiation returned a different media source.")
             throw StreamingQualityError.sourceUnavailable
         }

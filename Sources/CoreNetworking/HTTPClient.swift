@@ -97,6 +97,15 @@ public extension HTTPClient {
         baseURL: URL,
         decoder: JSONDecoder = .plozz
     ) async throws -> T {
+        try await decodeResponse(type, from: endpoint, baseURL: baseURL, decoder: decoder).value
+    }
+
+    func decodeResponse<T: Decodable>(
+        _ type: T.Type,
+        from endpoint: Endpoint,
+        baseURL: URL,
+        decoder: JSONDecoder = .plozz
+    ) async throws -> (value: T, response: HTTPURLResponse) {
         let (data, response) = try await send(endpoint, baseURL: baseURL)
         let diagnostic = PerformanceDiagnostics.shared.begin(
             .serverDecode, provider: PerformanceDiagnostics.provider, metrics: .init(bytes: data.count)
@@ -104,7 +113,7 @@ public extension HTTPClient {
         do {
             let value = try decoder.decode(T.self, from: data)
             diagnostic?.finish(.succeeded)
-            return value
+            return (value, response)
         } catch {
             diagnostic?.finish(.failed)
             let contentType = response.value(forHTTPHeaderField: "Content-Type") ?? "<none>"
