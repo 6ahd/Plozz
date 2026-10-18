@@ -610,6 +610,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(hasFocus(configured), "Back must restore the section that opened its configuration.")
         try focus(reorder, in: app)
         XCUIRemote.shared.press(.left)
+        XCTAssertTrue(hasFocus(app.buttons["home-section-presets"]), app.debugDescription)
+        XCUIRemote.shared.press(.up)
         XCTAssertTrue(hasFocus(pageBack("settings-workspace-back", in: app)), app.debugDescription)
         capture("home-section-header-back", in: app)
         #else

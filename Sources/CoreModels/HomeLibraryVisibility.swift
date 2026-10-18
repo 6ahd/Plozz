@@ -52,7 +52,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
             || rowCustomization?.shown.contains { $0.libraryKind == .nextUp } == true
     }
 
-    /// A presentation override, independent of the saved row arrangement.
+    /// On by default for every layout, independently of the saved row arrangement.
     public var mergeNextUpIntoContinueWatching: Bool
 
     public var mergesNextUpRows: Bool {
@@ -111,7 +111,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         hasSeededLibraryRows: Bool = false,
         continueWatchingShowsSeriesArtwork: Bool = true,
         rowCustomization: HomeRowCustomization? = nil,
-        mergeNextUpIntoContinueWatching: Bool = false
+        mergeNextUpIntoContinueWatching: Bool = true
     ) {
         self.mergeLibrariesOnHome = mergeLibrariesOnHome
         self.disabledKeys = disabledKeys
@@ -370,7 +370,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.rowCustomization = try container.decodeIfPresent(HomeRowCustomization.self, forKey: .rowCustomization)
         self.mergeNextUpIntoContinueWatching = try container.decodeIfPresent(
             Bool.self, forKey: .mergeNextUpIntoContinueWatching
-        ) ?? false
+        ) ?? true
     }
 
     public func encode(to encoder: Encoder) throws {

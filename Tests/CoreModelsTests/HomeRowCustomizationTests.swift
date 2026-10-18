@@ -177,12 +177,12 @@ final class HomeRowCustomizationTests: XCTestCase {
         }
     }
 
-    func testProviderDefaultsOfferLatestAndNextUpButNotMediaBrowserRecommendations() {
+    func testProviderDefaultsMergeNextUpAndOfferLatestButNotMediaBrowserRecommendations() {
         let visibility = HomeLibraryVisibility.default
         let movies = library("a", "movies")
         let shows = library("a", "shows", kind: .series)
         XCTAssertEqual(visibility.requestedRowKinds(for: movies), [.recentlyAdded])
-        XCTAssertEqual(visibility.requestedRowKinds(for: shows), [.nextUp, .recentlyAdded])
+        XCTAssertEqual(visibility.requestedRowKinds(for: shows), [.recentlyAdded])
         XCTAssertEqual(
             visibility.requestedRowKinds(for: library("b", "movies", provider: .plex)),
             [.recentlyAdded, .hubs]
@@ -192,7 +192,11 @@ final class HomeRowCustomizationTests: XCTestCase {
             [.recentlyAdded]
         )
         XCTAssertFalse(visibility.isGlobalRowEnabled(.recentlyAdded))
-        XCTAssertTrue(visibility.separatesNextUp)
+        XCTAssertFalse(visibility.separatesNextUp)
+        var separate = visibility
+        separate.mergeNextUpIntoContinueWatching = false
+        XCTAssertEqual(separate.requestedRowKinds(for: shows), [.nextUp, .recentlyAdded])
+        XCTAssertTrue(separate.separatesNextUp)
     }
 
     func testNextUpMergeWorksWithEveryPresetAndRestoresSavedRows() throws {
@@ -214,7 +218,9 @@ final class HomeRowCustomizationTests: XCTestCase {
                     mode: .server, order: customization.order, serverRows: [next]
                 )
             }
-            var visibility = HomeLibraryVisibility(rowCustomization: customization)
+            var visibility = HomeLibraryVisibility(
+                rowCustomization: customization, mergeNextUpIntoContinueWatching: false
+            )
             let before = visibility.rowSections(choices: choices)
             let requests = visibility.requestedRowKinds(for: shows)
             visibility.mergeNextUpIntoContinueWatching = true
@@ -296,17 +302,31 @@ final class HomeRowCustomizationTests: XCTestCase {
         let primary = HomeLibraryVisibilityStore(defaults: defaults)
         let other = HomeLibraryVisibilityStore(defaults: defaults, namespace: "other")
         let model = HomeLibraryVisibilityModel(store: primary)
-        XCTAssertFalse(model.visibility.mergeNextUpIntoContinueWatching)
-        model.setMergeNextUpIntoContinueWatching(true)
-        for preset: HomeRowCustomization.Defaults in [.combined, .matchServer] {
+        XCTAssertTrue(model.visibility.mergeNextUpIntoContinueWatching)
+        model.setMergeNextUpIntoContinueWatching(false)
+        for preset in HomeRowCustomization.Defaults.allCases {
             model.useRowDefaults(preset)
-            XCTAssertTrue(model.visibility.mergeNextUpIntoContinueWatching)
-            XCTAssertTrue(HomeLibraryVisibilityModel(store: primary).visibility.mergeNextUpIntoContinueWatching)
+            XCTAssertFalse(model.visibility.mergeNextUpIntoContinueWatching)
+            XCTAssertFalse(HomeLibraryVisibilityModel(store: primary).visibility.mergeNextUpIntoContinueWatching)
         }
-        XCTAssertFalse(HomeLibraryVisibilityModel(store: other).visibility.mergeNextUpIntoContinueWatching)
+        XCTAssertTrue(HomeLibraryVisibilityModel(store: other).visibility.mergeNextUpIntoContinueWatching)
         let legacy = try JSONDecoder().decode(HomeLibraryVisibility.self, from: Data("{}".utf8))
-        XCTAssertFalse(legacy.mergeNextUpIntoContinueWatching)
+        XCTAssertTrue(legacy.mergeNextUpIntoContinueWatching)
         XCTAssertFalse(legacy.separatesNextUp)
+    }
+
+    func testNextUpDefaultsOnForEveryPresetAndPreservesEncodedChoices() throws {
+        for preset in HomeRowCustomization.Defaults.allCases {
+            var visibility = HomeLibraryVisibility(rowCustomization: .init(defaults: preset))
+            XCTAssertTrue(visibility.mergeNextUpIntoContinueWatching, preset.rawValue)
+            for enabled in [true, false] {
+                visibility.mergeNextUpIntoContinueWatching = enabled
+                let decoded = try JSONDecoder().decode(
+                    HomeLibraryVisibility.self, from: JSONEncoder().encode(visibility)
+                )
+                XCTAssertEqual(decoded.mergeNextUpIntoContinueWatching, enabled, preset.rawValue)
+            }
+        }
     }
 
     func testOneOrderFreelyMixesSharedAndIndividualRowsAcrossLibraries() {
@@ -319,6 +339,7 @@ final class HomeRowCustomizationTests: XCTestCase {
             .global(.watchlist)
         ]
         var visibility = HomeLibraryVisibility.default
+        visibility.mergeNextUpIntoContinueWatching = false
         visibility.applyRows(.init(enabled: order, disabled: [.global(.recentlyAdded)]), choices: choices)
         XCTAssertEqual(visibility.rowSections(choices: choices).enabled, order)
     }

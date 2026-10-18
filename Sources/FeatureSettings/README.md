@@ -14,20 +14,27 @@ and the single place caption customization lives.
   and Hero source selection uses the enabled library inventory. Discovering
   libraries for those controls must not restore a separate management list.
 - **Customize Home** is one shared section editor on TV, iPhone and iPad.
-  Normal rows open their own settings. Reorder/Done switches to native movement
-  controls without a Hidden drop zone; Hero stays pinned and cannot move.
+  Normal rows open their own settings without redundant leading row icons.
+  A labeled action bar below the title exposes Layouts, Reorder/Done and Add
+  section; mobile keeps it visible while scrolling. Reorder/Done switches to
+  native movement controls with row icons and no Hidden drop zone; Hero stays
+  pinned and cannot move. Mobile uses the shared page inset without extra gutters.
   Add section offers available existing rows not already shown. Removing a
   section hides it without erasing its configuration or disabling its libraries.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
-  Starting layout retains the confirmed Match server and Combined rows presets.
+  Layouts retains the confirmed Match server and Combined rows presets.
   Merely opening the editor, a destination, or Reorder does not freeze a preset.
-  Shared `InlineErrorMessage` warnings name affected sources and offer retry.
+  One bottom card on the main editor uses shared `InlineErrorMessage` warnings
+  to name affected sources and offers Retry, without repeating these on detail pages.
   Every catalog-editing destination keeps discovery active while visible and
-  offers the same status/retry controls. Preset changes reload the catalog;
+  retains loading status and local edit failures. Preset changes reload the catalog;
   adding, removing and reordering wait for discovery to finish.
   Mobile library discovery publishes one identity-scoped snapshot, never pairing
   a previous viewer's library metadata with the newly active credentials.
+  Mobile Continue Watching artwork previews size their swatch by available width
+  instead of reserving a fixed-height empty area; TV and other shared preview
+  cards keep their existing sizing.
 - `HomeSectionCatalog` owns typed choice deduplication and validated section
   edits; `HomeSectionCatalogModel` owns bounded, identity-fenced discovery.
   The UI writes through the existing profile-scoped `HomeLibraryVisibilityModel`.

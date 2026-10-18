@@ -59,6 +59,11 @@ re-adding appends the section and retains its other settings. No-op actions
 do not turn a preset into a custom arrangement. Writes use the existing
 profile-scoped store and never mutate whole-library availability.
 
+Next Up merges into Continue Watching by default for every preset and for stored
+settings without a merge preference. An explicit opt-out remains profile-scoped
+and survives preset changes and reloads. Merging preserves separate rows' saved
+order and visibility; hiding Continue Watching suspends the merge.
+
 `HomeSectionCatalogModel` discovers native layout metadata and optional
 recommendations with at most three concurrent catalog requests. Accounts,
 credential revisions, effective server/Plex viewers, enabled libraries and the

@@ -40,11 +40,11 @@ public struct HomeRowsSettingsView: View {
     public var body: some View {
         HomeEditorPage(title: Text("Customize Home")) {
             #if os(tvOS)
-            HStack {
-                SettingsPageHeader("Customize Home")
-                reorderButton
-            }
-            .focusSection()
+            SettingsPageHeader("Customize Home")
+            HomeEditorActions(
+                libraries: libraries, accounts: accounts, visibility: visibility, inventory: inventory,
+                isReordering: $isReordering, isLifting: $isLifting
+            )
             #endif
             HomeEditorLink {
                 HomeHeroSettingsView(libraries: libraries, accounts: accounts, visibility: visibility)
@@ -52,8 +52,7 @@ public struct HomeRowsSettingsView: View {
                     .environment(heroBackground)
             } label: {
                 HomeEditorRowLabel(
-                    title: Text("Hero"), subtitle: heroSummary,
-                    symbol: "rectangle.topthird.inset.filled", accessory: "chevron.forward"
+                    title: Text("Hero"), subtitle: heroSummary
                 )
             }
             .accessibilityIdentifier("home-section-hero")
@@ -101,27 +100,6 @@ public struct HomeRowsSettingsView: View {
                         .accessibilityIdentifier("home-section-\(id.presentationID)")
                     }
                 }
-                HomeEditorLink {
-                    HomeAddSectionView(
-                        inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
-                    )
-                } label: {
-                    Label("Add section", systemImage: "plus")
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                }
-                .accessibilityIdentifier("home-section-add")
-
-                HomeEditorLink {
-                    HomeRowPresetsView(
-                        inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
-                    )
-                } label: {
-                    HomeEditorRowLabel(
-                        title: Text("Starting layout"), subtitle: presetTitle,
-                        symbol: "rectangle.3.group", accessory: "chevron.forward"
-                    )
-                }
-                .accessibilityIdentifier("home-section-presets")
             }
             if editError != nil {
                 InlineErrorMessage(Text("Couldn't update this section. Try again."))
@@ -132,8 +110,14 @@ public struct HomeRowsSettingsView: View {
             .disabled(isReordering)
         }
         #if os(iOS)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { reorderButton }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HomeEditorActions(
+                libraries: libraries, accounts: accounts, visibility: visibility, inventory: inventory,
+                isReordering: $isReordering, isLifting: $isLifting
+            )
+            .padding(.horizontal, 24)
+            .padding(.vertical, 8)
+            .background { SettingsPageBackground() }
         }
         #endif
         .task(id: HomeSectionCatalogModel.loadID(
@@ -148,32 +132,68 @@ public struct HomeRowsSettingsView: View {
         }
     }
 
-    private var reorderButton: some View {
-        Button {
-            isReordering.toggle()
-            isLifting = false
-        } label: {
-            if isReordering { Text("Done") }
-            else { Text("Reorder") }
-        }
-        .disabled(isLifting || (!isReordering && (inventory.isLoading
-            || inventory.catalog.sections(in: visibility.visibility).enabled.count < 2)))
-        .accessibilityIdentifier("home-section-reorder")
-    }
-
-    private var presetTitle: Text {
-        switch visibility.visibility.rowCustomization?.defaults {
-        case .matchServer: Text("Match server")
-        case .combined: Text("Combined rows")
-        default: Text("Custom arrangement")
-        }
-    }
-
     private var heroSummary: Text {
         #if os(tvOS)
         if hero.settings.style == .followsFocus { return Text("Showcase") }
         #endif
         return hero.settings.isEnabled ? Text("Pinned at top") : Text("Off")
+    }
+}
+
+private struct HomeEditorActions: View {
+    let libraries: [AggregatedLibrary]
+    let accounts: [ResolvedAccount]
+    let visibility: HomeLibraryVisibilityModel
+    let inventory: HomeSectionCatalogModel
+    @Binding var isReordering: Bool
+    @Binding var isLifting: Bool
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { buttons }
+                .fixedSize(horizontal: true, vertical: false)
+            VStack(alignment: .leading, spacing: 8) { buttons }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        #if os(tvOS)
+        .focusSection()
+        #endif
+    }
+
+    private var buttons: some View {
+        Group {
+            SettingsPageLink {
+                HomeRowPresetsView(
+                    inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
+                )
+            } label: {
+                Text("Layouts").fixedSize(horizontal: false, vertical: true)
+            }
+            .disabled(isReordering)
+            .accessibilityIdentifier("home-section-presets")
+
+            Button {
+                isReordering.toggle()
+                isLifting = false
+            } label: {
+                if isReordering { Text("Done").fixedSize(horizontal: false, vertical: true) }
+                else { Text("Reorder").fixedSize(horizontal: false, vertical: true) }
+            }
+            .disabled(isLifting || (!isReordering && (inventory.isLoading
+                || inventory.catalog.sections(in: visibility.visibility).enabled.count < 2)))
+            .accessibilityIdentifier("home-section-reorder")
+
+            SettingsPageLink {
+                HomeAddSectionView(
+                    inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
+                )
+            } label: {
+                Text("Add section").fixedSize(horizontal: false, vertical: true)
+            }
+            .disabled(isReordering)
+            .accessibilityIdentifier("home-section-add")
+        }
+        .plozzActionButton(role: .secondary)
     }
 }
 #endif

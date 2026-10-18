@@ -1068,6 +1068,17 @@ final class SettingsInteractionTests: XCTestCase {
 
     func testHomeSectionArtworkAndMergeKeepSeparateActions() {
         openSettingsPage("Customize Home")
+        let hero = app.buttons["home-section-hero"]
+        XCTAssertEqual(hero.frame.minX - app.frame.minX, 24, accuracy: 2)
+        XCTAssertEqual(app.frame.maxX - hero.frame.maxX, 24, accuracy: 2)
+        for identifier in ["home-section-presets", "home-section-reorder", "home-section-add"] {
+            let action = app.buttons[identifier]
+            XCTAssertTrue(action.isHittable, app.debugDescription)
+            XCTAssertLessThan(action.frame.maxY, hero.frame.minY)
+            XCTAssertGreaterThanOrEqual(action.frame.minX, app.frame.minX + 20)
+            XCTAssertLessThanOrEqual(action.frame.maxX, app.frame.maxX - 20)
+        }
+        capture("home-section-action-bar-and-gutters")
         let watching = app.buttons["home-section-home-continueWatching"]
         XCTAssertTrue(watching.waitForExistence(timeout: 3), app.debugDescription)
         watching.tap()
@@ -1075,6 +1086,10 @@ final class SettingsInteractionTests: XCTestCase {
         let original = merge.value as? String
         let thumbnail = app.buttons["Thumbnail & Title"]
         XCTAssertTrue(thumbnail.waitForExistence(timeout: 3), app.debugDescription)
+        XCTAssertLessThan(thumbnail.frame.height, thumbnail.frame.width * 1.5,
+                          "Artwork cards should scale with width, not keep the old 200pt swatch slot.")
+        XCTAssertGreaterThanOrEqual(thumbnail.frame.height, 44)
+        capture("home-section-compact-artwork")
         thumbnail.tap()
         XCTAssertTrue(app.navigationBars["Continue Watching"].exists)
         XCTAssertEqual(merge.value as? String, original)
@@ -1096,8 +1111,9 @@ final class SettingsInteractionTests: XCTestCase {
         let combined = app.buttons["home-row-preset-combined"]
         XCTAssertTrue(provider.waitForExistence(timeout: 3), app.debugDescription)
         XCTAssertTrue(combined.isHittable)
-        XCTAssertGreaterThanOrEqual(provider.frame.height, 44)
-        XCTAssertGreaterThanOrEqual(combined.frame.height, 44)
+        // Accessibility frames can round a 44pt height a fraction below 44.
+        XCTAssertGreaterThanOrEqual(provider.frame.height, 44 - 0.001)
+        XCTAssertGreaterThanOrEqual(combined.frame.height, 44 - 0.001)
         XCTAssertLessThanOrEqual(provider.frame.maxY, combined.frame.minY)
         XCTAssertTrue(provider.isSelected)
         XCTAssertFalse(combined.isSelected)

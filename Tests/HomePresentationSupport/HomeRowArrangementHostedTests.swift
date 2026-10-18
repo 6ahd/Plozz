@@ -50,6 +50,54 @@ final class HomeRowArrangementHostedTests: XCTestCase {
     }
 
     #if os(iOS)
+    func testMobileActionBarRemainsReadableAndPinnedWhileSectionsScroll() async throws {
+        let suite = "HomePinnedActions.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        let provider = HomeSettingsLibraryProvider(name: "Library server", kind: .mediaShare)
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let libraries = (1...18).map {
+            AggregatedLibrary(
+                accountID: account.account.id, accountName: "Viewer", serverName: "Library server",
+                providerKind: .mediaShare,
+                library: MediaLibrary(id: "library-\($0)", title: "Library \($0)", kind: .movie)
+            )
+        }
+        let choices = HomeRowChoice.shared + libraries.flatMap(HomeRowChoice.baseRows)
+        visibility.applyRows(.init(enabled: choices.map(\.id), disabled: []), choices: choices)
+        for (width, size): (CGFloat, DynamicTypeSize) in [
+            (390, .large), (320, .accessibility5), (1024, .accessibility3)
+        ] {
+            try await withWindow(size: CGSize(width: width, height: 900)) {
+                NavigationStack {
+                    HomeRowsSettingsView(libraries: libraries, accounts: [account], visibility: visibility)
+                }
+                .environment(\.dynamicTypeSize, size)
+            } inspect: { window in
+                let before = try await self.capture(window, name: "Home actions \(width) \(size)")
+                let text = before.map(\.0).joined(separator: " ")
+                for label in ["Layouts", "Reorder", "Add section"] {
+                    XCTAssertTrue(text.contains(label), text)
+                }
+                func scrollViews(_ view: UIView) -> [UIScrollView] {
+                    (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap(scrollViews)
+                }
+                let scroll = try XCTUnwrap(scrollViews(window).first {
+                    $0.contentSize.height > $0.bounds.height + 300
+                })
+                let initialOffset = scroll.contentOffset.y
+                scroll.setContentOffset(CGPoint(x: 0, y: initialOffset + 300), animated: false)
+                let after = try await self.capture(window, name: "Home pinned actions \(width) \(size)")
+                XCTAssertGreaterThan(scroll.contentOffset.y, initialOffset + 250)
+                for label in ["Layouts", "Reorder"] {
+                    XCTAssertEqual(try self.y(label, in: before), try self.y(label, in: after), accuracy: 0.003)
+                }
+                XCTAssertTrue(after.map(\.0).joined(separator: " ").contains("Add section"))
+            }
+        }
+    }
+
     func testPushingAddSectionFinishesDiscoveryAfterTheRootDisappears() async throws {
         let suite = "HomeAddDiscovery.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -192,11 +240,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 (view as? UISwitch).map { [$0] } ?? view.subviews.flatMap(switches)
             }
             let control = try XCTUnwrap(switches(window).first)
-            XCTAssertFalse(control.isOn)
-            control.setOn(true, animated: false)
+            XCTAssertTrue(control.isOn)
+            control.setOn(false, animated: false)
             control.sendActions(for: .valueChanged)
-            let lines = try await self.capture(window, name: "Mobile Rows on Home with Next Up merged")
-            XCTAssertTrue(store.load().mergeNextUpIntoContinueWatching)
+            let lines = try await self.capture(window, name: "Mobile Rows on Home with Next Up separate")
+            XCTAssertFalse(store.load().mergeNextUpIntoContinueWatching)
             XCTAssertEqual(visibility.visibility.rowCustomization?.defaults, .combined)
             let text = lines.map(\.0).joined(separator: " ")
             XCTAssertTrue(text.contains("Continue Watching"), text)
@@ -523,6 +571,46 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         }
     }
 
+    func testSourceFailuresAppearOnlyOnTheMainEditor() async throws {
+        let suite = "HomeRootFailures.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.applyRows(
+            .init(enabled: [.global(.continueWatching)],
+                  disabled: HomeRowChoice.shared.map(\.id).filter { $0 != .global(.continueWatching) }),
+            choices: HomeRowChoice.shared
+        )
+        let provider = HomeSettingsLibraryProvider(name: "Basement", homeError: .serverUnreachable)
+        let accounts = [ResolvedAccount(account: Account(from: provider.session), provider: provider)]
+        let inventory = HomeSectionCatalogModel()
+        let choice = try XCTUnwrap(HomeRowChoice.shared.first { $0.id == .global(.continueWatching) })
+        await inventory.load(libraries: [], accounts: accounts, visibility: visibility)
+        XCTAssertEqual(inventory.serverFailures.count, 1)
+        for page in 0..<4 {
+            try await withWindow {
+                NavigationStack {
+                    if page == 0 {
+                        HomeRowsSettingsView(libraries: [], accounts: accounts, visibility: visibility, inventory: inventory)
+                    } else if page == 1 {
+                        HomeSectionSettingsView(
+                            choice: choice, inventory: inventory, visibility: visibility, libraries: [], accounts: accounts
+                        )
+                    } else if page == 2 {
+                        HomeAddSectionView(inventory: inventory, visibility: visibility, libraries: [], accounts: accounts)
+                    } else {
+                        HomeRowPresetsView(inventory: inventory, visibility: visibility, libraries: [], accounts: accounts)
+                    }
+                }
+            } inspect: { window in
+                let lines = try await self.capture(window, name: "Home source error placement \(page)")
+                let text = lines.map(\.0).joined(separator: " ")
+                XCTAssertEqual(text.contains("Basement is offline."), page == 0, text)
+                XCTAssertEqual(lines.filter { $0.0.contains("Retry") }.count, page == 0 ? 1 : 0, text)
+            }
+        }
+    }
+
     #if os(tvOS)
     func testAllHiddenNoticeStillProvidesANativeFocusTarget() async throws {
         try await withWindow {
@@ -545,6 +633,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
     #endif
 
     private func withWindow<Content: View>(
+        size: CGSize? = nil,
         @ViewBuilder content: () -> Content,
         inspect: (UIWindow) async throws -> Void
     ) async throws {
@@ -557,7 +646,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             .first { $0.activationState == .foregroundActive })
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
-        window.frame = scene.coordinateSpace.bounds
+        window.frame = size.map { CGRect(origin: .zero, size: $0) } ?? scene.coordinateSpace.bounds
         window.overrideUserInterfaceStyle = .dark
         window.rootViewController = UIHostingController(rootView:
             content()

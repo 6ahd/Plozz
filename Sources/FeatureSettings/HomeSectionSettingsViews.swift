@@ -21,8 +21,6 @@ struct HomeEditorPage<Content: View>: View {
             .padding(.horizontal, SettingsFormMetrics.pageInset)
             .padding(.top, SettingsFormMetrics.pageTopInset)
             .padding(.bottom, SettingsFormMetrics.pageBottomInset)
-            #else
-            .padding()
             #endif
         }
         .navigationTitle(title)
@@ -73,12 +71,10 @@ struct HomeEditorLink<Destination: View, Label: View>: View {
 struct HomeEditorRowLabel: View {
     let title: Text
     let subtitle: Text?
-    let symbol: String
     var accessory = "chevron.forward"
 
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: symbol).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 title.font(.body.weight(.medium))
                 subtitle?.font(.footnote).settingsRowSecondary()
@@ -110,7 +106,7 @@ struct HomeSectionChoiceLabel: View {
     var body: some View {
         HomeEditorRowLabel(
             title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
-            symbol: choice.id == .liveTV ? "tv" : "rectangle.grid.1x2", accessory: accessory
+            accessory: accessory
         )
     }
 }
@@ -123,7 +119,6 @@ struct HomeSectionSettingsView: View {
     let accounts: [ResolvedAccount]
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
-    @State private var reloadRevision = 0
 
     var body: some View {
         HomeEditorPage(title: choice.homeEditorTitle, showsHeader: true) {
@@ -147,12 +142,10 @@ struct HomeSectionSettingsView: View {
             .disabled(inventory.isLoading)
             .accessibilityIdentifier("home-section-remove")
             if failed { InlineErrorMessage(Text("Couldn't update this section. Try again.")) }
-            HomeCatalogStatus(inventory: inventory, accounts: accounts, libraries: libraries) {
-                reloadRevision += 1
-            }
+            if inventory.isLoading { ProgressView("Loading available sections…") }
         }
         .task(id: HomeSectionCatalogModel.loadID(
-            libraries: libraries, accounts: accounts, visibility: visibility, revision: reloadRevision
+            libraries: libraries, accounts: accounts, visibility: visibility
         )) {
             await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
@@ -166,7 +159,6 @@ struct HomeAddSectionView: View {
     let accounts: [ResolvedAccount]
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
-    @State private var reloadRevision = 0
 
     var body: some View {
         HomeEditorPage(title: Text("Add section"), showsHeader: true) {
@@ -174,7 +166,7 @@ struct HomeAddSectionView: View {
             let disabled = Set(catalog.sections(in: visibility.visibility).disabled)
             let choices = catalog.editableChoices(in: visibility.visibility).filter { disabled.contains($0.id) }
             if choices.isEmpty && !inventory.isLoading {
-                Text("All available sections are already on Home.").plozzForeground(.secondary)
+                Text("No sections are available to add.").plozzForeground(.secondary)
             }
             ForEach(choices) { choice in
                 Button {
@@ -189,16 +181,14 @@ struct HomeAddSectionView: View {
                 .disabled(inventory.isLoading)
                 .accessibilityIdentifier("home-add-\(choice.id.presentationID)")
             }
-            HomeCatalogStatus(inventory: inventory, accounts: accounts, libraries: libraries) {
-                reloadRevision += 1
-            }
+            if inventory.isLoading { ProgressView("Loading available sections…") }
             if visibility.visibility.mergesNextUpRows {
                 Text("Next Up is included in Continue Watching.").font(.footnote).plozzForeground(.secondary)
             }
             if failed { InlineErrorMessage(Text("Couldn't update this section. Try again.")) }
         }
         .task(id: HomeSectionCatalogModel.loadID(
-            libraries: libraries, accounts: accounts, visibility: visibility, revision: reloadRevision
+            libraries: libraries, accounts: accounts, visibility: visibility
         )) {
             await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
@@ -271,18 +261,25 @@ struct HomeCatalogStatus: View {
 
     var body: some View {
         if inventory.isLoading { ProgressView("Loading available sections…") }
-        ForEach(accounts.filter { inventory.serverFailures[$0.account.id] != nil }, id: \.account.id) { source in
-            if let error = inventory.serverFailures[source.account.id], error != .cancelled {
-                InlineErrorMessage(message(server: source.account.server.name, error: error))
-                    .accessibilityIdentifier("home-server-failure-\(source.account.id)")
-            }
-        }
-        ForEach(libraries.filter { inventory.libraryFailures[$0.key] != nil }) { library in
-            InlineErrorMessage(Text("Couldn't load sections from \(library.library.title)."))
-        }
         if !inventory.serverFailures.isEmpty || !inventory.libraryFailures.isEmpty {
-            Button("Retry", action: retry)
-                .plozzActionButton(role: .secondary)
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(accounts.filter { inventory.serverFailures[$0.account.id] != nil }, id: \.account.id) { source in
+                    if let error = inventory.serverFailures[source.account.id], error != .cancelled {
+                        InlineErrorMessage(message(server: source.account.server.name, error: error))
+                            .accessibilityIdentifier("home-server-failure-\(source.account.id)")
+                    }
+                }
+                ForEach(libraries.filter { inventory.libraryFailures[$0.key] != nil }) { library in
+                    InlineErrorMessage(Text("Couldn't load sections from \(library.library.title)."))
+                }
+                Button("Retry", action: retry)
+                    .plozzActionButton(role: .secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .settingsGroupSurface(cornerRadius: 12)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("home-section-discovery-issues")
         }
     }
 
@@ -299,10 +296,9 @@ struct HomeRowPresetsView: View {
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
     @State private var resetDefaults: HomeRowCustomization.Defaults?
-    @State private var reloadRevision = 0
 
     var body: some View {
-        HomeEditorPage(title: Text("Starting layout"), showsHeader: true) {
+        HomeEditorPage(title: Text("Layouts"), showsHeader: true) {
             Text("Choose a starting point, then customize individual sections.")
                 .font(.footnote).plozzForeground(.secondary)
             ForEach([HomeRowCustomization.Defaults.matchServer, .combined], id: \.self) { preset in
@@ -340,12 +336,10 @@ struct HomeRowPresetsView: View {
                     else { Text("Start with rows across all libraries.") }
                 }
             }
-            HomeCatalogStatus(inventory: inventory, accounts: accounts, libraries: libraries) {
-                reloadRevision += 1
-            }
+            if inventory.isLoading { ProgressView("Loading available sections…") }
         }
         .task(id: HomeSectionCatalogModel.loadID(
-            libraries: libraries, accounts: accounts, visibility: visibility, revision: reloadRevision
+            libraries: libraries, accounts: accounts, visibility: visibility
         )) {
             await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }

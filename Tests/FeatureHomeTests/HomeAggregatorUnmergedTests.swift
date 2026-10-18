@@ -330,9 +330,10 @@ final class HomeAggregatorUnmergedTests: XCTestCase {
         )
         let episode = MediaItem(id: "episode", title: "Next episode", kind: .episode, seriesID: "show")
         let provider = UnmergedStub(nativeItems: ["next": [episode]])
-        let visibility = HomeLibraryVisibility(rowCustomization: .init(
-            defaults: .custom, shown: [definition.id], serverRows: [definition]
-        ))
+        let visibility = HomeLibraryVisibility(
+            rowCustomization: .init(defaults: .custom, shown: [definition.id], serverRows: [definition]),
+            mergeNextUpIntoContinueWatching: false
+        )
         let model = HomeViewModel(
             accounts: [resolved("acct", provider: provider)],
             layoutStore: InMemoryHomeLayoutStore(),
@@ -346,7 +347,7 @@ final class HomeAggregatorUnmergedTests: XCTestCase {
         XCTAssertTrue(model.continueWatchingForDetail.isEmpty)
     }
 
-    func testMergeOverrideUsesCombinedFeedAndStopsSeparateRequestsAcrossLayouts() async {
+    func testDefaultMergeUsesCombinedFeedAndStopsSeparateRequestsAcrossLayouts() async {
         let resume = MediaItem(id: "resume", title: "Resume", kind: .movie, resumePosition: 60, libraryID: "shows")
         let next = MediaItem(id: "next", title: "Next episode", kind: .episode, libraryID: "shows")
         let blocked = MediaItem(id: "blocked", title: "Excluded", kind: .episode, libraryID: "blocked")
@@ -374,8 +375,7 @@ final class HomeAggregatorUnmergedTests: XCTestCase {
                 )
             }
             let visibility = HomeLibraryVisibility(
-                disabledKeys: ["acct:blocked"], rowCustomization: customization,
-                mergeNextUpIntoContinueWatching: true
+                disabledKeys: ["acct:blocked"], rowCustomization: customization
             )
             let content = await HomeAggregator().unmergedContent(
                 from: [resolved("acct", provider: provider)], visibility: visibility
@@ -403,9 +403,10 @@ final class HomeAggregatorUnmergedTests: XCTestCase {
             continueWatching: [resume, next],
             nativeItems: ["resume": [resume], "nextUp": [next]]
         )
-        var visibility = HomeLibraryVisibility(rowCustomization: .init(
-            defaults: .custom, shown: Set(definitions.map(\.id)), serverRows: definitions
-        ))
+        var visibility = HomeLibraryVisibility(
+            rowCustomization: .init(defaults: .custom, shown: Set(definitions.map(\.id)), serverRows: definitions),
+            mergeNextUpIntoContinueWatching: false
+        )
         let model = HomeViewModel(
             accounts: [resolved("acct", provider: provider)],
             layoutStore: InMemoryHomeLayoutStore(), contentStore: InMemoryHomeContentStore(),
