@@ -1702,14 +1702,14 @@ public struct PlexClient: Sendable {
 
     /// Builds an absolute, token-bearing stream URL for a part `key` (which is
     /// already a server-relative `/library/parts/…/file.…` path). Used for
-    /// direct play of a container/codec tvOS can demux natively.
+    /// native direct play, on-device remuxing, and scrub-frame reads.
     func streamURL(forPartKey key: String) -> URL? {
         absoluteURL(serverPath: key, extraQuery: [URLQueryItem(name: "X-Plex-Token", value: token)])
     }
 
     /// Builds the absolute raw-file URL for a part `key`, explicitly asking Plex
-    /// for the original file bytes (`download=1`). Used by the local-remux seam,
-    /// which needs stable range-readable access to the untouched MKV.
+    /// for a download (`download=1`). Only offline downloads use this variant;
+    /// playback reads the same original part without marking it as a download.
     func downloadURL(forPartKey key: String) -> URL? {
         absoluteURL(
             serverPath: key,

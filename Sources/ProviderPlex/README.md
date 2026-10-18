@@ -216,6 +216,19 @@ requires fMP4 for HEVC and separate WebVTT text files.
 
 Tests: `PlexStreamingQualityTests` and `StreamingPlaybackTests`.
 
+## Original-file playback versus downloads
+
+Native playback, Plozzigen's local-remux source, and scrub-frame extraction use
+the original `/library/parts/...` URL without `download=1`. Only the explicit
+offline-download source includes that flag. Reusing the download URL for player
+buffering can make Plex's activity dashboard show transient download tasks.
+Both variants retain the same selected media part, credential-free locator,
+original bytes, and current-account authentication. This does not change engine
+selection, quality limits, or server-transcode negotiation.
+
+Tests: `ProviderPlexTests` covers MKV local remux, native MP4 playback, scrubbing,
+selected media versions, and the separately preserved offline-download URL.
+
 ## Playback session reporting
 
 Each VOD playback request owns a unique `playSessionID`, even for repeated plays
