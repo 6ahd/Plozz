@@ -69,15 +69,26 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         for (width, size): (CGFloat, DynamicTypeSize) in [
             (390, .large), (320, .accessibility5), (1024, .accessibility3)
         ] {
+            let inventory = HomeSectionCatalogModel()
             try await withWindow(size: CGSize(width: width, height: 900)) {
                 NavigationStack {
-                    HomeRowsSettingsView(libraries: libraries, accounts: [account], visibility: visibility)
+                    HomeRowsSettingsView(
+                        libraries: libraries, accounts: [account], visibility: visibility, inventory: inventory
+                    )
                 }
                 .environment(\.dynamicTypeSize, size)
             } inspect: { window in
+                let ready = XCTNSPredicateExpectation(
+                    predicate: NSPredicate { _, _ in
+                        !inventory.isLoading && inventory.catalog.choices.contains {
+                            $0.library?.library.id == "library-18"
+                        }
+                    }, object: nil
+                )
+                await self.fulfillment(of: [ready], timeout: 5)
                 let before = try await self.capture(window, name: "Home actions \(width) \(size)")
                 let text = before.map(\.0).joined(separator: " ")
-                for label in ["Preset", "Reorder", "Add section"] {
+                for label in ["Preset", "Reorder", "Custom"] {
                     XCTAssertTrue(text.contains(label), text)
                 }
                 func scrollViews(_ view: UIView) -> [UIScrollView] {
@@ -93,7 +104,6 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 for label in ["Preset", "Reorder"] {
                     XCTAssertEqual(try self.y(label, in: before), try self.y(label, in: after), accuracy: 0.003)
                 }
-                XCTAssertTrue(after.map(\.0).joined(separator: " ").contains("Add section"))
             }
         }
     }
@@ -549,20 +559,29 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         let visibility = HomeLibraryVisibilityModel(
             store: HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
         )
-        for size in [DynamicTypeSize.large, .accessibility3] {
+        for size in [DynamicTypeSize.large, .accessibility3, .accessibility5] {
             for (preset, title): (HomeRowCustomization.Defaults, String) in [
                 (.matchServer, "Match server"), (.combined, "Combined rows"), (.custom, "Custom")
             ] {
                 visibility.useRowDefaults(preset)
-                try await withWindow {
+                #if os(iOS)
+                let windowSize: CGSize? = CGSize(width: 320, height: 900)
+                #else
+                let windowSize: CGSize? = nil
+                #endif
+                try await withWindow(size: windowSize) {
                     HomeRowPresetPicker(visibility: visibility)
                         .padding(24)
                         .environment(\.dynamicTypeSize, size)
                 } inspect: { window in
                     let lines = try await self.capture(window, name: "Home preset \(title) text size \(size)")
                     let text = lines.map(\.0).joined(separator: " ")
+                    // Native wrapping can hyphenate words; OCR also sees the menu chevron as punctuation.
+                    let readable = text.replacingOccurrences(of: "- ", with: "")
+                        .filter { $0.isLetter || $0.isWhitespace }
+                        .split(whereSeparator: \.isWhitespace).joined(separator: " ")
                     XCTAssertTrue(text.contains("Preset"), text)
-                    XCTAssertTrue(text.contains(title), text)
+                    XCTAssertTrue(readable.contains(title), text)
                     XCTAssertEqual(visibility.visibility.rowCustomization?.defaults, preset)
                 }
             }

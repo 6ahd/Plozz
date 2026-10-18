@@ -321,9 +321,18 @@ struct HomeRowPresetPicker: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) { content }
+            HStack(spacing: 8) {
+                Text("Preset")
+                picker
+                    #if os(iOS)
+                    .fixedSize()
+                    #endif
+            }
                 .fixedSize(horizontal: true, vertical: false)
-            VStack(alignment: .leading, spacing: 4) { content }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Preset")
+                picker.fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(minHeight: 44)
         .confirmationDialog(
@@ -350,24 +359,51 @@ struct HomeRowPresetPicker: View {
         }
     }
 
-    private var content: some View {
-        Group {
-            Text("Preset")
-            Picker("Preset", selection: Binding(
-                get: { current },
-                set: { proposed in
-                    if proposed != current, proposed != .custom { resetDefaults = proposed }
-                }
-            )) {
-                if current == .custom {
-                    Text("Custom").tag(HomeRowCustomization.Defaults.custom).disabled(true)
-                }
-                Text("Match server").tag(HomeRowCustomization.Defaults.matchServer)
-                Text("Combined rows").tag(HomeRowCustomization.Defaults.combined)
+    @ViewBuilder private var picker: some View {
+        #if os(iOS)
+        Menu {
+            selectionPicker.pickerStyle(.inline).labelsHidden()
+        } label: {
+            HStack(spacing: 8) {
+                currentTitle.fixedSize(horizontal: false, vertical: true)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .accessibilityHidden(true)
             }
+            .frame(minHeight: 44)
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel(Text("Preset"))
+        .accessibilityValue(currentTitle)
+        .accessibilityIdentifier("home-row-preset")
+        #else
+        selectionPicker
             .pickerStyle(.menu)
             .labelsHidden()
             .accessibilityIdentifier("home-row-preset")
+        #endif
+    }
+
+    private var currentTitle: Text {
+        switch current {
+        case .matchServer: Text("Match server")
+        case .combined: Text("Combined rows")
+        default: Text("Custom")
+        }
+    }
+
+    private var selectionPicker: some View {
+        Picker("Preset", selection: Binding(
+            get: { current },
+            set: { proposed in
+                if proposed != current, proposed != .custom { resetDefaults = proposed }
+            }
+        )) {
+            if current == .custom {
+                Text("Custom").tag(HomeRowCustomization.Defaults.custom).disabled(true)
+            }
+            Text("Match server").tag(HomeRowCustomization.Defaults.matchServer)
+            Text("Combined rows").tag(HomeRowCustomization.Defaults.combined)
         }
     }
 }

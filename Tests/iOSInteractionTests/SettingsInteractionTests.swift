@@ -1071,14 +1071,20 @@ final class SettingsInteractionTests: XCTestCase {
         let hero = app.buttons["home-section-hero"]
         XCTAssertEqual(hero.frame.minX - app.frame.minX, 24, accuracy: 2)
         XCTAssertEqual(app.frame.maxX - hero.frame.maxX, 24, accuracy: 2)
-        for identifier in ["home-row-preset", "home-section-add"] {
-            let action = app.buttons[identifier]
-            XCTAssertTrue(action.isHittable, app.debugDescription)
-            XCTAssertLessThan(action.frame.maxY, hero.frame.minY)
-            XCTAssertGreaterThanOrEqual(action.frame.minX, app.frame.minX + 20)
-            XCTAssertLessThanOrEqual(action.frame.maxX, app.frame.maxX - 20)
-        }
+        let preset = app.buttons["home-row-preset"]
+        XCTAssertTrue(preset.isHittable, app.debugDescription)
+        XCTAssertLessThan(preset.frame.maxY, hero.frame.minY)
+        XCTAssertGreaterThanOrEqual(preset.frame.minX, app.frame.minX + 20)
+        XCTAssertLessThanOrEqual(preset.frame.maxX, app.frame.maxX - 20)
+        let add = app.navigationBars["Customize Home"].buttons["home-section-add"]
         let reorder = app.navigationBars["Customize Home"].buttons["home-section-reorder"]
+        XCTAssertTrue(add.isHittable, app.debugDescription)
+        XCTAssertEqual(add.label, "Add section")
+        XCTAssertLessThanOrEqual(add.frame.width, 64, "The toolbar action must be an icon, not a labeled pill.")
+        XCTAssertLessThanOrEqual(add.frame.maxX, reorder.frame.minX + 1)
+        XCTAssertLessThanOrEqual(app.navigationBars["Customize Home"].staticTexts["Customize Home"].frame.maxX, add.frame.minX)
+        XCTAssertEqual(add.frame.midY, reorder.frame.midY, accuracy: 1)
+        XCTAssertLessThan(add.frame.maxY, preset.frame.minY)
         XCTAssertTrue(reorder.isHittable, app.debugDescription)
         XCTAssertGreaterThan(reorder.frame.minX, app.frame.midX)
         XCTAssertTrue(app.buttons["home-section-add-bottom"].exists)
@@ -1233,7 +1239,7 @@ final class SettingsInteractionTests: XCTestCase {
         reveal(row, settingsMenu: parent == nil)
         row.tap()
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 3), app.debugDescription)
-        if verifyTitleLayout { assertInlineTitle(title) }
+        if verifyTitleLayout { assertInlineTitle(title, centered: title != "Customize Home") }
     }
 
     private func revealSyncErasureControl(_ element: XCUIElement) {
@@ -1244,7 +1250,7 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertTrue(element.isHittable, app.debugDescription)
     }
 
-    private func assertInlineTitle(_ title: String) {
+    private func assertInlineTitle(_ title: String, centered: Bool = true) {
         let bar = app.navigationBars[title]
         let heading = bar.staticTexts[title].firstMatch
         XCTAssertTrue(heading.waitForExistence(timeout: 3), app.debugDescription)
@@ -1261,7 +1267,12 @@ final class SettingsInteractionTests: XCTestCase {
                     - max(0, bar.frame.maxX - sidebar.frame.maxX)
             }
         }
-        XCTAssertEqual(heading.frame.midX, titleRegion.midX, accuracy: 4, app.debugDescription)
+        if centered {
+            XCTAssertEqual(heading.frame.midX, titleRegion.midX, accuracy: 4, app.debugDescription)
+        } else {
+            XCTAssertGreaterThanOrEqual(heading.frame.minX, titleRegion.minX)
+            XCTAssertLessThanOrEqual(heading.frame.maxX, titleRegion.maxX)
+        }
         XCTAssertLessThanOrEqual(bar.frame.height, 64, "Subpages must not reserve a large-title block.")
         XCTAssertLessThanOrEqual(heading.frame.height, 32, "Subpages must use the native inline title font.")
     }

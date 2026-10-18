@@ -112,7 +112,15 @@ public struct HomeRowsSettingsView: View {
         }
         #if os(iOS)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                SettingsPageLink {
+                    addSectionDestination
+                } label: {
+                    Label("Add section", systemImage: "plus")
+                }
+                .labelStyle(.iconOnly)
+                .disabled(isReordering)
+                .accessibilityIdentifier("home-section-add")
                 reorderButton
             }
         }
@@ -136,14 +144,17 @@ public struct HomeRowsSettingsView: View {
     }
 
     private var editorControls: some View {
+        #if os(tvOS)
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 16) { controls }
                 .fixedSize(horizontal: true, vertical: false)
             VStack(alignment: .leading, spacing: 8) { controls }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        #if os(tvOS)
         .focusSection()
+        #else
+        controls
+            .frame(maxWidth: .infinity, alignment: .leading)
         #endif
     }
 
@@ -152,7 +163,9 @@ public struct HomeRowsSettingsView: View {
             HomeRowPresetPicker(visibility: visibility)
                 .id(ObjectIdentifier(visibility))
                 .disabled(isReordering)
+            #if os(tvOS)
             addSectionButton(identifier: "home-section-add")
+            #endif
         }
     }
 
@@ -174,15 +187,19 @@ public struct HomeRowsSettingsView: View {
 
     private func addSectionButton(identifier: String) -> some View {
         SettingsPageLink {
-            HomeAddSectionView(
-                inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
-            )
+            addSectionDestination
         } label: {
             Text("Add section").fixedSize(horizontal: false, vertical: true)
         }
         .plozzActionButton(role: .secondary)
         .disabled(isReordering)
         .accessibilityIdentifier(identifier)
+    }
+
+    private var addSectionDestination: some View {
+        HomeAddSectionView(
+            inventory: inventory, visibility: visibility, libraries: libraries, accounts: accounts
+        )
     }
 
     private var heroSummary: Text {
