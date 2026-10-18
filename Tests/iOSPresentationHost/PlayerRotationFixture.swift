@@ -186,8 +186,8 @@ struct PlayerRotationFixture: View {
                 let rate = playbackRate(in: presentation.layer)
                 probe.playbackRate = rate
                 if let rate { probe.maximumRate = max(probe.maximumRate ?? rate, rate) }
-                if let rect = presentation.videoRect, let window = view.window {
-                    let safe = view.convert(window.safeAreaLayoutGuide.layoutFrame, from: window)
+                if let rect = presentation.videoRect {
+                    let safe = presentation.fitBounds ?? presentation.bounds
                     probe.videoFit = safe.insetBy(dx: -1, dy: -1).contains(rect) ? "safe" : "cropped"
                 }
             }

@@ -235,8 +235,10 @@ style together, keeping symbols proportional to their labels as text size change
 They do not intercept touches. Live TV supports skips only inside an available
 rewind window, not speed boosting.
 
-Pinch inward for Normal fitting inside the display's safe area, clear of the
-Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
+Pinch inward for Normal fitting clear of the display cutout. Landscape video
+uses the full display height behind the home indicator instead of reserving a
+bottom strip; portrait keeps the full safe-area inset. Controls and ordinary
+captions retain their safe-area placement. Pinch outward for edge-to-edge Crop. This
 uses the existing session-only zoom state without reloading video or revealing
 the timeline. Authored subtitle geometry follows the displayed picture; ordinary
 captions retain their screen-relative placement. Inline, tvOS, and external

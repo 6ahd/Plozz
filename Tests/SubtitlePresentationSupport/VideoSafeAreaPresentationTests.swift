@@ -61,8 +61,11 @@ final class VideoSafeAreaPresentationTests: XCTestCase {
                 PlayerVideoZoom(mode: .custom, customPercent: 150)
             ] {
                 zoom.settings = setting
-                let safe = video.convert(window.bounds.inset(by: insets), from: window)
+                var safe = video.convert(window.bounds.inset(by: insets), from: window)
                     .intersection(video.bounds.inset(by: video.safeAreaInsets))
+                if size.width > size.height {
+                    safe = CGRect(x: safe.minX, y: 0, width: safe.width, height: size.height)
+                }
                 let expected = try XCTUnwrap(setting.videoRect(
                     in: video.bounds, aspectRatio: engine.videoAspectRatio, fitBounds: safe
                 ))
@@ -102,6 +105,12 @@ final class VideoSafeAreaPresentationTests: XCTestCase {
                 XCTAssertEqual(engine.output.bounds.size, video.bounds.size)
                 if setting.mode == .fit {
                     XCTAssertTrue(safe.insetBy(dx: -0.001, dy: -0.001).contains(expected))
+                    if size.width > size.height {
+                        XCTAssertEqual(expected.midY, video.bounds.midY, accuracy: 0.001)
+                        if safe.width >= video.bounds.height * 16 / 9 {
+                            XCTAssertEqual(expected.height, video.bounds.height, accuracy: 0.001)
+                        }
+                    }
                 }
                 if setting.mode == .fill {
                     XCTAssertTrue(expected.insetBy(dx: -0.001, dy: -0.001).contains(video.bounds))
