@@ -1030,7 +1030,7 @@ public final class AppState {
         anilistService: AniListService? = nil,
         malService: MALService? = nil,
         lastfmService: LastFmService? = nil,
-        runtimeFeatureFlags: RuntimeFeatureFlags = .productionDefault,
+        runtimeFeatureFlags: RuntimeFeatureFlags = .buildDefault,
         appAdmissionStore: any AppAdmissionStoring = AppAdmissionStore()
     ) {
         self.appAdmission = AppAdmissionModel(store: appAdmissionStore)

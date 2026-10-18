@@ -6,13 +6,17 @@ without an identifiable movie or episode are not scrobbled.
 
 ## Release availability
 
-WeTrakr is currently disabled in `RuntimeFeatureFlags.productionDefault` while
-API rate-limit behavior is investigated. Both platforms hide its tracker setup
-and watchlist links. Resolved configuration remains unavailable even when a
-client ID and saved connection exist, so status refresh, watchlist sync, and
-playback tracking cannot contact WeTrakr. Stored connections are not erased.
-Tests may explicitly enable the flag or inject a test configuration; restoring
-the production flag is a separate release decision.
+Both platforms use `RuntimeFeatureFlags.buildDefault` for tracker setup,
+watchlist links, runtime integration, and resolved configuration. Debug builds
+enable WeTrakr for local testing with the request-budget safeguards.
+
+Release builds, including TestFlight and App Store archives, retain
+`RuntimeFeatureFlags.productionDefault`, where WeTrakr is disabled while API
+rate-limit behavior is investigated. Those builds hide its setup and links, and
+resolved configuration remains unavailable even when a client ID and saved
+connection exist. Status refresh, watchlist sync, and playback tracking therefore
+cannot contact WeTrakr. Stored connections are not erased. Restoring the
+production flag remains a separate release decision.
 
 ## Registration
 

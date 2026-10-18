@@ -21,7 +21,7 @@ public struct WetrakrConfig: Sendable, Equatable {
     public static func resolved(
         bundle: Bundle = .main,
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        featureFlags: RuntimeFeatureFlags = .productionDefault
+        featureFlags: RuntimeFeatureFlags = .buildDefault
     ) -> Self {
         guard featureFlags.isEnabled(.wetrakr) else { return Self() }
         return Self(clientID: sanitize(bundle.object(forInfoDictionaryKey: "WetrakrClientID") as? String)

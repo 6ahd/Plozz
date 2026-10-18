@@ -18,6 +18,29 @@ private func store() -> InMemoryTrackerTokenStore {
 }
 
 final class WetrakrAuthorizationTests: XCTestCase {
+    func testBuildRolloutMatchesConfiguration() {
+        XCTAssertTrue(RuntimeFeatureFlags.buildDefault.isEnabled(.universalWatchlist))
+        #if DEBUG
+        XCTAssertTrue(RuntimeFeatureFlags.buildDefault.isEnabled(.wetrakr))
+        #else
+        XCTAssertEqual(RuntimeFeatureFlags.buildDefault, .productionDefault)
+        XCTAssertFalse(RuntimeFeatureFlags.buildDefault.isEnabled(.wetrakr))
+        #endif
+    }
+
+    func testDefaultConfigurationUsesBuildRollout() {
+        let resolved = WetrakrConfig.resolved(
+            bundle: Bundle(for: Self.self),
+            environment: ["WETRAKR_CLIENT_ID": "configured"]
+        )
+        #if DEBUG
+        XCTAssertEqual(resolved.clientID, "configured")
+        #else
+        XCTAssertFalse(resolved.isConfigured)
+        XCTAssertNil(resolved.clientID)
+        #endif
+    }
+
     func testConfigurationRejectsUnexpandedSettingsAndUsesEnvironment() {
         XCTAssertFalse(WetrakrConfig(clientID: "$(WETRAKR_CLIENT_ID)").isConfigured)
         XCTAssertFalse(WetrakrConfig(clientID: "  ").isConfigured)
@@ -31,7 +54,10 @@ final class WetrakrAuthorizationTests: XCTestCase {
     func testProductionRolloutDisablesSavedConnectionsWithoutRequestsOrErasure() async throws {
         XCTAssertFalse(RuntimeFeatureFlags.productionDefault.isEnabled(.wetrakr))
         XCTAssertTrue(RuntimeFeatureFlags.productionDefault.isEnabled(.universalWatchlist))
-        let disabled = WetrakrConfig.resolved(environment: ["WETRAKR_CLIENT_ID": "configured"])
+        let disabled = WetrakrConfig.resolved(
+            environment: ["WETRAKR_CLIENT_ID": "configured"],
+            featureFlags: .productionDefault
+        )
         XCTAssertFalse(disabled.isConfigured)
         XCTAssertNil(disabled.clientID)
         let http = RecordingHTTPClient()
