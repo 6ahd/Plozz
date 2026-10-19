@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:6.1
 import PackageDescription
 import Foundation
 
@@ -88,11 +88,11 @@ let package = Package(
         // AetherEngine — production media player engine for Apple platforms.
         // FFmpeg demuxes, VideoToolbox decodes, AVPlayer handles Dolby Atmos.
         // Powers the native HLS-fMP4 remux path for MKV → DoVi + Atmos + seek.
-        // See AGENTS.local.md › "Playback engine (AetherEngine / Plozzigen)".
+        // See docs/playback-engines.md for integration and fork corrections.
         //
         // Pinned to the playback-corrected fork at
-        // af350b9bf35be106e3f97ecd521e1ab32be0bdd3, based on upstream
-        // release 7.34.1 (cc070bf8d7bd7004547283cf1dc0c70ccd00d616).
+        // deb90eb3f740fe1ddda74301a64e3937e480877d, integrating upstream main
+        // 3721cec573478bf82bc5056417f13b76d644517b (7.42.0 plus unreleased changes).
         //
         // Everything the old `plozz-pin-*` stack existed for is upstream
         // as of 5.23.2:
@@ -232,11 +232,13 @@ let package = Package(
         // a decoded end nor a source duration are not given a synthetic five-second
         // life.
         //
-        // 7.36.0 retains that correction and exports the engine dynamically:
+        // The current fork retains that correction and exports the engine dynamically:
         // LibDovi and LibTrueHD's Rust unwind personalities must stay separate
-        // from the host's Objective-C/C++ stack. FFmpegBuild moves to 3.7.x,
-        // LibDovi stays at 2.1.x, LibTrueHD 2.3.x supplies TrueHD object decoding,
-        // and LibDTSX 1.0.1 adds DTS:X height/object reconstruction.
+        // from the host's Objective-C/C++ stack. FFmpegBuild moves to 3.8.x,
+        // LibDovi stays at 2.1.x, and LibTrueHD/LibDTSX move to 3.0.x.
+        // LibDTSX is now a separate dynamic framework with LGPL notices.
+        // Explicit traits preserve the formerly compiled-in features; the
+        // measurement-only TrueHDReferenceRender trait must remain excluded.
         // Plozz opts tvOS 26+ on-demand playback into TrueHD Atmos and DTS:X rendering.
         // Progressive segment delivery remains off.
         // Both apps embed the engine framework and the new dependency notices.
@@ -247,7 +249,14 @@ let package = Package(
         //
         // SMB enters AetherEngine only through Plozz's protocol-neutral custom-source
         // bridge; the engine's legacy SMB URL product is not linked.
-        .package(url: "https://github.com/brandomoore/AetherEngine", revision: "299a3d9ea767e2382158c2a3d137c4b1d302ab4a"),
+        .package(
+            url: "https://github.com/brandomoore/AetherEngine",
+            revision: "deb90eb3f740fe1ddda74301a64e3937e480877d",
+            traits: [
+                "TrueHDObjectAudio", "DTSXObjectAudio",
+                "DualLayerDolbyVision", "DolbyVisionStillReshaping",
+            ]
+        ),
         // NOTE: FFmpegBuild (FFmpeg n8.1.x decode-only), LibDovi (Dolby Vision
         // RPU parser), LibTrueHD and LibDTSX are transitive dependencies — AetherEngine
         // declares and consumes them. The retired hybrid-engine target needed
