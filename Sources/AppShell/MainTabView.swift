@@ -123,6 +123,37 @@ struct NativeTopBarNavigation: View {
     }
 }
 
+/// Retain visited navigation while Settings is open, but mount a newly selected
+/// chrome only when it becomes visible. A hidden native sidebar still resets focus.
+struct SettingsNavigationShell<Navigation: View, Settings: View>: View {
+    let style: NavigationStyle
+    let showsSettings: Bool
+    @ViewBuilder var navigation: (NavigationStyle) -> Navigation
+    @ViewBuilder var settings: () -> Settings
+    @State private var lastVisibleStyle: NavigationStyle?
+
+    var body: some View {
+        ZStack {
+            if let mountedStyle = showsSettings ? lastVisibleStyle : style {
+                navigation(mountedStyle)
+                    .environment(\.plozzNavigationStyle, mountedStyle)
+                    .opacity(showsSettings ? 0 : 1)
+                    .disabled(showsSettings)
+                    .accessibilityHidden(showsSettings)
+            }
+            if showsSettings {
+                settings()
+            }
+        }
+        .onChange(of: showsSettings, initial: true) { _, _ in
+            if !showsSettings { lastVisibleStyle = style }
+        }
+        .onChange(of: style) { _, style in
+            if !showsSettings { lastVisibleStyle = style }
+        }
+    }
+}
+
 struct MainTabView: View {
     /// Stable identifiers for the root tabs, used to persist and restore the
     /// selected tab across MainTabView being rebuilt (see `selectedTab`).
@@ -515,8 +546,8 @@ struct MainTabView: View {
     private static let processLaunch = UUID().uuidString
     /// Carries the currently-visible top-bar destination into rail/sidebar when
     /// the style changes, without erasing the separately remembered library
-    /// destination. Cleared when the viewer chooses a real library-navigation
-    /// destination or returns to top bar.
+    /// destination. Prepared as top-bar selection changes so the first frame of
+    /// a style switch does not temporarily leave Settings.
     @State private var libraryNavigationEntryOverride: NavigationRailDestination?
     /// Whether a detail page is on top of the visible destination, so the rail can
     /// step aside. Owned here and injected, so the stacks that know their depth can
@@ -558,7 +589,11 @@ struct MainTabView: View {
                 HandoffDiagnostics.emit("NAVIGATION event=topTabSelection previous=\(resolvedSelectedTab.storageValue) requested=\($0.storageValue)")
                 recordedProcessLaunch = Self.processLaunch
                 releaseExplicitLiveTVEntry(ifLeavingFor: $0)
-                selectedTabRaw = resolvedTopBarTab($0).storageValue
+                let destination = resolvedTopBarTab($0)
+                selectedTabRaw = destination.storageValue
+                if navigationStyle == .tabBar {
+                    libraryNavigationEntryOverride = destination
+                }
             }
         )
     }
@@ -1275,25 +1310,19 @@ struct MainTabView: View {
     /// modifier the shell needs — the player hosts, the environment injections, the
     /// music probe — is applied to this in `body`, so the two chromes can never
     /// drift in what they provide.
-    @ViewBuilder
     private var shellContent: some View {
-        let showsSettings = isActiveTab(.settings)
-        ZStack {
-            navigationShell
-                .opacity(showsSettings ? 0 : 1)
-                .disabled(showsSettings)
-                .accessibilityHidden(showsSettings)
-            if showsSettings {
-                settingsTabContent
-            }
+        SettingsNavigationShell(style: navigationStyle, showsSettings: isActiveTab(.settings)) { style in
+            navigationShell(style: style)
+        } settings: {
+            settingsTabContent
         }
     }
 
     // Keep the Settings stack outside TabView's navigation adaptation. Changing
     // chrome must not lift its right-hand destination over the category column.
     @ViewBuilder
-    private var navigationShell: some View {
-        switch navigationStyle {
+    private func navigationShell(style: NavigationStyle) -> some View {
+        switch style {
         case .rail:
             railShell
         case .sidebar:

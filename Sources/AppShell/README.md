@@ -141,6 +141,14 @@ navigation style are independent choices.
 
 ## Native navigation planning
 
+Settings retains the last visible navigation shell while its style picker saves
+the profile's new preference immediately. Construct the replacement chrome only
+when leaving Settings: mounting a hidden, disabled native sidebar resets the
+picker's focus. Opening and closing Settings without changing style keeps the
+visited tabs and their state; a Settings-first launch does not mount hidden chrome.
+Top-bar selection also prepares its nonpersistent library-navigation handoff
+before a style change, so the first render cannot temporarily dismiss Settings.
+
 Native tab builders capture the resolved selection and library entries before
 constructing their children. The sidebar reuses that plan for content, labels,
 and focus eligibility; lazy tab evaluations must not rebuild it per destination.

@@ -2,6 +2,44 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testSwitchingFromPinnedSidebarKeepsNavigationSettingsResponsive() throws {
+        try exerciseSidebarSwitch(from: "rail")
+    }
+
+    func testSwitchingFromTopBarKeepsNavigationSettingsResponsive() throws {
+        try exerciseSidebarSwitch(from: "tabBar")
+    }
+
+    private func exerciseSidebarSwitch(from style: String) throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: style)
+        defer { app.terminate() }
+        let navigation = app.buttons["settings-page-navigation"]
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(navigation, in: app)
+        XCUIRemote.shared.press(.select)
+        let choice = app.buttons["Sidebar"]
+        try focus(choice, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(hasFocus(choice), "Changing chrome must preserve the focused Settings control. \(app.debugDescription)")
+        XCUIRemote.shared.press(.left)
+        XCTAssertTrue(hasFocus(app.buttons["Pinned Sidebar"]), "The next directional input must work.")
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(navigation.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(hasFocus(navigation), "Back must return to the Navigation action.")
+
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(section("screensNavigation", in: app).waitForExistence(timeout: 5))
+        XCUIRemote.shared.press(.menu)
+        XCTAssertFalse(section("screensNavigation", in: app).exists, app.debugDescription)
+        try openSettingsIfNeeded(in: app)
+        try enterAndReturn("playback", in: app)
+        #else
+        throw XCTSkip("Never changes navigation settings on a physical device.")
+        #endif
+    }
+
     func testDeviceSetupOpensAndReturnsToICloudSettings() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
