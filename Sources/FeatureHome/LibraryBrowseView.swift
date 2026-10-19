@@ -149,7 +149,11 @@ public struct LibraryBrowseView: View {
                     errorReport: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library),
                     onRetry: { Task { await viewModel.loadFirstPage() } },
                     loadingContent: {
-                        if let progress = viewModel.queryProgress {
+                        if let progress = viewModel.collectionProgress {
+                            LibraryCollectionLoadingView(progress: progress) {
+                                Task { await viewModel.loadFirstPage() }
+                            }
+                        } else if let progress = viewModel.queryProgress {
                             LibraryQueryPreparationView(progress: progress) { Task { await viewModel.cancelIndex() } }
                         } else if viewModel.isMediaShare || viewModel.browseScope == .collectionMembers {
                             LibraryBrowseLoadingView()
@@ -199,6 +203,13 @@ public struct LibraryBrowseView: View {
             #endif
         }
         .safeAreaInset(edge: .bottom) {
+            if viewModel.collectionScanIncomplete, viewModel.state.value != nil, viewModel.pageError == nil,
+               viewModel.contentMode == .collections {
+                LibraryCollectionLoadingView(progress: viewModel.collectionProgress) {
+                    Task { await viewModel.loadFirstPage() }
+                }
+                .padding()
+            }
             if viewModel.contentMode == .recommended, let error = viewModel.recommendationError,
                viewModel.recommendationState.value != nil {
                 VStack(alignment: .leading, spacing: 12) {
@@ -211,7 +222,10 @@ public struct LibraryBrowseView: View {
             }
             if viewModel.contentMode != .recommended, let error = viewModel.pageError {
                 VStack(alignment: .leading, spacing: PlozzTheme.Spacing.large) {
-                    Text(error.userMessage)
+                    if viewModel.collectionScanIncomplete {
+                        Text("Some collections haven't been checked yet. The list is incomplete.")
+                    }
+                    Text(viewModel.queryMessage ?? error.userMessage)
                         .plozzForeground(.secondary)
                     ContentFailureActions(report: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library)) {
                         Task { await viewModel.retryFailedPages() }

@@ -912,7 +912,7 @@ public struct JellyfinClient: Sendable {
             headers: authHeaders
         )
         return try await HTTPResponseDiagnostics.$route.withValue(.collectionCandidates) {
-            try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+            try await readCollectionPage(endpoint)
         }
     }
 
@@ -956,7 +956,18 @@ public struct JellyfinClient: Sendable {
             headers: authHeaders
         )
         return try await HTTPResponseDiagnostics.$route.withValue(recursive ? .collectionLibraryScope : .collectionMembers) {
-            try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+            try await readCollectionPage(endpoint)
+        }
+    }
+
+    private func readCollectionPage(_ endpoint: Endpoint) async throws -> ItemsResponse {
+        do {
+            return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        } catch AppError.serverUnreachable {
+            try Task.checkCancellation()
+            PlozzLog.networking.info("Collection read lost its connection; retrying once")
+            try await Task.sleep(for: .milliseconds(250))
+            return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
         }
     }
 

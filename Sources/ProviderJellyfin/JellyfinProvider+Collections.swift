@@ -4,14 +4,21 @@ import Foundation
 
 extension JellyfinProvider {
     public func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
+        try await collections(in: libraryID, page: page, progress: { _ in })
+    }
+
+    public func collections(
+        in libraryID: String, page: PageRequest,
+        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
+    ) async throws -> MediaPage {
         guard !libraryID.isEmpty, page.startIndex >= 0, page.limit > 0 else {
             throw AppError.invalidResponse
         }
         let key = "\(libraryID)#\(page.sort.field.rawValue)#\(page.sort.direction.rawValue)"
         let snapshot = try await collectionLibraryCache.snapshot(
-            key: key, refresh: page.startIndex == 0
-        ) {
-            try await self.scopedCollectionSnapshot(libraryID: libraryID, sort: page.sort)
+            key: key, refresh: page.startIndex == 0, progress: progress
+        ) { publish in
+            try await self.scopedCollectionSnapshot(libraryID: libraryID, sort: page.sort, progress: publish)
         }
         try Task.checkCancellation()
         return MediaPage(
@@ -21,11 +28,12 @@ extension JellyfinProvider {
     }
 
     private func scopedCollectionSnapshot(
-        libraryID: String, sort: CoreModels.SortDescriptor
+        libraryID: String, sort: CoreModels.SortDescriptor,
+        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
     ) async throws -> [MediaItem] {
         let pageSize = 200
         // A fresh server-side shuffle on every HTTP page cannot be enumerated
-        // without omissions/duplicates. Shuffle the completed scoped snapshot.
+        // without omissions/duplicates. Shuffle once before publishing any cards.
         let enumerationSort: CoreModels.SortDescriptor = sort.field == .random ? .default : sort
         var candidates: [MediaItem] = []
         var seen = Set<String>()
@@ -43,16 +51,21 @@ extension JellyfinProvider {
             if response.Items.isEmpty || (!ids.isEmpty && response.TotalRecordCount.map({ start >= $0 }) == true) { break }
         }
         guard !candidates.isEmpty else { return [] }
+        if sort.field == .random { candidates.shuffle() }
+        await progress(.init(items: [], checked: 0, total: candidates.count))
 
         var libraryIDs = Set<String>()
+        var scopePageSize = pageSize
         start = 0
         while true {
             try Task.checkCancellation()
             let response = try await client.collectionScopeItems(
                 userID: session.userID, parentID: libraryID, recursive: true,
-                start: start, limit: pageSize
+                start: start, limit: scopePageSize
             )
             let ids = try Self.validatedScopeIDs(response, stage: .libraryScope, start: start, seen: &libraryIDs)
+            // Keep the established small-page walk when no total can confirm a sparse tail.
+            scopePageSize = response.TotalRecordCount == nil ? pageSize : 1000
             start += response.Items.count
             if response.Items.isEmpty || (!ids.isEmpty && response.TotalRecordCount.map({ start >= $0 }) == true) { break }
         }
@@ -63,7 +76,7 @@ extension JellyfinProvider {
         let client = client
         let userID = session.userID
         let libraryMembership = libraryIDs
-        let matching = try await withThrowingTaskGroup(of: (Int, Bool).self) { group in
+        return try await withThrowingTaskGroup(of: (Int, Bool).self) { group in
             var nextIndex = min(4, candidates.count)
             for index in 0..<nextIndex {
                 let collectionID = candidates[index].id
@@ -75,8 +88,25 @@ extension JellyfinProvider {
                 }
             }
             var matches = Set<Int>()
+            var resolved = Set<Int>()
+            var frontier = 0
+            var scoped: [MediaItem] = []
             for try await (index, matchesLibrary) in group {
+                try Task.checkCancellation()
                 if matchesLibrary { matches.insert(index) }
+                resolved.insert(index)
+                let previousCount = scoped.count
+                // Later probes may finish first. Publish only the resolved prefix
+                // so an earlier collection never inserts ahead of a visible card.
+                while resolved.contains(frontier) {
+                    if matches.contains(frontier) {
+                        scoped.append(candidates[frontier].taggingLibrary(libraryID))
+                    }
+                    frontier += 1
+                }
+                if scoped.count != previousCount || resolved.count.isMultiple(of: 16) || resolved.count == candidates.count {
+                    await progress(.init(items: scoped, checked: resolved.count, total: candidates.count))
+                }
                 if nextIndex < candidates.count {
                     let index = nextIndex
                     let collectionID = candidates[index].id
@@ -89,13 +119,8 @@ extension JellyfinProvider {
                     }
                 }
             }
-            return matches
+            return scoped
         }
-        var scoped = candidates.enumerated().compactMap { index, item in
-            matching.contains(index) ? item.taggingLibrary(libraryID) : nil
-        }
-        if sort.field == .random { scoped.shuffle() }
-        return scoped
     }
 
     private static func hasLibraryMember(
@@ -161,10 +186,12 @@ extension JellyfinProvider {
 /// Provider instances bind this cache to one server/user/credential session.
 /// Page zero refreshes; later pages share the same complete, ordered snapshot.
 actor MediaBrowserCollectionLibraryCache {
+    typealias Progress = @Sendable (LibraryCollectionProgress) async -> Void
     private struct Flight {
         let id: UUID
         let task: Task<Void, Never>
         var consumers: [UUID: CheckedContinuation<[MediaItem], Error>]
+        var observers: [UUID: Progress]
     }
     private var cached: [String: [MediaItem]] = [:]
     private var recentKeys: [String] = []
@@ -174,6 +201,15 @@ actor MediaBrowserCollectionLibraryCache {
         key: String,
         refresh: Bool,
         load: @escaping @Sendable () async throws -> [MediaItem]
+    ) async throws -> [MediaItem] {
+        try await snapshot(key: key, refresh: refresh, progress: nil) { _ in try await load() }
+    }
+
+    func snapshot(
+        key: String,
+        refresh: Bool,
+        progress: Progress?,
+        load: @escaping @Sendable (@escaping Progress) async throws -> [MediaItem]
     ) async throws -> [MediaItem] {
         try Task.checkCancellation()
         let consumerID = UUID()
@@ -186,7 +222,7 @@ actor MediaBrowserCollectionLibraryCache {
                 }
                 register(
                     continuation, consumerID: consumerID, key: key,
-                    refresh: refresh, load: load
+                    refresh: refresh, progress: progress, load: load
                 )
             }
             try Task.checkCancellation()
@@ -205,11 +241,13 @@ actor MediaBrowserCollectionLibraryCache {
         consumerID: UUID,
         key: String,
         refresh: Bool,
-        load: @escaping @Sendable () async throws -> [MediaItem]
+        progress: Progress?,
+        load: @escaping @Sendable (@escaping Progress) async throws -> [MediaItem]
     ) {
         if var flight = flights[key] {
             if !flight.task.isCancelled {
                 flight.consumers[consumerID] = continuation
+                flight.observers[consumerID] = progress
                 flights[key] = flight
                 return
             }
@@ -226,7 +264,9 @@ actor MediaBrowserCollectionLibraryCache {
         let task = Task {
             let result: Result<[MediaItem], Error>
             do {
-                let items = try await load()
+                let items = try await load { update in
+                    await self.publish(update, flightID: id, key: key)
+                }
                 try Task.checkCancellation()
                 result = .success(items)
             } catch {
@@ -234,12 +274,24 @@ actor MediaBrowserCollectionLibraryCache {
             }
             completeFlight(id, key: key, result: result)
         }
-        flights[key] = Flight(id: id, task: task, consumers: [consumerID: continuation])
+        flights[key] = Flight(
+            id: id, task: task, consumers: [consumerID: continuation],
+            observers: progress.map { [consumerID: $0] } ?? [:]
+        )
+    }
+
+    private func publish(_ update: LibraryCollectionProgress, flightID: UUID, key: String) async {
+        guard let flight = flights[key], flight.id == flightID else { return }
+        for consumerID in flight.observers.keys {
+            guard let current = flights[key], current.id == flightID, !current.task.isCancelled else { return }
+            if let observer = current.observers[consumerID] { await observer(update) }
+        }
     }
 
     private func cancelConsumer(_ consumerID: UUID, key: String) {
         guard var flight = flights[key],
               let continuation = flight.consumers.removeValue(forKey: consumerID) else { return }
+        flight.observers[consumerID] = nil
         if flight.consumers.isEmpty {
             // Detach before cancelling so a newcomer cannot join doomed work.
             flights[key] = nil

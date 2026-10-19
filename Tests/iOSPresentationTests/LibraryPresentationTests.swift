@@ -14,6 +14,47 @@ import XCTest
 final class LibraryPresentationTests: XCTestCase {
     private var capturedImage: CGImage?
 
+    func testCollectionProgressKeepsCardsVisibleAndFailureOffersDetails() async throws {
+        let appModel = PlozziOSAppModel()
+        let artwork = try await seedArtwork()
+        for (width, textSize) in [(390.0, DynamicTypeSize.large), (320.0, .accessibility2)] {
+            let gate = LibraryPresentationCollectionGate()
+            let provider = LibraryPresentationProvider(artwork: artwork, collectionGate: gate)
+            try await withLibrary(
+                provider: provider, appModel: appModel, size: CGSize(width: width, height: 900),
+                sizeClass: .compact, dynamicTypeSize: textSize, preload: false
+            ) { window, model in
+                let loading = Task { await model.setContentMode(.collections) }
+                await gate.waitUntilHeld()
+                do {
+                    try await waitForHostedLayout(window)
+                    XCTAssertEqual(model.state, .loaded(4))
+                    let progressText = try self.capture(window, name: "collection-progress-\(width)")
+                        .compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                    XCTAssertTrue(progressText.contains("Checking collections"), progressText)
+                    XCTAssertTrue(progressText.contains("checked"), progressText)
+                } catch {
+                    await gate.release()
+                    await loading.value
+                    throw error
+                }
+                await gate.release()
+                await loading.value
+                try await waitForHostedLayout(window)
+                XCTAssertEqual(model.state, .loaded(4))
+                XCTAssertEqual(model.pageError, .serverUnreachable)
+                let failedText = try self.capture(window, name: "collection-incomplete-\(width)")
+                    .compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                XCTAssertTrue(failedText.contains("incomplete"), failedText)
+                XCTAssertTrue(failedText.contains("Details"), failedText)
+                XCTAssertTrue(failedText.contains("Try Again"), failedText)
+                XCTAssertFalse(failedText.contains("same network"), failedText)
+                let scroll = try XCTUnwrap(self.scrollViews(in: window).first)
+                XCTAssertLessThanOrEqual(scroll.contentSize.width, scroll.bounds.width + 1)
+            }
+        }
+    }
+
     func testRecommendationHeadingsTruncateNormallyAndWrapAtAccessibilitySizes() async throws {
         let appModel = PlozziOSAppModel()
         let title = "More like Avatar Aang: The Last Airbender"
@@ -613,6 +654,7 @@ private struct LibraryPresentationProvider: MediaProvider, CapabilityReporting, 
     let artwork: URL?
     var outcome = Outcome.loaded
     var hubError: AppError?
+    var collectionGate: LibraryPresentationCollectionGate?
     var kind: ProviderKind = .jellyfin
     let capabilities: ProviderCapability = [.video, .libraryCollections, .videoPlaylists]
     var session: UserSession {
@@ -647,6 +689,17 @@ private struct LibraryPresentationProvider: MediaProvider, CapabilityReporting, 
     }
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
         try await self.page(kind: .collection, request: page)
+    }
+    func collections(
+        in libraryID: String, page: PageRequest,
+        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
+    ) async throws -> MediaPage {
+        if let collectionGate {
+            await progress(.init(items: Array(titles(kind: .collection).prefix(4)), checked: 8, total: 40))
+            await collectionGate.hold()
+            throw AppError.serverUnreachable
+        }
+        return try await collections(in: libraryID, page: page)
     }
     func videoPlaylists(in libraryID: String, page: PageRequest) async throws -> MediaPage {
         try await self.page(kind: .playlist, request: page)
@@ -687,6 +740,26 @@ private struct LibraryPresentationProvider: MediaProvider, CapabilityReporting, 
     private func prepare() async throws {
         if outcome == .failed { throw AppError.serverUnreachable }
         if outcome == .loading { try await Task.sleep(for: .seconds(20)) }
+    }
+}
+
+private actor LibraryPresentationCollectionGate {
+    private var waiter: CheckedContinuation<Void, Never>?
+    private var observer: CheckedContinuation<Void, Never>?
+    func hold() async {
+        await withCheckedContinuation {
+            waiter = $0
+            observer?.resume()
+            observer = nil
+        }
+    }
+    func waitUntilHeld() async {
+        if waiter != nil { return }
+        await withCheckedContinuation { observer = $0 }
+    }
+    func release() {
+        waiter?.resume()
+        waiter = nil
     }
 }
 #endif

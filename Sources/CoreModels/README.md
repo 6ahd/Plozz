@@ -33,6 +33,11 @@ language every other module speaks.
   collection discovery uses `collections(in:page:)`, advertised through
   `.libraryCollections`; `collectionMembers(of:page:)`
   is separate and preserves server membership/order rather than the grid's sort.
+  `collections(in:page:progress:)` optionally reports incomplete discovery: its
+  confirmed items are an append-only prefix of the complete ordering, while
+  `checked`/`total` count candidate checks, not the final collection count.
+  The ordinary page return remains authoritative. Providers without intermediate
+  discovery (including the aggregate merge) retain their existing page contract.
 
 ## Public surface, at a glance
 

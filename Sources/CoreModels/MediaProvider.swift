@@ -113,6 +113,12 @@ public protocol MediaProvider: Sendable {
     /// Unsupported providers throw `.notFound`, never a misleading empty page.
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage
 
+    /// Optional, incomplete discovery updates. Only the returned page is authoritative.
+    func collections(
+        in libraryID: String, page: PageRequest,
+        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
+    ) async throws -> MediaPage
+
     /// Collections owned by or shared with the current server viewer, including
     /// ones not published in a library. Advertise `.personalCollections`.
     func personalCollections(page: PageRequest) async throws -> MediaPage
@@ -481,6 +487,13 @@ public extension MediaProvider {
         throw AppError.notFound
     }
 
+    func collections(
+        in libraryID: String, page: PageRequest,
+        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
+    ) async throws -> MediaPage {
+        try await collections(in: libraryID, page: page)
+    }
+
     func personalCollections(page: PageRequest) async throws -> MediaPage {
         throw AppError.notFound
     }
@@ -829,6 +842,20 @@ public struct SortDescriptor: Equatable, Codable, Sendable {
 
     /// The default order for a freshly opened library: name, ascending.
     public static let `default` = SortDescriptor(field: .name, direction: .ascending)
+}
+
+/// Incomplete discovery, with candidate-check counts distinct from the collection count.
+public struct LibraryCollectionProgress: Equatable, Sendable {
+    /// Confirmed members of the library in an append-only prefix of the final sort order.
+    public let items: [MediaItem]
+    public let checked: Int
+    public let total: Int
+
+    public init(items: [MediaItem], checked: Int, total: Int) {
+        self.items = items
+        self.checked = checked
+        self.total = total
+    }
 }
 
 /// One page of a container's children plus the total available, so callers can

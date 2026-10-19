@@ -36,7 +36,9 @@ final class MediaBrowserScopedCollectionTests: XCTestCase {
             XCTAssertFalse(candidates.isEmpty)
             XCTAssertTrue(candidates.allSatisfy { $0["ParentId"] == nil })
             XCTAssertTrue(queries.contains { $0["ParentId"] == "movies" && $0["Recursive"] == "true" })
-            XCTAssertTrue(queries.allSatisfy { $0["Limit"] == "200" })
+            XCTAssertTrue(queries.allSatisfy {
+                $0["Limit"] == ($0["ParentId"] == "movies" && $0["StartIndex"] != "0" ? "1000" : "200")
+            })
             let groupingKey = kind == .emby ? "GroupItemsIntoCollections" : "CollapseBoxSetItems"
             XCTAssertTrue(queries.filter { $0["ParentId"] != nil }.allSatisfy { $0[groupingKey] == "false" })
         }
@@ -184,7 +186,11 @@ final class MediaBrowserScopedCollectionTests: XCTestCase {
                 let queries = await http.queries
                 XCTAssertEqual(
                     queries.filter { $0["ParentId"] == "movies" }.compactMap { $0["StartIndex"] },
-                    includesTotals ? ["0", "199", "399"] : ["0", "199", "399", "400"]
+                    includesTotals ? ["0", "199"] : ["0", "199", "399", "400"]
+                )
+                XCTAssertEqual(
+                    queries.filter { $0["ParentId"] == "movies" }.compactMap { $0["Limit"] },
+                    includesTotals ? ["200", "1000"] : ["200", "200", "200", "200"]
                 )
             }
         }

@@ -127,6 +127,58 @@ final class HTTPResponseDiagnosticsTests: XCTestCase {
         XCTAssertFalse(report.supportText.contains("page_4"))
     }
 
+    func testTransportEvidenceKeepsOnlyNumericCodesAndRoutesAndDiscardsRecoveredFailures() async throws {
+        let failed = await HTTPResponseDiagnostics.capture { () async throws -> Int in
+            HTTPResponseDiagnostics.$route.withValue(.collectionMembers) {
+                for _ in 0..<7 {
+                    HTTPResponseDiagnostics.recordTransportFailure(URLError(.timedOut, userInfo: [
+                        NSURLErrorFailingURLStringErrorKey: "https://private.invalid/?token=secret"
+                    ]))
+                }
+                HTTPResponseDiagnostics.recordTransportFailure(URLError(.cancelled))
+            }
+            throw AppError.serverUnreachable
+        }
+        XCTAssertEqual(failed.transport.count, 4)
+        XCTAssertTrue(failed.transport.allSatisfy { $0.route == .collectionMembers && $0.urlErrorCode == -1001 })
+        let report = LibraryLoadDiagnostic(provider: .jellyfin, operation: .libraryBrowse, failures: [
+            .init(section: .collections, error: .serverUnreachable, transport: failed.transport)
+        ])
+        XCTAssertTrue(report.supportText.contains("transport_0.url_error_code=-1001"))
+        XCTAssertFalse(report.supportText.contains("private"))
+        XCTAssertFalse(report.supportText.contains("secret"))
+        let recovered = await HTTPResponseDiagnostics.capture {
+            HTTPResponseDiagnostics.recordTransportFailure(URLError(.networkConnectionLost))
+            return 1
+        }
+        XCTAssertTrue(recovered.transport.isEmpty)
+    }
+
+    func testURLSessionTransportFailureReachesTheLibraryCapture() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [TransportFailureURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let http = URLSessionHTTPClient(session: session)
+        let captured = await HTTPResponseDiagnostics.capture {
+            try await HTTPResponseDiagnostics.$route.withValue(.collectionLibraryScope) {
+                try await http.decode(
+                    Envelope.self, from: Endpoint(path: "/fixture"), baseURL: URL(string: "https://fixture.invalid")!
+                )
+            }
+        }
+        guard case .failure(let error) = captured.result else { return XCTFail("Expected transport failure") }
+        XCTAssertEqual(error as? AppError, .serverUnreachable)
+        XCTAssertEqual(captured.transport, [.init(route: .collectionLibraryScope, urlErrorCode: -1001)])
+    }
+
+    private final class TransportFailureURLProtocol: URLProtocol {
+        override class func canInit(with request: URLRequest) -> Bool { true }
+        override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+        override func startLoading() { client?.urlProtocol(self, didFailWithError: URLError(.timedOut)) }
+        override func stopLoading() {}
+    }
+
     private struct FixtureHTTP: HTTPClient {
         let json: String
         func send(_ endpoint: Endpoint, baseURL: URL) async throws -> (Data, HTTPURLResponse) {

@@ -10,6 +10,7 @@ public enum HTTPResponseDiagnostics {
         public let result: Result<Value, Error>
         public let responses: [ResponseDecodingDiagnostic]
         public let paging: [LibraryPagingDiagnostic]
+        public let transport: [ResponseTransportDiagnostic]
 
         public var isCancelled: Bool {
             guard case .failure(let error) = result else { return false }
@@ -27,16 +28,24 @@ public enum HTTPResponseDiagnostics {
         let recorder = Recorder()
         return await $recorder.withValue(recorder) {
             do {
-                return CapturedResult(result: .success(try await operation()), responses: [], paging: [])
+                return CapturedResult(result: .success(try await operation()), responses: [], paging: [], transport: [])
             } catch {
                 let evidence = recorder.snapshot()
-                return CapturedResult(result: .failure(error), responses: evidence.responses, paging: evidence.paging)
+                return CapturedResult(
+                    result: .failure(error), responses: evidence.responses, paging: evidence.paging,
+                    transport: evidence.transport
+                )
             }
         }
     }
 
     public static func recordPagingFailure(_ diagnostic: LibraryPagingDiagnostic) {
         recorder?.append(diagnostic)
+    }
+
+    public static func recordTransportFailure(_ error: URLError) {
+        guard error.code != .cancelled else { return }
+        recorder?.append(ResponseTransportDiagnostic(route: route, urlErrorCode: error.errorCode))
     }
 
     public static func recordDecodeFailure(
@@ -58,6 +67,7 @@ public enum HTTPResponseDiagnostics {
         private let lock = NSLock()
         private var responses: [ResponseDecodingDiagnostic] = []
         private var paging: [LibraryPagingDiagnostic] = []
+        private var transport: [ResponseTransportDiagnostic] = []
 
         func append(_ response: ResponseDecodingDiagnostic) {
             lock.lock()
@@ -73,10 +83,19 @@ public enum HTTPResponseDiagnostics {
             if paging.count > 4 { paging.removeFirst() }
         }
 
-        func snapshot() -> (responses: [ResponseDecodingDiagnostic], paging: [LibraryPagingDiagnostic]) {
+        func append(_ diagnostic: ResponseTransportDiagnostic) {
             lock.lock()
             defer { lock.unlock() }
-            return (responses, paging)
+            transport.append(diagnostic)
+            if transport.count > 4 { transport.removeFirst() }
+        }
+
+        func snapshot() -> (
+            responses: [ResponseDecodingDiagnostic], paging: [LibraryPagingDiagnostic], transport: [ResponseTransportDiagnostic]
+        ) {
+            lock.lock()
+            defer { lock.unlock() }
+            return (responses, paging, transport)
         }
     }
 }

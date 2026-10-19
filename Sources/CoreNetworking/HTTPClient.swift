@@ -228,6 +228,7 @@ public struct URLSessionHTTPClient: HTTPClient {
                 (data, response) = try await session.data(for: request, delegate: delegate)
             }
         } catch let urlError as URLError {
+            HTTPResponseDiagnostics.recordTransportFailure(urlError)
             diagnostic?.finish(
                 urlError.code == .cancelled ? .cancelled : .failed,
                 networkCode: urlError.errorCode

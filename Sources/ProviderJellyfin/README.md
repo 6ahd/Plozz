@@ -258,9 +258,19 @@ clear `ParentId` for BoxSet listing. Latest Jellyfin development source has newe
 linked-ancestor handling, but relying on it would leak unrelated collections on
 older servers.
 
-The shared compatible strategy reads the global BoxSet list and the selected
-library's IDs in bounded 200-item pages, then checks collection member IDs with
-at most four concurrent probes, stopping each probe at its first intersection.
+Compatible endpoints can serve virtual catalogs rather than indexed local media.
+[AIOMetadata's Jellyfin server](https://github.com/cedya77/aiometadata/blob/dev/docs/jellyfin.md)
+and [AIOStreams' Jellyfin server](https://github.com/Viren070/AIOStreams/blob/main/packages/docs/content/docs/reference/jellyfin-extensions.mdx)
+are separate implementations, even when AIOStreams uses AIOMetadata as an addon.
+Use verified endpoint capabilities and response contracts for optimizations;
+neither an addon name nor a server version establishes collection scoping.
+
+The shared compatible strategy reads the global BoxSet list in 200-item pages
+and the selected library's IDs in 1,000-item pages after an initial 200-item page
+confirms reported totals (otherwise retaining 200), then checks collection member
+IDs with at most four concurrent probes, stopping each probe at its first
+intersection. Larger ID pages trade larger transient response buffers for fewer
+round trips; membership probe concurrency remains bounded.
 ID queries disable collection collapsing, images, and user data. A provider/session-bound, single-flight
 snapshot (maximum four library/sort entries) supplies subsequent grid pages
 without repeated per-poster requests; page zero refreshes it. Some compatible
@@ -270,17 +280,24 @@ and advances by raw response-row count, not the number of new IDs. If a repeated
 tail alone reaches the exact reported end, enumeration makes one extra request
 at that boundary and requires an empty page before accepting completion. This
 covers a short final member page without accepting a server that ignores offsets.
-Request failures, early empty pages, duplicates within a page, and other
-non-advancing/non-prefix repeats remain errors. Browse Details includes the
+Connection failures get one cancellation-aware retry of the same read, with a
+250-ms delay; other errors are not retried. Remaining request failures, early
+empty pages, duplicates within a page, and other non-advancing/non-prefix repeats
+remain errors. Browse Details includes the
 failed enumeration stage, reason, offset, row count and reported total, never
 collection/library IDs or media titles.
-Each consumer owns its own cancellable wait: leaving one page does not cancel a
-replacement page's shared work. Only the last consumer cancels the worker, and
-late cleanup cannot remove a newer flight.
+The progress-aware collection API publishes confirmed cards before every probe
+finishes. It advances only past resolved candidates, retaining a stable prefix
+even when probes finish out of order. Candidate-check counts describe unfinished
+work, not a guessed collection total. Progress is never cached as a complete
+snapshot. Missing child counts do not mean an empty collection.
+Each consumer owns its own cancellable wait and progress subscription: leaving
+one page does not cancel a replacement page's shared work. Only the last consumer
+cancels the worker, and late cleanup cannot remove a newer flight.
 
 Filtering preserves the server's requested collection-list sort. Random order
-is the exception: enumerate candidates in stable name order, scope the complete
-set, then shuffle the snapshot once. Cached grid pages retain that order instead
+is the exception: enumerate candidates in stable name order, shuffle once, then
+scope that order. Visible cards and cached grid pages retain that order instead
 of requesting independently shuffled server pages that could omit collections.
 
 `MediaProvider.collectionMembers(of:page:)` pages direct members through

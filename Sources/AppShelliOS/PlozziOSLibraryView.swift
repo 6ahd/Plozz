@@ -257,6 +257,15 @@ struct PlozziOSLibraryGridView: View {
             )
         }
         .safeAreaInset(edge: .bottom) {
+            if viewModel.collectionScanIncomplete, viewModel.state.value != nil, viewModel.pageError == nil,
+               viewModel.contentMode == .collections {
+                LibraryCollectionLoadingView(progress: viewModel.collectionProgress) {
+                    Task { await viewModel.loadFirstPage() }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(.regularMaterial)
+            }
             if viewModel.contentMode == .recommended, let error = viewModel.recommendationError,
                viewModel.recommendationState.value != nil {
                 VStack(alignment: .leading, spacing: 12) {
@@ -270,7 +279,10 @@ struct PlozziOSLibraryGridView: View {
             }
             if viewModel.contentMode != .recommended, let error = viewModel.pageError {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(error.userMessage)
+                    if viewModel.collectionScanIncomplete {
+                        Text("Some collections haven't been checked yet. The list is incomplete.")
+                    }
+                    Text(viewModel.queryMessage ?? error.userMessage)
                         .plozzForeground(.secondary)
                     ContentFailureActions(report: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library)) {
                         Task { await viewModel.retryFailedPages() }
@@ -358,7 +370,13 @@ struct PlozziOSLibraryGridView: View {
     private func browseContent(generation: Int) -> some View {
         switch viewModel.state {
         case .idle, .loading:
-            if let progress = viewModel.queryProgress {
+            if let progress = viewModel.collectionProgress {
+                LibraryCollectionLoadingView(progress: progress) {
+                    Task { await viewModel.loadFirstPage() }
+                }
+                .frame(maxWidth: .infinity, minHeight: 220)
+                .padding(.horizontal)
+            } else if let progress = viewModel.queryProgress {
                 LibraryQueryPreparationView(progress: progress) { Task { await viewModel.cancelIndex() } }
                     .frame(height: 320)
             } else {

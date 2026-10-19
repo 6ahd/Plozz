@@ -10,6 +10,16 @@ fallback when the user's server has no attached trailer.
   nonfatal later-page failures. `LibraryLoadDiagnostic` identifies the requested
   section and retains safe response/paging evidence. Retry and mode changes clear
   stale reports; cancelled or superseded requests cannot publish one.
+  Collection discovery can display confirmed cards while remaining candidates
+  are checked. Both platforms show native progress and retain the stable card
+  slots. Partial failures retain those cards with an explicit incomplete-list
+  message and Details / Try Again; interrupted discovery restarts on return.
+  Reappearance must not restart an already-running first page, and sparse-page
+  prefetch waits until discovery is complete. Aggregated libraries retain their
+  existing complete-source merge rather than leaking unmerged source progress.
+  Browse network errors do not assume a local-network server. Task-local
+  diagnostics preserve the failing route and numeric URL error (for example,
+  timeout versus connection loss), without addresses or raw error text.
 - **Library recommendation failures** — Continue Watching, server recommendations,
   and Recently Added resolve independently. Partial and complete failures offer
   the shared native Details / Try Again actions on mobile and TV. Details name

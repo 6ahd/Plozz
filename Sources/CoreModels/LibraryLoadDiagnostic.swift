@@ -93,6 +93,16 @@ public struct LibraryPagingDiagnostic: Equatable, Sendable {
     }
 }
 
+public struct ResponseTransportDiagnostic: Equatable, Sendable {
+    public let route: ResponseDecodingDiagnostic.Route
+    public let urlErrorCode: Int
+
+    public init(route: ResponseDecodingDiagnostic.Route, urlErrorCode: Int) {
+        self.route = route
+        self.urlErrorCode = urlErrorCode
+    }
+}
+
 public struct LibraryLoadDiagnostic: Equatable, Sendable {
     public enum Operation: String, Sendable { case libraryRecommendations, libraryBrowse }
     public enum Section: String, Sendable {
@@ -116,15 +126,18 @@ public struct LibraryLoadDiagnostic: Equatable, Sendable {
         public let error: AppError
         public let responses: [ResponseDecodingDiagnostic]
         public let paging: [LibraryPagingDiagnostic]
+        public let transport: [ResponseTransportDiagnostic]
 
         public init(
             section: Section, error: AppError,
-            responses: [ResponseDecodingDiagnostic] = [], paging: [LibraryPagingDiagnostic] = []
+            responses: [ResponseDecodingDiagnostic] = [], paging: [LibraryPagingDiagnostic] = [],
+            transport: [ResponseTransportDiagnostic] = []
         ) {
             self.section = section
             self.error = error
             self.responses = Array(responses.suffix(4))
             self.paging = Array(paging.suffix(4))
+            self.transport = Array(transport.suffix(4))
         }
     }
 
@@ -160,6 +173,10 @@ public struct LibraryLoadDiagnostic: Equatable, Sendable {
                     "\(key).start=\(page.start)", "\(key).rows=\(page.rows)"
                 ]
                 if let total = page.total { fields.append("\(key).total=\(total)") }
+            }
+            for (requestIndex, request) in failure.transport.enumerated() {
+                let key = "\(prefix).transport_\(requestIndex)"
+                fields += ["\(key).route=\(request.route.rawValue)", "\(key).url_error_code=\(request.urlErrorCode)"]
             }
         }
         return fields.joined(separator: "\n")

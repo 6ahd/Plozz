@@ -35,6 +35,13 @@ HOME_HOST_FITTING_COUNTERS = [
     "hostFittingMaxNanoseconds", "hostFittingReentrantCalls",
 ]
 SCENARIOS = {
+    "collection-discovery": {
+        "suite": "network", "target": "ProviderJellyfinTests",
+        "test": "CollectionDiscoveryPerformanceTests/testPerformanceCollectionDiscovery",
+        "file": "Tests/ProviderJellyfinTests/CollectionDiscoveryPerformanceTests.swift",
+        "description": "Complete scoped discovery over 10,000 library slots and 356 collections with 5-ms request latency.",
+        "counters": ["collections", "requests", "libraryRequests", "memberRequests", "firstItemsNanoseconds"],
+    },
     "sync-unchanged": {
         "suite": "core", "target": "FeatureSyncCloudTests",
         "test": "CloudSyncPersistenceStateTests/testPerformanceUnchangedLedger",

@@ -1,4 +1,5 @@
 import CoreModels
+import CoreNetworking
 import FeatureHomeCore
 import XCTest
 
@@ -646,6 +647,105 @@ final class LibraryCollectionModeTests: XCTestCase {
         XCTAssertEqual(requests, [.movie])
     }
 
+    func testReappearingWhileLoadingDoesNotRestartTheFirstPage() async {
+        let provider = LibraryModeProvider()
+        let model = model(provider)
+        await provider.hold(.collections, at: 0)
+        let initial = Task { await model.setContentMode(.collections) }
+        await provider.waitForHeldRequest(.collections, at: 0)
+        await model.loadFirstPageIfNeeded()
+        let requests = await provider.requests
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertEqual(model.state, .loading)
+        await provider.release(.collections, at: 0)
+        await initial.value
+        XCTAssertEqual(model.state, .loaded(12))
+    }
+
+    func testProgressiveCollectionsKeepSlotsAndDoNotStartSparsePageRequests() async {
+        let provider = LibraryModeProvider()
+        await provider.enableCollectionProgress()
+        let model = model(provider)
+        await provider.hold(.collections, at: 0)
+        let initial = Task { await model.setContentMode(.collections) }
+        await provider.waitForHeldRequest(.collections, at: 0)
+        XCTAssertEqual(model.state, .loaded(4))
+        XCTAssertEqual(model.collectionProgress?.checked, 4)
+        XCTAssertTrue(model.collectionScanIncomplete)
+        let slot = model.slot(at: 0)
+        XCTAssertEqual(model.item(at: 0)?.sourceAccountID, "owning-account")
+        await model.itemAppeared(at: 3)
+        await model.loadFirstPageIfNeeded()
+        let requests = await provider.requests
+        XCTAssertEqual(requests.count, 1, "Progress must not start another refresh or sparse-page consumer.")
+        await provider.release(.collections, at: 0)
+        await initial.value
+        XCTAssertTrue(slot === model.slot(at: 0))
+        XCTAssertEqual(model.state, .loaded(12))
+        XCTAssertEqual(model.item(at: 11)?.id, "collection-11", "Final page zero must not erase streamed later slots.")
+        XCTAssertFalse(model.collectionScanIncomplete)
+        XCTAssertNil(model.collectionProgress)
+    }
+
+    func testPartialCollectionFailureKeepsCardsAndTransportDetailsThenRetries() async {
+        let provider = LibraryModeProvider()
+        await provider.enableCollectionProgress()
+        await provider.fail(.collections, at: 0)
+        let model = model(provider)
+        await model.setContentMode(.collections)
+        XCTAssertEqual(model.state, .loaded(4))
+        XCTAssertEqual(model.pageError, .serverUnreachable)
+        XCTAssertTrue(model.collectionScanIncomplete)
+        XCTAssertNil(model.collectionProgress)
+        let failure = model.browseDiagnostic?.failures.first
+        XCTAssertEqual(failure?.paging.first?.stage, .collectionMembers)
+        XCTAssertEqual(failure?.transport.first?.urlErrorCode, URLError.timedOut.rawValue)
+        XCTAssertEqual(failure?.transport.first?.route, .collectionMembers)
+        XCTAssertEqual(model.queryMessage, "Couldn't connect to the server. Check your connection and try again.")
+        await provider.clearFailures()
+        await model.retryFailedPages()
+        XCTAssertEqual(model.state, .loaded(12))
+        XCTAssertFalse(model.collectionScanIncomplete)
+        XCTAssertNil(model.pageError)
+        XCTAssertNil(model.browseDiagnostic)
+    }
+
+    func testInterruptedPartialScanRestartsOnReturnButCompletedScanDoesNot() async {
+        let provider = LibraryModeProvider()
+        await provider.enableCollectionProgress()
+        let model = model(provider)
+        await provider.hold(.collections, at: 0)
+        let initial = Task { await model.setContentMode(.collections) }
+        await provider.waitForHeldRequest(.collections, at: 0)
+        model.cancelPendingQuery()
+        await provider.release(.collections, at: 0)
+        await initial.value
+        XCTAssertEqual(model.loadedCount, 4, "Late progress from a cancelled request must be rejected.")
+        XCTAssertTrue(model.collectionScanIncomplete)
+        await model.loadFirstPageIfNeeded()
+        XCTAssertEqual(model.loadedCount, 12)
+        XCTAssertFalse(model.collectionScanIncomplete)
+        await model.loadFirstPageIfNeeded()
+        let requests = await provider.requests
+        XCTAssertEqual(requests.count, 2)
+    }
+
+    func testRetiredCollectionProgressCannotReplaceAnotherMode() async {
+        let provider = LibraryModeProvider()
+        await provider.enableCollectionProgress()
+        let model = model(provider)
+        await provider.hold(.collections, at: 0)
+        let initial = Task { await model.setContentMode(.collections) }
+        await provider.waitForHeldRequest(.collections, at: 0)
+        await model.setContentMode(.titles)
+        await provider.release(.collections, at: 0)
+        await initial.value
+        XCTAssertEqual(model.state, .loaded(40))
+        XCTAssertEqual(model.item(at: 0)?.id, "title-0")
+        XCTAssertFalse(model.collectionScanIncomplete)
+        XCTAssertNil(model.collectionProgress)
+    }
+
     private func model(
         _ provider: LibraryModeProvider,
         kind: MediaItemKind = .movie,
@@ -687,6 +787,7 @@ private actor LibraryModeProvider: MediaProvider, CapabilityReporting {
     private var held: [Key: CheckedContinuation<Void, Never>] = [:]
     private var heldObservers: [Key: CheckedContinuation<Void, Never>] = [:]
     private var failures: Set<Key> = []
+    private var progressiveCollections = false
     private(set) var requests: [Request] = []
     private(set) var letterRequests: [MediaItemKind] = []
     private(set) var requestedWatchingLibraries: [[String]?] = []
@@ -745,9 +846,25 @@ private actor LibraryModeProvider: MediaProvider, CapabilityReporting {
     func setWatchingError(_ value: AppError?) { watchingError = value }
     func setWatchingItems(_ items: [MediaItem]) { watchingItems = items }
     func setNativeSections(_ sections: [LibrarySection]) { nativeSections = sections }
+    func enableCollectionProgress() { progressiveCollections = true }
 
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
         try await response(.collections, containerID: libraryID, kind: .collection, page: page)
+    }
+
+    func collections(
+        in libraryID: String, page: PageRequest,
+        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
+    ) async throws -> MediaPage {
+        func update(_ count: Int, checked: Int) -> LibraryCollectionProgress {
+            .init(items: (0..<count).map {
+                MediaItem(id: "collection-\($0)", title: "collection \($0)", kind: .collection)
+            }, checked: checked, total: 20)
+        }
+        if progressiveCollections { await progress(update(4, checked: 4)) }
+        let result = try await collections(in: libraryID, page: page)
+        if progressiveCollections { await progress(update(collectionCount, checked: 20)) }
+        return result
     }
 
     func videoPlaylists(in libraryID: String, page: PageRequest) async throws -> MediaPage {
@@ -783,7 +900,17 @@ private actor LibraryModeProvider: MediaProvider, CapabilityReporting {
                 heldObservers.removeValue(forKey: key)?.resume()
             }
         }
-        if fails { throw AppError.serverUnreachable }
+        if fails {
+            if mode == .collections {
+                HTTPResponseDiagnostics.recordPagingFailure(.init(
+                    stage: .collectionMembers, reason: .nonAdvancing, start: 4, rows: 2, total: 20
+                ))
+                HTTPResponseDiagnostics.$route.withValue(.collectionMembers) {
+                    HTTPResponseDiagnostics.recordTransportFailure(URLError(.timedOut))
+                }
+            }
+            throw AppError.serverUnreachable
+        }
         let total = mode == .collections ? collectionCount : mode == .playlists ? 3 : titleCount
         let prefix = mode == .collections ? "collection" : mode == .playlists ? "playlist" : "title"
         let start = min(page.startIndex, total)
