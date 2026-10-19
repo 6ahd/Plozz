@@ -53,8 +53,13 @@ final class PlayerInfoContrastHostedTests: XCTestCase {
                         y: probe.frame.maxY - metrics.contentPadding - 36,
                         width: 150, height: 36
                     )
+                    #if os(tvOS)
+                    let lightBackground = false
+                    #else
+                    let lightBackground = palette.isLight
+                    #endif
                     XCTAssertGreaterThan(try contrastingPixels(
-                        image, in: badgeRect, lightBackground: palette.isLight
+                        image, in: badgeRect, lightBackground: lightBackground
                     ), 60, "\(name): Dolby and 5.1 must contrast with the playback surface.")
                 }
             }
@@ -116,7 +121,7 @@ final class PlayerInfoContrastHostedTests: XCTestCase {
                     y: card.maxY - metrics.contentPadding - 36,
                     width: 150, height: 36
                 )
-                XCTAssertGreaterThan(try contrastingPixels(image, in: badgeRect, lightBackground: palette.isLight), 60,
+                XCTAssertGreaterThan(try contrastingPixels(image, in: badgeRect, lightBackground: false), 60,
                                      "\(name): the real native-hosted Info badges must remain readable.")
                 XCTAssertEqual(probe.palette, palette, "Info must not change the surrounding browsing palette.")
                 XCTAssertEqual(probe.scheme, palette.isLight ? .light : .dark,
@@ -230,6 +235,7 @@ private struct ContrastInfoFixture: View {
 
     var body: some View {
         InfoPanelView(model: model, actions: PlayerOptionsActions(), focus: $focus, onClose: {})
+            .playerPlatformAppearance()
     }
 }
 

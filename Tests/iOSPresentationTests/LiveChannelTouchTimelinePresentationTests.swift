@@ -10,6 +10,19 @@ import XCTest
 final class LiveChannelTouchTimelinePresentationTests: XCTestCase {
     private let origin = Date(timeIntervalSince1970: 36_000)
 
+    func testReducedEffectsLiveProgressNeverInvertsInLightAppearance() throws {
+        for (height, focused, scrubbing) in [(CGFloat(8), false, false), (20, true, false), (20, false, true)] {
+            let track = LiveChannelTouchTrack(
+                layout: timeline(progress: 0.5), width: 240, height: height, focused: focused, scrubbing: scrubbing
+            )
+            let light = try pixels(track, width: 240, scheme: .light)
+            let dark = try pixels(track, width: 240, scheme: .dark)
+            XCTAssertEqual(light.bytes, dark.bytes, "The video timeline must never become black progress on a pale track.")
+            XCTAssertGreaterThan(Int(light.color(30, 22)[0]) - Int(light.color(210, 22)[0]), 20,
+                                 "Played progress must remain lighter than the remaining track.")
+        }
+    }
+
     func testLiveFillOnlyAtZeroMiddleAndLiveEdgeInRestFocusedAndDraggingStates() throws {
         for width in [CGFloat(240), 960] {
             for progress in [0.0, 0.5, 1.0] {
@@ -142,11 +155,11 @@ final class LiveChannelTouchTimelinePresentationTests: XCTestCase {
         }
     }
 
-    private func pixels(_ view: some View, width: CGFloat) throws -> Pixels {
+    private func pixels(_ view: some View, width: CGFloat, scheme: ColorScheme = .dark) throws -> Pixels {
         let renderer = ImageRenderer(content: view
             .frame(width: width, height: 44)
             .environment(\.plozzReducePanelGlass, true)
-            .environment(\.colorScheme, .dark)
+            .environment(\.colorScheme, scheme)
             .background(Color(red: 0, green: 1, blue: 1))
         )
         renderer.scale = 1

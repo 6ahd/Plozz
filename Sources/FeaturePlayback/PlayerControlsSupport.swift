@@ -83,7 +83,7 @@ struct ScrubBar: View {
                 ZStack(alignment: .leading) {
                     PlayerScrubTrackSurface(height: barHeight)
                     Capsule()
-                        .fill(Color.primary.opacity(0.14))
+                        .fill(Color.white.opacity(0.14))
                         .frame(width: width * CGFloat(model.bufferedFraction), height: barHeight)
                     UnevenRoundedRectangle(
                         topLeadingRadius: 10,
@@ -92,7 +92,7 @@ struct ScrubBar: View {
                         topTrailingRadius: 0,
                         style: .continuous
                     )
-                        .fill(Color.primary.opacity(focused ? 0.62 : 0.32))
+                        .fill(Color.white.opacity(focused ? 0.62 : 0.32))
                         .frame(width: knobX, height: barHeight)
                 }
                 .mask {
@@ -102,7 +102,7 @@ struct ScrubBar: View {
                     .equatable()
                 }
                 RoundedRectangle(cornerRadius: focused ? knobWidth / 2 : 0, style: .continuous)
-                    .fill(Color.primary)
+                    .fill(Color.white)
                     .frame(width: knobWidth, height: knobHeight)
                     .offset(x: knobX - knobWidth / 2)
                     .shadow(radius: 4)
@@ -335,8 +335,8 @@ struct InfoActionButtonStyle: ButtonStyle {
 /// underneath it. The semantic values these replace were `.headline` (45.35pt
 /// per line) and `.footnote` (34.61) — both a size larger than this card, at
 /// three metres, actually needs.
-/// The scrub bar's base track: native Liquid Glass on 26+, or a theme-aware
-/// flat fill when accessibility reduces glass and on older systems.
+/// The scrub bar's base track: native Liquid Glass on 26+, or a subdued
+/// flat track when accessibility reduces glass and on older systems.
 ///
 /// Shared by the remote and touch scrub bars. They had drifted apart — the touch
 /// one drew a plain white fill — which is how the same control ended up looking
@@ -347,8 +347,6 @@ public struct PlayerScrubTrackSurface: View {
     static let glassBackingOpacity = 0.10
 
     @Environment(\.playerUsesNativeGlass) private var usesNativeGlass
-    @Environment(\.colorScheme) private var colorScheme
-
     public init(height: CGFloat) {
         self.height = height
     }
@@ -367,9 +365,7 @@ public struct PlayerScrubTrackSurface: View {
             #endif
         } else {
             Capsule()
-                .fill(colorScheme == .light
-                    ? PlozzFrostedSurface.fill(colorScheme: .light)
-                    : .white.opacity(Self.flatFillOpacity))
+                .fill(.white.opacity(Self.flatFillOpacity))
                 .frame(height: height)
         }
     }
@@ -534,7 +530,11 @@ struct PlayerTabButtonStyle: ButtonStyle {
                 .plozzFrostedBackground(shape, raised: selected)
                 .plozzFrostedBorder(shape)
         } else if !reduceTransparency, #available(iOS 26.0, tvOS 26.0, *) {
+            #if os(tvOS)
+            PlayerNativeGlassSurface(shape, glass: selected ? .regular.tint(.white.opacity(0.30)) : .regular)
+            #else
             PlayerNativeGlassSurface(shape)
+            #endif
         } else {
             shape.fill(.clear)
                 .plozzFrostedBackground(shape, raised: selected)
@@ -583,7 +583,7 @@ public extension View {
 ///
 /// Still **no `.shadow`** — a soft drop shadow was the original frame-drop
 /// culprit over Dolby Vision (a per-frame offscreen blur recomposited on the
-/// moving HDR signal). A 1px stroke gives edge separation instead.
+/// moving HDR signal). TV retains its 1px edge; mobile uses only the native edge.
 ///
 /// The glass underlay has its own identity instead of wrapping changing text,
 /// artwork, and focus controls in the material's layout subtree.
@@ -603,13 +603,16 @@ struct PanelGlassBackground: ViewModifier {
             } else if #available(iOS 26.0, tvOS 26.0, *) {
                 content
                     .background { PlayerNativeGlassSurface(shape) }
+                    #if os(tvOS)
                     .overlay(shape.stroke(.white.opacity(0.12), lineWidth: 1))
+                    #endif
             } else {
                 content
                     .plozzFrostedBackground(shape)
                     .plozzFrostedBorder(shape)
             }
         }
+        .playerPlatformAppearance()
     }
 }
 

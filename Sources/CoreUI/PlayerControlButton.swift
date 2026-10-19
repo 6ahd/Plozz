@@ -55,6 +55,7 @@ private struct PlayerGlassButtonModifier: ViewModifier {
                 }
             }
         }
+        .playerPlatformAppearance()
     }
 }
 

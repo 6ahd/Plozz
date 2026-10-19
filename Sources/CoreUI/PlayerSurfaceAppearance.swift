@@ -27,6 +27,19 @@ public extension EnvironmentValues {
     #endif
 }
 
+public extension View {
+    /// Scope television playback chrome, not the window or the browsing theme.
+    @ViewBuilder
+    func playerPlatformAppearance() -> some View {
+        #if os(tvOS)
+        environment(\.colorScheme, .dark)
+            .environment(\.themePalette, .dark)
+        #else
+        self
+        #endif
+    }
+}
+
 @available(iOS 26.0, tvOS 26.0, *)
 public struct PlayerNativeGlassSurface<S: Shape>: View {
     private let shape: S

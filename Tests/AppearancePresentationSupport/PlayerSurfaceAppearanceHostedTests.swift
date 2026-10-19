@@ -45,8 +45,13 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     add(attachment)
                     XCTAssertEqual(probe.surroundingScheme, scheme, "Do not override the player/sheet host.")
                     XCTAssertEqual(probe.surroundingPalette, scheme == .light ? .light : .dark)
+                    #if os(tvOS)
+                    XCTAssertEqual(probe.surfaceScheme, .dark, "TV playback retains build 57's dark glass.")
+                    XCTAssertEqual(probe.surfacePalette, .dark)
+                    #else
                     XCTAssertEqual(probe.surfaceScheme, scheme)
                     XCTAssertEqual(probe.surfacePalette, scheme == .light ? .light : .dark)
+                    #endif
                     var samples: [String: [UInt8]] = [:]
                     for name in ["circle", "tab", "track", "panel", "card", "native-button"] {
                         let rect = try XCTUnwrap(probe.frames[name], name)
@@ -71,6 +76,7 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     ))
                     let inkLevel = luminance(ink)
                     let surfaceLevel = luminance(surface)
+                    #if os(iOS)
                     if reduced && scheme == .light {
                         XCTAssertLessThan(inkLevel, 0.15)
                         XCTAssertGreaterThan(surfaceLevel, 0.65)
@@ -78,14 +84,13 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                         XCTAssertGreaterThan(inkLevel, 0.85)
                         XCTAssertLessThan(surfaceLevel, 0.6)
                     }
+                    #endif
                     #if os(tvOS)
                     let button = try XCTUnwrap(probe.frames["native-button"])
                     let buttonInk = luminance(try pixels(image, rect: CGRect(
                         x: button.midX - 3, y: button.midY - 3, width: 6, height: 6
                     )))
-                    if reduced && scheme == .light {
-                        XCTAssertLessThan(buttonInk, 0.15, "Light fallback needs a dark play icon.")
-                    } else if reduced {
+                    if reduced {
                         XCTAssertGreaterThan(buttonInk, 0.85, "Dark fallback needs a light play icon.")
                     }
                     #endif
@@ -103,9 +108,19 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     let dark = try XCTUnwrap(snapshots[0][name])
                     let light = try XCTUnwrap(snapshots[1][name])
                     XCTAssertEqual(dark.count, light.count, "Appearance must not change \(name) geometry.")
-                    if reduced && !(name == "track" && backdrop == .white) {
+                    #if os(tvOS)
+                    if reduced {
+                        XCTAssertEqual(luminance(light), luminance(dark), accuracy: 0.01,
+                                       "TV fallback chrome keeps its dark playback scope.")
+                    }
+                    #else
+                    if reduced && name == "track" {
+                        XCTAssertEqual(luminance(light), luminance(dark), accuracy: 0.01,
+                                       "Playback tracks must not invert to a pale slab in Light mode.")
+                    } else if reduced {
                         XCTAssertGreaterThan(luminance(light) - luminance(dark), 0.25, name)
                     }
+                    #endif
                 }
             }
             #if os(tvOS)
@@ -285,6 +300,7 @@ private struct SurfaceFixture: View {
                 }
             #endif
         }
+        .playerPlatformAppearance()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(state.backdrop)
         .background(SurfaceEnvironmentProbe(probe: probe, surface: false))

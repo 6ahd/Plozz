@@ -329,8 +329,6 @@ struct PlayerTouchScrubTrack: View {
     let segments: [MediaSegment]
     let duration: TimeInterval
     let isTouching: Bool
-    @Environment(\.playerControlForeground) private var foreground
-
     private static let restingHeight: CGFloat = 8
     private static let touchedHeight: CGFloat = 20
 
@@ -338,10 +336,9 @@ struct PlayerTouchScrubTrack: View {
         let height = isTouching ? Self.touchedHeight : Self.restingHeight
         ZStack(alignment: .leading) {
             PlayerScrubTrackSurface(height: height)
-            Capsule().fill(foreground.opacity(0.14))
+            Capsule().fill(Color.white.opacity(0.14))
                 .frame(width: width * CGFloat(min(max(bufferedFraction, 0), 1)), height: height)
-            Rectangle()
-                .fill(foreground.opacity(isTouching ? 0.9 : 0.62))
+            PlayerTouchProgressFill(isActive: isTouching)
                 .frame(width: width * CGFloat(progressFraction), height: height)
         }
         .mask {
@@ -353,5 +350,14 @@ struct PlayerTouchScrubTrack: View {
             .equatable()
         }
         .frame(width: width, height: height)
+    }
+}
+
+@available(tvOS, unavailable)
+struct PlayerTouchProgressFill: View {
+    let isActive: Bool
+
+    var body: some View {
+        Rectangle().fill(Color.white.opacity(isActive ? 0.9 : 0.62))
     }
 }

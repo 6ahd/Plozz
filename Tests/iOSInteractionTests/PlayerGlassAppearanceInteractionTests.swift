@@ -3,6 +3,93 @@ import XCTest
 
 @MainActor
 final class PlayerGlassAppearanceInteractionTests: XCTestCase {
+    func testPlayerPanelsFollowSystemLiquidGlassTintAmount() throws {
+        XCUIDevice.shared.orientation = .portrait
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settings.launch()
+        defer { settings.terminate() }
+        let tint = settings.sliders["Tint Amount"]
+        if !tint.waitForExistence(timeout: 2) {
+            let display = settings.buttons.matching(NSPredicate(
+                format: "identifier == %@ OR label == %@",
+                "com.apple.settings.appearance", "Display & Brightness"
+            )).firstMatch
+            for _ in 0..<5 where !display.isHittable {
+                if display.exists && display.frame.minY < 140 { settings.swipeDown() }
+                else { settings.swipeUp() }
+            }
+            XCTAssertTrue(display.waitForExistence(timeout: 5), settings.debugDescription)
+            display.tap()
+            let glass = settings.cells.containing(.staticText, identifier: "Liquid Glass").firstMatch
+            XCTAssertTrue(glass.waitForExistence(timeout: 5), settings.debugDescription)
+            glass.tap()
+        }
+        guard tint.waitForExistence(timeout: 5) else {
+            throw XCTSkip("The system Tint Amount slider requires the iOS 27 Settings UI.")
+        }
+        let original = try XCTUnwrap(tint.value as? String)
+        let originalAmount = try XCTUnwrap(Double(original.replacingOccurrences(of: "%", with: ""))) / 100
+        @MainActor func setTint(_ amount: Double) {
+            let value = (tint.value as? String)?.replacingOccurrences(of: "%", with: "")
+            guard let value, let current = Double(value) else {
+                XCTFail("The native tint slider must expose its current value.")
+                return
+            }
+            tint.coordinate(withNormalizedOffset: CGVector(dx: current / 100, dy: 0.5))
+                .press(forDuration: 0.1, thenDragTo: tint.coordinate(
+                    withNormalizedOffset: CGVector(dx: amount, dy: 0.5)
+                ), withVelocity: .slow, thenHoldForDuration: 0.1)
+        }
+        defer {
+            settings.activate()
+            setTint(originalAmount)
+            XCTAssertEqual(tint.value as? String, original, "Restore the owned simulator's original preference.")
+        }
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        app.launchArguments = ["--player-glass-fixture"]
+        app.launch()
+        defer { app.terminate() }
+        var darkPanels: [Double] = []
+        for amount in [0.0, 1.0] {
+            settings.activate()
+            setTint(amount)
+            let expected = amount == 0 ? "0%" : "100%"
+            #if targetEnvironment(simulator)
+            guard tint.value as? String == expected else {
+                throw XCTSkip("This simulator's Tint Amount control does not respond to slider adjustment or direct dragging; real preference switching is not verified.")
+            }
+            #else
+            XCTAssertEqual(tint.value as? String, expected)
+            #endif
+            app.activate()
+            for scheme in ["dark", "light"] {
+                Thread.sleep(forTimeInterval: 0.8)
+                let screenshot = app.screenshot()
+                let panel = app.descendants(matching: .any)["appearance-panel"].firstMatch
+                let reference = app.descendants(matching: .any)["appearance-reference"].firstMatch
+                let actual = luminance(try pixels(screenshot.image, frame: panel.frame, screen: app.frame))
+                let native = luminance(try pixels(screenshot.image, frame: reference.frame, screen: app.frame))
+                XCTAssertEqual(actual, native, accuracy: 0.03,
+                               "The system preference, not Plozz decoration, must determine panel glass.")
+                if scheme == "dark" { darkPanels.append(actual) }
+                let attachment = XCTAttachment(screenshot: screenshot)
+                attachment.name = "System tint \(amount), \(scheme), native and player panels"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+                app.buttons["player-playback-options"].tap()
+                XCTAssertTrue(app.buttons["Fixture option"].waitForExistence(timeout: 5))
+                let menu = XCTAttachment(screenshot: app.screenshot())
+                menu.name = "System tint \(amount), \(scheme), native options menu"
+                menu.lifetime = .keepAlways
+                add(menu)
+                app.buttons["Fixture option"].tap()
+                app.buttons["appearance-theme"].tap()
+            }
+        }
+        XCTAssertGreaterThan(abs(darkPanels[0] - darkPanels[1]), 0.03,
+                             "Changing the real OS tint preference must visibly change the player panel.")
+    }
+
     func testPlayerGlassMatchesNativeCompositorAcrossThemesAndVideo() throws {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")

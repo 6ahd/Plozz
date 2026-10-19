@@ -915,6 +915,15 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
     /// Two stable controls leave the title room in portrait.
     @ViewBuilder
     private var trackControls: some View {
+        // Opacity alone leaves native glass children exposed to accessibility.
+        if isCardOpen || timelineOnly || !showsTransport {
+            trackControlGroup.hidden()
+        } else {
+            trackControlGroup
+        }
+    }
+
+    private var trackControlGroup: some View {
         PlayerGlassControlGroup {
             Button(action: onShowSubtitles) {
                 Image(systemName: "captions.bubble")

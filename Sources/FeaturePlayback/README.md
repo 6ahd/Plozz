@@ -69,13 +69,28 @@ Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
 without tint or a colored backing. Like AVKit video chrome, their symbols and
 progress remain white in both appearances. The controls scrim dims the video
 beneath the transport as well as the edge chrome, so white scenes remain legible
-without coloring the glass itself. Cards, inline panels, and tvOS retain regular native glass.
-Do not force a color scheme: native menus, sheets, and panels still inherit the
-current app appearance.
-The reduced-glass/older-system fallback follows light and dark mode with paired
+without coloring the glass itself. Mobile cards and inline panels use untinted
+regular native glass without an added border. Their material follows the system
+Liquid Glass preference; do not substitute a custom Clear/Tinted setting or
+force a color scheme on mobile menus, sheets, or panels.
+tvOS playback chrome retains build 57's dark appearance with regular native
+glass, scoped by `playerPlatformAppearance` without changing the browsing theme
+or window. TV panels retain their thin edge and selected tabs their highlight.
+The mobile reduced-glass/older-system fallback follows light and dark mode with paired
 foreground colors. Text directly over video stays white. UIKit-backed route and
 options buttons resolve the same icon contrast without forcing their presented
 menus or sheets into a separate appearance.
+
+Volume and brightness gesture meters reuse the seek track's native clear surface
+and `PlayerTouchProgressFill`: 62% white at rest, 90% while adjusting.
+All playback tracks, including Live TV and reduced-effects fallbacks, keep light
+progress on a subdued track in both themes; never invert to black progress on a
+pale solid track. This contrast rule does not tint or override native glass.
+Symbols invert only where covered by the fill. Their vertical geometry, inward
+direct-touch expansion, overshoot, and fixed 44-by-156-point interaction area
+remain independent of the material. The shared gesture feedback view owns
+window-safe-area padding once, so both VOD and Live meters clear the Dynamic
+Island in either landscape orientation.
 
 On iPhone and iPad, the main transport row is centered on the video. Its 92-point
 play button and 64-point skip buttons use 68 points of edge-to-edge spacing in
@@ -86,7 +101,8 @@ edge margins (21 horizontal, 24 vertical), rather than adding the two. Adjacent
 routing and playback-option controls share one untinted glass capsule while
 retaining independent actions. Grouped children have no individual glass
 backgrounds or circular clipping, including UIKit menu buttons; Close and the
-main transport remain separate.
+main transport remain separate. Timeline-only skip feedback preserves the
+track-control group's space but hides its native hit and accessibility targets.
 Mobile card tabs use native glass buttons with player-sized labels, 8-point gaps,
 and a 44-point minimum touch target instead of TV padding. The timeline occupies
 a 38-point layout row while VOD scrubbing retains its 44-point touch target.

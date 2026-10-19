@@ -1056,7 +1056,6 @@ public struct LiveChannelPlayerView: View {
             )
             .ignoresSafeArea()
             PlayerTouchGestureFeedbackView(state: touchGestures)
-                .modifier(WindowSafeAreaPadding())
         }
     }
     #endif

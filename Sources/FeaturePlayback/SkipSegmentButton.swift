@@ -50,6 +50,7 @@ struct SkipSegmentButton: View {
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: model.skipSegments.isPresentingButton)
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: model.autoSkipNotice)
         .onAppear { focused = true }
+        .playerPlatformAppearance()
     }
 
     @ViewBuilder

@@ -181,6 +181,7 @@ struct LiveChannelOverlay: View {
                 }
             }
         .environment(\.channelLogoPreservesSourceCorners, true)
+        .playerPlatformAppearance()
         .animation(.easeInOut(duration: 0.2), value: openMenu)
         .animation(.easeInOut(duration: 0.3), value: styleEditing)
         .onChange(of: trackOptionsSource, initial: true) { _, source in syncTrackOptions(source) }
@@ -2030,14 +2031,14 @@ private struct LiveChannelTimeline: View {
                 ZStack(alignment: .leading) {
                     PlayerScrubTrackSurface(height: barHeight)
                     Rectangle()
-                        .fill(Color.primary.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
+                        .fill(Color.white.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
                         .frame(width: max(0, width * CGFloat(layout.aired) - fillStart), height: barHeight)
                         .offset(x: fillStart)
                     // The bright fill means "you can go here": without a rewind
                     // window only the faint aired span shows.
                     if layout.seekableStart != nil {
                         Rectangle()
-                            .fill(Color.primary.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
+                            .fill(Color.white.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
                             .frame(width: max(0, knobX - fillStart), height: barHeight)
                             .offset(x: fillStart)
                     }
@@ -2053,7 +2054,7 @@ private struct LiveChannelTimeline: View {
                 }
                 #if os(tvOS)
                 RoundedRectangle(cornerRadius: focused || scrubbing ? knobWidth / 2 : 0, style: .continuous)
-                    .fill(Color.primary)
+                    .fill(Color.white)
                     .frame(width: knobWidth, height: knobHeight)
                     .offset(x: knobX - knobWidth / 2)
                     .shadow(radius: 4)
@@ -2131,19 +2132,17 @@ struct LiveChannelTouchTrack: View {
     let height: CGFloat
     let focused: Bool
     let scrubbing: Bool
-    @Environment(\.playerControlForeground) private var foreground
-
     var body: some View {
         let fillStart = width * CGFloat(layout.seekableStart ?? 0)
         ZStack(alignment: .leading) {
             PlayerScrubTrackSurface(height: height)
             Rectangle()
-                .fill(foreground.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
+                .fill(Color.white.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
                 .frame(width: max(0, width * CGFloat(layout.aired) - fillStart), height: height)
                 .offset(x: fillStart)
             if layout.seekableStart != nil {
                 Rectangle()
-                    .fill(foreground.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
+                    .fill(Color.white.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
                     .frame(width: max(0, width * CGFloat(layout.playing) - fillStart), height: height)
                     .offset(x: fillStart)
             }

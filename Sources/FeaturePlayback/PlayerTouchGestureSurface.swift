@@ -365,6 +365,7 @@ public struct PlayerTouchGestureFeedbackView: View {
 
     public var body: some View {
         PlayerTouchGestureFeedbackContent(state: state, reduceMotion: reduceMotion)
+            .modifier(WindowSafeAreaPadding())
     }
 }
 
@@ -459,20 +460,17 @@ private struct PlayerTouchLevelMeter: View {
     let isDirectInteraction: Bool
     let reduceMotion: Bool
     let onFrameChange: (CGRect) -> Void
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let stretch = reduceMotion ? 0 : 20 * (overshoot / (abs(overshoot) + 80))
         let height = 156 + abs(stretch)
         let width: Double = isDirectInteraction ? 44 : 32
         ZStack(alignment: .bottom) {
-            Color.clear
-                .modifier(PanelGlassBackground(cornerRadius: 999))
-            Rectangle()
-                .fill(Color.primary)
+            PlayerScrubTrackSurface(height: height)
+            PlayerTouchProgressFill(isActive: isDragging)
                 .frame(height: height * value)
-            icon.foregroundStyle(Color.primary)
-            icon.foregroundStyle(colorScheme == .light ? Color.white : .black)
+            icon.foregroundStyle(.white)
+            icon.foregroundStyle(.black)
                 .mask(alignment: .bottom) {
                     Rectangle().frame(height: height * value)
                 }

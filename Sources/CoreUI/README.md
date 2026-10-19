@@ -110,8 +110,14 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Mobile video chrome uses untinted clear Liquid Glass with white symbols and
   progress in both appearances; `playerControlForeground`/`playerControlTint`
   keep SwiftUI and UIKit controls consistent without overriding menu appearance.
-  Panels and tvOS retain regular native glass. Fallback surfaces inherit the app
-  appearance and pair light fills with dark foregrounds.
+  Mobile panels use regular native glass with no extra decoration and leave
+  the system Liquid Glass preference in control. Mobile fallback surfaces inherit
+  the app appearance and pair light fills with dark foregrounds.
+  Playback progress is the exception: seek tracks and level meters keep light
+  progress over a subdued track even in the light-theme fallback.
+  `playerPlatformAppearance` scopes tvOS playback chrome to dark regular glass,
+  as in build 57, without changing the surrounding browsing or window appearance.
+  It is a no-op on iOS.
 - **Settings steppers** — TV makes the whole labeled row one focus target using
   the existing `SettingsFormButtonStyle`, including its helper, persistent minus/plus cues and
   `SettingsRowMetrics.titleFont` value. Labels must be supplied to the shared

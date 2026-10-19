@@ -84,6 +84,7 @@ struct UpNextCardView: View {
         .ignoresSafeArea()
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: model.upNextCard.isPresenting)
         .onAppear { focused = true }
+        .playerPlatformAppearance()
     }
 
     @ViewBuilder
