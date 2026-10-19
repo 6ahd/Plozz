@@ -288,7 +288,7 @@ private struct NativeCardBackground: View {
 }
 
 enum NativePosterImageTreatment: Equatable {
-    case original, blurred, extended
+    case original, blurred, extended, fitted
     case upcoming(Color)
 }
 
@@ -656,6 +656,8 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                         .saturation(0)
                         .opacity(0.05)
                         .background(background)
+                } else if treatment == .fitted {
+                    Image(uiImage: image).resizable().scaledToFit()
                 } else {
                     Image(uiImage: image).resizable().scaledToFill()
                         .blur(radius: treatment == .blurred ? 28 : 0)

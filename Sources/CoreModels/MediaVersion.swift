@@ -390,6 +390,37 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         public let title: String? // l10n:content — provider edition/name and technical facts
         public let supplementalFacts: [String]
         public let releaseName: String? // l10n:content — provider release name or file basename
+        public let formatBadges: [MediaBadge]
+        public let audioLanguages: [String]
+        public let supplementalFactsWithoutBadges: [String]
+
+        public var badges: [MediaBadge] {
+            formatBadges + audioLanguages.map { MediaBadge($0) }
+        }
+
+        public func prioritizedAudioLanguages(
+            preferredLanguage: String?, locale: Locale = .current
+        ) -> [String] {
+            guard let code = LanguageMatch.normalized(preferredLanguage),
+                  let name = TrackLabeling.languageName(forCode: code, in: locale),
+                  audioLanguages.contains(name) else { return audioLanguages }
+            return [name] + audioLanguages.filter { $0 != name }
+        }
+
+        public var titleWithoutBadges: String? {
+            guard let title else { return nil }
+            let facts = title.components(separatedBy: " · ").filter { !badgeLabels.contains($0) }
+            return facts.isEmpty ? nil : facts.joined(separator: " · ")
+        }
+
+        public var summaryWithoutBadges: String? {
+            let facts = [titleWithoutBadges].compactMap { $0 } + supplementalFactsWithoutBadges
+            return facts.isEmpty ? nil : facts.joined(separator: " · ")
+        }
+
+        private var badgeLabels: Set<String> {
+            Set(badges.flatMap { [$0.label, $0.accessibilityText] })
+        }
 
         public init(_ version: MediaVersion, locale: Locale = .current) {
             let fileName = MediaSourceDisplayName.fileName(from: version.fileName)
@@ -397,17 +428,46 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
             title = version.displayLabel
             let titleFacts = Set((title ?? "").components(separatedBy: " · "))
             let video = version.sourceMetadata?.video
+            let codec = PlaybackDiagnostics.friendlyCodecName(video?.codec ?? version.videoCodec)
+            var formats = version.technicalBadges
+            for fact in version.audioFormatLabel?.components(separatedBy: " + ") ?? [] {
+                guard !formats.contains(where: { $0.label == fact || $0.accessibilityText == fact }) else { continue }
+                if let index = formats.firstIndex(where: { fact.hasPrefix($0.label + " ") }) {
+                    formats[index].detail = String(fact.dropFirst(formats[index].label.count + 1))
+                } else {
+                    // Keep the underlying codec alongside spatial audio, unlike the compact hero summary.
+                    let style: MediaBadge.Style = fact.hasPrefix("Dolby ") ? .dolby
+                        : fact.hasPrefix("DTS") ? .dts : .spec
+                    let badge = MediaBadge(fact, style: style)
+                    if style == .dolby, let index = formats.lastIndex(where: { $0.style == .dolby }) {
+                        formats.insert(badge, at: index + 1)
+                    } else {
+                        formats.append(badge)
+                    }
+                    formats.removeAll { $0.style == .spec && fact.hasSuffix(" " + $0.label) }
+                }
+            }
+            if let codec, !formats.contains(where: { $0.label == codec }) {
+                formats.append(MediaBadge(codec))
+            }
             let languages = version.audioLanguageNames(in: locale)
+            formatBadges = formats
+            audioLanguages = languages
             let rangeFacts = version.sourceMetadata?.dynamicRangeBadges.map(\.label) ?? []
             supplementalFacts = (rangeFacts + [
                 version.sourceQualityLabel ?? EditionParser.sourceQuality(from: fileName),
-                PlaybackDiagnostics.friendlyCodecName(video?.codec ?? version.videoCodec),
+                codec,
                 PlaybackDiagnostics.colorDescription(bitDepth: video?.bitDepth, transfer: nil, rangeType: nil),
                 languages.isEmpty ? nil : languages.joined(separator: ", "),
                 version.audioFormatLabel,
                 version.bitrateLabel,
                 version.durationLabel
             ].compactMap { $0 }).filter { !titleFacts.contains($0) }
+            let representedFacts = Set(formats.flatMap { [$0.label, $0.accessibilityText] } + languages)
+            supplementalFactsWithoutBadges = supplementalFacts
+                .filter { $0 != languages.joined(separator: ", ") }
+                .flatMap { $0.components(separatedBy: " + ") }
+                .filter { !representedFacts.contains($0) }
             let release = fileName ?? MediaSourceDisplayName.name(from: version.name)
             releaseName = release == title ? nil : release
         }
@@ -430,14 +490,14 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         let audio = sourceMetadata?.audio
         let codec = audio?.codec ?? audioCodec
         let format = PlaybackDiagnostics.friendlyAudioName(codec: codec, profile: audio?.profile ?? audioProfile)
-        if format == "Dolby Atmos" || format == "DTS:X" {
-            let base = PlaybackDiagnostics.friendlyCodecName(codec)
-            return [base == format ? nil : base, format].compactMap { $0 }.joined(separator: " + ")
-        }
         let layout = audio?.channelLayout?.trimmingCharacters(in: .whitespacesAndNewlines)
         let channels = layout?.isEmpty == false ? layout : TrackLabeling.audioFormatHint(
             codec: nil, channels: audio?.channels ?? audioChannels, isAtmos: false
         )
+        if format == "Dolby Atmos" || format == "DTS:X" {
+            let base = PlaybackDiagnostics.friendlyCodecName(codec)
+            return [base == format ? nil : base, format, channels].compactMap { $0 }.joined(separator: " + ")
+        }
         let parts = [format, channels].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }

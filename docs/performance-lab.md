@@ -161,6 +161,20 @@ without pretending a sample count measures frame smoothness.
 | `diagnostics` | 10,000 operation attempts with recording disabled/enabled, plus 100 bounded snapshot encodes. Measures recorder and event-time serialization overhead without starting Sentry or creating uploads. |
 | `network` | `catalog-cached-refresh`: 1,000-channel loopback M3U import with a 100-ms header delay, then an expired-catalog refresh held while three cached reads complete. Verifies one refresh and actual replacement visibility. Cold/cached foreground timings are separate counters; whole-cycle wall time includes setup, controlled waiting and settling. No external playlist or stream links are fetched. |
 
+`collection-discovery` runs the production Jellyfin collection provider over
+356 native collections, with 5-ms synthetic request latency. The fixture retains
+10,000 library slots and sparse membership data to expose accidental fanout, but
+each sample must return all 356 server-listed groups in one request, with zero
+library-ID or member requests. A subsequent cached grid page must do no network work.
+`firstItemsNanoseconds` measures the first nonempty progress update (or the final
+return without progressive support); request counts distinguish library ID
+paging from member probes. This native-listing contract intentionally replaces
+the older 24-result client-filtered scenario; results from those different
+workloads are not compatible automated performance baselines. Correctness
+coverage separately requires a cold 356-item list to finish within one second
+with 200-ms synthetic request latency. Neither fixture establishes real-server
+or physical-device latency.
+
 For network-file startup and seek overhead, select `network-file-read-ahead`.
 It exercises the production transport reader with four scattered metadata probes
 followed by 64 MiB of verified sequential consumption. The synthetic source

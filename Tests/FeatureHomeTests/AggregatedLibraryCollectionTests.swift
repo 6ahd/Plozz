@@ -10,7 +10,9 @@ final class AggregatedLibraryCollectionTests: XCTestCase {
         let provider = aggregate(first, second)
         XCTAssertTrue(provider.capabilities.contains(.libraryCollections))
 
-        let page = try await provider.collections(in: "merged", page: PageRequest())
+        let page = try await provider.collections(in: "merged", page: PageRequest()) { _ in
+            XCTFail("Unmerged source progress must not bypass aggregate ordering and ownership.")
+        }
         XCTAssertEqual(page.totalCount, 2)
         XCTAssertEqual(Set(page.items.map(\.sourceAccountID)), ["first", "second"])
         XCTAssertTrue(page.items.allSatisfy { $0.sources.count <= 1 })

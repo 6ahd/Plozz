@@ -154,12 +154,17 @@ public struct JellyfinClient: Sendable {
     /// `GET /System/Info/Public` — used to validate a manual URL and read the
     /// server's identity/name. No auth required.
     public func publicSystemInfo() async throws -> MediaServer {
-        let endpoint = Endpoint(path: "/System/Info/Public", headers: authHeaders)
-        let info = try await http.decode(PublicSystemInfo.self, from: endpoint, baseURL: baseURL)
+        let endpoint = Endpoint(path: "/System/Info/Public")
+        let (info, response) = try await http.decodeResponse(
+            PublicSystemInfo.self, from: endpoint, baseURL: baseURL
+        )
+        let resolvedURL = try ServerURLNormalizer.resolvedBaseURL(
+            requested: baseURL, responseURL: response.url, endpointPath: endpoint.path
+        )
         return MediaServer(
-            id: info.Id ?? baseURL.absoluteString,
-            name: info.ServerName ?? baseURL.host ?? "\(providerKind.displayName) Server",
-            baseURL: baseURL,
+            id: info.Id ?? resolvedURL.absoluteString,
+            name: info.ServerName ?? resolvedURL.host ?? "\(providerKind.displayName) Server",
+            baseURL: resolvedURL,
             provider: providerKind,
             version: info.Version
         )
@@ -655,7 +660,9 @@ public struct JellyfinClient: Sendable {
             ],
             headers: authHeaders
         )
-        return try await http.decode([MovieRecommendationDto].self, from: endpoint, baseURL: baseURL)
+        return try await HTTPResponseDiagnostics.$route.withValue(.movieRecommendations) {
+            try await http.decode(MovieRecommendationsResponse.self, from: endpoint, baseURL: baseURL).recommendations
+        }
     }
 
     func item(userID: String, id: String) async throws -> BaseItemDto {
@@ -885,10 +892,8 @@ public struct JellyfinClient: Sendable {
         return LibraryQueryFacets(genres: response.Genres ?? [], years: response.Years ?? [])
     }
 
-    /// Global BoxSets are intentional here: released Jellyfin and Emby servers
-    /// discard ParentId when IncludeItemTypes=BoxSet. Membership is scoped by
-    /// the provider using separately fetched library/member IDs.
-    func collectionCandidates(userID: String, page: PageRequest) async throws -> ItemsResponse {
+    /// Match the native client: the server decides whether ParentId scopes BoxSets.
+    func collectionCandidates(userID: String, libraryID: String?, page: PageRequest) async throws -> ItemsResponse {
         let endpoint = Endpoint(
             path: "/Users/\(userID)/Items",
             queryItems: [
@@ -901,10 +906,12 @@ public struct JellyfinClient: Sendable {
                 URLQueryItem(name: "Fields", value: "PrimaryImageAspectRatio,ProviderIds"),
                 URLQueryItem(name: "ImageTypeLimit", value: "1"),
                 URLQueryItem(name: "EnableTotalRecordCount", value: "true")
-            ],
+            ] + (libraryID.map { [URLQueryItem(name: "ParentId", value: $0)] } ?? []),
             headers: authHeaders
         )
-        return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        return try await HTTPResponseDiagnostics.$route.withValue(.collectionCandidates) {
+            try await readCollectionPage(endpoint)
+        }
     }
 
     func videoPlaylistCandidates(userID: String, start: Int, limit: Int) async throws -> ItemsResponse {
@@ -946,7 +953,20 @@ public struct JellyfinClient: Sendable {
             ],
             headers: authHeaders
         )
-        return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        return try await HTTPResponseDiagnostics.$route.withValue(recursive ? .collectionLibraryScope : .collectionMembers) {
+            try await readCollectionPage(endpoint)
+        }
+    }
+
+    private func readCollectionPage(_ endpoint: Endpoint) async throws -> ItemsResponse {
+        do {
+            return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        } catch AppError.serverUnreachable {
+            try Task.checkCancellation()
+            PlozzLog.networking.info("Collection read lost its connection; retrying once")
+            try await Task.sleep(for: .milliseconds(250))
+            return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        }
     }
 
     /// Count of items in a container, matching the same recursive/type filters
@@ -1063,6 +1083,20 @@ public struct JellyfinClient: Sendable {
     }
 
     var canRequestHEVC: Bool { capabilityProfile.canRequestHEVC }
+
+    /// GET enumerates sources without a device profile, stream opening, or
+    /// playback reporting. Its generated PlaySessionId is not an encoding lease.
+    func playbackSourceInventory(userID: String, itemID: String) async throws -> PlaybackInfoResponse {
+        try await interactiveHTTP.decode(
+            PlaybackInfoResponse.self,
+            from: Endpoint(
+                path: "/Items/\(itemID)/PlaybackInfo",
+                queryItems: [URLQueryItem(name: "UserId", value: userID)],
+                headers: authHeaders
+            ),
+            baseURL: baseURL
+        )
+    }
 
     func playbackInfo(
         userID: String, itemID: String, mediaSourceID: String? = nil,

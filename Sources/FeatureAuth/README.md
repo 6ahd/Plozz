@@ -43,6 +43,16 @@ session persistence.
 
 ## Invariants
 
+- **Public discovery retains the canonical API address.** Jellyfin/Emby may
+  upgrade HTTP to HTTPS on the same hostname or redirect within the same origin,
+  preserving the final reverse-proxy prefix. Public requests carry no credentials;
+  authenticated redirects remain same-origin only. Sign-in retains the resolved
+  address and uses it for the user avatar. The launch metadata refresher repairs
+  older saved addresses only when the public server ID matches. Its metadata-only
+  compare-and-swap cannot revive a removed account or overwrite a concurrent
+  credential/address change. Account IDs, credential revisions, alternate
+  addresses and active selection remain unchanged. Connection-scope updates
+  refresh retained providers and trigger library/Home reloads on both platforms.
 - **Alternate addresses belong to one local sign-in.** `ServerAddressesModel`
   verifies Jellyfin/Emby public server IDs and Plex machine identifiers without
   sending saved credentials. Silo uses fresh native device pairing and matches

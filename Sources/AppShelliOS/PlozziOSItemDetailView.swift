@@ -430,6 +430,14 @@ private struct PlozziOSCanonicalItemDetailView: View {
             seriesHeroShowsSeries = false
         }
         .modifier(requestPresentation(inDownloadSheet: false))
+        .alert("Couldn't load versions", isPresented: Binding(
+            get: { viewModel.playbackInventoryRetryError != nil },
+            set: { if !$0 { viewModel.playbackInventoryRetryError = nil } }
+        )) {
+            Button("OK", role: .cancel) { viewModel.playbackInventoryRetryError = nil }
+        } message: {
+            if let error = viewModel.playbackInventoryRetryError { Text(error) }
+        }
         .plozziOSPlayerCover(
             item: $playbackRequest, orientation: appModel.settings.playback.settings.orientation
         ) { request, orientation in
@@ -448,9 +456,10 @@ private struct PlozziOSCanonicalItemDetailView: View {
     }
 
     private func detailContent(_ detail: ItemDetailViewModel.Detail) -> some View {
+        let versionTarget = viewModel.episodeWithEnrichedBadges(seriesPlayTarget ?? detail.item)
         let heroTarget = seriesHeroShowsSeries
             ? detail.item
-            : viewModel.episodeWithEnrichedBadges(seriesPlayTarget ?? detail.item)
+            : versionTarget
         let playableHeroTarget = seriesPlayTarget.map(playbackItem(for:))
             ?? detailPlayableItem(for: detail.item)
         let seasons = detail.children.filter { $0.kind == .season }
@@ -473,7 +482,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
                 versions: [],
                 selectedVersionID: nil
             )
-            : detailPlaybackOptions(for: heroTarget)
+            : detailPlaybackOptions(for: versionTarget)
         let heroStyle: HeroArtworkStyle = horizontalSizeClass == .compact
             ? .compactPortrait
             : .landscape
@@ -491,6 +500,10 @@ private struct PlozziOSCanonicalItemDetailView: View {
                     backdropItem: detail.item,
                     playableItem: playableHeroTarget,
                     showsPlayPlaceholder: showsPlayPlaceholder,
+                    onRetryPlaybackInventory: viewModel.hasNoPlaybackStreams(for: versionTarget) ? {
+                        Task { await viewModel.retryPlaybackInventory(for: versionTarget) }
+                    } : nil,
+                    isRetryingPlaybackInventory: viewModel.isRetryingPlaybackInventory(for: versionTarget),
                     sources: options.sources,
                     scheduleLine: isDiscoveryItem
                         ? (
@@ -504,7 +517,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
                     selectedVersionID: options.selectedVersionID,
                     onSelectSource: selectSource,
                     onSelectVersion: {
-                        selectVersion($0, for: heroTarget)
+                        selectVersion($0, for: versionTarget)
                     },
                     actionHandler: appModel.mediaItemActionHandler,
                     // Re-resolve the play target at FIRE time rather than using
@@ -598,7 +611,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
                         ? nil
                         : options.versions.first {
                             $0.id == options.selectedVersionID
-                        } ?? MediaVersion.synthesized(from: heroTarget),
+                        } ?? MediaVersion.synthesized(from: versionTarget),
                     externalAvailability: detail.externalAvailability,
                     spoilerSettings: appModel.settings.spoilers.settings,
                     overviewAlreadyShown: heroStyle == .compactPortrait
@@ -1022,6 +1035,7 @@ private struct PlozziOSCanonicalItemDetailView: View {
 
     private func selectVersion(_ id: String, for item: MediaItem) {
         versionOverride = id
+        guard appModel.versionPreferences.shouldRememberVersion(for: item) else { return }
         let key = DetailPlaybackSelection.versionPreferenceKey(for: item)
         guard let version = detailPlaybackOptions(for: item).versions.first(where: { $0.id == id })
         else {
@@ -1419,48 +1433,19 @@ struct PlozziOSVersionPickerPopover: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 2) {
-                ForEach(versions) { version in
-                    let presentation = MediaVersion.PickerPresentation(version, locale: locale)
-                    Button {
+            LazyVStack(alignment: .leading, spacing: 12) {
+                ForEach(versions.sortedForPicker()) { version in
+                    MediaVersionChoiceButton(
+                        presentation: .init(version, locale: locale),
+                        isSelected: version.id == selectedVersionID
+                    ) {
                         onSelectVersion(version.id)
                         dismiss()
-                    } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Image(systemName: "checkmark")
-                                .frame(width: 18)
-                                .opacity(version.id == selectedVersionID ? 1 : 0)
-                                .accessibilityHidden(version.id != selectedVersionID)
-                            VStack(alignment: .leading, spacing: 4) {
-                                versionTitleText(presentation.title)
-                                if !presentation.supplementalFacts.isEmpty {
-                                    Text(verbatim: presentation.supplementalFacts.joined(separator: " · "))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                if let release = presentation.releaseName {
-                                    Text(verbatim: release)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
-                                        .truncationMode(.middle)
-                                }
-                            }
-                            .multilineTextAlignment(.leading)
-                            Spacer(minLength: 0)
-                        }
-                        .contentShape(Rectangle())
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 11)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(
-                        version.id == selectedVersionID ? .isSelected : []
-                    )
+                    .accessibilityIdentifier("version-choice-\(version.id)")
                 }
             }
-            .padding(.vertical, 8)
+            .padding(16)
         }
         .frame(minWidth: 320, idealWidth: 380, maxWidth: 440, maxHeight: 440)
     }

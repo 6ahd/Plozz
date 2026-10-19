@@ -344,6 +344,14 @@ public final class HomeLibraryVisibilityModel {
         visibility.isVisibleOnHome(key)
     }
 
+    public func isVisibleOnHome(_ key: String, library: MediaLibrary) -> Bool {
+        visibility.isVisibleOnHome(key, library: library)
+    }
+
+    public func isVisibleOnHome(_ library: AggregatedLibrary) -> Bool {
+        visibility.isVisibleOnHome(library)
+    }
+
     /// Compatibility alias for ``isVisibleOnHome(_:)``.
     public func isVisible(_ key: String) -> Bool {
         visibility.isVisible(key)

@@ -29,9 +29,14 @@ public protocol AccountPersisting: Sendable {
     @discardableResult
     func updateMediaShareLibrary(from descriptor: SyncedAccountDescriptor) throws -> Bool
     func updateServerAddresses(expected: Account, alternatives: [URL]) throws
+    func updateServerMetadata(expected: Account, server: MediaServer) throws
 }
 
 public extension AccountPersisting {
+    func updateServerMetadata(expected: Account, server: MediaServer) throws {
+        throw AccountStoreError.metadataUpdatesUnavailable
+    }
+
     func updateServerAddresses(expected: Account, alternatives: [URL]) throws {
         throw AccountStoreError.metadataUpdatesUnavailable
     }
@@ -369,6 +374,25 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
         guard let index = accounts.firstIndex(where: { $0.id == expected.id }),
               accounts[index] == expected else { throw AppError.conflict }
         accounts[index].server.alternateConnectionURLs = alternatives.isEmpty ? nil : alternatives
+        try saveAccountsLocked(accounts)
+        invalidateCredentialCacheAfterMutationLocked()
+    }
+
+    public func updateServerMetadata(expected: Account, server: MediaServer) throws {
+        guard expected.server.provider.usesMediaBrowserAPI,
+              server.provider == expected.server.provider,
+              server.id == expected.server.id,
+              server.alternateConnectionURLs == expected.server.alternateConnectionURLs else {
+            throw AccountStoreError.metadataUpdatesUnavailable
+        }
+        Self.processMutationLock.lock()
+        defer { Self.processMutationLock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
+        var accounts = try persistedAccountsLockedThrowing()
+        guard let index = accounts.firstIndex(where: { $0.id == expected.id }),
+              accounts[index] == expected else { throw AppError.conflict }
+        accounts[index].server = server
         try saveAccountsLocked(accounts)
         invalidateCredentialCacheAfterMutationLocked()
     }

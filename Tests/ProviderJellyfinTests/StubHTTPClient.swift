@@ -96,7 +96,7 @@ final class StubHTTPClient: HTTPClient, @unchecked Sendable {
         }
         switch match.status {
         case 200...299:
-            return (match.body, HTTPURLResponse(url: baseURL, statusCode: match.status, httpVersion: nil, headerFields: nil)!)
+            return (match.body, HTTPURLResponse(url: baseURL.appendingPathComponent(endpoint.path), statusCode: match.status, httpVersion: nil, headerFields: nil)!)
         case 401, 403: throw AppError.unauthorized
         case 404: throw AppError.notFound
         default: throw AppError.invalidResponse

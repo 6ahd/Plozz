@@ -1,4 +1,5 @@
 import CoreModels
+import CoreImage
 import CoreUI
 import FeatureHomeCore
 import Observation
@@ -20,14 +21,132 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         }
     }
 
+    func testAutomaticIntroductionStartsPlaybackWithoutShowingVersionChoices() async throws {
+        #if os(tvOS)
+        try await exercise(width: 1920, typeSize: .large, automaticAtIntroduction: true)
+        #else
+        try await exercise(width: 390, typeSize: .large, automaticAtIntroduction: true)
+        #endif
+    }
+
     #if os(tvOS)
     func testLongVersionListStaysBoundedWithReducedTransparencyAndLargerText() async throws {
         try await exercise(width: 1920, typeSize: .accessibility1, versionCount: 12, reduceTransparency: true)
     }
+    #else
+    func testLongVersionCardsStayReadableInLightAppearance() async throws {
+        try await exercise(width: 390, typeSize: .large, versionCount: 8, colorScheme: .light)
+    }
+
+    func testLeadingCloseCancelsWithoutSelectingOrStartingPlayback() async throws {
+        try await exercise(width: 390, typeSize: .large, closeInsteadOfSelect: true)
+    }
+
+    func testFilenameBreaksAvoidWastedLinesWithoutCappingContent() {
+        let filename = "Spider-Man.Brand.New.Day.2026.IMAX.MULTI.VF2.2160p.CORE.WEB-DL.DV.HDR10+.DDP.Atmos.5.1.HEVC-HYPERION.mkv"
+        func height(_ text: String, width: CGFloat) -> CGFloat {
+            let host = UIHostingController(rootView:
+                Text(verbatim: text).font(.caption2)
+                    .lineLimit(nil).fixedSize(horizontal: false, vertical: true)
+                    .environment(\.dynamicTypeSize, .large)
+                    .environment(\.locale, Locale(identifier: "en_US"))
+            )
+            return host.sizeThatFits(in: CGSize(width: width, height: 1_000)).height
+        }
+        let wrapped = MediaSourceDisplayName.wrappingFileName(filename)
+        for (width, lines): (CGFloat, Int) in [(330, 3), (390, 2)] {
+            let reference = Array(repeating: "Full line", count: lines).joined(separator: "\n")
+            XCTAssertEqual(height(wrapped, width: width), height(reference, width: width), accuracy: 1)
+            XCTAssertLessThanOrEqual(height(wrapped, width: width), height(filename, width: width))
+        }
+        let measurements = stride(from: CGFloat(280), through: 440, by: 10).map { width in
+            (width: width, original: height(filename, width: width), wrapped: height(wrapped, width: width))
+        }
+        let evidence = measurements.map { "\($0.width)pt: original=\($0.original), wrapped=\($0.wrapped)" }
+            .joined(separator: "\n")
+        let attachment = XCTAttachment(string: evidence)
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        for measurement in measurements {
+            XCTAssertLessThanOrEqual(measurement.wrapped, measurement.original, evidence)
+        }
+        XCTAssertTrue(measurements.contains { $0.wrapped < $0.original }, evidence)
+    }
     #endif
 
+    func testInternationalReleaseNamesWrapWithoutTruncation() async throws {
+        #if os(tvOS)
+        let layouts: [(CGFloat, DynamicTypeSize)] = [(720, .large), (1_100, .accessibility1)]
+        #else
+        let layouts: [(CGFloat, DynamicTypeSize)] = [(320, .accessibility2), (768, .large)]
+        #endif
+        let names: [(String, String, LayoutDirection)] = [
+            ("Example.Brand.New.Day.Special.Edition.", "en_US", .leftToRight),
+            ("Le.Fabuleux.Destin.d’Amélie.Édition.spéciale.", "fr_FR", .leftToRight),
+            ("千と千尋の神隠し.特別版.日本語.", "ja_JP", .leftToRight),
+            ("رحلة.إلى.القمر.نسخة.خاصة.", "ar", .rightToLeft)
+        ]
+        try await waitUntil {
+            UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        for (width, typeSize) in layouts {
+            for (prefix, localeID, direction) in names {
+                let filename = String(repeating: prefix, count: 12) + "2160p.WEB-DL.HEVC-GROUP.mkv"
+                let locale = Locale(identifier: localeID)
+                let presentation = MediaVersion.PickerPresentation(.init(
+                    id: "international", fileName: filename, height: 2160,
+                    sourceMetadata: .init(audioLanguages: ["eng", "fra"])
+                ), locale: locale)
+                XCTAssertEqual(presentation.releaseName, filename)
+                let contentWidth = width - 32
+                let reference = UIHostingController(rootView:
+                    Text(verbatim: MediaSourceDisplayName.wrappingFileName(filename)).font(.caption2)
+                        .lineLimit(nil).fixedSize(horizontal: false, vertical: true)
+                        .environment(\.dynamicTypeSize, typeSize)
+                        .environment(\.locale, locale)
+                        .environment(\.layoutDirection, direction)
+                )
+                let fullTextHeight = reference.sizeThatFits(in: CGSize(width: contentWidth, height: 10_000)).height
+                let card = MediaVersionChoiceButton(presentation: presentation, isFocused: true) {}
+                    .environment(\.dynamicTypeSize, typeSize)
+                    .environment(\.locale, locale)
+                    .environment(\.layoutDirection, direction)
+                    .environment(\.versionPickerAudioLanguage, "en")
+                    .environment(\.themePalette, .dark)
+                    .environment(\.colorScheme, .dark)
+                let sizingHost = UIHostingController(rootView: card)
+                let size = sizingHost.sizeThatFits(in: CGSize(width: contentWidth, height: 10_000))
+                XCTAssertGreaterThanOrEqual(size.height, fullTextHeight,
+                                            "The card must accommodate every filename line for \(localeID), not truncate it.")
+                XCTAssertLessThanOrEqual(size.width, contentWidth + 1)
+
+                let previous = scene.windows.first(where: \.isKeyWindow)
+                let window = UIWindow(windowScene: scene)
+                window.frame = CGRect(x: 0, y: 0, width: width, height: width >= 720 ? 1080 : 844)
+                window.overrideUserInterfaceStyle = .dark
+                window.rootViewController = UIHostingController(rootView:
+                    ScrollView { card.padding(16) }.background(.black)
+                )
+                window.makeKeyAndVisible()
+                defer {
+                    window.isHidden = true
+                    window.rootViewController = nil
+                    previous?.makeKeyAndVisible()
+                }
+                window.layoutIfNeeded()
+                let scroll = try XCTUnwrap(scrollViews(in: window).first)
+                XCTAssertLessThanOrEqual(scroll.contentSize.width, scroll.bounds.width + 1)
+                _ = try await visibleText(in: window, name: "version-filename-\(localeID)-\(Int(width))")
+            }
+        }
+    }
+
     private func exercise(
-        width: CGFloat, typeSize: DynamicTypeSize, versionCount: Int = 2, reduceTransparency: Bool = false
+        width: CGFloat, typeSize: DynamicTypeSize, versionCount: Int = 2, reduceTransparency: Bool = false,
+        colorScheme: ColorScheme = .dark, closeInsteadOfSelect: Bool = false,
+        automaticAtIntroduction: Bool = false
     ) async throws {
         try await waitUntil {
             UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
@@ -42,9 +161,14 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         let preferences = VersionPreferenceStore(defaults: defaults)
         let model = PlaybackVersionChoiceModel()
         var versions: [MediaVersion] = [
-            .init(id: "4k", fileName: "Example.2160p.REMUX-GROUP.mkv", height: 2160, sizeBytes: 42_000_000_000,
+            .init(id: "4k", fileName: "Example.Movie.2026.MULTi.2160p.Dolby.Vision.TrueHD.Atmos.REMUX-GROUP.mkv",
+                  height: 2160, sizeBytes: 42_000_000_000,
                   duration: 7_200, videoCodec: "hevc", videoRange: "HDR10",
-                  audioCodec: "truehd", sourceMetadata: .init(audioLanguages: ["eng", "fra"])),
+                  audioCodec: "truehd", sourceMetadata: .init(
+                      video: .init(codec: "hevc", width: 3840, height: 2160, videoRangeType: "DOVIWithHDR10"),
+                      audio: .init(codec: "truehd", profile: "Atmos"),
+                      audioLanguages: ["eng", "fra"]
+                  )),
             .init(id: "1080", height: 1080, videoRange: "SDR")
         ]
         for index in 2..<versionCount {
@@ -53,13 +177,15 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         let item = MediaItem(id: "movie", title: "Version fixture", kind: .movie, versions: versions)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: width, height: width >= 768 ? 1080 : 844)
-        window.overrideUserInterfaceStyle = .dark
+        window.overrideUserInterfaceStyle = colorScheme == .dark ? .dark : .light
         window.rootViewController = UIHostingController(rootView:
             VersionChoiceHostedFixture(
                 model: model, probe: probe, item: item, settings: settings, preferences: preferences
             )
-            .environment(\.themePalette, .dark)
+            .environment(\.themePalette, colorScheme == .dark ? .dark : .light)
+            .environment(\.colorScheme, colorScheme)
             .environment(\.locale, Locale(identifier: "en_US"))
+            .environment(\.versionPickerAudioLanguage, "en")
             .environment(\.dynamicTypeSize, typeSize)
             .environment(\.plozzReduceTransparency, reduceTransparency)
         )
@@ -78,22 +204,42 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertNil(probe.selected)
         XCTAssertNil(probe.error)
         let introduction = try await visibleText(in: window, name: "version-introduction-\(Int(width))-\(typeSize)")
-        for label in ["choose versions", "Ask every time", "Remember my choice", "Settings", "Cancel"] {
+        for label in ["choose a version every time", "Ask every time", "Choose automatically", "Settings"] {
             XCTAssertTrue(introduction.localizedCaseInsensitiveContains(label), "Missing \(label): \(introduction)")
         }
+        XCTAssertFalse(introduction.contains("Remember"), "Remembering is a separate default-on setting, not a first-use choice.")
         #if os(tvOS)
+        XCTAssertTrue(introduction.contains("Cancel"))
         XCTAssertNotNil(UIFocusSystem(for: window)?.focusedItem, "An introduction action must own native focus.")
         try assertCompactCard(in: window, maximumHeight: typeSize.isAccessibilitySize ? 860 : 800)
+        #else
+        XCTAssertFalse(introduction.contains("Cancel"), "The leading X replaces the bottom Cancel button.")
+        _ = try assertCloseToolbar(in: window)
         #endif
         let id = try XCTUnwrap(model.prompt?.id)
-        model.chooseMode(.rememberChoice, promptID: id)
+        if automaticAtIntroduction {
+            model.chooseMode(.automatic, promptID: id)
+            XCTAssertNil(model.prompt)
+            try await waitUntil { probe.selected != nil }
+            XCTAssertNil(probe.error)
+            XCTAssertFalse(probe.disappeared)
+            XCTAssertTrue(settings.settings.rememberVersionPerSeries)
+            XCTAssertEqual(settings.settings.versionSelectionMode, .automatic)
+            XCTAssertNil(preferences.preferredVersionID(forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item)))
+            return
+        }
+        model.chooseMode(.askEveryTime, promptID: id)
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertNil(probe.selected, "Choosing the mode alone must not select a file.")
         XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
         let choices = try await visibleText(in: window, name: "version-choice-\(Int(width))-\(typeSize)")
-        for fact in ["Choose a version", "4K", "42 GB", "English", "French", "HEVC", "TrueHD"] {
-            XCTAssertTrue(choices.contains(fact), "Missing \(fact): \(choices)")
+        for fact in ["Choose a version", "4K", "42 GB", "English", "HEVC", "TrueHD"] {
+            XCTAssertTrue(choices.localizedCaseInsensitiveContains(fact), "Missing \(fact): \(choices)")
         }
+        XCTAssertTrue(
+            choices.contains("+1") || choices.localizedCaseInsensitiveContains("French"),
+            "The second language must remain visible, abbreviated on one line or expanded after wrapping: \(choices)"
+        )
         #if os(tvOS)
         XCTAssertNotNil(UIFocusSystem(for: window)?.focusedItem, "The version picker must receive native focus.")
         try assertCompactCard(in: window, maximumHeight: versionCount > 2 ? 860 : 600)
@@ -103,14 +249,50 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
             let lastFile = try XCTUnwrap(model.prompt?.versions.last?.fileName)
             XCTAssertTrue(choices.contains(lastFile), "The final version must remain reachable.")
         }
+        #else
+        XCTAssertFalse(choices.contains("Cancel"), "The picker must not retain a second bottom dismissal action.")
+        let close = try assertCloseToolbar(in: window)
+        if closeInsteadOfSelect {
+            let action = try XCTUnwrap(close.action)
+            XCTAssertTrue(UIApplication.shared.sendAction(action, to: close.target, from: close, for: nil))
+            try await waitUntil { !model.isPreparing }
+            XCTAssertNil(model.prompt)
+            XCTAssertNil(probe.selected)
+            XCTAssertFalse(probe.disappeared)
+            return
+        }
         #endif
         model.chooseVersion("4k", promptID: id)
         try await waitUntil { probe.selected != nil }
         XCTAssertEqual(probe.selected?.selectedVersionID, "4k")
-        XCTAssertEqual(settings.settings.versionSelectionMode, .rememberChoice)
+        XCTAssertEqual(settings.settings.versionSelectionMode, .askEveryTime)
         XCTAssertFalse(probe.disappeared)
         XCTAssertNil(probe.error)
     }
+
+    #if os(iOS)
+    private func assertCloseToolbar(in window: UIWindow) throws -> UIBarButtonItem {
+        func navigationBar(in view: UIView) -> UINavigationBar? {
+            (view as? UINavigationBar) ?? view.subviews.lazy.compactMap { navigationBar(in: $0) }.first
+        }
+        func titleLabel(in view: UIView) -> UILabel? {
+            if let label = view as? UILabel, label.text == "Choose a version" { return label }
+            return view.subviews.lazy.compactMap { titleLabel(in: $0) }.first
+        }
+        let bar = try XCTUnwrap(navigationBar(in: window))
+        let item = try XCTUnwrap(bar.topItem)
+        XCTAssertEqual(item.title, "Choose a version")
+        XCTAssertLessThanOrEqual(bar.bounds.height, 64, "The title must use the inline navigation bar.")
+        let label = try XCTUnwrap(titleLabel(in: bar))
+        XCTAssertEqual(label.convert(label.bounds, to: bar).midX, bar.bounds.midX, accuracy: 2)
+        let buttons = (item.leftBarButtonItems ?? []) + item.leadingItemGroups.flatMap(\.barButtonItems)
+        XCTAssertEqual(buttons.count, 1, "The X must be the single leading toolbar action.")
+        XCTAssertTrue((item.rightBarButtonItems ?? []).isEmpty && item.trailingItemGroups.isEmpty)
+        let close = try XCTUnwrap(buttons.first)
+        XCTAssertNotNil(close.image, "The close action must show an icon rather than a text button.")
+        return close
+    }
+    #endif
 
     #if os(tvOS)
     private func assertCompactCard(in window: UIWindow, maximumHeight: CGFloat) throws {
@@ -170,8 +352,39 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .accurate
             request.recognitionLanguages = ["en-US"]
-            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-            result += " " + (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+            request.usesLanguageCorrection = false
+            request.minimumTextHeight = 0.001
+            request.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
+            let cgImage = try XCTUnwrap(image.cgImage)
+            let inverted = CIImage(cgImage: cgImage).applyingFilter("CIColorInvert")
+            let invertedImage = try XCTUnwrap(CIContext().createCGImage(inverted, from: inverted.extent))
+            // Vision can omit small white-on-black resolution chips in a whole-screen pass.
+            for recognitionImage in [cgImage, invertedImage] {
+                try VNImageRequestHandler(cgImage: recognitionImage).perform([request])
+                let observations = request.results ?? []
+                result += " " + observations.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                #if os(tvOS)
+                // TV's tiny badge lettering needs a cropped pass; scaling a whole screen is downsampled by Vision.
+                for observation in observations where observation.boundingBox.height * CGFloat(cgImage.height) < 24 {
+                    let box = observation.boundingBox
+                    let rect = CGRect(
+                        x: box.minX * CGFloat(cgImage.width),
+                        y: (1 - box.maxY) * CGFloat(cgImage.height),
+                        width: box.width * CGFloat(cgImage.width),
+                        height: box.height * CGFloat(cgImage.height)
+                    ).insetBy(dx: -8, dy: -8).intersection(
+                        CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height)
+                    )
+                    let crop = try XCTUnwrap(recognitionImage.cropping(to: rect))
+                    let enlarged = CIImage(cgImage: crop).applyingFilter(
+                        "CILanczosScaleTransform", parameters: [kCIInputScaleKey: 4]
+                    )
+                    let enlargedImage = try XCTUnwrap(CIContext().createCGImage(enlarged, from: enlarged.extent))
+                    try VNImageRequestHandler(cgImage: enlargedImage).perform([request])
+                    result += " " + (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                }
+                #endif
+            }
         }
         return result
     }
@@ -206,7 +419,7 @@ private struct VersionChoiceHostedFixture: View {
             .task {
                 do {
                     probe.selected = try await model.prepare(
-                        item, provider: VersionChoiceHostedProvider(),
+                        item, provider: VersionChoiceHostedProvider(resolvedItem: item),
                         settings: settings, preferences: preferences
                     )
                 } catch is CancellationError {
@@ -223,6 +436,7 @@ private struct VersionChoiceHostedFixture: View {
 }
 
 private struct VersionChoiceHostedProvider: MediaProvider {
+    let resolvedItem: MediaItem
     var kind: ProviderKind { .jellyfin }
     var session: UserSession {
         UserSession(
@@ -233,7 +447,10 @@ private struct VersionChoiceHostedProvider: MediaProvider {
     func libraries() async throws -> [MediaLibrary] { [] }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
-    func item(id: String) async throws -> MediaItem { throw AppError.notFound }
+    func item(id: String) async throws -> MediaItem {
+        guard id == resolvedItem.id else { throw AppError.notFound }
+        return resolvedItem
+    }
     func children(of itemID: String) async throws -> [MediaItem] { [] }
     func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
         MediaPage(items: [], startIndex: 0, totalCount: 0)

@@ -22,6 +22,10 @@ public protocol MediaProvider: Sendable {
     /// before publishing those cards as complete identity-index/search evidence.
     var catalogIdentityRequiresEnrichment: Bool { get }
 
+    /// Browsing metadata may omit lazily resolved files. Detail pages should
+    /// refresh `playbackItem` after first paint, without opening a stream.
+    var playbackInventoryRequiresEnrichment: Bool { get }
+
     // MARK: Library browsing
 
     /// Top-level libraries/views available to the user.
@@ -57,6 +61,11 @@ public protocol MediaProvider: Sendable {
 
     /// Full detail for a single item.
     func item(id: String) async throws -> MediaItem
+
+    /// Authoritative file inventory before playback, without opening a stream.
+    /// Unlike browsing detail, unresolved source discovery must throw rather than
+    /// return a placeholder that could bypass the version picker.
+    func playbackItem(id: String) async throws -> MediaItem
 
     /// Trailers / preview clips for an item (movie or series).
     ///
@@ -98,11 +107,19 @@ public protocol MediaProvider: Sendable {
     /// the sort means restarting paging from `startIndex` 0.
     func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage
 
-    /// Server-defined collections belonging to this library, ordered/paged as a
-    /// collection list. This is distinct from browsing a collection's members.
+    /// The server's collection list for this library context, ordered/paged as
+    /// collections. Servers may return their user-visible global list instead
+    /// of library-specific groups. Do not reconstruct membership client-side.
+    /// This is distinct from browsing a collection's members.
     /// Providers advertise support with `ProviderCapability.libraryCollections`.
     /// Unsupported providers throw `.notFound`, never a misleading empty page.
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage
+
+    /// Optional, incomplete discovery updates. Only the returned page is authoritative.
+    func collections(
+        in libraryID: String, page: PageRequest,
+        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
+    ) async throws -> MediaPage
 
     /// Collections owned by or shared with the current server viewer, including
     /// ones not published in a library. Advertise `.personalCollections`.
@@ -462,9 +479,21 @@ public enum MediaProviderURLIdentity {
 // conformer to implement it.
 public extension MediaProvider {
     var catalogIdentityRequiresEnrichment: Bool { false }
+    var playbackInventoryRequiresEnrichment: Bool { false }
+
+    func playbackItem(id: String) async throws -> MediaItem {
+        try await item(id: id)
+    }
 
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
         throw AppError.notFound
+    }
+
+    func collections(
+        in libraryID: String, page: PageRequest,
+        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
+    ) async throws -> MediaPage {
+        try await collections(in: libraryID, page: page)
     }
 
     func personalCollections(page: PageRequest) async throws -> MediaPage {
@@ -815,6 +844,20 @@ public struct SortDescriptor: Equatable, Codable, Sendable {
 
     /// The default order for a freshly opened library: name, ascending.
     public static let `default` = SortDescriptor(field: .name, direction: .ascending)
+}
+
+/// Incomplete discovery, with candidate-check counts distinct from the collection count.
+public struct LibraryCollectionProgress: Equatable, Sendable {
+    /// Confirmed members of the library in an append-only prefix of the final sort order.
+    public let items: [MediaItem]
+    public let checked: Int
+    public let total: Int
+
+    public init(items: [MediaItem], checked: Int, total: Int) {
+        self.items = items
+        self.checked = checked
+        self.total = total
+    }
 }
 
 /// One page of a container's children plus the total available, so callers can

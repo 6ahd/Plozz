@@ -151,10 +151,6 @@ final class PlozziOSAppModel {
     @ObservationIgnored
     lazy var portableCredentialPublisher = Self.makePortableCredentialPublisher()
 
-    /// Guards against overlapping same-Apple-ID credential auto-adopt attempts.
-    @ObservationIgnored
-    var isAutoAdoptingSyncSetup = false
-
     /// A same-Apple-ID device is asking to be set up; drives a one-tap source-side
     /// confirmation before any credential is pushed (nil = no pending offer).
     var pendingSyncSetupOffer: SyncPairingRendezvous?

@@ -709,7 +709,7 @@ final class JellyfinProviderMappingTests: XCTestCase {
         let provider = JellyfinProvider(session: makeSession(), http: stub)
 
         let libs = try await provider.libraries()
-        XCTAssertEqual(libs.map(\.title), ["Movies", "Shows"])
+        XCTAssertEqual(libs.map(\.title), ["Movies", "Shows", "Collections"])
         XCTAssertEqual(libs[0].kind, .movie)
         XCTAssertEqual(libs[1].kind, .series)
     }

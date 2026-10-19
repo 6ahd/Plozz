@@ -397,6 +397,7 @@ public struct HomeView: View {
             let rows = HomeRow.rows(
                 for: content,
                 isLibraryVisible: { visibility.isVisible($0) },
+                isLibraryTileVisible: visibility.isVisibleOnHome,
                 isGlobalRowEnabled: { visibility.visibility.isGlobalRowEnabled($0) },
                 includesEmptyWatchlist:
                     viewModel.watchlistLoadingPlaceholderCount > 0,
@@ -893,6 +894,7 @@ public struct HomeView: View {
                 }
             let rows = HomeRow.rows(
                 for: content, isLibraryVisible: visibility.isVisible,
+                isLibraryTileVisible: visibility.isVisibleOnHome,
                 isGlobalRowEnabled: visibility.isGlobalRowEnabled,
                 loadingRows: viewModel.loadingRows, failures: viewModel.rowFailures
             )

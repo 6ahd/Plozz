@@ -27,6 +27,8 @@ import Foundation
 ///   for ``isEnabled(_:)`` (an enabled video library is on Home; there is no
 ///   separate Home-only opt-out). ``isVisible(_:)`` is a further alias, kept so
 ///   existing Home rendering / aggregation callers stay unchanged.
+/// Collection tiles also consult live library metadata: confirmed-empty directories
+/// are automatically hidden unless the profile explicitly enables their library.
 public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     /// Nil preserves an existing profile's legacy combined/grouped choices.
     public var rowCustomization: HomeRowCustomization?
@@ -73,6 +75,9 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     /// browse alike.
     public var disabledKeys: Set<String>
 
+    /// Explicit on choices override automatic hiding of empty collection directories.
+    public var explicitlyEnabledKeys: Set<String>
+
     /// Raw values of the global Home rows the user has turned **off** (opt-out, so
     /// the default empty set = every global row on). See ``HomeGlobalRow``.
     public var disabledGlobalHomeRows: Set<String>
@@ -106,6 +111,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     public init(
         mergeLibrariesOnHome: Bool = true,
         disabledKeys: Set<String> = [],
+        explicitlyEnabledKeys: Set<String> = [],
         disabledGlobalHomeRows: Set<String> = [],
         enabledLibraryHomeRows: Set<String> = [],
         hasSeededLibraryRows: Bool = false,
@@ -115,6 +121,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     ) {
         self.mergeLibrariesOnHome = mergeLibrariesOnHome
         self.disabledKeys = disabledKeys
+        self.explicitlyEnabledKeys = explicitlyEnabledKeys
         self.disabledGlobalHomeRows = disabledGlobalHomeRows
         self.enabledLibraryHomeRows = enabledLibraryHomeRows
         self.hasSeededLibraryRows = hasSeededLibraryRows
@@ -143,6 +150,15 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         isEnabled(key)
     }
 
+    public func isVisibleOnHome(_ key: String, library: MediaLibrary) -> Bool {
+        isEnabled(key) && (library.kind != .collection || library.hasCollections != false
+            || explicitlyEnabledKeys.contains(key))
+    }
+
+    public func isVisibleOnHome(_ library: AggregatedLibrary) -> Bool {
+        isVisibleOnHome(library.key, library: library.library)
+    }
+
     /// Compatibility alias for ``isVisibleOnHome(_:)``.
     public func isVisible(_ key: String) -> Bool {
         isVisibleOnHome(key)
@@ -154,8 +170,10 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     public mutating func setEnabled(_ enabled: Bool, for key: String) {
         if enabled {
             disabledKeys.remove(key)
+            explicitlyEnabledKeys.insert(key)
         } else {
             disabledKeys.insert(key)
+            explicitlyEnabledKeys.remove(key)
         }
     }
 
@@ -332,6 +350,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case mergeLibrariesOnHome
         case disabledKeys
+        case explicitlyEnabledKeys
         case disabledGlobalHomeRows
         case enabledLibraryHomeRows
         case hasSeededLibraryRows
@@ -351,6 +370,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.mergeLibrariesOnHome = try container.decodeIfPresent(Bool.self, forKey: .mergeLibrariesOnHome) ?? true
         self.disabledKeys = try container.decodeIfPresent(Set<String>.self, forKey: .disabledKeys) ?? []
+        self.explicitlyEnabledKeys = try container.decodeIfPresent(Set<String>.self, forKey: .explicitlyEnabledKeys) ?? []
         self.disabledGlobalHomeRows = try container.decodeIfPresent(Set<String>.self, forKey: .disabledGlobalHomeRows) ?? []
         self.enabledLibraryHomeRows = try container.decodeIfPresent(Set<String>.self, forKey: .enabledLibraryHomeRows) ?? []
         // Migration: a blob predating this flag that already has opted-in rows was
@@ -377,6 +397,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(mergeLibrariesOnHome, forKey: .mergeLibrariesOnHome)
         try container.encode(disabledKeys.sorted(), forKey: .disabledKeys)
+        try container.encode(explicitlyEnabledKeys.sorted(), forKey: .explicitlyEnabledKeys)
         try container.encode(disabledGlobalHomeRows.sorted(), forKey: .disabledGlobalHomeRows)
         try container.encode(enabledLibraryHomeRows.sorted(), forKey: .enabledLibraryHomeRows)
         try container.encode(hasSeededLibraryRows, forKey: .hasSeededLibraryRows)
@@ -429,7 +450,8 @@ public enum LibraryHomeRowKind: String, CaseIterable, Sendable {
     case hubs
 
     public static func available(for library: AggregatedLibrary) -> [Self] {
-        guard !library.library.isMusic, !library.isRetiredCollectionShortcut else { return [] }
+        guard !library.library.isMusic, !library.library.isServerCollectionDirectory,
+              !library.isRetiredCollectionShortcut else { return [] }
         var kinds: [Self] = []
         if library.providerKind.usesMediaBrowserAPI, library.library.kind == .series {
             kinds.append(.nextUp)

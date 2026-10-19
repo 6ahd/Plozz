@@ -63,15 +63,18 @@ public struct ServerValidator: Sendable {
                                provider: .silo, version: info.server_version)
         }
         let endpoint = Endpoint(path: "/System/Info/Public")
-        let info = try await http.decode(PublicInfo.self, from: endpoint, baseURL: baseURL)
+        let (info, response) = try await http.decodeResponse(PublicInfo.self, from: endpoint, baseURL: baseURL)
+        let resolvedURL = try ServerURLNormalizer.resolvedBaseURL(
+            requested: baseURL, responseURL: response.url, endpointPath: endpoint.path
+        )
         // Guard against non-Jellyfin endpoints answering with arbitrary JSON.
         guard info.Id != nil || info.ServerName != nil || info.ProductName != nil else {
             throw AppError.invalidResponse
         }
         return MediaServer(
-            id: info.Id ?? baseURL.absoluteString,
-            name: info.ServerName ?? baseURL.host ?? "\(provider.displayName) Server",
-            baseURL: baseURL,
+            id: info.Id ?? resolvedURL.absoluteString,
+            name: info.ServerName ?? resolvedURL.host ?? "\(provider.displayName) Server",
+            baseURL: resolvedURL,
             provider: provider,
             version: info.Version
         )

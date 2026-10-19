@@ -418,6 +418,8 @@ public enum StreamingQualityError: Error, Equatable, Sendable {
     case invalidQuality(StreamingQualityValidationError)
     case unavailable, unsupported
     case authenticationRequired, permissionDenied, noCompatibleStream, sourceUnavailable, malformedResponse, negotiationFailed
+    /// A successful inventory lookup explicitly reported no playable sources.
+    case noStreams
     case serverHTTP(Int)
     case plexDecision(Int)
     case codecUnavailable(DirectPlayVideoCodec)
@@ -451,6 +453,8 @@ public enum StreamingQualityError: Error, Equatable, Sendable {
             "The server reported that no compatible stream is available."
         case .sourceUnavailable:
             "The server could not find the requested title or version."
+        case .noStreams:
+            "No streams found"
         case .malformedResponse:
             "Plozz couldn’t read the server’s playback response."
         case .negotiationFailed:
@@ -476,6 +480,7 @@ public enum StreamingQualityError: Error, Equatable, Sendable {
         case .permissionDenied: "NotAllowed"
         case .noCompatibleStream: "NoCompatibleStream"
         case .sourceUnavailable: "MediaSourceUnavailable"
+        case .noStreams: "NoStreamsFound"
         case .malformedResponse: "InvalidPlaybackResponse"
         case .negotiationFailed: "PlaybackNegotiationFailed"
         case .serverHTTP(let status): "HTTP \(status)"

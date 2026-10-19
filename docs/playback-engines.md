@@ -196,13 +196,16 @@ headers when updating the vendored sources, and update sources, public headers,
 binary checksums, and bundled notices together.
 
 Plozz pins the playback-corrected
-[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/299a3d9ea767e2382158c2a3d137c4b1d302ab4a)
-at commit `299a3d9ea767e2382158c2a3d137c4b1d302ab4a`, integrating upstream
-release **7.36.0** (`c6365cc3c8850bdb670654ca26dcd21f73670875`).
+[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/deb90eb3f740fe1ddda74301a64e3937e480877d)
+at commit `deb90eb3f740fe1ddda74301a64e3937e480877d`, integrating upstream
+main **`3721cec573478bf82bc5056417f13b76d644517b`**: release **7.42.0**
+plus its unreleased FFmpegBuild 3.8.0, encrypted-HLS backpressure and untagged
+object-audio track-selection changes. The engine's version string is still 7.42.0;
+the exact commit, not that string, identifies this build.
 ASS/SSA packets with neither a decoded end nor a packet duration are now discarded
 instead of lingering for a fabricated five seconds. This also applies to sidecars;
-other subtitle codecs retain their established fallback. Upstream 7.36.0 does not
-include this correction; the fork retains it and its regression tests.
+other subtitle codecs retain their established fallback. This upstream snapshot
+does not include this correction; the fork retains it and its regression tests.
 
 The fork also corrects accumulating AAC-LC audio drift in indexed MP4 VOD
 ([#89](https://github.com/brandomoore/Plozz/issues/89)). When the existing audio
@@ -221,7 +224,20 @@ each bring a Rust exception personality; statically combining both with Plozz's
 Objective-C and C++ text-rendering code exceeds Mach-O compact unwind's three
 personality slots. The framework keeps the engine's decoder runtimes in a
 separate Mach-O image, preserving unwind metadata and panic handling. Both app
-targets must embed and sign it alongside the existing FFmpeg frameworks.
+targets must embed and sign it alongside the existing FFmpeg frameworks and the
+new dynamic **DTSX.framework**. LibDTSX's combined decoder is LGPL-3.0-or-later;
+its upstream notice, Apache license, LGPL 2.1 and LGPL 3.0/GPL 3.0 texts are
+bundled verbatim in the `LibDTSX*` resources, with the exact source in attributions.
+
+Plozz explicitly enables `TrueHDObjectAudio`, `DTSXObjectAudio`,
+`DualLayerDolbyVision` and `DolbyVisionStillReshaping` on its Swift package
+dependency. Upstream 7.39 made these components off-by-default build traits;
+merely setting their `LoadOptions` without the traits is a no-op. Both app
+targets consume this same local package, so no generated-project trait patch
+is needed. This preserves compiled-in capabilities without changing playback
+preferences. The measurement-only `TrueHDReferenceRender` trait stays excluded.
+Upstream's patent-licensing warning still applies; enabling a trait does not
+establish patent clearance.
 
 The 7.23.0-to-7.34.1 range adds live-start/holdback and source-open recovery
 fixes, corrected software resume/seek timelines, transport-intent preservation
@@ -229,12 +245,16 @@ during rebuilds, and blocking engine work moved off Swift's cooperative pool.
 Changing speed while paused now leaves the session paused until `play()`.
 E-AC-3 JOC stream copies advertise object audio in the HLS master, including
 untagged tracks. FFmpegBuild **3.7.x** fixes dependent-substream Atmos signaling;
-LibDovi remains **2.1.x**. The current fork uses LibTrueHD **2.3.x** and
-LibDTSX **1.0.1**. Upstream 7.36.0 adds DTS:X object rendering, corrected spatial
+LibDovi remains **2.1.x**. The earlier 7.36.0 integration used LibTrueHD **2.3.x** and
+LibDTSX **1.0.1**. Upstream 7.36.0 added DTS:X object rendering, corrected spatial
 speaker positions and a tvOS Atmos output activator for receivers that need it.
 It also includes live-replay recovery, software-video recovery after a screen lock,
 and the intervening 7.35.x playback fixes; these are upstream changes, not new
-Plozz-specific implementations.
+Plozz-specific implementations. The current pin advances FFmpegBuild to **3.8.0**
+and LibTrueHD/LibDTSX to **3.0.0**, retaining LibDovi **2.1.x**. It also includes
+single-connection Atmos-probe safeguards and system-composited Dolby Vision
+held pictures. The fork retains the persistent HTTP body-reader isolation
+correction from its previous integration.
 
 On **tvOS 26 and later**, ordinary on-demand playback automatically requests
 TrueHD Atmos and DTS:X object rendering with `LoadOptions.objectAudioRendering = .apac(.l714)`.
@@ -258,15 +278,25 @@ mode are not used as Atmos capability gates: neither reliably describes the room
 Aether converts **48 kHz TrueHD Atmos and supported lossless DTS:X** on its
 native/HLS VOD path. For DTS-HD Master Audio, LibDTSX checks the actual packets:
 some DTS:X tracks are labelled only DTS-HD MA by FFmpeg, so metadata alone does
-not decide eligibility. Confirmed DTS:X has its height/object contributions
-removed from the compatible floor-channel downmix before the bed, heights and
-objects are rendered together. Ordinary DTS-HD MA retains the channel bridge.
+not decide eligibility. Standard DTS:X has its four fixed heights removed from
+the compatible 7.1 downmix using the standard's constant fold, then mapped to the spatial bed.
+Alternate DTS:X presentations containing objects fall back to the ordinary
+channel bridge. Ordinary DTS-HD MA also retains that bridge.
 The engine renders into the spatial bed and encodes Apple Positional Audio (APAC), which
 tvOS can deliver as Dolby MAT to compatible equipment. This is **lossy conversion**,
 not TrueHD/DTS:X bitstream passthrough or preservation of the original dynamic object
 stream. It adds decoding/encoding work during eligible playback, not library
 scanning or idle sync. Shared live players and muted previews stay off to avoid
 additional spatial encoding in those background/concurrent paths.
+
+Since 7.40, TrueHD uses the stream's own channel presentation and `BedSplitter`
+to distribute its energy between floor and height speakers, guided by decoded
+object positions and energy. This is an approximation, not the earlier exact
+object-signal mix; the production LibTrueHD build excludes matrix interpolation.
+The engine accounts for the split's latency and drains it on restart and EOF.
+With rendering enabled, completely untagged audio tracks can now prefer a
+recognized TrueHD Atmos/DTS:X track over the container default. Explicit track
+selections and the language/dub boundaries of tagged files remain authoritative.
 
 Live stream loading, iOS/iPadOS and older tvOS keep object rendering off. Plain
 TrueHD, ordinary DTS/DTS-HD MA, unsupported DTS:X presentations, ineligible sources and APAC initialization
@@ -275,7 +305,7 @@ otherwise the E-AC-3 compatibility bridge. Software-video playback does not use
 this conversion. E-AC-3/JOC Atmos remains stream-copied. Explicit track selections
 and language preferences are still passed to Aether; its automatic selection can
 prefer TrueHD Atmos or DTS:X within the same language/dub when rendering is enabled.
-DTS:X alternate presentations remain experimental upstream.
+DTS:X alternate object presentations are not rendered by the current pin.
 
 Progressive segment delivery remains disabled. The upstream Apple TV reports in
 [AetherEngine #731](https://github.com/superuser404notfound/AetherEngine/issues/731)
