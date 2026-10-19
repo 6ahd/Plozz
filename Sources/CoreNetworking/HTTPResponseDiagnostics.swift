@@ -9,6 +9,7 @@ public enum HTTPResponseDiagnostics {
     public struct CapturedResult<Value: Sendable>: Sendable {
         public let result: Result<Value, Error>
         public let responses: [ResponseDecodingDiagnostic]
+        public let paging: [LibraryPagingDiagnostic]
 
         public var isCancelled: Bool {
             guard case .failure(let error) = result else { return false }
@@ -26,11 +27,16 @@ public enum HTTPResponseDiagnostics {
         let recorder = Recorder()
         return await $recorder.withValue(recorder) {
             do {
-                return CapturedResult(result: .success(try await operation()), responses: [])
+                return CapturedResult(result: .success(try await operation()), responses: [], paging: [])
             } catch {
-                return CapturedResult(result: .failure(error), responses: recorder.snapshot())
+                let evidence = recorder.snapshot()
+                return CapturedResult(result: .failure(error), responses: evidence.responses, paging: evidence.paging)
             }
         }
+    }
+
+    public static func recordPagingFailure(_ diagnostic: LibraryPagingDiagnostic) {
+        recorder?.append(diagnostic)
     }
 
     public static func recordDecodeFailure(
@@ -51,6 +57,7 @@ public enum HTTPResponseDiagnostics {
     private final class Recorder: @unchecked Sendable {
         private let lock = NSLock()
         private var responses: [ResponseDecodingDiagnostic] = []
+        private var paging: [LibraryPagingDiagnostic] = []
 
         func append(_ response: ResponseDecodingDiagnostic) {
             lock.lock()
@@ -59,10 +66,17 @@ public enum HTTPResponseDiagnostics {
             if responses.count > 4 { responses.removeFirst() }
         }
 
-        func snapshot() -> [ResponseDecodingDiagnostic] {
+        func append(_ diagnostic: LibraryPagingDiagnostic) {
             lock.lock()
             defer { lock.unlock() }
-            return responses
+            paging.append(diagnostic)
+            if paging.count > 4 { paging.removeFirst() }
+        }
+
+        func snapshot() -> (responses: [ResponseDecodingDiagnostic], paging: [LibraryPagingDiagnostic]) {
+            lock.lock()
+            defer { lock.unlock() }
+            return (responses, paging)
         }
     }
 }

@@ -4,6 +4,7 @@ import Foundation
 public struct ResponseDecodingDiagnostic: Equatable, Sendable {
     public enum Route: String, Sendable {
         case movieRecommendations, libraryHubs, other
+        case collectionCandidates, collectionLibraryScope, collectionMembers
     }
     public enum Payload: String, Sendable { case empty, object, array, scalar, nonJSON }
     public enum Reason: String, Sendable { case missingKey, wrongType, nullValue, corruptedData, other }
@@ -71,15 +72,41 @@ public struct ResponseDecodingDiagnostic: Equatable, Sendable {
     }
 }
 
-public struct LibraryRecommendationDiagnostic: Equatable, Sendable {
+public struct LibraryPagingDiagnostic: Equatable, Sendable {
+    public enum Stage: String, Sendable { case collectionCandidates, libraryScope, collectionMembers }
+    public enum Reason: String, Sendable {
+        case negativeTotal, emptyID, duplicateInPage, emptyBeforeTotal, nonAdvancing, nonPrefixOverlap
+        case unexpectedItemType, itemsPastEnd
+    }
+    public let stage: Stage
+    public let reason: Reason
+    public let start: Int
+    public let rows: Int
+    public let total: Int?
+
+    public init(stage: Stage, reason: Reason, start: Int, rows: Int, total: Int?) {
+        self.stage = stage
+        self.reason = reason
+        self.start = start
+        self.rows = rows
+        self.total = total
+    }
+}
+
+public struct LibraryLoadDiagnostic: Equatable, Sendable {
+    public enum Operation: String, Sendable { case libraryRecommendations, libraryBrowse }
     public enum Section: String, Sendable {
         case continueWatching, recommendations, recentlyAdded
+        case browse, collections, playlists, collectionMembers, playlistMembers
 
         public var title: LocalizedStringResource {
             switch self {
             case .continueWatching: "Continue Watching"
             case .recommendations: "Recommended"
             case .recentlyAdded: "Recently Added"
+            case .browse: "Browse"
+            case .collections, .collectionMembers: "Collections"
+            case .playlists, .playlistMembers: "Playlists"
             }
         }
     }
@@ -88,25 +115,32 @@ public struct LibraryRecommendationDiagnostic: Equatable, Sendable {
         public let section: Section
         public let error: AppError
         public let responses: [ResponseDecodingDiagnostic]
+        public let paging: [LibraryPagingDiagnostic]
 
-        public init(section: Section, error: AppError, responses: [ResponseDecodingDiagnostic] = []) {
+        public init(
+            section: Section, error: AppError,
+            responses: [ResponseDecodingDiagnostic] = [], paging: [LibraryPagingDiagnostic] = []
+        ) {
             self.section = section
             self.error = error
             self.responses = Array(responses.suffix(4))
+            self.paging = Array(paging.suffix(4))
         }
     }
 
     public let provider: ProviderKind
+    public let operation: Operation
     public let failures: [Failure]
 
-    public init(provider: ProviderKind, failures: [Failure]) {
+    public init(provider: ProviderKind, operation: Operation = .libraryRecommendations, failures: [Failure]) {
         self.provider = provider
+        self.operation = operation
         self.failures = failures
     }
 
     // l10n:content — closed-vocabulary, credential-free support protocol
     public var supportText: String {
-        var fields = ["format=plozz-library-1", "operation=libraryRecommendations", "provider=\(provider.rawValue)"]
+        var fields = ["format=plozz-library-1", "operation=\(operation.rawValue)", "provider=\(provider.rawValue)"]
         for (index, failure) in failures.enumerated() {
             let prefix = "failure_\(index)"
             fields += ["\(prefix).section=\(failure.section.rawValue)", "\(prefix).reason=\(Self.code(failure.error))"]
@@ -118,6 +152,14 @@ public struct LibraryRecommendationDiagnostic: Equatable, Sendable {
                     "\(request).decode=\(response.reason.rawValue)", "\(request).path=\(response.path)"
                 ]
                 if let expected = response.expected { fields.append("\(request).expected=\(expected.rawValue)") }
+            }
+            for (pageIndex, page) in failure.paging.enumerated() {
+                let key = "\(prefix).page_\(pageIndex)"
+                fields += [
+                    "\(key).stage=\(page.stage.rawValue)", "\(key).reason=\(page.reason.rawValue)",
+                    "\(key).start=\(page.start)", "\(key).rows=\(page.rows)"
+                ]
+                if let total = page.total { fields.append("\(key).total=\(total)") }
             }
         }
         return fields.joined(separator: "\n")

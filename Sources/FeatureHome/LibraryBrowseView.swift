@@ -146,6 +146,7 @@ public struct LibraryBrowseView: View {
                     emptyMessage: viewModel.emptyMessage,
                     errorMessage: viewModel.queryMessage,
                     errorServers: viewModel.errorServers,
+                    errorReport: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library),
                     onRetry: { Task { await viewModel.loadFirstPage() } },
                     loadingContent: {
                         if let progress = viewModel.queryProgress {
@@ -209,13 +210,12 @@ public struct LibraryBrowseView: View {
                 .padding()
             }
             if viewModel.contentMode != .recommended, let error = viewModel.pageError {
-                HStack(spacing: PlozzTheme.Spacing.large) {
+                VStack(alignment: .leading, spacing: PlozzTheme.Spacing.large) {
                     Text(error.userMessage)
                         .plozzForeground(.secondary)
-                    Button("Try Again") {
+                    ContentFailureActions(report: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library)) {
                         Task { await viewModel.retryFailedPages() }
                     }
-                    .plozzActionButton()
                 }
                 .padding()
             }

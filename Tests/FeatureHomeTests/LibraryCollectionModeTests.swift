@@ -500,9 +500,13 @@ final class LibraryCollectionModeTests: XCTestCase {
         XCTAssertEqual(model.totalCount, 0)
         XCTAssertTrue(model.loaded.isEmpty)
         XCTAssertEqual(model.contentMode, .collections)
+        XCTAssertEqual(model.browseDiagnostic?.operation, .libraryBrowse)
+        XCTAssertEqual(model.browseDiagnostic?.failures.first?.section, .collections)
+        XCTAssertEqual(model.browseDiagnostic?.failures.first?.error, .serverUnreachable)
         await provider.clearFailures()
         await model.loadFirstPage()
         XCTAssertEqual(model.state, .loaded(12))
+        XCTAssertNil(model.browseDiagnostic)
         let requests = await provider.requests
         XCTAssertEqual(requests.map(\.mode), [.collections, .collections])
     }
@@ -522,6 +526,25 @@ final class LibraryCollectionModeTests: XCTestCase {
         XCTAssertEqual(model.item(at: 0)?.id, "collection-0")
     }
 
+    func testBrowseFailuresOfferDetailsAcrossProvidersAndClearOnModeChanges() async {
+        for kind: ProviderKind in [.jellyfin, .emby, .plex, .silo] {
+            let provider = LibraryModeProvider(kind: kind, supportsPlaylists: true)
+            let model = model(provider)
+            for (mode, section) in [
+                (LibraryContentMode.titles, LibraryLoadDiagnostic.Section.browse),
+                (.collections, .collections), (.playlists, .playlists)
+            ] {
+                await provider.fail(mode, at: 0)
+                await model.setContentMode(mode)
+                XCTAssertEqual(model.browseDiagnostic?.provider, kind)
+                XCTAssertEqual(model.browseDiagnostic?.failures.first?.section, section)
+                await provider.clearFailures()
+                await model.loadFirstPage()
+                XCTAssertNil(model.browseDiagnostic)
+            }
+        }
+    }
+
     func testCollectionPageFailureRetriesWithoutReplacingLoadedGrid() async {
         let provider = LibraryModeProvider()
         let model = model(provider)
@@ -530,6 +553,7 @@ final class LibraryCollectionModeTests: XCTestCase {
         await provider.fail(.collections, at: 4)
         await model.itemAppeared(at: 4)
         XCTAssertEqual(model.pageError, .serverUnreachable)
+        XCTAssertEqual(model.browseDiagnostic?.failures.first?.section, .collections)
         XCTAssertEqual(model.state, .loaded(12))
         XCTAssertNil(model.item(at: 4))
 
@@ -539,6 +563,7 @@ final class LibraryCollectionModeTests: XCTestCase {
         await provider.clearFailures()
         await model.retryFailedPages()
         XCTAssertNil(model.pageError)
+        XCTAssertNil(model.browseDiagnostic)
         XCTAssertTrue(firstSlot === model.slot(at: 0))
         XCTAssertEqual(model.item(at: 4)?.id, "collection-4")
     }
@@ -573,6 +598,7 @@ final class LibraryCollectionModeTests: XCTestCase {
         await provider.release(.titles, at: 4)
         await oldPage.value
         XCTAssertNil(model.pageError)
+        XCTAssertNil(model.browseDiagnostic)
         XCTAssertEqual(model.state, .loaded(12))
         XCTAssertNil(model.item(at: 4))
     }

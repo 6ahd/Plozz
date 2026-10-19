@@ -27,7 +27,7 @@ final class HTTPResponseDiagnosticsTests: XCTestCase {
         XCTAssertEqual(response.reason, .wrongType)
         XCTAssertEqual(response.path, "Items.[0].Id")
         XCTAssertEqual(response.expected, .string)
-        let report = LibraryRecommendationDiagnostic(
+        let report = LibraryLoadDiagnostic(
             provider: .plex, failures: [.init(section: .recommendations, error: .decoding, responses: captured.responses)]
         )
         XCTAssertFalse(report.supportText.contains("private"))
@@ -97,6 +97,34 @@ final class HTTPResponseDiagnosticsTests: XCTestCase {
         XCTAssertEqual(captured.responses.count, 4)
         XCTAssertEqual(captured.responses.last?.reason, .missingKey)
         XCTAssertEqual(captured.responses.last?.path, "Items")
+    }
+
+    func testPagingEvidenceIsBoundedIsolatedAndDiscardedOnSuccess() async throws {
+        let diagnostic = LibraryPagingDiagnostic(
+            stage: .collectionMembers, reason: .nonAdvancing, start: 24, rows: 1, total: 25
+        )
+        async let failed = HTTPResponseDiagnostics.capture { () async throws -> Int in
+            for _ in 0..<7 { HTTPResponseDiagnostics.recordPagingFailure(diagnostic) }
+            throw AppError.invalidResponse
+        }
+        async let recovered = HTTPResponseDiagnostics.capture {
+            HTTPResponseDiagnostics.recordPagingFailure(diagnostic)
+            return 1
+        }
+        let (failure, success) = await (failed, recovered)
+        XCTAssertEqual(failure.paging, Array(repeating: diagnostic, count: 4))
+        XCTAssertTrue(success.paging.isEmpty)
+        XCTAssertEqual(try success.result.get(), 1)
+        let report = PlaybackDiagnosticReport.library(.init(
+            provider: .emby, operation: .libraryBrowse,
+            failures: [.init(section: .collections, error: .invalidResponse, paging: failure.paging)]
+        ))
+        XCTAssertTrue(report.supportText.contains("operation=libraryBrowse"))
+        XCTAssertTrue(report.supportText.contains("failure_0.section=collections"))
+        XCTAssertTrue(report.supportText.contains("failure_0.page_0.stage=collectionMembers"))
+        XCTAssertTrue(report.supportText.contains("failure_0.page_0.reason=nonAdvancing"))
+        XCTAssertTrue(report.supportText.contains("failure_0.page_0.start=24"))
+        XCTAssertFalse(report.supportText.contains("page_4"))
     }
 
     private struct FixtureHTTP: HTTPClient {

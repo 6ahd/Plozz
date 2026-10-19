@@ -10,6 +10,18 @@ import XCTest
 @MainActor
 final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
     func testErrorDetailsSheetUsesCenteredInlineTitleAndLeadingCloseIcon() async throws {
+        try await assertDetailsHeader(.onDemand(
+            error: .noStreams, provider: .jellyfin, engine: nil, stage: .preparation
+        ))
+        try await assertDetailsHeader(.library(.init(
+            provider: .jellyfin, operation: .libraryBrowse,
+            failures: [.init(section: .collections, error: .invalidResponse, paging: [
+                .init(stage: .collectionMembers, reason: .nonAdvancing, start: 24, rows: 1, total: 25)
+            ])]
+        )))
+    }
+
+    private func assertDetailsHeader(_ report: PlaybackDiagnosticReport) async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
@@ -23,7 +35,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
             previous?.makeKeyAndVisible()
         }
         let sheet = UIHostingController(rootView: PlaybackDiagnosticDetailsSheet(
-            report: .onDemand(error: .noStreams, provider: .jellyfin, engine: nil, stage: .preparation)
+            report: report
         ).environment(\.locale, Locale(identifier: "en_US")))
         sheet.modalPresentationStyle = .pageSheet
         await withCheckedContinuation { continuation in

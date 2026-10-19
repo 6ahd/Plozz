@@ -190,6 +190,42 @@ final class MediaBrowserScopedCollectionTests: XCTestCase {
         }
     }
 
+    func testTerminalOverlapsRequireAnEmptyBoundaryPageAtEveryEnumerationStage() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            for (parent, expected) in [
+                ("candidates", ["0", "6", "7"]),
+                ("movies", ["0", "2", "3"]),
+                ("outside-2", ["0", "24", "25"])
+            ] {
+                let http = ScopedCollectionsHTTPClient(terminalSparseParent: parent)
+                let provider = provider(kind, http: http)
+                let result = try await provider.collections(in: "movies", page: PageRequest())
+                XCTAssertEqual(result.items.map(\.id), ["in-a", "in-b"])
+                XCTAssertEqual(result.totalCount, 2)
+                let queries = await http.queries
+                XCTAssertEqual(queries.filter {
+                    parent == "candidates" ? $0["IncludeItemTypes"] == "BoxSet" : $0["ParentId"] == parent
+                }.compactMap { $0["StartIndex"] }, expected)
+                _ = try await provider.collections(in: "movies", page: PageRequest(startIndex: 1, limit: 1))
+                let cachedRequests = await http.queries.count
+                XCTAssertEqual(cachedRequests, queries.count)
+            }
+        }
+    }
+
+    func testNonAdvancingPagesWithoutTotalsStillFailWithSafePagingDetails() async throws {
+        let http = ScopedCollectionsHTTPClient(includesTotals: false, terminalSparseParent: "outside-2")
+        let provider = provider(.jellyfin, http: http)
+        let captured = await HTTPResponseDiagnostics.capture {
+            try await provider.collections(in: "movies", page: PageRequest())
+        }
+        guard case .failure(let error) = captured.result else { return XCTFail("Expected a paging failure") }
+        XCTAssertEqual(error as? AppError, .invalidResponse)
+        XCTAssertEqual(captured.paging, [
+            .init(stage: .collectionMembers, reason: .nonAdvancing, start: 24, rows: 1, total: nil)
+        ])
+    }
+
     func testFailedMembershipDoesNotProduceIncompleteSuccessAndCanRetry() async throws {
         let http = ScopedCollectionsHTTPClient()
         await http.setFailingParent("outside")
@@ -205,17 +241,20 @@ final class MediaBrowserScopedCollectionTests: XCTestCase {
         XCTAssertEqual(result.items.map(\.id), ["in-a", "in-b"])
     }
 
-    func testRepeatedLibraryPageFailsInsteadOfLooping() async {
+    func testRepeatedLibraryPageFailsInsteadOfLooping() async throws {
         let http = ScopedCollectionsHTTPClient()
         await http.setRepeatingParent("movies")
-        do {
-            _ = try await provider(.jellyfin, http: http).collections(
-                in: "movies", page: PageRequest()
-            )
-            XCTFail("A repeated page is not complete membership")
-        } catch {
-            XCTAssertEqual(error as? AppError, .invalidResponse)
+        let provider = provider(.jellyfin, http: http)
+        let captured = await HTTPResponseDiagnostics.capture {
+            try await provider.collections(in: "movies", page: PageRequest())
         }
+        guard case .failure(let error) = captured.result else { return XCTFail("A repeated page is not complete membership") }
+        XCTAssertEqual(error as? AppError, .invalidResponse)
+        XCTAssertEqual(captured.paging, [
+            .init(stage: .libraryScope, reason: .itemsPastEnd, start: 2, rows: 1, total: 2)
+        ])
+        let queries = await http.queries
+        XCTAssertEqual(queries.filter { $0["ParentId"] == "movies" }.count, 3)
     }
 
     func testEmptyLibrarySkipsCollectionMemberFanout() async throws {
@@ -247,6 +286,7 @@ private actor ScopedCollectionsHTTPClient: HTTPClient {
     let sparsePages: Bool
     let invalidScopePage: [String]?
     let fullSizeSparseLibrary: Bool
+    let terminalSparseParent: String?
     private var failingParent: String?
     private var repeatingParent: String?
     private var activeMemberRequests = 0
@@ -256,12 +296,14 @@ private actor ScopedCollectionsHTTPClient: HTTPClient {
 
     init(
         includesTotals: Bool = true, sparsePages: Bool = false,
-        invalidScopePage: [String]? = nil, fullSizeSparseLibrary: Bool = false
+        invalidScopePage: [String]? = nil, fullSizeSparseLibrary: Bool = false,
+        terminalSparseParent: String? = nil
     ) {
         self.includesTotals = includesTotals
         self.sparsePages = sparsePages
         self.invalidScopePage = invalidScopePage
         self.fullSizeSparseLibrary = fullSizeSparseLibrary
+        self.terminalSparseParent = terminalSparseParent
     }
     func setFailingParent(_ value: String?) { failingParent = value }
     func setRepeatingParent(_ value: String?) { repeatingParent = value }
@@ -327,7 +369,9 @@ private actor ScopedCollectionsHTTPClient: HTTPClient {
                     : ["foreign", "nested-movie"]
             case "in-b": ids = ["movie-b"]
             case "outside": ids = ["episode"]
-            case "outside-2", "outside-3": ids = ["foreign"]
+            case "outside-2":
+                ids = terminalSparseParent == "outside-2" ? (0..<24).map { "foreign-\($0)" } : ["foreign"]
+            case "outside-3": ids = ["foreign"]
             case "empty", "empty-library": ids = []
             default: throw AppError.notFound
             }
@@ -339,6 +383,10 @@ private actor ScopedCollectionsHTTPClient: HTTPClient {
         let limit = Int(query["Limit"] ?? "1") ?? 1
         var slots = rows.map(Optional.some)
         if sparsePages, slots.count > 3 { slots.insert(nil, at: 1) }
+        let isTerminalSparse = terminalSparseParent.map {
+            $0 == "candidates" ? query["IncludeItemTypes"] == "BoxSet" : parent == $0
+        } ?? false
+        if isTerminalSparse { slots.insert(nil, at: 1) }
         let isFullSizeSparseLibrary = parent == "movies" && fullSizeSparseLibrary
         if isFullSizeSparseLibrary {
             slots = (0..<400).map { index in
@@ -347,7 +395,7 @@ private actor ScopedCollectionsHTTPClient: HTTPClient {
                 return ["Id": id, "Type": "Movie"]
             }
         }
-        let serverLimit = endpoint.path.hasPrefix("/Playlists/") || isFullSizeSparseLibrary
+        let serverLimit = endpoint.path.hasPrefix("/Playlists/") || isFullSizeSparseLibrary || isTerminalSparse
             ? limit : (sparsePages ? 3 : 1)
         var envelope: [String: Any] = ["Items": slots.dropFirst(start).prefix(serverLimit).compactMap { $0 }]
         if parent == "movies", start > 0, let invalidScopePage {

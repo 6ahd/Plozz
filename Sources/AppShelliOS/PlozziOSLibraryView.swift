@@ -269,10 +269,10 @@ struct PlozziOSLibraryGridView: View {
                 .background(.regularMaterial)
             }
             if viewModel.contentMode != .recommended, let error = viewModel.pageError {
-                HStack {
+                VStack(alignment: .leading, spacing: 12) {
                     Text(error.userMessage)
                         .plozzForeground(.secondary)
-                    Button("Try Again") {
+                    ContentFailureActions(report: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library)) {
                         Task { await viewModel.retryFailedPages() }
                     }
                 }
@@ -413,7 +413,7 @@ struct PlozziOSLibraryGridView: View {
                 }
                 Text(viewModel.queryMessage ?? error.userMessage)
             } actions: {
-                Button("Try Again") {
+                ContentFailureActions(report: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library)) {
                     Task { await viewModel.loadFirstPage() }
                 }
             }

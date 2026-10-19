@@ -266,10 +266,14 @@ snapshot (maximum four library/sort entries) supplies subsequent grid pages
 without repeated per-poster requests; page zero refreshes it. Some compatible
 servers omit rows while retaining their paging offsets, so a short
 page can overlap the next page's prefix. Enumeration deduplicates that prefix
-and advances by raw response-row count, not the number of new IDs. Request
-failures, empty pages before the reported end, duplicates within a page, and
-repeats without progress or outside the prefix remain errors rather than
-silently excluding uncertain groups.
+and advances by raw response-row count, not the number of new IDs. If a repeated
+tail alone reaches the exact reported end, enumeration makes one extra request
+at that boundary and requires an empty page before accepting completion. This
+covers a short final member page without accepting a server that ignores offsets.
+Request failures, early empty pages, duplicates within a page, and other
+non-advancing/non-prefix repeats remain errors. Browse Details includes the
+failed enumeration stage, reason, offset, row count and reported total, never
+collection/library IDs or media titles.
 Each consumer owns its own cancellable wait: leaving one page does not cancel a
 replacement page's shared work. Only the last consumer cancels the worker, and
 late cleanup cannot remove a newer flight.

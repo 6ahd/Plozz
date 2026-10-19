@@ -911,7 +911,9 @@ public struct JellyfinClient: Sendable {
             ],
             headers: authHeaders
         )
-        return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        return try await HTTPResponseDiagnostics.$route.withValue(.collectionCandidates) {
+            try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        }
     }
 
     func videoPlaylistCandidates(userID: String, start: Int, limit: Int) async throws -> ItemsResponse {
@@ -953,7 +955,9 @@ public struct JellyfinClient: Sendable {
             ],
             headers: authHeaders
         )
-        return try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        return try await HTTPResponseDiagnostics.$route.withValue(recursive ? .collectionLibraryScope : .collectionMembers) {
+            try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
+        }
     }
 
     /// Count of items in a container, matching the same recursive/type filters

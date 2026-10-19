@@ -97,7 +97,7 @@ public final class LibraryBrowseViewModel {
         get { queryPresentation.message }
         set { queryPresentation.message = newValue }
     }
-    @ObservationIgnored private var firstPageTask: Task<MediaPage, Error>?
+    @ObservationIgnored private var firstPageTask: Task<HTTPResponseDiagnostics.CapturedResult<MediaPage>, Never>?
     private let querySession: LibraryQuerySession
     private let preferencesStore: LibraryBrowsePreferencesStore
     private let preferenceAccountID: String
@@ -125,8 +125,9 @@ public final class LibraryBrowseViewModel {
     }
     public private(set) var contentMode: LibraryContentMode = .titles
     public private(set) var recommendationState: LoadState<[LibrarySection]> = .idle
-    public private(set) var recommendationDiagnostic: LibraryRecommendationDiagnostic?
+    public private(set) var recommendationDiagnostic: LibraryLoadDiagnostic?
     public var recommendationError: AppError? { recommendationDiagnostic?.failures.first?.error }
+    public var browseDiagnostic: LibraryLoadDiagnostic? { queryPresentation.failureDiagnostic }
 
     public var supportsRecommendations: Bool {
         browseScope == .library && provider.kind != .mediaShare
@@ -416,6 +417,7 @@ public final class LibraryBrowseViewModel {
         loaded = []
         totalCount = 0
         pageError = nil
+        queryPresentation.failureDiagnostic = nil
         needsRefreshRetry = false
         queryMessage = nil
         queryProgress = nil
@@ -435,6 +437,7 @@ public final class LibraryBrowseViewModel {
         PlozzLog.app.info(
             "LibraryBrowse: loading first page for \(containerID) (\(containerKind.rawValue)) firstPage=\(firstPageSize) steadyPage=\(subsequentPageSize)"
         )
+        var captured: HTTPResponseDiagnostics.CapturedResult<MediaPage>?
         do {
             if retriesFailedQuery {
                 await querySession.invalidate()
@@ -453,23 +456,28 @@ public final class LibraryBrowseViewModel {
             }
             let request = pageRequest(forPage: 0)
             let task = Task {
-                try await Self.fetchPage(
-                provider: provider,
-                querySession: querySession,
-                containerID: containerID,
-                containerKind: containerKind,
-                browseScope: browseScope,
-                contentMode: mode,
-                request: request,
-                priority: .userInitiated,
-                progress: { [weak self] completed, total in
-                    await self?.reportQueryProgress(completed, total: total, generation: generation)
+                await HTTPResponseDiagnostics.capture {
+                    try await Self.fetchPage(
+                        provider: provider,
+                        querySession: querySession,
+                        containerID: containerID,
+                        containerKind: containerKind,
+                        browseScope: browseScope,
+                        contentMode: mode,
+                        request: request,
+                        priority: .userInitiated,
+                        progress: { [weak self] completed, total in
+                            await self?.reportQueryProgress(completed, total: total, generation: generation)
+                        }
+                    )
                 }
-                )
             }
             firstPageTask = task
-            let page = try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
+            let result = await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
             guard !Task.isCancelled, generation == loadGeneration else { return }
+            if result.isCancelled { return }
+            captured = result
+            let page = try result.result.get()
             totalCount = page.totalCount
             loaded = Self.makeSlots(count: page.totalCount)
             fill(page)
@@ -479,22 +487,14 @@ public final class LibraryBrowseViewModel {
             loadLetterIndexIfNeeded()
         } catch is CancellationError {
             return
-        } catch let error as AppError {
-            PlozzLog.app.error("LibraryBrowse: first page failed for \(containerID): \(String(describing: error))")
-            let servers = failureServers(for: error)
-            guard !Task.isCancelled, generation == loadGeneration else { return }
-            errorServers = servers
-            queryProgress = nil
-            state = .failed(error)
         } catch {
-            PlozzLog.app.error("LibraryBrowse: first page failed for \(containerID): \(String(describing: error))")
-            let servers = failureServers(for: error)
             guard !Task.isCancelled, generation == loadGeneration else { return }
-            errorServers = servers
-            queryProgress = nil
             let underlying = LibrarySourceFailure.underlying(error)
+            guard (underlying as? AppError) != .cancelled else { return }
+            errorServers = failureServers(for: error)
+            queryProgress = nil
             queryMessage = (underlying as? LibraryQueryFailure)?.message
-            state = .failed((underlying as? AppError) ?? .unknown(""))
+            state = .failed(recordBrowseFailure(error, mode: mode, captured: captured))
         }
     }
 
@@ -573,6 +573,7 @@ public final class LibraryBrowseViewModel {
             pagesLoaded = []
             failedPages = []
             pageError = nil
+            queryPresentation.failureDiagnostic = nil
             queryMessage = nil
             needsRefreshRetry = false
             totalCount = firstPage.totalCount
@@ -598,14 +599,12 @@ public final class LibraryBrowseViewModel {
         } catch {
             // Keep the still-usable old page on a transient refresh failure; normal
             // page/retry behavior remains available.
-            PlozzLog.app.error(
-                "LibraryBrowse: catalog refresh failed for \(containerID): \(String(describing: error))"
-            )
             if !Task.isCancelled, generation == loadGeneration {
+                let underlying = LibrarySourceFailure.underlying(error)
+                guard (underlying as? AppError) != .cancelled else { return }
                 watchQueryDirty = true
                 needsRefreshRetry = true
-                let underlying = LibrarySourceFailure.underlying(error)
-                pageError = (underlying as? AppError) ?? .unknown("")
+                pageError = recordBrowseFailure(error, mode: mode)
                 queryMessage = (underlying as? LibraryQueryFailure)?.message
             }
         }
@@ -1091,9 +1090,9 @@ public final class LibraryBrowseViewModel {
               !latestResult.isCancelled, !watchingResult.isCancelled, !hubResult.isCancelled else { return }
         let previousSections = recommendationState.value ?? []
         var sections: [LibrarySection] = []
-        var failures: [LibraryRecommendationDiagnostic.Failure] = []
+        var failures: [LibraryLoadDiagnostic.Failure] = []
         var failedServers: [MediaServer] = []
-        func record(_ error: Error, section: LibraryRecommendationDiagnostic.Section, responses: [ResponseDecodingDiagnostic]) {
+        func record(_ error: Error, section: LibraryLoadDiagnostic.Section, responses: [ResponseDecodingDiagnostic]) {
             let underlying = LibrarySourceFailure.underlying(error)
             let mapped = (underlying as? AppError) ?? .unknown(underlying.localizedDescription)
             for server in failureServers(for: error) where !failedServers.contains(server) {
@@ -1182,6 +1181,32 @@ public final class LibraryBrowseViewModel {
             guard !Task.isCancelled, generation == contentGeneration else { return }
             await ensurePageLoaded(page)
         }
+    }
+
+    @discardableResult
+    private func recordBrowseFailure(
+        _ error: Error, mode: LibraryContentMode,
+        captured: HTTPResponseDiagnostics.CapturedResult<MediaPage>? = nil
+    ) -> AppError {
+        let mapped = (LibrarySourceFailure.underlying(error) as? AppError) ?? .unknown("")
+        let section: LibraryLoadDiagnostic.Section
+        switch browseScope {
+        case .collectionMembers: section = .collectionMembers
+        case .playlistMembers: section = .playlistMembers
+        case .library:
+            switch mode {
+            case .collections: section = .collections
+            case .playlists: section = .playlists
+            case .recommended: section = .recommendations
+            case .titles: section = .browse
+            }
+        }
+        let diagnostic = LibraryLoadDiagnostic(provider: provider.kind, operation: .libraryBrowse, failures: [
+            .init(section: section, error: mapped, responses: captured?.responses ?? [], paging: captured?.paging ?? [])
+        ])
+        queryPresentation.failureDiagnostic = diagnostic
+        PlozzLog.app.error("Library browse failed: \(diagnostic.supportText)")
+        return mapped
     }
 
     private static func defaultsKey(for kind: MediaItemKind, suffix: String?) -> String {
@@ -1290,8 +1315,8 @@ public final class LibraryBrowseViewModel {
             if pageRequestIDs[page] == requestID { finishPageLoad(page) }
         }
         guard !Task.isCancelled, generation == contentGeneration else { return }
-        do {
-            let response = try await Self.fetchPage(
+        let captured = await HTTPResponseDiagnostics.capture {
+            try await Self.fetchPage(
                 provider: provider,
                 querySession: querySession,
                 containerID: containerID,
@@ -1301,7 +1326,10 @@ public final class LibraryBrowseViewModel {
                 request: request,
                 priority: priority
             )
-            guard !Task.isCancelled, generation == contentGeneration else { return }
+        }
+        guard !Task.isCancelled, generation == contentGeneration, !captured.isCancelled else { return }
+        do {
+            let response = try captured.result.get()
             if response.totalCount != totalCount {
                 totalCount = response.totalCount
                 resize(to: response.totalCount)
@@ -1316,7 +1344,10 @@ public final class LibraryBrowseViewModel {
             fill(response)
             pagesLoaded.insert(page)
             failedPages.remove(page)
-            if failedPages.isEmpty { pageError = nil }
+            if failedPages.isEmpty {
+                pageError = nil
+                queryPresentation.failureDiagnostic = nil
+            }
             cancelOutOfRangeInFlightPages()
         } catch is CancellationError {
             return
@@ -1325,16 +1356,10 @@ public final class LibraryBrowseViewModel {
             PlozzLog.app.info("LibraryBrowse: restarting after refined source identities")
             finishPageLoad(page)
             await loadFirstPage()
-        } catch let error as AppError {
-            guard !Task.isCancelled, generation == contentGeneration else { return }
-            PlozzLog.app.error("LibraryBrowse: page \(page) failed for \(containerID): \(String(describing: error))")
-            failedPages.insert(page)
-            pageError = error
         } catch {
             guard !Task.isCancelled, generation == contentGeneration else { return }
-            PlozzLog.app.error("LibraryBrowse: page \(page) failed for \(containerID): \(String(describing: error))")
             failedPages.insert(page)
-            pageError = (LibrarySourceFailure.underlying(error) as? AppError) ?? .unknown("")
+            pageError = recordBrowseFailure(error, mode: mode, captured: captured)
         }
     }
 

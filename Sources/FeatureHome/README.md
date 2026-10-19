@@ -5,6 +5,11 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+- **Library browse failures** — Browse, Collections, Playlists and their member
+  pages use the shared Details / Try Again actions on mobile and TV, including
+  nonfatal later-page failures. `LibraryLoadDiagnostic` identifies the requested
+  section and retains safe response/paging evidence. Retry and mode changes clear
+  stale reports; cancelled or superseded requests cannot publish one.
 - **Library recommendation failures** — Continue Watching, server recommendations,
   and Recently Added resolve independently. Partial and complete failures offer
   the shared native Details / Try Again actions on mobile and TV. Details name

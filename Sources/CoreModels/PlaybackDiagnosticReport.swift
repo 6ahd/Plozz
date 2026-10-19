@@ -6,7 +6,7 @@ public enum PlaybackDiagnosticReport: Equatable, Sendable {
 
     case setup(IPTVSetupDiagnostic)
     case playback(LiveChannelFailureReport)
-    case library(LibraryRecommendationDiagnostic)
+    case library(LibraryLoadDiagnostic)
     case onDemand(
         error: StreamingQualityError, provider: ProviderKind, engine: PlaybackEngineKind?,
         stage: Stage, negotiatedCodec: DirectPlayVideoCodec? = nil,

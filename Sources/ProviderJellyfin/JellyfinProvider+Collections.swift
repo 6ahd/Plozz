@@ -1,4 +1,5 @@
 import CoreModels
+import CoreNetworking
 import Foundation
 
 extension JellyfinProvider {
@@ -35,14 +36,11 @@ extension JellyfinProvider {
                 userID: session.userID,
                 page: PageRequest(startIndex: start, limit: pageSize, sort: enumerationSort)
             )
-            guard response.Items.allSatisfy({ $0.Type == "BoxSet" }) else {
-                throw AppError.invalidResponse
-            }
-            let ids = try Self.validatedScopeIDs(response, start: start, seen: &seen)
+            let ids = try Self.validatedScopeIDs(response, stage: .collectionCandidates, start: start, seen: &seen)
             let additions = Set(ids)
             candidates.append(contentsOf: response.Items.filter { additions.contains($0.Id) }.map(map(item:)))
             start += response.Items.count
-            if ids.isEmpty || response.TotalRecordCount.map({ start >= $0 }) == true { break }
+            if response.Items.isEmpty || (!ids.isEmpty && response.TotalRecordCount.map({ start >= $0 }) == true) { break }
         }
         guard !candidates.isEmpty else { return [] }
 
@@ -54,9 +52,9 @@ extension JellyfinProvider {
                 userID: session.userID, parentID: libraryID, recursive: true,
                 start: start, limit: pageSize
             )
-            let ids = try Self.validatedScopeIDs(response, start: start, seen: &libraryIDs)
+            let ids = try Self.validatedScopeIDs(response, stage: .libraryScope, start: start, seen: &libraryIDs)
             start += response.Items.count
-            if ids.isEmpty || response.TotalRecordCount.map({ start >= $0 }) == true { break }
+            if response.Items.isEmpty || (!ids.isEmpty && response.TotalRecordCount.map({ start >= $0 }) == true) { break }
         }
         guard !libraryIDs.isEmpty else { return [] }
 
@@ -112,34 +110,49 @@ extension JellyfinProvider {
                 userID: userID, parentID: collectionID, recursive: false,
                 start: start, limit: pageSize
             )
-            let ids = try validatedScopeIDs(response, start: start, seen: &seen)
+            let ids = try validatedScopeIDs(response, stage: .collectionMembers, start: start, seen: &seen)
             if ids.contains(where: libraryIDs.contains) { return true }
             start += response.Items.count
-            if ids.isEmpty || response.TotalRecordCount.map({ start >= $0 }) == true {
+            if response.Items.isEmpty || (!ids.isEmpty && response.TotalRecordCount.map({ start >= $0 }) == true) {
                 return false
             }
         }
     }
 
     private static func validatedScopeIDs(
-        _ response: ItemsResponse, start: Int, seen: inout Set<String>
+        _ response: ItemsResponse, stage: LibraryPagingDiagnostic.Stage, start: Int, seen: inout Set<String>
     ) throws -> [String] {
+        func invalid(_ reason: LibraryPagingDiagnostic.Reason) -> AppError {
+            HTTPResponseDiagnostics.recordPagingFailure(.init(
+                stage: stage, reason: reason, start: start,
+                rows: response.Items.count, total: response.TotalRecordCount
+            ))
+            return .invalidResponse
+        }
         let ids = response.Items.map(\.Id)
-        guard response.TotalRecordCount.map({ $0 >= 0 }) != false,
-              ids.allSatisfy({ !$0.isEmpty }),
-              Set(ids).count == ids.count else { throw AppError.invalidResponse }
+        guard response.TotalRecordCount.map({ $0 >= 0 }) != false else { throw invalid(.negativeTotal) }
+        guard ids.allSatisfy({ !$0.isEmpty }) else { throw invalid(.emptyID) }
+        guard Set(ids).count == ids.count else { throw invalid(.duplicateInPage) }
+        if stage == .collectionCandidates, !response.Items.allSatisfy({ $0.Type == "BoxSet" }) {
+            throw invalid(.unexpectedItemType)
+        }
         if ids.isEmpty {
             guard response.TotalRecordCount.map({ start >= $0 }) != false else {
-                throw AppError.invalidResponse
+                throw invalid(.emptyBeforeTotal)
             }
             return []
         }
+        if response.TotalRecordCount.map({ start >= $0 }) == true { throw invalid(.itemsPastEnd) }
         // A short server page can overlap the next page's prefix.
-        // Accept an overlapping prefix only when the page still adds fresh IDs.
         let additions = Array(ids.drop(while: { seen.contains($0) }))
-        guard !additions.isEmpty, additions.allSatisfy({ !seen.contains($0) }) else {
-            throw AppError.invalidResponse
+        if additions.isEmpty, let total = response.TotalRecordCount,
+           start < total, ids.count == total - start {
+            // A sparse final page can contain only the previous page's tail.
+            // The caller must confirm the end with one more request, not stop here.
+            return []
         }
+        guard !additions.isEmpty else { throw invalid(.nonAdvancing) }
+        guard additions.allSatisfy({ !seen.contains($0) }) else { throw invalid(.nonPrefixOverlap) }
         seen.formUnion(additions)
         return additions
     }

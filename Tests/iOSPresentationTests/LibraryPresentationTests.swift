@@ -337,7 +337,7 @@ final class LibraryPresentationTests: XCTestCase {
                         case .failed:
                             XCTAssertTrue(strings.contains("Unable to load"), strings)
                             XCTAssertTrue(strings.contains("Try Again"), strings)
-                            if mode == .recommended { XCTAssertTrue(strings.contains("Details"), strings) }
+                            XCTAssertTrue(strings.contains("Details"), strings)
                         case .loading:
                             XCTAssertTrue(strings.contains("Loading"), strings)
                         case .loaded:
