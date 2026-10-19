@@ -481,7 +481,7 @@ private struct PlozziOSSettingsSplitView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             ScrollView {
-                LazyVStack(spacing: 18) {
+                VStack(spacing: 18) {
                     // Live media-share scan/enrich progress. Renders nothing when
                     // idle, so Settings is unchanged unless a share is working.
                     ShareScanStatusHeader(
@@ -611,6 +611,7 @@ private struct PlozziOSSettingsSplitView: View {
                         settingsRow(.releaseNotes, title: "Release Notes", systemImage: "doc.text")
                     }
                     PlozziOSCommunitySettingsSection()
+                    PlozziOSMoreAppsSettingsSection()
 
                     SettingsSectionGroup("Support") {
                         settingsRow(.diagnostics, title: "Help & Diagnostics", systemImage: "ladybug")
@@ -835,6 +836,42 @@ private struct PlozziOSSettingsSplitView: View {
     }
 }
 
+struct PlozziOSMoreAppsSettingsSection: View {
+    var body: some View {
+        SettingsSectionGroup("More apps") {
+            Link(destination: AppLinks.mozzTestFlight) {
+                HStack(spacing: 16) {
+                    Image("MozzAppIcon")
+                        .renderingMode(.original)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(verbatim: "Mozz")
+                            .font(.body.weight(.medium))
+                        Text("Free, open-source music player")
+                            .font(.footnote)
+                            .plozzForeground(.secondary)
+                        Text("TestFlight public beta")
+                            .font(.footnote)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "arrow.up.forward")
+                        .font(.subheadline.weight(.semibold))
+                        .plozzForeground(.secondary)
+                        .accessibilityHidden(true)
+                }
+                .multilineTextAlignment(.leading)
+            }
+            .accessibilityHint(Text("Opens TestFlight."))
+            .accessibilityIdentifier("settings-mozz-beta")
+        }
+    }
+}
+
 struct PlozziOSCommunitySettingsSection: View {
     @ScaledMetric(relativeTo: .body) private var iconSize = 22
 
@@ -979,7 +1016,7 @@ private struct PlozziOSSettingsCompactMenu: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 18) {
+            VStack(spacing: 18) {
                 // Live media-share scan/enrich progress. Renders nothing when idle.
                 ShareScanStatusHeader(
                     status: appModel.shareScanStatus,
@@ -1155,6 +1192,7 @@ private struct PlozziOSSettingsCompactMenu: View {
                     }
                 }
                 PlozziOSCommunitySettingsSection()
+                PlozziOSMoreAppsSettingsSection()
 
                 SettingsSectionGroup("Support") {
                     NavigationLink {
@@ -1896,116 +1934,23 @@ struct PlozziOSHomeSettingsView: View {
     @Bindable var heroBackground: HeroBackgroundSettingsModel
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
-    @State private var libraries: [HomeLibraryChoice] = []
-    @State private var isLoadingLibraries = false
-    @State private var showHomeRows = false
-    @State private var selectedLibraryID: String?
+    @State private var librarySnapshot: (scope: HomeSectionCatalogModel.RequestID, choices: [HomeLibraryChoice])?
+
+    private var libraryRequestID: HomeSectionCatalogModel.RequestID {
+        HomeSectionCatalogModel.requestID(libraries: [], accounts: accounts, visibility: visibility)
+    }
+
+    private var libraries: [HomeLibraryChoice] {
+        guard let librarySnapshot, librarySnapshot.scope == libraryRequestID else { return [] }
+        return librarySnapshot.choices
+    }
 
     var body: some View {
-        List {
-            SettingsSectionGroup("Rows") {
-                Button {
-                    showHomeRows = true
-                } label: {
-                    HStack {
-                        Text("Rows on Home")
-                        Spacer()
-                        Image(systemName: "chevron.forward")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                // Nested under the row it belongs to, and only while that row is
-                // on — a preference for a hidden row is noise. A picker rather
-                // than a switch: both options put artwork on the card, so an
-                // on/off label would imply that "off" leaves it blank.
-                if visibility.isGlobalRowEnabled(.continueWatching) {
-                    Picker(
-                        "Continue Watching",
-                        selection: Binding<ContinueWatchingArtworkStyle>(
-                            get: {
-                                visibility.continueWatchingShowsSeriesArtwork
-                                    ? .logoAndArtwork
-                                    : .thumbnail
-                            },
-                            set: {
-                                visibility.setContinueWatchingShowsSeriesArtwork($0 == .logoAndArtwork)
-                            }
-                        )
-                    ) {
-                        ForEach(ContinueWatchingArtworkStyle.allCases, id: \.self) { option in
-                            Text(option.displayName).tag(option)
-                        }
-                    }
-                }
-            }
-
-            SettingsSectionGroup("Libraries") {
-                if isLoadingLibraries, libraries.isEmpty {
-                    HStack {
-                        ProgressView()
-                        Text("Loading libraries…")
-                    }
-                } else if libraries.isEmpty {
-                    Text("No video libraries are available.")
-                        .plozzForeground(.secondary)
-                } else {
-                    ForEach(libraries) { library in
-                        Button {
-                            selectedLibraryID = library.id
-                        } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(library.title)
-                                    Text(library.serverName)
-                                        .font(.caption)
-                                        .plozzForeground(.secondary)
-                                }
-                                Spacer(minLength: 0)
-                                Image(systemName: "chevron.forward")
-                                    .font(.footnote.weight(.semibold))
-                                    .plozzForeground(.tertiary)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            } footer: {
-                Text("Choose which libraries and library-specific rows appear on Home.")
-            }
-
-            HeroSettingsControls(
-                libraries: aggregatedHomeLibraries.filter { visibility.isVisibleOnHome($0.key) },
-                accounts: accounts
-            )
-        }
+        HomeRowsSettingsView(libraries: aggregatedHomeLibraries, accounts: accounts, visibility: visibility)
+        .id(ObjectIdentifier(visibility))
         .environment(hero)
         .environment(heroBackground)
-        .settingsPageSurface()
-        .navigationTitle("Customize Home")
-        .navigationDestination(isPresented: $showHomeRows) {
-            ScrollView {
-                HomeRowsSettingsView(
-                    libraries: aggregatedHomeLibraries, accounts: accounts,
-                    visibility: visibility
-                )
-                .id(ObjectIdentifier(visibility))
-                .padding()
-            }
-            .navigationTitle("Rows on Home")
-            .settingsPageSurface()
-        }
-        .navigationDestination(item: $selectedLibraryID) { id in
-            if let library = libraries.first(where: { $0.id == id }) {
-                PlozziOSLibraryHomeSettingsView(library: library, visibility: visibility)
-            }
-        }
-        .task(id: accounts.map {
-            [$0.account.id, $0.credentialRevision.rawValue.uuidString,
-             $0.provider.session.userID, $0.plexHomeUserID ?? ""]
-        }) {
-            libraries = []
+        .task(id: libraryRequestID) {
             await loadLibraries()
         }
     }
@@ -2026,8 +1971,8 @@ struct PlozziOSHomeSettingsView: View {
     }
 
     private func loadLibraries() async {
-        isLoadingLibraries = true
-        defer { if !Task.isCancelled { isLoadingLibraries = false } }
+        let scope = libraryRequestID
+        let previousLibraries = libraries
         var loaded: [HomeLibraryChoice] = []
         for resolved in accounts {
             let discovered: [MediaLibrary]
@@ -2039,7 +1984,7 @@ struct PlozziOSHomeSettingsView: View {
             } catch {
                 guard !Task.isCancelled else { return }
                 PlozzLog.app.error("Home settings library discovery failed")
-                loaded += libraries.filter { $0.accountID == resolved.account.id }
+                loaded += previousLibraries.filter { $0.accountID == resolved.account.id }
                 continue
             }
             loaded.append(
@@ -2055,43 +2000,14 @@ struct PlozziOSHomeSettingsView: View {
             )
         }
         guard !Task.isCancelled else { return }
-        libraries = loaded
+        librarySnapshot = (scope: scope, choices: loaded)
     }
 }
 
-private struct HomeLibraryChoice: Identifiable {
+private struct HomeLibraryChoice {
     let accountID: String
     let serverName: String
     let library: MediaLibrary
-
-    var id: String { key }
-    var key: String { "\(accountID):\(library.id)" }
-    var title: String { library.title }   // l10n:content — library name from the server
-}
-
-private struct PlozziOSLibraryHomeSettingsView: View {
-    let library: HomeLibraryChoice
-    let visibility: HomeLibraryVisibilityModel
-
-    var body: some View {
-        List {
-            SettingsSectionGroup {
-                Toggle(
-                    "Enabled",
-                    isOn: Binding(
-                        get: { visibility.isEnabled(library.key) },
-                        set: { visibility.setEnabled($0, for: library.key) }
-                    )
-                )
-            } footer: {
-                Text("Disabled libraries are hidden from Home and library browsing.")
-            }
-
-        }
-        .settingsPageSurface()
-        .navigationTitle(library.title)
-        .navigationBarTitleDisplayMode(.inline)
-    }
 }
 
 private struct PlozziOSDetailPageSettingsView: View {

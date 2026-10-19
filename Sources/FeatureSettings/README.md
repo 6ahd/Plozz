@@ -14,6 +14,43 @@ watch history and planning-list behavior are documented in
 
 ## Responsibility
 
+- **Libraries** owns profile-wide library availability. Mobile Customize Home
+  does not duplicate its Enabled controls: the Home editor manages section presentation,
+  and Hero source selection uses the enabled library inventory. Discovering
+  libraries for those controls must not restore a separate management list.
+- **Customize Home** is one shared section editor on TV, iPhone and iPad.
+  Normal rows open their own settings. Source-specific rows and their settings
+  use the shared provider brand mark, including the transport badge for shares;
+  generic row glyphs appear only during reordering.
+  An inline Preset selector sits below the title; mobile keeps it visible while
+  scrolling and places an accessible + action beside Reorder/Done in the native
+  toolbar. TV keeps its labeled Add section beside Preset. A second, labeled
+  Add section action follows the list. Reorder/Done switches to
+  native movement controls with no Hidden drop zone; Hero stays
+  pinned and cannot move. Mobile uses the shared page inset without extra gutters.
+  Add section offers available existing rows not already shown. Removing a
+  section hides it without erasing its configuration or disabling its libraries.
+  Continue Watching owns its merge and artwork controls. Hero owns its sources
+  and presentation, including the existing TV Home Layout/Showcase options.
+  Preset retains the confirmed Match server and Combined rows choices and shows
+  Custom for edited arrangements. Selecting a new preset still requires
+  confirmation.
+  Merely opening the editor, a destination, or Reorder does not freeze a preset.
+  One bottom card on the main editor uses shared `InlineErrorMessage` warnings
+  to name affected sources and offers Retry, without repeating these on detail pages.
+  The root and every catalog-editing destination keep discovery active while
+  visible and retain loading status and local edit failures. Preset changes reload the catalog;
+  adding, removing and reordering wait for discovery to finish.
+  Mobile library discovery publishes one identity-scoped snapshot, never pairing
+  a previous viewer's library metadata with the newly active credentials.
+  Mobile Continue Watching artwork previews size their swatch by available width
+  instead of reserving a fixed-height empty area; TV and other shared preview
+  cards keep their existing sizing.
+- `HomeSectionCatalog` owns typed choice deduplication and validated section
+  edits; `HomeSectionCatalogModel` owns bounded, identity-fenced discovery.
+  The UI writes through the existing profile-scoped `HomeLibraryVisibilityModel`.
+  See [CoreModels](../CoreModels/README.md#home-section-editing) for ownership
+  and extension boundaries. This editor does not introduce another feed engine.
 - Individual profile settings expose the existing device-wide Automatically
   Sign In preference below Kids Profile, followed by a separate Delete Profile
   group. Everyone → Profiles keeps the same control and binding. Shared
@@ -45,6 +82,18 @@ watch history and planning-list behavior are documented in
   Mobile Community uses standard-height, single-line Discord and GitHub links
   with small brand icons, without subtitles or QR codes. TV keeps its scannable
   community cards.
+  Mobile Settings also includes a **More apps** section linking Mozz to its
+  public TestFlight beta. Both compact and regular layouts share the same native
+  link and preserve the official full-color light/dark app icon. Its three-line
+  label identifies Mozz as a free, open-source music player and names the
+  TestFlight public beta without adding another line. Mozz is not
+  advertised on tvOS. The iOS-only `MozzAppIcon` imageset is copied unchanged from
+  `brandomoore/Mozz` at `b262a5a1257ac20369287599e6fea888462f8284`,
+  `App/Mozz/Assets.xcassets/AppIcon.appiconset`; `AppLinks.mozzTestFlight`
+  owns the invite URL.
+  The compact and regular root menus eagerly lay out their small, fixed set of
+  sections. This keeps variable-height groups stable while scrolling rather
+  than repeatedly revising lazy height estimates as the promotion enters view.
   Kids-profile gates and profile/household storage ownership are unchanged.
   `SettingsLibrarySourcesSummary` shares configured source grouping and profile
   inclusion with TV. Mobile keeps the source icons/names on one horizontal line,

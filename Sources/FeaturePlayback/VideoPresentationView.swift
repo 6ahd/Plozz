@@ -73,6 +73,11 @@ final class VideoPresentationView: UIView {
             let windowSafe = convert(window.bounds.inset(by: window.safeAreaInsets), from: window)
             safe = safe.intersection(windowSafe)
         }
+        if bounds.width > bounds.height {
+            // Landscape video can extend behind the home indicator; only the
+            // horizontal cutout insets should constrain the fitted picture.
+            safe = CGRect(x: safe.minX, y: bounds.minY, width: safe.width, height: bounds.height)
+        }
         return safe
         #else
         return nil

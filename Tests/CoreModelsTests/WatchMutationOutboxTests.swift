@@ -19,6 +19,7 @@ private final class FakeWatchApplier: WatchMutationApplying, @unchecked Sendable
     private(set) var wetrakrWrites: [(Date, String, String)] = []
     var wetrakrAccountIdentity: String?
     var wetrakrFails = false
+    var beforeWetrakrCompletion: (@Sendable () async -> Void)?
 
     /// Accounts whose writes currently fail (simulating an offline / asleep server).
     var failingAccounts: Set<String> = []
@@ -60,6 +61,7 @@ private final class FakeWatchApplier: WatchMutationApplying, @unchecked Sendable
         lock.lock()
         wetrakrWrites.append((capturedAt, idempotencyKey, expectedAccountIdentity))
         lock.unlock()
+        await beforeWetrakrCompletion?()
         if wetrakrFails { throw AppError.serverUnreachable }
     }
 
@@ -123,6 +125,124 @@ final class WetrakrWatchMutationTests: XCTestCase {
         json.removeValue(forKey: "wetrakrCapturedAt")
         let decoded = try JSONDecoder().decode(WatchMutation.self, from: JSONSerialization.data(withJSONObject: json))
         XCTAssertFalse(decoded.wetrakrPending)
+        XCTAssertNil(decoded.wetrakrIdempotencyKey)
+    }
+
+    func testCompletionCheckpointsAndFinalStopWriteOncePerViewingSession() async throws {
+        let applier = FakeWatchApplier()
+        applier.wetrakrAccountIdentity = "viewer"
+        let store = InMemoryWatchMutationStore()
+        let reconciler = WatchStateReconciler(store: store, applier: applier)
+        for viewing in 0..<3 {
+            await reconciler.beginLiveSession(accountID: "server", itemID: "movie")
+            // Repeated start notifications must not create a second viewing.
+            await reconciler.beginLiveSession(accountID: "server", itemID: "movie")
+            for minute in 90...100 {
+                var completed = mutation()
+                completed.capturedAt = Date(timeIntervalSince1970: Double(1000 + viewing * 10000 + minute * 60))
+                completed.targets = [target("server", "movie")]
+                completed.optimisticTargets = completed.targets
+                if minute == 100 {
+                    await reconciler.finishLiveSession(accountID: "server", itemID: "movie", mutation: completed)
+                } else {
+                    await reconciler.enqueue(completed)
+                    await reconciler.drain()
+                }
+            }
+        }
+        XCTAssertEqual(applier.wetrakrWrites.count, 3, "Previously sent 33 writes for these three viewings")
+        XCTAssertEqual(Set(applier.wetrakrWrites.map(\.1)).count, 3, "Real rewatches retain distinct keys")
+        let state = await reconciler.snapshot()
+        XCTAssertTrue(state.pending.isEmpty)
+        XCTAssertEqual(state.appliedWetrakr.count, 3)
+        let restored = try JSONDecoder().decode(WatchOutboxState.self, from: JSONEncoder().encode(state))
+        XCTAssertEqual(restored, state)
+    }
+
+    func testFailedCheckpointKeepsItsOriginalRetryIdentityAtFinalStop() async {
+        let applier = FakeWatchApplier()
+        applier.wetrakrAccountIdentity = "viewer"
+        applier.wetrakrFails = true
+        let reconciler = WatchStateReconciler(store: InMemoryWatchMutationStore(), applier: applier)
+        await reconciler.beginLiveSession(accountID: "server", itemID: "movie")
+        var completed = mutation()
+        completed.targets = [target("server", "movie")]
+        completed.optimisticTargets = completed.targets
+        await reconciler.enqueue(completed)
+        await reconciler.drain()
+        completed.capturedAt.addTimeInterval(60)
+        applier.wetrakrFails = false
+        await reconciler.finishLiveSession(accountID: "server", itemID: "movie", mutation: completed)
+        XCTAssertEqual(applier.wetrakrWrites.count, 2)
+        XCTAssertEqual(applier.wetrakrWrites[0].0, applier.wetrakrWrites[1].0)
+        XCTAssertEqual(applier.wetrakrWrites[0].1, applier.wetrakrWrites[1].1)
+    }
+
+    func testAppliedCompletionSurvivesRelaunchAndCannotSuppressAnotherGrant() async {
+        let applier = FakeWatchApplier()
+        applier.wetrakrAccountIdentity = "first"
+        let store = InMemoryWatchMutationStore()
+        let reconciler = WatchStateReconciler(store: store, applier: applier)
+        await reconciler.beginLiveSession(accountID: "server", itemID: "movie")
+        var completed = mutation()
+        completed.targets = [target("server", "movie")]
+        completed.optimisticTargets = completed.targets
+        await reconciler.enqueue(completed)
+        await reconciler.drain()
+        var saved = store.load()
+        XCTAssertEqual(saved.pending.count, 1)
+        saved.pending[0].wetrakrPending = true
+        let restored = WatchStateReconciler(store: InMemoryWatchMutationStore(saved), applier: applier)
+        await restored.drain()
+        XCTAssertEqual(applier.wetrakrWrites.count, 1)
+        applier.wetrakrAccountIdentity = "second"
+        completed.capturedAt.addTimeInterval(60)
+        await reconciler.enqueue(completed)
+        await reconciler.drain()
+        XCTAssertEqual(applier.wetrakrWrites.count, 2)
+        XCTAssertNotEqual(applier.wetrakrWrites[0].1, applier.wetrakrWrites[1].1)
+        XCTAssertEqual(applier.wetrakrWrites[1].2, "second")
+    }
+
+    func testCheckpointCoalescingDuringDeliveryDoesNotDispatchTwice() async {
+        let started = expectation(description: "History write started")
+        let latch = WetrakrWriteLatch()
+        let applier = FakeWatchApplier()
+        applier.wetrakrAccountIdentity = "viewer"
+        applier.beforeWetrakrCompletion = {
+            started.fulfill()
+            await latch.wait()
+        }
+        let reconciler = WatchStateReconciler(store: InMemoryWatchMutationStore(), applier: applier)
+        await reconciler.beginLiveSession(accountID: "server", itemID: "movie")
+        var completed = mutation()
+        completed.targets = [target("server", "movie")]
+        completed.optimisticTargets = completed.targets
+        await reconciler.enqueue(completed)
+        let firstDrain = Task { await reconciler.drain() }
+        await fulfillment(of: [started], timeout: 3)
+        completed.capturedAt.addTimeInterval(60)
+        await reconciler.enqueue(completed)
+        await latch.open()
+        await firstDrain.value
+        await reconciler.endLiveSession(accountID: "server", itemID: "movie")
+        XCTAssertEqual(applier.wetrakrWrites.count, 1)
+        let final = await reconciler.snapshot()
+        XCTAssertTrue(final.pending.isEmpty)
+    }
+}
+
+private actor WetrakrWriteLatch {
+    private var opened = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    func wait() async {
+        if !opened { await withCheckedContinuation { waiters.append($0) } }
+    }
+    func open() {
+        opened = true
+        let pending = waiters
+        waiters = []
+        pending.forEach { $0.resume() }
     }
 }
 

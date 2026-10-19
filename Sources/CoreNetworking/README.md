@@ -57,6 +57,7 @@ and every provider/feature that talks to a remote server.
 - `HTTPClient.swift` — the transport seam every provider depends on.
 - `Endpoint.swift` — request shape & query/body helpers.
 - `PlozzLog.swift` — how to log without leaking secrets.
+- `ServerURLNormalizer.swift` — how user-typed server addresses are accepted.
 
 ## IPTV playlist compatibility
 
@@ -91,4 +92,3 @@ do not reuse browser cookies or bypass access warnings.
 Regression coverage lives in `LiveTVPlaylistParserTests` and `ProviderIPTVTests`,
 including a synthetic 6,185,484-byte file import, URL import without opening
 media streams, and rollback when HLS is discovered after staged entries.
-- `ServerURLNormalizer.swift` — how user-typed server addresses are accepted.

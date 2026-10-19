@@ -53,9 +53,14 @@ enum ScreenshotSeed {
         if environment["PLOZZ_SHOTS_SETTINGS"] == "1" {
             FeatureIntroductionStore().markCompleted(.homeLayout)
             if !appState.profilesModel.firstRunProfileSetupComplete {
-                guard appState.enterStandalonePlayback() else {
-                    PlozzLog.boot("Settings capture could not enter standalone setup")
-                    return
+                switch appState.state {
+                case .onboarding(.confirmProfile, _) where appState.allowsStandalonePlayback:
+                    break
+                default:
+                    guard appState.enterStandalonePlayback() else {
+                        PlozzLog.boot("Settings capture could not enter standalone setup")
+                        return
+                    }
                 }
                 _ = appState.profilesModel.seedDefaultProfileIdentity(name: "Alex", avatarImageURL: nil)
                 appState.profilesModel.add(name: "Sam", avatarSymbol: "person.crop.circle", colorIndex: 3)

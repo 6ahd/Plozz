@@ -610,6 +610,9 @@ private struct PrototypeSourcesForm: View {
             }
             #endif
         }
+        #if os(iOS)
+        .toggleStyle(SettingsSwitchToggleStyle())
+        #endif
         .alert("Guide selection could not be applied", isPresented: $selectionFailed) {
             Button("OK", role: .cancel) {}
         } message: {

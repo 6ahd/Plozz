@@ -129,6 +129,8 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
     public var wetrakrPending: Bool
     public var wetrakrAccountIdentity: String?
     public var wetrakrCapturedAt: Date?
+    /// Shared by completion checkpoints and the final stop of one viewing session.
+    public var wetrakrIdempotencyKey: String?
     /// Whether the AniList mirror still needs writing (cleared on success).
     public var anilistPending: Bool
     /// Whether the MAL mirror still needs writing (cleared on success).
@@ -239,6 +241,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
         self.wetrakrPending = wetrakrPending ?? false
         self.wetrakrAccountIdentity = nil
         self.wetrakrCapturedAt = nil
+        self.wetrakrIdempotencyKey = nil
         self.anilistPending = anilistPending ?? (trakt != nil)
         self.malPending = malPending ?? (trakt != nil)
         self.attempts = attempts
@@ -258,7 +261,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
         case id, capturedAt, canonicalMediaID, seasonNumber, episodeNumber
         case resumePosition, played, clearResume, targets, optimisticTargets, trakt, traktPending
         case simklPending, anilistPending, malPending
-        case wetrakrPending, wetrakrAccountIdentity, wetrakrCapturedAt
+        case wetrakrPending, wetrakrAccountIdentity, wetrakrCapturedAt, wetrakrIdempotencyKey
         case attempts, episodeOrigin, expansionPending, appliedTargetIDs, expansionStartedAt, identities, kind
         case anchorTitle, anchorYear, authorization, serverScope, rejectedSourceIDs
     }
@@ -347,6 +350,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
         wetrakrPending = try container.decodeIfPresent(Bool.self, forKey: .wetrakrPending) ?? false
         wetrakrAccountIdentity = try container.decodeIfPresent(String.self, forKey: .wetrakrAccountIdentity)
         wetrakrCapturedAt = try container.decodeIfPresent(Date.self, forKey: .wetrakrCapturedAt)
+        wetrakrIdempotencyKey = try container.decodeIfPresent(String.self, forKey: .wetrakrIdempotencyKey)
         anilistPending = try container.decodeIfPresent(Bool.self, forKey: .anilistPending) ?? false
         malPending = try container.decodeIfPresent(Bool.self, forKey: .malPending) ?? false
         attempts = try container.decodeIfPresent(Int.self, forKey: .attempts) ?? 0
@@ -412,6 +416,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
         try container.encode(wetrakrPending, forKey: .wetrakrPending)
         try container.encodeIfPresent(wetrakrAccountIdentity, forKey: .wetrakrAccountIdentity)
         try container.encodeIfPresent(wetrakrCapturedAt, forKey: .wetrakrCapturedAt)
+        try container.encodeIfPresent(wetrakrIdempotencyKey, forKey: .wetrakrIdempotencyKey)
         try container.encode(anilistPending, forKey: .anilistPending)
         try container.encode(malPending, forKey: .malPending)
         try container.encode(attempts, forKey: .attempts)

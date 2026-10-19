@@ -129,6 +129,12 @@ public actor WatchStateReconciler {
         }
     }
     private var liveSessions: Set<LiveSession> = []
+    private struct WetrakrWatch {
+        let identity: String
+        let capturedAt: Date
+        let key: String
+    }
+    private var liveWetrakrWatches: [LiveSession: WetrakrWatch] = [:]
 
     public init(
         store: any WatchMutationStoring,
@@ -183,9 +189,11 @@ public actor WatchStateReconciler {
     /// Ends the live session for `(accountID, itemID)` and drains, so any writes
     /// that were deferred *because* it was playing now converge. Idempotent.
     public func endLiveSession(accountID: String, itemID: String, serverScope: WatchMutationServerScope? = nil) async {
-        liveSessions.remove(LiveSession(
+        let session = LiveSession(
             target: WatchMutationTarget(accountID: accountID, itemID: itemID), serverScope: serverScope
-        ))
+        )
+        liveSessions.remove(session)
+        liveWetrakrWatches[session] = nil
         await drain()
     }
 
@@ -196,10 +204,12 @@ public actor WatchStateReconciler {
     ) async {
         if let mutation { await enqueue(mutation) }
         if let accountID {
-            liveSessions.remove(LiveSession(
+            let session = LiveSession(
                 target: WatchMutationTarget(accountID: accountID, itemID: itemID),
                 serverScope: serverScope ?? mutation?.serverScope
-            ))
+            )
+            liveSessions.remove(session)
+            liveWetrakrWatches[session] = nil
         }
         await drain()
     }
@@ -232,12 +242,6 @@ public actor WatchStateReconciler {
         onPersisted: @Sendable () -> Void = {}
     ) async -> Bool {
         var mutation = mutation
-        if mutation.trakt != nil, mutation.wetrakrAccountIdentity == nil,
-           let identity = applier.wetrakrAccountIdentity {
-            mutation.wetrakrAccountIdentity = identity
-            mutation.wetrakrCapturedAt = mutation.capturedAt
-            mutation.wetrakrPending = true
-        }
         if let authorization = mutation.authorization {
             do {
                 try await authorization.require()
@@ -279,6 +283,7 @@ public actor WatchStateReconciler {
             return false
         }
 
+        captureWetrakrWatch(&mutation)
         let acceptedMutation: WatchMutation
         if let index = state.pending.firstIndex(where: {
             $0.coalesceKey == key && $0.authorization == mutation.authorization
@@ -523,6 +528,7 @@ public actor WatchStateReconciler {
                 merged.wetrakrPending = true
                 merged.wetrakrAccountIdentity = existing.wetrakrAccountIdentity
                 merged.wetrakrCapturedAt = existing.wetrakrCapturedAt
+                merged.wetrakrIdempotencyKey = existing.wetrakrIdempotencyKey
             }
         }
         // Either side still owing twin expansion keeps it owed; preserve the origin
@@ -536,6 +542,34 @@ public actor WatchStateReconciler {
         if merged.episodeOrigin == nil { merged.episodeOrigin = existing.episodeOrigin }
         merged.attempts = existing.attempts
         return merged
+    }
+
+    private func captureWetrakrWatch(_ mutation: inout WatchMutation) {
+        guard mutation.trakt != nil, mutation.wetrakrAccountIdentity == nil,
+              let identity = applier.wetrakrAccountIdentity else { return }
+        // The first target is the playback origin, not an arbitrary server twin.
+        let session = mutation.optimisticTargets.first.map {
+            LiveSession(target: $0, serverScope: mutation.serverScope)
+        }
+        let watch: WetrakrWatch
+        if let session, liveSessions.contains(session),
+           let existing = liveWetrakrWatches[session], existing.identity == identity {
+            watch = existing
+        } else {
+            watch = WetrakrWatch(
+                identity: identity, capturedAt: mutation.capturedAt,
+                key: WatchlistReconciliationIdentity.credential(
+                    "\(mutation.id)|\(mutation.capturedAt.timeIntervalSince1970)|\(identity)"
+                )
+            )
+            if let session, liveSessions.contains(session) {
+                liveWetrakrWatches[session] = watch
+            }
+        }
+        mutation.wetrakrAccountIdentity = watch.identity
+        mutation.wetrakrCapturedAt = watch.capturedAt
+        mutation.wetrakrIdempotencyKey = watch.key
+        mutation.wetrakrPending = state.appliedWetrakr[watch.key] == nil
     }
 
     // MARK: - Drain
@@ -869,12 +903,15 @@ public actor WatchStateReconciler {
             do {
                 guard let identity = mutation.wetrakrAccountIdentity,
                       let capturedAt = mutation.wetrakrCapturedAt else { throw AppError.invalidResponse }
-                let key = WatchlistReconciliationIdentity.credential(
+                let key = mutation.wetrakrIdempotencyKey ?? WatchlistReconciliationIdentity.credential(
                     "\(mutation.id)|\(capturedAt.timeIntervalSince1970)"
                 )
-                try await applier.scrobbleWetrakr(
-                    intent, capturedAt: capturedAt, idempotencyKey: key, expectedAccountIdentity: identity
-                )
+                if state.appliedWetrakr[key] == nil {
+                    try await applier.scrobbleWetrakr(
+                        intent, capturedAt: capturedAt, idempotencyKey: key, expectedAccountIdentity: identity
+                    )
+                    state.appliedWetrakr[key] = now()
+                }
                 mutation.wetrakrPending = false
             } catch {
                 try await WatchMutationDeliveryAuthorization.check()
@@ -941,6 +978,11 @@ public actor WatchStateReconciler {
         let cutoffTrakt = now().addingTimeInterval(-traktTTL)
         state.appliedTrakt = state.appliedTrakt.filter { $0.value >= cutoffTrakt }
         state.appliedSimkl = state.appliedSimkl.filter { $0.value >= cutoffTrakt }
+        let activeWetrakrKeys = Set(liveWetrakrWatches.values.map(\.key))
+            .union(state.pending.compactMap(\.wetrakrIdempotencyKey))
+        state.appliedWetrakr = state.appliedWetrakr.filter {
+            $0.value >= cutoffTrakt || activeWetrakrKeys.contains($0.key)
+        }
         state.appliedAniList = state.appliedAniList.filter { $0.value >= cutoffTrakt }
         state.appliedMAL = state.appliedMAL.filter { $0.value >= cutoffTrakt }
         let cutoffClock = now().addingTimeInterval(-clockTTL)

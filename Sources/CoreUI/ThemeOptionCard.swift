@@ -288,6 +288,7 @@ public struct PreviewCard<Swatch: View>: View {
     private let accent: Color
     private let compact: Bool
     private let swatchHeight: CGFloat?
+    private let swatchAspectRatio: CGFloat?
     private let titleLineLimit: Int?
     private let titleSizeGroup: [LocalizedStringResource]
     private let action: () -> Void
@@ -300,6 +301,7 @@ public struct PreviewCard<Swatch: View>: View {
         accent: Color,
         compact: Bool = false,
         swatchHeight: CGFloat? = nil,
+        swatchAspectRatio: CGFloat? = nil,
         titleLineLimit: Int? = 1,
         titleSizeGroup: [LocalizedStringResource] = [],
         action: @escaping () -> Void,
@@ -311,6 +313,7 @@ public struct PreviewCard<Swatch: View>: View {
         self.accent = accent
         self.compact = compact
         self.swatchHeight = swatchHeight
+        self.swatchAspectRatio = swatchAspectRatio
         self.titleLineLimit = titleLineLimit
         self.titleSizeGroup = titleSizeGroup
         self.action = action
@@ -327,8 +330,11 @@ public struct PreviewCard<Swatch: View>: View {
     public var body: some View {
         Button(action: action) {
             VStack(spacing: compact ? 10 : 18) {
-                swatch()
-                    .frame(height: swatchHeight ?? (compact ? 124 : 200))
+                if let swatchAspectRatio {
+                    swatch().aspectRatio(swatchAspectRatio, contentMode: .fit)
+                } else {
+                    swatch().frame(height: swatchHeight ?? (compact ? 124 : 200))
+                }
 
                 VStack(spacing: compact ? 2 : 6) {
                     ZStack(alignment: .top) {
