@@ -293,7 +293,8 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   and square primary covers and fit the complete image within the shared card
   footprint on mobile and tvOS. Media posters retain their portrait aspect guard;
   accepting curated container logos must not admit landscape episode stills as
-  movie/series posters.
+  movie/series posters. Library-tile collages likewise accept wide container covers
+  while retaining their aspect guard for ordinary media posters.
 - **Mobile media corners** — posters and Continue Watching share a 12pt artwork
   radius at every display size and responsive width. Borderless cards use that
   radius directly; glass frames add their inset to remain concentric. Loaded

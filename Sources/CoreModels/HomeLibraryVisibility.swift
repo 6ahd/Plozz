@@ -392,7 +392,8 @@ public enum LibraryHomeRowKind: String, CaseIterable, Sendable {
     case hubs
 
     public static func available(for library: AggregatedLibrary) -> [Self] {
-        guard !library.library.isMusic, !library.isRetiredCollectionShortcut else { return [] }
+        guard !library.library.isMusic, !library.library.isServerCollectionDirectory,
+              !library.isRetiredCollectionShortcut else { return [] }
         var kinds: [Self] = []
         if library.providerKind.usesMediaBrowserAPI, library.library.kind == .series {
             kinds.append(.nextUp)

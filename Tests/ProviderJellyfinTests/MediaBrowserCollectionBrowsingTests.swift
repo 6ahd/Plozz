@@ -29,6 +29,8 @@ final class MediaBrowserCollectionBrowsingTests: XCTestCase {
             let libraries = try await provider.libraries()
             XCTAssertEqual(libraries.map(\.id), ["boxsets"])
             XCTAssertEqual(libraries.map(\.kind), [.collection])
+            XCTAssertFalse(libraries[0].isServerCollectionDirectory)
+            XCTAssertEqual(http.sentPaths, ["/Users/user/Views"], "An existing native entry needs neither a duplicate nor a probe.")
             let page = try await provider.items(
                 in: "boxsets", kind: .collection, page: PageRequest(startIndex: 60, limit: 1)
             )

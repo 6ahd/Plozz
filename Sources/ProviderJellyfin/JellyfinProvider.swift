@@ -81,7 +81,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     public func libraries() async throws -> [MediaLibrary] {
-        try await client.userViews(userID: session.userID).map { dto in
+        var libraries = try await client.userViews(userID: session.userID).map { dto in
             MediaLibrary(
                 id: dto.Id,
                 title: dto.Name ?? "Library",
@@ -92,6 +92,13 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 isMusic: dto.CollectionType == "music"
             )
         }
+        if !libraries.contains(where: { $0.kind == .collection }),
+           libraries.contains(where: { $0.kind == .movie || $0.kind == .series }) {
+            libraries.append(MediaLibrary(
+                id: collectionDirectoryID, title: "Collections", kind: .collection, synthesizedName: .collections
+            ))
+        }
+        return libraries
     }
 
     public func libraryHubs(libraryID: String, kind: MediaItemKind, limit: Int) async throws -> [LibrarySection] {
@@ -159,7 +166,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         guard separateNextUp else {
             return try await continueWatching(limit: limit, inLibraries: libraryIDs)
         }
-        let parents: [String?] = libraryIDs.map { $0.map(Optional.some) } ?? [nil]
+        let parents: [String?] = libraryIDs.map {
+            $0.filter { $0 != collectionDirectoryID }.map(Optional.some)
+        } ?? [nil]
         var items: [MediaItem] = []
         var seen = Set<String>()
         for parentID in parents {
@@ -529,7 +538,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// stamp the result. `nil` keeps the fast unscoped feed (used when the user
     /// has hidden nothing on this account).
     public func continueWatching(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
-        guard let libraryIDs else { return try await continueWatching(limit: limit) }
+        guard let libraryIDs = libraryIDs?.filter({ $0 != collectionDirectoryID }) else {
+            return try await continueWatching(limit: limit)
+        }
         guard !libraryIDs.isEmpty else { return [] }
 
         // Cap concurrent per-library requests: a user with many libraries would
@@ -599,7 +610,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// Library-scoped Recently Added — see ``continueWatching(limit:inLibraries:)``
     /// for why Jellyfin must scope the fetch to attribute each item's library.
     public func latest(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
-        guard let libraryIDs else { return try await latest(limit: limit) }
+        guard let libraryIDs = libraryIDs?.filter({ $0 != collectionDirectoryID }) else {
+            return try await latest(limit: limit)
+        }
         guard !libraryIDs.isEmpty else { return [] }
 
         let userID = session.userID
@@ -902,6 +915,10 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     public func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
+        if containerID == collectionDirectoryID {
+            guard kind == .collection, page.filters.isEmpty else { throw AppError.invalidResponse }
+            return try await collections(in: containerID, page: page)
+        }
         let (recursive, includeItemTypes) = Self.query(forContainerKind: kind)
         PlozzLog.networking.info(
             "Library browse: container=\(containerID) kind=\(kind.rawValue) recursive=\(recursive) types=\(includeItemTypes.joined(separator: ",")) start=\(page.startIndex) limit=\(page.limit) sort=\(page.sort.field.rawValue)/\(page.sort.direction.rawValue)"
@@ -1100,7 +1117,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         in containerID: String, kind: MediaItemKind,
         sort: CoreModels.SortDescriptor, filters: LibraryFilters
     ) async throws -> [LibraryLetterIndexEntry] {
-        guard sort.field == .name else { return [] }
+        guard sort.field == .name, containerID != collectionDirectoryID else { return [] }
         let (recursive, includeItemTypes) = Self.query(forContainerKind: kind)
         let letters = LibraryLetterIndex.railLetters.filter { $0 != "#" }
         let userID = session.userID
@@ -1195,7 +1212,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         guard !trimmed.isEmpty else { return [] }
 
         let disabled = Set(disabledLibraryIDs)
-        let enabled = (try await libraries().map(\.id)).filter { !disabled.contains($0) }
+        let enabled = try await libraries().filter { !$0.isServerCollectionDirectory }
+            .map(\.id).filter { !disabled.contains($0) }
         guard !enabled.isEmpty else { return [] }
 
         let userID = session.userID

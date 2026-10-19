@@ -501,7 +501,9 @@ public struct HomeAggregator: Sendable {
                             }
                             if scopedAccounts.contains(index) {
                                 for feed in [Feed.continueWatching, .latest] {
-                                    requests.append(.feed(index, feed, libraryIDs: visible.map(\.library.id)))
+                                    requests.append(.feed(index, feed, libraryIDs: visible.filter {
+                                        !$0.library.isServerCollectionDirectory
+                                    }.map(\.library.id)))
                                 }
                             }
                             if perLibraryLimit != nil {

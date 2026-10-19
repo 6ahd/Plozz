@@ -11,7 +11,10 @@ fallback when the user's server has no attached trailer.
   section and retains safe response/paging evidence. Retry and mode changes clear
   stale reports; cancelled or superseded requests cannot publish one.
   Jellyfin/Emby Collections uses the native server-defined list without a
-  library/member scan. Providers with intermediate discovery can display confirmed cards while remaining candidates
+  library/member scan. A dedicated Collections library entry coexists with the
+  movie/TV library shortcut. Synthesized directory entries stay in navigation,
+  but never enter scoped playable-media feed requests or per-library Home rows.
+  Providers with intermediate discovery can display confirmed cards while remaining candidates
   are checked. Both platforms show native progress and retain the stable card
   slots. Partial failures retain those cards with an explicit incomplete-list
   message and Details / Try Again; interrupted discovery restarts on return.

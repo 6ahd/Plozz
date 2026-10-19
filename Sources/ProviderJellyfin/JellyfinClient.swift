@@ -893,11 +893,10 @@ public struct JellyfinClient: Sendable {
     }
 
     /// Match the native client: the server decides whether ParentId scopes BoxSets.
-    func collectionCandidates(userID: String, libraryID: String, page: PageRequest) async throws -> ItemsResponse {
+    func collectionCandidates(userID: String, libraryID: String?, page: PageRequest) async throws -> ItemsResponse {
         let endpoint = Endpoint(
             path: "/Users/\(userID)/Items",
             queryItems: [
-                URLQueryItem(name: "ParentId", value: libraryID),
                 URLQueryItem(name: "IncludeItemTypes", value: "BoxSet"),
                 URLQueryItem(name: "Recursive", value: "true"),
                 URLQueryItem(name: "StartIndex", value: String(page.startIndex)),
@@ -907,7 +906,7 @@ public struct JellyfinClient: Sendable {
                 URLQueryItem(name: "Fields", value: "PrimaryImageAspectRatio,ProviderIds"),
                 URLQueryItem(name: "ImageTypeLimit", value: "1"),
                 URLQueryItem(name: "EnableTotalRecordCount", value: "true")
-            ],
+            ] + (libraryID.map { [URLQueryItem(name: "ParentId", value: $0)] } ?? []),
             headers: authHeaders
         )
         return try await HTTPResponseDiagnostics.$route.withValue(.collectionCandidates) {

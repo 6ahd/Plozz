@@ -5,6 +5,95 @@ import XCTest
 @testable import ProviderJellyfin
 
 final class MediaBrowserNativeCollectionTests: XCTestCase {
+    func testCompatibleServersGetOneCollectionDirectoryWithoutDiscoveryRequests() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            let http = StubHTTPClient()
+            http.stub(pathSuffix: "/Users/user/Views", json: """
+            {"Items":[
+              {"Id":"movies","Name":"Movies","CollectionType":"movies"},
+              {"Id":"shows","Name":"TV Shows","CollectionType":"tvshows"}
+            ]}
+            """)
+            let provider = provider(http, kind: kind)
+            let libraries = try await provider.libraries()
+            XCTAssertEqual(libraries.map(\.id), ["movies", "shows", provider.collectionDirectoryID])
+            let directory = try XCTUnwrap(libraries.last)
+            XCTAssertEqual(directory.kind, .collection)
+            XCTAssertEqual(directory.synthesizedName, .collections)
+            XCTAssertTrue(directory.isServerCollectionDirectory)
+            XCTAssertEqual(http.sentPaths, ["/Users/user/Views"])
+        }
+    }
+
+    func testCollectionDirectoryIsNotAddedForEmptyOrMusicOnlyAccounts() async throws {
+        for json in [
+            #"{"Items":[]}"#,
+            #"{"Items":[{"Id":"music","Name":"Music","CollectionType":"music"}]}"#
+        ] {
+            let http = StubHTTPClient()
+            http.stub(pathSuffix: "/Users/user/Views", json: json)
+            let libraries = try await provider(http).libraries()
+            XCTAssertFalse(libraries.contains(where: \.isServerCollectionDirectory))
+        }
+    }
+
+    func testDirectoryUsesOneUnscopedBoxSetRequestAndKeepsTheLibraryShortcut() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            let http = NativeCollectionsHTTP(honorsLibrary: true)
+            let provider = provider(http, kind: kind)
+            let directory = provider.collectionDirectoryID
+            let result = try await provider.items(in: directory, kind: .collection, page: .init(limit: 500))
+            XCTAssertEqual(result.totalCount, 356)
+            XCTAssertEqual(result.items.count, 356)
+            let cached = try await provider.items(in: directory, kind: .collection, page: .init(startIndex: 20, limit: 10))
+            XCTAssertEqual(cached.items.map(\.id), (20..<30).map { "collection-\($0)" })
+            let beforeShortcut = await http.queries
+            XCTAssertEqual(beforeShortcut.count, 1)
+            XCTAssertNil(beforeShortcut[0]["ParentId"], "Never send a synthetic directory ID to the server.")
+            XCTAssertEqual(beforeShortcut[0]["IncludeItemTypes"], "BoxSet")
+            let shortcut = try await provider.collections(in: "movies", page: .init())
+            XCTAssertEqual(shortcut.items.map(\.id), ["movie-collection"])
+            let queries = await http.queries
+            XCTAssertEqual(queries.count, 2)
+            XCTAssertEqual(queries[1]["ParentId"], "movies")
+        }
+    }
+
+    func testDirectoryDoesNotRequestTitleFeedsFiltersOrAnAlphabetIndex() async throws {
+        let http = NativeCollectionsHTTP()
+        let provider = provider(http)
+        let directory = provider.collectionDirectoryID
+        let capabilities = provider.libraryQueryCapabilities(in: directory, kind: .collection)
+        XCTAssertEqual(capabilities.filters, [.all])
+        XCTAssertFalse(capabilities.supportsGenres)
+        XCTAssertFalse(capabilities.supportsYears)
+        XCTAssertFalse(capabilities.needsIndex(for: .init()))
+        let recent = try await provider.latest(limit: 10, inLibraries: [directory])
+        let watching = try await provider.continueWatching(limit: 10, inLibraries: [directory])
+        let resume = try await provider.homeContinueWatching(limit: 10, inLibraries: [directory], separateNextUp: true)
+        let letters = try await provider.letterIndex(in: directory, kind: .collection, sort: .default)
+        let facets = try await provider.libraryQueryFacets(in: directory, kind: .collection)
+        XCTAssertTrue(recent.isEmpty && watching.isEmpty && resume.isEmpty && letters.isEmpty)
+        XCTAssertEqual(facets, LibraryQueryFacets())
+        let queries = await http.queries
+        XCTAssertTrue(queries.isEmpty)
+    }
+
+    func testHiddenLibrarySearchNeverUsesTheUnscopedDirectoryAsAMediaLibrary() async throws {
+        let http = StubHTTPClient()
+        http.stub(pathSuffix: "/Users/user/Views", json: """
+        {"Items":[{"Id":"movies","CollectionType":"movies"},{"Id":"hidden","CollectionType":"movies"}]}
+        """)
+        http.stub(pathSuffix: "/Users/user/Items", json: """
+        {"Items":[{"Id":"visible-movie","Type":"Movie"}],"TotalRecordCount":1}
+        """)
+        let items = try await provider(http).search(query: "film", limit: 10, excludingLibraries: ["hidden"])
+        XCTAssertEqual(items.map(\.libraryID), ["movies"])
+        XCTAssertEqual(http.sentPaths, ["/Users/user/Views", "/Users/user/Items"])
+        let query = try XCTUnwrap(http.queryItems(forPathSuffix: "/Users/user/Items"))
+        XCTAssertEqual(query.first { $0.name == "ParentId" }?.value, "movies")
+    }
+
     func testBothProvidersUseTheNativeListWithoutLibraryOrMemberEnumeration() async throws {
         for kind: ProviderKind in [.jellyfin, .emby] {
             let http = NativeCollectionsHTTP()
@@ -141,7 +230,7 @@ final class MediaBrowserNativeCollectionTests: XCTestCase {
     }
 
     private func provider(
-        _ http: NativeCollectionsHTTP, kind: ProviderKind = .jellyfin, userID: String = "user"
+        _ http: any HTTPClient, kind: ProviderKind = .jellyfin, userID: String = "user"
     ) -> JellyfinProvider {
         JellyfinProvider(session: UserSession(
             server: MediaServer(id: "server", name: "Fixture", baseURL: URL(string: "https://fixture.invalid")!, provider: kind),
@@ -189,7 +278,7 @@ private actor NativeCollectionsHTTP: HTTPClient {
         let query = Dictionary(uniqueKeysWithValues: endpoint.queryItems.map { ($0.name, $0.value ?? "") })
         queries.append(query)
         paths.append(endpoint.path)
-        guard query["IncludeItemTypes"] == "BoxSet", query["ParentId"] != nil else { throw AppError.invalidResponse }
+        guard query["IncludeItemTypes"] == "BoxSet" else { throw AppError.invalidResponse }
         if failures > 0 { failures -= 1; throw error }
         try await Task.sleep(for: delay)
         var rows: [[String: Any]?] = (0..<count).map { index in
@@ -198,7 +287,7 @@ private actor NativeCollectionsHTTP: HTTPClient {
                 "ImageTags": ["Primary": "cover"], "PrimaryImageAspectRatio": 16.0 / 9.0
             ]
         }
-        if honorsLibrary {
+        if honorsLibrary, query["ParentId"] != nil {
             rows = [["Id": query["ParentId"] == "movies" ? "movie-collection" : "show-collection", "Type": "BoxSet"]]
         }
         let start = Int(query["StartIndex"] ?? "") ?? 0

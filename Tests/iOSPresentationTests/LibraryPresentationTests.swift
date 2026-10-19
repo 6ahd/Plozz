@@ -14,6 +14,33 @@ import XCTest
 final class LibraryPresentationTests: XCTestCase {
     private var capturedImage: CGImage?
 
+    func testDedicatedCollectionDirectoryOpensTheGridWithoutLibrarySubtabs() async throws {
+        let appModel = PlozziOSAppModel()
+        let artwork = try await seedArtwork(size: CGSize(width: 400, height: 225))
+        let library = MediaLibrary(
+            id: "jellyfin:collections", title: "Collections", kind: .collection, synthesizedName: .collections
+        ).taggingSource("fixture")
+        let route = PlozziOSLibraryRoute(library: library, accountID: "fixture")
+        XCTAssertEqual(route.browseScope, .library)
+        XCTAssertEqual(route.containerKind, .collection)
+        XCTAssertEqual(route.accountID, "fixture")
+        try await withLibrary(
+            provider: LibraryPresentationProvider(artwork: artwork), appModel: appModel,
+            size: CGSize(width: 390, height: 844), sizeClass: .compact, library: library
+        ) { window, model in
+            XCTAssertEqual(model.availableContentModes, [.titles])
+            XCTAssertEqual(model.state, .loaded(24))
+            XCTAssertFalse(model.showsFilterMenu)
+            XCTAssertEqual(model.item(at: 0)?.kind, .collection)
+            try await waitForHostedLayout(window)
+            let text = try self.capture(window, name: "dedicated-collections")
+                .compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+            XCTAssertTrue(text.contains("Collections"), text)
+            XCTAssertFalse(text.contains("Recommended"), text)
+            XCTAssertFalse(text.contains("Playlists"), text)
+        }
+    }
+
     func testCollectionCoversDisplayLandscapeAndSquareArtworkWithoutCropping() async throws {
         let appModel = PlozziOSAppModel()
         for size in [CGSize(width: 400, height: 225), CGSize(width: 300, height: 300)] {
@@ -531,20 +558,21 @@ final class LibraryPresentationTests: XCTestCase {
         scope: LibraryBrowseScope = .library,
         preload: Bool = true,
         pushed: Bool = false,
+        library: MediaLibrary = .init(id: "cinema", title: "Cinema", kind: .movie),
         exercise: (UIWindow, LibraryBrowseViewModel) async throws -> Void
     ) async throws {
         let suite = "LibraryPresentation.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let model = LibraryBrowseViewModel(
-            provider: provider, containerID: "cinema", containerKind: .movie,
+            provider: provider, containerID: library.id, containerKind: library.kind,
             defaults: defaults, sourceAccountID: "fixture", browseScope: scope
         )
         if preload { await model.loadFirstPageIfNeeded() }
         defer { model.cancelPendingQuery() }
         try await withPresentation(
             PlozziOSLibraryGridView(
-                viewModel: model, title: "Cinema", provider: provider, settings: appModel.settings
+                viewModel: model, title: library.title, provider: provider, settings: appModel.settings
             ),
             appModel: appModel, size: size, sizeClass: sizeClass, dynamicTypeSize: dynamicTypeSize,
             light: light, cardStyle: cardStyle, pushed: pushed
@@ -769,7 +797,8 @@ private struct LibraryPresentationProvider: MediaProvider, CapabilityReporting, 
         [.name, .dateAdded]
     }
     func libraryQueryCapabilities(in containerID: String, kind: MediaItemKind) -> LibraryQueryCapabilities {
-        .init(filters: [.all, .unwatched], nativeFilters: [.all, .unwatched],
+        if kind == .collection { return .init(nativeSortFields: [.name, .dateAdded]) }
+        return .init(filters: [.all, .unwatched], nativeFilters: [.all, .unwatched],
               supportsGenres: true, supportsYears: true, nativeFacets: true)
     }
     func libraryQueryFacets(in containerID: String, kind: MediaItemKind) async throws -> LibraryQueryFacets {

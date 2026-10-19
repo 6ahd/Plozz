@@ -9,6 +9,24 @@ import Synchronization
 /// a block — Home stays lean by default.
 @MainActor
 final class HomeAggregatorUnmergedTests: XCTestCase {
+    func testCollectionDirectoryStaysInLibrariesButNeverWidensScopedMediaFeeds() async {
+        let directory = MediaLibrary(
+            id: "jellyfin:collections", title: "Collections", kind: .collection, synthesizedName: .collections
+        )
+        let stub = UnmergedStub(libraries: [
+            lib("L1", "Movies", .movie), lib("hidden", "Hidden", .movie), directory
+        ])
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("acct", provider: stub)],
+            visibility: vis([("acct:\(directory.id)", .recentlyAdded)], disabled: ["acct:hidden"])
+        )
+        XCTAssertTrue(content.libraries.contains { $0.library == directory.taggingSource("acct") })
+        XCTAssertTrue(content.librarySections.isEmpty)
+        XCTAssertFalse(stub.itemsRequested)
+        XCTAssertFalse(stub.scopedLibraryRequests.isEmpty)
+        XCTAssertTrue(stub.scopedLibraryRequests.allSatisfy { $0 == ["L1"] })
+    }
+
 
     /// Enables the given per-library row kinds for `libraryKey` on top of a base.
     private func vis(_ rows: [(String, LibraryHomeRowKind)],
@@ -448,6 +466,8 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
     private let nativeItems: [String: [MediaItem]]
     private let nativeError: AppError?
     private let nativeCalls = Mutex<[String]>([])
+    private let scopedCalls = Mutex<[[String]]>([])
+    var scopedLibraryRequests: [[String]] { scopedCalls.withLock { $0 } }
     var nativeRequests: [String] { nativeCalls.withLock { $0 } }
     private let nativeBatches = Mutex<[[String]]>([])
     var nativeBatchRequests: [[String]] { nativeBatches.withLock { $0 } }
@@ -488,6 +508,14 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
         return stubbedLibraries
     }
     func continueWatching(limit: Int) async throws -> [MediaItem] { stubbedContinueWatching }
+    func continueWatching(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
+        if let libraryIDs { scopedCalls.withLock { $0.append(libraryIDs) } }
+        return stubbedContinueWatching
+    }
+    func latest(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
+        if let libraryIDs { scopedCalls.withLock { $0.append(libraryIDs) } }
+        return stubbedLatest
+    }
     func serverHomeItems(
         section: ServerHomeSection, limit: Int, excludingLibraryIDs: Set<String>
     ) async throws -> [MediaItem] {

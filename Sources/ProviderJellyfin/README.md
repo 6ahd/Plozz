@@ -252,6 +252,18 @@ advertise `.libraryCollections` for the shared Collections option inside a
 movie/TV library. `MediaProvider.collections(in:page:)` displays the authenticated
 server's collection list, matching the native Jellyfin client.
 
+Keep both native entry points: a Collections library beside Movies/TV Shows and
+the Collections shortcut inside those libraries. If a video account's views omit
+a `boxsets` library, Plozz adds one localized, account-scoped directory without
+probing or scanning media. A real `boxsets` view retains its identity and title;
+never add a duplicate. Empty and music-only accounts get no synthetic directory.
+
+The synthetic directory ID is navigation identity only. Browsing it uses the same
+cached BoxSet listing without `ParentId`; the in-library shortcut still forwards
+its real library ID. It offers collection sorting, not media filters or a
+request-per-letter index. It is excluded from scoped Home media feeds and search
+library enumeration, so it cannot widen a hidden-library query to the whole server.
+
 Do not assume `ParentId=<movie-library>&IncludeItemTypes=BoxSet` scopes this query:
 released Jellyfin 10.10.7/10.11.0 and the published Emby implementation explicitly
 clear `ParentId` for BoxSet listing. Send the selected library as browsing

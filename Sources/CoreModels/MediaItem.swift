@@ -1548,6 +1548,11 @@ public struct MediaLibrary: Codable, Hashable, Identifiable, Sendable {
     /// Server library name qualifying a derived collection-list library.
     public var collectionSourceTitle: String?
 
+    /// A Plozz-created server-wide directory, not a source of playable library media.
+    public var isServerCollectionDirectory: Bool {
+        kind == .collection && synthesizedName == .collections && collectionSourceTitle == nil
+    }
+
     public var localizedTitle: LocalizedStringResource? {
         if synthesizedName == .collections, let collectionSourceTitle {
             return "Collections in \(collectionSourceTitle)"

@@ -40,6 +40,10 @@ language every other module speaks.
   `checked`/`total` count candidate checks, not the final collection count.
   The ordinary page return remains authoritative. Providers without intermediate
   discovery (including the aggregate merge) retain their existing page contract.
+  `MediaLibrary.isServerCollectionDirectory` identifies a synthesized server-wide
+  Collections navigation entry. Keep it in library selection and navigation with
+  normal account/profile identity, but not in playable-library feeds or per-library
+  Home rows. Its provider owns routing; its synthetic ID is never a server parent.
 
 ## Public surface, at a glance
 

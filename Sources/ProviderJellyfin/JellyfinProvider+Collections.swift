@@ -3,6 +3,8 @@ import CoreNetworking
 import Foundation
 
 extension JellyfinProvider {
+    var collectionDirectoryID: String { "\(kind.rawValue):collections" }
+
     public func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
         guard !libraryID.isEmpty, page.startIndex >= 0, page.limit > 0 else {
             throw AppError.invalidResponse
@@ -33,7 +35,7 @@ extension JellyfinProvider {
         while true {
             try Task.checkCancellation()
             let response = try await client.collectionCandidates(
-                userID: session.userID, libraryID: libraryID,
+                userID: session.userID, libraryID: libraryID == collectionDirectoryID ? nil : libraryID,
                 page: PageRequest(startIndex: start, limit: pageSize, sort: enumerationSort)
             )
             let ids = try Self.validatedScopeIDs(response, stage: .collectionCandidates, start: start, seen: &seen)

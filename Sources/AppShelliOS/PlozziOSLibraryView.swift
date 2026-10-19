@@ -151,7 +151,7 @@ private struct PlozziOSLibraryCard: View {
                 Rectangle()
                     .fill(palette.fill)
                     .overlay {
-                        Image(systemName: library.kind == .series ? "tv" : "film")
+                        Image(systemName: librarySymbol)
                             .font(.largeTitle)
                             .plozzForeground(.secondary)
                     }
@@ -178,6 +178,14 @@ private struct PlozziOSLibraryCard: View {
                 )
         }
         .contentShape(Rectangle())
+    }
+
+    private var librarySymbol: String {
+        switch library.kind {
+        case .series: "tv"
+        case .collection: "rectangle.stack"
+        default: "film"
+        }
     }
 }
 
