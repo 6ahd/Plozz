@@ -892,13 +892,12 @@ public struct JellyfinClient: Sendable {
         return LibraryQueryFacets(genres: response.Genres ?? [], years: response.Years ?? [])
     }
 
-    /// Global BoxSets are intentional here: released Jellyfin and Emby servers
-    /// discard ParentId when IncludeItemTypes=BoxSet. Membership is scoped by
-    /// the provider using separately fetched library/member IDs.
-    func collectionCandidates(userID: String, page: PageRequest) async throws -> ItemsResponse {
+    /// Match the native client: the server decides whether ParentId scopes BoxSets.
+    func collectionCandidates(userID: String, libraryID: String, page: PageRequest) async throws -> ItemsResponse {
         let endpoint = Endpoint(
             path: "/Users/\(userID)/Items",
             queryItems: [
+                URLQueryItem(name: "ParentId", value: libraryID),
                 URLQueryItem(name: "IncludeItemTypes", value: "BoxSet"),
                 URLQueryItem(name: "Recursive", value: "true"),
                 URLQueryItem(name: "StartIndex", value: String(page.startIndex)),

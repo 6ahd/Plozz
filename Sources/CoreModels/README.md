@@ -31,7 +31,9 @@ language every other module speaks.
   Collection identity stays scoped to the owning account and item ID, even when
   two groups share a catalogue collection ID or physical server. Library
   collection discovery uses `collections(in:page:)`, advertised through
-  `.libraryCollections`; `collectionMembers(of:page:)`
+  `.libraryCollections`. Servers may return a library-filtered list or all groups
+  visible to the authenticated user; the library argument does not authorize
+  client-side membership reconstruction. `collectionMembers(of:page:)`
   is separate and preserves server membership/order rather than the grid's sort.
   `collections(in:page:progress:)` optionally reports incomplete discovery: its
   confirmed items are an append-only prefix of the complete ordering, while

@@ -39,7 +39,7 @@ SCENARIOS = {
         "suite": "network", "target": "ProviderJellyfinTests",
         "test": "CollectionDiscoveryPerformanceTests/testPerformanceCollectionDiscovery",
         "file": "Tests/ProviderJellyfinTests/CollectionDiscoveryPerformanceTests.swift",
-        "description": "Complete scoped discovery over 10,000 library slots and 356 collections with 5-ms request latency.",
+        "description": "Native listing of all 356 collections in one request, with 5-ms latency and no membership scans.",
         "counters": ["collections", "requests", "libraryRequests", "memberRequests", "firstItemsNanoseconds"],
     },
     "sync-unchanged": {

@@ -16,17 +16,27 @@ final class CollectionDiscoveryPerformanceTests: XCTestCase {
                 userID: "user", userName: "User", deviceID: "fixture", accessToken: "fixture"
             ), http: http)
             let progress = DiscoveryProgressClock()
-            let result = try await provider.collections(in: "library", page: PageRequest()) {
+            let result = try await provider.collections(in: "library", page: PageRequest(limit: 500)) {
                 await progress.record($0.items)
             }
             await progress.record(result.items)
-            XCTAssertEqual(result.items.map(\.id), (1...24).map { "collection-\($0)" })
-            XCTAssertEqual(result.totalCount, 24)
+            XCTAssertEqual(result.items.map(\.id), (0..<356).map { "collection-\($0)" })
+            XCTAssertEqual(result.totalCount, 356)
             let firstItems = await progress.elapsed
             XCTAssertGreaterThan(firstItems, 0)
+            let requests = await http.requests
+            let libraryRequests = await http.libraryRequests
+            let memberRequests = await http.memberRequests
+            XCTAssertEqual(requests, 1)
+            XCTAssertEqual(libraryRequests, 0)
+            XCTAssertEqual(memberRequests, 0)
+            let cached = try await provider.collections(in: "library", page: PageRequest(startIndex: 100, limit: 50))
+            XCTAssertEqual(cached.items.map(\.id), (100..<150).map { "collection-\($0)" })
+            let afterCache = await http.requests
+            XCTAssertEqual(afterCache, requests)
             return [
-                "collections": result.totalCount, "requests": await http.requests,
-                "libraryRequests": await http.libraryRequests, "memberRequests": await http.memberRequests,
+                "collections": result.totalCount, "requests": requests,
+                "libraryRequests": libraryRequests, "memberRequests": memberRequests,
                 "firstItemsNanoseconds": firstItems
             ]
         }

@@ -249,14 +249,15 @@ reload, and failed-read recovery, not just successful HTTP responses.
 
 Jellyfin and Emby retain native `boxsets` libraries and `BoxSet` items. Both also
 advertise `.libraryCollections` for the shared Collections option inside a
-movie/TV library. `MediaProvider.collections(in:page:)` returns only groups with
-at least one direct member in the selected library's recursive item set.
+movie/TV library. `MediaProvider.collections(in:page:)` displays the authenticated
+server's collection list, matching the native Jellyfin client.
 
 Do not assume `ParentId=<movie-library>&IncludeItemTypes=BoxSet` scopes this query:
 released Jellyfin 10.10.7/10.11.0 and the published Emby implementation explicitly
-clear `ParentId` for BoxSet listing. Latest Jellyfin development source has newer
-linked-ancestor handling, but relying on it would leak unrelated collections on
-older servers.
+clear `ParentId` for BoxSet listing. Send the selected library as browsing
+context and respect the result: it may contain all collections visible to that
+server user or a server-filtered subset. Do not enumerate library media and
+collection members to impose stricter client-side filtering.
 
 Compatible endpoints can serve virtual catalogs rather than indexed local media.
 [AIOMetadata's Jellyfin server](https://github.com/cedya77/aiometadata/blob/dev/docs/jellyfin.md)
@@ -265,39 +266,34 @@ are separate implementations, even when AIOStreams uses AIOMetadata as an addon.
 Use verified endpoint capabilities and response contracts for optimizations;
 neither an addon name nor a server version establishes collection scoping.
 
-The shared compatible strategy reads the global BoxSet list in 200-item pages
-and the selected library's IDs in 1,000-item pages after an initial 200-item page
-confirms reported totals (otherwise retaining 200), then checks collection member
-IDs with at most four concurrent probes, stopping each probe at its first
-intersection. Larger ID pages trade larger transient response buffers for fewer
-round trips; membership probe concurrency remains bounded.
-ID queries disable collection collapsing, images, and user data. A provider/session-bound, single-flight
+The compatible strategy reads only the BoxSet list in 500-item pages, retaining
+primary image tags. Collection-list responses are much smaller than full media
+records; the larger batch avoids extra round trips for typical catalogs.
+A provider/session-bound, single-flight
 snapshot (maximum four library/sort entries) supplies subsequent grid pages
-without repeated per-poster requests; page zero refreshes it. Some compatible
+without further listing requests; page zero refreshes it. This cache is in memory,
+not persisted across app restarts. Some compatible
 servers omit rows while retaining their paging offsets, so a short
 page can overlap the next page's prefix. Enumeration deduplicates that prefix
 and advances by raw response-row count, not the number of new IDs. If a repeated
 tail alone reaches the exact reported end, enumeration makes one extra request
 at that boundary and requires an empty page before accepting completion. This
-covers a short final member page without accepting a server that ignores offsets.
+covers a sparse final list page without accepting a server that ignores offsets.
 Connection failures get one cancellation-aware retry of the same read, with a
 250-ms delay; other errors are not retried. Remaining request failures, early
 empty pages, duplicates within a page, and other non-advancing/non-prefix repeats
 remain errors. Browse Details includes the
 failed enumeration stage, reason, offset, row count and reported total, never
 collection/library IDs or media titles.
-The progress-aware collection API publishes confirmed cards before every probe
-finishes. It advances only past resolved candidates, retaining a stable prefix
-even when probes finish out of order. Candidate-check counts describe unfinished
-work, not a guessed collection total. Progress is never cached as a complete
-snapshot. Missing child counts do not mean an empty collection.
-Each consumer owns its own cancellable wait and progress subscription: leaving
+Only completed snapshots are cached; missing child counts do not mean an empty
+collection. The native listing path needs no membership-progress phase.
+Each consumer owns its own cancellable wait: leaving
 one page does not cancel a replacement page's shared work. Only the last consumer
 cancels the worker, and late cleanup cannot remove a newer flight.
 
-Filtering preserves the server's requested collection-list sort. Random order
+Listing preserves the server's requested collection-list sort. Random order
 is the exception: enumerate candidates in stable name order, shuffle once, then
-scope that order. Visible cards and cached grid pages retain that order instead
+retain that order. Visible cards and cached grid pages retain that order instead
 of requesting independently shuffled server pages that could omit collections.
 
 `MediaProvider.collectionMembers(of:page:)` pages direct members through

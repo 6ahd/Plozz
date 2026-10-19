@@ -107,8 +107,10 @@ public protocol MediaProvider: Sendable {
     /// the sort means restarting paging from `startIndex` 0.
     func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage
 
-    /// Server-defined collections belonging to this library, ordered/paged as a
-    /// collection list. This is distinct from browsing a collection's members.
+    /// The server's collection list for this library context, ordered/paged as
+    /// collections. Servers may return their user-visible global list instead
+    /// of library-specific groups. Do not reconstruct membership client-side.
+    /// This is distinct from browsing a collection's members.
     /// Providers advertise support with `ProviderCapability.libraryCollections`.
     /// Unsupported providers throw `.notFound`, never a misleading empty page.
     func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage

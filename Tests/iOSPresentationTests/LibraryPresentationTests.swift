@@ -14,6 +14,38 @@ import XCTest
 final class LibraryPresentationTests: XCTestCase {
     private var capturedImage: CGImage?
 
+    func testCollectionCoversDisplayLandscapeAndSquareArtworkWithoutCropping() async throws {
+        let appModel = PlozziOSAppModel()
+        for size in [CGSize(width: 400, height: 225), CGSize(width: 300, height: 300)] {
+            let artwork = try await seedArtwork(size: size, edgeMarkers: true)
+            try await withLibrary(
+                provider: LibraryPresentationProvider(artwork: artwork), appModel: appModel,
+                size: CGSize(width: 390, height: 844), sizeClass: .compact
+            ) { window, model in
+                await model.setContentMode(.collections)
+                try await waitForHostedLayout(window)
+                _ = try self.capture(window, name: "collection-cover-\(Int(size.width))x\(Int(size.height))")
+                let image = try XCTUnwrap(self.capturedImage)
+                var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+                try pixels.withUnsafeMutableBytes {
+                    let context = try XCTUnwrap(CGContext(
+                        data: $0.baseAddress, width: image.width, height: image.height,
+                        bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                    ))
+                    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+                }
+                var leftEdge = 0, rightEdge = 0
+                for index in stride(from: 0, to: pixels.count, by: 4) {
+                    if pixels[index] > 150, pixels[index + 1] < 100, pixels[index + 2] > 150 { leftEdge += 1 }
+                    if pixels[index] < 100, pixels[index + 1] > 150, pixels[index + 2] < 100 { rightEdge += 1 }
+                }
+                XCTAssertGreaterThan(leftEdge, 100, "The collection cover's left edge must not be rejected or cropped.")
+                XCTAssertGreaterThan(rightEdge, 100, "The collection cover's right edge must not be rejected or cropped.")
+            }
+        }
+    }
+
     func testCollectionProgressKeepsCardsVisibleAndFailureOffersDetails() async throws {
         let appModel = PlozziOSAppModel()
         let artwork = try await seedArtwork()
@@ -596,17 +628,23 @@ final class LibraryPresentationTests: XCTestCase {
         ((view as? UIScrollView).map { [$0] } ?? []) + view.subviews.flatMap { scrollViews(in: $0) }
     }
 
-    private func seedArtwork() async throws -> URL {
+    private func seedArtwork(size: CGSize = CGSize(width: 300, height: 450), edgeMarkers: Bool = false) async throws -> URL {
         let url = try XCTUnwrap(URL(string: "https://library-fixture.example.test/\(UUID()).png"))
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        let image = UIGraphicsImageRenderer(size: CGSize(width: 300, height: 450), format: format).image { context in
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
             UIColor(red: 0.12, green: 0.32, blue: 0.42, alpha: 1).setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 300, height: 450))
+            context.fill(CGRect(origin: .zero, size: size))
             UIColor(red: 0.85, green: 0.58, blue: 0.3, alpha: 1).setFill()
             context.cgContext.fillEllipse(in: CGRect(x: 70, y: 85, width: 160, height: 160))
             UIColor(red: 0.06, green: 0.18, blue: 0.26, alpha: 1).setFill()
             context.fill(CGRect(x: 0, y: 310, width: 300, height: 140))
+            if edgeMarkers {
+                UIColor.magenta.setFill()
+                context.fill(CGRect(x: 0, y: 0, width: size.width * 0.15, height: size.height))
+                UIColor.green.setFill()
+                context.fill(CGRect(x: size.width * 0.85, y: 0, width: size.width * 0.15, height: size.height))
+            }
         }
         let bytes = try XCTUnwrap(image.pngData())
         let cache = try XCTUnwrap(ArtworkSession.shared.configuration.urlCache)

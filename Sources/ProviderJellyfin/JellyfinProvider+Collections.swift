@@ -4,21 +4,14 @@ import Foundation
 
 extension JellyfinProvider {
     public func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
-        try await collections(in: libraryID, page: page, progress: { _ in })
-    }
-
-    public func collections(
-        in libraryID: String, page: PageRequest,
-        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
-    ) async throws -> MediaPage {
         guard !libraryID.isEmpty, page.startIndex >= 0, page.limit > 0 else {
             throw AppError.invalidResponse
         }
         let key = "\(libraryID)#\(page.sort.field.rawValue)#\(page.sort.direction.rawValue)"
         let snapshot = try await collectionLibraryCache.snapshot(
-            key: key, refresh: page.startIndex == 0, progress: progress
-        ) { publish in
-            try await self.scopedCollectionSnapshot(libraryID: libraryID, sort: page.sort, progress: publish)
+            key: key, refresh: page.startIndex == 0
+        ) {
+            try await self.collectionSnapshot(libraryID: libraryID, sort: page.sort)
         }
         try Task.checkCancellation()
         return MediaPage(
@@ -27,13 +20,12 @@ extension JellyfinProvider {
         )
     }
 
-    private func scopedCollectionSnapshot(
-        libraryID: String, sort: CoreModels.SortDescriptor,
-        progress: @escaping @Sendable (LibraryCollectionProgress) async -> Void
+    private func collectionSnapshot(
+        libraryID: String, sort: CoreModels.SortDescriptor
     ) async throws -> [MediaItem] {
-        let pageSize = 200
+        let pageSize = 500
         // A fresh server-side shuffle on every HTTP page cannot be enumerated
-        // without omissions/duplicates. Shuffle once before publishing any cards.
+        // without omissions/duplicates. Shuffle the complete list once.
         let enumerationSort: CoreModels.SortDescriptor = sort.field == .random ? .default : sort
         var candidates: [MediaItem] = []
         var seen = Set<String>()
@@ -41,107 +33,18 @@ extension JellyfinProvider {
         while true {
             try Task.checkCancellation()
             let response = try await client.collectionCandidates(
-                userID: session.userID,
+                userID: session.userID, libraryID: libraryID,
                 page: PageRequest(startIndex: start, limit: pageSize, sort: enumerationSort)
             )
             let ids = try Self.validatedScopeIDs(response, stage: .collectionCandidates, start: start, seen: &seen)
             let additions = Set(ids)
-            candidates.append(contentsOf: response.Items.filter { additions.contains($0.Id) }.map(map(item:)))
+            candidates.append(contentsOf: response.Items.filter { additions.contains($0.Id) }
+                .map { map(item: $0).taggingLibrary(libraryID) })
             start += response.Items.count
             if response.Items.isEmpty || (!ids.isEmpty && response.TotalRecordCount.map({ start >= $0 }) == true) { break }
         }
-        guard !candidates.isEmpty else { return [] }
         if sort.field == .random { candidates.shuffle() }
-        await progress(.init(items: [], checked: 0, total: candidates.count))
-
-        var libraryIDs = Set<String>()
-        var scopePageSize = pageSize
-        start = 0
-        while true {
-            try Task.checkCancellation()
-            let response = try await client.collectionScopeItems(
-                userID: session.userID, parentID: libraryID, recursive: true,
-                start: start, limit: scopePageSize
-            )
-            let ids = try Self.validatedScopeIDs(response, stage: .libraryScope, start: start, seen: &libraryIDs)
-            // Keep the established small-page walk when no total can confirm a sparse tail.
-            scopePageSize = response.TotalRecordCount == nil ? pageSize : 1000
-            start += response.Items.count
-            if response.Items.isEmpty || (!ids.isEmpty && response.TotalRecordCount.map({ start >= $0 }) == true) { break }
-        }
-        guard !libraryIDs.isEmpty else { return [] }
-
-        // One bounded membership probe per candidate, not per rendered poster.
-        // Subsequent grid pages read the account-bound snapshot instead.
-        let client = client
-        let userID = session.userID
-        let libraryMembership = libraryIDs
-        return try await withThrowingTaskGroup(of: (Int, Bool).self) { group in
-            var nextIndex = min(4, candidates.count)
-            for index in 0..<nextIndex {
-                let collectionID = candidates[index].id
-                group.addTask {
-                    (index, try await Self.hasLibraryMember(
-                        client: client, userID: userID, collectionID: collectionID,
-                        libraryIDs: libraryMembership, pageSize: pageSize
-                    ))
-                }
-            }
-            var matches = Set<Int>()
-            var resolved = Set<Int>()
-            var frontier = 0
-            var scoped: [MediaItem] = []
-            for try await (index, matchesLibrary) in group {
-                try Task.checkCancellation()
-                if matchesLibrary { matches.insert(index) }
-                resolved.insert(index)
-                let previousCount = scoped.count
-                // Later probes may finish first. Publish only the resolved prefix
-                // so an earlier collection never inserts ahead of a visible card.
-                while resolved.contains(frontier) {
-                    if matches.contains(frontier) {
-                        scoped.append(candidates[frontier].taggingLibrary(libraryID))
-                    }
-                    frontier += 1
-                }
-                if scoped.count != previousCount || resolved.count.isMultiple(of: 16) || resolved.count == candidates.count {
-                    await progress(.init(items: scoped, checked: resolved.count, total: candidates.count))
-                }
-                if nextIndex < candidates.count {
-                    let index = nextIndex
-                    let collectionID = candidates[index].id
-                    nextIndex += 1
-                    group.addTask {
-                        (index, try await Self.hasLibraryMember(
-                            client: client, userID: userID, collectionID: collectionID,
-                            libraryIDs: libraryMembership, pageSize: pageSize
-                        ))
-                    }
-                }
-            }
-            return scoped
-        }
-    }
-
-    private static func hasLibraryMember(
-        client: JellyfinClient, userID: String, collectionID: String,
-        libraryIDs: Set<String>, pageSize: Int
-    ) async throws -> Bool {
-        var seen = Set<String>()
-        var start = 0
-        while true {
-            try Task.checkCancellation()
-            let response = try await client.collectionScopeItems(
-                userID: userID, parentID: collectionID, recursive: false,
-                start: start, limit: pageSize
-            )
-            let ids = try validatedScopeIDs(response, stage: .collectionMembers, start: start, seen: &seen)
-            if ids.contains(where: libraryIDs.contains) { return true }
-            start += response.Items.count
-            if response.Items.isEmpty || (!ids.isEmpty && response.TotalRecordCount.map({ start >= $0 }) == true) {
-                return false
-            }
-        }
+        return candidates
     }
 
     private static func validatedScopeIDs(

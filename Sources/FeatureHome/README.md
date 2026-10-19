@@ -10,7 +10,8 @@ fallback when the user's server has no attached trailer.
   nonfatal later-page failures. `LibraryLoadDiagnostic` identifies the requested
   section and retains safe response/paging evidence. Retry and mode changes clear
   stale reports; cancelled or superseded requests cannot publish one.
-  Collection discovery can display confirmed cards while remaining candidates
+  Jellyfin/Emby Collections uses the native server-defined list without a
+  library/member scan. Providers with intermediate discovery can display confirmed cards while remaining candidates
   are checked. Both platforms show native progress and retain the stable card
   slots. Partial failures retain those cards with an explicit incomplete-list
   message and Details / Try Again; interrupted discovery restarts on return.
