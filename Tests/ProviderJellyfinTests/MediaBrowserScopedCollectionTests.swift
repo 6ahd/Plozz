@@ -127,6 +127,69 @@ final class MediaBrowserScopedCollectionTests: XCTestCase {
         XCTAssertTrue(queries.contains { $0["ParentId"] == "movies" && $0["StartIndex"] == "2" })
     }
 
+    func testSparsePagesCanOverlapWithoutLosingOrDuplicatingScopedCollections() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            let http = ScopedCollectionsHTTPClient(sparsePages: true)
+            let provider = provider(kind, http: http)
+            let first = try await provider.collections(in: "movies", page: PageRequest(limit: 1))
+            let requestsAfterFirst = await http.queries.count
+            let second = try await provider.collections(
+                in: "movies", page: PageRequest(startIndex: 1, limit: 1)
+            )
+            XCTAssertEqual(first.items.map(\.id), ["in-a"])
+            XCTAssertEqual(second.items.map(\.id), ["in-b"])
+            XCTAssertEqual(first.totalCount, 2)
+            XCTAssertEqual(second.totalCount, 2)
+            let queries = await http.queries
+            XCTAssertEqual(queries.count, requestsAfterFirst)
+            XCTAssertEqual(
+                queries.filter { $0["IncludeItemTypes"] == "BoxSet" }.compactMap { $0["StartIndex"] },
+                ["0", "2", "5"],
+                "Advance through raw response rows, not only newly discovered IDs."
+            )
+            XCTAssertEqual(
+                queries.filter { $0["ParentId"] == "movies" }.compactMap { $0["StartIndex"] },
+                ["0", "2"]
+            )
+            let shows = try await provider.collections(in: "shows", page: PageRequest())
+            XCTAssertEqual(shows.items.map(\.id), ["outside"])
+        }
+    }
+
+    func testMalformedOrTruncatedScopePagesStillFail() async {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            for ids in [["fresh", "fresh"], ["fresh", "nested-movie"], []] {
+                let http = ScopedCollectionsHTTPClient(invalidScopePage: ids)
+                do {
+                    _ = try await provider(kind, http: http).collections(in: "movies", page: PageRequest())
+                    XCTFail("Duplicate, out-of-order overlapping, and truncated pages must not become success.")
+                } catch {
+                    XCTAssertEqual(error as? AppError, .invalidResponse)
+                }
+            }
+        }
+    }
+
+    func testFullSizeSparseLibraryPagesKeepTheFinalCollectionMember() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            for includesTotals in [true, false] {
+                let http = ScopedCollectionsHTTPClient(
+                    includesTotals: includesTotals, fullSizeSparseLibrary: true
+                )
+                let result = try await provider(kind, http: http).collections(
+                    in: "movies", page: PageRequest()
+                )
+                XCTAssertEqual(result.items.map(\.id), ["in-a", "in-b"])
+                XCTAssertEqual(result.totalCount, 2)
+                let queries = await http.queries
+                XCTAssertEqual(
+                    queries.filter { $0["ParentId"] == "movies" }.compactMap { $0["StartIndex"] },
+                    includesTotals ? ["0", "199", "399"] : ["0", "199", "399", "400"]
+                )
+            }
+        }
+    }
+
     func testFailedMembershipDoesNotProduceIncompleteSuccessAndCanRetry() async throws {
         let http = ScopedCollectionsHTTPClient()
         await http.setFailingParent("outside")
@@ -181,6 +244,9 @@ final class MediaBrowserScopedCollectionTests: XCTestCase {
 
 private actor ScopedCollectionsHTTPClient: HTTPClient {
     let includesTotals: Bool
+    let sparsePages: Bool
+    let invalidScopePage: [String]?
+    let fullSizeSparseLibrary: Bool
     private var failingParent: String?
     private var repeatingParent: String?
     private var activeMemberRequests = 0
@@ -188,7 +254,15 @@ private actor ScopedCollectionsHTTPClient: HTTPClient {
     private(set) var queries: [[String: String]] = []
     private(set) var paths: [String] = []
 
-    init(includesTotals: Bool = true) { self.includesTotals = includesTotals }
+    init(
+        includesTotals: Bool = true, sparsePages: Bool = false,
+        invalidScopePage: [String]? = nil, fullSizeSparseLibrary: Bool = false
+    ) {
+        self.includesTotals = includesTotals
+        self.sparsePages = sparsePages
+        self.invalidScopePage = invalidScopePage
+        self.fullSizeSparseLibrary = fullSizeSparseLibrary
+    }
     func setFailingParent(_ value: String?) { failingParent = value }
     func setRepeatingParent(_ value: String?) { repeatingParent = value }
 
@@ -246,9 +320,11 @@ private actor ScopedCollectionsHTTPClient: HTTPClient {
             switch parent {
             case "movies":
                 guard query["Recursive"] == "true" else { throw AppError.invalidResponse }
-                ids = ["nested-movie", "movie-b"]
+                ids = ["nested-movie", "movie-b"] + (sparsePages ? ["uncollected-a", "uncollected-b"] : [])
             case "shows": ids = ["episode"]
-            case "in-a": ids = ["foreign", "nested-movie"]
+            case "in-a":
+                ids = sparsePages ? ["foreign", "another-foreign", "nested-movie", "third-foreign"]
+                    : ["foreign", "nested-movie"]
             case "in-b": ids = ["movie-b"]
             case "outside": ids = ["episode"]
             case "outside-2", "outside-3": ids = ["foreign"]
@@ -261,10 +337,23 @@ private actor ScopedCollectionsHTTPClient: HTTPClient {
         let start = parent == repeatingParent && parent != nil
             ? 0 : Int(query["StartIndex"] ?? "0") ?? 0
         let limit = Int(query["Limit"] ?? "1") ?? 1
-        var envelope: [String: Any] = ["Items": Array(rows.dropFirst(start).prefix(
-            endpoint.path.hasPrefix("/Playlists/") ? limit : 1
-        ))]
-        if includesTotals { envelope["TotalRecordCount"] = rows.count }
+        var slots = rows.map(Optional.some)
+        if sparsePages, slots.count > 3 { slots.insert(nil, at: 1) }
+        let isFullSizeSparseLibrary = parent == "movies" && fullSizeSparseLibrary
+        if isFullSizeSparseLibrary {
+            slots = (0..<400).map { index in
+                guard index != 100 else { return nil }
+                let id = index == 0 ? "nested-movie" : (index == 399 ? "movie-b" : "library-\(index)")
+                return ["Id": id, "Type": "Movie"]
+            }
+        }
+        let serverLimit = endpoint.path.hasPrefix("/Playlists/") || isFullSizeSparseLibrary
+            ? limit : (sparsePages ? 3 : 1)
+        var envelope: [String: Any] = ["Items": slots.dropFirst(start).prefix(serverLimit).compactMap { $0 }]
+        if parent == "movies", start > 0, let invalidScopePage {
+            envelope["Items"] = invalidScopePage.map { ["Id": $0, "Type": "Movie"] }
+        }
+        if includesTotals { envelope["TotalRecordCount"] = slots.count }
         return (
             try JSONSerialization.data(withJSONObject: envelope),
             HTTPURLResponse(url: baseURL, statusCode: 200, httpVersion: nil, headerFields: nil)!

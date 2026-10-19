@@ -263,8 +263,13 @@ library's IDs in bounded 200-item pages, then checks collection member IDs with
 at most four concurrent probes, stopping each probe at its first intersection.
 ID queries disable collection collapsing, images, and user data. A provider/session-bound, single-flight
 snapshot (maximum four library/sort entries) supplies subsequent grid pages
-without repeated per-poster requests; page zero refreshes it. Failed, repeated,
-or truncated pages fail the load rather than silently exclude uncertain groups.
+without repeated per-poster requests; page zero refreshes it. Some compatible
+servers omit rows while retaining their paging offsets, so a short
+page can overlap the next page's prefix. Enumeration deduplicates that prefix
+and advances by raw response-row count, not the number of new IDs. Request
+failures, empty pages before the reported end, duplicates within a page, and
+repeats without progress or outside the prefix remain errors rather than
+silently excluding uncertain groups.
 Each consumer owns its own cancellable wait: leaving one page does not cancel a
 replacement page's shared work. Only the last consumer cancels the worker, and
 late cleanup cannot remove a newer flight.

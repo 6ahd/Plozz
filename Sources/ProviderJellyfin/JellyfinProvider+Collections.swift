@@ -39,8 +39,9 @@ extension JellyfinProvider {
                 throw AppError.invalidResponse
             }
             let ids = try Self.validatedScopeIDs(response, start: start, seen: &seen)
-            candidates.append(contentsOf: response.Items.map(map(item:)))
-            start += ids.count
+            let additions = Set(ids)
+            candidates.append(contentsOf: response.Items.filter { additions.contains($0.Id) }.map(map(item:)))
+            start += response.Items.count
             if ids.isEmpty || response.TotalRecordCount.map({ start >= $0 }) == true { break }
         }
         guard !candidates.isEmpty else { return [] }
@@ -54,7 +55,7 @@ extension JellyfinProvider {
                 start: start, limit: pageSize
             )
             let ids = try Self.validatedScopeIDs(response, start: start, seen: &libraryIDs)
-            start += ids.count
+            start += response.Items.count
             if ids.isEmpty || response.TotalRecordCount.map({ start >= $0 }) == true { break }
         }
         guard !libraryIDs.isEmpty else { return [] }
@@ -113,7 +114,7 @@ extension JellyfinProvider {
             )
             let ids = try validatedScopeIDs(response, start: start, seen: &seen)
             if ids.contains(where: libraryIDs.contains) { return true }
-            start += ids.count
+            start += response.Items.count
             if ids.isEmpty || response.TotalRecordCount.map({ start >= $0 }) == true {
                 return false
             }
@@ -125,17 +126,22 @@ extension JellyfinProvider {
     ) throws -> [String] {
         let ids = response.Items.map(\.Id)
         guard response.TotalRecordCount.map({ $0 >= 0 }) != false,
-              ids.allSatisfy({ !$0.isEmpty }) else { throw AppError.invalidResponse }
+              ids.allSatisfy({ !$0.isEmpty }),
+              Set(ids).count == ids.count else { throw AppError.invalidResponse }
         if ids.isEmpty {
             guard response.TotalRecordCount.map({ start >= $0 }) != false else {
                 throw AppError.invalidResponse
             }
-        } else {
-            guard ids.allSatisfy({ seen.insert($0).inserted }) else {
-                throw AppError.invalidResponse
-            }
+            return []
         }
-        return ids
+        // A short server page can overlap the next page's prefix.
+        // Accept an overlapping prefix only when the page still adds fresh IDs.
+        let additions = Array(ids.drop(while: { seen.contains($0) }))
+        guard !additions.isEmpty, additions.allSatisfy({ !seen.contains($0) }) else {
+            throw AppError.invalidResponse
+        }
+        seen.formUnion(additions)
+        return additions
     }
 }
 
