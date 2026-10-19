@@ -9,11 +9,35 @@ import XCTest
 @MainActor
 final class PlayerTimelineClockPresentationTests: XCTestCase {
     func testElapsedModeDoesNotReserveUnusedHourColumns() throws {
+        for duration in [TimeInterval(1_200), 3_599] {
+            let model = PlayerControlsModel()
+            model.duration = duration
+            model.currentSeconds = 600
+            let image = try render(model, width: 398, scrubbing: false, locale: "en_US")
+            XCTAssertEqual(try trackRange(image).count, 302, accuracy: 1)
+        }
+    }
+
+    func testTimestampFieldsStayFixedForTheVideoDuration() {
         let model = PlayerControlsModel()
-        model.duration = 3_600
-        model.currentSeconds = 600
-        let image = try render(model, width: 398, scrubbing: false, locale: "en_US")
-        XCTAssertEqual(try trackRange(image).count, 302, accuracy: 1)
+        let timeline = PlozziOSPlayerTimeline(
+            model: model, displayedSeconds: 0, isScrubbing: false,
+            onScrubChanged: { _ in }, onScrubEditingChanged: { _ in }, onInteraction: {}
+        )
+        model.duration = 1_200
+        for (seconds, expected) in [(0.0, "00:00"), (9, "00:09"), (60, "01:00"), (600, "10:00"), (1_200, "20:00")] {
+            XCTAssertEqual(timeline.playbackTime(seconds), expected)
+        }
+        model.duration = 5_600
+        for (seconds, expected) in [(0.0, "0:00:00"), (59, "0:00:59"), (600, "0:10:00"), (3_600, "1:00:00")] {
+            XCTAssertEqual(timeline.playbackTime(seconds), expected)
+        }
+        model.duration = 43_200
+        XCTAssertEqual(timeline.playbackTime(600), "00:10:00")
+        XCTAssertEqual(timeline.playbackTime(36_000), "10:00:00")
+        for invalid in [TimeInterval.nan, .infinity, -1, Double(Int.max)] {
+            XCTAssertEqual(timeline.playbackTime(invalid), "--:--")
+        }
     }
 
     func testScrubTargetCrossingTimeFormatsDoesNotChangeDragGeometry() throws {

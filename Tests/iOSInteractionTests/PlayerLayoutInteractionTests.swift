@@ -3,6 +3,56 @@ import XCTest
 
 @MainActor
 final class PlayerLayoutInteractionTests: XCTestCase {
+    func testPlaybackRolloversDoNotMoveTheScrubber() {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer { app.terminate() }
+        for longVideo in [false, true] {
+            app.launchArguments = ["--player-layout-fixture", "--timeline-rollovers"]
+            if longVideo { app.launchArguments.append("--long-video") }
+            app.launch()
+            let current = app.buttons["player-timeline-current-time"]
+            let remaining = app.buttons["player-timeline-end-time"]
+            let advance = app.buttons["fixture-next-time"]
+            XCTAssertTrue(current.waitForExistence(timeout: 10))
+            let scrubber = app.descendants(matching: .any)["player-timeline-scrubber"].firstMatch
+            let currentFrame = current.frame
+            let remainingFrame = remaining.frame
+            let scrubberFrame = scrubber.frame
+            for step in 1...(longVideo ? 10 : 6) {
+                advance.tap()
+                wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    advance.value as? String == "\(step)"
+                }, object: nil)], timeout: 5)
+                XCTAssertEqual(current.frame, currentFrame)
+                XCTAssertEqual(remaining.frame, remainingFrame)
+                XCTAssertEqual(scrubber.frame, scrubberFrame,
+                               "Playback ticks must not move or resize the actual scrubber hit target.")
+            }
+            XCTAssertEqual(current.value as? String, longVideo ? "1:30:00" : "20:00")
+            XCTAssertEqual(remaining.value as? String, longVideo ? "-0:00:00" : "-00:00")
+            app.terminate()
+        }
+    }
+
+    func testTimeLabelsUseTheVideoDurationFromTheStart() {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer { app.terminate() }
+        for longVideo in [false, true] {
+            app.launchArguments = ["--player-layout-fixture"]
+            if longVideo { app.launchArguments.append("--long-video") }
+            app.launch()
+            let current = app.buttons["player-timeline-current-time"]
+            let remaining = app.buttons["player-timeline-end-time"]
+            XCTAssertTrue(current.waitForExistence(timeout: 10))
+            XCTAssertEqual(current.value as? String, longVideo ? "0:10:00" : "10:00")
+            XCTAssertEqual(remaining.value as? String, longVideo ? "-1:20:00" : "-10:00")
+            capture(app, name: longVideo ? "Hour-plus timeline" : "Short episode timeline")
+            app.terminate()
+        }
+    }
+
     func testNativeAVKitPlayerAppearanceInLightAndDark() {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")

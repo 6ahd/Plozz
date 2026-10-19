@@ -7,6 +7,7 @@ import SwiftUI
 
 struct PlayerLayoutFixture: View {
     @State private var model: PlayerViewModel
+    @State private var timelineSampleIndex = 0
 
     init() {
         let provider = PlayerLayoutProvider()
@@ -18,9 +19,9 @@ struct PlayerLayoutFixture: View {
         let model = PlayerViewModel(
             provider: provider, itemID: episode.id, episodeItem: episode, playlistContext: playlist
         )
-        model.controls.duration = 3600
-        model.controls.currentSeconds = 600
-        model.controls.bufferedSeconds = 1440
+        model.controls.duration = ProcessInfo.processInfo.arguments.contains("--long-video") ? 5_400 : 1_200
+        model.controls.currentSeconds = ProcessInfo.processInfo.arguments.contains("--timeline-rollovers") ? 0 : 600
+        model.controls.bufferedSeconds = 900
         model.controls.title = "Wayward"
         model.controls.subtitle = "S1 E4 - Mud"
         model.controls.intendsPause = true
@@ -70,6 +71,20 @@ struct PlayerLayoutFixture: View {
         .environment(\.colorScheme, light ? .light : .dark)
         .preferredColorScheme(light ? .light : .dark)
         .environment(\.plozzMetrics, .touch(density: .standard))
+        .overlay(alignment: .topTrailing) {
+            if ProcessInfo.processInfo.arguments.contains("--timeline-rollovers") {
+                Button("Advance time") {
+                    let duration = model.controls.duration
+                    let samples = [0, 59, 60, 599, 600, 1_799, 1_800, 3_599, 3_600, duration - 1, duration]
+                        .filter { $0 <= duration }
+                    timelineSampleIndex = min(timelineSampleIndex + 1, samples.count - 1)
+                    model.controls.currentSeconds = samples[timelineSampleIndex]
+                }
+                .accessibilityIdentifier("fixture-next-time")
+                .accessibilityValue("\(timelineSampleIndex)")
+                .padding(.top, 110)
+            }
+        }
     }
 
     private var light: Bool { ProcessInfo.processInfo.arguments.contains("--light") }

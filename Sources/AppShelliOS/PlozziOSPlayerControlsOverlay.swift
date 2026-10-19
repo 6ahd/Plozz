@@ -977,11 +977,11 @@ struct PlozziOSPlayerTimeline: View {
     var body: some View {
         PlayerClockTimeline(model: model, enabled: model.timelineClock.isEnabled) { clock in
             let visibleClock = isScrubbing ? nil : clock
-            let layoutSeconds = isScrubbing ? model.currentSeconds : displayedSeconds
+            let durationTime = playbackTime(model.duration)
             HStack(spacing: 4) {
                 timeButton(
                     Text(verbatim: visibleClock?.current ?? playbackTime(displayedSeconds)),
-                    layoutText: Text(verbatim: playbackTime(layoutSeconds)),
+                    layoutText: Text(verbatim: durationTime),
                     samples: (clock?.currentWidthSamples ?? []).map { Text(verbatim: $0) },
                     label: visibleClock != nil ? "Current time" : "Elapsed time",
                     identifier: "player-timeline-current-time", alignment: .leading
@@ -996,7 +996,7 @@ struct PlozziOSPlayerTimeline: View {
                 timeButton(
                     visibleClock.map { $0.end.map { Text($0) } ?? Text(verbatim: "--:--") }
                         ?? Text(verbatim: "-\(playbackTime(max(model.duration - displayedSeconds, 0)))"),
-                    layoutText: Text(verbatim: "-\(playbackTime(max(model.duration - layoutSeconds, 0)))"),
+                    layoutText: Text(verbatim: "-\(durationTime)"),
                     samples: (clock?.endWidthSamples ?? []).map { Text($0) },
                     label: visibleClock != nil ? "Estimated end time" : "Remaining time",
                     identifier: "player-timeline-end-time", alignment: .trailing
@@ -1039,16 +1039,20 @@ struct PlozziOSPlayerTimeline: View {
         .accessibilityIdentifier(identifier)
     }
 
-    private func playbackTime(_ seconds: TimeInterval) -> String {
-        guard seconds.isFinite, seconds >= 0, seconds < Double(Int.max) else { return "--:--" }
-        let total = max(Int(seconds.rounded()), 0)
+    func playbackTime(_ seconds: TimeInterval) -> String {
+        let rounded = seconds.rounded()
+        let duration = model.duration.rounded()
+        guard seconds.isFinite, seconds >= 0, rounded < Double(Int.max),
+              duration.isFinite, duration >= 0, duration < Double(Int.max) else { return "--:--" }
+        let total = Int(rounded)
         let hours = total / 3_600
+        let durationHours = Int(duration) / 3_600
         let minutes = (total % 3_600) / 60
         let remainder = total % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, remainder)
+        if durationHours > 0 || hours > 0 {
+            return String(format: "%0*ld:%02ld:%02ld", String(durationHours).count, hours, minutes, remainder)
         }
-        return String(format: "%d:%02d", minutes, remainder)
+        return String(format: "%02ld:%02ld", minutes, remainder)
     }
 }
 

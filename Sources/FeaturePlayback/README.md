@@ -92,9 +92,11 @@ and a 44-point minimum touch target instead of TV padding. The timeline occupies
 a 38-point layout row while VOD scrubbing retains its 44-point touch target.
 Its elapsed and remaining labels align to the outer chrome edges, including
 when reserved clock widths are wider than the visible times.
-Time columns reserve only their current playback/clock formats, with 4-point
-gaps beside the track. During a drag, the seek label fits the existing column
-instead of moving the track under the finger.
+Playback timestamps always include seconds and choose their fields and column
+widths from the video's total duration: `mm:ss` below an hour, `h:mm:ss` from an
+hour onward, with extra hour digits reserved only for longer videos. Both elapsed
+and remaining columns stay fixed across playback rollovers and scrubbing, with
+4-point gaps beside the track. Clock mode retains its locale-aware width samples.
 
 ## Skip-marker timeline
 
