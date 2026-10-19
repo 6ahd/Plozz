@@ -510,12 +510,10 @@ let package = Package(
 
         // MARK: Sync & Setup (cross-device onboarding — feature-flagged, v1)
         //
-        // Non-secret config sync + device pairing crypto. Depends only on
-        // CoreModels; uses CryptoKit for the pairing seal (kept out of the
-        // Foundation-only CoreModels). v1 carries NON-SECRET config only.
+        // Config and encrypted credential pairing, with secret-safe diagnostics.
         .target(
             name: "FeatureSyncSetup",
-            dependencies: ["CoreModels"]
+            dependencies: ["CoreModels", "CoreNetworking"]
         ),
 
         // Non-secret config auto-sync over CloudKit (CKSyncEngine, private DB).
@@ -966,7 +964,7 @@ let package = Package(
         ),
         .testTarget(
             name: "FeatureSyncSetupTests",
-            dependencies: ["FeatureSyncSetup", "CoreModels"]
+            dependencies: ["FeatureSyncSetup", "CoreModels", "CoreNetworking"]
         ),
         .testTarget(
             name: "FeatureSyncCloudTests",

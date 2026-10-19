@@ -66,6 +66,25 @@ registry.
   profile names. Headers scroll; Done/Continue remains reachable independently
   of the number of servers or profiles.
 
+- **Visible pairing failures on both platforms.** Mobile automatic offers use
+  one retained cover for confirmation, progress, retry and completion, waiting
+  for existing root presentations. Sender authorization is rechecked during
+  transfer; dismissing cancels the connection and any matching-code wait.
+  Receivers stop advertising after failure and retain the error until an
+  explicit retry. A failed TV-to-phone source QR requires a new scan.
+  Sender retries keep the confirmed invitation pinned; a newly generated
+  receiver code requires closing the old flow and accepting/scanning the new one.
+  Matching-code confirmation is bounded to 60 seconds.
+
+- **Device setup diagnostics.** Each attempt logs fixed role/route/stage/outcome
+  categories and bounded elapsed time through `PlozzLog`, so manual diagnostics
+  include pairing failures. With crash-reporting consent enabled, failures also
+  reach Sentry automatically through `DeviceSetupDiagnostics`; no raw logs,
+  device names, URLs, account IDs, codes, keys or credentials are uploaded.
+  Failures are grouped by role/route/stage/reason and deduplicated to at most ten
+  distinct reports per reporting session. Opt-out invalidates retained attempt
+  callbacks. Explicit local cancellation/decline is not a failure report.
+
 - **Composition root, not a feature.** This is the **only** module
   allowed to import all the others. Feature modules don't import
   `AppShell`.
