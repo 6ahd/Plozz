@@ -27,6 +27,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   touch targets and cap glyph scaling at XXX Large; text buttons continue to
   honor the full accessibility text size.
 
+- **Portrait mobile hero artwork** — `HeroStageMetrics` reserves 24pt at the
+  top for a softly faded reflection, shifting the original artwork below more
+  of the status-bar chrome without moving metadata or growing the hero.
+  Home and Details share this still-image layout, including swipe reflections.
+  The bottom reflection and minimum dissolve span remain intact; trailers keep
+  their full-stage presentation. Landscape and tvOS heroes are unchanged.
+
 - **Setup presentation** — `ConnectionCodeView` shares the readable monospaced
   code panel across server sign-in and device pairing. `SetupCodeComparisonView`
   keeps both devices' confirmation copy and code treatment consistent while
