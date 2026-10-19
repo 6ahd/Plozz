@@ -1106,14 +1106,18 @@ final class SettingsInteractionTests: XCTestCase {
         let hero = app.buttons["home-section-hero"]
         XCTAssertEqual(hero.frame.minX - app.frame.minX, 24, accuracy: 2)
         XCTAssertEqual(app.frame.maxX - hero.frame.maxX, 24, accuracy: 2)
-        let container = app.otherElements["home-row-preset-container"]
-        XCTAssertTrue(container.waitForExistence(timeout: 3), app.debugDescription)
-        XCTAssertEqual(container.frame.minX, hero.frame.minX, accuracy: 2)
-        XCTAssertEqual(container.frame.maxX, hero.frame.maxX, accuracy: 2)
-        XCTAssertEqual(hero.frame.minY - container.frame.maxY, 12, accuracy: 2)
+        let header = app.otherElements["home-row-preset-header"]
+        XCTAssertTrue(header.waitForExistence(timeout: 3), app.debugDescription)
+        XCTAssertFalse(app.otherElements["home-row-preset-container"].exists)
+        XCTAssertEqual(header.frame.minX, hero.frame.minX, accuracy: 2)
+        XCTAssertEqual(header.frame.maxX, hero.frame.maxX, accuracy: 2)
+        XCTAssertEqual(hero.frame.minY - header.frame.maxY, 12, accuracy: 2)
         let preset = app.buttons["home-row-preset"]
         XCTAssertTrue(preset.isHittable, app.debugDescription)
-        XCTAssertTrue(container.frame.contains(preset.frame))
+        XCTAssertTrue(header.frame.contains(preset.frame))
+        XCTAssertEqual(preset.frame.maxX, header.frame.maxX, accuracy: 2)
+        XCTAssertGreaterThan(preset.frame.minX, header.frame.midX)
+        XCTAssertGreaterThanOrEqual(preset.frame.height, 44)
         XCTAssertLessThan(preset.frame.maxY, hero.frame.minY)
         XCTAssertGreaterThanOrEqual(preset.frame.minX, app.frame.minX + 20)
         XCTAssertLessThanOrEqual(preset.frame.maxX, app.frame.maxX - 20)

@@ -46,11 +46,12 @@ public struct HomeRowsSettingsView: View {
             }
             editorControls
             #elseif os(iOS)
-            editorControls
-                .padding(14)
-                .settingsGroupSurface(cornerRadius: 12)
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("home-row-preset-container")
+            VStack(alignment: .leading, spacing: 12) {
+                editorControls
+                Divider()
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("home-row-preset-header")
             #endif
             HomeEditorLink {
                 HomeHeroSettingsView(libraries: libraries, accounts: accounts, visibility: visibility)
