@@ -828,12 +828,13 @@ private struct PlozziOSHeroPlaybackID: Equatable {
 /// stand about three quarters of the phone tall so its metadata sits low; a hero
 /// that simply *filled* that slot would crop 16:9 backdrop art past 3x, and
 /// would crop it by a different amount on every phone. Mirroring buys the height
-/// back and leaves the picture alone.
+/// back and leaves the picture alone. A 24pt top reflection moves the original
+/// artwork below more of the status-bar chrome without growing the stage.
 ///
 /// Only ever mirrors a still. Video cannot be mirrored — one AVPlayer renders in
 /// one AVPlayerLayer at a time — so a hero playing a trailer fills the stage with
 /// it instead; see ``PlozziOSHeroBackdrop``.
-private struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
+struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
     /// How far the mirror is drawn up *behind* the picture's bottom edge, so the
     /// two overlap instead of meeting at a line that splits open the moment the
     /// hero is scaled by an overscroll pull. Same reasoning, and same value, as
@@ -850,12 +851,18 @@ private struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
                 width: width,
                 height: height
             )
+            let topHeight = min(max(height, 0), HeroStageMetrics.topReflectionHeight)
             ZStack(alignment: .top) {
+                if topHeight > 0 {
+                    topMirror(geometry, width: width, height: topHeight)
+                        .environment(\.heroArtworkDisplayReporter, nil)
+                }
                 sizedPicture(geometry)
+                    .offset(y: topHeight)
                 if geometry.reflectionHeight > 0 {
                     mirror(geometry, width: width)
                         .environment(\.heroArtworkDisplayReporter, nil)
-                        .offset(y: geometry.pictureHeight - Self.seamOverlap)
+                        .offset(y: topHeight + geometry.pictureHeight - Self.seamOverlap)
                 }
             }
             // Flatten the picture and its mirror into one layer before anyone
@@ -890,6 +897,26 @@ private struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
             )
         )
         .frame(width: geometry.renderedWidth, height: geometry.pictureHeight)
+    }
+
+    private func topMirror(
+        _ geometry: ExtendedArtworkGeometry,
+        width: CGFloat,
+        height: CGFloat
+    ) -> some View {
+        Color.clear
+            .frame(width: width, height: height + Self.seamOverlap)
+            .overlay(alignment: .bottom) {
+                sizedPicture(geometry)
+                    .scaleEffect(x: 1, y: -1)
+            }
+            .mask {
+                LinearGradient(
+                    colors: [.white.opacity(0.82), .white],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
     }
 
     /// The band under the picture: the same image flipped, so its top row is the
@@ -935,7 +962,7 @@ private struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
 }
 
 /// The slot ``PlozziOSExtendedHeroArtwork`` is asking a picture to fill.
-private struct PlozziOSHeroPictureLayout {
+struct PlozziOSHeroPictureLayout {
     let width: CGFloat
     let height: CGFloat
 }

@@ -1118,8 +1118,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// (digits/symbols) is the count before "A". Non-name sorts have no letter
     /// to jump to, so return empty and the rail stays hidden.
     ///
-    /// The A…Z counts fan out concurrently (bounded) and run once per browse
-    /// session — the view model caches the result until the sort changes.
+    /// The total first verifies count-only support, then two disjoint Z queries
+    /// detect ignored alphabet filters. Supported A…Y counts fan out concurrently
+    /// (bounded), once per browse session/sort.
     public func letterIndex(
         in containerID: String,
         kind: MediaItemKind,
@@ -1137,48 +1138,75 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         let letters = LibraryLetterIndex.railLetters.filter { $0 != "#" }
         let userID = session.userID
         let client = client
+        guard let total = try await client.itemCount(
+            userID: userID, parentID: containerID,
+            includeItemTypes: includeItemTypes, recursive: recursive, filters: filters
+        ) else {
+            PlozzLog.networking.info(
+                "Library alphabet index unavailable: server returned items for a count-only request"
+            )
+            return []
+        }
+        async let beforeLastLetterTask = client.itemCount(
+            userID: userID, parentID: containerID,
+            includeItemTypes: includeItemTypes, recursive: recursive,
+            nameLessThan: "Z", filters: filters
+        )
+        async let lastLetterTask = client.itemCount(
+            userID: userID, parentID: containerID,
+            includeItemTypes: includeItemTypes, recursive: recursive,
+            nameStartsWith: "Z", filters: filters
+        )
+        let (beforeLastLetter, lastLetter) = try await (beforeLastLetterTask, lastLetterTask)
+        try Task.checkCancellation()
+        guard let beforeLastLetter, let lastLetterCount = lastLetter else {
+            PlozzLog.networking.error("Library alphabet count-only support changed during predicate probes")
+            throw AppError.invalidResponse
+        }
+        // A nonempty library cannot be entirely before Z and entirely under Z.
+        if total > 0, beforeLastLetter == total, lastLetterCount == total {
+            PlozzLog.networking.info(
+                "Library alphabet index unavailable: server returned the full count for disjoint alphabet filters"
+            )
+            return []
+        }
+
         let limiter = ConcurrencyLimiter(limit: 6)
-
-        async let totalTask: Int = limiter.run {
-            try await client.itemCount(
-                userID: userID, parentID: containerID,
-                includeItemTypes: includeItemTypes, recursive: recursive, filters: filters
-            )
-        }
-        async let lastLetterTask: Int = limiter.run {
-            try await client.itemCount(
-                userID: userID, parentID: containerID,
-                includeItemTypes: includeItemTypes, recursive: recursive,
-                nameStartsWith: "Z", filters: filters
-            )
-        }
-
-        var offsets: [String: Int] = [:]
+        var offsets: [String: Int] = ["Z": beforeLastLetter]
         try await withThrowingTaskGroup(of: (String, Int).self) { group in
-            for letter in letters {
+            for letter in letters where letter != "Z" {
                 group.addTask {
-                    let count = try await limiter.run {
+                    guard let count = try await limiter.run({
                         try await client.itemCount(
                             userID: userID, parentID: containerID,
                             includeItemTypes: includeItemTypes, recursive: recursive,
                             nameLessThan: letter, filters: filters
                         )
+                    }) else {
+                        PlozzLog.networking.error("Library alphabet count-only support changed during letter requests")
+                        throw AppError.invalidResponse
                     }
                     return (letter, count)
                 }
             }
             for try await (letter, count) in group { offsets[letter] = count }
         }
-        let total = try await totalTask
-        let lastLetterCount = try await lastLetterTask
         var previous = 0
         for letter in letters {
             guard let offset = offsets[letter], offset >= previous, offset <= total else {
+                PlozzLog.networking.error(
+                    "Library alphabet offset rejected: letter=\(letter) offset=\(offsets[letter].map(String.init) ?? "missing") previous=\(previous) total=\(total)"
+                )
                 throw AppError.invalidResponse
             }
             previous = offset
         }
-        guard lastLetterCount <= total - previous else { throw AppError.invalidResponse }
+        guard lastLetterCount <= total - previous else {
+            PlozzLog.networking.error(
+                "Library alphabet final-letter count rejected: count=\(lastLetterCount) offset=\(previous) total=\(total)"
+            )
+            throw AppError.invalidResponse
+        }
 
         let entries = LibraryLetterIndex.entries(
             lessThanOffsetsByLetter: offsets, totalCount: total, lastLetterCount: lastLetterCount,
