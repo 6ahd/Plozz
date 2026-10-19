@@ -1118,8 +1118,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// (digits/symbols) is the count before "A". Non-name sorts have no letter
     /// to jump to, so return empty and the rail stays hidden.
     ///
-    /// The A…Z counts fan out concurrently (bounded) and run once per browse
-    /// session — the view model caches the result until the sort changes.
+    /// The total first verifies count-only support. Compatible virtual catalogs
+    /// that return rows for `Limit=0` have no index. Otherwise the A…Z counts fan
+    /// out concurrently (bounded), once per browse session/sort.
     public func letterIndex(
         in containerID: String,
         kind: MediaItemKind,
@@ -1137,15 +1138,17 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         let letters = LibraryLetterIndex.railLetters.filter { $0 != "#" }
         let userID = session.userID
         let client = client
-        let limiter = ConcurrencyLimiter(limit: 6)
-
-        async let totalTask: Int = limiter.run {
-            try await client.itemCount(
-                userID: userID, parentID: containerID,
-                includeItemTypes: includeItemTypes, recursive: recursive, filters: filters
+        guard let total = try await client.itemCount(
+            userID: userID, parentID: containerID,
+            includeItemTypes: includeItemTypes, recursive: recursive, filters: filters
+        ) else {
+            PlozzLog.networking.info(
+                "Library alphabet index unavailable: server returned items for a count-only request"
             )
+            return []
         }
-        async let lastLetterTask: Int = limiter.run {
+        let limiter = ConcurrencyLimiter(limit: 6)
+        async let lastLetterTask: Int? = limiter.run {
             try await client.itemCount(
                 userID: userID, parentID: containerID,
                 includeItemTypes: includeItemTypes, recursive: recursive,
@@ -1157,20 +1160,19 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         try await withThrowingTaskGroup(of: (String, Int).self) { group in
             for letter in letters {
                 group.addTask {
-                    let count = try await limiter.run {
+                    guard let count = try await limiter.run({
                         try await client.itemCount(
                             userID: userID, parentID: containerID,
                             includeItemTypes: includeItemTypes, recursive: recursive,
                             nameLessThan: letter, filters: filters
                         )
-                    }
+                    }) else { throw AppError.invalidResponse }
                     return (letter, count)
                 }
             }
             for try await (letter, count) in group { offsets[letter] = count }
         }
-        let total = try await totalTask
-        let lastLetterCount = try await lastLetterTask
+        guard let lastLetterCount = try await lastLetterTask else { throw AppError.invalidResponse }
         var previous = 0
         for letter in letters {
             guard let offset = offsets[letter], offset >= previous, offset <= total else {

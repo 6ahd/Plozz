@@ -3,12 +3,162 @@ import CoreModels
 import CoreNetworking
 @testable import ProviderJellyfin
 
-/// Verifies the Jellyfin alphabet fast-scroll index issues the right count
-/// queries. The stub matches by path suffix only (it can't vary a response by
-/// query param), so the *offset math* is proven in `CoreModelsTests`; here we
-/// assert the request **shape**: a name sort fans out one `NameLessThan` count
-/// per letter A–Z, and non-name sorts issue nothing at all.
+/// Native count offsets and count-only compatibility for Jellyfin and Emby.
 final class JellyfinLetterIndexTests: XCTestCase {
+    func testCountOnlyIncompatibleCatalogHidesIndexWithoutChangingBrowse() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            for direction in [SortDirection.ascending, .descending] {
+                let stub = StubHTTPClient()
+                stub.stub(pathSuffix: "/Items", requiring: [.init(name: "Limit", value: "0")],
+                          json: #"{"Items":[{"Id":"z","Name":"Zulu","Type":"Movie"}],"TotalRecordCount":101}"#)
+                stub.stub(pathSuffix: "/Items",
+                          json: #"{"Items":[{"Id":"z","Name":"Zulu","Type":"Movie"},{"Id":"a","Name":"Alpha","Type":"Movie"}],"TotalRecordCount":101}"#)
+                let provider = JellyfinProvider(session: makeSession(kind: kind), http: stub)
+                let sort = CoreModels.SortDescriptor(field: .name, direction: direction)
+
+                let entries = try await provider.letterIndex(in: "virtual", kind: .movie, sort: sort)
+
+                XCTAssertTrue(entries.isEmpty)
+                XCTAssertEqual(stub.sentPaths.count, 1, "Probe count-only support before the 27 letter requests")
+                XCTAssertFalse(stub.sentQueryItems.flatMap { $0 }.contains {
+                    $0.name == "NameLessThan" || $0.name == "NameStartsWith"
+                })
+                let page = try await provider.items(
+                    in: "virtual", kind: .movie, page: .init(startIndex: 0, limit: 2, sort: sort)
+                )
+                XCTAssertEqual(page.items.map(\.id), ["z", "a"])
+                XCTAssertEqual(page.totalCount, 101)
+            }
+        }
+    }
+
+    func testUnsupportedCountProbeRetainsFilteredLibraryScope() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            let stub = StubHTTPClient()
+            stub.stub(pathSuffix: "/Items",
+                      json: #"{"Items":[{"Id":"a","Type":"Series"}],"TotalRecordCount":101}"#)
+            let provider = JellyfinProvider(session: makeSession(kind: kind), http: stub)
+            let entries = try await provider.libraryQueryLetterIndex(
+                in: "tv", kind: .series,
+                page: .init(startIndex: 0, limit: 10, sort: .default,
+                            filters: .init(filter: .unwatched, genre: "Drama", year: 2025))
+            )
+            XCTAssertTrue(entries.isEmpty)
+            XCTAssertEqual(stub.sentPaths.count, 1)
+            let query = try XCTUnwrap(stub.sentQueryItems.first)
+            for item in [
+                URLQueryItem(name: "ParentId", value: "tv"),
+                .init(name: "IncludeItemTypes", value: "Series"),
+                .init(name: "Recursive", value: "true"),
+                .init(name: "IsPlayed", value: "false"),
+                .init(name: "Genres", value: "Drama"),
+                .init(name: "Years", value: "2025"),
+                .init(name: "Limit", value: "0")
+            ] {
+                XCTAssertTrue(query.contains(item))
+            }
+        }
+    }
+
+    func testUnsupportedProbeDoesNotPersistAcrossLibrariesOrRefreshes() async throws {
+        let stub = StubHTTPClient()
+        stub.stubSequence(pathSuffix: "/Items", jsons: [
+            #"{"Items":[{"Id":"a","Type":"Movie"}],"TotalRecordCount":101}"#
+        ])
+        stub.stub(pathSuffix: "/Items", json: #"{"Items":[],"TotalRecordCount":0}"#)
+        let provider = JellyfinProvider(session: makeSession(), http: stub)
+        let unsupported = try await provider.letterIndex(in: "virtual", kind: .movie, sort: .default)
+        XCTAssertTrue(unsupported.isEmpty)
+        XCTAssertEqual(stub.sentPaths.count, 1)
+
+        _ = try await provider.letterIndex(in: "native", kind: .movie, sort: .default)
+        XCTAssertEqual(stub.sentPaths.count, 29, "Another library must still build its native index")
+        _ = try await provider.letterIndex(in: "virtual", kind: .movie, sort: .default)
+        XCTAssertEqual(stub.sentPaths.count, 57, "A refreshed endpoint must be allowed to recover support")
+    }
+
+    func testInvalidCountResponsesAreNotClassifiedAsUnsupported() async {
+        for json in [
+            #"{"Items":[]}"#,
+            #"{"Items":[],"TotalRecordCount":-1}"#,
+            #"{"Items":[{"Id":"a"}],"TotalRecordCount":-1}"#,
+            #"{"Items":[{"Id":"a"}],"TotalRecordCount":0}"#,
+            #"{"Items":[{"Id":"a"}]}"#,
+            #"{"Items":[],"TotalRecordCount":"invalid"}"#
+        ] {
+            let stub = StubHTTPClient()
+            stub.stub(pathSuffix: "/Items", json: json)
+            let provider = JellyfinProvider(session: makeSession(), http: stub)
+            do {
+                _ = try await provider.letterIndex(in: "movies", kind: .movie, sort: .default)
+                XCTFail("Invalid count data must remain an error")
+            } catch {
+                XCTAssertTrue((error as? AppError) == .invalidResponse || (error as? AppError) == .decoding)
+            }
+        }
+    }
+
+    func testCountProbeTransportAuthorizationAndCancellationFailuresRemainErrors() async {
+        for failure in [AppError.serverUnreachable, .unauthorized, .cancelled] {
+            let stub = StubHTTPClient()
+            stub.error = failure
+            let provider = JellyfinProvider(session: makeSession(), http: stub)
+            do {
+                _ = try await provider.letterIndex(in: "movies", kind: .movie, sort: .default)
+                XCTFail("A failed request does not establish unsupported counting")
+            } catch {
+                XCTAssertEqual(error as? AppError, failure)
+            }
+        }
+    }
+
+    func testContradictoryNativeCountsRemainRetryableErrors() async {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/Items", json: #"{"Items":[],"TotalRecordCount":5}"#)
+        let provider = JellyfinProvider(session: makeSession(), http: stub)
+        for _ in 0..<2 {
+            do {
+                _ = try await provider.letterIndex(in: "movies", kind: .movie, sort: .default)
+                XCTFail("A supported count endpoint with contradictory offsets must fail")
+            } catch {
+                XCTAssertEqual(error as? AppError, .invalidResponse)
+            }
+        }
+        XCTAssertEqual(stub.sentPaths.count, 56)
+    }
+
+    func testCancelledUnsupportedProbeCannotReturnAnEmptySuccess() async {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/Items",
+                  json: #"{"Items":[{"Id":"a"}],"TotalRecordCount":101}"#)
+        let provider = JellyfinProvider(session: makeSession(), http: stub)
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await provider.letterIndex(in: "movies", kind: .movie, sort: .default)
+        }
+        do {
+            _ = try await task.value
+            XCTFail("Cancellation must not establish an unsupported capability")
+        } catch is CancellationError {
+        } catch {
+            XCTFail("Expected cancellation, got \(error)")
+        }
+    }
+
+    func testInconsistentLetterResponseAfterSupportedProbeStillFails() async {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/Items", requiring: [.init(name: "NameLessThan", value: "A")],
+                  json: #"{"Items":[{"Id":"a"}],"TotalRecordCount":5}"#)
+        stub.stub(pathSuffix: "/Items", json: #"{"Items":[],"TotalRecordCount":0}"#)
+        let provider = JellyfinProvider(session: makeSession(), http: stub)
+        do {
+            _ = try await provider.letterIndex(in: "movies", kind: .movie, sort: .default)
+            XCTFail("Inconsistent native responses must not silently disable the index")
+        } catch {
+            XCTAssertEqual(error as? AppError, .invalidResponse)
+        }
+    }
+
     func testBothProvidersResolveConcreteAscendingAndDescendingOffsets() async throws {
         for kind in [ProviderKind.jellyfin, .emby] {
             let provider = JellyfinProvider(session: makeSession(kind: kind), http: AlphabetCountHTTP())
