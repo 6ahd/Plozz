@@ -48,8 +48,8 @@ language every other module speaks.
 ## Public surface, at a glance
 
 `RuntimeFeatureFlags.buildDefault` is the shared application rollout selection.
-Debug builds enable WeTrakr for local testing; Release builds retain
-`productionDefault`, where WeTrakr remains disabled for distribution.
+Debug and Release builds share `productionDefault`, with WeTrakr enabled,
+including TestFlight and App Store builds.
 
 The watch-mutation outbox retains WeTrakr completion keys and applied results
 per viewing session. The existing live-session origin/server-user guard supplies
