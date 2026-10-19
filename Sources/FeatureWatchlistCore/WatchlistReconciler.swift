@@ -157,7 +157,8 @@ public actor WatchlistReconciler {
                 confirmationIdentity: confirmationIdentity(
                     target: target,
                     destination: destination
-                )
+                ),
+                writePolicyVersion: destination.writePolicyVersion
             ))
         }
         FanoutDiagnostics.emit(
@@ -191,7 +192,8 @@ public actor WatchlistReconciler {
                 confirmationIdentity: confirmationIdentity(
                     target: target,
                     destination: destination
-                )
+                ),
+                writePolicyVersion: destination.writePolicyVersion
             )
         }
         try await mutationStore.replacePendingRemovalsWithPresentFanOut(
@@ -225,6 +227,7 @@ public actor WatchlistReconciler {
                 target: target,
                 destination: destination
             ),
+            writePolicyVersion: destination.writePolicyVersion,
             now: now
         )
     }
@@ -253,7 +256,8 @@ public actor WatchlistReconciler {
                 confirmationIdentity: confirmationIdentity(
                     target: target,
                     destination: destination
-                )
+                ),
+                writePolicyVersion: destination.writePolicyVersion
             )
         }
         try await mutationStore.enqueueBatch(requests, now: now)
@@ -339,7 +343,8 @@ public actor WatchlistReconciler {
                     confirmationIdentity: confirmationIdentity(
                         target: change.target,
                         destination: destination
-                    )
+                    ),
+                    writePolicyVersion: destination.writePolicyVersion
                 ))
             }
         }

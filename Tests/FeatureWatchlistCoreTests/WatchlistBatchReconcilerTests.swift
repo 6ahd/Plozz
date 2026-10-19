@@ -222,6 +222,156 @@ final class WatchlistBatchReconcilerTests: XCTestCase {
         }
     }
 
+    func testThreeLegacyFailuresRecoverInOneBatchAndStaySettledAfterRelaunch() async throws {
+        let targets = (1...3).map { id in
+            WatchlistMutationTarget(
+                aliasID: .init(), kind: .series,
+                externalIDs: [WatchlistExternalID(namespace: .tmdb, value: String(id))!]
+            )!
+        }
+        let legacy = targets.map { legacyFailure($0) }
+        let encoded = try JSONEncoder().encode(WatchlistMutationStoreState(mutations: legacy))
+        let decoded = try JSONDecoder().decode(WatchlistMutationStoreState.self, from: encoded)
+        XCTAssertTrue(decoded.mutations.allSatisfy { $0.writePolicyVersion == nil })
+        let backing = InMemoryWatchlistMutationStateStore(state: decoded)
+        let store = try DurableWatchlistMutationStore(store: backing)
+        let destination = BatchDestination(writePolicyVersion: 1)
+        let reconciler = makeReconciler(store, destination)
+        let changes = targets.map { WatchlistIdentityEvidenceChange(desiredState: .present, target: $0) }
+        try await reconciler.identityEvidenceChanged(profileID: "p", changes: changes)
+        let queued = await store.allMutations()
+        XCTAssertTrue(queued.allSatisfy { $0.phase == .queued && $0.writePolicyVersion == 1 })
+        XCTAssertTrue(queued.allSatisfy { $0.attemptCount == 5 })
+        XCTAssertTrue(Set(queued.compactMap(\.deliveryID)).isDisjoint(with: legacy.compactMap(\.deliveryID)))
+        _ = await reconciler.drain(profileID: "p")
+        let sizes = await destination.sizes
+        XCTAssertEqual(sizes, [3])
+        let restored = try DurableWatchlistMutationStore(store: backing)
+        let next = makeReconciler(restored, destination)
+        try await next.identityEvidenceChanged(profileID: "p", changes: changes)
+        let idle = await next.drain(profileID: "p")
+        XCTAssertEqual(idle, 0)
+        let remaining = await restored.allMutations()
+        XCTAssertTrue(remaining.isEmpty)
+    }
+
+    func testARepeatedPermanentFailureCannotReopenOnRefreshOrRestart() async throws {
+        let item = target(1)
+        let backing = InMemoryWatchlistMutationStateStore(state: .init(mutations: [legacyFailure(item)]))
+        let destination = BatchDestination(failure: .permanent, writePolicyVersion: 1)
+        for _ in 0..<3 {
+            let store = try DurableWatchlistMutationStore(store: backing)
+            let reconciler = makeReconciler(store, destination)
+            try await reconciler.identityEvidenceChanged(
+                profileID: "p", changes: [.init(desiredState: .present, target: item)]
+            )
+            _ = await reconciler.drain(profileID: "p")
+        }
+        let sizes = await destination.sizes
+        XCTAssertEqual(sizes, [1])
+        let state = try backing.load()
+        XCTAssertEqual(state.mutations.first?.phase, .permanentlyFailed)
+        XCTAssertEqual(state.mutations.first?.attemptCount, 6)
+        XCTAssertEqual(state.mutations.first?.writePolicyVersion, 1)
+    }
+
+    func testRecoveryRequiresCurrentIntentAndAnOptedInDestination() async throws {
+        let items = (1...4).map(target)
+        var untouchedProfile = legacyFailure(items[2], profileID: "q")
+        untouchedProfile.nextAttemptAt = .distantFuture
+        let otherDestination = legacyFailure(items[3], destinationID: "other")
+        let backing = InMemoryWatchlistMutationStateStore(state: .init(mutations: [
+            legacyFailure(items[0]), legacyFailure(items[1]), untouchedProfile, otherDestination
+        ]))
+        let store = try DurableWatchlistMutationStore(store: backing)
+        let defaultWriter = makeReconciler(store, BatchDestination())
+        let changes = [WatchlistIdentityEvidenceChange(desiredState: .present, target: items[0])]
+        try await defaultWriter.identityEvidenceChanged(profileID: "p", changes: changes)
+        let before = await defaultWriter.drain(profileID: "p")
+        XCTAssertEqual(before, 0)
+        let correctedWriter = makeReconciler(store, BatchDestination(writePolicyVersion: 1))
+        try await correctedWriter.identityEvidenceChanged(profileID: "p", changes: changes)
+        _ = await correctedWriter.drain(profileID: "p")
+        let remaining = await store.allMutations()
+        XCTAssertEqual(remaining.count, 3)
+        XCTAssertTrue(remaining.allSatisfy { $0.phase == .permanentlyFailed })
+        XCTAssertTrue(remaining.contains(untouchedProfile))
+        XCTAssertTrue(remaining.contains(otherDestination))
+    }
+
+    func testRecoveryPreservesCooldownAndDoesNotUnparkAuthenticationOrIdentity() async throws {
+        let phases: [WatchlistMutationPhase] = [
+            .permanentlyFailed, .retryScheduled, .waitingForAuthentication, .waitingForIdentity
+        ]
+        for phase in phases {
+            let item = target(1)
+            var legacy = legacyFailure(item)
+            legacy.phase = phase
+            legacy.nextAttemptAt = .distantFuture
+            let store = try DurableWatchlistMutationStore(
+                store: InMemoryWatchlistMutationStateStore(state: .init(mutations: [legacy]))
+            )
+            let reconciler = makeReconciler(store, BatchDestination(writePolicyVersion: 1))
+            try await reconciler.identityEvidenceChanged(
+                profileID: "p", changes: [.init(desiredState: .present, target: item)]
+            )
+            let values = await store.allMutations()
+            let updated = try XCTUnwrap(values.first)
+            XCTAssertEqual(updated.phase, phase == .permanentlyFailed ? .queued : phase)
+            XCTAssertEqual(updated.nextAttemptAt, .distantFuture)
+            XCTAssertEqual(updated.attemptCount, 5)
+            let processed = await reconciler.drain(profileID: "p")
+            XCTAssertEqual(processed, 0)
+            let deadline = await store.earliestNextAttempt(profileID: "p")
+            if updated.phase == .queued || updated.phase == .retryScheduled {
+                XCTAssertEqual(deadline, .distantFuture)
+            } else {
+                XCTAssertNil(deadline)
+            }
+        }
+    }
+
+    func testFailedRecoverySaveRetainsOriginalFailureAndRetryIdentity() async throws {
+        let item = target(1)
+        let legacy = legacyFailure(item)
+        let backing = FailingMutationStateStore()
+        try backing.save(.init(mutations: [legacy]))
+        let store = try DurableWatchlistMutationStore(store: backing)
+        let destination = BatchDestination(writePolicyVersion: 1)
+        let reconciler = makeReconciler(store, destination)
+        backing.failNextSave()
+        do {
+            try await reconciler.identityEvidenceChanged(
+                profileID: "p", changes: [.init(desiredState: .present, target: item)]
+            )
+            XCTFail("Expected recovery persistence failure")
+        } catch {}
+        let values = await store.allMutations()
+        XCTAssertEqual(values, [legacy])
+        XCTAssertEqual(try backing.load().mutations, [legacy])
+        let processed = await reconciler.drain(profileID: "p")
+        XCTAssertEqual(processed, 0)
+        let calls = await destination.sizes
+        XCTAssertTrue(calls.isEmpty)
+    }
+
+    private func legacyFailure(
+        _ target: WatchlistMutationTarget, profileID: String = "p", destinationID: String = "batch"
+    ) -> WatchlistMutation {
+        var mutation = WatchlistMutation(
+            key: .init(profileID: profileID, aliasID: target.aliasID,
+                       destinationID: WatchlistDestinationID(rawValue: destinationID)!),
+            desiredState: .present, target: target,
+            confirmationIdentity: destinationID + "\u{0}" + target.identityFingerprint,
+            createdAt: Date(timeIntervalSince1970: 100)
+        )
+        mutation.phase = .permanentlyFailed
+        mutation.lastFailureClass = .permanent
+        mutation.attemptCount = 5
+        mutation.writePolicyVersion = nil
+        return mutation
+    }
+
     private func target(_ id: Int) -> WatchlistMutationTarget {
         WatchlistMutationTarget(
             aliasID: .init(), kind: .movie,
@@ -239,6 +389,7 @@ final class WatchlistBatchReconcilerTests: XCTestCase {
 private actor BatchDestination: WatchlistBatchApplying {
     nonisolated let id = WatchlistDestinationID(rawValue: "batch")!
     nonisolated let maximumBatchSize = 50
+    nonisolated let writePolicyVersion: Int
     nonisolated let capabilities = WatchlistDestinationCapabilities(
         readable: true, writable: true, removable: true,
         bindingRequirement: .globalExternalIdentity, globalIdentityNamespaces: [.tmdb]
@@ -253,11 +404,13 @@ private actor BatchDestination: WatchlistBatchApplying {
 
     init(
         failure: WatchlistDestinationError? = nil, partial: Bool = false, malformed: Bool = false,
+        writePolicyVersion: Int = 0,
         beforeReply: @escaping @Sendable () async throws -> Void = {}
     ) {
         self.failure = failure
         self.partial = partial
         self.malformed = malformed
+        self.writePolicyVersion = writePolicyVersion
         self.beforeReply = beforeReply
     }
 

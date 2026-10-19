@@ -479,6 +479,9 @@ public protocol WatchlistDestination: Sendable {
     /// broader than `reconciliationScope` when credentials can arrive or rotate
     /// without changing the person whose list is being shown.
     var cacheIdentityScope: String { get }
+    /// Bump only when a writer fix warrants retrying previously permanent
+    /// failures. Persisted per mutation so ordinary refreshes never reopen them.
+    var writePolicyVersion: Int { get }
     func fetchEntries() async throws -> [WatchlistDestinationEntry]
     func resolve(_ target: WatchlistMutationTarget) async throws -> WatchlistDestinationBinding?
     func apply(
@@ -550,6 +553,7 @@ public protocol WatchlistLibraryResolving: WatchlistDestination {
 public extension WatchlistDestination {
     var reconciliationScope: String { id.rawValue }
     var cacheIdentityScope: String { reconciliationScope }
+    var writePolicyVersion: Int { 0 }
 
     var routing: WatchlistDestinationRouting {
         WatchlistDestinationRouting(

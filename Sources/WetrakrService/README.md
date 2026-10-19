@@ -137,6 +137,15 @@ for successes, and unambiguous identifiers for individual failures. Unresolved
 titles wait for new identity evidence; rejected titles remain failed. Malformed
 or ambiguous replies never acknowledge a whole batch.
 
+The corrected writer uses write-policy version 1. When current watchlist intent
+re-offers a mutation left permanently failed by an older policy, the queue grants
+one recovery attempt through the normal bounded batch path. The policy marker
+and new delivery identity are saved atomically before dispatch. Repeated refreshes
+and process restarts cannot reopen a failure from the same policy; existing
+cooldowns, attempt counts and other destinations remain untouched. This recovers
+legacy queue state, but does not turn an unresolved or rejected title into a
+successful sync without fresh evidence from WeTrakr.
+
 Any attempted write invalidates the planning cache, including a lost response.
 The next pass re-establishes the full baseline rather than trusting a lagging
 journal. Aggregate batch diagnostics report unchanged, confirmed, unresolved

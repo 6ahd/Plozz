@@ -52,12 +52,14 @@ public struct WatchlistMutation: Codable, Hashable, Sendable {
     /// written before destination-scoped confirmations existed.
     public var confirmationIdentity: String?
     public var deliveryID: UUID?
+    public var writePolicyVersion: Int?
 
     public init(
         key: WatchlistMutationKey,
         desiredState: WatchlistDesiredState,
         target: WatchlistMutationTarget,
         confirmationIdentity: String? = nil,
+        writePolicyVersion: Int = 0,
         createdAt: Date = Date()
     ) {
         self.key = key
@@ -65,6 +67,7 @@ public struct WatchlistMutation: Codable, Hashable, Sendable {
         self.target = target
         self.confirmationIdentity = confirmationIdentity
         deliveryID = UUID()
+        self.writePolicyVersion = max(0, writePolicyVersion)
         self.createdAt = createdAt
         updatedAt = createdAt
         attemptCount = 0
@@ -81,19 +84,22 @@ public struct WatchlistMutationEnqueueRequest: Sendable {
     public let target: WatchlistMutationTarget
     public let destinationID: WatchlistDestinationID
     public let confirmationIdentity: String?
+    public let writePolicyVersion: Int
 
     public init(
         profileID: String,
         desiredState: WatchlistDesiredState,
         target: WatchlistMutationTarget,
         destinationID: WatchlistDestinationID,
-        confirmationIdentity: String? = nil
+        confirmationIdentity: String? = nil,
+        writePolicyVersion: Int = 0
     ) {
         self.profileID = profileID
         self.desiredState = desiredState
         self.target = target
         self.destinationID = destinationID
         self.confirmationIdentity = confirmationIdentity
+        self.writePolicyVersion = max(0, writePolicyVersion)
     }
 }
 
@@ -300,6 +306,7 @@ public actor DurableWatchlistMutationStore {
         target: WatchlistMutationTarget,
         destinationID: WatchlistDestinationID,
         confirmationIdentity: String? = nil,
+        writePolicyVersion: Int = 0,
         now: Date = Date()
     ) throws {
         try enqueueBatch(
@@ -309,7 +316,8 @@ public actor DurableWatchlistMutationStore {
                     desiredState: desiredState,
                     target: target,
                     destinationID: destinationID,
-                    confirmationIdentity: confirmationIdentity
+                    confirmationIdentity: confirmationIdentity,
+                    writePolicyVersion: writePolicyVersion
                 )
             ],
             now: now
@@ -385,6 +393,7 @@ public actor DurableWatchlistMutationStore {
                     desiredState: request.desiredState,
                     target: request.target,
                     confirmationIdentity: request.confirmationIdentity,
+                    writePolicyVersion: request.writePolicyVersion,
                     createdAt: now
                 )
             // Re-enqueueing is not the same as changing your mind. A periodic
@@ -399,16 +408,26 @@ public actor DurableWatchlistMutationStore {
                 $0.target != request.target
                     || $0.confirmationIdentity != request.confirmationIdentity
             } ?? true
+            let previousPolicyVersion = max(0, existing?.writePolicyVersion ?? 0)
+            let recoverFailure = existing?.phase == .permanentlyFailed
+                && request.writePolicyVersion > previousPolicyVersion
             mutation.desiredState = request.desiredState
             mutation.target = request.target
             mutation.confirmationIdentity = request.confirmationIdentity
-            if isNewIntent || targetChanged {
+            mutation.writePolicyVersion = max(previousPolicyVersion, request.writePolicyVersion)
+            if isNewIntent || targetChanged || recoverFailure {
                 mutation.deliveryID = UUID()
             }
             if isNewIntent {
                 mutation.updatedAt = now
                 mutation.attemptCount = 0
                 mutation.nextAttemptAt = nil
+                mutation.phase = .queued
+                mutation.lastFailureClass = nil
+            } else if recoverFailure {
+                // Current intent explicitly re-offered to a corrected writer.
+                // Preserve attempts/cooldown; consume the recovery durably once.
+                mutation.updatedAt = now
                 mutation.phase = .queued
                 mutation.lastFailureClass = nil
             } else if targetChanged, mutation.phase == .waitingForIdentity {

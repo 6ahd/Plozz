@@ -6,6 +6,7 @@ import Foundation
 public actor WetrakrWatchlistDestination: WatchlistBatchApplying {
     public nonisolated let id = WatchlistDestinationID(rawValue: "wetrakr")!
     public nonisolated let maximumBatchSize = 50
+    public nonisolated let writePolicyVersion = 1
     public nonisolated let capabilities = WatchlistDestinationCapabilities(
         readable: true, writable: true, removable: true, bindingRequirement: .globalExternalIdentity,
         globalIdentityNamespaces: [.imdb, .tmdb, .tvdb, .trakt, .aniList, .myAnimeList, .aniDB, .wetrakr]

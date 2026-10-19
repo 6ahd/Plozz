@@ -11,6 +11,7 @@ final class WetrakrWatchlistBatchTests: XCTestCase {
         stubBaseline(http)
         http.stub(pathSuffix: "/sync/tracking", json: #"{"added":{"planning":{"movies":11,"shows":11}}}"#)
         let destination = makeDestination(http)
+        XCTAssertEqual(destination.writePolicyVersion, 1)
         var bindings: [WatchlistDestinationBinding] = []
         for index in 1...22 {
             bindings.append(try await binding(index, kind: index <= 11 ? .movie : .series, destination: destination))
