@@ -34,6 +34,64 @@ final class DetailPlaybackProgressTests: XCTestCase {
         XCTAssertEqual(try cache.value(forKey: "detail") { throw AppError.unauthorized }, "available")
     }
 
+    func testRetainedDetailCacheSeparatesIdenticalProviderIDsAcrossAccountsAndOrigins() throws {
+        let cache = KeyedViewStateCache<DetailViewModelCacheKey, ItemDetailViewModel>(capacity: 12)
+        var retained: [DetailViewModelCacheKey: ItemDetailViewModel] = [:]
+        for account in ["plex-a", "plex-b"] {
+            for origin: String? in [nil, account] {
+                let movie = MediaItem(id: "42", title: "Movie", kind: .movie, sourceAccountID: account)
+                let episode = MediaItem(id: "42", title: "Episode", kind: .episode, seriesID: "1", sourceAccountID: account)
+                let season = MediaItem(id: "42", title: "Season", kind: .season, seriesID: "1", sourceAccountID: account)
+                let provider = ProgressProbeProvider(item: movie, kind: .plex)
+                let environment = DetailOpenEnvironment(
+                    resolveProvider: { id in
+                        XCTAssertEqual(id, account)
+                        return provider
+                    },
+                    resolveOptionalProvider: { $0 == account ? provider : nil },
+                    identitySources: { _ in [] },
+                    crossServerSourceResolver: nil
+                )
+                let titleKey = DetailViewModelCacheKey.title(for: movie, libraryOrigin: origin)
+                let episodeRoute = EpisodeContextRoute(episode: episode, originAccountID: origin)
+                let seasonRoute = SeasonContextRoute(season: season, originAccountID: origin)
+                let titleModel = try cache.value(forKey: titleKey) {
+                    try environment.makeViewModel(for: movie, libraryOrigin: origin)
+                }
+                let episodeModel = try cache.value(forKey: DetailViewModelCacheKey(episodeRoute)) {
+                    try environment.makeSeriesContextViewModel(
+                        seriesID: episodeRoute.seriesID, seed: episode,
+                        sourceAccountID: account, originAccountID: origin
+                    )
+                }
+                let seasonModel = try cache.value(forKey: DetailViewModelCacheKey(seasonRoute)) {
+                    try environment.makeSeriesContextViewModel(
+                        seriesID: seasonRoute.seriesID, seed: season,
+                        sourceAccountID: account, originAccountID: origin
+                    )
+                }
+                for (key, model) in [
+                    (titleKey, titleModel),
+                    (DetailViewModelCacheKey(episodeRoute), episodeModel),
+                    (DetailViewModelCacheKey(seasonRoute), seasonModel)
+                ] {
+                    XCTAssertNil(retained[key])
+                    XCTAssertFalse(retained.values.contains { $0 === model })
+                    XCTAssertEqual(model.currentSourceForDisplay?.accountID, account)
+                    XCTAssertEqual(model.originSourceAccountID, origin)
+                    retained[key] = model
+                }
+                XCTAssertEqual(titleModel.currentSourceForDisplay?.itemID, "42")
+                XCTAssertEqual(episodeModel.currentSourceForDisplay?.itemID, "1")
+                XCTAssertEqual(seasonModel.currentSourceForDisplay?.itemID, "1")
+            }
+        }
+        XCTAssertEqual(retained.count, 12)
+        for (key, model) in retained {
+            XCTAssertTrue(try cache.value(forKey: key) { throw AppError.unauthorized } === model)
+        }
+    }
+
     private struct Fixture {
         let app: AppState
         let detail: ItemDetailViewModel

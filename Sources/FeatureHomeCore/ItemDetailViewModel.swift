@@ -217,7 +217,7 @@ public final class ItemDetailViewModel {
     /// Stable identity for the active movie/series source. Includes the account so
     /// switching servers re-resolves even when two backends use the same item id.
     public var themeMusicPlaybackID: String? {
-        guard !isDiscoveryItem,
+        guard !isDiscoveryItem, let activeProvider,
               case let .loaded(detail) = state,
               detail.item.kind == .movie || detail.item.kind == .series else {
             return nil
@@ -233,7 +233,7 @@ public final class ItemDetailViewModel {
 
     /// Resolves theme audio as a best-effort decorative enhancement.
     public func resolveThemeMusic() async -> ThemeMusic? {
-        guard themeMusicPlaybackID != nil else { return nil }
+        guard themeMusicPlaybackID != nil, let activeProvider else { return nil }
         do {
             let theme = try await activeProvider.themeMusic(for: activeItemID)
             if let theme {
@@ -250,7 +250,7 @@ public final class ItemDetailViewModel {
         }
     }
 
-    private let provider: any MediaProvider
+    private let provider: (any MediaProvider)?
     private let itemID: String
     private let ratingsProvider: any ExternalRatingsProviding
     private let detailMetadataResolver: @Sendable (MediaItem) async -> MetadataEnrichment
@@ -280,7 +280,7 @@ public final class ItemDetailViewModel {
     /// keying go through these, never the immutable base, so an in-place switch
     /// re-keys cleanly. The base lets are kept so the page's original identity is
     /// recoverable and the documented immutability of the opened source holds.
-    private var activeProvider: any MediaProvider
+    private var activeProvider: (any MediaProvider)?
     private var activeItemID: String
     private var activeSourceAccountID: String?
     private let editionOpeningSource: MediaItemSourceIdentity?
@@ -356,11 +356,13 @@ public final class ItemDetailViewModel {
 
     /// The current server described as a ``MediaSourceRef`` **for display**, built
     /// from the active provider. Unlike ``sources`` (deliberately empty for a
-    /// single-server title so no picker shows), this is always populated, so the
+    /// single-server title so no picker shows), this is populated for library
+    /// details and nil for provider-free external details, so the
     /// detail "Playback" card can show the server + connection even for the common
     /// one-server case. Prefers the matching enriched source when the multi-server
     /// picker is populated so its richer metadata (e.g. resolved locality) wins.
-    public var currentSourceForDisplay: MediaSourceRef {
+    public var currentSourceForDisplay: MediaSourceRef? {
+        guard let activeProvider else { return nil }
         if let match = sources.first(where: { $0.accountID == activeSourceAccountID && $0.itemID == activeItemID })
             ?? sources.first(where: { $0.accountID == activeSourceAccountID }) {
             return match
@@ -492,7 +494,7 @@ public final class ItemDetailViewModel {
     private var snapshotKey: String { "\(activeSourceAccountID ?? "_")|\(activeItemID)" }
 
     public init(
-        provider: any MediaProvider,
+        provider: (any MediaProvider)?,
         itemID: String,
         initialItem: MediaItem? = nil,
         initialResumeEpisode: MediaItem? = nil,
@@ -650,7 +652,11 @@ public final class ItemDetailViewModel {
         // children). Handles the single-library-copy case that the multi-source
         // locality retarget below doesn't.
         adoptLibraryItemIDForActiveAccountIfNeeded()
-        let loadProvider = activeProvider
+        guard let loadProvider = activeProvider else {
+            PlozzLog.app.error("Library detail has no active media source")
+            state = .failed(.unauthorized)
+            return
+        }
         let loadItemID = activeItemID
         let loadAccountID = activeSourceAccountID
         let loadSourceGeneration = sourceGeneration
@@ -1329,7 +1335,7 @@ public final class ItemDetailViewModel {
     }
 
     public func retryExtras() async {
-        guard let detail = state.value else { return }
+        guard let detail = state.value, let activeProvider else { return }
         await loadExtras(
             for: detail.item,
             children: detail.children,
@@ -1362,7 +1368,7 @@ public final class ItemDetailViewModel {
             seasonLoadingSuspended = false
         }
         guard hasPaintedFreshDetail else { return }
-        if let item = state.value?.item {
+        if let item = state.value?.item, let activeProvider {
             startStreamProbeEnrichment(
                 for: item,
                 provider: activeProvider,
@@ -1673,7 +1679,7 @@ public final class ItemDetailViewModel {
         // reload) while this one is still awaiting the network; re-checking the
         // identity before publishing makes a superseded reload bail instead of
         // painting the previous server's detail/children over the newer one.
-        let provider = activeProvider
+        guard let provider = activeProvider else { await load(); return }
         let itemID = activeItemID
         let account = activeSourceAccountID
         let reloadSourceGeneration = sourceGeneration
@@ -1860,11 +1866,11 @@ public final class ItemDetailViewModel {
     /// Reads bounded pages without changing the existing collection detail/rail
     /// presentation. A failed later page is never cached as an empty collection.
     public func retryCollectionMembers() async {
-        guard case var .loaded(detail) = state, detail.item.kind == .collection else { return }
+        guard case var .loaded(detail) = state, detail.item.kind == .collection,
+              let provider = activeProvider else { return }
         collectionLoadGeneration &+= 1
         let requestGeneration = collectionLoadGeneration
         let generation = sourceGeneration
-        let provider = activeProvider
         let itemID = detail.item.id
         detail.collectionMembersState = .loading
         state = .loaded(detail)
@@ -2032,6 +2038,7 @@ public final class ItemDetailViewModel {
     /// failures cache an empty list so a missing season does not retry on every
     /// focus change.
     public func loadEpisodes(for seasonID: String, forceRefresh: Bool = false) async {
+        guard let provider = activeProvider else { return }
         let sourceItemID = activeItemID
         let sourceAccountID = activeSourceAccountID
         let loadSourceGeneration = sourceGeneration
@@ -2058,7 +2065,6 @@ public final class ItemDetailViewModel {
                    !previousAttemptFailed {
                     return
                 }
-                let provider = activeProvider
                 let token = UUID()
                 load = SeasonLoad(token: token)
                 let superseded = seasonLoads[seasonID]
@@ -2206,7 +2212,7 @@ public final class ItemDetailViewModel {
 
     /// Fetches full file facts once per episode/source without rewriting the rail.
     public func enrichEpisodeBadgesIfNeeded(_ episode: MediaItem) async -> MediaItem? {
-        guard episode.kind == .episode,
+        guard let activeProvider, episode.kind == .episode,
               episode.sourceAccountID == nil || activeSourceAccountID == nil
                 || episode.sourceAccountID == activeSourceAccountID else { return nil }
         if episodeBadgeEnrichment[episode.id] != nil {

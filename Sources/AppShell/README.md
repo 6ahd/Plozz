@@ -44,11 +44,17 @@ registry.
 
 - **Missing sources are a recoverable route state.** Home, Watchlist, Search,
   library and series-context destinations show an unavailable state when their
-  provider no longer resolves. An untagged item may use the active primary
+  library provider no longer resolves. External Watchlist/Search details remain
+  available without any enabled media server and keep their metadata/request
+  behavior. An untagged library item may use the active primary
   provider; an explicit missing account never falls back to a different server.
-  Detail source selection excludes inactive copies before choosing a provider,
-  and failed model construction is not cached. Player creation propagates
-  missing-source failures into its visible error path.
+  Classification and source selection use the same active-source snapshot so
+  a stale index cannot send an external ID to a different server. Failed model
+  construction is not cached; title, episode and season cache keys include their
+  account and library origin inside the existing profile/credential scope.
+  Player creation propagates missing-source failures into its visible error path.
+  Online trailers bypass library version preparation and retain their dedicated
+  provider even when no media-server account is enabled.
 
 - **Mobile notification completion stays on the main actor.** The download
   notification delegate uses the explicit completion-handler entry point.

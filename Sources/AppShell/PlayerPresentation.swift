@@ -310,7 +310,9 @@ struct PlayerPresentation: View {
     }
 
     private func preparedRequest(_ request: PlayRequest) async throws -> PlayRequest {
-        let item = try await prepareVersion(versionChoice, request.item)
+        // Online trailers use their own provider, even with no connected library.
+        let item = request.item.isYouTubeTrailer
+            ? request.item : try await prepareVersion(versionChoice, request.item)
         try Task.checkCancellation()
         guard isPresented else { throw CancellationError() }
         return PlayRequest(

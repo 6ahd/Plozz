@@ -558,7 +558,7 @@ final class ItemDetailViewModelTests: XCTestCase {
         let provider = FakeMediaProvider(allItems: [owned], kind: .silo)
         provider.childrenByParent = [owned.id: [season("s1", "Season 1")]]
         let vm = ItemDetailViewModel(
-            provider: provider, itemID: seed.id, initialItem: seed, isDiscoveryItem: true,
+            provider: nil, itemID: seed.id, initialItem: seed, isDiscoveryItem: true,
             externalMetadataResolver: { _, region in
                 ExternalTitleMetadata(
                     enrichment: MetadataEnrichment(externalIDs: [
@@ -581,7 +581,39 @@ final class ItemDetailViewModelTests: XCTestCase {
         XCTAssertEqual(vm.state.value?.children.map(\.id), ["s1"])
         XCTAssertEqual(provider.itemCallCount(for: seed.id), 0)
         XCTAssertGreaterThan(provider.itemCallCount(for: owned.id), 0)
+        XCTAssertEqual(vm.currentSourceForDisplay?.accountID, "silo")
         vm.suspendEnrichment()
+    }
+
+    func testProviderFreeDiscoveryLoadsMetadataAndRequestStatus() async {
+        let seed = MediaItem(
+            id: "external", title: "External movie", kind: .movie,
+            locallyValidatedPlayableSource: false
+        )
+        let vm = ItemDetailViewModel(
+            provider: nil, itemID: seed.id, initialItem: seed, isDiscoveryItem: true,
+            discoveryStatusRefresh: { _ in (.pending, nil) },
+            externalMetadataResolver: { _, region in
+                .init(
+                    enrichment: MetadataEnrichment(overview: SourcedValue(value: "External overview", source: .tmdb)),
+                    availability: ExternalTitleAvailability(regionCode: region)
+                )
+            },
+            onlineTrailerResolver: { _ in [] }, playableVideoIDResolver: { _ in nil },
+            trailerCache: TrailerResolutionCache()
+        )
+        defer { vm.suspendEnrichment() }
+        await vm.load()
+        vm.resumeEnrichmentIfNeeded()
+        XCTAssertTrue(vm.isDiscoveryItem)
+        XCTAssertEqual(vm.state.value?.item.id, seed.id)
+        XCTAssertEqual(vm.state.value?.item.overview, "External overview")
+        XCTAssertEqual(vm.state.value?.item.availability, .pending)
+        XCTAssertEqual(vm.state.value?.item.ownershipPresentation().canPlay, false)
+        XCTAssertNil(vm.currentSourceForDisplay)
+        XCTAssertNil(vm.themeMusicPlaybackID)
+        let music = await vm.resolveThemeMusic()
+        XCTAssertNil(music)
     }
 
     func testExternalDetailWithoutMatchingLibraryCopyStaysUnplayable() async {
@@ -754,6 +786,78 @@ final class ItemDetailViewModelTests: XCTestCase {
         }
     }
 
+    func testExternalDetailsDoNotRequireAProviderEvenWithAnInactiveAccountTag() throws {
+        let environment = DetailOpenEnvironment(
+            resolveProvider: { _ in
+                XCTFail("External metadata must not resolve a media server")
+                throw AppError.unauthorized
+            },
+            resolveOptionalProvider: { _ in nil },
+            identitySources: { _ in [] },
+            crossServerSourceResolver: nil
+        )
+        for account: String? in [nil, "removed"] {
+            let item = MediaItem(
+                id: "external", title: "Watchlist", kind: .movie,
+                locallyValidatedPlayableSource: false, sourceAccountID: account
+            )
+            let model = try environment.makeViewModel(for: item, libraryOrigin: nil)
+            XCTAssertTrue(model.isDiscoveryItem)
+            XCTAssertEqual(model.state.value?.item.id, item.id)
+            XCTAssertEqual(model.state.value?.item.ownershipPresentation().canPlay, false)
+            XCTAssertNil(model.currentSourceForDisplay)
+        }
+    }
+
+    func testStaleIndexCannotRouteAnExternalIDToThePrimaryProvider() throws {
+        let primary = FakeMediaProvider(allItems: [], kind: .plex, accountID: "primary")
+        let removed = MediaSourceRef(accountID: "removed", itemID: "42", kind: .movie)
+        let environment = DetailOpenEnvironment(
+            resolveProvider: { _ in
+                XCTFail("A stale index must not turn an external ID into a primary-server request")
+                return primary
+            },
+            resolveOptionalProvider: { $0 == "primary" ? primary : nil },
+            identitySources: { _ in [removed] },
+            crossServerSourceResolver: nil
+        )
+        var item = MediaItem(
+            id: "external", title: "Watchlist", kind: .movie, locallyValidatedPlayableSource: false
+        )
+        item.sources = [removed]
+        let model = try environment.makeViewModel(for: item, libraryOrigin: nil)
+        XCTAssertTrue(model.isDiscoveryItem)
+        XCTAssertEqual(model.state.value?.item.id, "external")
+        XCTAssertEqual(model.state.value?.item.sources, [])
+        XCTAssertNil(model.currentSourceForDisplay)
+        XCTAssertTrue(primary.itemCallCounts.isEmpty)
+    }
+
+    func testExternalDetailSelectsTheSurvivingIndexedCopyUsingItsOwnID() throws {
+        let live = FakeMediaProvider(allItems: [], kind: .jellyfin, accountID: "live")
+        let environment = DetailOpenEnvironment(
+            resolveProvider: { accountID in
+                XCTAssertEqual(accountID, "live")
+                return live
+            },
+            resolveOptionalProvider: { $0 == "live" ? live : nil },
+            identitySources: { _ in [
+                MediaSourceRef(accountID: "removed", itemID: "42", kind: .movie, locality: .local),
+                MediaSourceRef(accountID: "live", itemID: "live-id", kind: .movie, locality: .remote)
+            ] },
+            crossServerSourceResolver: nil
+        )
+        let item = MediaItem(
+            id: "external", title: "Watchlist", kind: .movie, locallyValidatedPlayableSource: false
+        )
+        let model = try environment.makeViewModel(for: item, libraryOrigin: nil)
+        XCTAssertFalse(model.isDiscoveryItem)
+        XCTAssertEqual(model.state.value?.item.id, "live-id")
+        XCTAssertEqual(model.currentSourceForDisplay?.accountID, "live")
+        XCTAssertEqual(model.currentSourceForDisplay?.itemID, "live-id")
+        XCTAssertEqual(model.state.value?.item.sources.map(\.accountID), ["live"])
+    }
+
     func testDetailSelectionSkipsRemovedSourcesWithoutSendingTheirItemIDToAnotherServer() throws {
         let live = FakeMediaProvider(allItems: [], kind: .jellyfin, accountID: "live")
         var item = MediaItem(id: "old-id", title: "Saved", kind: .movie, sourceAccountID: "removed")
@@ -771,8 +875,8 @@ final class ItemDetailViewModelTests: XCTestCase {
             crossServerSourceResolver: nil
         )
         let model = try environment.makeViewModel(for: item, libraryOrigin: nil)
-        XCTAssertEqual(model.currentSourceForDisplay.accountID, "live")
-        XCTAssertEqual(model.currentSourceForDisplay.itemID, "live-id")
+        XCTAssertEqual(model.currentSourceForDisplay?.accountID, "live")
+        XCTAssertEqual(model.currentSourceForDisplay?.itemID, "live-id")
         XCTAssertEqual(model.state.value?.item.sources.map(\.accountID), ["live"])
         XCTAssertTrue(live.itemCallCounts.isEmpty)
     }
@@ -795,7 +899,7 @@ final class ItemDetailViewModelTests: XCTestCase {
             sourceAccountID: nil, originAccountID: "origin"
         )
         XCTAssertEqual(requested, ["origin"])
-        XCTAssertEqual(model.currentSourceForDisplay.accountID, "origin")
+        XCTAssertEqual(model.currentSourceForDisplay?.accountID, "origin")
     }
 
     func testSeriesResumeFindsNextEpisodeBeyondSixtyTitles() async {

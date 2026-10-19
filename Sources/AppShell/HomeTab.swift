@@ -174,7 +174,7 @@ struct HomeTab: View {
     /// stack, and `ItemDetailView` keeps only the first value in `@State` — so
     /// building one inline meant constructing and discarding a view model (and
     /// re-resolving the item's cross-server sources) several times per push.
-    @State private var detailViewModels = KeyedViewStateCache<String, ItemDetailViewModel>()
+    @State private var detailViewModels = KeyedViewStateCache<DetailViewModelCacheKey, ItemDetailViewModel>()
     /// Person view models, cached for the same reason as `detailViewModels`: the
     /// destination closure re-runs on every render pass, so building one inline
     /// constructs and discards a model (and re-issues its credits fetch) on each.
@@ -556,7 +556,7 @@ struct HomeTab: View {
             }
             .navigationDestination(for: EpisodeContextRoute.self) { route in
                 if let model = try? detailViewModels.value(
-                    forKey: "episode:\(route.seriesID)#\(route.episode.id)",
+                    forKey: DetailViewModelCacheKey(route),
                     {
                         try detailEnvironment.makeSeriesContextViewModel(
                             seriesID: route.seriesID,
@@ -598,7 +598,7 @@ struct HomeTab: View {
             }
             .navigationDestination(for: SeasonContextRoute.self) { route in
                 if let model = try? detailViewModels.value(
-                    forKey: "season:\(route.seriesID)#\(route.season.id)",
+                    forKey: DetailViewModelCacheKey(route),
                     {
                         try detailEnvironment.makeSeriesContextViewModel(
                             seriesID: route.seriesID,
@@ -1182,7 +1182,7 @@ struct HomeTab: View {
         // a real library copy via the identity index, so they keep the normal
         // playable detail page.
         if let model = try? detailViewModels.value(
-            forKey: "item:\(item.id)#\(libraryOrigin ?? "")",
+            forKey: .title(for: item, libraryOrigin: libraryOrigin),
             {
                 try detailEnvironment.makeViewModel(for: item, libraryOrigin: libraryOrigin)
             })

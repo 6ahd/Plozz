@@ -255,8 +255,8 @@ final class UniversalWatchlistMembershipTests: XCTestCase {
         )
         let detail = try environment.makeViewModel(for: refreshed, libraryOrigin: nil)
         XCTAssertFalse(detail.isDiscoveryItem)
-        XCTAssertEqual(detail.currentSourceForDisplay.itemID, searched.id)
-        XCTAssertEqual(detail.currentSourceForDisplay.accountID, searched.sourceAccountID)
+        XCTAssertEqual(detail.currentSourceForDisplay?.itemID, searched.id)
+        XCTAssertEqual(detail.currentSourceForDisplay?.accountID, searched.sourceAccountID)
     }
 
     func testPromotedSeriesWithoutExternalIDsKeepsPlexAndMediaBrowserLibraryRoutes() async throws {

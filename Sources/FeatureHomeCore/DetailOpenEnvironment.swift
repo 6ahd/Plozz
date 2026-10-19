@@ -256,12 +256,20 @@ public struct DetailOpenEnvironment {
         if let opening = Self.openingSource(for: item) {
             _ = try resolveProvider(opening.accountID)
         }
-        let isDiscovery = isDiscovery(item)
+        let identitySources = self.identitySources
+        let resolveOptionalProvider = self.resolveOptionalProvider
+        let liveIdentitySources: @Sendable (MediaItem) -> [MediaSourceRef] = { item in
+            identitySources(item).filter { resolveOptionalProvider($0.accountID) != nil }
+        }
+        let indexedSources = liveIdentitySources(item)
+        var routingItem = item
+        routingItem.sources.removeAll { resolveOptionalProvider($0.accountID) == nil }
+        let isDiscovery = Self.isDiscovery(routingItem, identitySources: { _ in indexedSources })
         let selection = Self.initialSourceSelection(
-            for: item,
+            for: routingItem,
             isDiscovery: isDiscovery,
             libraryOrigin: libraryOrigin,
-            identitySources: identitySources,
+            identitySources: { _ in indexedSources },
             sourceLocality: {
                 resolveOptionalProvider($0)?.connectionLocality
             },
@@ -272,11 +280,13 @@ public struct DetailOpenEnvironment {
         let sources = selection.sources
         let selectedSource = selection.selected
         Self.logDetailOpen(item: item, isDiscovery: isDiscovery, resolvedSources: sources)
-        var selectedItem = Self.initialItem(for: item, selectedSource: selectedSource)
+        var selectedItem = Self.initialItem(for: routingItem, selectedSource: selectedSource)
         selectedItem.sources = sources
         let resume = DetailPlaybackSelection.resumeItem(for: selectedItem, in: continueWatchingSnapshot())
         return ItemDetailViewModel(
-            provider: try resolveProvider(selectedSource?.accountID ?? item.sourceAccountID),
+            provider: isDiscovery ? nil : try resolveProvider(
+                selectedSource?.accountID ?? item.sourceAccountID ?? libraryOrigin
+            ),
             itemID: selectedSource?.itemID ?? item.id,
             initialItem: DetailPlaybackSelection.applyingResumeItem(resume, to: selectedItem),
             initialResumeEpisode: selectedItem.kind == .series ? resume : nil,
@@ -285,12 +295,12 @@ public struct DetailOpenEnvironment {
             loadSeasonEpisodeRoster: loadSeasonEpisodeRoster,
             ratingsProvider: ratingsProvider,
             detailMetadataResolver: detailMetadataResolver,
-            sourceAccountID: selectedSource?.accountID ?? item.sourceAccountID,
+            sourceAccountID: isDiscovery ? nil : selectedSource?.accountID ?? item.sourceAccountID ?? libraryOrigin,
             originSourceAccountID: libraryOrigin,
             initialSources: sources,
             alternateProviderResolver: resolveOptionalProvider,
             crossServerSourceResolver: crossServerSourceResolver,
-            identitySources: identitySources,
+            identitySources: liveIdentitySources,
             relatedTitlesLoader: makeRelatedTitlesLoader?(
                 Self.relatedTitlesDisplayMode(isDiscoveryItem: isDiscovery)
             ),
