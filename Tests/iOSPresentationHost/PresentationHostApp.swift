@@ -134,7 +134,9 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--player-glass-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--player-layout-fixture") {
+                PlayerLayoutFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--player-glass-fixture") {
                 PlayerGlassAppearanceFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--playback-failure-fixture") {
                 PlaybackFailureFixture()

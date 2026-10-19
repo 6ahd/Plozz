@@ -400,6 +400,21 @@ use synthetic received data, not pairing services or stored household credential
 Package-only UIKit snapshots cannot replace this gate:
 without an application scene, `drawHierarchy` returns an empty image.
 
+`SystemAppearanceTests` changes the scene's device appearance while keeping the
+same window and pushed sheet alive. System leaves the window override unspecified
+and follows light/dark changes; explicit Light, Dark, and Pure Black remain pinned.
+The iOS root owns UIKit appearance from the selected theme, not its resolved
+palette. Sheets inherit that window instead of freezing the opening appearance.
+`PlayerSurfaceAppearanceHostedTests` and `PlayerGlassAppearanceInteractionTests`
+compare player panels against stock regular Liquid Glass in each appearance,
+rather than requiring a fixed dark compositor output.
+`PlayerLayoutInteractionTests` measures actual iPhone 16 Pro Max portrait and
+landscape control frames against the native-player reference, including the
+different skip spacing, edge margins, and non-stretching tabs.
+`PlayerTransportPositionTests` also checks VOD/Live resizing and compact
+landscape clearance. Grouped glass must span adjacent controls without merging
+their actions; compositor coverage checks the bridge and both tap targets.
+
 `PlayerOrientationTests` checks the UIKit player owner's close path without
 another update from the hidden SwiftUI presenter, including disappearance
 cleanup, closing during presentation, reopening, and stale close callbacks.

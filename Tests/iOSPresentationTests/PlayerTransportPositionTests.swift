@@ -10,7 +10,7 @@ import XCTest
 
 @MainActor
 final class PlayerTransportPositionTests: XCTestCase {
-    func testTransportIsCenteredBetweenActualTopAndBottomControlsAfterResizing() async throws {
+    func testTransportIsCenteredOnTheVideoAfterResizing() async throws {
         let model = PlayerViewModel(provider: LayoutProvider(), itemID: "fixture")
         model.controls.duration = 3600
         model.controls.currentSeconds = 600
@@ -25,7 +25,7 @@ final class PlayerTransportPositionTests: XCTestCase {
         )
     }
 
-    func testLiveTransportUsesTheSameGapInPortraitAndLandscape() async throws {
+    func testLiveTransportUsesTheSameVideoCenterInPortraitAndLandscape() async throws {
         let input = LiveChannelInput.stream(
             url: try XCTUnwrap(URL(string: "https://fixture.invalid/live.m3u8")), httpHeaders: [:]
         )
@@ -63,6 +63,7 @@ final class PlayerTransportPositionTests: XCTestCase {
             previous?.makeKeyAndVisible()
         }
         for size in [
+            CGSize(width: 956, height: 440), CGSize(width: 440, height: 956),
             CGSize(width: 852, height: 393), CGSize(width: 393, height: 852),
             CGSize(width: 1024, height: 768), CGSize(width: 768, height: 1024)
         ] {
@@ -77,7 +78,7 @@ final class PlayerTransportPositionTests: XCTestCase {
                 XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
             }
             let attachment = XCTAttachment(image: image)
-            attachment.name = "\(label) centered between chrome \(Int(size.width))x\(Int(size.height))"
+            attachment.name = "\(label) centered on video \(Int(size.width))x\(Int(size.height))"
             attachment.lifetime = .keepAlways
             add(attachment)
             let bitmap = try pixels(image)
@@ -85,15 +86,18 @@ final class PlayerTransportPositionTests: XCTestCase {
                 let offset = (y * Int(size.width) + x) * 4
                 return min(bitmap[offset], bitmap[offset + 1], bitmap[offset + 2]) > 180
             }
-            let topRows = (0..<100).filter { y in (0..<70).contains { bright(x: $0, y: y) } }
-            let topBottom = CGFloat(try XCTUnwrap(topRows.last) + 1)
-            let centerRows = (Int(topBottom)..<Int(bottom.minY)).filter {
-                bright(x: Int(size.width / 2) + 28, y: $0)
+            let centerRows = (Int(size.height / 2 - 50)..<Int(size.height / 2 + 50)).filter {
+                bright(x: Int(size.width / 2) + 16, y: $0)
             }
             let centerY = CGFloat(try XCTUnwrap(centerRows.first) + XCTUnwrap(centerRows.last) + 1) / 2
-            XCTAssertEqual(centerY, (topBottom + bottom.minY) / 2, accuracy: 1.5,
-                           "Transport must center in the open space, not the full \(size) screen.")
-            for offset in [-98, 0, 98] {
+            XCTAssertEqual(centerY, size.height / 2, accuracy: 1.5,
+                           "Transport must match the native player's video center.")
+            let compact = PlayerTouchLayout.usesCompactTransport(contentHeight: size.height - 48)
+            XCTAssertLessThan(centerY + (compact ? 22 : 46), bottom.minY, "Transport must stay above bottom controls.")
+            let offset = compact ? 64 : Int(78 + PlayerTouchLayout.transportSpacing(
+                availableWidth: size.width - 42, portrait: size.height > size.width
+            ))
+            for offset in [-offset, 0, offset] {
                 let x = Int(size.width / 2) + offset
                 let y = Int(centerY)
                 let darkPixels = ((y - 15)..<(y + 15)).reduce(0) { total, row in

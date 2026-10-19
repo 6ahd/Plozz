@@ -113,7 +113,6 @@ struct ScrubBar: View {
                 }
             }
             .frame(maxHeight: .infinity, alignment: .center)
-            .playerSurfaceAppearance()
             .animation(.easeOut(duration: 0.12), value: model.isScrubbing)
             .animation(.easeOut(duration: 0.2), value: model.controlBarVisible)
             .animation(.easeOut(duration: 0.2), value: model.controlsVisible)
@@ -298,7 +297,7 @@ struct InfoActionButtonStyle: ButtonStyle {
         let hPadding: CGFloat
         let vPadding: CGFloat
         @Environment(\.isFocused) private var nativeFocus
-        @Environment(\.playerSurfaceColorScheme) private var colorScheme
+        @Environment(\.colorScheme) private var colorScheme
 
         var body: some View {
             let hasFocus = focused ?? nativeFocus
@@ -336,7 +335,7 @@ struct InfoActionButtonStyle: ButtonStyle {
 /// underneath it. The semantic values these replace were `.headline` (45.35pt
 /// per line) and `.footnote` (34.61) — both a size larger than this card, at
 /// three metres, actually needs.
-/// The scrub bar's base track: dark Liquid Glass on 26+, or a theme-aware
+/// The scrub bar's base track: native Liquid Glass on 26+, or a theme-aware
 /// flat fill when accessibility reduces glass and on older systems.
 ///
 /// Shared by the remote and touch scrub bars. They had drifted apart — the touch
@@ -361,7 +360,6 @@ public struct PlayerScrubTrackSurface: View {
                 .background {
                     Capsule().fill(.white.opacity(Self.glassBackingOpacity))
                 }
-                .playerSurfaceAppearance()
         } else {
             Capsule()
                 .fill(colorScheme == .light
@@ -379,6 +377,7 @@ public struct PlayerScrubTrackSurface: View {
 /// material is precisely how the cast rows ended up looking unlike the cast
 /// cards.
 public struct PlayerGlassCircleSurface: View {
+    @Environment(\.playerControlsGrouped) private var grouped
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
     @Environment(\.plozzReduceTransparency) private var reduceTransparency
 
@@ -386,7 +385,9 @@ public struct PlayerGlassCircleSurface: View {
 
     public var body: some View {
         let shape = Circle()
-        if reducePanelGlass || reduceTransparency {
+        if grouped {
+            Color.clear
+        } else if reducePanelGlass || reduceTransparency {
             shape
                 .fill(.clear)
                 .plozzFrostedBackground(shape)
@@ -415,6 +416,7 @@ public struct PlayerGlassCircleSurface: View {
 public struct PlayerGlassCircleButtonStyle: ButtonStyle {
     /// The button's full circular size, which is also its touch target.
     public let diameter: CGFloat
+    @Environment(\.playerControlsGrouped) private var grouped
 
     public init(diameter: CGFloat) {
         self.diameter = diameter
@@ -427,14 +429,13 @@ public struct PlayerGlassCircleButtonStyle: ButtonStyle {
             .background { PlayerGlassCircleSurface() }
             .clipShape(Circle())
             // The whole circle takes the tap, not just the glyph inside it.
-            .contentShape(Circle())
+            .contentShape(RoundedRectangle(cornerRadius: grouped ? 0 : diameter / 2))
             .scaleEffect(configuration.isPressed ? 0.94 : 1)
             // Its own curve. Inheriting the ambient one means a press that
             // coincides with some other animation settles on that animation's
             // schedule — which is what made the tab row look like its two
             // buttons were moving at different speeds.
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .playerSurfaceAppearance()
     }
 
 }
@@ -454,7 +455,7 @@ struct PlayerTabButtonStyle: ButtonStyle {
     /// when playback starts and stops, never while focus is moving, so the view
     /// tree stays a stable shape mid-swipe.
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
-    @Environment(\.playerSurfaceColorScheme) private var colorScheme
+    @Environment(\.colorScheme) private var colorScheme
 
     func makeBody(configuration: Configuration) -> some View {
         // ONE geometry for both states: the label, font and padding are applied
@@ -466,10 +467,6 @@ struct PlayerTabButtonStyle: ButtonStyle {
         configuration.label
             .font(.callout.weight(.semibold))
             .foregroundStyle(focused ? (colorScheme == .light ? Color.white : .black) : .primary)
-            // 0.65 was too far down over glass: the pill's own brightness eats
-            // most of the remaining contrast, and a closed tab read as disabled
-            // rather than merely inactive. Selection is carried by the tint
-            // behind the label; this only needs to be a step, not a fade.
             .opacity(focused || selected ? 1 : 0.86)
             .padding(.horizontal, 26)
             .padding(.vertical, 14)
@@ -490,8 +487,7 @@ struct PlayerTabButtonStyle: ButtonStyle {
             // HStack cannot really move at different speeds; that is what it
             // looked like.
             //
-            // The surface does not need it either: both states now draw the same
-            // glass, with selection painted on top (see `background`).
+            // Both selected states retain the same untinted glass.
             .scaleEffect(configuration.isPressed ? 1.02 : (focused ? 1.08 : 1))
             .animation(.easeOut(duration: 0.15), value: focused)
             // The press scale needs a curve of its OWN, and this is the whole
@@ -505,7 +501,6 @@ struct PlayerTabButtonStyle: ButtonStyle {
             // settle, simply travelled. Both moved together; only one was also
             // finishing a scale.
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .playerSurfaceAppearance()
     }
 
     @ViewBuilder
@@ -527,16 +522,7 @@ struct PlayerTabButtonStyle: ButtonStyle {
                 .plozzFrostedBackground(shape, raised: selected)
                 .plozzFrostedBorder(shape)
         } else if !reduceTransparency, #available(iOS 26.0, tvOS 26.0, *) {
-            // Selected keeps the glass and only tints it. Swapping in a flat
-            // fill made an open tab a different material from a closed one,
-            // when the only thing that changes is which of them is open.
-            //
-            // Tried and reverted: drawing one plain glass for both states and
-            // painting selection as an overlay on top. It reads as a different
-            // material — an opaque wash sitting ON the glass rather than the
-            // glass itself being coloured — and it left the label looking greyed
-            // out, as though the tab were disabled.
-            PlayerNativeGlassSurface(shape, highlighted: selected)
+            PlayerNativeGlassSurface(shape)
         } else {
             shape.fill(.clear)
                 .plozzFrostedBackground(shape, raised: selected)
@@ -612,7 +598,6 @@ struct PanelGlassBackground: ViewModifier {
                     .plozzFrostedBorder(shape)
             }
         }
-        .playerSurfaceAppearance()
     }
 }
 

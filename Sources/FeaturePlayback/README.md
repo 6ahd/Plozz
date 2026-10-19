@@ -65,20 +65,48 @@ bounded language-match/accessibility flags without track titles or URLs.
 
 ## Player appearance
 
-Player transport buttons, timelines, tabs, cards, and inline panels share a
-surface-local appearance: native Liquid Glass stays dark in both app themes;
-the reduced-glass/older-system fallback follows light and dark mode with paired
+Player transport buttons, timelines, tabs, cards, and inline panels use regular
+native Liquid Glass and inherit the current appearance. Do not force these
+surfaces dark or apply a fixed dark tint: the system owns their adaptive material.
+Capsule buttons use the native glass/glass-prominent styles on both platforms.
+The reduced-glass/older-system fallback follows light and dark mode with paired
 foreground colors. Text directly over video stays white. UIKit-backed route and
 options buttons resolve the same icon contrast without forcing their presented
-menus or sheets into the player's appearance.
-Native surfaces use clear glass with a fixed dark tint; regular glass's adaptive
-coloration can wash out white controls over bright video despite a dark scheme.
-Native capsule buttons use black-tinted prominent glass on tvOS and iOS 26.0;
-iOS 26.1+ supports the clear material in its native button style.
+menus or sheets into a separate appearance.
 
-On iPhone and iPad, the main transport row is centered in the remaining space
-between the top buttons and bottom controls, rather than the full screen.
-Both layouts use the controls' intrinsic heights, including after rotation.
+On iPhone and iPad, the main transport row is centered on the video. Its 92-point
+play button and 64-point skip buttons use 68 points of edge-to-edge spacing in
+landscape and 39 in portrait, contracting further in narrow windows. Short
+landscape windows use the compact transport so it stays clear of the bottom
+controls. VOD and Live chrome use the larger of the window safe area and native
+edge margins (21 horizontal, 24 vertical), rather than adding the two. Adjacent
+routing and playback-option controls share one untinted glass capsule while
+retaining independent actions; Close and the main transport remain separate.
+Mobile card tabs use native glass buttons with player-sized labels, 8-point gaps,
+and a 44-point minimum touch target instead of TV padding. The timeline occupies
+a 38-point layout row while VOD scrubbing retains its 44-point touch target.
+Its elapsed and remaining labels align to the outer chrome edges, including
+when reserved clock widths are wider than the visible times.
+Time columns reserve only their current playback/clock formats, with 4-point
+gaps beside the track. During a drag, the seek label fits the existing column
+instead of moving the track under the finger.
+
+## Skip-marker timeline
+
+The on-demand and Live touch timelines keep the native glass surface continuous wherever
+segment cuts would strand tiny pieces. Each uses its measured track width, not
+orientation or device type: a cut needs enough room on both sides for the
+20-point touched diameter plus the existing gaps. Both cuts around a short
+marker or short unmarked interval are omitted, including near the track ends.
+The same threshold applies at rest and while dragging, so touching does not
+change which cuts appear. Wider layouts retain cuts wherever they fit.
+
+Marker ranges are never enlarged or retimed; skip behavior, linear seeking, and
+existing touch targets remain unchanged. On iPhone and iPad, progress is shown
+only by the advancing fill, without a vertical playhead at rest or while dragging.
+The track is 8 points tall at rest and 20 while dragging. The dimmer buffered or
+aired fill remains behind it. Live preserves programme timing, rewind availability,
+and its paused/live-edge indicators. tvOS retains its playhead and segmentation.
 
 ## Live rewind scrubbing
 

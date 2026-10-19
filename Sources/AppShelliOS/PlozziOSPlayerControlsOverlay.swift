@@ -99,10 +99,6 @@ struct PlozziOSPlayerControlsOverlay: View {
                         )
                     }
                     Spacer(minLength: 0)
-                    if controlsVisible && !isCardOpen && !showsUpNext {
-                        primaryPlaybackControls(compact: false)
-                    }
-                    Spacer(minLength: 0)
                     PlozziOSPlayerTransport(
                         viewModel: viewModel,
                         showsTransport: controlsVisible || touchGestures.skip != nil,
@@ -183,6 +179,14 @@ struct PlozziOSPlayerControlsOverlay: View {
                         availableSize: availableSize
                     )
                 }
+                .modifier(PlayerTouchChromePadding())
+            }
+
+            if controlsVisible && !isCardOpen && !showsUpNext {
+                primaryPlaybackControls(compact: PlayerTouchLayout.usesCompactTransport(
+                    contentHeight: availableSize.height - 2 * PlayerTouchLayout.edgeInset
+                ))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             PlayerTouchGestureFeedbackView(state: touchGestures)
@@ -281,20 +285,24 @@ struct PlozziOSPlayerControlsOverlay: View {
                 PlozziOSStreamingQualitySheet(viewModel: viewModel)
             }
         }
+        .ignoresSafeArea()
     }
 
     private func primaryPlaybackControls(compact: Bool) -> some View {
-        HStack(spacing: compact ? 20 : 28) {
+        HStack(spacing: compact ? 20 : PlayerTouchLayout.transportSpacing(
+            availableWidth: availableSize.width - 2 * PlayerTouchLayout.horizontalInset,
+            portrait: availableSize.height > availableSize.width
+        )) {
             Button {
                 seek(by: -viewModel.controls.skipGesture.backwardInterval.seconds)
                 backwardSpins -= 1
             } label: {
                 PlozziOSSkipGlyph(
                     seconds: viewModel.controls.skipGesture.backwardInterval.rawValue,
-                    direction: .backward, size: compact ? 24 : 30, turns: backwardSpins
+                    direction: .backward, size: compact ? 24 : 34, turns: backwardSpins
                 )
             }
-            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : 64))
+            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : PlayerTouchLayout.skipDiameter))
             .accessibilityLabel("Skip backward")
 
             Button {
@@ -302,9 +310,9 @@ struct PlozziOSPlayerControlsOverlay: View {
                 noteInteraction()
             } label: {
                 Image(systemName: viewModel.controls.intendsPause ? "play.fill" : "pause.fill")
-                    .font(.system(size: compact ? 24 : 32))
+                    .font(.system(size: compact ? 24 : 44))
             }
-            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : 76))
+            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : PlayerTouchLayout.playDiameter))
             .accessibilityLabel(viewModel.controls.intendsPause ? "Play" : "Pause")
 
             Button {
@@ -313,10 +321,10 @@ struct PlozziOSPlayerControlsOverlay: View {
             } label: {
                 PlozziOSSkipGlyph(
                     seconds: viewModel.controls.skipGesture.forwardInterval.rawValue,
-                    direction: .forward, size: compact ? 24 : 30, turns: forwardSpins
+                    direction: .forward, size: compact ? 24 : 34, turns: forwardSpins
                 )
             }
-            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : 64))
+            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : PlayerTouchLayout.skipDiameter))
             .accessibilityLabel("Skip forward")
         }
         .shadow(color: .black.opacity(0.4), radius: 8, y: 2)
@@ -580,13 +588,13 @@ private struct PlozziOSAirPlayRouteButton: UIViewRepresentable {
         let view = AVRoutePickerView()
         // Surfaces Apple TV class receivers ahead of audio-only routes.
         view.prioritizesVideoDevices = true
-        view.tintColor = context.environment.playerSurfaceColorScheme == .light ? .black : .white
+        view.tintColor = context.environment.colorScheme == .light ? .black : .white
         view.activeTintColor = view.tintColor
         return view
     }
 
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
-        uiView.tintColor = context.environment.playerSurfaceColorScheme == .light ? .black : .white
+        uiView.tintColor = context.environment.colorScheme == .light ? .black : .white
         uiView.activeTintColor = uiView.tintColor
     }
 }
@@ -611,27 +619,25 @@ private struct PlozziOSPlayerTopBar: View {
             .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
             .accessibilityLabel("Close player")
 
-            PlozziOSAirPlayRouteButton()
-                .frame(width: 44, height: 44)
-                .background { PlayerGlassCircleSurface() }
-                .clipShape(Circle())
-                .accessibilityLabel(Text(verbatim: "AirPlay"))
+            PlayerGlassControlGroup {
+                PlozziOSAirPlayRouteButton()
+                    .frame(width: 44, height: 44)
+                    .accessibilityLabel(Text(verbatim: "AirPlay"))
 
-            if pictureInPictureAvailable {
-                Button(action: onTogglePictureInPicture) {
-                    Image(systemName: "pip.enter")
-                        .font(.headline)
+                if pictureInPictureAvailable {
+                    Button(action: onTogglePictureInPicture) {
+                        Image(systemName: "pip.enter")
+                            .font(.headline)
+                    }
+                    .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
+                    .accessibilityLabel("Picture in Picture")
                 }
-                .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
-                .accessibilityLabel("Picture in Picture")
             }
 
             Spacer(minLength: 0)
         }
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.horizontal)
-        .padding(.top)
     }
 }
 
@@ -797,13 +803,11 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
                 transportControls.hidden()
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .bottom)
     }
 
     private var transportControls: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             if isScrubbing, showsScrubPreview {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
@@ -868,6 +872,7 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
                 onScrubChanged: onScrubChanged, onScrubEditingChanged: onScrubEditingChanged,
                 onInteraction: onInteraction
             )
+            .frame(height: PlayerTouchLayout.timelineRowHeight)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("player-timeline")
             .reportSubtitleControlsFrame(
@@ -911,7 +916,7 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
     /// Two stable controls leave the title room in portrait.
     @ViewBuilder
     private var trackControls: some View {
-        HStack(spacing: 12) {
+        PlayerGlassControlGroup {
             Button(action: onShowSubtitles) {
                 Image(systemName: "captions.bubble")
                     .font(.title3)
@@ -920,6 +925,7 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
             .accessibilityLabel("Subtitles")
             playbackOptions
         }
+        .accessibilityIdentifier("player-track-controls")
     }
 
     private var playbackOptions: some View {
@@ -972,12 +978,14 @@ struct PlozziOSPlayerTimeline: View {
     var body: some View {
         PlayerClockTimeline(model: model, enabled: model.timelineClock.isEnabled) { clock in
             let visibleClock = isScrubbing ? nil : clock
-            HStack(spacing: 16) {
+            let layoutSeconds = isScrubbing ? model.currentSeconds : displayedSeconds
+            HStack(spacing: 4) {
                 timeButton(
                     Text(verbatim: visibleClock?.current ?? playbackTime(displayedSeconds)),
+                    layoutText: Text(verbatim: playbackTime(layoutSeconds)),
                     samples: (clock?.currentWidthSamples ?? []).map { Text(verbatim: $0) },
                     label: visibleClock != nil ? "Current time" : "Elapsed time",
-                    identifier: "player-timeline-current-time"
+                    identifier: "player-timeline-current-time", alignment: .leading
                 )
                 PlayerTouchScrubBar(
                     currentSeconds: displayedSeconds, duration: model.duration,
@@ -989,35 +997,39 @@ struct PlozziOSPlayerTimeline: View {
                 timeButton(
                     visibleClock.map { $0.end.map { Text($0) } ?? Text(verbatim: "--:--") }
                         ?? Text(verbatim: "-\(playbackTime(max(model.duration - displayedSeconds, 0)))"),
+                    layoutText: Text(verbatim: "-\(playbackTime(max(model.duration - layoutSeconds, 0)))"),
                     samples: (clock?.endWidthSamples ?? []).map { Text($0) },
                     label: visibleClock != nil ? "Estimated end time" : "Remaining time",
-                    identifier: "player-timeline-end-time"
+                    identifier: "player-timeline-end-time", alignment: .trailing
                 )
             }
         }
     }
 
     private func timeButton(
-        _ text: Text, samples: [Text], label: LocalizedStringResource, identifier: String
+        _ text: Text, layoutText: Text, samples: [Text], label: LocalizedStringResource, identifier: String,
+        alignment: Alignment
     ) -> some View {
         Button {
             model.timelineClock.isEnabled.toggle()
             onInteraction()
         } label: {
             ZStack {
-                Text(verbatim: "-\(playbackTime(model.duration))").hidden()
+                layoutText.hidden()
                 ForEach(samples.indices, id: \.self) { index in
                     samples[index].hidden()
                 }
             }
             .accessibilityHidden(true)
-            .overlay {
+            .overlay(alignment: alignment) {
                 text
                     .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
             .font(.caption.monospacedDigit())
             .fixedSize()
-            .frame(minWidth: 44, minHeight: 44)
+            .frame(minWidth: 44, minHeight: 44, alignment: alignment)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

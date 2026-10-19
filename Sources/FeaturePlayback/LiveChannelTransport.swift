@@ -261,8 +261,8 @@ struct LiveChannelOverlay: View {
     private static let bottomMargin: CGFloat = 48
     private static let cardGap: CGFloat = 32
     #else
-    private static let horizontalMargin: CGFloat = 16
-    private static let bottomMargin: CGFloat = 18
+    private static let horizontalMargin: CGFloat = 0
+    private static let bottomMargin: CGFloat = 0
     private static let cardGap: CGFloat = 18
     #endif
     private static let stackSpacing: CGFloat = 18
@@ -1024,7 +1024,6 @@ struct LiveChannelOverlay: View {
             }
         }
         .frame(height: cardHeight)
-        .playerSurfaceAppearance()
     }
 
     /// The EPG grid in the Info card's container — the same panel surface,
@@ -1235,7 +1234,7 @@ struct LiveChannelOverlay: View {
 /// controls themselves.
 extension LiveChannelOverlay {
     /// Leaves the top row level with the host's presentation controls.
-    static let touchTopBarInset: CGFloat = 8
+    static let touchTopBarInset: CGFloat = 0
     /// The close button's width plus the row's spacing: where the host starts
     /// its presentation controls so they sit beside it.
     static let touchPresentationLeadingInset: CGFloat = horizontalMargin + 44 + 12
@@ -1280,19 +1279,19 @@ extension LiveChannelOverlay {
                         .allowsHitTesting(!touchTimelineOnly)
                         .accessibilityHidden(touchTimelineOnly)
                     Spacer(minLength: 0)
-                    if !cardOpen, openMenu == nil {
-                        centerTransport
-                            .opacity(touchTimelineOnly ? 0 : 1)
-                            .allowsHitTesting(!touchTimelineOnly)
-                            .accessibilityHidden(touchTimelineOnly)
-                            .transition(.opacity)
-                    }
-                    Spacer(minLength: 0)
                     touchBottomCluster
                 }
                 menuLayer
             }
-            .modifier(WindowSafeAreaPadding())
+            .modifier(PlayerTouchChromePadding())
+            if !cardOpen, openMenu == nil {
+                centerTransport
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(touchTimelineOnly ? 0 : 1)
+                    .allowsHitTesting(!touchTimelineOnly)
+                    .accessibilityHidden(touchTimelineOnly)
+                    .transition(.opacity)
+            }
         }
         .environment(\.playerCardMetrics, touchMetrics)
         .onChange(of: touchBackgroundTapRevision) { _, _ in backgroundTapped() }
@@ -1325,13 +1324,15 @@ extension LiveChannelOverlay {
 
     /// VOD's skip · play · skip, as channel down · play / pause · channel up.
     private var centerTransport: some View {
-        HStack(spacing: 28) {
+        HStack(spacing: compactTransport ? 20 : PlayerTouchLayout.transportSpacing(
+            availableWidth: availableSize.width, portrait: isTouchPortrait
+        )) {
             Button(action: onPrevious) {
                 Label("Previous Channel", systemImage: "backward.end.fill")
                     .labelStyle(.iconOnly)
                     .font(.system(size: 24))
             }
-            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 64))
+            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compactTransport ? 44 : PlayerTouchLayout.skipDiameter))
             .accessibilityIdentifier("live-channel-previous")
 
             playPauseButton
@@ -1341,10 +1342,14 @@ extension LiveChannelOverlay {
                     .labelStyle(.iconOnly)
                     .font(.system(size: 24))
             }
-            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 64))
+            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compactTransport ? 44 : PlayerTouchLayout.skipDiameter))
             .accessibilityIdentifier("live-channel-next")
         }
         .shadow(color: .black.opacity(0.4), radius: 8, y: 2)
+    }
+
+    private var compactTransport: Bool {
+        PlayerTouchLayout.usesCompactTransport(contentHeight: availableSize.height)
     }
 
     /// Stands in for the host's activity panel while the controls are up, so
@@ -1364,9 +1369,9 @@ extension LiveChannelOverlay {
                 }
             }
             .labelStyle(.iconOnly)
-            .font(.system(size: 32))
+            .font(.system(size: compactTransport ? 24 : 44))
         }
-        .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 76))
+        .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compactTransport ? 44 : PlayerTouchLayout.playDiameter))
         // A stream with no time-shift can't pause; the button stays put so the
         // row doesn't reflow, but says so.
         .disabled(isBusy || !(canPause || phase == .paused))
@@ -1384,7 +1389,7 @@ extension LiveChannelOverlay {
     // MARK: Bottom
 
     private var touchBottomCluster: some View {
-        VStack(alignment: .leading, spacing: Self.stackSpacing) {
+        VStack(alignment: .leading, spacing: 0) {
             if !cardOpen {
                 Group {
                     if isTouchPortrait {
@@ -1413,6 +1418,7 @@ extension LiveChannelOverlay {
                 .accessibilityHidden(touchTimelineOnly)
                 .transition(.opacity)
                 timeline
+                    .frame(height: PlayerTouchLayout.timelineRowHeight)
                     .accessibilityIdentifier("live-channel-timeline")
                     .accessibilityElement(children: .combine)
                     .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .timeline)
@@ -1500,7 +1506,7 @@ extension LiveChannelOverlay {
     /// Audio · Subtitles · Multiview: beside the title on its side, in the top
     /// bar stood up.
     private var touchTrackBadges: some View {
-        HStack(spacing: 12) {
+        PlayerGlassControlGroup {
             if showsZoom {
                 PlayerOptionsMenuButton(
                     makeMenu: {
@@ -1558,7 +1564,6 @@ extension LiveChannelOverlay {
                     .allowsHitTesting(false)
             }
         }
-        .playerSurfaceAppearance()
     }
 
     /// VOD's touch tab row: tapping a tab opens its card, tapping it again
@@ -1573,10 +1578,10 @@ extension LiveChannelOverlay {
     }
 
     private var touchTabs: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             ForEach(availableTabs, id: \.self) { tab in
                 Button { toggleCard(tab) } label: { Text(tab.title) }
-                    .buttonStyle(PlayerTabButtonStyle(focused: false, selected: cardOpen && cardTab == tab))
+                    .playerTouchTab(selected: cardOpen && cardTab == tab)
                     // The whole pill takes the tap; see `PlayerTouchCardStrip.tab`.
                     .contentShape(Capsule(style: .continuous))
                     .disabled(openMenu != nil)
@@ -1601,17 +1606,21 @@ extension LiveChannelOverlay {
 /// view's identity) in place while padding by nothing.
 struct WindowSafeAreaPadding: ViewModifier {
     var isEnabled = true
+    var minimumInset: CGFloat = 0
+    var minimumHorizontalInset: CGFloat = 0
 
     @Environment(\.layoutDirection) private var layoutDirection
     @State private var window = WindowSafeArea()
 
     func body(content: Content) -> some View {
         let insets = isEnabled ? window.insets : .zero
+        let minimum = isEnabled ? minimumInset : 0
+        let horizontal = isEnabled ? minimumHorizontalInset : 0
         let rtl = layoutDirection == .rightToLeft
         content
             .padding(EdgeInsets(
-                top: insets.top, leading: rtl ? insets.right : insets.left,
-                bottom: insets.bottom, trailing: rtl ? insets.left : insets.right
+                top: max(minimum, insets.top), leading: max(horizontal, rtl ? insets.right : insets.left),
+                bottom: max(minimum, insets.bottom), trailing: max(horizontal, rtl ? insets.left : insets.right)
             ))
             .ignoresSafeArea()
             // Zero-sized: a full-size UIKit view here sat above the controls in
@@ -1903,18 +1912,17 @@ struct LiveChannelGuideInfoColumn: View {
         .plozzSurface(
             .raised, cornerRadius: max(0, metrics.panelCornerRadius - metrics.contentPadding)
         )
-        .playerSurfaceAppearance()
     }
 }
 #endif
 
 // MARK: - Timeline
 
-/// The live stand-in for VOD's scrub bar: the same track surface, fill and
-/// playhead, measuring the programme instead of a file.
+/// The live stand-in for VOD's scrub bar, measuring the programme instead of a
+/// file. Mobile uses fill-only progress; tvOS retains its playhead.
 ///
 /// The faint fill is what has aired so far (VOD's buffered fill); the bright
-/// fill and playhead are what is on screen, which trails it while paused or
+/// fill (and tvOS playhead) is what is on screen, which trails it while paused or
 /// time-shifted. The label riding the playhead is the clock time of the picture
 /// on screen. Without guide data the bar is simply full at the live edge.
 private struct LiveChannelTimeline: View {
@@ -1990,10 +1998,7 @@ private struct LiveChannelTimeline: View {
     private static let rowSpacing: CGFloat = 2
     private static let barRowHeight: CGFloat = 18
     private static let labelRowHeight: CGFloat = 20
-    private static let restingBarHeight: CGFloat = 6
-    private static let restingKnobHeight: CGFloat = 14
-    private static let scrubbingKnobWidth: CGFloat = 6
-    private static let scrubbingKnobHeight: CGFloat = 32
+    private static let restingBarHeight: CGFloat = 8
     private static let pauseGlyphSize: CGFloat = 16
     private static let pauseGlyphOffset: CGFloat = 24
     private static let timeFont: Font = .caption.weight(.semibold)
@@ -2007,15 +2012,22 @@ private struct LiveChannelTimeline: View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let knobX = width * CGFloat(layout.playing)
-            let fillStart = width * CGFloat(layout.seekableStart ?? 0)
             // Scrubbing takes VOD's touched shape on touch (`PlayerTouchScrubBar`)
             // and its focused shape with a lifted knob on the remote.
             let scrubbing = scrubBehind != nil
             let barHeight: CGFloat = focused || scrubbing ? 20 : Self.restingBarHeight
+            #if os(tvOS)
+            let fillStart = width * CGFloat(layout.seekableStart ?? 0)
             let knobWidth: CGFloat = scrubbing ? Self.scrubbingKnobWidth : focused ? 8 : 4
             let knobHeight: CGFloat = scrubbing ? Self.scrubbingKnobHeight
                 : focused ? 32 : Self.restingKnobHeight
+            #endif
             ZStack(alignment: .leading) {
+                #if os(iOS)
+                LiveChannelTouchTrack(
+                    layout: layout, width: width, height: barHeight, focused: focused, scrubbing: scrubbing
+                )
+                #else
                 ZStack(alignment: .leading) {
                     PlayerScrubTrackSurface(height: barHeight)
                     Rectangle()
@@ -2035,19 +2047,21 @@ private struct LiveChannelTimeline: View {
                     LiveChannelProgrammeTrack(ranges: layout.maskRanges, height: barHeight)
                         .equatable()
                 }
+                #endif
                 if scrubbing, showsScrubThumbnail {
                     LiveChannelScrubThumbnail(image: scrubThumbnail, knobX: knobX, barWidth: width)
                         .transition(.opacity)
                 }
+                #if os(tvOS)
                 RoundedRectangle(cornerRadius: focused || scrubbing ? knobWidth / 2 : 0, style: .continuous)
                     .fill(Color.primary)
                     .frame(width: knobWidth, height: knobHeight)
                     .offset(x: knobX - knobWidth / 2)
                     .shadow(radius: 4)
+                #endif
             }
             .frame(maxHeight: .infinity, alignment: .center)
             .animation(.easeOut(duration: 0.2), value: focused)
-            .playerSurfaceAppearance()
         }
     }
 
@@ -2110,6 +2124,38 @@ private struct LiveChannelTimeline: View {
             .shadow(radius: 3)
     }
 }
+
+#if os(iOS)
+struct LiveChannelTouchTrack: View {
+    let layout: LiveChannelTimelineLayout
+    let width: CGFloat
+    let height: CGFloat
+    let focused: Bool
+    let scrubbing: Bool
+
+    var body: some View {
+        let fillStart = width * CGFloat(layout.seekableStart ?? 0)
+        ZStack(alignment: .leading) {
+            PlayerScrubTrackSurface(height: height)
+            Rectangle()
+                .fill(Color.primary.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
+                .frame(width: max(0, width * CGFloat(layout.aired) - fillStart), height: height)
+                .offset(x: fillStart)
+            if layout.seekableStart != nil {
+                Rectangle()
+                    .fill(Color.primary.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
+                    .frame(width: max(0, width * CGFloat(layout.playing) - fillStart), height: height)
+                    .offset(x: fillStart)
+            }
+        }
+        .mask {
+            LiveChannelProgrammeTrack(ranges: layout.maskRanges, height: height, minimumSectionWidth: 20)
+                .equatable()
+        }
+        .frame(width: width, height: height)
+    }
+}
+#endif
 
 /// The scrub preview floating above the playhead, in VOD's frame (`ScrubBar`):
 /// glass-bordered on 26, kept on the bar's span, centred on the playhead.
@@ -2230,12 +2276,15 @@ private struct LiveChannelTimelineDrag: ViewModifier {
 private struct LiveChannelProgrammeTrack: View, Equatable {
     let ranges: [Range<Double>]
     let height: CGFloat
+    var minimumSectionWidth: CGFloat = 0
 
     var body: some View {
         Canvas { context, size in
             guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return }
             var mask = Path()
-            for section in SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size) {
+            for section in SkipMarkerTrackLayout.segmentedSections(
+                ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth
+            ) {
                 let radius = min(section.width, section.height) / 2
                 mask.addRoundedRect(in: section, cornerSize: CGSize(width: radius, height: radius))
             }
@@ -2488,7 +2537,6 @@ struct LiveChannelOnNowPanel: View {
                 .foregroundStyle(Color.primary.opacity(0.7))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background { PlayerOverVideoSurface(cornerRadius: metrics.panelCornerRadius) }
-                .playerSurfaceAppearance()
         } else {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 row(now: context.date)

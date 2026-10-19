@@ -110,10 +110,8 @@ struct SkipSegmentButton: View {
             label
                 .plozzFrostedBackground(Capsule(style: .continuous))
                 .plozzFrostedBorder(Capsule(style: .continuous))
-                .playerSurfaceAppearance()
         } else if #available(iOS 26.0, tvOS 26.0, *) {
             label.background { PlayerNativeGlassSurface(Capsule(style: .continuous)) }
-                .playerSurfaceAppearance()
         } else {
             label.background(
                 Capsule(style: .continuous).fill(.ultraThinMaterial)

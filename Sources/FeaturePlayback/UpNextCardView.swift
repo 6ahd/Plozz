@@ -283,7 +283,6 @@ struct PlayerOverVideoCardStyle: ButtonStyle {
             .shadow(color: .black.opacity(focused ? 0.30 : 0.20), radius: focused ? 14 : 8, y: focused ? 7 : 4)
             .animation(.easeOut(duration: 0.18), value: focused)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .playerSurfaceAppearance()
     }
 
 }
@@ -302,11 +301,10 @@ struct PlayerOverVideoSurface: View {
     /// paying for live refraction, NOT to stop being translucent, and the two
     /// wants are different enough to deserve different surfaces.
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
-    @Environment(\.playerSurfaceColorScheme) private var colorScheme
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         surface(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .playerSurfaceAppearance()
     }
 
     @ViewBuilder
@@ -327,7 +325,7 @@ struct PlayerOverVideoSurface: View {
             // as a flat scrim. Drawn as a background underlay rather than wrapped
             // around the content: wrapping `.glassEffect` hangs tvOS 27's focus
             // engine (see PlozzGlassCardModifier).
-            PlayerNativeGlassSurface(shape, highlighted: focused)
+            PlayerNativeGlassSurface(shape)
         } else {
             scrim
         }

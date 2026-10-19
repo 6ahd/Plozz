@@ -459,7 +459,7 @@ private struct PlayerTouchLevelMeter: View {
     let isDirectInteraction: Bool
     let reduceMotion: Bool
     let onFrameChange: (CGRect) -> Void
-    @Environment(\.playerSurfaceColorScheme) private var colorScheme
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let stretch = reduceMotion ? 0 : 20 * (overshoot / (abs(overshoot) + 80))
@@ -488,7 +488,6 @@ private struct PlayerTouchLevelMeter: View {
         )
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onFrameChange($0) }
         .contentShape(Rectangle())
-        .playerSurfaceAppearance()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kind == .brightness ? "Brightness" : "Volume")
         .accessibilityValue(Text(value, format: .percent.precision(.fractionLength(0))))

@@ -431,7 +431,7 @@ public struct LiveChannelPlayerView: View {
                     // Beside the overlay's close button, as VOD's top bar.
                     .padding(.top, LiveChannelOverlay.touchTopBarInset)
                     .padding(.leading, LiveChannelOverlay.touchPresentationLeadingInset)
-                    .modifier(WindowSafeAreaPadding(isEnabled: isExpanded))
+                    .modifier(PlayerTouchChromePadding(isEnabled: isExpanded))
                     #else
                     .padding(.top, 112)
                     .padding(.horizontal, 16)

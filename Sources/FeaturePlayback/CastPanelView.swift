@@ -839,7 +839,6 @@ private struct CastMemberDetail: View {
         .background {
             PlayerOverVideoSurface(cornerRadius: metrics.panelCornerRadius)
         }
-        .playerSurfaceAppearance()
         // Keyed on the person: switching between two faces without leaving the
         // detail has to re-ask, and re-asking must not show the previous
         // person's credits while it does.

@@ -68,7 +68,6 @@ struct PlozziOSFirstRunView: View {
         .background { AppBackground(palette: palette) }
         .environment(\.themePalette, palette)
         .environment(\.colorScheme, palette.isLight ? .light : .dark)
-        .preferredColorScheme(palette.isLight ? .light : .dark)
         .toolbarBackground(.hidden, for: .navigationBar)
         .interactiveDismissDisabled()
     }

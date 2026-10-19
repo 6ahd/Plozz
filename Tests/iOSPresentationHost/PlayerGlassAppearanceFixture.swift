@@ -6,6 +6,8 @@ struct PlayerGlassAppearanceFixture: View {
     @State private var light = false
     @State private var reduced = false
     @State private var whiteVideo = true
+    @State private var leftPresses = 0
+    @State private var rightPresses = 0
 
     var body: some View {
         VStack(spacing: 32) {
@@ -28,19 +30,42 @@ struct PlayerGlassAppearanceFixture: View {
                 PlayerControlButton("Prominent", systemImage: "play.fill", prominent: true) {}
                     .accessibilityIdentifier("appearance-prominent")
             }
+            PlayerGlassControlGroup {
+                Button { leftPresses += 1 } label: { Image(systemName: "captions.bubble") }
+                    .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
+                    .accessibilityIdentifier("appearance-group-left")
+                    .accessibilityValue("\(leftPresses)")
+                Button { rightPresses += 1 } label: { Image(systemName: "slider.horizontal.3") }
+                    .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
+                    .accessibilityIdentifier("appearance-group-right")
+                    .accessibilityValue("\(rightPresses)")
+            }
+            .accessibilityIdentifier("appearance-group")
             PlayerScrubTrackSurface(height: 20)
-                .frame(width: 500)
+                .frame(maxWidth: 500)
                 .accessibilityElement()
                 .accessibilityIdentifier("appearance-track")
             Text(verbatim: "Player panel")
                 .font(.title)
                 .foregroundStyle(Color.primary)
-                .frame(width: 500, height: 120)
+                .frame(maxWidth: 500)
+                .frame(height: 120)
                 .playerPanelBackground()
                 .accessibilityIdentifier("appearance-panel")
+            if #available(iOS 26.0, *) {
+                Text(verbatim: "Player panel")
+                    .font(.title)
+                    .foregroundStyle(Color.primary)
+                    .frame(maxWidth: 500)
+                    .frame(height: 120)
+                    .background {
+                        Color.clear.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32))
+                    }
+                    .accessibilityIdentifier("appearance-reference")
+            }
         }
+        .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .foregroundStyle(.white)
         .background(whiteVideo ? Color.white : .black)
         .environment(\.colorScheme, light ? .light : .dark)
         .environment(\.themePalette, light ? .light : .dark)

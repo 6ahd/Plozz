@@ -8,6 +8,33 @@ import XCTest
 
 @MainActor
 final class PlayerTimelineClockPresentationTests: XCTestCase {
+    func testElapsedModeDoesNotReserveUnusedHourColumns() throws {
+        let model = PlayerControlsModel()
+        model.duration = 3_600
+        model.currentSeconds = 600
+        let image = try render(model, width: 398, scrubbing: false, locale: "en_US")
+        XCTAssertEqual(try trackRange(image).count, 302, accuracy: 1)
+    }
+
+    func testScrubTargetCrossingTimeFormatsDoesNotChangeDragGeometry() throws {
+        for clockEnabled in [false, true] {
+            for locale in ["en_US", "en_GB", "de_DE", "ar"] {
+                let model = PlayerControlsModel()
+                model.duration = 43_200
+                model.currentSeconds = 600
+                model.timelineClock.isEnabled = clockEnabled
+                let normal = try render(model, width: 398, scrubbing: false, locale: locale)
+                for target in [TimeInterval(30), 3_600, 40_000] {
+                    let scrub = try render(
+                        model, width: 398, scrubbing: true, locale: locale, displayedSeconds: target
+                    )
+                    XCTAssertEqual(try trackRange(normal), try trackRange(scrub),
+                                   "A longer seek label must not move the track under the finger.")
+                }
+            }
+        }
+    }
+
     func testClockLabelsDoNotMoveTheScrubberWhenScrubbingStartsOrEnds() throws {
         for width in [320, 393, 852, 1024] {
             for locale in ["en_US", "en_GB", "de_DE", "ar"] {
@@ -37,11 +64,12 @@ final class PlayerTimelineClockPresentationTests: XCTestCase {
     }
 
     private func render(
-        _ model: PlayerControlsModel, width: Int, scrubbing: Bool, locale: String
+        _ model: PlayerControlsModel, width: Int, scrubbing: Bool, locale: String,
+        displayedSeconds: TimeInterval? = nil
     ) throws -> CGImage {
         let renderer = ImageRenderer(content:
             PlozziOSPlayerTimeline(
-                model: model, displayedSeconds: scrubbing ? 1_200 : 600, isScrubbing: scrubbing,
+                model: model, displayedSeconds: displayedSeconds ?? (scrubbing ? 1_200 : 600), isScrubbing: scrubbing,
                 onScrubChanged: { _ in XCTFail("Rendering must not seek.") },
                 onScrubEditingChanged: { _ in XCTFail("Rendering must not change scrub state.") },
                 onInteraction: { XCTFail("Rendering must not toggle clock mode.") }

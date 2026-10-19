@@ -54,7 +54,7 @@ final class PlayerInfoContrastHostedTests: XCTestCase {
                         width: 150, height: 36
                     )
                     XCTAssertGreaterThan(try contrastingPixels(
-                        image, in: badgeRect, lightBackground: palette.isLight && (effects.flat || effects.opaque)
+                        image, in: badgeRect, lightBackground: palette.isLight
                     ), 60, "\(name): Dolby and 5.1 must contrast with the playback surface.")
                 }
             }

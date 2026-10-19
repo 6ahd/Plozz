@@ -6,7 +6,7 @@ import XCTest
 
 @MainActor
 final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
-    func testPlayerSurfacesKeepNativeGlassStableAndPairFallbackContrast() async throws {
+    func testPlayerSurfacesInheritAppearanceAndUseNativeRegularGlass() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
               ContinuousClock.now < deadline {
@@ -45,18 +45,22 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     add(attachment)
                     XCTAssertEqual(probe.surroundingScheme, scheme, "Do not override the player/sheet host.")
                     XCTAssertEqual(probe.surroundingPalette, scheme == .light ? .light : .dark)
-                    XCTAssertEqual(probe.surfaceScheme, reduced ? scheme : .dark)
-                    XCTAssertEqual(probe.surfacePalette, reduced && scheme == .light ? .light : .dark)
+                    XCTAssertEqual(probe.surfaceScheme, scheme)
+                    XCTAssertEqual(probe.surfacePalette, scheme == .light ? .light : .dark)
                     var samples: [String: [UInt8]] = [:]
                     for name in ["circle", "tab", "track", "panel", "card", "native-button"] {
                         let rect = try XCTUnwrap(probe.frames[name], name)
                         samples[name] = try pixels(image, rect: rect.insetBy(dx: 4, dy: 4))
-                        if !reduced {
-                            XCTAssertLessThan(luminance(try XCTUnwrap(samples[name])), 0.65,
-                                              "\(name): native surfaces must stay dark over bright video.")
-                        }
                     }
                     snapshots.append(samples)
+                    if !reduced, #available(iOS 26.0, tvOS 26.0, *) {
+                        let reference = try XCTUnwrap(probe.frames["reference-panel"])
+                        let native = try pixels(image, rect: reference.insetBy(dx: 12, dy: 12))
+                        let panel = try XCTUnwrap(probe.frames["panel"])
+                        let actual = try pixels(image, rect: panel.insetBy(dx: 12, dy: 12))
+                        XCTAssertEqual(luminance(actual), luminance(native), accuracy: 0.05,
+                                       "Player panels must match untinted native regular glass.")
+                    }
 
                     let circle = try XCTUnwrap(probe.frames["circle"])
                     let ink = try pixels(image, rect: CGRect(
@@ -70,7 +74,7 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     if reduced && scheme == .light {
                         XCTAssertLessThan(inkLevel, 0.15)
                         XCTAssertGreaterThan(surfaceLevel, 0.65)
-                    } else {
+                    } else if reduced {
                         XCTAssertGreaterThan(inkLevel, 0.85)
                         XCTAssertLessThan(surfaceLevel, 0.6)
                     }
@@ -81,13 +85,13 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     )))
                     if reduced && scheme == .light {
                         XCTAssertLessThan(buttonInk, 0.15, "Light fallback needs a dark play icon.")
-                    } else {
-                        XCTAssertGreaterThan(buttonInk, 0.85, "A dark native button needs a white play icon.")
+                    } else if reduced {
+                        XCTAssertGreaterThan(buttonInk, 0.85, "Dark fallback needs a light play icon.")
                     }
                     #endif
                     #if os(iOS)
                     let options = try XCTUnwrap(descendant(in: window, identifier: "player-playback-options") as? UIButton)
-                    XCTAssertEqual(options.tintColor, reduced && scheme == .light ? .black : .white)
+                    XCTAssertEqual(options.tintColor, scheme == .light ? .black : .white)
                     XCTAssertEqual(options.traitCollection.userInterfaceStyle, scheme == .light ? .light : .dark,
                                    "Changing the icon must not force the native menu's appearance.")
                     #endif
@@ -98,10 +102,6 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     XCTAssertEqual(dark.count, light.count, "Appearance must not change \(name) geometry.")
                     if reduced && !(name == "track" && backdrop == .white) {
                         XCTAssertGreaterThan(luminance(light) - luminance(dark), 0.25, name)
-                    } else if !reduced {
-                        let difference = zip(dark, light).reduce(0.0) { $0 + abs(Double($1.0) - Double($1.1)) }
-                            / Double(max(1, dark.count)) / 255
-                        XCTAssertLessThan(difference, 0.025, "\(name): native glass must not follow the app theme.")
                     }
                 }
             }
@@ -253,6 +253,16 @@ private struct SurfaceFixture: View {
                 .background(SurfaceEnvironmentProbe(probe: probe, surface: true))
                 .modifier(PanelGlassBackground())
                 .recordSurface("panel", probe: probe)
+            if #available(iOS 26.0, tvOS 26.0, *) {
+                Text(verbatim: "Player panel")
+                    .font(.title)
+                    .foregroundStyle(Color.primary)
+                    .frame(width: 700, height: 120)
+                    .background {
+                        Color.clear.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32))
+                    }
+                    .recordSurface("reference-panel", probe: probe)
+            }
             Button {} label: {
                 Text(verbatim: "Cast card")
                     .font(.title)
@@ -273,7 +283,6 @@ private struct SurfaceFixture: View {
             #endif
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .foregroundStyle(.white)
         .background(state.backdrop)
         .background(SurfaceEnvironmentProbe(probe: probe, surface: false))
         .environment(\.colorScheme, state.scheme)
