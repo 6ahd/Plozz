@@ -70,7 +70,10 @@ extension WetrakrClient {
             method: .post, path: remove ? "/sync/tracking/remove" : "/sync/tracking",
             headers: ["Idempotency-Key": idempotencyKey]
         ).jsonBody(body)
-        let response = try await decode(WetrakrTrackingResult.self, endpoint: endpoint, accessToken: accessToken)
+        let response = try await decode(
+            WetrakrTrackingResult.self, endpoint: endpoint, accessToken: accessToken,
+            operation: body.allowRewatch == true ? .historyWrite : .planningWrite
+        )
         try response.validate(allowDuplicateWatch: body.allowRewatch == true, removing: remove)
     }
 }

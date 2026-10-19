@@ -1363,7 +1363,7 @@ struct PlayerControls: View {
 
     private var infoCard: some View {
         cardContent
-            .colorScheme(.dark)
+            .playerSurfaceAppearance()
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 

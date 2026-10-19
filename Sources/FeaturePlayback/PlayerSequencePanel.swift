@@ -99,6 +99,7 @@ struct PlayerSequencePanel: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .playerSurfaceAppearance()
         .task(id: source) {
             if source == .episodes { await player.episodeBrowser?.loadIfNeeded() }
         }

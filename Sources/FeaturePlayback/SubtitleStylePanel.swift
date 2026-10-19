@@ -605,14 +605,14 @@ struct SubtitleStylePanel: View {
         VStack(spacing: 14) {
             Image(systemName: "photo")
                 .font(.system(size: 44, weight: .regular))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Color.primary.opacity(0.5))
             Text("\(format) subtitles can't be restyled")
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.primary)
                 .multilineTextAlignment(.center)
             Text("They're rendered as images by the source, so font, color, size and position controls don't apply.")
                 .font(.callout)
-                .foregroundStyle(.white.opacity(0.65))
+                .foregroundStyle(Color.primary.opacity(0.65))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }

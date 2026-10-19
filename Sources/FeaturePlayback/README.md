@@ -63,6 +63,23 @@ bounded language-match/accessibility flags without track titles or URLs.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## Player appearance
+
+Player transport buttons, timelines, tabs, cards, and inline panels share a
+surface-local appearance: native Liquid Glass stays dark in both app themes;
+the reduced-glass/older-system fallback follows light and dark mode with paired
+foreground colors. Text directly over video stays white. UIKit-backed route and
+options buttons resolve the same icon contrast without forcing their presented
+menus or sheets into the player's appearance.
+Native surfaces use clear glass with a fixed dark tint; regular glass's adaptive
+coloration can wash out white controls over bright video despite a dark scheme.
+Native capsule buttons use black-tinted prominent glass on tvOS and iOS 26.0;
+iOS 26.1+ supports the clear material in its native button style.
+
+On iPhone and iPad, the main transport row is centered in the remaining space
+between the top buttons and bottom controls, rather than the full screen.
+Both layouts use the controls' intrinsic heights, including after rotation.
+
 ## Live rewind scrubbing
 
 The live timeline previews a pending seek without moving playback. On tvOS,
@@ -242,8 +259,10 @@ style together, keeping symbols proportional to their labels as text size change
 They do not intercept touches. Live TV supports skips only inside an available
 rewind window, not speed boosting.
 
-Pinch inward for Normal fitting inside the display's safe area, clear of the
-Dynamic Island and home indicator; pinch outward for edge-to-edge Crop. This
+Pinch inward for Normal fitting clear of the display cutout. Landscape video
+uses the full display height behind the home indicator instead of reserving a
+bottom strip; portrait keeps the full safe-area inset. Controls and ordinary
+captions retain their safe-area placement. Pinch outward for edge-to-edge Crop. This
 uses the existing session-only zoom state without reloading video or revealing
 the timeline. Authored subtitle geometry follows the displayed picture; ordinary
 captions retain their screen-relative placement. Inline, tvOS, and external
@@ -767,6 +786,10 @@ the player and Settings share its `panelWidth` rather than separate layout width
 Mobile's existing forms live in `MobileSubtitleStyleEditor`, shared by Settings
 and the player through `SubtitleStyleEditingContext`. There is no reduced second
 set of settings or separate preference store.
+Each mobile subtitle destination (file formatting, shadow/outline, background,
+and dual subtitles) owns the shared native settings switch style. This keeps
+enabled switches green under the Settings and player's monochrome accents
+without changing neighboring pickers, sliders, navigation, or menu checkmarks.
 
 The preview renders real `SubtitleCue` data through `SubtitleOverlayView`. On TV,
 it lays out a 1920x1080 playback canvas and scales the entire result into the

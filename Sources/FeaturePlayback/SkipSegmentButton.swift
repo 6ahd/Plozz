@@ -102,7 +102,7 @@ struct SkipSegmentButton: View {
             Image(systemName: "forward.fill")
             Text(notice.label)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(Color.primary)
         .padding(.horizontal, 28)
         .padding(.vertical, 14)
 
@@ -110,8 +110,10 @@ struct SkipSegmentButton: View {
             label
                 .plozzFrostedBackground(Capsule(style: .continuous))
                 .plozzFrostedBorder(Capsule(style: .continuous))
+                .playerSurfaceAppearance()
         } else if #available(iOS 26.0, tvOS 26.0, *) {
-            label.glassEffect(.regular, in: Capsule(style: .continuous))
+            label.background { PlayerNativeGlassSurface(Capsule(style: .continuous)) }
+                .playerSurfaceAppearance()
         } else {
             label.background(
                 Capsule(style: .continuous).fill(.ultraThinMaterial)

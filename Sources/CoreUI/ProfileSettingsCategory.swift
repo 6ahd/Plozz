@@ -51,7 +51,7 @@ public enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Sendabl
             "Home, navigation, and detail pages"
             #endif
         case .trackers:
-            if RuntimeFeatureFlags.productionDefault.isEnabled(.wetrakr) {
+            if RuntimeFeatureFlags.buildDefault.isEnabled(.wetrakr) {
                 "Trakt, Simkl, WeTrakr, AniList, MyAnimeList, Last.fm"
             } else {
                 "Trakt, Simkl, AniList, MyAnimeList, Last.fm"

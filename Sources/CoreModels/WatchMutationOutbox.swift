@@ -72,6 +72,8 @@ public struct WatchOutboxState: Codable, Sendable, Equatable {
     public var appliedTrakt: [String: Date]
     /// Simkl idempotency ledger.
     public var appliedSimkl: [String: Date]
+    /// Successful WeTrakr completion writes, keyed by viewing session, not day.
+    public var appliedWetrakr: [String: Date]
     /// AniList idempotency ledger.
     public var appliedAniList: [String: Date]
     /// MAL idempotency ledger.
@@ -88,6 +90,7 @@ public struct WatchOutboxState: Codable, Sendable, Equatable {
         clock: [String: Date] = [:],
         appliedTrakt: [String: Date] = [:],
         appliedSimkl: [String: Date] = [:],
+        appliedWetrakr: [String: Date] = [:],
         appliedAniList: [String: Date] = [:],
         appliedMAL: [String: Date] = [:],
         appliedRecency: [String: AppliedResumeRecord] = [:]
@@ -98,6 +101,7 @@ public struct WatchOutboxState: Codable, Sendable, Equatable {
         self.sourceClocks = [:]
         self.appliedTrakt = appliedTrakt
         self.appliedSimkl = appliedSimkl
+        self.appliedWetrakr = appliedWetrakr
         self.appliedAniList = appliedAniList
         self.appliedMAL = appliedMAL
         self.appliedRecency = appliedRecency
@@ -109,6 +113,7 @@ public struct WatchOutboxState: Codable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case pending, clock, ownershipClocks, sourceClocks, appliedTrakt, appliedSimkl, appliedAniList, appliedMAL, appliedRecency
+        case appliedWetrakr
     }
 
     public init(from decoder: Decoder) throws {
@@ -133,6 +138,7 @@ public struct WatchOutboxState: Codable, Sendable, Equatable {
             [String: Date].self,
             forKey: .appliedSimkl
         ) ?? [:]
+        appliedWetrakr = try container.decodeIfPresent([String: Date].self, forKey: .appliedWetrakr) ?? [:]
         appliedAniList = try container.decodeIfPresent(
             [String: Date].self,
             forKey: .appliedAniList

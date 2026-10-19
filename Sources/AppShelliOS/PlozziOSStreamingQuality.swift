@@ -314,6 +314,7 @@ struct PlozziOSStreamingQualitySheet: View {
                     Section { Text(error.userMessage).foregroundStyle(.secondary) }
                 }
             }
+            .toggleStyle(SettingsSwitchToggleStyle())
             .navigationTitle("Streaming quality")
             .toolbarTitleDisplayMode(.inline)
             .toolbar {

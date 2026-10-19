@@ -9,7 +9,7 @@ public struct WetrakrWatchlistLink: View {
     public init(url: URL) { self.url = url }
 
     public var body: some View {
-        if RuntimeFeatureFlags.productionDefault.isEnabled(.wetrakr) {
+        if RuntimeFeatureFlags.buildDefault.isEnabled(.wetrakr) {
             link
         }
     }

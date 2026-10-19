@@ -211,6 +211,7 @@ public struct PlayerTouchCardStrip: View {
             }
         }
         .modifier(PlayerCardHeight(metrics: metrics))
+        .playerSurfaceAppearance()
         // Deliberately NOT clipped to the panel's rounded rectangle.
         //
         // Both panels already draw their own rounded glass, so a clip here buys
@@ -304,7 +305,7 @@ public struct PlayerTouchScrubBar: View {
             ZStack(alignment: .leading) {
                 ZStack(alignment: .leading) {
                     PlayerScrubTrackSurface(height: barHeight)
-                    Capsule().fill(.white.opacity(0.14))
+                    Capsule().fill(Color.primary.opacity(0.14))
                         .frame(width: width * CGFloat(min(max(bufferedFraction, 0), 1)), height: barHeight)
                     // Square trailing edge so the played portion meets the knob
                     // flush instead of tucking a curve behind it.
@@ -315,7 +316,7 @@ public struct PlayerTouchScrubBar: View {
                         topTrailingRadius: 0,
                         style: .continuous
                     )
-                    .fill(.white.opacity(isTouching ? 0.9 : 0.62))
+                    .fill(Color.primary.opacity(isTouching ? 0.9 : 0.62))
                     .frame(width: knobX, height: barHeight)
                 }
                 .mask {
@@ -325,12 +326,13 @@ public struct PlayerTouchScrubBar: View {
                 // Square at rest, rounded once lifted — a rounded cap on a knob
                 // the same height as the track just erodes the played edge.
                 RoundedRectangle(cornerRadius: isTouching ? knobWidth / 2 : 0, style: .continuous)
-                    .fill(.white)
+                    .fill(Color.primary)
                     .frame(width: knobWidth, height: knobHeight)
                     .offset(x: knobX - knobWidth / 2)
                     .shadow(radius: isTouching ? 4 : 0)
             }
             .frame(maxHeight: .infinity, alignment: .center)
+            .playerSurfaceAppearance()
             .animation(.easeOut(duration: 0.12), value: isTouching)
             .contentShape(Rectangle())
             .gesture(

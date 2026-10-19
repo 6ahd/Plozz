@@ -42,6 +42,13 @@ SCENARIOS = {
         "description": "Native listing of all 356 collections in one request, with 5-ms latency and no membership scans.",
         "counters": ["collections", "requests", "libraryRequests", "memberRequests", "firstItemsNanoseconds"],
     },
+    "watchlist-artwork-rehydration": {
+        "suite": "core", "target": "AppRuntimeTests",
+        "test": "UniversalWatchlistMembershipTests/testPerformanceWatchlistArtworkRehydration",
+        "file": "Tests/AppRuntimeTests/UniversalWatchlistMembershipTests.swift",
+        "description": "Rehydrate 180 titles and 11,520 cast credits for each of Plex and Jellyfin through the live watchlist runtime.",
+        "counters": ["items", "credits", "providers"],
+    },
     "sync-unchanged": {
         "suite": "core", "target": "FeatureSyncCloudTests",
         "test": "CloudSyncPersistenceStateTests/testPerformanceUnchangedLedger",
@@ -554,8 +561,8 @@ class Lane:
 
     def execute(self):
         try:
-            self.command("architecture", [sys.executable, "tools/arch-guard.py"])
-            self.command("test-hygiene", [sys.executable, "tools/test-hygiene.py"])
+            self.command("architecture", [sys.executable, "tools/arch-guard.py"], timeout=300)
+            self.command("test-hygiene", [sys.executable, "tools/test-hygiene.py"], timeout=300)
             _, devices = self.command("simulators", ["xcrun", "simctl", "list", "devices", "-j"])
             _, runtimes = self.command("runtimes", ["xcrun", "simctl", "list", "runtimes", "-j"])
             simulator, state = simulator_info(json.loads(devices), json.loads(runtimes), self.args.sim_id, self.args.platform)

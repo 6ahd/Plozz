@@ -609,7 +609,7 @@ private struct CastFaceCard: View {
                     isFocused: focused,
                     restingAlignment: .center
                 )
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.primary)
                 if let role = person.role, !role.isEmpty {
                     MarqueeText(
                         text: role,
@@ -617,7 +617,7 @@ private struct CastFaceCard: View {
                         isFocused: focused,
                         restingAlignment: .center
                     )
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Color.primary.opacity(0.6))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -643,10 +643,10 @@ private struct CastFaceCard: View {
 
     private var placeholder: some View {
         ZStack {
-            Circle().fill(.white.opacity(0.12))
+            Circle().fill(Color.primary.opacity(0.12))
             Text(verbatim: initials)
                 .font(.system(size: 38, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Color.primary.opacity(0.7))
         }
     }
 
@@ -676,12 +676,12 @@ private struct CastListRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(person.name)
                     .font(metrics.castNameFont)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.primary)
                     .lineLimit(1)
                 if let role = person.role, !role.isEmpty {
                     Text(role)
                         .font(metrics.castRoleFont)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Color.primary.opacity(0.6))
                         .lineLimit(1)
                 }
             }
@@ -710,10 +710,10 @@ private struct CastAvatar: View {
 
     private var placeholder: some View {
         ZStack {
-            Circle().fill(.white.opacity(0.12))
+            Circle().fill(Color.primary.opacity(0.12))
             Text(verbatim: initials)
                 .font(.system(size: 38, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Color.primary.opacity(0.7))
                 .minimumScaleFactor(0.4)
         }
     }
@@ -839,6 +839,7 @@ private struct CastMemberDetail: View {
         .background {
             PlayerOverVideoSurface(cornerRadius: metrics.panelCornerRadius)
         }
+        .playerSurfaceAppearance()
         // Keyed on the person: switching between two faces without leaving the
         // detail has to re-ask, and re-asking must not show the previous
         // person's credits while it does.
@@ -861,12 +862,12 @@ private struct CastMemberDetail: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(verbatim: person.name)
                         .font(metrics.titleFont)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.primary)
                         .lineLimit(1)
                     if let role = person.role, !role.isEmpty {
                         Text(verbatim: role)
                             .font(metrics.castRoleFont)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(Color.primary.opacity(0.6))
                             .lineLimit(1)
                     }
                 }
@@ -1065,7 +1066,7 @@ private struct CastMemberDetail: View {
             if let biography = detail?.biography, !biography.isEmpty {
                 Text(verbatim: biography)
                     .font(metrics.bodyFont)
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(Color.primary.opacity(0.82))
                     .lineSpacing(2)
                     // As many lines as the column has room for; with no rail
                     // beside it there is the whole pane to fill.
@@ -1087,7 +1088,7 @@ private struct CastMemberDetail: View {
                     comment: "Shown in the in-player cast card when no source has a biography or other titles for this person."
                 ))
                 .font(metrics.bodyFont)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(Color.primary.opacity(0.5))
                 .padding(.top, 12)
             } else if let life = detail?.lifeSummary, !life.isEmpty {
                 // ONLY when there is no biography. A biography's first
@@ -1097,7 +1098,7 @@ private struct CastMemberDetail: View {
                 // them, and Plex often has it when it has nothing else.
                 Text(verbatim: life)
                     .font(metrics.bodyFont)
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(Color.primary.opacity(0.72))
                     .lineLimit(2)
                     .padding(.top, 12)
             }
@@ -1145,7 +1146,7 @@ private struct CastMemberDetail: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(verbatim: person.name)
                     .font(metrics.titleFont)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.primary)
                     .lineLimit(2)
                     // The name holds its size. It is the heading of this pane,
                     // and shrinking it to buy room for a supporting line got the
@@ -1241,7 +1242,7 @@ private struct CastMemberDetail: View {
     }
 
     private var placeholder: some View {
-        Circle().fill(.white.opacity(0.12))
+        Circle().fill(Color.primary.opacity(0.12))
     }
 }
 
@@ -1595,7 +1596,7 @@ private struct CastCreditPlaceholderTile: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(.white.opacity(dim ? 0.05 : 0.11))
+            .fill(Color.primary.opacity(dim ? 0.05 : 0.11))
             .frame(width: width, height: height)
             .animation(
                 .easeInOut(duration: 0.9).repeatForever(autoreverses: true).delay(delay),

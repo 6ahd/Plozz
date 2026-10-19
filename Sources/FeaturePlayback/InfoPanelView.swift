@@ -120,10 +120,6 @@ struct InfoPanelView: View {
         .modifier(PlayerCardHeight(metrics: metrics))
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(PanelGlassBackground(cornerRadius: metrics.panelCornerRadius))
-        // Playback stays dark even when browsing is light; badges read the
-        // custom palette independently of SwiftUI's color scheme.
-        .environment(\.themePalette, .dark)
-        .environment(\.colorScheme, .dark)
     }
 
     /// The phone card: no thumbnail, and the three columns folded into rows.
@@ -215,13 +211,13 @@ struct InfoPanelView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(model.infoCard.headline.isEmpty ? "Now Playing" : model.infoCard.headline)
                 .font(metrics.titleFont)
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.primary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if !model.infoCard.overview.isEmpty {
                 Text(model.infoCard.overview)
                     .font(metrics.bodyFont)
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(Color.primary.opacity(0.82))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -235,7 +231,7 @@ struct InfoPanelView: View {
             if !line.isEmpty {
                 Text(line)
                     .font(metrics.captionFont)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Color.primary.opacity(0.6))
                     .lineLimit(1)
                     // Holds its size, like the badges beside it — see the note at
                     // the call site.
@@ -261,12 +257,12 @@ struct InfoPanelView: View {
                 metaRow(includingBadges: false, includingRelease: false)
                 if model.infoCard.badges.isEmpty {
                     Text("Reading stream details…")
-                        .font(metrics.captionFont).foregroundStyle(.white.opacity(0.6))
+                        .font(metrics.captionFont).foregroundStyle(Color.primary.opacity(0.6))
                 } else {
                     WrappingHStackLayout(spacing: 10 * metrics.badgeScale, lineSpacing: 6) {
                         Text("Transcoded")
                             .font(metrics.captionFont)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(Color.primary.opacity(0.6))
                         ForEach(model.infoCard.badges) { badge in
                             MediaBadgeChip(badge: badge)
                         }
@@ -289,7 +285,7 @@ struct InfoPanelView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(model.infoCard.headline.isEmpty ? "Now Playing" : model.infoCard.headline)
                     .font(metrics.titleFont)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.primary)
                     .lineLimit(2)
                     .truncationMode(.tail)
                 if !model.infoCard.overview.isEmpty {
@@ -318,7 +314,7 @@ struct InfoPanelView: View {
                     // leave room, and truncating to one when it isn't.
                     Text(model.infoCard.overview)
                         .font(metrics.bodyFont)
-                        .foregroundStyle(.white.opacity(0.82))
+                        .foregroundStyle(Color.primary.opacity(0.82))
                         // Four lines now that the card is 40pt taller. Still a
                         // cap rather than a reservation — see the note above.
                         .lineLimit(metrics.overviewLineLimit)
@@ -476,11 +472,11 @@ private struct PlayerInfoArtwork: View {
                     variant: .landscapeCard, artworkPolicy: policy,
                     asyncFallbackURL: fallback, pinIdentity: item?.stablePresentationID
                 ) {
-                    Rectangle().fill(Color.white.opacity(0.08))
+                    Rectangle().fill(Color.primary.opacity(0.08))
                         .overlay(
                             Image(systemName: "photo")
                                 .font(.system(size: 34, weight: .regular))
-                                .foregroundStyle(.white.opacity(0.28))
+                                .foregroundStyle(Color.primary.opacity(0.28))
                         )
                 }
             }

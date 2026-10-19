@@ -45,6 +45,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   At accessibility sizes, the category and chevron sit above the full-width
   summary; the decorative film icon yields its space to readable text.
 
+- **Reorder-only lists** — `LiftableReorderList(allowsHiding: false)` presents
+  enabled entries only and keeps them enabled through native dragging, remote
+  lift-and-move and context-menu movement. It has no Hidden divider or Hide/Show
+  actions. Existing callers keep the reorder-and-hide behavior by default.
+
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
   error layout, bounded symbol inline with the heading, readable summary, adaptive
   native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns
@@ -148,6 +153,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   keeps visible title-and-icon labels and uses the same `playerGlassButton`
   treatment, including native menus. Only the existing reduced-transparency
   playback path draws the shared frosted fallback.
+  `playerSurfaceAppearance()` keeps native playback glass dark across browsing
+  themes, scoped to each surface and its contents. Fallback surfaces inherit the
+  app appearance and pair light fills with dark foregrounds; never apply the
+  modifier to the full player or a sheet presenter.
 - **Settings steppers** — TV makes the whole labeled row one focus target using
   the existing `SettingsFormButtonStyle`, including its helper, persistent minus/plus cues and
   `SettingsRowMetrics.titleFont` value. Labels must be supplied to the shared
@@ -323,6 +332,10 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   toggle in a button, or override its native animation/accessibility.
   The switch alone clears inherited tint so monochrome page accents do not
   hide its thumb against the enabled track; neighboring controls keep their tint.
+  Each standalone or pushed settings `Form` must apply
+  `SettingsSwitchToggleStyle` itself; a style on the presenting form does not
+  establish the style for its navigation destinations. Leave native menu toggles
+  as checkmarks rather than applying a switch style to the entire app.
   tvOS uses native On/Off toggles with shared settings row typography, not drawn
   switch tracks. Focus-gated and side-effectful action rows retain their owned
   buttons and show the same On/Off text.

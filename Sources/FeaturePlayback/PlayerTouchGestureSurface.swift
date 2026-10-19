@@ -459,6 +459,7 @@ private struct PlayerTouchLevelMeter: View {
     let isDirectInteraction: Bool
     let reduceMotion: Bool
     let onFrameChange: (CGRect) -> Void
+    @Environment(\.playerSurfaceColorScheme) private var colorScheme
 
     var body: some View {
         let stretch = reduceMotion ? 0 : 20 * (overshoot / (abs(overshoot) + 80))
@@ -468,10 +469,10 @@ private struct PlayerTouchLevelMeter: View {
             Color.clear
                 .modifier(PanelGlassBackground(cornerRadius: 999))
             Rectangle()
-                .fill(.white)
+                .fill(Color.primary)
                 .frame(height: height * value)
-            icon.foregroundStyle(.white)
-            icon.foregroundStyle(.black)
+            icon.foregroundStyle(Color.primary)
+            icon.foregroundStyle(colorScheme == .light ? Color.white : .black)
                 .mask(alignment: .bottom) {
                     Rectangle().frame(height: height * value)
                 }
@@ -487,7 +488,7 @@ private struct PlayerTouchLevelMeter: View {
         )
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onFrameChange($0) }
         .contentShape(Rectangle())
-        .environment(\.colorScheme, .dark)
+        .playerSurfaceAppearance()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kind == .brightness ? "Brightness" : "Volume")
         .accessibilityValue(Text(value, format: .percent.precision(.fractionLength(0))))
@@ -513,10 +514,10 @@ private struct PlayerTouchFeedbackPill: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.callout.weight(.semibold))
+            .foregroundStyle(Color.primary)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .modifier(PanelGlassBackground(cornerRadius: 999))
-            .environment(\.colorScheme, .dark)
     }
 }
 

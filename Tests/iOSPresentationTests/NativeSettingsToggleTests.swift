@@ -2,6 +2,7 @@
 import CoreModels
 import CoreUI
 import FeatureProfiles
+@testable import FeaturePlayback
 @testable import FeatureSettings
 import Observation
 import SwiftUI
@@ -31,6 +32,107 @@ final class NativeSettingsToggleTests: XCTestCase {
 
     func testSharedSettingsStyleUsesNativeSwitchesOnMobile() async throws {
         try await verifyNativeSwitch(grouped: false)
+    }
+
+    func testSubtitleDestinationsKeepNativeGreenSwitchesAndLiveBindings() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        for width: CGFloat in [390, 834] {
+            for scheme: ColorScheme in [.light, .dark] {
+                for page in SubtitlePage.allCases {
+                    let controls = PlayerControlsModel()
+                    var style = SubtitleStyle.default
+                    style.usesSourcePosition = true
+                    style.usesSourceColors = true
+                    style.usesSourceEmphasis = true
+                    style.border.isEnabled = true
+                    style.background.isEnabled = true
+                    style.secondary = .init()
+                    style.secondary?.differentiate = true
+                    controls.subtitleStyle = style
+                    let preview = Model()
+                    preview.isOn = true
+                    var writes = 0
+                    let context = SubtitleStyleEditingContext(
+                        controls: controls,
+                        style: Binding(
+                            get: { controls.subtitleStyle },
+                            set: { controls.subtitleStyle = $0; writes += 1 }
+                        ),
+                        secondaryPreview: preview.binding
+                    )
+                    window.frame = CGRect(x: 0, y: 0, width: width, height: 1100)
+                    window.overrideUserInterfaceStyle = scheme == .dark ? .dark : .light
+                    window.rootViewController = UIHostingController(rootView: NavigationStack {
+                        subtitleDestination(page, context: context)
+                    }
+                    .environment(\.colorScheme, scheme)
+                    .tint(scheme == .dark ? .white : .black))
+                    window.makeKeyAndVisible()
+                    try await settle(window)
+                    let switches = listedSwitches(in: window).sorted {
+                        $0.convert($0.bounds, to: window).minY < $1.convert($1.bounds, to: window).minY
+                    }
+                    XCTAssertEqual(switches.count, page.switchCount, "\(page), width=\(width), scheme=\(scheme)")
+                    for control in switches {
+                        XCTAssertTrue(control.isOn)
+                        XCTAssertNil(control.thumbTintColor)
+                        try assertGreenOnState(control, in: window)
+                    }
+                    let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                        window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                    }
+                    let attachment = XCTAttachment(image: image)
+                    attachment.name = "subtitle-switches-\(page)-\(Int(width))-\(scheme)"
+                    attachment.lifetime = .keepAlways
+                    add(attachment)
+
+                    let first = try XCTUnwrap(switches.first)
+                    first.setOn(false, animated: false)
+                    first.sendActions(for: .valueChanged)
+                    try await settle(window)
+                    switch page {
+                    case .fileFormatting: XCTAssertFalse(controls.subtitleStyle.usesSourcePosition)
+                    case .outline: XCTAssertFalse(controls.subtitleStyle.border.isEnabled)
+                    case .background: XCTAssertFalse(controls.subtitleStyle.background.isEnabled)
+                    case .dual: XCTAssertFalse(preview.isOn)
+                    }
+                    XCTAssertEqual(writes, page == .dual ? 0 : 1)
+                    XCTAssertEqual(preview.writes, page == .dual ? 1 : 0)
+                }
+            }
+        }
+    }
+
+    private enum SubtitlePage: CaseIterable {
+        case fileFormatting, outline, background, dual
+
+        var switchCount: Int {
+            switch self {
+            case .fileFormatting: 3
+            case .outline, .background: 1
+            case .dual: 2
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func subtitleDestination(
+        _ page: SubtitlePage, context: SubtitleStyleEditingContext
+    ) -> some View {
+        switch page {
+        case .fileFormatting: MobileSubtitleFileFormattingView(viewModel: context)
+        case .outline: MobileSubtitleShadowOutlineView(viewModel: context)
+        case .background: MobileSubtitleBackgroundView(viewModel: context)
+        case .dual: MobileSubtitleDualView(viewModel: context)
+        }
     }
 
     func testProfileAndEveryoneAutomaticSignInShareOneNativeBinding() async throws {

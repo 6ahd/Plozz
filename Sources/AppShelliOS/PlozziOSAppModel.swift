@@ -658,7 +658,7 @@ final class PlozziOSAppModel {
             durableStore: aliasStorageDirectory == nil ? nil : durableLocalStateStore,
             storageDirectory: aliasStorageDirectory
         )
-        self.runtimeFeatureFlags = .productionDefault
+        self.runtimeFeatureFlags = .buildDefault
         self.universalWatchlist = WatchlistModel(
             storageDirectory: Self.isRunningUnitTests
                 ? nil
