@@ -499,6 +499,18 @@ public protocol WatchlistReconciliationScopedApplying: WatchlistDestination {
     ) async throws
 }
 
+/// Opt-in bulk transport. Outcomes correspond to the input bindings in order;
+/// an omitted or ambiguous outcome must never acknowledge a queued mutation.
+public protocol WatchlistBatchApplying: WatchlistReconciliationScopedApplying {
+    var maximumBatchSize: Int { get }
+    func apply(
+        _ desiredState: WatchlistDesiredState,
+        to bindings: [WatchlistDestinationBinding],
+        idempotencyKey: String,
+        expectedReconciliationScope: String
+    ) async throws -> [Result<Void, WatchlistDestinationError>]
+}
+
 /// A destination that can also say which item in the viewer's own library a
 /// watchlist entry IS.
 ///

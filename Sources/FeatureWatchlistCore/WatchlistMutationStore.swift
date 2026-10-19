@@ -51,6 +51,7 @@ public struct WatchlistMutation: Codable, Hashable, Sendable {
     /// Target identity plus destination account/user scope. Optional for state
     /// written before destination-scoped confirmations existed.
     public var confirmationIdentity: String?
+    public var deliveryID: UUID?
 
     public init(
         key: WatchlistMutationKey,
@@ -63,6 +64,7 @@ public struct WatchlistMutation: Codable, Hashable, Sendable {
         self.desiredState = desiredState
         self.target = target
         self.confirmationIdentity = confirmationIdentity
+        deliveryID = UUID()
         self.createdAt = createdAt
         updatedAt = createdAt
         attemptCount = 0
@@ -274,6 +276,10 @@ public actor DurableWatchlistMutationStore {
     public init(store: any WatchlistMutationStateStoring) throws {
         self.store = store
         state = try store.load()
+        let needsDeliveryIDs = state.mutations.contains { $0.deliveryID == nil }
+        for index in state.mutations.indices where state.mutations[index].deliveryID == nil {
+            state.mutations[index].deliveryID = UUID()
+        }
         let originalStateCount = state.reconciliationStates.count
         let mutationKeys = Set(state.mutations.map(\.key))
         state.reconciliationStates = state.reconciliationStates.filter {
@@ -283,7 +289,7 @@ public actor DurableWatchlistMutationStore {
                 || $0.value.lastConfirmedState != nil
                 || mutationKeys.contains($0.key)
         }
-        if state.reconciliationStates.count != originalStateCount {
+        if needsDeliveryIDs || state.reconciliationStates.count != originalStateCount {
             try store.save(state)
         }
     }
@@ -315,8 +321,14 @@ public actor DurableWatchlistMutationStore {
         now: Date = Date()
     ) throws {
         guard !requests.isEmpty else { return }
+        let previousState = state
         enqueueBatchInMemory(requests, now: now)
-        try persist()
+        do {
+            try persist()
+        } catch {
+            state = previousState
+            throw error
+        }
     }
 
     public func replacePendingRemovalsWithPresentFanOut(
@@ -390,6 +402,9 @@ public actor DurableWatchlistMutationStore {
             mutation.desiredState = request.desiredState
             mutation.target = request.target
             mutation.confirmationIdentity = request.confirmationIdentity
+            if isNewIntent || targetChanged {
+                mutation.deliveryID = UUID()
+            }
             if isNewIntent {
                 mutation.updatedAt = now
                 mutation.attemptCount = 0
@@ -490,7 +505,9 @@ public actor DurableWatchlistMutationStore {
     public func ready(
         profileID: String,
         now: Date = Date(),
-        limit: Int = 3
+        limit: Int = 3,
+        destinationID: WatchlistDestinationID? = nil,
+        desiredState: WatchlistDesiredState? = nil
     ) -> [WatchlistMutation] {
         // Selected by index rather than by filtering and sorting the whole
         // array. `WatchlistMutation` is a large struct, so the old form copied
@@ -514,6 +531,8 @@ public actor DurableWatchlistMutationStore {
         for index in state.mutations.indices {
             let mutation = state.mutations[index]
             guard mutation.key.profileID == profileID,
+                  destinationID == nil || mutation.key.destinationID == destinationID,
+                  desiredState == nil || mutation.desiredState == desiredState,
                   mutation.phase == .queued || mutation.phase == .retryScheduled,
                   mutation.nextAttemptAt == nil || mutation.nextAttemptAt! <= now
             else { continue }
@@ -525,6 +544,12 @@ public actor DurableWatchlistMutationStore {
             if chosen.count > capacity { chosen.removeLast() }
         }
         return chosen.map { state.mutations[$0] }
+    }
+
+    public func isReady(_ mutation: WatchlistMutation, now: Date) -> Bool {
+        state.mutations.contains(mutation)
+            && (mutation.phase == .queued || mutation.phase == .retryScheduled)
+            && (mutation.nextAttemptAt == nil || mutation.nextAttemptAt! <= now)
     }
 
     public func markSucceeded(
@@ -544,6 +569,7 @@ public actor DurableWatchlistMutationStore {
         guard state.mutations.first(where: { $0.key == mutation.key }) == mutation else {
             return
         }
+        let previousState = state
         let key = mutation.key
         state.mutations.removeAll { $0.key == key }
         var reconciliation = state.reconciliationStates[key] ?? .init()
@@ -560,7 +586,12 @@ public actor DurableWatchlistMutationStore {
         }
         reconciliation.nativeAdditionCandidateReadAt = nil
         state.reconciliationStates[key] = reconciliation
-        try persist()
+        do {
+            try persist()
+        } catch {
+            state = previousState
+            throw error
+        }
     }
 
     public func discard(_ mutation: WatchlistMutation) throws {
@@ -590,6 +621,7 @@ public actor DurableWatchlistMutationStore {
         _ destinationID: WatchlistDestinationID,
         until: Date
     ) throws -> Int {
+        let previousState = state
         var deferred = 0
         for index in state.mutations.indices
         where state.mutations[index].key.destinationID == destinationID
@@ -599,7 +631,10 @@ public actor DurableWatchlistMutationStore {
             state.mutations[index].nextAttemptAt = until
             deferred += 1
         }
-        if deferred > 0 { try persist() }
+        if deferred > 0 {
+            do { try persist() }
+            catch { state = previousState; throw error }
+        }
         return deferred
     }
 
@@ -628,6 +663,7 @@ public actor DurableWatchlistMutationStore {
         }), mutation == processedMutation else {
             return
         }
+        let previousState = state
         mutation.attemptCount += 1
         mutation.nextAttemptAt = retryAt
         mutation.lastFailureClass = classification
@@ -638,7 +674,12 @@ public actor DurableWatchlistMutationStore {
         case .permanent: mutation.phase = .permanentlyFailed
         }
         replace(mutation)
-        try persist()
+        do {
+            try persist()
+        } catch {
+            state = previousState
+            throw error
+        }
     }
 
     public func resumeAuthentication(destinationID: WatchlistDestinationID) throws {
@@ -684,6 +725,7 @@ public actor DurableWatchlistMutationStore {
     public func parkDestinationForAuthentication(
         _ destinationID: WatchlistDestinationID
     ) throws -> Int {
+        let previousState = state
         var parked = 0
         for index in state.mutations.indices
         where state.mutations[index].key.destinationID == destinationID
@@ -693,7 +735,10 @@ public actor DurableWatchlistMutationStore {
             state.mutations[index].nextAttemptAt = nil
             parked += 1
         }
-        if parked > 0 { try persist() }
+        if parked > 0 {
+            do { try persist() }
+            catch { state = previousState; throw error }
+        }
         return parked
     }
 
@@ -801,6 +846,21 @@ public actor DurableWatchlistMutationStore {
             }
 
             var reconciliation = state.reconciliationStates[key] ?? .init()
+            let readStartedAt = request.nativeReadStartedAt ?? now
+            if let pending = mutationsByKey[key],
+               pending.confirmationIdentity != request.confirmationIdentity,
+               !(pending.confirmationIdentity == nil
+                    && request.confirmationIdentity == pending.target.identityFingerprint) {
+                results.append(.init(key: key, observation: .noChange))
+                continue
+            }
+            if readStartedAt < (mutationsByKey[key]?.updatedAt ?? .distantPast)
+                || readStartedAt < (reconciliation.lastConfirmedAt ?? .distantPast) {
+                let reassert = !request.isPresent && request.localDesiredState == .present
+                    && mutationsByKey[key]?.desiredState != .absent
+                results.append(.init(key: key, observation: reassert ? .reassertPresent : .noChange))
+                continue
+            }
             let confirmationPredatesRead = reconciliation.lastConfirmedAt.map {
                 confirmedAt in
                 request.nativeReadStartedAt.map {
@@ -893,6 +953,27 @@ public actor DurableWatchlistMutationStore {
                 observation = .nativeAddition
             } else {
                 observation = .noChange
+            }
+
+            let pending = mutationsByKey[key]
+            let matchesIntent = request.isPresent == (request.localDesiredState == .present)
+            let pendingMatches = pending.map {
+                $0.desiredState == request.localDesiredState
+                    && $0.confirmationIdentity == request.confirmationIdentity
+                    && readStartedAt >= $0.updatedAt
+            } ?? true
+            if matchesIntent, pendingMatches,
+               let identity = request.confirmationIdentity,
+               !reconciliation.explicitRemovalPending {
+                // A complete, same-account read can settle work without a write,
+                // but never an intent that changed after that read began.
+                reconciliation.lastConfirmedAt = now
+                reconciliation.lastConfirmedState = request.localDesiredState
+                reconciliation.lastConfirmedIdentity = identity
+                reconciliation.nativeRemovalObservedAt = nil
+                reconciliation.nativeAdditionCandidateReadAt = nil
+                mutationsByKey[key] = nil
+                changed = true
             }
 
             // Removal bookkeeping is transient; the confirmation of what a
@@ -995,16 +1076,10 @@ public actor DurableWatchlistMutationStore {
     }
 
     public func earliestNextAttempt(profileID: String) -> Date? {
-        if state.mutations.contains(where: {
-            $0.key.profileID == profileID && $0.phase == .queued
-        }) {
-            return .distantPast
-        }
         return state.mutations.lazy.filter {
             $0.key.profileID == profileID
-                && $0.phase == .retryScheduled
-                && $0.nextAttemptAt != nil
-        }.compactMap(\.nextAttemptAt).min()
+                && ($0.phase == .queued || $0.phase == .retryScheduled)
+        }.map { $0.nextAttemptAt ?? .distantPast }.min()
     }
 
     public func reconciliationStateCount(profileID: String? = nil) -> Int {

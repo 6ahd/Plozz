@@ -111,3 +111,34 @@ numeric HTTP outcomes in `PlozzLog` and the existing bounded development playbac
 journal. No credentials, credential fingerprints, media IDs, titles, request
 bodies or arbitrary paths enter these diagnostic lines. These counters are for
 attributing a future controlled run; they cannot reconstruct past API usage.
+
+### Watchlist writes
+
+The shared reconciler groups up to 50 pending WeTrakr changes with the same
+profile, account scope and desired state into one request. Movies and shows may
+share a batch; adds and removals use separate endpoints. Other destinations keep
+their existing single-item transport unless they explicitly support batching.
+The 50-title limit is a conservative client bound, not a documented server limit.
+
+Before writing, WeTrakr checks its complete planning snapshot and skips titles
+already in the requested state. A cold snapshot still needs activity and
+paginated list reads; an unchanged list needs no writes. Complete same-identity
+native observations also settle matching durable mutations without writing,
+unless a newer intent superseded the read.
+Missing or ambiguous remote identifiers cannot prove absence; those removals
+still go to the service for resolution.
+
+Each durable mutation has a persisted delivery identity. The batch retry key
+includes those identities and the exact submitted body. An unchanged retry reuses
+the key and deterministic body bytes; a changed intent or payload cannot reuse
+the old response.
+Every submitted title needs positive evidence: exact per-kind planning counts
+for successes, and unambiguous identifiers for individual failures. Unresolved
+titles wait for new identity evidence; rejected titles remain failed. Malformed
+or ambiguous replies never acknowledge a whole batch.
+
+Any attempted write invalidates the planning cache, including a lost response.
+The next pass re-establishes the full baseline rather than trusting a lagging
+journal. Aggregate batch diagnostics report unchanged, confirmed, unresolved
+and failed counts without title IDs or request bodies. Destination cooldowns
+also control the next scheduler wake, including queued work not yet attempted.
