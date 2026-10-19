@@ -118,7 +118,7 @@ final class ItemDetailViewModelTests: XCTestCase {
         }
     }
 
-    func testDetailFactorySeedsTheCurrentEpisodeAndMovieProgressBeforeAnyLoad() {
+    func testDetailFactorySeedsTheCurrentEpisodeAndMovieProgressBeforeAnyLoad() throws {
         let provider = FakeMediaProvider(allItems: [], kind: .plex)
         let show = MediaItem(id: "show", title: "Show", kind: .series, sourceAccountID: "plex")
         let episode = MediaItem(
@@ -143,7 +143,7 @@ final class ItemDetailViewModelTests: XCTestCase {
             continueWatchingSnapshot: { [episode, movieResume] }
         )
 
-        let seriesVM = environment.makeViewModel(for: show, libraryOrigin: nil)
+        let seriesVM = try environment.makeViewModel(for: show, libraryOrigin: nil)
         XCTAssertEqual(seriesVM.serverResumeEpisode?.id, "s4e1")
         XCTAssertEqual(seriesVM.serverResumeEpisode?.resumePosition, 867)
         XCTAssertEqual(
@@ -151,10 +151,10 @@ final class ItemDetailViewModelTests: XCTestCase {
             episode.id
         )
 
-        let movieVM = environment.makeViewModel(for: movie, libraryOrigin: nil)
+        let movieVM = try environment.makeViewModel(for: movie, libraryOrigin: nil)
         XCTAssertEqual(movieVM.state.value?.item.resumePosition, 800)
         XCTAssertEqual(movieVM.state.value?.item.resumeProgressFraction, 0.4)
-        let contextVM = environment.makeSeriesContextViewModel(
+        let contextVM = try environment.makeSeriesContextViewModel(
             seriesID: show.id, seed: episode,
             sourceAccountID: "plex", originAccountID: nil
         )
@@ -415,7 +415,7 @@ final class ItemDetailViewModelTests: XCTestCase {
         vm.suspendEnrichment()
     }
 
-    func testFullAlternateRejectionRemovesDependentIndexBridge() async {
+    func testFullAlternateRejectionRemovesDependentIndexBridge() async throws {
         let a = MediaItem(id: "a", title: "Movie", kind: .movie,
                           providerIDs: ["Imdb": "tt111", "Tmdb": "123"], sourceAccountID: "account")
         let b = MediaItem(id: "b", title: "Movie", kind: .movie,
@@ -433,7 +433,7 @@ final class ItemDetailViewModelTests: XCTestCase {
             identitySources: { snapshot.sourceRefs(for: $0) },
             crossServerSourceResolver: { _ in .init() }
         )
-        let vm = environment.makeViewModel(for: a, libraryOrigin: "account")
+        let vm = try environment.makeViewModel(for: a, libraryOrigin: "account")
         await vm.load()
         await waitUntil { vm.state.value?.item.rejectedSourceIDs.contains("account:b") == true }
         XCTAssertEqual(vm.sources.map(\.itemID), ["a"])
@@ -703,7 +703,7 @@ final class ItemDetailViewModelTests: XCTestCase {
         XCTAssertTrue(provider.itemCallCounts.isEmpty)
     }
 
-    func testDetailEnvironmentProbesLibraryAfterAnIndexMiss() async {
+    func testDetailEnvironmentProbesLibraryAfterAnIndexMiss() async throws {
         let provider = FakeMediaProvider(allItems: [])
         let entered = AsyncGate()
         let release = AsyncGate()
@@ -717,7 +717,7 @@ final class ItemDetailViewModelTests: XCTestCase {
                 return .init()
             }
         )
-        let vm = environment.makeViewModel(
+        let vm = try environment.makeViewModel(
             for: MediaItem(
                 id: "external",
                 title: "Loki",
@@ -734,6 +734,68 @@ final class ItemDetailViewModelTests: XCTestCase {
 
         XCTAssertTrue(vm.isDiscoveryItem)
         XCTAssertTrue(provider.itemCallCounts.isEmpty)
+    }
+
+    func testMissingSourceFailsBeforeConstructingADetailModel() {
+        let environment = DetailOpenEnvironment(
+            resolveProvider: { _ in throw AppError.unauthorized },
+            resolveOptionalProvider: { _ in nil },
+            identitySources: { _ in [] },
+            crossServerSourceResolver: nil
+        )
+        let item = MediaItem(id: "saved", title: "Saved", kind: .movie, sourceAccountID: "removed")
+        XCTAssertThrowsError(try environment.makeViewModel(for: item, libraryOrigin: nil)) {
+            XCTAssertEqual($0 as? AppError, .unauthorized)
+        }
+        XCTAssertThrowsError(try environment.makeSeriesContextViewModel(
+            seriesID: "series", seed: item, sourceAccountID: nil, originAccountID: "removed"
+        )) {
+            XCTAssertEqual($0 as? AppError, .unauthorized)
+        }
+    }
+
+    func testDetailSelectionSkipsRemovedSourcesWithoutSendingTheirItemIDToAnotherServer() throws {
+        let live = FakeMediaProvider(allItems: [], kind: .jellyfin, accountID: "live")
+        var item = MediaItem(id: "old-id", title: "Saved", kind: .movie, sourceAccountID: "removed")
+        item.sources = [
+            MediaSourceRef(accountID: "removed", itemID: "old-id", kind: .movie, locality: .local),
+            MediaSourceRef(accountID: "live", itemID: "live-id", kind: .movie, locality: .remote)
+        ]
+        let environment = DetailOpenEnvironment(
+            resolveProvider: { accountID in
+                guard accountID == "live" else { throw AppError.unauthorized }
+                return live
+            },
+            resolveOptionalProvider: { $0 == "live" ? live : nil },
+            identitySources: { _ in [] },
+            crossServerSourceResolver: nil
+        )
+        let model = try environment.makeViewModel(for: item, libraryOrigin: nil)
+        XCTAssertEqual(model.currentSourceForDisplay.accountID, "live")
+        XCTAssertEqual(model.currentSourceForDisplay.itemID, "live-id")
+        XCTAssertEqual(model.state.value?.item.sources.map(\.accountID), ["live"])
+        XCTAssertTrue(live.itemCallCounts.isEmpty)
+    }
+
+    func testSeriesContextResolvesItsOriginWhenTheSeedHasNoSource() throws {
+        let provider = FakeMediaProvider(allItems: [], kind: .plex, accountID: "origin")
+        var requested: [String?] = []
+        let environment = DetailOpenEnvironment(
+            resolveProvider: { accountID in
+                requested.append(accountID)
+                guard accountID == "origin" else { throw AppError.unauthorized }
+                return provider
+            },
+            resolveOptionalProvider: { _ in provider },
+            identitySources: { _ in [] },
+            crossServerSourceResolver: nil
+        )
+        let model = try environment.makeSeriesContextViewModel(
+            seriesID: "series", seed: .init(id: "season", title: "Season", kind: .season),
+            sourceAccountID: nil, originAccountID: "origin"
+        )
+        XCTAssertEqual(requested, ["origin"])
+        XCTAssertEqual(model.currentSourceForDisplay.accountID, "origin")
     }
 
     func testSeriesResumeFindsNextEpisodeBeyondSixtyTitles() async {

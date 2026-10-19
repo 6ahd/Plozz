@@ -1,5 +1,6 @@
 import Combine
 import CoreModels
+import CoreUI
 import FeatureAuth
 import FeatureHomeCore
 import Foundation
@@ -8,6 +9,31 @@ import XCTest
 
 @MainActor
 final class DetailPlaybackProgressTests: XCTestCase {
+    func testEmptyEnabledSourceSetAndRemovedExplicitSourcesFailWithoutFallback() throws {
+        for kind in [ProviderKind.plex, .jellyfin] {
+            let item = MediaItem(id: "movie", title: "Fixture", kind: .movie, sourceAccountID: "active")
+            let provider = ProgressProbeProvider(item: item, kind: kind)
+            let accounts = [ResolvedAccount(account: Account(id: "active", from: provider.session), provider: provider)]
+            XCTAssertEqual(try resolveProvider(nil, in: accounts).kind, kind)
+            XCTAssertEqual(try resolveProvider("active", in: accounts).session.server.id, "active")
+            for id: String? in [nil, "removed"] {
+                XCTAssertThrowsError(try resolveProvider(id, in: [])) {
+                    XCTAssertEqual($0 as? AppError, .unauthorized)
+                }
+            }
+            XCTAssertThrowsError(try resolveProvider("removed", in: accounts)) {
+                XCTAssertEqual($0 as? AppError, .unauthorized)
+            }
+        }
+    }
+
+    func testFailedDetailConstructionIsNotCachedAsASuccess() throws {
+        let cache = KeyedViewStateCache<String, String>()
+        XCTAssertThrowsError(try cache.value(forKey: "detail") { throw AppError.unauthorized })
+        XCTAssertEqual(cache.value(forKey: "detail") { "available" }, "available")
+        XCTAssertEqual(try cache.value(forKey: "detail") { throw AppError.unauthorized }, "available")
+    }
+
     private struct Fixture {
         let app: AppState
         let detail: ItemDetailViewModel

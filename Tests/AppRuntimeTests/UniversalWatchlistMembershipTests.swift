@@ -253,7 +253,7 @@ final class UniversalWatchlistMembershipTests: XCTestCase {
             identitySources: { _ in [] },
             crossServerSourceResolver: nil
         )
-        let detail = environment.makeViewModel(for: refreshed, libraryOrigin: nil)
+        let detail = try environment.makeViewModel(for: refreshed, libraryOrigin: nil)
         XCTAssertFalse(detail.isDiscoveryItem)
         XCTAssertEqual(detail.currentSourceForDisplay.itemID, searched.id)
         XCTAssertEqual(detail.currentSourceForDisplay.accountID, searched.sourceAccountID)

@@ -42,6 +42,20 @@ registry.
 
 ## Invariants
 
+- **Missing sources are a recoverable route state.** Home, Watchlist, Search,
+  library and series-context destinations show an unavailable state when their
+  provider no longer resolves. An untagged item may use the active primary
+  provider; an explicit missing account never falls back to a different server.
+  Detail source selection excludes inactive copies before choosing a provider,
+  and failed model construction is not cached. Player creation propagates
+  missing-source failures into its visible error path.
+
+- **Mobile notification completion stays on the main actor.** The download
+  notification delegate uses the explicit completion-handler entry point.
+  Navigation is queued before completion; ignored and malformed notifications
+  also complete exactly once on the main actor because UIKit may snapshot
+  immediately afterward.
+
 - **One root presentation at a time.** `RootPresentationCoordinator` retains the
   current native cover until its dismissal completes. Startup introductions,
   release notes, identity gates, synced-server prompts, and device setup wait

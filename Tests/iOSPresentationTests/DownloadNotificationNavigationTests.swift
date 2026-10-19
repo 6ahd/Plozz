@@ -13,6 +13,49 @@ import XCTest
 
 @MainActor
 final class DownloadNotificationNavigationTests: XCTestCase {
+    func testBackgroundNotificationCompletionRunsOnceOnMainAfterNavigation() async throws {
+        let target = try target(record())
+        let navigation = PlozziOSDownloadNotificationNavigation.shared
+        defer { navigation.cancelPending() }
+        navigation.cancelPending()
+        let completed = expectation(description: "Notification completion")
+        completed.assertForOverFulfill = true
+        await Task.detached {
+            XCTAssertFalse(Thread.isMainThread)
+            PlozziOSDownloadNotificationDelegate.complete(target: target) {
+                XCTAssertTrue(Thread.isMainThread)
+                MainActor.assumeIsolated {
+                    XCTAssertEqual(navigation.pending?.target, target)
+                }
+                completed.fulfill()
+            }
+        }.value
+        await fulfillment(of: [completed], timeout: 3)
+    }
+
+    func testIgnoredNotificationStillCompletesOnceOnMainWithoutChangingNavigation() async throws {
+        let target = try target(record())
+        let navigation = PlozziOSDownloadNotificationNavigation.shared
+        navigation.receive(target)
+        let requestID = navigation.pending?.id
+        defer { navigation.cancelPending() }
+        let completed = expectation(description: "Ignored notification completion")
+        completed.assertForOverFulfill = true
+        await Task.detached {
+            PlozziOSDownloadNotificationDelegate.complete(target: nil) {
+                XCTAssertTrue(Thread.isMainThread)
+                MainActor.assumeIsolated {
+                    XCTAssertEqual(navigation.pending?.id, requestID)
+                }
+                completed.fulfill()
+            }
+        }.value
+        await fulfillment(of: [completed], timeout: 3)
+        XCTAssertTrue(PlozziOSDownloadNotificationDelegate.shared.responds(
+            to: #selector(UNUserNotificationCenterDelegate.userNotificationCenter(_:didReceive:withCompletionHandler:))
+        ))
+    }
+
     func testPayloadRoundTripPreservesExactGenerationWithoutMediaOrCredentials() throws {
         let record = record()
         let target = try target(record)
