@@ -3,6 +3,60 @@ import XCTest
 
 @MainActor
 final class PlayerLayoutInteractionTests: XCTestCase {
+    func testNativeAVKitPlayerAppearanceInLightAndDark() {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer { app.terminate() }
+        for appearance in ["light", "dark"] {
+            app.launchArguments = ["--player-layout-fixture", "--native-avkit", "--\(appearance)"]
+            app.launch()
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
+            XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 10))
+            capture(app, name: "AVKit native \(appearance)")
+            attachMeasurements([app.debugDescription])
+            app.terminate()
+        }
+    }
+
+    func testPlayerLayoutAppearanceOverVideo() {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        for appearance in ["light", "dark"] {
+            app.launchArguments = ["--player-layout-fixture", "--video", "--\(appearance)"]
+            app.launch()
+            XCTAssertTrue(app.buttons["Info"].waitForExistence(timeout: 10))
+            capture(app, name: "Plozz \(appearance) controls over video portrait")
+            XCUIDevice.shared.orientation = .landscapeLeft
+            wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                app.frame.width > app.frame.height
+            }, object: nil)], timeout: 10)
+            capture(app, name: "Plozz \(appearance) controls over video landscape")
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+    }
+
+    func testLightControlsRemainLegibleOverWhiteVideo() throws {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        app.launchArguments = ["--player-layout-fixture", "--white-video", "--light"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 10))
+        capture(app, name: "Plozz light controls over white video")
+        let image = XCUIScreen.main.screenshot().image
+        for name in ["Play", "Skip backward", "Skip forward"] {
+            let ink = try visibleBounds(image, in: app.buttons[name].frame.insetBy(dx: 12, dy: 12),
+                                        screen: app.frame, threshold: 230)
+            XCTAssertGreaterThan(ink.width, 20, "\(name) must retain visible white ink over bright video.")
+            XCTAssertGreaterThan(ink.height, 20)
+        }
+    }
+
     func testNativePlayerGeometryMatchesReferenceAndSurvivesRotation() throws {
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
         app.launchArguments = ["--player-layout-fixture"]
@@ -143,6 +197,7 @@ final class PlayerLayoutInteractionTests: XCTestCase {
     }
 
     private func capture(_ app: XCUIApplication, name: String) {
+        Thread.sleep(forTimeInterval: 0.7)
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways

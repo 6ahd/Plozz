@@ -45,17 +45,25 @@ public struct PlayerGlassControlGroup<Content: View>: View {
     }
 
     public var body: some View {
-        HStack(spacing: 12) { content }
-            .background {
-                let shape = Capsule()
-                if nativeGlass, #available(iOS 26.0, tvOS 26.0, *) {
-                    PlayerNativeGlassSurface(shape)
-                } else {
-                    Color.clear.plozzFrostedBackground(shape).plozzFrostedBorder(shape)
-                }
+        Group {
+            if nativeGlass, #available(iOS 26.0, tvOS 26.0, *) {
+                #if os(iOS)
+                controls.glassEffect(.clear, in: Capsule())
+                #else
+                controls.glassEffect(.regular, in: Capsule())
+                #endif
+            } else {
+                controls
+                    .plozzFrostedBackground(Capsule())
+                    .plozzFrostedBorder(Capsule())
             }
-            .environment(\.playerControlsGrouped, true)
-            .accessibilityElement(children: .contain)
+        }
+        .environment(\.playerControlsGrouped, true)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var controls: some View {
+        HStack(spacing: 12) { content }
     }
 }
 
@@ -98,14 +106,40 @@ private struct PlayerTouchTabModifier: ViewModifier {
 
 @available(iOS 26.0, tvOS 26.0, *)
 private struct PlayerNativeTouchTabStyle: PrimitiveButtonStyle {
+    @Environment(\.playerControlForeground) private var foreground
+
     func makeBody(configuration: Configuration) -> some View {
+        #if os(iOS)
+        if #available(iOS 26.1, *) {
+            button(configuration).buttonStyle(.glass(.clear))
+        } else {
+            button(configuration).buttonStyle(PlayerClearTouchTabStyle())
+        }
+        #else
+        button(configuration).buttonStyle(.glass)
+        #endif
+    }
+
+    private func button(_ configuration: Configuration) -> some View {
         Button(role: configuration.role, action: configuration.trigger) {
             configuration.label
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(foreground)
                 .padding(.horizontal, 2)
                 .frame(minHeight: 28)
         }
-        .buttonStyle(.glass)
     }
 }
+
+#if os(iOS)
+@available(iOS 26.0, *)
+private struct PlayerClearTouchTabStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .glassEffect(.clear.interactive(), in: Capsule())
+    }
+}
+#endif
 #endif

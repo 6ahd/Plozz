@@ -65,10 +65,13 @@ bounded language-match/accessibility flags without track titles or URLs.
 
 ## Player appearance
 
-Player transport buttons, timelines, tabs, cards, and inline panels use regular
-native Liquid Glass and inherit the current appearance. Do not force these
-surfaces dark or apply a fixed dark tint: the system owns their adaptive material.
-Capsule buttons use the native glass/glass-prominent styles on both platforms.
+Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
+without tint or a colored backing. Like AVKit video chrome, their symbols and
+progress remain white in both appearances. The controls scrim dims the video
+beneath the transport as well as the edge chrome, so white scenes remain legible
+without coloring the glass itself. Cards, inline panels, and tvOS retain regular native glass.
+Do not force a color scheme: native menus, sheets, and panels still inherit the
+current app appearance.
 The reduced-glass/older-system fallback follows light and dark mode with paired
 foreground colors. Text directly over video stays white. UIKit-backed route and
 options buttons resolve the same icon contrast without forcing their presented
@@ -81,7 +84,9 @@ landscape windows use the compact transport so it stays clear of the bottom
 controls. VOD and Live chrome use the larger of the window safe area and native
 edge margins (21 horizontal, 24 vertical), rather than adding the two. Adjacent
 routing and playback-option controls share one untinted glass capsule while
-retaining independent actions; Close and the main transport remain separate.
+retaining independent actions. Grouped children have no individual glass
+backgrounds or circular clipping, including UIKit menu buttons; Close and the
+main transport remain separate.
 Mobile card tabs use native glass buttons with player-sized labels, 8-point gaps,
 and a 44-point minimum touch target instead of TV padding. The timeline occupies
 a 38-point layout row while VOD scrubbing retains its 44-point touch target.

@@ -1,5 +1,8 @@
 #if canImport(SwiftUI)
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 public extension EnvironmentValues {
     var playerUsesNativeGlass: Bool {
@@ -8,18 +11,34 @@ public extension EnvironmentValues {
         }
         return false
     }
+
+    var playerControlForeground: Color {
+        #if os(iOS)
+        Color(playerControlTint)
+        #else
+        .primary
+        #endif
+    }
+
+    #if os(iOS)
+    var playerControlTint: UIColor {
+        playerUsesNativeGlass || colorScheme == .dark ? .white : .black
+    }
+    #endif
 }
 
 @available(iOS 26.0, tvOS 26.0, *)
 public struct PlayerNativeGlassSurface<S: Shape>: View {
     private let shape: S
+    private let glass: Glass
 
-    public init(_ shape: S) {
+    public init(_ shape: S, glass: Glass = .regular) {
         self.shape = shape
+        self.glass = glass
     }
 
     public var body: some View {
-        Color.clear.glassEffect(.regular, in: shape)
+        Color.clear.glassEffect(glass, in: shape)
     }
 }
 #endif

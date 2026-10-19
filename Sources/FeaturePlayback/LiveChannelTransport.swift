@@ -1300,7 +1300,8 @@ extension LiveChannelOverlay {
     private var touchScrim: some View {
         LinearGradient(
             colors: [
-                .black.opacity(touchTimelineOnly ? 0 : 0.65), .clear,
+                .black.opacity(touchTimelineOnly ? 0 : 0.65),
+                .black.opacity(touchTimelineOnly ? 0 : 0.35),
                 .black.opacity(touchTimelineOnly ? 0.45 : (cardOpen ? 0.9 : 0.82))
             ],
             startPoint: .top,
@@ -1518,8 +1519,6 @@ extension LiveChannelOverlay {
                     onPresentationChange: { nativePlaybackMenuPresented = $0 }
                 )
                 .frame(width: 44, height: 44)
-                .background { PlayerGlassCircleSurface() }
-                .clipShape(Circle())
             }
             if showsAudio {
                 touchBadge(
@@ -2132,18 +2131,19 @@ struct LiveChannelTouchTrack: View {
     let height: CGFloat
     let focused: Bool
     let scrubbing: Bool
+    @Environment(\.playerControlForeground) private var foreground
 
     var body: some View {
         let fillStart = width * CGFloat(layout.seekableStart ?? 0)
         ZStack(alignment: .leading) {
             PlayerScrubTrackSurface(height: height)
             Rectangle()
-                .fill(Color.primary.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
+                .fill(foreground.opacity(layout.seekableStart == nil ? 0.14 : 0.24))
                 .frame(width: max(0, width * CGFloat(layout.aired) - fillStart), height: height)
                 .offset(x: fillStart)
             if layout.seekableStart != nil {
                 Rectangle()
-                    .fill(Color.primary.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
+                    .fill(foreground.opacity(scrubbing ? 0.9 : focused ? 0.62 : 0.32))
                     .frame(width: max(0, width * CGFloat(layout.playing) - fillStart), height: height)
                     .offset(x: fillStart)
             }

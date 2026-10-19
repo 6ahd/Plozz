@@ -13,6 +13,7 @@ final class PlayerGlassAppearanceInteractionTests: XCTestCase {
         for backdrop in ["white", "black"] {
             var samples: [[String: [UInt8]]] = []
             for scheme in ["dark", "light"] {
+                Thread.sleep(forTimeInterval: 0.7)
                 let screenshot = app.screenshot()
                 let attachment = XCTAttachment(screenshot: screenshot)
                 attachment.name = "Native player \(scheme) over \(backdrop)"
@@ -31,14 +32,17 @@ final class PlayerGlassAppearanceInteractionTests: XCTestCase {
                 let panel = try XCTUnwrap(sample["panel"])
                 XCTAssertEqual(luminance(panel), luminance(native), accuracy: 0.05,
                                "Player glass must match stock regular glass, not a forced dark material.")
-                if backdrop == "black" {
-                    let group = app.descendants(matching: .any)["appearance-group"].firstMatch.frame
-                    let bridge = try pixels(screenshot.image, frame: CGRect(
-                        x: group.midX - 8, y: group.midY - 8, width: 16, height: 16
-                    ), screen: app.frame)
-                    XCTAssertGreaterThan(luminance(bridge), 0.03,
-                                         "Adjacent controls must share glass across the gap, not isolated circles.")
-                }
+                let circleFrame = app.buttons["appearance-circle"].frame
+                let circle = try pixels(screenshot.image, frame: CGRect(
+                    x: circleFrame.midX - 40, y: circleFrame.midY - 40, width: 80, height: 80
+                ), screen: app.frame)
+                let circleReference = app.descendants(matching: .any)["appearance-reference-circle"].firstMatch
+                let clear = try pixels(screenshot.image, frame: CGRect(
+                    x: circleReference.frame.midX - 40, y: circleReference.frame.midY - 40, width: 80, height: 80
+                ), screen: app.frame)
+                XCTAssertEqual(luminance(circle), luminance(clear), accuracy: 0.03,
+                               "Video controls must use untinted clear glass and white ink, including in Light mode.")
+                try assertSingleGroupSurface(app, screenshot: screenshot)
                 samples.append(sample)
                 app.buttons["appearance-theme"].tap()
             }
@@ -49,10 +53,56 @@ final class PlayerGlassAppearanceInteractionTests: XCTestCase {
             }
             if backdrop == "white" { app.buttons["appearance-video"].tap() }
         }
+        assertIndependentActions(app)
+    }
+
+    func testReducedEffectsGroupingInBothAppearances() throws {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        app.launchArguments = ["--player-glass-fixture"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.buttons["appearance-effects"].waitForExistence(timeout: 10))
+        app.buttons["appearance-effects"].tap()
+        app.buttons["appearance-video"].tap()
+        for appearance in ["dark", "light"] {
+            Thread.sleep(forTimeInterval: 0.7)
+            let screenshot = app.screenshot()
+            let attachment = XCTAttachment(screenshot: screenshot)
+            attachment.name = "Reduced effects group \(appearance)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            try assertSingleGroupSurface(app, screenshot: screenshot)
+            app.buttons["appearance-theme"].tap()
+        }
+        assertIndependentActions(app)
+    }
+
+    private func assertSingleGroupSurface(_ app: XCUIApplication, screenshot: XCUIScreenshot) throws {
+        let group = app.descendants(matching: .any)["appearance-group"].firstMatch.frame
+        let reference = app.descendants(matching: .any)["appearance-reference-group"].firstMatch.frame
+        let actual = try groupSurface(screenshot, frame: group, screen: app.frame)
+        let expected = try groupSurface(screenshot, frame: reference, screen: app.frame)
+        XCTAssertEqual(actual.count, expected.count)
+        let difference = zip(actual, expected).reduce(0.0) { $0 + abs(Double($1.0) - Double($1.1)) }
+            / Double(max(1, actual.count)) / 255
+        XCTAssertLessThan(difference, 0.04,
+                          "The mixed UIKit/SwiftUI group must be one capsule, with no nested circular surfaces.")
+    }
+
+    private func assertIndependentActions(_ app: XCUIApplication) {
         app.buttons["appearance-group-left"].tap()
-        app.buttons["appearance-group-right"].tap()
+        app.buttons["player-playback-options"].tap()
+        XCTAssertTrue(app.buttons["Fixture option"].waitForExistence(timeout: 5))
+        app.buttons["Fixture option"].tap()
         XCTAssertEqual(app.buttons["appearance-group-left"].value as? String, "1")
-        XCTAssertEqual(app.buttons["appearance-group-right"].value as? String, "1")
+        XCTAssertEqual(app.buttons["player-playback-options"].value as? String, "1")
+    }
+
+    private func groupSurface(_ screenshot: XCUIScreenshot, frame: CGRect, screen: CGRect) throws -> [UInt8] {
+        try pixels(screenshot.image, frame: CGRect(
+            x: frame.midX - 36, y: frame.midY - 22, width: 72, height: 16
+        ), screen: screen)
     }
 
     private func luminance(_ bytes: [UInt8]) -> Double {
@@ -66,8 +116,9 @@ final class PlayerGlassAppearanceInteractionTests: XCTestCase {
         let scale = CGFloat(image.width) / screen.width
         let frame = frame.insetBy(dx: 5, dy: 5)
         let crop = try XCTUnwrap(image.cropping(to: CGRect(
-            x: (frame.minX - screen.minX) * scale, y: (frame.minY - screen.minY) * scale,
-            width: frame.width * scale, height: frame.height * scale
+            x: ((frame.minX - screen.minX) * scale).rounded(),
+            y: ((frame.minY - screen.minY) * scale).rounded(),
+            width: (frame.width * scale).rounded(), height: (frame.height * scale).rounded()
         )))
         var bytes = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
         try bytes.withUnsafeMutableBytes { buffer in

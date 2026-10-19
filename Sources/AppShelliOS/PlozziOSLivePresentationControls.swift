@@ -1,5 +1,6 @@
 #if os(iOS)
 import AVKit
+import CoreUI
 import FeaturePlayback
 import SwiftUI
 
@@ -96,13 +97,14 @@ private struct LiveAirPlayRoutePicker: UIViewRepresentable {
     func makeUIView(context: Context) -> AVRoutePickerView {
         let picker = AVRoutePickerView()
         picker.prioritizesVideoDevices = true
-        picker.tintColor = context.environment.colorScheme == .light ? .black : .white
-        picker.activeTintColor = .systemBlue
+        picker.tintColor = context.environment.playerControlTint
+        picker.activeTintColor = picker.tintColor
         return picker
     }
 
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
-        uiView.tintColor = context.environment.colorScheme == .light ? .black : .white
+        uiView.tintColor = context.environment.playerControlTint
+        uiView.activeTintColor = uiView.tintColor
     }
 }
 #endif

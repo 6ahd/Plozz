@@ -107,9 +107,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   keeps visible title-and-icon labels and uses the same `playerGlassButton`
   treatment, including native menus. Only the existing reduced-transparency
   playback path draws the shared frosted fallback.
-  Playback surfaces use regular native Liquid Glass in the inherited appearance,
-  without a forced dark scheme or fixed dark tint. Fallback surfaces also inherit
-  the app appearance and pair light fills with dark foregrounds.
+  Mobile video chrome uses untinted clear Liquid Glass with white symbols and
+  progress in both appearances; `playerControlForeground`/`playerControlTint`
+  keep SwiftUI and UIKit controls consistent without overriding menu appearance.
+  Panels and tvOS retain regular native glass. Fallback surfaces inherit the app
+  appearance and pair light fills with dark foregrounds.
 - **Settings steppers** — TV makes the whole labeled row one focus target using
   the existing `SettingsFormButtonStyle`, including its helper, persistent minus/plus cues and
   `SettingsRowMetrics.titleFont` value. Labels must be supplied to the shared

@@ -355,11 +355,16 @@ public struct PlayerScrubTrackSurface: View {
 
     public var body: some View {
         if #available(iOS 26.0, tvOS 26.0, *), usesNativeGlass {
+            #if os(iOS)
+            PlayerNativeGlassSurface(Capsule(), glass: .clear)
+                .frame(height: height)
+            #else
             PlayerNativeGlassSurface(Capsule())
                 .frame(height: height)
                 .background {
                     Capsule().fill(.white.opacity(Self.glassBackingOpacity))
                 }
+            #endif
         } else {
             Capsule()
                 .fill(colorScheme == .light
@@ -370,12 +375,8 @@ public struct PlayerScrubTrackSurface: View {
     }
 }
 
-/// The circular glass surface behind a transport control.
-///
-/// Separate from the button style because not every control that needs it IS a
-/// button — the AirPlay route picker is a `UIView` wrapper — and two copies of a
-/// material is precisely how the cast rows ended up looking unlike the cast
-/// cards.
+/// Standalone transport backing. Grouped controls leave surface ownership to
+/// their shared capsule instead of nesting glass.
 public struct PlayerGlassCircleSurface: View {
     @Environment(\.playerControlsGrouped) private var grouped
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
@@ -393,49 +394,60 @@ public struct PlayerGlassCircleSurface: View {
                 .plozzFrostedBackground(shape)
                 .plozzFrostedBorder(shape)
         } else if #available(iOS 26.0, tvOS 26.0, *) {
+            #if os(iOS)
+            PlayerNativeGlassSurface(shape, glass: .clear)
+            #else
             PlayerNativeGlassSurface(shape)
+            #endif
         } else {
             shape.fill(.clear).plozzFrostedBackground(shape).plozzFrostedBorder(shape)
         }
     }
 }
 
-/// A circular Liquid Glass button for the player's transport controls.
-///
-/// Public and shared rather than drawn per platform: the tvOS card, the scrub
-/// track and these all draw the same glass, and the three-branch shape below is
-/// the repo's established one — frosted when panel glass is reduced, native glass
-/// on 26+, a translucent fill before that. A second hand-rolled copy in the iOS
-/// shell is how the cast rows ended up on a different material from the cast
-/// cards.
-///
-/// Deliberately NOT a `Material`. A material has no backdrop sample on its first
-/// frame, so it paints its own flat base colour and then repaints once it has
-/// one — the white flash the player panels were chasing for a long time. Glass
-/// and a plain translucent fill both avoid it.
+/// Mobile transport uses untinted clear glass over video; tvOS keeps regular
+/// glass. Both retain the theme-aware reduced-effects fallback.
 public struct PlayerGlassCircleButtonStyle: ButtonStyle {
     /// The button's full circular size, which is also its touch target.
     public let diameter: CGFloat
     @Environment(\.playerControlsGrouped) private var grouped
+    @Environment(\.playerUsesNativeGlass) private var nativeGlass
+    @Environment(\.playerControlForeground) private var foreground
 
     public init(diameter: CGFloat) {
         self.diameter = diameter
     }
 
     public func makeBody(configuration: Configuration) -> some View {
+        Group {
+            if grouped {
+                label(configuration)
+            } else {
+                #if os(iOS)
+                if nativeGlass, #available(iOS 26.0, *) {
+                    label(configuration)
+                        .glassEffect(.clear.interactive(), in: Circle())
+                } else {
+                    label(configuration)
+                        .background { PlayerGlassCircleSurface() }
+                        .clipShape(Circle())
+                }
+                #else
+                label(configuration)
+                    .background { PlayerGlassCircleSurface() }
+                    .clipShape(Circle())
+                #endif
+            }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: grouped ? 0 : diameter / 2))
+        .scaleEffect(configuration.isPressed ? 0.94 : 1)
+        .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+
+    private func label(_ configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(Color.primary)
+            .foregroundStyle(foreground)
             .frame(width: diameter, height: diameter)
-            .background { PlayerGlassCircleSurface() }
-            .clipShape(Circle())
-            // The whole circle takes the tap, not just the glyph inside it.
-            .contentShape(RoundedRectangle(cornerRadius: grouped ? 0 : diameter / 2))
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            // Its own curve. Inheriting the ambient one means a press that
-            // coincides with some other animation settles on that animation's
-            // schedule — which is what made the tab row look like its two
-            // buttons were moving at different speeds.
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 
 }

@@ -1,6 +1,7 @@
 import CoreUI
 @testable import FeaturePlayback
 import SwiftUI
+import UIKit
 
 struct PlayerGlassAppearanceFixture: View {
     @State private var light = false
@@ -23,7 +24,7 @@ struct PlayerGlassAppearanceFixture: View {
                     .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 80))
                     .accessibilityIdentifier("appearance-circle")
                 Button("Info") {}
-                    .buttonStyle(PlayerTabButtonStyle(focused: false))
+                    .playerTouchTab(selected: false)
                     .accessibilityIdentifier("appearance-tab")
                 PlayerControlButton("Play", systemImage: "play.fill") {}
                     .accessibilityIdentifier("appearance-native-button")
@@ -35,12 +36,33 @@ struct PlayerGlassAppearanceFixture: View {
                     .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
                     .accessibilityIdentifier("appearance-group-left")
                     .accessibilityValue("\(leftPresses)")
-                Button { rightPresses += 1 } label: { Image(systemName: "slider.horizontal.3") }
-                    .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
-                    .accessibilityIdentifier("appearance-group-right")
+                PlayerOptionsMenuButton(
+                    makeMenu: { UIMenu(children: [UIAction(title: "Fixture option") { _ in rightPresses += 1 }]) },
+                    onPresentationChange: { _ in }
+                )
+                    .frame(width: 44, height: 44)
                     .accessibilityValue("\(rightPresses)")
             }
             .accessibilityIdentifier("appearance-group")
+            if #available(iOS 26.0, *) {
+                HStack(spacing: 24) {
+                    Image(systemName: "plus").font(.title).foregroundStyle(.white)
+                        .frame(width: 80, height: 80)
+                        .glassEffect(.clear.interactive(), in: Circle())
+                        .accessibilityIdentifier("appearance-reference-circle")
+                    Group {
+                        if reduced {
+                            Color.clear.frame(width: 100, height: 44)
+                                .plozzFrostedBackground(Capsule())
+                                .plozzFrostedBorder(Capsule())
+                        } else {
+                            Color.clear.frame(width: 100, height: 44)
+                                .glassEffect(.clear, in: Capsule())
+                        }
+                    }
+                    .accessibilityIdentifier("appearance-reference-group")
+                }
+            }
             PlayerScrubTrackSurface(height: 20)
                 .frame(maxWidth: 500)
                 .accessibilityElement()

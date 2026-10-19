@@ -6,7 +6,7 @@ import XCTest
 
 @MainActor
 final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
-    func testPlayerSurfacesInheritAppearanceAndUseNativeRegularGlass() async throws {
+    func testPlayerSurfacesInheritAppearanceAndUseUntintedNativeGlass() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
               ContinuousClock.now < deadline {
@@ -90,8 +90,11 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     }
                     #endif
                     #if os(iOS)
+                    if !reduced {
+                        XCTAssertGreaterThan(inkLevel, 0.85, "Native video controls retain white ink in Light mode.")
+                    }
                     let options = try XCTUnwrap(descendant(in: window, identifier: "player-playback-options") as? UIButton)
-                    XCTAssertEqual(options.tintColor, scheme == .light ? .black : .white)
+                    XCTAssertEqual(options.tintColor, reduced && scheme == .light ? .black : .white)
                     XCTAssertEqual(options.traitCollection.userInterfaceStyle, scheme == .light ? .light : .dark,
                                    "Changing the icon must not force the native menu's appearance.")
                     #endif

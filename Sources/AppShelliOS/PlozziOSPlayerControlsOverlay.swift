@@ -76,7 +76,8 @@ struct PlozziOSPlayerControlsOverlay: View {
             if controlsVisible || touchGestures.skip != nil {
                 LinearGradient(
                     colors: [
-                        .black.opacity(controlsVisible ? 0.65 : 0), .clear,
+                        .black.opacity(controlsVisible ? 0.65 : 0),
+                        .black.opacity(controlsVisible ? 0.35 : 0),
                         .black.opacity(controlsVisible ? 0.82 : 0.45),
                     ],
                     startPoint: .top,
@@ -588,13 +589,13 @@ private struct PlozziOSAirPlayRouteButton: UIViewRepresentable {
         let view = AVRoutePickerView()
         // Surfaces Apple TV class receivers ahead of audio-only routes.
         view.prioritizesVideoDevices = true
-        view.tintColor = context.environment.colorScheme == .light ? .black : .white
+        view.tintColor = context.environment.playerControlTint
         view.activeTintColor = view.tintColor
         return view
     }
 
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
-        uiView.tintColor = context.environment.colorScheme == .light ? .black : .white
+        uiView.tintColor = context.environment.playerControlTint
         uiView.activeTintColor = uiView.tintColor
     }
 }
@@ -685,8 +686,6 @@ private struct PlozziOSPlaybackOptionsMenu: View {
     var body: some View {
         PlayerOptionsMenuButton(makeMenu: makeMenu, onPresentationChange: onPresentationChange)
             .frame(width: 44, height: 44)
-            .background { PlayerGlassCircleSurface() }
-            .clipShape(Circle())
     }
 
     private func makeMenu() -> UIMenu {
@@ -1119,7 +1118,6 @@ private struct PlozziOSSkipGlyph: View {
                 // is centred a little below the circle's own centre.
                 .offset(y: size * 0.06)
         }
-        .foregroundStyle(Color.primary)
     }
 }
 
