@@ -5,7 +5,7 @@ import XCTest
 @testable import ProviderJellyfin
 
 final class MediaBrowserNativeCollectionTests: XCTestCase {
-    func testCompatibleServersGetOneCollectionDirectoryWithoutDiscoveryRequests() async throws {
+    func testCompatibleServersGetOneCollectionDirectoryWithOneExistenceRequest() async throws {
         for kind: ProviderKind in [.jellyfin, .emby] {
             let http = StubHTTPClient()
             http.stub(pathSuffix: "/Users/user/Views", json: """
@@ -14,6 +14,7 @@ final class MediaBrowserNativeCollectionTests: XCTestCase {
               {"Id":"shows","Name":"TV Shows","CollectionType":"tvshows"}
             ]}
             """)
+            http.stub(pathSuffix: "/Users/user/Items", json: #"{"Items":[],"TotalRecordCount":0}"#)
             let provider = provider(http, kind: kind)
             let libraries = try await provider.libraries()
             XCTAssertEqual(libraries.map(\.id), ["movies", "shows", provider.collectionDirectoryID])
@@ -21,8 +22,52 @@ final class MediaBrowserNativeCollectionTests: XCTestCase {
             XCTAssertEqual(directory.kind, .collection)
             XCTAssertEqual(directory.synthesizedName, .collections)
             XCTAssertTrue(directory.isServerCollectionDirectory)
-            XCTAssertEqual(http.sentPaths, ["/Users/user/Views"])
+            XCTAssertEqual(directory.hasCollections, false)
+            XCTAssertEqual(http.sentPaths, ["/Users/user/Views", "/Users/user/Items"])
+            let query = try XCTUnwrap(http.queryItems(forPathSuffix: "/Users/user/Items"))
+            XCTAssertTrue(query.contains(URLQueryItem(name: "Limit", value: "1")))
+            XCTAssertTrue(query.contains(URLQueryItem(name: "IncludeItemTypes", value: "BoxSet")))
+            XCTAssertFalse(query.contains { $0.name == "ParentId" })
         }
+    }
+
+    func testCollectionExistenceRefreshDetectsFirstAdditionWithoutScanningMembers() async throws {
+        let http = StubHTTPClient()
+        http.stub(pathSuffix: "/Users/user/Views", json: #"{"Items":[{"Id":"movies","CollectionType":"movies"}]}"#)
+        http.stubSequence(pathSuffix: "/Users/user/Items", jsons: [
+            #"{"Items":[],"TotalRecordCount":0}"#,
+            #"{"Items":[{"Id":"new","Type":"BoxSet"}],"TotalRecordCount":1}"#
+        ])
+        let provider = provider(http)
+        let before = try await provider.libraries()
+        let after = try await provider.libraries()
+        XCTAssertEqual(before.last?.hasCollections, false)
+        XCTAssertEqual(after.last?.hasCollections, true)
+        XCTAssertEqual(before.map(\.id), after.map(\.id))
+        XCTAssertEqual(http.sentPaths, ["/Users/user/Views", "/Users/user/Items", "/Users/user/Views", "/Users/user/Items"])
+        XCTAssertTrue(http.sentPaths.indices.filter { http.sentPaths[$0].hasSuffix("/Items") }.allSatisfy {
+            http.sentQueryItems[$0].contains(URLQueryItem(name: "Limit", value: "1"))
+        })
+    }
+
+    func testUnavailableOrInvalidCollectionProbeNeverMeansEmpty() async throws {
+        for response in [
+            #"{"Items":[],"TotalRecordCount":1}"#,
+            #"{"Items":[{"Id":"wrong-kind","Type":"Movie"}]}"#,
+            #"{"Items":[],"TotalRecordCount":-1}"#
+        ] {
+            let http = StubHTTPClient()
+            http.stub(pathSuffix: "/Users/user/Views", json: #"{"Items":[{"Id":"movies","CollectionType":"movies"}]}"#)
+            http.stub(pathSuffix: "/Users/user/Items", json: response)
+            let libraries = try await provider(http).libraries()
+            XCTAssertEqual(libraries.count, 2)
+            XCTAssertNil(libraries.last?.hasCollections)
+        }
+        let http = StubHTTPClient()
+        http.stub(pathSuffix: "/Users/user/Views", json: #"{"Items":[{"Id":"movies","CollectionType":"movies"}]}"#)
+        http.stub(pathSuffix: "/Users/user/Items", json: "{}", status: 404)
+        let libraries = try await provider(http).libraries()
+        XCTAssertNil(libraries.last?.hasCollections)
     }
 
     func testCollectionDirectoryIsNotAddedForEmptyOrMusicOnlyAccounts() async throws {
@@ -34,6 +79,7 @@ final class MediaBrowserNativeCollectionTests: XCTestCase {
             http.stub(pathSuffix: "/Users/user/Views", json: json)
             let libraries = try await provider(http).libraries()
             XCTAssertFalse(libraries.contains(where: \.isServerCollectionDirectory))
+            XCTAssertEqual(http.sentPaths, ["/Users/user/Views"])
         }
     }
 
@@ -84,12 +130,17 @@ final class MediaBrowserNativeCollectionTests: XCTestCase {
         http.stub(pathSuffix: "/Users/user/Views", json: """
         {"Items":[{"Id":"movies","CollectionType":"movies"},{"Id":"hidden","CollectionType":"movies"}]}
         """)
+        http.stub(
+            pathSuffix: "/Users/user/Items",
+            requiring: [URLQueryItem(name: "IncludeItemTypes", value: "BoxSet")],
+            json: #"{"Items":[],"TotalRecordCount":0}"#
+        )
         http.stub(pathSuffix: "/Users/user/Items", json: """
         {"Items":[{"Id":"visible-movie","Type":"Movie"}],"TotalRecordCount":1}
         """)
         let items = try await provider(http).search(query: "film", limit: 10, excludingLibraries: ["hidden"])
         XCTAssertEqual(items.map(\.libraryID), ["movies"])
-        XCTAssertEqual(http.sentPaths, ["/Users/user/Views", "/Users/user/Items"])
+        XCTAssertEqual(http.sentPaths, ["/Users/user/Views", "/Users/user/Items", "/Users/user/Items"])
         let query = try XCTUnwrap(http.queryItems(forPathSuffix: "/Users/user/Items"))
         XCTAssertEqual(query.first { $0.name == "ParentId" }?.value, "movies")
     }

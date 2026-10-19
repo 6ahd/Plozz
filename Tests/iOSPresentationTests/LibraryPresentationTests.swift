@@ -262,7 +262,7 @@ final class LibraryPresentationTests: XCTestCase {
                 XCTAssertEqual(initialOffset, 0, accuracy: 0.5)
                 let bar = try XCTUnwrap(self.navigationBar(in: window))
                 let borderY = bar.convert(bar.bounds, to: window).maxY
-                _ = try self.capture(window, name: "header-\(sizeClass)-\(light)-initial")
+                _ = try self.captureImage(window, name: "header-\(sizeClass)-\(light)-initial")
                 let initialBorder = try self.headerPixels(y: borderY)
                 var measurements = ["initial tabs=\(initialFrame) offset=\(initialOffset)"]
                 for mode in [LibraryContentMode.titles, .collections, .playlists, .recommended, .titles] {
@@ -276,7 +276,7 @@ final class LibraryPresentationTests: XCTestCase {
                     let frame = currentTabs.convert(currentTabs.bounds, to: window)
                     let offset = page.contentOffset.y + page.adjustedContentInset.top
                     measurements.append("\(mode) tabs=\(frame) offset=\(offset)")
-                    _ = try self.capture(window, name: "header-\(sizeClass)-\(light)-\(mode.rawValue)")
+                    _ = try self.captureImage(window, name: "header-\(sizeClass)-\(light)-\(mode.rawValue)")
                     XCTAssertEqual(frame.minY, initialFrame.minY, accuracy: 0.5,
                                    "The tab row must not move when query controls appear or disappear.")
                     XCTAssertEqual(frame.height, initialFrame.height, accuracy: 0.5)
@@ -336,8 +336,13 @@ final class LibraryPresentationTests: XCTestCase {
                         try self.assertSelectedTab(selection, observations: text, window: window)
                         XCTAssertEqual(frame.height, libraryHeight, accuracy: 0.5)
                         XCTAssertGreaterThanOrEqual(frame.height, 44)
-                        XCTAssertEqual(try self.imagePixels(in: frame), libraryPixels,
-                                       "Library and season tabs must render identically with the same labels and selection.")
+                        let seasonPixels = try self.imagePixels(in: frame)
+                        XCTAssertEqual(seasonPixels.count, libraryPixels.count)
+                        // Independent native material captures can round in opposite directions by one 8-bit step.
+                        let maximumDifference = zip(seasonPixels, libraryPixels)
+                            .map { abs(Int($0.0) - Int($0.1)) }.max() ?? 0
+                        XCTAssertLessThanOrEqual(maximumDifference, 2,
+                                                 "Library and season tabs must have the same rendered geometry and style.")
                     }
                 }
             }
@@ -373,15 +378,7 @@ final class LibraryPresentationTests: XCTestCase {
     private func assertFixtureSelection(_ state: ContentTabsFixtureState, window: UIWindow, name: String) throws {
         let text = try capture(window, name: "shared-tabs-\(name)", scale: 2)
         let expected = "Season \(state.selection + 1)"
-        // Vision can combine adjacent tabs into one observation; measure only
-        // the selected label's complete word range, not its neighbouring text.
-        let matches = try text.compactMap { observation -> VNRectangleObservation? in
-            guard let candidate = observation.topCandidates(1).first,
-                  let range = candidate.string.range(of: "\\b\(expected)\\b", options: .regularExpression)
-            else { return nil }
-            return try candidate.boundingBox(for: range)
-        }
-        let selected = try XCTUnwrap(matches.first, expected)
+        let selected = try recognizedLabelBounds(expected, in: text)
         let scroll = try XCTUnwrap(scrollViews(in: window).first)
         let frame = scroll.convert(scroll.bounds, to: window)
         XCTAssertGreaterThanOrEqual(frame.height, 52)
@@ -480,12 +477,25 @@ final class LibraryPresentationTests: XCTestCase {
         _ mode: LibraryContentMode, observations: [VNRecognizedTextObservation], window: UIWindow
     ) throws {
         let label = String(localized: mode.displayName)
-        let tab = try XCTUnwrap(observations.first { $0.topCandidates(1).first?.string == label },
-                               "Selected \(label) must be fully visible.")
+        let tab = try recognizedLabelBounds(label, in: observations)
         XCTAssertGreaterThanOrEqual(tab.boundingBox.minX, 0)
         XCTAssertLessThanOrEqual(tab.boundingBox.maxX, 1)
         XCTAssertLessThan((1 - tab.boundingBox.midY) * window.bounds.height, 230,
                           "Navigation remains at the top through every content state.")
+    }
+
+    private func recognizedLabelBounds(
+        _ label: String, in observations: [VNRecognizedTextObservation]
+    ) throws -> VNRectangleObservation {
+        // Vision can combine adjacent tabs; require the complete selected label, not an entire OCR line.
+        let pattern = "\\b\(NSRegularExpression.escapedPattern(for: label))\\b"
+        let matches = try observations.compactMap { observation -> VNRectangleObservation? in
+            guard let candidate = observation.topCandidates(1).first,
+                  let range = candidate.string.range(of: pattern, options: .regularExpression)
+            else { return nil }
+            return try candidate.boundingBox(for: range)
+        }
+        return try XCTUnwrap(matches.first, "Selected \(label) must be fully visible.")
     }
 
     private func assertArtworkKeyline(sizeClass: UserInterfaceSizeClass, isGrid: Bool) throws {
@@ -635,6 +645,15 @@ final class LibraryPresentationTests: XCTestCase {
     }
 
     private func capture(_ window: UIWindow, name: String, scale: CGFloat = 1) throws -> [VNRecognizedTextObservation] {
+        let image = try captureImage(window, name: name, scale: scale)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: image).perform([request])
+        return request.results ?? []
+    }
+
+    private func captureImage(_ window: UIWindow, name: String, scale: CGFloat = 1) throws -> CGImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = scale
         let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
@@ -644,12 +663,8 @@ final class LibraryPresentationTests: XCTestCase {
         attachment.name = "library-\(name)"
         attachment.lifetime = .keepAlways
         add(attachment)
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.recognitionLanguages = ["en-US"]
         capturedImage = try XCTUnwrap(image.cgImage)
-        try VNImageRequestHandler(cgImage: XCTUnwrap(capturedImage)).perform([request])
-        return request.results ?? []
+        return try XCTUnwrap(capturedImage)
     }
 
     private func scrollViews(in view: UIView) -> [UIScrollView] {

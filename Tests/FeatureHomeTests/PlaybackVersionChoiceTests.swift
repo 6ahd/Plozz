@@ -124,6 +124,110 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         XCTAssertNil(model.prompt)
     }
 
+    func testPreparationFailoverLoadsHealthyInventoryInsteadOfUsingCachedFiles() async throws {
+        settings.settings.versionSelectionMode = .automatic
+        let unavailable = item()
+        var healthy = item("healthy")
+        healthy.sourceAccountID = "other-server"
+        let providers = [
+            "server": FakeMediaProvider(allItems: []),
+            "other-server": FakeMediaProvider(allItems: [healthy])
+        ]
+        let result = try await PlaybackVersionChoiceModel.prepareWithFailover(
+            unavailable, triedAccountIDs: [],
+            prepare: { candidate in
+                try await self.model.prepare(
+                    candidate, provider: providers[candidate.sourceAccountID!]!,
+                    settings: self.settings, preferences: self.preferences, capabilities: .default
+                )
+            },
+            nextSource: { failed, tried in
+                XCTAssertEqual(failed.id, unavailable.id)
+                XCTAssertEqual(tried, ["server"])
+                return healthy
+            }, isCurrent: { true }
+        )
+        XCTAssertEqual(result.item.id, healthy.id)
+        XCTAssertEqual(result.item.selectedVersionID, healthy.versions[1].id)
+        XCTAssertEqual(result.triedAccountIDs, ["server"])
+        XCTAssertEqual(providers["other-server"]?.itemCallCount(for: healthy.id), 1)
+    }
+
+    func testPreparationFailoverPreservesExplicitSelectionCancellationAndExhaustion() async throws {
+        var explicit = item()
+        explicit.explicitSourceSelection = true
+        for (candidate, failure) in [
+            (explicit, AppError.notFound), (item(), .cancelled), (item(), .serverUnreachable)
+        ] {
+            var attempts = 0
+            var sourceRequests = 0
+            do {
+                _ = try await PlaybackVersionChoiceModel.prepareWithFailover(
+                    candidate, triedAccountIDs: [],
+                    prepare: { _ in attempts += 1; throw failure },
+                    nextSource: { _, tried in
+                        sourceRequests += 1
+                        XCTAssertEqual(tried, ["server"])
+                        return candidate
+                    }, isCurrent: { true }
+                )
+                XCTFail("Failed preparation must not become playback.")
+            } catch is CancellationError {
+                XCTAssertEqual(failure, .cancelled)
+            } catch let error as AppError {
+                XCTAssertEqual(error, failure)
+            }
+            XCTAssertEqual(attempts, 1)
+            XCTAssertEqual(sourceRequests, failure == .serverUnreachable ? 1 : 0)
+        }
+        var current = true
+        do {
+            _ = try await PlaybackVersionChoiceModel.prepareWithFailover(
+                item(), triedAccountIDs: [],
+                prepare: { _ in current = false; throw AppError.serverUnreachable },
+                nextSource: { _, _ in XCTFail("Revoked scope must not select another source."); return nil },
+                isCurrent: { current }
+            )
+            XCTFail("Revoked preparation must cancel.")
+        } catch is CancellationError {}
+    }
+
+    func testUnavailableUnselectedEditionDoesNotBlockConfirmedPrimary() async throws {
+        settings.settings.versionSelectionMode = .automatic
+        for failure: any Error in [AppError.notFound, StreamingQualityError.noStreams, AppError.serverUnreachable] {
+            var primary = item()
+            primary.explicitSourceSelection = true
+            primary.selectedVersionID = primary.versions[0].id
+            primary.sources = [
+                MediaSourceRef(accountID: "server", itemID: "stale", kind: .movie, versions: item("stale").versions)
+            ]
+            let provider = FakeMediaProvider(allItems: [primary])
+            let confirmed = primary
+            provider.playbackItemHandler = { id in
+                if id == "stale" { throw failure }
+                return confirmed
+            }
+            let selected = try await start(primary, provider: provider).value
+            XCTAssertEqual(selected.id, primary.id)
+            XCTAssertEqual(selected.selectedVersionID, primary.selectedVersionID)
+            XCTAssertTrue(selected.explicitSourceSelection)
+            XCTAssertFalse(selected.sources.contains { $0.itemID == "stale" })
+        }
+    }
+
+    func testAlternateInventoryCancellationStillCancelsPreparation() async throws {
+        settings.settings.versionSelectionMode = .automatic
+        var primary = item()
+        primary.sources = [MediaSourceRef(accountID: "server", itemID: "alternate", kind: .movie)]
+        let confirmed = primary
+        let provider = FakeMediaProvider(allItems: [primary])
+        provider.playbackItemHandler = { id in
+            if id == "alternate" { throw AppError.cancelled }
+            return confirmed
+        }
+        await assertCancelled(start(primary, provider: provider))
+    }
+
     func testFreshSingleVersionInventoryReplacesStaleMultipleVersions() async throws {
         var cached = item()
         cached.selectedVersionID = cached.versions[1].id

@@ -128,7 +128,7 @@ public struct MediaVersionChoiceButton: View {
         }
     }
 
-    private func languageBadge(_ label: String, languages: [String]) -> some View {
+    private func languageBadge(_ label: String, languages: [String]) -> some View { // l10n:content - language names already resolved for the current locale.
         MetadataMediaBadgeChip(badge: MediaBadge(label))
             .accessibilityLabel(Text(verbatim: languages.joined(separator: ", ")))
     }

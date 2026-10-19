@@ -5,6 +5,12 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+Playback inventory failures on automatically selected TV sources use the existing
+untried-account failover before constructing a player. Every replacement still
+loads authoritative inventory; explicit selections, cancellation and revoked
+presentation scope never fail over. An unavailable unselected edition is logged
+and omitted from the current picker rather than blocking a confirmed primary.
+
 - **Library browse failures** — Browse, Collections, Playlists and their member
   pages use the shared Details / Try Again actions on mobile and TV, including
   nonfatal later-page failures. `LibraryLoadDiagnostic` identifies the requested
@@ -14,6 +20,9 @@ fallback when the user's server has no attached trailer.
   library/member scan. A dedicated Collections library entry coexists with the
   movie/TV library shortcut. Synthesized directory entries stay in navigation,
   but never enter scoped playable-media feed requests or per-library Home rows.
+  Confirmed-empty collection directories stay out of Home's Libraries row until
+  populated or explicitly enabled in the profile's Libraries checklist. The
+  shared row resolver applies this on both platforms without hiding discovery.
   Providers with intermediate discovery can display confirmed cards while remaining candidates
   are checked. Both platforms show native progress and retain the stable card
   slots. Partial failures retain those cards with an explicit incomplete-list

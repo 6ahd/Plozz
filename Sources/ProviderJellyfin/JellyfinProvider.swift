@@ -98,6 +98,21 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 id: collectionDirectoryID, title: "Collections", kind: .collection, synthesizedName: .collections
             ))
         }
+        for index in libraries.indices where libraries[index].kind == .collection {
+            do {
+                libraries[index].hasCollections = try await collectionDirectoryHasItems(
+                    in: libraries[index].id
+                )
+            } catch {
+                let failure = (error as? AppError) ?? .invalidResponse
+                if Task.isCancelled || error is CancellationError || failure == .cancelled {
+                    throw CancellationError()
+                }
+                PlozzLog.networking.error(
+                    "Collection availability failed provider=\(kind.rawValue) error=\(HandoffDiagnostics.errorCode(failure))"
+                )
+            }
+        }
         return libraries
     }
 

@@ -28,6 +28,40 @@ public final class PlaybackVersionChoiceModel {
 
     public var isPreparing: Bool { owner != nil }
 
+    public static func prepareWithFailover(
+        _ opened: MediaItem,
+        triedAccountIDs: Set<String>,
+        prepare: (MediaItem) async throws -> MediaItem,
+        nextSource: (MediaItem, Set<String>) -> MediaItem?,
+        isCurrent: () -> Bool
+    ) async throws -> (item: MediaItem, triedAccountIDs: Set<String>) {
+        var item = opened
+        var tried = triedAccountIDs
+        while true {
+            try Task.checkCancellation()
+            guard isCurrent() else { throw CancellationError() }
+            do {
+                let prepared = try await prepare(item)
+                try Task.checkCancellation()
+                guard isCurrent() else { throw CancellationError() }
+                return (prepared, tried)
+            } catch {
+                try Task.checkCancellation()
+                guard isCurrent(), !(error is CancellationError), (error as? AppError) != .cancelled else {
+                    throw CancellationError()
+                }
+                guard !item.explicitSourceSelection,
+                      let failedAccount = item.selectedSourceAccountID ?? item.sourceAccountID,
+                      tried.insert(failedAccount).inserted,
+                      let next = nextSource(item, tried),
+                      let nextAccount = next.selectedSourceAccountID ?? next.sourceAccountID,
+                      !tried.contains(nextAccount) else { throw error }
+                _ = reportFailure(error, stage: "inventory-failover")
+                item = next
+            }
+        }
+    }
+
     public func prepare(
         _ opened: MediaItem,
         provider: any MediaProvider,
@@ -89,23 +123,33 @@ public final class PlaybackVersionChoiceModel {
                 item.sources[index].versions = item.versions.isEmpty
                     ? [MediaVersion.synthesized(from: item)] : item.versions
             }
+            var unavailableAlternates = Set<String>()
             for index in item.sources.indices
             where item.sources[index].accountID == item.sourceAccountID
                 && item.sources[index].itemID != item.id
                 && (item.sources[index].kind == nil || item.sources[index].kind == item.kind) {
                 let source = item.sources[index]
-                let alternate = try await provider.playbackItem(id: source.itemID)
-                try Task.checkCancellation()
-                guard owner == id, isCurrent() else { throw CancellationError() }
-                guard alternate.id == source.itemID, alternate.kind == item.kind,
-                      alternate.sourceAccountID == nil || alternate.sourceAccountID == source.accountID else {
-                    PlozzLog.playback.error("Version details did not match the alternate source.")
-                    throw AppError.invalidResponse
+                do {
+                    let alternate = try await provider.playbackItem(id: source.itemID)
+                    try Task.checkCancellation()
+                    guard owner == id, isCurrent() else { throw CancellationError() }
+                    guard alternate.id == source.itemID, alternate.kind == item.kind,
+                          alternate.sourceAccountID == nil || alternate.sourceAccountID == source.accountID else {
+                        PlozzLog.playback.error("Version details did not match the alternate source.")
+                        throw AppError.invalidResponse
+                    }
+                    item.sources[index].versions = alternate.versions.isEmpty
+                        ? [MediaVersion.synthesized(from: alternate)] : alternate.versions
+                    item.sources[index].edition = alternate.edition ?? source.edition
+                } catch {
+                    try Task.checkCancellation()
+                    guard owner == id, isCurrent(), !(error is CancellationError),
+                          (error as? AppError) != .cancelled else { throw CancellationError() }
+                    _ = Self.reportFailure(error, stage: "alternate-inventory")
+                    unavailableAlternates.insert(source.id)
                 }
-                item.sources[index].versions = alternate.versions.isEmpty
-                    ? [MediaVersion.synthesized(from: alternate)] : alternate.versions
-                item.sources[index].edition = alternate.edition ?? source.edition
             }
+            item.sources.removeAll { unavailableAlternates.contains($0.id) }
             if !item.explicitSourceSelection {
                 item.selectedVersionID = nil
             }

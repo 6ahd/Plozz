@@ -44,6 +44,10 @@ language every other module speaks.
   Collections navigation entry. Keep it in library selection and navigation with
   normal account/profile identity, but not in playable-library feeds or per-library
   Home rows. Its provider owns routing; its synthetic ID is never a server parent.
+  Collection directories carry optional `hasCollections` availability. The
+  content-aware Home visibility predicate hides confirmed-empty tiles by default,
+  while profile-scoped explicit enable choices override that automatic hiding.
+  Unknown availability is not emptiness; discovery and browse retain the entry.
 
 ## Public surface, at a glance
 

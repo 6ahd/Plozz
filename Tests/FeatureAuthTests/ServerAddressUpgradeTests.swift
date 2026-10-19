@@ -36,12 +36,16 @@ final class ServerAddressUpgradeTests: XCTestCase {
             let libraries = try await JellyfinProvider(
                 session: saved.session(token: "fixture-token"), http: http
             ).libraries()
-            XCTAssertEqual(libraries.map(\.id), ["movies"])
+            XCTAssertEqual(libraries.map(\.id), ["movies", "\(kind.rawValue):collections"])
+            XCTAssertEqual(libraries.last?.hasCollections, false)
             let requests = await http.requests
             XCTAssertTrue(requests.filter { $0.1.path == "/System/Info/Public" }.allSatisfy { $0.1.headers.isEmpty })
-            let libraryRequest = try XCTUnwrap(requests.last)
-            XCTAssertEqual(libraryRequest.0, saved.server.baseURL)
-            XCTAssertEqual(libraryRequest.1.redirectPolicy, .sameOrigin)
+            let libraryRequests = requests.filter {
+                $0.1.path == "/Users/user/Views" || $0.1.path == "/Users/user/Items"
+            }
+            XCTAssertEqual(libraryRequests.count, 2)
+            XCTAssertTrue(libraryRequests.allSatisfy { $0.0 == saved.server.baseURL })
+            XCTAssertTrue(libraryRequests.allSatisfy { $0.1.redirectPolicy == .sameOrigin })
         }
     }
 
@@ -171,6 +175,8 @@ private actor RedirectedMediaBrowserHTTP: HTTPClient {
         case "/Users/user/Views":
             guard baseURL.scheme == "https" else { throw AppError.invalidResponse }
             json = #"{"Items":[{"Id":"movies","Name":"Movies","CollectionType":"movies"}]}"#
+        case "/Users/user/Items":
+            json = #"{"Items":[],"TotalRecordCount":0}"#
         default:
             throw AppError.notFound
         }

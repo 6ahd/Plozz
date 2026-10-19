@@ -5,6 +5,17 @@ import Foundation
 extension JellyfinProvider {
     var collectionDirectoryID: String { "\(kind.rawValue):collections" }
 
+    func collectionDirectoryHasItems(in libraryID: String) async throws -> Bool {
+        let response = try await client.collectionCandidates(
+            userID: session.userID, libraryID: libraryID == collectionDirectoryID ? nil : libraryID,
+            page: PageRequest(limit: 1)
+        )
+        try Task.checkCancellation()
+        var seen = Set<String>()
+        let ids = try Self.validatedScopeIDs(response, stage: .collectionCandidates, start: 0, seen: &seen)
+        return !ids.isEmpty
+    }
+
     public func collections(in libraryID: String, page: PageRequest) async throws -> MediaPage {
         guard !libraryID.isEmpty, page.startIndex >= 0, page.limit > 0 else {
             throw AppError.invalidResponse

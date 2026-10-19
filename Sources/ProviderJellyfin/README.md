@@ -255,8 +255,14 @@ server's collection list, matching the native Jellyfin client.
 Keep both native entry points: a Collections library beside Movies/TV Shows and
 the Collections shortcut inside those libraries. If a video account's views omit
 a `boxsets` library, Plozz adds one localized, account-scoped directory without
-probing or scanning media. A real `boxsets` view retains its identity and title;
+scanning media. A real `boxsets` view retains its identity and title;
 never add a duplicate. Empty and music-only accounts get no synthetic directory.
+Each collection directory uses one `Limit=1` BoxSet request to establish whether
+it contains any collections. Home automatically hides a confirmed-empty entry
+unless the profile explicitly enables it in Libraries. Discovery retains the
+entry for that control; a later refresh shows newly populated directories.
+Failures are logged and remain unknown, never converted into an empty result.
+This check does not load collection members or populate the full browse cache.
 
 The synthetic directory ID is navigation identity only. Browsing it uses the same
 cached BoxSet listing without `ParentId`; the in-library shortcut still forwards

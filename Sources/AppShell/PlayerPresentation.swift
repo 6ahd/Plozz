@@ -303,13 +303,19 @@ struct PlayerPresentation: View {
     }
 
     private func preparedRequest(_ request: PlayRequest) async throws -> PlayRequest {
-        let item = try await prepareVersion(versionChoice, request.item)
+        let prepared = try await PlaybackVersionChoiceModel.prepareWithFailover(
+            request.item, triedAccountIDs: triedAccountIDs,
+            prepare: { try await prepareVersion(versionChoice, $0) },
+            nextSource: makeFailover, isCurrent: { isPresented }
+        )
         try Task.checkCancellation()
         guard isPresented else { throw CancellationError() }
+        triedAccountIDs = prepared.triedAccountIDs
+        let item = prepared.item
         return PlayRequest(
             item: item, startPosition: request.startPosition, traceID: request.traceID,
             requestedAt: request.requestedAt, versionPreferences: versionPreferences,
-            playlist: request.playlist
+            playlist: item.sourceAccountID == request.playlist?.accountID ? request.playlist : nil
         )
     }
 

@@ -233,9 +233,13 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertNil(probe.selected, "Choosing the mode alone must not select a file.")
         XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
         let choices = try await visibleText(in: window, name: "version-choice-\(Int(width))-\(typeSize)")
-        for fact in ["Choose a version", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD"] {
+        for fact in ["Choose a version", "4K", "42 GB", "English", "HEVC", "TrueHD"] {
             XCTAssertTrue(choices.localizedCaseInsensitiveContains(fact), "Missing \(fact): \(choices)")
         }
+        XCTAssertTrue(
+            choices.contains("+1") || choices.localizedCaseInsensitiveContains("French"),
+            "The second language must remain visible, abbreviated on one line or expanded after wrapping: \(choices)"
+        )
         #if os(tvOS)
         XCTAssertNotNil(UIFocusSystem(for: window)?.focusedItem, "The version picker must receive native focus.")
         try assertCompactCard(in: window, maximumHeight: versionCount > 2 ? 860 : 600)
