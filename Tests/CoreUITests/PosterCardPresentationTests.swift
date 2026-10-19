@@ -116,6 +116,55 @@ final class MediaFolderCardLayoutTests: XCTestCase {
 #endif
 
 final class PosterCardPresentationTests: XCTestCase {
+    #if os(tvOS)
+    @MainActor
+    func testNativeContainerArtworkFitsLandscapeAndSquareEdges() throws {
+        let coordinator = NativeTVPoster<EmptyView>.Coordinator(focus: PlozzCardFocus().projectedValue, action: {})
+        let outputSize = CGSize(width: 160, height: 240)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        for sourceSize in [CGSize(width: 400, height: 225), CGSize(width: 300, height: 300)] {
+            let source = UIGraphicsImageRenderer(size: sourceSize, format: format).image { context in
+                UIColor.blue.setFill()
+                context.fill(CGRect(origin: .zero, size: sourceSize))
+                UIColor.red.setFill()
+                context.fill(CGRect(x: 0, y: 0, width: sourceSize.width * 0.15, height: sourceSize.height))
+                UIColor.green.setFill()
+                context.fill(CGRect(x: sourceSize.width * 0.85, y: 0, width: sourceSize.width * 0.15, height: sourceSize.height))
+            }
+            let prepared = try XCTUnwrap(coordinator.prepare(source, treatment: .fitted, size: outputSize, scale: 1))
+            XCTAssertTrue(prepared === coordinator.prepare(source, treatment: .fitted, size: outputSize, scale: 1))
+            let image = try XCTUnwrap(prepared.cgImage)
+            var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+            try pixels.withUnsafeMutableBytes {
+                let context = try XCTUnwrap(CGContext(
+                    data: $0.baseAddress, width: image.width, height: image.height,
+                    bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                ))
+                context.draw(image, in: CGRect(origin: .zero, size: outputSize))
+            }
+            let left = (120 * image.width + 12) * 4
+            let right = (120 * image.width + 148) * 4
+            XCTAssertGreaterThan(pixels[left], 200)
+            XCTAssertLessThan(pixels[left + 1], 30)
+            XCTAssertGreaterThan(pixels[right + 1], 200)
+            XCTAssertLessThan(pixels[right], 30)
+            let margin = (10 * image.width + 80) * 4
+            XCTAssertLessThan(Int(pixels[margin]) + Int(pixels[margin + 1]) + Int(pixels[margin + 2]), 30)
+        }
+    }
+    #endif
+
+    func testContainerCoversAcceptTheirAuthoredShapeWithoutRelaxingMediaPosters() {
+        for kind: MediaItemKind in [.collection, .playlist, .folder] {
+            XCTAssertTrue(PosterCardPresentation.preservesContainerArtwork(for: kind))
+        }
+        for kind: MediaItemKind in [.movie, .series, .season, .episode, .video] {
+            XCTAssertFalse(PosterCardPresentation.preservesContainerArtwork(for: kind))
+        }
+    }
+
     func testMissingLibraryArtworkUsesNeutralMediaInsteadOfPlaybackSymbol() {
         for status in [
             MediaAvailabilityStatus.unknown, .pending, .processing,

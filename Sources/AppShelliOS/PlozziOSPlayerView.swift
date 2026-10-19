@@ -2,6 +2,7 @@
 import CoreModels
 import CoreUI
 import CoreNetworking
+import AppRuntime
 import FeatureHomeCore
 import FeaturePlayback
 import SwiftUI
@@ -60,6 +61,7 @@ struct PlozziOSPlayerView: View {
     @State private var playbackStatus = TransientStatusPresenter()
     @State private var versionChoice = PlaybackVersionChoiceModel()
     @State private var versionChoiceFailed = false
+    @State private var versionChoiceFailureMessage: LocalizedStringResource = "Please try playing this video again."
     /// See the bisect note in `body`.
 
     let request: PlozziOSPlaybackRequest
@@ -117,11 +119,8 @@ struct PlozziOSPlayerView: View {
         .statusBarHidden()
         .playerTouchLevelSession(isActive: viewModel?.externalPlaybackRouteName == nil)
         .overlay(alignment: .top) {
-            VStack {
-                TransientStatusView(presenter: playbackStatus)
-                TransientStatusView(presenter: orientation.status)
-            }
-            .padding(.top, 60)
+            TransientStatusView(presenter: playbackStatus)
+                .padding(.top, 60)
         }
         .onAppear {
             suspendHeroPlayback()
@@ -160,11 +159,12 @@ struct PlozziOSPlayerView: View {
             do {
                 item = try await prepareVersion(request.item, session: session)
                 activeItem = item
+                orientation.beginPlayback()
             } catch is CancellationError {
                 if isPresented { dismiss() }
                 return
             } catch {
-                showVersionChoiceFailure()
+                showVersionChoiceFailure(error)
                 return
             }
             guard usesStreamingQuality else {
@@ -195,7 +195,7 @@ struct PlozziOSPlayerView: View {
         .alert("Couldn't load versions", isPresented: $versionChoiceFailed) {
             Button("Close player") { dismiss() }
         } message: {
-            Text("Please try playing this video again.")
+            Text(versionChoiceFailureMessage)
         }
         .plozzSheet(isPresented: $presentsStreamingQuality) {
             if let viewModel { PlozziOSStreamingQualitySheet(viewModel: viewModel) }
@@ -235,7 +235,7 @@ struct PlozziOSPlayerView: View {
                     return
                 } catch {
                     handoffTask = nil
-                    showVersionChoiceFailure()
+                    showVersionChoiceFailure(error)
                     return
                 }
                 let prefetched = await outgoing.prepareEpisodeHandoff(to: next)
@@ -283,7 +283,7 @@ struct PlozziOSPlayerView: View {
                     return
                 } catch {
                     handoffTask = nil
-                    showVersionChoiceFailure()
+                    showVersionChoiceFailure(error)
                     return
                 }
                 await outgoing.stop()
@@ -336,10 +336,15 @@ struct PlozziOSPlayerView: View {
         _ item: MediaItem, session: PlozziOSAppModel.PlaybackSession
     ) async throws -> MediaItem {
         let model = appModel
+        let sourceSnapshot = model.identityIndex.identitySnapshotStore.current
         let selected = try await versionChoice.prepare(
             item, provider: provider, settings: model.settings.playback,
             preferences: model.versionPreferences,
             offlineResolver: model.downloads.offlineResolver,
+            sourceResolver: crossServerSourceResolver(
+                in: model.accountsProviders.resolvedActiveAccounts,
+                identitySources: { sourceSnapshot.sourceRefs(for: $0) }
+            ),
             isCurrent: { model.isCurrentPlaybackSession(session) }
         )
         try Task.checkCancellation()
@@ -347,10 +352,10 @@ struct PlozziOSPlayerView: View {
         return selected
     }
 
-    private func showVersionChoiceFailure() {
+    private func showVersionChoiceFailure(_ error: Error) {
         guard isPresented else { return }
         viewModel?.setPaused(true)
-        PlozzLog.playback.error("Could not prepare playback version choices.")
+        versionChoiceFailureMessage = PlaybackVersionChoiceModel.reportFailure(error)
         versionChoiceFailed = true
     }
 
@@ -399,7 +404,8 @@ struct PlozziOSPlayerView: View {
         guard let outgoing = viewModel, handoffTask == nil,
               let incomingItem = PlayerVersionSelection.selecting(id, in: versionItem) else { return }
         let continuation = outgoing.continuationForVersionChange()
-        if let version = PlayerVersionSelection.versions(for: versionItem).first(where: { $0.id == id }) {
+        if appModel.versionPreferences.shouldRememberVersion(for: versionItem),
+           let version = PlayerVersionSelection.versions(for: versionItem).first(where: { $0.id == id }) {
             appModel.versionPreferences.rememberVersion(
                 version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: versionItem)
             )

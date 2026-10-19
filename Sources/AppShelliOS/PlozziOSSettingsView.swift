@@ -2216,6 +2216,8 @@ struct PlozziOSPlaybackSettingsView: View {
 
             SettingsSectionGroup("Playback") {
                 PlaybackVersionPreferencePicker(model: model)
+                Toggle("Remember series version choices", isOn: $model.settings.rememberVersionPerSeries)
+                    .accessibilityIdentifier("playback-remember-series-version")
                 Toggle("Background Audio", isOn: $model.settings.backgroundAudio)
                 Toggle(isOn: $model.settings.volumeBrightnessGestures) {
                     VStack(alignment: .leading, spacing: 4) {

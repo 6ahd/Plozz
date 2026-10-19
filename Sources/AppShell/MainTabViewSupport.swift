@@ -934,6 +934,7 @@ extension View {
                     return try await choice.prepare(
                         item, provider: account.provider, settings: playbackSettingsModel,
                         preferences: versionPreferences, offlineResolver: offlinePlaybackResolver,
+                        sourceResolver: crossServerSourceResolver(in: accounts, identitySources: identitySources),
                         isCurrent: { playRequest.wrappedValue?.traceID == request.traceID }
                     )
                 },

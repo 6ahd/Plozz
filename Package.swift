@@ -1013,7 +1013,7 @@ let package = Package(
         ),
         .testTarget(
             name: "ProviderJellyfinTests",
-            dependencies: ["ProviderJellyfin", "ProviderPlex", "CoreModels", "CoreNetworking"]
+            dependencies: ["ProviderJellyfin", "ProviderPlex", "CoreModels", "CoreNetworking", "TestSupportPerformance"]
         ),
         .testTarget(
             name: "ProviderSiloTests",

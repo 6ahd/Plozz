@@ -465,6 +465,8 @@ struct PlozziOSDetailHeroSection: View {
     let backdropItem: MediaItem
     let playableItem: MediaItem?
     var showsPlayPlaceholder: Bool = false
+    var onRetryPlaybackInventory: (() -> Void)?
+    var isRetryingPlaybackInventory = false
     let sources: [MediaSourceRef]
     /// The air-schedule badge for a series, resolved by the detail page.
     var scheduleLine: LocalizedStringResource? = nil
@@ -517,6 +519,8 @@ struct PlozziOSDetailHeroSection: View {
                 rootItem: backdropItem,
                 playableItem: playableItem,
                 showsPlayPlaceholder: showsPlayPlaceholder,
+                onRetryPlaybackInventory: onRetryPlaybackInventory,
+                isRetryingPlaybackInventory: isRetryingPlaybackInventory,
                 sources: sources,
                 scheduleLine: scheduleLine,
                 selectedSourceAccountID: selectedSourceAccountID,
@@ -1863,6 +1867,8 @@ struct PlozziOSHomeHeroForeground: View {
 }
 
 struct PlozziOSDetailHeroForeground: View {
+    @State private var isVersionPickerPresented = false
+    @State var sourceMenu = PlaybackSourceMenuState()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(PlozziOSAppModel.self) private var appModel
 
@@ -1870,6 +1876,8 @@ struct PlozziOSDetailHeroForeground: View {
     let rootItem: MediaItem
     let playableItem: MediaItem?
     var showsPlayPlaceholder: Bool = false
+    var onRetryPlaybackInventory: (() -> Void)?
+    var isRetryingPlaybackInventory = false
     let sources: [MediaSourceRef]
     /// The air-schedule badge for a series, resolved by the detail page.
     var scheduleLine: LocalizedStringResource? = nil
@@ -2086,6 +2094,19 @@ struct PlozziOSDetailHeroForeground: View {
         .contextMenu {
             detailContextMenu
         }
+        .playbackSourceMenu(
+            state: sourceMenu, sources: sources, selectedSourceID: selectedSourceAccountID,
+            versions: versions, selectedVersionID: selectedVersionID,
+            onSelectSource: onSelectSource, onSelectVersion: onSelectVersion,
+            onPerformAction: performCompactPanelAction
+        )
+        .plozzSheet(isPresented: $isVersionPickerPresented) {
+            MediaVersionPicker(
+                versions: versions,
+                selectedVersionID: selectedVersion?.id,
+                onSelect: onSelectVersion
+            )
+        }
     }
 
     /// A secondary hero action that can either sit inline as its own button or
@@ -2267,7 +2288,20 @@ struct PlozziOSDetailHeroForeground: View {
         resume: PlayResumeButtonLabel.ResumeTrailingStyle = .full,
         wrapsText: Bool = false
     ) -> some View {
-        if playableItem != nil || showsPlayPlaceholder {
+        if let onRetryPlaybackInventory {
+            Button(action: onRetryPlaybackInventory) {
+                NoStreamsButtonLabel(
+                    isLoading: isRetryingPlaybackInventory,
+                    onLight: colorScheme == .dark,
+                    fitsAvailableWidth: wrapsText
+                )
+            }
+            .buttonStyle(PlozziOSHeroActionButtonStyle(
+                kind: .primary,
+                minimumWidth: style == .compactPortrait && !wrapsText ? 180 : nil
+            ))
+            .disabled(isRetryingPlaybackInventory)
+        } else if playableItem != nil || showsPlayPlaceholder {
             Button {
                 if let playableItem { onPlay(playableItem, false) }
             } label: {
@@ -2318,21 +2352,15 @@ struct PlozziOSDetailHeroForeground: View {
         actions: [PlaybackSourceMenuAction],
         fileBrowserAction: ActionEntry?
     ) -> some View {
-        PlaybackSourceMenuButton(
-            sources: sources,
-            selectedSourceID: selectedSourceAccountID,
-            versions: versions,
-            selectedVersionID: selectedVersionID,
+        PlaybackSourceMenuTrigger(
+            state: sourceMenu,
             actions: actions + (fileBrowserAction.map { entry in
                 [PlaybackSourceMenuAction(
                     id: "media.\(entry.action.rawValue)",
                     title: entry.action.title,
                     systemImage: entry.action.systemImage
                 )]
-            } ?? []),
-            onSelectSource: onSelectSource,
-            onSelectVersion: onSelectVersion,
-            onPerformAction: performCompactPanelAction
+            } ?? [])
         ) {
             Image(systemName: "ellipsis")
                 .font(.headline.weight(.bold))
@@ -2444,25 +2472,10 @@ struct PlozziOSDetailHeroForeground: View {
             }
             .pickerStyle(.menu)
         }
-        if versions.count > 1, let selectedVersion {
-            Picker(
-                selection: Binding(
-                    get: { selectedVersion.id },
-                    set: onSelectVersion
-                )
-            ) {
-                ForEach(versions.sortedForPicker()) { version in
-                    versionTitleText(version.displayLabel)
-                        .tag(version.id)
-                }
-            } label: {
-                Label {
-                    versionTitleText(selectedVersion.displayLabel)
-                } icon: {
-                    Image(systemName: "film.stack")
-                }
+        if versions.count > 1 {
+            Button("Version", systemImage: "film.stack") {
+                isVersionPickerPresented = true
             }
-            .pickerStyle(.menu)
         }
     }
 
@@ -2473,17 +2486,6 @@ struct PlozziOSDetailHeroForeground: View {
 
     private var selectedVersion: MediaVersion? {
         versions.first { $0.id == selectedVersionID } ?? versions.first
-    }
-
-    /// Renders a `MediaVersion` title: the joined technical facts (or provider
-    /// name) verbatim when known, otherwise our own generic "Version" copy —
-    /// kept as a real resource here rather than baked into a `String` so it
-    /// translates like everything else.
-    private func versionTitleText(_ displayLabel: String?) -> Text {
-        if let displayLabel {
-            return Text(verbatim: displayLabel)
-        }
-        return Text("Version", comment: "Generic label for a playback version/source with no distinguishing facts (resolution, edition, etc.) known.")
     }
 
     private func seasonEpisodeText(for item: MediaItem) -> String? {

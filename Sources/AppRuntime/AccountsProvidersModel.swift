@@ -546,10 +546,9 @@ public final class AccountsProvidersModel {
         return true
     }
 
-    /// One-time self-heal for stale server names (shared by tvOS + iOS). Re-fetches
-    /// each managed server's real name and, if any changed, reloads accounts so the UI
-    /// updates. Runs in the background; offline servers are skipped and tokens are
-    /// never touched. Safe to call on every launch.
+    /// Refresh public names and canonical addresses on both platforms. Reloading
+    /// propagates address changes to retained providers and library/Home tasks.
+    /// Offline servers are skipped; account and credential identities are retained.
     public func refreshServerNames() {
         let store = accountStore
         Task { @MainActor [weak self] in

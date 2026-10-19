@@ -35,6 +35,13 @@ HOME_HOST_FITTING_COUNTERS = [
     "hostFittingMaxNanoseconds", "hostFittingReentrantCalls",
 ]
 SCENARIOS = {
+    "collection-discovery": {
+        "suite": "network", "target": "ProviderJellyfinTests",
+        "test": "CollectionDiscoveryPerformanceTests/testPerformanceCollectionDiscovery",
+        "file": "Tests/ProviderJellyfinTests/CollectionDiscoveryPerformanceTests.swift",
+        "description": "Native listing of all 356 collections in one request, with 5-ms latency and no membership scans.",
+        "counters": ["collections", "requests", "libraryRequests", "memberRequests", "firstItemsNanoseconds"],
+    },
     "watchlist-artwork-rehydration": {
         "suite": "core", "target": "AppRuntimeTests",
         "test": "UniversalWatchlistMembershipTests/testPerformanceWatchlistArtworkRehydration",

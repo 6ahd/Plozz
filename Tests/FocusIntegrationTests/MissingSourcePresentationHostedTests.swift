@@ -101,6 +101,46 @@ final class MissingSourcePresentationHostedTests: XCTestCase {
         }
     }
 
+    func testVersionPreparationFailsOverBeforeConstructingThePlayer() async throws {
+        let probe = MissingSourcePresentationProbe()
+        let suite = "MissingSourceFailover.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = VersionPreferenceStore(defaults: defaults)
+        let first = MediaItem(id: "first-item", title: "Movie", kind: .movie, sourceAccountID: "first")
+        let alternate = MediaItem(id: "second-item", title: "Movie", kind: .movie, sourceAccountID: "second")
+        var preparedAccounts: [String?] = []
+        try await withWindow(
+            PlayerPresentation(
+                request: PlayRequest(item: first, startPosition: 42, versionPreferences: preferences),
+                make: { request, _, _ in
+                    XCTAssertEqual(request.item.id, alternate.id)
+                    XCTAssertEqual(request.item.sourceAccountID, "second")
+                    XCTAssertEqual(request.startPosition, 42)
+                    probe.creationAttempts += 1
+                    throw CancellationError()
+                },
+                makeFailover: { failed, tried in
+                    XCTAssertEqual(failed.id, first.id)
+                    XCTAssertEqual(tried, ["first"])
+                    return alternate
+                },
+                showDiagnostics: false, themePalette: .dark, versionPreferences: preferences,
+                prepareVersion: { _, item in
+                    preparedAccounts.append(item.sourceAccountID)
+                    if item.sourceAccountID == "first" { throw AppError.unauthorized }
+                    return item
+                },
+                versionAuthorizationScope: ["first", "second"]
+            )
+        ) { window in
+            try await waitUntil { probe.creationAttempts == 1 }
+            XCTAssertEqual(preparedAccounts, ["first", "second"])
+            XCTAssertNil(window.rootViewController?.presentedViewController)
+            XCTAssertEqual(probe.creationAttempts, 1)
+        }
+    }
+
     func testMissingProviderDuringPlayerConstructionShowsAnErrorInsteadOfLeavingABlackCover() async throws {
         let probe = MissingSourcePresentationProbe()
         let suite = "MissingSourcePresentation.\(UUID())"

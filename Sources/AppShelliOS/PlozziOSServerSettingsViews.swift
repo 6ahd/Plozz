@@ -398,7 +398,7 @@ struct PlozziOSMyLibrariesSettingsView: View {
 
     /// One library, as a checkmark child of its server's master switch.
     private func libraryCheckRow(_ library: ProfileLibraryChoice) -> some View {
-        let isOn = appModel.settings.homeVisibility.isEnabled(library.key)
+        let isOn = appModel.settings.homeVisibility.isVisibleOnHome(library.key, library: library.library)
         return Button {
             appModel.settings.homeVisibility.setEnabled(!isOn, for: library.key)
         } label: {

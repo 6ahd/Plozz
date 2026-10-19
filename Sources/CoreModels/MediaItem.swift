@@ -1548,6 +1548,11 @@ public struct MediaLibrary: Codable, Hashable, Identifiable, Sendable {
     /// Server library name qualifying a derived collection-list library.
     public var collectionSourceTitle: String?
 
+    /// A Plozz-created server-wide directory, not a source of playable library media.
+    public var isServerCollectionDirectory: Bool {
+        kind == .collection && synthesizedName == .collections && collectionSourceTitle == nil
+    }
+
     public var localizedTitle: LocalizedStringResource? {
         if synthesizedName == .collections, let collectionSourceTitle {
             return "Collections in \(collectionSourceTitle)"
@@ -1556,6 +1561,9 @@ public struct MediaLibrary: Codable, Hashable, Identifiable, Sendable {
     }
     public var kind: MediaItemKind
     public var imageURL: URL?
+
+    /// Whether this collection directory has entries; nil means not established.
+    public var hasCollections: Bool?
 
     /// Whether this library holds **music** (Plex "artist" sections, Jellyfin
     /// "music" collections). Music has its own dedicated tab, so a music library
@@ -1588,6 +1596,7 @@ public struct MediaLibrary: Codable, Hashable, Identifiable, Sendable {
         synthesizedName: SynthesizedName? = nil,
         collectionSourceTitle: String? = nil,
         imageURL: URL? = nil,
+        hasCollections: Bool? = nil,
         isMusic: Bool = false,
         sourceAccountID: String? = nil,
         additionalSourceAccountIDs: [String] = [],
@@ -1599,6 +1608,7 @@ public struct MediaLibrary: Codable, Hashable, Identifiable, Sendable {
         self.collectionSourceTitle = collectionSourceTitle
         self.kind = kind
         self.imageURL = imageURL
+        self.hasCollections = hasCollections
         self.isMusic = isMusic
         self.sourceAccountID = sourceAccountID
         self.additionalSourceAccountIDs = additionalSourceAccountIDs
@@ -1643,7 +1653,7 @@ public struct MediaLibrary: Codable, Hashable, Identifiable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id, title, kind, imageURL, isMusic, sourceAccountID
         case additionalSourceAccountIDs, sourceContainerIDByAccount
-        case synthesizedName, collectionSourceTitle
+        case synthesizedName, collectionSourceTitle, hasCollections
     }
 
     /// Custom decoding so the cross-server fields (added after libraries were
@@ -1657,6 +1667,7 @@ public struct MediaLibrary: Codable, Hashable, Identifiable, Sendable {
         collectionSourceTitle = try container.decodeIfPresent(String.self, forKey: .collectionSourceTitle)
         kind = try container.decode(MediaItemKind.self, forKey: .kind)
         imageURL = try container.decodeIfPresent(URL.self, forKey: .imageURL)
+        hasCollections = try container.decodeIfPresent(Bool.self, forKey: .hasCollections)
         isMusic = try container.decodeIfPresent(Bool.self, forKey: .isMusic) ?? false
         sourceAccountID = try container.decodeIfPresent(String.self, forKey: .sourceAccountID)
         additionalSourceAccountIDs = try container.decodeIfPresent([String].self, forKey: .additionalSourceAccountIDs) ?? []

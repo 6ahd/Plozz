@@ -479,6 +479,9 @@ public protocol WatchlistDestination: Sendable {
     /// broader than `reconciliationScope` when credentials can arrive or rotate
     /// without changing the person whose list is being shown.
     var cacheIdentityScope: String { get }
+    /// Bump only when a writer fix warrants retrying previously permanent
+    /// failures. Persisted per mutation so ordinary refreshes never reopen them.
+    var writePolicyVersion: Int { get }
     func fetchEntries() async throws -> [WatchlistDestinationEntry]
     func resolve(_ target: WatchlistMutationTarget) async throws -> WatchlistDestinationBinding?
     func apply(
@@ -497,6 +500,18 @@ public protocol WatchlistReconciliationScopedApplying: WatchlistDestination {
         to binding: WatchlistDestinationBinding,
         expectedReconciliationScope: String
     ) async throws
+}
+
+/// Opt-in bulk transport. Outcomes correspond to the input bindings in order;
+/// an omitted or ambiguous outcome must never acknowledge a queued mutation.
+public protocol WatchlistBatchApplying: WatchlistReconciliationScopedApplying {
+    var maximumBatchSize: Int { get }
+    func apply(
+        _ desiredState: WatchlistDesiredState,
+        to bindings: [WatchlistDestinationBinding],
+        idempotencyKey: String,
+        expectedReconciliationScope: String
+    ) async throws -> [Result<Void, WatchlistDestinationError>]
 }
 
 /// A destination that can also say which item in the viewer's own library a
@@ -538,6 +553,7 @@ public protocol WatchlistLibraryResolving: WatchlistDestination {
 public extension WatchlistDestination {
     var reconciliationScope: String { id.rawValue }
     var cacheIdentityScope: String { reconciliationScope }
+    var writePolicyVersion: Int { 0 }
 
     var routing: WatchlistDestinationRouting {
         WatchlistDestinationRouting(

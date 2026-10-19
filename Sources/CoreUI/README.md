@@ -6,6 +6,45 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+- **Version choices** — `MediaVersionChoiceButton` is the shared native rounded
+  card for pre-play, detail, and in-player pickers. It keeps edition/size and
+  release text above the smaller wrapping format/language badges, with one
+  trailing selected checkmark. Hosts retain selection, dismissal, and focus
+  ownership. `MediaVersionPicker` supplies the sheet used by mobile playback
+  and hero context-menu actions; context menus link to it rather than rendering
+  a second text-only version list.
+  On iOS/iPadOS, version sheets use an inline centered navigation title and a
+  leading native X close action, with no bottom Cancel button. The pre-play X
+  cancels the pending playback choice; tvOS retains its existing dialog controls.
+  Edition/size, source quality, bitrate and runtime share one naturally wrapping
+  summary instead of separate size-only or runtime-only rows on either platform.
+  Release filenames preserve their original script and wrap to their full height,
+  including at accessibility text sizes; they have no two-line truncation cap.
+  Display-only break opportunities after dots/underscores prevent an orphaned
+  `Spider-` prefix. Stored filenames and accessibility labels remain unchanged.
+  Language chips prioritize the profile's explicit audio language, or the device
+  language when no explicit preference is set. Only reported matches move first;
+  otherwise the source order stays unchanged. The additional-language count stays
+  inside the same chip (`English | +9`), so it cannot wrap away from its language
+  or look like hidden format badges. Accessibility exposes the full language list.
+  For a two-language source, an inline badge stays compact; if the format row
+  cannot fit it, the language row spells out both names. Very large text may
+  separate those names into wrapping chips instead of clipping either one.
+  Adaptive hero rows own `PlaybackSourceMenuState` and its presentation above
+  `ViewThatFits`; candidate rows contain only triggers. Late trailer, action or
+  inventory updates can rearrange the row without destroying an open version page.
+  `NoStreamsButtonLabel` reserves its single-line width before actions overflow.
+  Only the final stacked layout can scale it to fit; the retry spinner occupies
+  the same 20-point icon slot and uses explicit contrast for the button surface.
+  The full track inventory stays in the Audio menu;
+  this display priority never changes playback's original/per-content-type policy.
+  The compact mobile source-menu disclosure groups edition/picture facts above
+  quieter source/size facts. Each group stays inline only while it fits; narrower
+  widths and larger text stack complete facts with leading alignment, without
+  dangling separators or truncating the selected version's accessible summary.
+  At accessibility sizes, the category and chevron sit above the full-width
+  summary; the decorative film icon yields its space to readable text.
+
 - **Reorder-only lists** — `LiftableReorderList(allowsHiding: false)` presents
   enabled entries only and keeps them enabled through native dragging, remote
   lift-and-move and context-menu movement. It has no Hidden divider or Hide/Show
@@ -19,6 +58,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   `PlaybackDiagnosticDetailsView` is shared by on-demand playback, Live TV and
   IPTV setup. It renders and shares only the structured `PlaybackDiagnosticReport`,
   including app/OS identity; it is not the continuously sampled diagnostics HUD.
+  Library recommendation and browse failures reuse this sheet through `ContentFailureActions`
+  and `ContentStateView.errorReport`. Their structured report identifies failed
+  sections and safe response-decoding/paging/transport facts while retaining browsing themes and
+  already-loaded content; no playback-specific full-screen chrome is imposed.
+  On iPhone and iPad, every diagnostic sheet uses a centered native inline
+  "Details" title and a leading icon-only Close button, including the Live TV
+  guide's diagnostics destination. tvOS retains its existing heading and Done action.
 
 - **Touch hero actions** — `HeroActionRow` preserves readable intrinsic widths
   before falling back to a vertical arrangement. `TouchHeroActionButtonStyle`
@@ -252,6 +298,12 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   It respects Reduce Motion when revealing a new selection and re-reveals after
   viewport, text-size, or option changes. Callers supply localized or verbatim
   labels and page keylines; native app tabs and tvOS focus controls are separate.
+- **Container covers** — collection, playlist, and folder cards accept landscape
+  and square primary covers and fit the complete image within the shared card
+  footprint on mobile and tvOS. Media posters retain their portrait aspect guard;
+  accepting curated container logos must not admit landscape episode stills as
+  movie/series posters. Library-tile collages likewise accept wide container covers
+  while retaining their aspect guard for ordinary media posters.
 - **Mobile media corners** — posters and Continue Watching share a 12pt artwork
   radius at every display size and responsive width. Borderless cards use that
   radius directly; glass frames add their inset to remain concentric. Loaded

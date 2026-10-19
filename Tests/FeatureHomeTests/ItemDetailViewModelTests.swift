@@ -1,5 +1,6 @@
 import XCTest
 import CoreModels
+import CoreNetworking
 import MetadataKit
 import RatingsService
 import Observation
@@ -7,6 +8,190 @@ import Observation
 
 @MainActor
 final class ItemDetailViewModelTests: XCTestCase {
+    func testConfirmedNoStreamsReplacesStaleInventoryAndExplicitRetryCanRecover() async throws {
+        for isEpisode in [false, true] {
+            let root = MediaItem(id: "root", title: "Title", kind: isEpisode ? .series : .movie)
+            let target = isEpisode ? MediaItem(id: "episode", title: "Episode", kind: .episode) : root
+            var available = target
+            available.versions = [.init(id: "4k"), .init(id: "hd")]
+            let resolved = available
+            let provider = FakeMediaProvider(allItems: isEpisode ? [root, target] : [root])
+            provider.childrenByParent = ["root": []]
+            provider.playbackInventoryRequiresEnrichment = true
+            provider.playbackItemHandler = { _ in throw StreamingQualityError.noStreams }
+            let vm = ItemDetailViewModel(
+                provider: provider, itemID: root.id, sourceAccountID: "server",
+                onlineTrailerResolver: { _ in [] }, playableVideoIDResolver: { _ in nil },
+                trailerCache: TrailerResolutionCache()
+            )
+            await vm.load()
+            if isEpisode { _ = await vm.enrichEpisodeBadgesIfNeeded(target) }
+            await waitUntil { vm.hasNoPlaybackStreams(for: target) }
+            XCTAssertFalse(vm.hasNoPlaybackStreams(for: target.taggingSource("other")))
+            XCTAssertTrue(vm.episodeWithEnrichedBadges(available).versions.isEmpty)
+            provider.playbackItemHandler = { _ in throw URLError(.timedOut) }
+            await vm.retryPlaybackInventory(for: target)
+            XCTAssertNotNil(vm.playbackInventoryRetryError, "An explicit retry must surface its network failure.")
+            XCTAssertTrue(vm.hasNoPlaybackStreams(for: target), "A timeout does not replace the last confirmed inventory.")
+
+            let entered = AsyncGate()
+            let release = AsyncGate()
+            let calls = LockedCounter()
+            provider.playbackItemHandler = { _ in
+                _ = calls.increment()
+                entered.open()
+                await release.wait()
+                return resolved
+            }
+            _ = await EnrichmentScheduler.shared.bumpGeneration()
+            let retry = Task { await vm.retryPlaybackInventory(for: target) }
+            await entered.wait()
+            XCTAssertTrue(vm.isRetryingPlaybackInventory(for: target))
+            XCTAssertNil(vm.playbackInventoryRetryError)
+            await vm.retryPlaybackInventory(for: target)
+            XCTAssertEqual(calls.value, 1, "Coalesce repeat taps; do not negotiate or start playback.")
+            release.open()
+            await retry.value
+            XCTAssertFalse(vm.hasNoPlaybackStreams(for: target))
+            XCTAssertFalse(vm.isRetryingPlaybackInventory(for: target))
+            let displayed = isEpisode ? vm.episodeWithEnrichedBadges(target) : vm.state.value?.item
+            XCTAssertEqual(displayed?.versions, resolved.versions)
+            vm.suspendEnrichment()
+        }
+    }
+
+    func testFailedInventoryIsNotTreatedAsConfirmedNoStreams() async {
+        let errors: [any Error] = [URLError(.timedOut), AppError.invalidResponse, StreamingQualityError.sourceUnavailable]
+        for error in errors {
+            let root = series("show")
+            let target = episode("episode", number: 1)
+            let provider = FakeMediaProvider(allItems: [root])
+            provider.playbackInventoryRequiresEnrichment = true
+            provider.playbackItemHandler = { _ in throw error }
+            let vm = ItemDetailViewModel(provider: provider, itemID: root.id)
+            await vm.load()
+            let result = await vm.enrichEpisodeBadgesIfNeeded(target)
+            XCTAssertNil(result)
+            XCTAssertFalse(vm.hasNoPlaybackStreams(for: target))
+            vm.suspendEnrichment()
+        }
+    }
+
+    func testNoStreamsAndLateRetryAreScopedToTheSelectedServer() async {
+        let item = MediaItem(id: "same", title: "Movie", kind: .movie)
+        let provider = FakeMediaProvider(allItems: [item])
+        provider.playbackInventoryRequiresEnrichment = true
+        provider.playbackItemHandler = { _ in throw StreamingQualityError.noStreams }
+        let other = FakeMediaProvider(allItems: [item])
+        let vm = ItemDetailViewModel(
+            provider: provider, itemID: item.id, sourceAccountID: "first",
+            onlineTrailerResolver: { _ in [] }, playableVideoIDResolver: { _ in nil },
+            trailerCache: TrailerResolutionCache(),
+            initialSources: [.init(accountID: "first", itemID: item.id), .init(accountID: "second", itemID: item.id)],
+            alternateProviderResolver: { _ in other }
+        )
+        await vm.load()
+        await waitUntil { vm.hasNoPlaybackStreams(for: item) }
+        let entered = AsyncGate()
+        let release = AsyncGate()
+        provider.playbackItemHandler = { _ in
+            entered.open()
+            await release.wait()
+            throw StreamingQualityError.noStreams
+        }
+        let retry = Task { await vm.retryPlaybackInventory(for: item) }
+        await entered.wait()
+        await vm.switchToSource(accountID: "second")
+        release.open()
+        await retry.value
+        XCTAssertFalse(vm.hasNoPlaybackStreams(for: item))
+        XCTAssertFalse(vm.isRetryingPlaybackInventory(for: item))
+        XCTAssertNil(vm.playbackInventoryRetryError)
+        vm.suspendEnrichment()
+    }
+
+    func testDeferredInventoryUpdatesDetailMenuWithoutBlockingHeroOrLosingToDiscovery() async throws {
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie, sourceAccountID: "account")
+        var resolved = item
+        resolved.versions = [.init(id: "hd"), .init(id: "4k")]
+        let inventory = resolved
+        let entered = AsyncGate()
+        let release = AsyncGate()
+        let discoveryRelease = AsyncGate()
+        let primary = MediaSourceRef(accountID: "account", itemID: item.id, kind: .movie)
+        let alternate = MediaSourceRef(
+            accountID: "account", itemID: "alternate", kind: .movie, versions: [.init(id: "alternate-file")]
+        )
+        let provider = FakeMediaProvider(allItems: [item])
+        provider.playbackInventoryRequiresEnrichment = true
+        provider.playbackItemHandler = { _ in
+            entered.open()
+            await release.wait()
+            return inventory
+        }
+        let vm = ItemDetailViewModel(
+            provider: provider, itemID: item.id,
+            sourceAccountID: "account",
+            onlineTrailerResolver: { _ in [] }, playableVideoIDResolver: { _ in nil },
+            trailerCache: TrailerResolutionCache(),
+            crossServerSourceResolver: { _ in
+                await discoveryRelease.wait()
+                return CrossServerSourceResolution(sources: [primary, alternate])
+            }
+        )
+        defer {
+            release.open()
+            discoveryRelease.open()
+            vm.suspendEnrichment()
+        }
+        await vm.load()
+        await entered.wait()
+        XCTAssertEqual(vm.state.value?.item.title, "Movie")
+        XCTAssertEqual(vm.state.value?.item.versions, [])
+        release.open()
+        await waitUntil { vm.state.value?.item.versions.count == 2 }
+        discoveryRelease.open()
+        await waitUntil { vm.sources.count == 2 }
+        let displayed = try XCTUnwrap(vm.state.value?.item)
+        let versions = DetailPlaybackSelection.versions(for: displayed, sources: vm.sources, activeAccountID: "account")
+        XCTAssertEqual(Set(versions.compactMap(\.playbackMediaSourceID)), ["hd", "4k", "alternate-file"])
+    }
+
+    func testSuspendedDetailCannotPublishLateVersionInventoryAndRetriesOnReturn() async {
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie, sourceAccountID: "account")
+        var resolved = item
+        resolved.versions = [.init(id: "hd"), .init(id: "4k")]
+        let inventory = resolved
+        let entered = AsyncGate()
+        let release = AsyncGate()
+        let returned = AsyncGate()
+        let calls = LockedCounter()
+        let provider = FakeMediaProvider(allItems: [item])
+        provider.playbackInventoryRequiresEnrichment = true
+        provider.playbackItemHandler = { _ in
+            let call = calls.increment()
+            entered.open()
+            await release.wait()
+            if call == 1 { returned.open() }
+            return inventory
+        }
+        let vm = ItemDetailViewModel(
+            provider: provider, itemID: item.id, sourceAccountID: "account",
+            onlineTrailerResolver: { _ in [] }, playableVideoIDResolver: { _ in nil },
+            trailerCache: TrailerResolutionCache()
+        )
+        await vm.load()
+        await entered.wait()
+        vm.suspendEnrichment()
+        release.open()
+        await returned.wait()
+        XCTAssertEqual(vm.state.value?.item.versions, [])
+        vm.resumeEnrichmentIfNeeded()
+        await waitUntil { vm.state.value?.item.versions.count == 2 }
+        XCTAssertEqual(calls.value, 2)
+        vm.suspendEnrichment()
+    }
+
     func testAllProvidersFillDetailGapsAfterHydrationWithoutReplacingServerCrew() async {
         for kind: ProviderKind in [.plex, .jellyfin, .emby, .silo, .mediaShare] {
             let director = MediaPerson(id: "server-director", name: "Server director", kind: "Director")
@@ -3032,6 +3217,74 @@ final class ItemDetailViewModelTests: XCTestCase {
             before,
             "Hero-only enrichment must not replace the visible episode array"
         )
+    }
+
+    func testSeriesHeroResolvesEpisodeVersionsWithoutChangingSeriesOrWatchState() async throws {
+        for versions: [MediaVersion] in [[], [.init(id: "hd"), .init(id: "4k")]] {
+            let show = series("show")
+            var sparse = episode("e1", number: 1)
+            sparse.sourceAccountID = "server"
+            sparse.resumePosition = 600
+            sparse.versions = [.init(id: "stale-one"), .init(id: "stale-two")]
+            var rich = sparse
+            rich.resumePosition = 0
+            rich.versions = versions
+            let full = rich
+            let provider = FakeMediaProvider(allItems: [show, sparse])
+            provider.childrenByParent = ["show": []]
+            provider.playbackInventoryRequiresEnrichment = true
+            provider.playbackItemHandler = { id in
+                XCTAssertEqual(id, "e1", "Resolve the playable episode, not its series container.")
+                return full
+            }
+            let vm = ItemDetailViewModel(provider: provider, itemID: "show", sourceAccountID: "server")
+            await vm.load()
+            let result = await vm.enrichEpisodeBadgesIfNeeded(sparse)
+            let target = try XCTUnwrap(result)
+            XCTAssertEqual(target.versions, versions)
+            XCTAssertEqual(target.resumePosition, 600)
+            XCTAssertEqual(target.sourceAccountID, "server")
+            XCTAssertEqual(vm.state.value?.item.kind, .series)
+            XCTAssertTrue(vm.state.value?.item.versions.isEmpty == true)
+            let menuVersions = DetailPlaybackSelection.versions(
+                for: target,
+                sources: [.init(accountID: "server", itemID: "show", kind: .series)],
+                activeAccountID: "server"
+            )
+            XCTAssertEqual(Set(menuVersions.map(\.id)), Set(versions.map(\.id)))
+            XCTAssertEqual(provider.itemCallCount(for: "e1"), 0)
+            vm.suspendEnrichment()
+        }
+    }
+
+    func testEpisodeInventoryFailureAndWrongIdentityCannotPoisonHeroCache() async {
+        let show = series("show")
+        let sparse = episode("e1", number: 1)
+        var full = sparse
+        full.versions = [.init(id: "hd"), .init(id: "4k")]
+        let provider = FakeMediaProvider(allItems: [show])
+        provider.childrenByParent = ["show": []]
+        provider.playbackInventoryRequiresEnrichment = true
+        let vm = ItemDetailViewModel(provider: provider, itemID: "show", sourceAccountID: "server")
+        await vm.load()
+        provider.playbackItemHandler = { _ in throw StreamingQualityError.sourceUnavailable }
+        let failed = await vm.enrichEpisodeBadgesIfNeeded(sparse)
+        XCTAssertNil(failed)
+        for mismatch in ["kind", "account", "id"] {
+            var wrong = full
+            if mismatch == "kind" { wrong.kind = .series }
+            if mismatch == "account" { wrong.sourceAccountID = "another-server" }
+            if mismatch == "id" { wrong.id = "another-episode" }
+            let response = wrong
+            provider.playbackItemHandler = { _ in response }
+            let rejected = await vm.enrichEpisodeBadgesIfNeeded(sparse)
+            XCTAssertNil(rejected)
+        }
+        let response = full
+        provider.playbackItemHandler = { _ in response }
+        let recovered = await vm.enrichEpisodeBadgesIfNeeded(sparse)
+        XCTAssertEqual(recovered?.versions, full.versions)
+        vm.suspendEnrichment()
     }
 
     /// Enrichment is idempotent: a second focus of the same episode returns the

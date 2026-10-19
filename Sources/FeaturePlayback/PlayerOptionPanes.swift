@@ -15,9 +15,18 @@ struct PlayerMenuRowStack: View {
     @FocusState.Binding var focus: PlayerControls.FocusSlot?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: rows.contains { $0.versionPresentation != nil } ? 12 : 2) {
             ForEach(rows) { row in
-                if row.isToggle {
+                if let presentation = row.versionPresentation {
+                    MediaVersionChoiceButton(
+                        presentation: presentation,
+                        isSelected: row.isSelected,
+                        isFocused: focus == .row(row.id),
+                        action: row.action
+                    )
+                    .accessibilityIdentifier("player-option-row-\(row.id)")
+                    .focused($focus, equals: .row(row.id))
+                } else if row.isToggle {
                     compactToggleRow(row)
                 } else {
                     compactSelectableRow(row)

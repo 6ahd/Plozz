@@ -8,6 +8,8 @@ import CoreNetworking
 /// provider-agnostic `CoreModels` types. Feature modules depend only on
 /// `MediaProvider`; this is the single place Jellyfin specifics live.
 public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIdentityProviding, AuthenticatedHTTPOriginProviding, ServerAddressUpdating {
+    public var playbackInventoryRequiresEnrichment: Bool { true }
+
     public let kind: ProviderKind
     public let session: UserSession
     public let accountID: String
@@ -79,7 +81,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     public func libraries() async throws -> [MediaLibrary] {
-        try await client.userViews(userID: session.userID).map { dto in
+        var libraries = try await client.userViews(userID: session.userID).map { dto in
             MediaLibrary(
                 id: dto.Id,
                 title: dto.Name ?? "Library",
@@ -90,6 +92,28 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 isMusic: dto.CollectionType == "music"
             )
         }
+        if !libraries.contains(where: { $0.kind == .collection }),
+           libraries.contains(where: { $0.kind == .movie || $0.kind == .series }) {
+            libraries.append(MediaLibrary(
+                id: collectionDirectoryID, title: "Collections", kind: .collection, synthesizedName: .collections
+            ))
+        }
+        for index in libraries.indices where libraries[index].kind == .collection {
+            do {
+                libraries[index].hasCollections = try await collectionDirectoryHasItems(
+                    in: libraries[index].id
+                )
+            } catch {
+                let failure = (error as? AppError) ?? .invalidResponse
+                if Task.isCancelled || error is CancellationError || failure == .cancelled {
+                    throw CancellationError()
+                }
+                PlozzLog.networking.error(
+                    "Collection availability failed provider=\(kind.rawValue) error=\(HandoffDiagnostics.errorCode(failure))"
+                )
+            }
+        }
+        return libraries
     }
 
     public func libraryHubs(libraryID: String, kind: MediaItemKind, limit: Int) async throws -> [LibrarySection] {
@@ -157,7 +181,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         guard separateNextUp else {
             return try await continueWatching(limit: limit, inLibraries: libraryIDs)
         }
-        let parents: [String?] = libraryIDs.map { $0.map(Optional.some) } ?? [nil]
+        let parents: [String?] = libraryIDs.map {
+            $0.filter { $0 != collectionDirectoryID }.map(Optional.some)
+        } ?? [nil]
         var items: [MediaItem] = []
         var seen = Set<String>()
         for parentID in parents {
@@ -527,7 +553,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// stamp the result. `nil` keeps the fast unscoped feed (used when the user
     /// has hidden nothing on this account).
     public func continueWatching(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
-        guard let libraryIDs else { return try await continueWatching(limit: limit) }
+        guard let libraryIDs = libraryIDs?.filter({ $0 != collectionDirectoryID }) else {
+            return try await continueWatching(limit: limit)
+        }
         guard !libraryIDs.isEmpty else { return [] }
 
         // Cap concurrent per-library requests: a user with many libraries would
@@ -597,7 +625,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// Library-scoped Recently Added — see ``continueWatching(limit:inLibraries:)``
     /// for why Jellyfin must scope the fetch to attribute each item's library.
     public func latest(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
-        guard let libraryIDs else { return try await latest(limit: limit) }
+        guard let libraryIDs = libraryIDs?.filter({ $0 != collectionDirectoryID }) else {
+            return try await latest(limit: limit)
+        }
         guard !libraryIDs.isEmpty else { return [] }
 
         let userID = session.userID
@@ -629,9 +659,50 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     public func item(id: String) async throws -> MediaItem {
+        try await item(id: id, requiresSourceInventory: false)
+    }
+
+    public func playbackItem(id: String) async throws -> MediaItem {
+        try await item(id: id, requiresSourceInventory: true)
+    }
+
+    private func item(id: String, requiresSourceInventory: Bool) async throws -> MediaItem {
         let dto = try await client.item(userID: session.userID, id: id)
         await probeDescriptors.remember(itemID: id, sources: dto.MediaSources)
-        return map(item: dto)
+        var item = map(item: dto)
+        let remotePlaceholder = dto.MediaSources?.count == 1 && dto.MediaSources?.first?.IsRemote == true
+        // Add-on servers may resolve streams only through PlaybackInfo, even
+        // when item detail already contains sources or omits IsRemote.
+        if (item.kind == .movie || item.kind == .episode),
+           requiresSourceInventory || remotePlaceholder {
+            do {
+                let inventory = try await client.playbackSourceInventory(userID: session.userID, itemID: id)
+                try Task.checkCancellation()
+                try validateStreamingDecision(inventory)
+                let ids = inventory.MediaSources.compactMap(\.Id)
+                guard !ids.isEmpty, ids.count == inventory.MediaSources.count,
+                      ids.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }),
+                      Set(ids).count == ids.count else { throw AppError.invalidResponse }
+                // Placeholder item streams must not overwrite the real first
+                // source's language, codec, or quality facts.
+                let sources = inventory.MediaSources.filter { !Self.isUnavailablePlaceholder($0, itemID: id) }
+                guard !sources.isEmpty else {
+                    PlozzLog.playback.error("The server returned an unavailable-source placeholder.")
+                    throw StreamingQualityError.noStreams
+                }
+                item.versions = Self.versions(from: sources)
+                await probeDescriptors.remember(itemID: id, sources: sources)
+            } catch {
+                try Task.checkCancellation()
+                if requiresSourceInventory || (error as? AppError) == .cancelled || error is CancellationError {
+                    throw error
+                }
+                PlozzLog.networking.error(
+                    "Remote source inventory unavailable; retaining item metadata: \(String(describing: error))"
+                )
+            }
+        }
+        return item
     }
 
     public func trailers(for itemID: String) async throws -> [MediaItem] {
@@ -859,6 +930,10 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     }
 
     public func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
+        if containerID == collectionDirectoryID {
+            guard kind == .collection, page.filters.isEmpty else { throw AppError.invalidResponse }
+            return try await collections(in: containerID, page: page)
+        }
         let (recursive, includeItemTypes) = Self.query(forContainerKind: kind)
         PlozzLog.networking.info(
             "Library browse: container=\(containerID) kind=\(kind.rawValue) recursive=\(recursive) types=\(includeItemTypes.joined(separator: ",")) start=\(page.startIndex) limit=\(page.limit) sort=\(page.sort.field.rawValue)/\(page.sort.direction.rawValue)"
@@ -1057,7 +1132,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         in containerID: String, kind: MediaItemKind,
         sort: CoreModels.SortDescriptor, filters: LibraryFilters
     ) async throws -> [LibraryLetterIndexEntry] {
-        guard sort.field == .name else { return [] }
+        guard sort.field == .name, containerID != collectionDirectoryID else { return [] }
         let (recursive, includeItemTypes) = Self.query(forContainerKind: kind)
         let letters = LibraryLetterIndex.railLetters.filter { $0 != "#" }
         let userID = session.userID
@@ -1152,7 +1227,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         guard !trimmed.isEmpty else { return [] }
 
         let disabled = Set(disabledLibraryIDs)
-        let enabled = (try await libraries().map(\.id)).filter { !disabled.contains($0) }
+        let enabled = try await libraries().filter { !$0.isServerCollectionDirectory }
+            .map(\.id).filter { !disabled.contains($0) }
         guard !enabled.isEmpty else { return [] }
 
         let userID = session.userID
@@ -1265,7 +1341,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             if streaming != nil { throw StreamingQualityError.sourceUnavailable }
             throw AppError.notFound
         }
-        if streaming != nil || forceTranscode, let mediaSourceID, source.Id != mediaSourceID {
+        if let mediaSourceID, source.Id != mediaSourceID {
             PlozzLog.playback.error("Streaming quality negotiation returned a different media source.")
             throw StreamingQualityError.sourceUnavailable
         }
@@ -1418,7 +1494,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             container: originalContainer,
             streams: originalStreams,
             sourceRevision: sourceRevision,
-            fileSizeBytes: originalSource.Size
+            fileSizeBytes: Self.fileSizeBytes(for: originalSource),
+            declaredAudioLanguages: Self.declaredAudioLanguages(for: originalSource)
         )
         if cachedProbe.completed, let facts = cachedProbe.facts {
             let selectedSourceID = originalSource.Id ?? itemID
@@ -1439,7 +1516,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                     version.width = selectedMetadata.video?.width
                     version.height = selectedMetadata.video?.height
                     version.bitrate = originalSource.Bitrate ?? selectedMetadata.video?.bitrate
-                    version.sizeBytes = originalSource.Size
+                    version.sizeBytes = Self.fileSizeBytes(for: originalSource)
                     version.duration = originalSource.RunTimeTicks.map { TimeInterval($0) / 10_000_000 }
                     version.videoCodec = selectedMetadata.video?.codec
                     version.videoRange = selectedMetadata.video?.videoRangeType ?? selectedMetadata.video?.videoRange
@@ -1789,7 +1866,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         streams: [MediaStreamDto],
         sourceRevision: String? = nil,
         fileSizeBytes: Int64? = nil,
-        fileName: String? = nil
+        fileName: String? = nil,
+        declaredAudioLanguages: [String] = []
     ) -> MediaSourceMetadata? {
         let video = streams.first { $0.`Type` == "Video" }
         let audio = streams.first { ($0.`Type` == "Audio") && ($0.IsDefault ?? false) }
@@ -1837,6 +1915,11 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             )
         }
 
+        var audioLanguages = streams.filter { $0.`Type` == "Audio" }.compactMap(\.Language)
+        for language in declaredAudioLanguages
+        where !audioLanguages.contains(where: { LanguageMatch.matches($0, language) }) {
+            audioLanguages.append(language)
+        }
         let metadata = MediaSourceMetadata(
             container: container,
             fileSizeBytes: fileSizeBytes,
@@ -1845,7 +1928,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             video: videoStream,
             audio: audioStream,
             subtitle: subtitleStream,
-            audioLanguages: streams.filter { $0.`Type` == "Audio" }.compactMap(\.Language)
+            audioLanguages: audioLanguages
         )
         return metadata.isEmpty ? nil : metadata
     }
@@ -2010,6 +2093,13 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
 
     // MARK: - Mapping
 
+    private static func isUnavailablePlaceholder(_ source: MediaSourceInfo, itemID: String) -> Bool {
+        // Add-on bridges can encode a negative lookup as a nominal MKV source
+        // with invented tracks instead of returning PlaybackInfo.ErrorCode.
+        source.IsRemote == true && source.Id == itemID
+            && source.Name?.hasPrefix("No streams · ") == true
+    }
+
     func authenticatedPlaybackLocator(
         itemID: String,
         source: MediaSourceInfo,
@@ -2018,6 +2108,10 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         forceDirect: Bool = false,
         purpose: AuthenticatedHTTPResourcePurpose = .mediaStream
     ) throws -> AuthenticatedHTTPPlaybackLocator {
+        guard !Self.isUnavailablePlaceholder(source, itemID: itemID) else {
+            PlozzLog.playback.error("Refusing to open the server's unavailable-source placeholder.")
+            throw StreamingQualityError.sourceUnavailable
+        }
         let container = source.Container ?? "mp4"
         let sourceID = source.Id ?? itemID
         let deliveryMode: AuthenticatedHTTPDeliveryMode
@@ -2261,8 +2355,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 sourceRevision: dto.MediaSources?.first.map {
                     Self.sourceRevision(itemID: dto.Id, source: $0)
                 },
-                fileSizeBytes: dto.MediaSources?.first?.Size,
-                fileName: dto.MediaSources?.first?.Path.flatMap(Self.fileName(fromPath:))
+                fileSizeBytes: dto.MediaSources?.first.flatMap { Self.fileSizeBytes(for: $0) },
+                fileName: dto.MediaSources?.first?.Path.flatMap(Self.fileName(fromPath:)),
+                declaredAudioLanguages: Self.declaredAudioLanguages(for: dto.MediaSources?.first)
             ),
             versions: Self.versions(
                 from: dto.MediaSources,
@@ -2336,7 +2431,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 width: video?.Width,
                 height: video?.Height,
                 bitrate: source.Bitrate ?? video?.BitRate,
-                sizeBytes: source.Size,
+                sizeBytes: Self.fileSizeBytes(for: source),
                 duration: source.RunTimeTicks.map { TimeInterval($0) / 10_000_000 },
                 isDefault: index == 0,
                 videoCodec: video?.Codec,
@@ -2349,8 +2444,9 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 sourceMetadata: Self.sourceMetadata(
                     container: source.Container,
                     streams: streams,
-                    fileSizeBytes: source.Size,
-                    fileName: source.Path.flatMap(Self.fileName(fromPath:))
+                    fileSizeBytes: Self.fileSizeBytes(for: source),
+                    fileName: source.Path.flatMap(Self.fileName(fromPath:)),
+                    declaredAudioLanguages: Self.declaredAudioLanguages(for: source)
                 )
             )
         }
@@ -2358,6 +2454,24 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
 
     private static func fileName(fromPath path: String) -> String? {
         MediaSourceDisplayName.fileName(from: path)
+    }
+
+    private static func declaredAudioLanguages(for source: MediaSourceInfo?) -> [String] {
+        guard let source, source.IsRemote == true else { return [] }
+        return MediaSourceDisplayName.declaredAudioLanguages(from: source.Name)
+    }
+
+    static func fileSizeBytes(for source: MediaSourceInfo) -> Int64? {
+        guard source.IsRemote == true,
+              let declared = MediaSourceDisplayName.declaredFileSizeBytes(from: source.Name) else {
+            return source.Size
+        }
+        if source.Size != declared {
+            PlozzLog.networking.info(
+                "Remote source uses explicitly labeled file size: declaredBytes=\(declared) structuredBytes=\(source.Size ?? 0)"
+            )
+        }
+        return declared
     }
 
     private static func sourceRevision(

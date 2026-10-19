@@ -2,6 +2,43 @@ import XCTest
 @testable import CoreModels
 
 final class HomeLibraryVisibilityTests: XCTestCase {
+    func testEmptyCollectionsHideAutomaticallyWithoutDisablingTheirLibrary() throws {
+        var library = MediaLibrary(id: "collections", title: "Collections", kind: .collection, hasCollections: false)
+        var visibility = HomeLibraryVisibility.default
+        XCTAssertTrue(visibility.isEnabled("first:collections"))
+        XCTAssertFalse(visibility.isVisibleOnHome("first:collections", library: library))
+        visibility.setEnabled(true, for: "first:collections")
+        XCTAssertTrue(visibility.isVisibleOnHome("first:collections", library: library))
+        XCTAssertFalse(visibility.isVisibleOnHome("second:collections", library: library))
+        let restored = try JSONDecoder().decode(
+            HomeLibraryVisibility.self, from: JSONEncoder().encode(visibility)
+        )
+        XCTAssertTrue(restored.isVisibleOnHome("first:collections", library: library))
+        visibility.setEnabled(false, for: "first:collections")
+        XCTAssertFalse(visibility.isVisibleOnHome("first:collections", library: library))
+        XCTAssertFalse(visibility.explicitlyEnabledKeys.contains("first:collections"))
+        library.hasCollections = true
+        XCTAssertFalse(visibility.isVisibleOnHome("first:collections", library: library), "Explicit off wins over new content.")
+        XCTAssertTrue(visibility.isVisibleOnHome("second:collections", library: library))
+    }
+
+    func testCollectionAvailabilityIsOptionalAndDoesNotHideUnknownOrOrdinaryLibraries() throws {
+        let legacy = try JSONDecoder().decode(
+            MediaLibrary.self, from: Data(#"{"id":"collections","title":"Collections","kind":"collection"}"#.utf8)
+        )
+        XCTAssertNil(legacy.hasCollections)
+        let visibility = try JSONDecoder().decode(HomeLibraryVisibility.self, from: Data("{}".utf8))
+        XCTAssertTrue(visibility.explicitlyEnabledKeys.isEmpty)
+        XCTAssertTrue(visibility.isVisibleOnHome("acct:collections", library: legacy))
+        var knownEmpty = legacy
+        knownEmpty.hasCollections = false
+        let restored = try JSONDecoder().decode(MediaLibrary.self, from: JSONEncoder().encode(knownEmpty))
+        XCTAssertEqual(restored.hasCollections, false)
+        XCTAssertFalse(visibility.isVisibleOnHome("acct:collections", library: restored))
+        knownEmpty.kind = .movie
+        XCTAssertTrue(visibility.isVisibleOnHome("acct:collections", library: knownEmpty))
+    }
+
     func testDefaultShowsEverything() {
         let visibility = HomeLibraryVisibility.default
         XCTAssertTrue(visibility.isVisible("acct:anything"))
@@ -207,6 +244,21 @@ final class HomeLibraryVisibilityStoreTests: XCTestCase {
         XCTAssertEqual(alice.load().disabledKeys, ["acct:movies"])
         XCTAssertTrue(bob.load().disabledKeys.isEmpty)
         XCTAssertTrue(bob.load().isVisible("acct:movies"))
+    }
+
+    @MainActor
+    func testManualCollectionEnablePersistsOnlyForItsProfile() {
+        let suite = "test.collectionVisibility.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let first = HomeLibraryVisibilityStore(defaults: defaults, namespace: "first")
+        let second = HomeLibraryVisibilityStore(defaults: defaults, namespace: "second")
+        let library = MediaLibrary(id: "collections", title: "Collections", kind: .collection, hasCollections: false)
+        let model = HomeLibraryVisibilityModel(store: first)
+        XCTAssertFalse(model.isVisibleOnHome("acct:collections", library: library))
+        model.setEnabled(true, for: "acct:collections")
+        XCTAssertTrue(HomeLibraryVisibilityModel(store: first).isVisibleOnHome("acct:collections", library: library))
+        XCTAssertFalse(HomeLibraryVisibilityModel(store: second).isVisibleOnHome("acct:collections", library: library))
     }
 }
 

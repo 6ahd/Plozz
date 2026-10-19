@@ -58,6 +58,7 @@ struct PlayerPresentation: View {
     @State private var versionChoice = PlaybackVersionChoiceModel()
     @State private var versionChoiceFailed = false
     @State private var sourceUnavailable = false
+    @State private var versionChoiceFailureMessage: LocalizedStringResource = "Please try playing this video again."
 
     /// The currently-active play request; changes when auto-advancing episodes.
     @State private var activeRequest: PlayRequest
@@ -99,6 +100,9 @@ struct PlayerPresentation: View {
                     themePalette: themePalette
                 )
                 .id(activeRequest.traceID)
+            } else if versionChoice.prompt == nil, !versionChoiceFailed {
+                ProgressView()
+                    .tint(.white)
             }
         }
         .task {
@@ -157,7 +161,7 @@ struct PlayerPresentation: View {
             if sourceUnavailable {
                 Text("Connect or enable this source in Settings, then try again.")
             } else {
-                Text("Please try playing this video again.")
+                Text(versionChoiceFailureMessage)
             }
         }
         .onChange(of: versionItem) { _, _ in updateVersionMenu() }
@@ -235,9 +239,11 @@ struct PlayerPresentation: View {
             return
         }
         let continuation = outgoing.continuationForVersionChange()
-        versionPreferences.rememberVersion(
-            version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item)
-        )
+        if versionPreferences.shouldRememberVersion(for: item) {
+            versionPreferences.rememberVersion(
+                version, forTitle: DetailPlaybackSelection.versionPreferenceKey(for: item)
+            )
+        }
         triedAccountIDs = []
         replacePlayback(
             with: PlayRequest(
@@ -311,14 +317,24 @@ struct PlayerPresentation: View {
 
     private func preparedRequest(_ request: PlayRequest) async throws -> PlayRequest {
         // Online trailers use their own provider, even with no connected library.
-        let item = request.item.isYouTubeTrailer
-            ? request.item : try await prepareVersion(versionChoice, request.item)
+        let item: MediaItem
+        if request.item.isYouTubeTrailer {
+            item = request.item
+        } else {
+            let prepared = try await PlaybackVersionChoiceModel.prepareWithFailover(
+                request.item, triedAccountIDs: triedAccountIDs,
+                prepare: { try await prepareVersion(versionChoice, $0) },
+                nextSource: makeFailover, isCurrent: { isPresented }
+            )
+            triedAccountIDs = prepared.triedAccountIDs
+            item = prepared.item
+        }
         try Task.checkCancellation()
         guard isPresented else { throw CancellationError() }
         return PlayRequest(
             item: item, startPosition: request.startPosition, traceID: request.traceID,
             requestedAt: request.requestedAt, versionPreferences: versionPreferences,
-            playlist: request.playlist
+            playlist: item.sourceAccountID == request.playlist?.accountID ? request.playlist : nil
         )
     }
 
@@ -326,7 +342,7 @@ struct PlayerPresentation: View {
         guard isPresented else { return }
         viewModel?.setPaused(true)
         sourceUnavailable = error as? AppError == .unauthorized
-        PlozzLog.playback.error("Could not prepare playback; sourceUnavailable=\(sourceUnavailable)")
+        versionChoiceFailureMessage = PlaybackVersionChoiceModel.reportFailure(error)
         versionChoiceFailed = true
     }
 }

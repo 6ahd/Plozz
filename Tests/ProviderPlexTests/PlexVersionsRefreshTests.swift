@@ -72,7 +72,7 @@ final class PlexVersionsRefreshTests: XCTestCase {
         XCTAssertEqual(versions[0].resolutionLabel, "4K")
         XCTAssertEqual(versions[0].hdrLabel, "Dolby Vision")
         XCTAssertEqual(versions[0].sourceMetadata?.video?.bitDepth, 10)
-        XCTAssertEqual(versions[0].audioFormatLabel, "Dolby TrueHD + Dolby Atmos")
+        XCTAssertEqual(versions[0].audioFormatLabel, "Dolby TrueHD + Dolby Atmos + 7.1")
         XCTAssertEqual(versions[0].audioLanguageNames(in: Locale(identifier: "en_US")), ["English", "French"])
         XCTAssertEqual(versions[0].sourceMetadata?.fileSizeBytes, 42_000_000_000)
         XCTAssertEqual(MediaVersion.PickerPresentation(versions[0]).releaseName, "Movie.REMUX.mkv")

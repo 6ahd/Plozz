@@ -204,6 +204,36 @@ public final class ItemDetailViewModel {
     /// Full per-item episode facts used by the hero. Deliberately separate from
     /// `seasonEpisodes`: enriching a focused hero must not replace the visible rail.
     private let episodeBadgeEnrichment = EpisodeBadgeEnrichmentModel()
+    private let playbackInventoryState = DetailPlaybackInventoryState()
+    public var playbackInventoryRetryError: LocalizedStringResource? {
+        get { playbackInventoryState.retryError }
+        set { playbackInventoryState.retryError = newValue }
+    }
+
+    public func hasNoPlaybackStreams(for item: MediaItem) -> Bool {
+        (item.sourceAccountID == nil || item.sourceAccountID == activeSourceAccountID)
+            && playbackInventoryState.noStreamItemIDs.contains(item.id)
+    }
+
+    public func isRetryingPlaybackInventory(for item: MediaItem) -> Bool {
+        (item.sourceAccountID == nil || item.sourceAccountID == activeSourceAccountID)
+            && playbackInventoryState.retryingItemIDs.contains(item.id)
+    }
+
+    public func retryPlaybackInventory(for item: MediaItem) async {
+        guard hasNoPlaybackStreams(for: item),
+              playbackInventoryState.retryingItemIDs.insert(item.id).inserted else { return }
+        let generation = sourceGeneration
+        playbackInventoryRetryError = nil
+        defer {
+            if sourceGeneration == generation { playbackInventoryState.retryingItemIDs.remove(item.id) }
+        }
+        if item.id == activeItemID {
+            _ = await refreshPlaybackInventory(for: item, token: nil)
+        } else if item.kind == .episode {
+            _ = await enrichEpisodeBadgesIfNeeded(item)
+        }
+    }
     /// When this detail is a series, context propagated onto its episodes so each
     /// episode resolves fallback artwork/routing with full series metadata.
     private var seriesEpisodeContext: SeriesEpisodeContext?
@@ -1209,7 +1239,79 @@ public final class ItemDetailViewModel {
             self.enrichmentGeneration = token
             self.startAlternateSourceEnrichment(primaryID: item.id)
             self.startCrossServerDiscovery(for: taggedItem)
-            self.enrichmentComplete = true
+            let completed = await self.refreshPlaybackInventory(for: taggedItem, token: token)
+            guard !Task.isCancelled, self.enrichmentGeneration == token else { return }
+            self.enrichmentComplete = completed
+        }
+    }
+
+    private func refreshPlaybackInventory(for item: MediaItem, token: UInt64?) async -> Bool {
+        guard let provider = activeProvider, provider.playbackInventoryRequiresEnrichment,
+              item.kind == .movie || item.kind == .episode else { return true }
+        let generation = sourceGeneration
+        let accountID = activeSourceAccountID
+        do {
+            let resolved: MediaItem
+            if let token {
+                guard let result = await EnrichmentScheduler.shared.run(token: token, {
+                    () async -> Result<MediaItem, Error> in
+                    do {
+                        try Task.checkCancellation()
+                        return .success(try await provider.playbackItem(id: item.id))
+                    } catch {
+                        return .failure(error)
+                    }
+                }) else { return false }
+                resolved = try result.get()
+            } else {
+                try Task.checkCancellation()
+                resolved = try await provider.playbackItem(id: item.id)
+            }
+            guard !Task.isCancelled, token == nil || enrichmentGeneration == token,
+                  isCurrentSource(generation: generation, itemID: item.id, accountID: accountID),
+                  var detail = state.value else { return false }
+            guard resolved.id == item.id, resolved.kind == item.kind,
+                  resolved.sourceAccountID == nil || resolved.sourceAccountID == accountID else {
+                PlozzLog.playback.error("Detail version inventory did not match the requested source.")
+                if playbackInventoryState.retryingItemIDs.contains(item.id) {
+                    playbackInventoryRetryError = StreamingQualityError.sourceUnavailable.userMessage
+                }
+                return false
+            }
+            playbackInventoryState.noStreamItemIDs.remove(item.id)
+            detail.item.versions = resolved.versions
+            detail.item.sources = detail.item.sources.map {
+                stampedPrimarySource($0, from: detail.item, preservingWatchState: true)
+            }
+            state = .loaded(detail)
+            sources = sources.map {
+                stampedPrimarySource($0, from: detail.item, preservingWatchState: true)
+            }
+            persistSnapshot()
+            return true
+        } catch {
+            guard !Task.isCancelled, (error as? AppError) != .cancelled,
+                  !(error is CancellationError), token == nil || enrichmentGeneration == token,
+                  isCurrentSource(generation: generation, itemID: item.id, accountID: accountID) else { return false }
+            // Browsing remains available; Play still requires its own successful
+            // inventory and presents the typed error instead of trusting this fallback.
+            let message = PlaybackVersionChoiceModel.reportFailure(error, stage: "detail")
+            if (error as? StreamingQualityError) == .noStreams {
+                playbackInventoryState.noStreamItemIDs.insert(item.id)
+                if var detail = state.value {
+                    detail.item.versions = []
+                    detail.item.sources = detail.item.sources.map {
+                        stampedPrimarySource($0, from: detail.item, preservingWatchState: true)
+                    }
+                    state = .loaded(detail)
+                    sources = sources.map {
+                        stampedPrimarySource($0, from: detail.item, preservingWatchState: true)
+                    }
+                }
+                return true
+            }
+            if playbackInventoryState.retryingItemIDs.contains(item.id) { playbackInventoryRetryError = message }
+            return false
         }
     }
 
@@ -2200,17 +2302,25 @@ public final class ItemDetailViewModel {
     /// Overlay technical facts without replacing current progress, numbering or
     /// ownership. A later sparse season/resume result must not erase hero badges.
     public func episodeWithEnrichedBadges(_ episode: MediaItem) -> MediaItem {
+        if hasNoPlaybackStreams(for: episode) {
+            var unavailable = episode
+            unavailable.versions = []
+            return unavailable
+        }
         guard episode.kind == .episode,
               episode.sourceAccountID == nil || activeSourceAccountID == nil
                 || episode.sourceAccountID == activeSourceAccountID,
               let full = episodeBadgeEnrichment[episode.id] else { return episode }
         var enriched = episode
         enriched.mediaInfo = full.mediaInfo ?? enriched.mediaInfo
-        if !full.versions.isEmpty { enriched.versions = full.versions }
+        if activeProvider?.playbackInventoryRequiresEnrichment == true || !full.versions.isEmpty {
+            enriched.versions = full.versions
+        }
         return enriched
     }
 
-    /// Fetches full file facts once per episode/source without rewriting the rail.
+    /// Fetches full file facts and deferred versions once per episode/source
+    /// without rewriting the rail or replacing the series' editorial hero.
     public func enrichEpisodeBadgesIfNeeded(_ episode: MediaItem) async -> MediaItem? {
         guard let activeProvider, episode.kind == .episode,
               episode.sourceAccountID == nil || activeSourceAccountID == nil
@@ -2221,17 +2331,37 @@ public final class ItemDetailViewModel {
         let generation = sourceGeneration
         let itemID = activeItemID
         let accountID = activeSourceAccountID
+        let provider = activeProvider
         do {
-            let full = try await activeProvider.item(id: episode.id)
-            guard !Task.isCancelled, full.id == episode.id,
+            let full: MediaItem
+            if provider.playbackInventoryRequiresEnrichment {
+                full = try await provider.playbackItem(id: episode.id)
+            } else {
+                full = try await provider.item(id: episode.id)
+            }
+            guard !Task.isCancelled,
                   isCurrentSource(generation: generation, itemID: itemID, accountID: accountID) else { return nil }
+            guard full.id == episode.id, full.kind == .episode,
+                  full.sourceAccountID == nil || full.sourceAccountID == accountID else {
+                PlozzLog.playback.error("Episode version inventory did not match the requested source.")
+                if playbackInventoryState.retryingItemIDs.contains(episode.id) {
+                    playbackInventoryRetryError = StreamingQualityError.sourceUnavailable.userMessage
+                }
+                return nil
+            }
+            playbackInventoryState.noStreamItemIDs.remove(episode.id)
             episodeBadgeEnrichment.store(full)
             HandoffDiagnostics.emit("detail episode metadata versions=\(full.versions.count) badges=\(full.technicalBadges.count)")
             return episodeWithEnrichedBadges(episode)
         } catch {
-            guard !Task.isCancelled,
+            guard !Task.isCancelled, !(error is CancellationError), (error as? AppError) != .cancelled,
                   isCurrentSource(generation: generation, itemID: itemID, accountID: accountID) else { return nil }
-            PlozzLog.networking.error("Episode technical metadata lookup failed")
+            let message = PlaybackVersionChoiceModel.reportFailure(error, stage: "episode-detail")
+            if (error as? StreamingQualityError) == .noStreams {
+                playbackInventoryState.noStreamItemIDs.insert(episode.id)
+            } else if playbackInventoryState.retryingItemIDs.contains(episode.id) {
+                playbackInventoryRetryError = message
+            }
             return nil
         }
     }
@@ -2292,6 +2422,7 @@ public final class ItemDetailViewModel {
         pendingSnapshotWrite?.cancel()
         pendingSnapshotWrite = nil
         episodeBadgeEnrichment.reset()
+        playbackInventoryState.reset()
         seasonEpisodeRosters.reset()
     }
 
@@ -2741,6 +2872,11 @@ public final class ItemDetailViewModel {
     }
 
     private func applyDiscoveredSources(_ resolution: CrossServerSourceResolution, primary: MediaItem) async {
+        var primary = primary
+        if let latest = state.value?.item,
+           latest.id == primary.id, latest.sourceAccountID == primary.sourceAccountID {
+            primary = latest
+        }
         retainSourceRejections(resolution.rejectedSourceIDs)
         if let accountID = activeSourceAccountID {
             rejectedSourceIDs.remove("\(accountID):\(primary.id)")

@@ -146,9 +146,14 @@ public struct LibraryBrowseView: View {
                     emptyMessage: viewModel.emptyMessage,
                     errorMessage: viewModel.queryMessage,
                     errorServers: viewModel.errorServers,
+                    errorReport: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library),
                     onRetry: { Task { await viewModel.loadFirstPage() } },
                     loadingContent: {
-                        if let progress = viewModel.queryProgress {
+                        if let progress = viewModel.collectionProgress {
+                            LibraryCollectionLoadingView(progress: progress) {
+                                Task { await viewModel.loadFirstPage() }
+                            }
+                        } else if let progress = viewModel.queryProgress {
                             LibraryQueryPreparationView(progress: progress) { Task { await viewModel.cancelIndex() } }
                         } else if viewModel.isMediaShare || viewModel.browseScope == .collectionMembers {
                             LibraryBrowseLoadingView()
@@ -198,23 +203,33 @@ public struct LibraryBrowseView: View {
             #endif
         }
         .safeAreaInset(edge: .bottom) {
+            if viewModel.collectionScanIncomplete, viewModel.state.value != nil, viewModel.pageError == nil,
+               viewModel.contentMode == .collections {
+                LibraryCollectionLoadingView(progress: viewModel.collectionProgress) {
+                    Task { await viewModel.loadFirstPage() }
+                }
+                .padding()
+            }
             if viewModel.contentMode == .recommended, let error = viewModel.recommendationError,
                viewModel.recommendationState.value != nil {
-                HStack(spacing: PlozzTheme.Spacing.large) {
-                    Text(error.userMessage).plozzForeground(.secondary)
-                    Button("Try Again") { Task { await viewModel.loadRecommendations() } }
-                        .plozzActionButton()
+                VStack(alignment: .leading, spacing: 12) {
+                    InlineErrorMessage(Text(error.userMessage))
+                    ContentFailureActions(report: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library)) {
+                        Task { await viewModel.loadRecommendations() }
+                    }
                 }
                 .padding()
             }
             if viewModel.contentMode != .recommended, let error = viewModel.pageError {
-                HStack(spacing: PlozzTheme.Spacing.large) {
-                    Text(error.userMessage)
+                VStack(alignment: .leading, spacing: PlozzTheme.Spacing.large) {
+                    if viewModel.collectionScanIncomplete {
+                        Text("Some collections haven't been checked yet. The list is incomplete.")
+                    }
+                    Text(viewModel.queryMessage ?? error.userMessage)
                         .plozzForeground(.secondary)
-                    Button("Try Again") {
+                    ContentFailureActions(report: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library)) {
                         Task { await viewModel.retryFailedPages() }
                     }
-                    .plozzActionButton()
                 }
                 .padding()
             }
@@ -315,6 +330,7 @@ public struct LibraryBrowseView: View {
             state: viewModel.recommendationState,
             emptyMessage: viewModel.emptyMessage,
             errorServers: viewModel.errorServers,
+            errorReport: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library),
             onRetry: { Task { await viewModel.loadRecommendations() } }
         ) { sections in
             #if os(tvOS)

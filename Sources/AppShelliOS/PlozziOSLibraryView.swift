@@ -151,7 +151,7 @@ private struct PlozziOSLibraryCard: View {
                 Rectangle()
                     .fill(palette.fill)
                     .overlay {
-                        Image(systemName: library.kind == .series ? "tv" : "film")
+                        Image(systemName: librarySymbol)
                             .font(.largeTitle)
                             .plozzForeground(.secondary)
                     }
@@ -178,6 +178,14 @@ private struct PlozziOSLibraryCard: View {
                 )
         }
         .contentShape(Rectangle())
+    }
+
+    private var librarySymbol: String {
+        switch library.kind {
+        case .series: "tv"
+        case .collection: "rectangle.stack"
+        default: "film"
+        }
     }
 }
 
@@ -257,20 +265,34 @@ struct PlozziOSLibraryGridView: View {
             )
         }
         .safeAreaInset(edge: .bottom) {
+            if viewModel.collectionScanIncomplete, viewModel.state.value != nil, viewModel.pageError == nil,
+               viewModel.contentMode == .collections {
+                LibraryCollectionLoadingView(progress: viewModel.collectionProgress) {
+                    Task { await viewModel.loadFirstPage() }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(.regularMaterial)
+            }
             if viewModel.contentMode == .recommended, let error = viewModel.recommendationError,
                viewModel.recommendationState.value != nil {
-                HStack {
-                    Text(error.userMessage).plozzForeground(.secondary)
-                    Button("Try Again") { Task { await viewModel.loadRecommendations() } }
+                VStack(alignment: .leading, spacing: 12) {
+                    InlineErrorMessage(Text(error.userMessage))
+                    ContentFailureActions(report: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library)) {
+                        Task { await viewModel.loadRecommendations() }
+                    }
                 }
                 .padding()
                 .background(.regularMaterial)
             }
             if viewModel.contentMode != .recommended, let error = viewModel.pageError {
-                HStack {
-                    Text(error.userMessage)
+                VStack(alignment: .leading, spacing: 12) {
+                    if viewModel.collectionScanIncomplete {
+                        Text("Some collections haven't been checked yet. The list is incomplete.")
+                    }
+                    Text(viewModel.queryMessage ?? error.userMessage)
                         .plozzForeground(.secondary)
-                    Button("Try Again") {
+                    ContentFailureActions(report: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library)) {
                         Task { await viewModel.retryFailedPages() }
                     }
                 }
@@ -345,7 +367,9 @@ struct PlozziOSLibraryGridView: View {
                 }
                 Text(error.userMessage)
             } actions: {
-                Button("Try Again") { Task { await viewModel.loadRecommendations() } }
+                ContentFailureActions(report: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library)) {
+                    Task { await viewModel.loadRecommendations() }
+                }
             }
         }
     }
@@ -354,7 +378,13 @@ struct PlozziOSLibraryGridView: View {
     private func browseContent(generation: Int) -> some View {
         switch viewModel.state {
         case .idle, .loading:
-            if let progress = viewModel.queryProgress {
+            if let progress = viewModel.collectionProgress {
+                LibraryCollectionLoadingView(progress: progress) {
+                    Task { await viewModel.loadFirstPage() }
+                }
+                .frame(maxWidth: .infinity, minHeight: 220)
+                .padding(.horizontal)
+            } else if let progress = viewModel.queryProgress {
                 LibraryQueryPreparationView(progress: progress) { Task { await viewModel.cancelIndex() } }
                     .frame(height: 320)
             } else {
@@ -409,7 +439,7 @@ struct PlozziOSLibraryGridView: View {
                 }
                 Text(viewModel.queryMessage ?? error.userMessage)
             } actions: {
-                Button("Try Again") {
+                ContentFailureActions(report: viewModel.browseDiagnostic.map(PlaybackDiagnosticReport.library)) {
                     Task { await viewModel.loadFirstPage() }
                 }
             }

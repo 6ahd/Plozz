@@ -43,6 +43,29 @@ final class HomeRowTests: XCTestCase {
         XCTAssertTrue(rows.isEmpty)
     }
 
+    func testEmptyCollectionTileAppearsOnlyAfterContentOrManualEnable() {
+        var directory = library(account: "a", id: "collections", title: "Collections")
+        directory.library.kind = .collection
+        directory.library.hasCollections = false
+        var visibility = HomeLibraryVisibility.default
+        func rows() -> [HomeRow] {
+            HomeRow.rows(
+                for: content(libraries: [directory]), isLibraryVisible: visibility.isEnabled,
+                isLibraryTileVisible: visibility.isVisibleOnHome
+            )
+        }
+        XCTAssertTrue(rows().isEmpty)
+        directory.library.hasCollections = true
+        XCTAssertEqual(rows().first?.libraries.map(\.key), [directory.key])
+        directory.library.hasCollections = false
+        XCTAssertTrue(rows().isEmpty)
+        visibility.setEnabled(true, for: directory.key)
+        XCTAssertEqual(rows().first?.libraries.map(\.key), [directory.key])
+        visibility.setEnabled(false, for: directory.key)
+        directory.library.hasCollections = true
+        XCTAssertTrue(rows().isEmpty)
+    }
+
     func testSnapshotBoundsRetainLocalizedLibraryHeadings() throws {
         let section = LibrarySection(
             id: "hub", title: "Recommended", localizedTitle: "Recommended",

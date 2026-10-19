@@ -48,6 +48,8 @@ struct DetailHeroView: View, Equatable {
             && lhs.spoilerSettings == rhs.spoilerSettings
             && lhs.playTitle == rhs.playTitle
             && lhs.showsPlayPlaceholder == rhs.showsPlayPlaceholder
+            && lhs.isRetryingPlaybackInventory == rhs.isRetryingPlaybackInventory
+            && (lhs.onRetryPlaybackInventory == nil) == (rhs.onRetryPlaybackInventory == nil)
             && lhs.playProgress == rhs.playProgress
             && lhs.playRemainingText == rhs.playRemainingText
             && lhs.playSeasonEpisodeText == rhs.playSeasonEpisodeText
@@ -141,6 +143,8 @@ struct DetailHeroView: View, Equatable {
     let playTitle: LocalizedStringResource?
     let onPlay: (() -> Void)?
     var showsPlayPlaceholder: Bool = false
+    var onRetryPlaybackInventory: (() -> Void)?
+    var isRetryingPlaybackInventory = false
     /// When provided (`0..<1`), a thin watched-progress bar is shown inside the
     /// Play button, between the play icon and the remaining-time line.
     var playProgress: Double? = nil
@@ -278,6 +282,7 @@ struct DetailHeroView: View, Equatable {
     /// otherwise yank focus off Play the moment the page finishes loading, on both
     /// movies and series).
     @State private var userInitiatedSourceSwitch = false
+    @State private var isVersionPickerPresented = false
 
     /// Drives the hero's first-appearance fade-in. Starts hidden and eases to
     /// visible `.onAppear`, so the backdrop + title/metadata dissolve in rather
@@ -1113,6 +1118,11 @@ struct DetailHeroView: View, Equatable {
         .contextMenu {
             heroContextMenu
         }
+        .plozzSheet(isPresented: $isVersionPickerPresented) {
+            MediaVersionPicker(versions: versions, selectedVersionID: selectedVersionID) {
+                onSelectVersion?($0)
+            }
+        }
         // Artwork (including an inherited trailer) is visible immediately. Only
         // the foreground fades, keeping its focus targets and geometry stable.
         .onAppear {
@@ -1240,28 +1250,37 @@ struct DetailHeroView: View, Equatable {
         let liveResumeText = resumeText
         let sizingText = reservedResumeText ?? liveResumeText
         let button = Button {
-            if let action {
+            if let onRetryPlaybackInventory {
+                onRetryPlaybackInventory()
+            } else if let action {
                 heroTrailerController.stop()
                 action()
             }
         } label: {
             ZStack {
-                if let sizingText {
+                if let sizingText, onRetryPlaybackInventory == nil {
                     playResumeSizer(remaining: sizingText).hidden()
                 }
-                PlayResumeButtonLabel(
-                    title: title,
-                    progress: playProgress,
-                    remainingText: playRemainingText,
-                    seasonEpisodeText: playSeasonEpisodeText,
-                    onLight: playButtonHasFocus || colorScheme == .light,
-                    isPlaceholder: action == nil,
-                    separatesEpisodeText: (actionItem ?? item).startsWatching
-                )
+                if onRetryPlaybackInventory != nil {
+                    NoStreamsButtonLabel(
+                        isLoading: isRetryingPlaybackInventory,
+                        onLight: playButtonHasFocus || colorScheme == .light
+                    )
+                } else {
+                    PlayResumeButtonLabel(
+                        title: title,
+                        progress: playProgress,
+                        remainingText: playRemainingText,
+                        seasonEpisodeText: playSeasonEpisodeText,
+                        onLight: playButtonHasFocus || colorScheme == .light,
+                        isPlaceholder: action == nil,
+                        separatesEpisodeText: (actionItem ?? item).startsWatching
+                    )
+                }
             }
         }
         .modifier(HeroActionButtonStyle(prominent: true))
-        .disabled(action == nil)
+        .disabled((action == nil && onRetryPlaybackInventory == nil) || isRetryingPlaybackInventory)
         .focused($playButtonHasFocus)
         .focused($heroActionRowFocus, equals: .play)
         .accessibilityIdentifier("detail-hero-play")
@@ -1516,29 +1535,9 @@ struct DetailHeroView: View, Equatable {
                 .pickerStyle(.menu)
             }
         }
-        if versions.count > 1, let onSelectVersion {
-            let currentVersion = versions.first {
-                $0.id == selectedVersionID
-            } ?? versions.first
-            if let currentVersion {
-                Picker(
-                    selection: Binding(
-                        get: { currentVersion.id },
-                        set: onSelectVersion
-                    )
-                ) {
-                    ForEach(versions.sortedForPicker()) { version in
-                        versionTitleText(version.displayLabel)
-                            .tag(version.id)
-                    }
-                } label: {
-                    Label {
-                        versionTitleText(currentVersion.displayLabel)
-                    } icon: {
-                        Image(systemName: "film.stack")
-                    }
-                }
-                .pickerStyle(.menu)
+        if versions.count > 1, onSelectVersion != nil {
+            Button("Version", systemImage: "film.stack") {
+                isVersionPickerPresented = true
             }
         }
     }
@@ -1740,17 +1739,6 @@ struct DetailHeroView: View, Equatable {
                 .frame(maxWidth: 1200, alignment: .leading)
                 .contentTransition(.opacity)
         }
-    }
-
-    /// Renders a `MediaVersion` title: the joined technical facts (or provider
-    /// name) verbatim when known, otherwise our own generic "Version" copy —
-    /// kept as a real resource here rather than baked into a `String` so it
-    /// translates like everything else.
-    private func versionTitleText(_ displayLabel: String?) -> Text {
-        if let displayLabel {
-            return Text(verbatim: displayLabel)
-        }
-        return Text("Version", comment: "Generic label for a playback version/source with no distinguishing facts (resolution, edition, etc.) known.")
     }
 
     /// The owning show's name, shown above the title when this page's subject is

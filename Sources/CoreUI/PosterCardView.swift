@@ -278,6 +278,7 @@ public struct PosterCardView: View {
 
     private var nativePosterTreatment: NativePosterImageTreatment {
         if showsSeriesArtwork { return .extended }
+        if PosterCardPresentation.preservesContainerArtwork(for: item.kind) { return .fitted }
         return hideThumbnail && !nativeUsesProtectedArtwork ? .blurred : .original
     }
 
@@ -951,7 +952,8 @@ public struct PosterCardView: View {
             // inherits whichever fallback image resolved first.
             pinIdentity: artworkPolicy.pinIdentity(for: item),
             content: { image in
-                ArtworkFillImage(image)
+                image.resizable()
+                    .aspectRatio(contentMode: PosterCardPresentation.preservesContainerArtwork(for: item.kind) ? .fit : .fill)
                     .blur(radius: hideThumbnail && spoilerSettings.mode == .blur ? 28 : 0)
                     .overlay(alignment: .topTrailing) {
                         if PosterCardPresentation.usesFolderArtwork(for: item.kind) {
@@ -1010,11 +1012,10 @@ public struct PosterCardView: View {
         ArtworkRouter.seriesArtworkItem(for: episode)
     }
 
-    /// Poster cards reject any source image wider than ~0.9:1 (a real poster is
-    /// ~0.67:1), so 16:9 stills and wide composites fall through to the clean
-    /// placeholder. Landscape/backdrop art has no guard.
+    /// Media posters reject landscape stills, but a container's curated cover
+    /// may legitimately be landscape or square.
     private var posterAspectGuard: CGFloat? {
-        style == .poster ? 0.9 : nil
+        style == .poster && !PosterCardPresentation.preservesContainerArtwork(for: item.kind) ? 0.9 : nil
     }
 
     /// Spoiler-safe art for `.placeholder` mode: only ever **series-level** art,
@@ -1378,6 +1379,10 @@ struct ContinueWatchingSeriesLogo: View {
 /// SwiftUI. Folders retain the shared poster footprint/focus mechanics but never
 /// look like playable, unwatched media.
 enum PosterCardPresentation {
+    static func preservesContainerArtwork(for kind: MediaItemKind) -> Bool {
+        kind == .collection || kind == .playlist || kind == .folder
+    }
+
     /// The candidates that are **key art** rather than a clean backdrop, and so
     /// almost certainly have the show's name set into them already.
     ///
