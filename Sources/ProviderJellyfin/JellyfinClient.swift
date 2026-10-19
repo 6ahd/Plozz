@@ -1011,6 +1011,9 @@ public struct JellyfinClient: Sendable {
         let response = try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
         try Task.checkCancellation()
         guard let count = response.TotalRecordCount, count >= response.Items.count else {
+            PlozzLog.networking.error(
+                "Library alphabet count rejected: total=\(response.TotalRecordCount.map(String.init) ?? "missing") rows=\(response.Items.count)"
+            )
             throw AppError.invalidResponse
         }
         return response.Items.isEmpty ? count : nil

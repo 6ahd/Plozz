@@ -5,6 +5,136 @@ import CoreNetworking
 
 /// Native count offsets and count-only compatibility for Jellyfin and Emby.
 final class JellyfinLetterIndexTests: XCTestCase {
+    func testIgnoredAlphabetFiltersHideIndexAfterThreeScopedRequests() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            for direction in [SortDirection.ascending, .descending] {
+                let stub = StubHTTPClient()
+                stub.stub(pathSuffix: "/Items", requiring: [.init(name: "Limit", value: "0")],
+                          json: #"{"Items":[],"TotalRecordCount":10000}"#)
+                stub.stub(pathSuffix: "/Items",
+                          json: #"{"Items":[{"Id":"z","Name":"Zulu","Type":"Movie"},{"Id":"a","Name":"Alpha","Type":"Movie"}],"TotalRecordCount":10000}"#)
+                let provider = JellyfinProvider(session: makeSession(kind: kind), http: stub)
+                let pageRequest = PageRequest(
+                    limit: 2, sort: .init(field: .name, direction: direction),
+                    filters: .init(filter: .unwatched, genre: "Drama", year: 2025)
+                )
+
+                let entries = try await provider.libraryQueryLetterIndex(
+                    in: "virtual", kind: .movie, page: pageRequest
+                )
+
+                XCTAssertTrue(entries.isEmpty)
+                XCTAssertEqual(stub.sentPaths.count, 3)
+                XCTAssertEqual(stub.sentQueryItems.compactMap {
+                    $0.first(where: { $0.name == "NameLessThan" })?.value
+                }, ["Z"], "Do not fan out the remaining letters when predicates are ignored")
+                XCTAssertEqual(stub.sentQueryItems.filter {
+                    $0.contains(.init(name: "NameStartsWith", value: "Z"))
+                }.count, 1)
+                for query in stub.sentQueryItems {
+                    for item in [
+                        URLQueryItem(name: "ParentId", value: "virtual"),
+                        .init(name: "IncludeItemTypes", value: "Movie"),
+                        .init(name: "Recursive", value: "true"),
+                        .init(name: "IsPlayed", value: "false"),
+                        .init(name: "Genres", value: "Drama"),
+                        .init(name: "Years", value: "2025"),
+                        .init(name: "Limit", value: "0")
+                    ] {
+                        XCTAssertTrue(query.contains(item))
+                    }
+                }
+                let page = try await provider.items(in: "virtual", kind: .movie, page: pageRequest)
+                XCTAssertEqual(page.items.map(\.id), ["z", "a"])
+                XCTAssertEqual(page.totalCount, 10000)
+            }
+        }
+    }
+
+    func testIgnoredAlphabetFiltersAreRecheckedForOtherLibrariesAndRefresh() async throws {
+        let stub = StubHTTPClient()
+        stub.stubSequence(pathSuffix: "/Items", jsons: Array(
+            repeating: #"{"Items":[],"TotalRecordCount":10000}"#, count: 3
+        ))
+        stub.stub(pathSuffix: "/Items", json: #"{"Items":[],"TotalRecordCount":0}"#)
+        let provider = JellyfinProvider(session: makeSession(), http: stub)
+
+        let unsupported = try await provider.letterIndex(in: "virtual", kind: .movie, sort: .default)
+        XCTAssertTrue(unsupported.isEmpty)
+        XCTAssertEqual(stub.sentPaths.count, 3)
+        _ = try await provider.letterIndex(in: "native", kind: .movie, sort: .default)
+        XCTAssertEqual(stub.sentPaths.count, 31)
+        _ = try await provider.letterIndex(in: "virtual", kind: .movie, sort: .default)
+        XCTAssertEqual(stub.sentPaths.count, 59)
+    }
+
+    func testNativeSingleBucketAndEmptyLibrariesRetainAlphabetSupport() async throws {
+        for kind in [ProviderKind.jellyfin, .emby] {
+            for direction in [SortDirection.ascending, .descending] {
+                for (names, letter) in [
+                    (["ALIEN", "ALPHA"], "A"), (["ZORRO", "ZULU"], "Z"),
+                    (["123", "456"], "#"), (["映画"], "#"), ([], "")
+                ] {
+                    let provider = JellyfinProvider(
+                        session: makeSession(kind: kind), http: AlphabetCountHTTP(names: names)
+                    )
+                    let entries = try await provider.letterIndex(
+                        in: "native", kind: .movie, sort: .init(field: .name, direction: direction)
+                    )
+                    XCTAssertEqual(entries, names.isEmpty ? [] : [.init(letter: letter, startIndex: 0)])
+                }
+            }
+        }
+    }
+
+    func testAlphabetPredicateProbeFailuresAreNotUnsupportedCapabilities() async {
+        let cases: [(status: Int, json: String, error: AppError)] = [
+            (401, "{}", .unauthorized),
+            (500, "{}", .invalidResponse),
+            (200, #"{"Items":[]}"#, .invalidResponse),
+            (200, #"{"Items":[],"TotalRecordCount":-1}"#, .invalidResponse),
+            (200, #"{"Items":[{"Id":"z"}],"TotalRecordCount":10000}"#, .invalidResponse)
+        ]
+        for fixture in cases {
+            let stub = StubHTTPClient()
+            stub.stub(pathSuffix: "/Items", requiring: [.init(name: "NameStartsWith", value: "Z")],
+                      json: fixture.json, status: fixture.status)
+            stub.stub(pathSuffix: "/Items", json: #"{"Items":[],"TotalRecordCount":10000}"#)
+            let provider = JellyfinProvider(session: makeSession(), http: stub)
+            do {
+                _ = try await provider.letterIndex(in: "virtual", kind: .movie, sort: .default)
+                XCTFail("A failed predicate request cannot establish an unsupported capability")
+            } catch {
+                XCTAssertEqual(error as? AppError, fixture.error)
+            }
+        }
+    }
+
+    func testLargeNativeCountsAreNotAnUnsupportedCapability() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/Items", requiring: [.init(name: "NameStartsWith", value: "Z")],
+                  json: #"{"Items":[],"TotalRecordCount":0}"#)
+        stub.stub(pathSuffix: "/Items", json: #"{"Items":[],"TotalRecordCount":2000000}"#)
+        let provider = JellyfinProvider(session: makeSession(), http: stub)
+
+        let entries = try await provider.letterIndex(in: "large", kind: .movie, sort: .default)
+
+        XCTAssertEqual(entries, [.init(letter: "#", startIndex: 0)])
+        XCTAssertEqual(stub.sentPaths.count, 28)
+        XCTAssertTrue(stub.sentQueryItems.allSatisfy { $0.contains(.init(name: "Limit", value: "0")) })
+    }
+
+    func testCancelledAlphabetPredicateCannotReturnAnEmptySuccess() async {
+        let provider = JellyfinProvider(session: makeSession(), http: CancelledAlphabetPredicateHTTP())
+        do {
+            _ = try await provider.letterIndex(in: "virtual", kind: .movie, sort: .default)
+            XCTFail("Cancellation must not establish unsupported alphabet filters")
+        } catch is CancellationError {
+        } catch {
+            XCTFail("Expected cancellation, got \(error)")
+        }
+    }
+
     func testCountOnlyIncompatibleCatalogHidesIndexWithoutChangingBrowse() async throws {
         for kind in [ProviderKind.jellyfin, .emby] {
             for direction in [SortDirection.ascending, .descending] {
@@ -114,6 +244,8 @@ final class JellyfinLetterIndexTests: XCTestCase {
 
     func testContradictoryNativeCountsRemainRetryableErrors() async {
         let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/Items", requiring: [.init(name: "NameStartsWith", value: "Z")],
+                  json: #"{"Items":[],"TotalRecordCount":2}"#)
         stub.stub(pathSuffix: "/Items", json: #"{"Items":[],"TotalRecordCount":5}"#)
         let provider = JellyfinProvider(session: makeSession(), http: stub)
         for _ in 0..<2 {
@@ -255,8 +387,13 @@ final class JellyfinLetterIndexTests: XCTestCase {
 }
 
 private actor AlphabetCountHTTP: HTTPClient {
+    let names: [String]
+
+    init(names: [String] = ["123", "ALIEN", "ALIEN 3", "MATRIX", "ZULU", "映画"]) {
+        self.names = names
+    }
+
     func send(_ endpoint: Endpoint, baseURL: URL) async throws -> (Data, HTTPURLResponse) {
-        let names = ["123", "ALIEN", "ALIEN 3", "MATRIX", "ZULU", "映画"]
         let query = Dictionary(uniqueKeysWithValues: endpoint.queryItems.map { ($0.name, $0.value ?? "") })
         let count: Int
         if let prefix = query["NameStartsWith"] { count = names.filter { $0.hasPrefix(prefix) }.count }
@@ -264,5 +401,17 @@ private actor AlphabetCountHTTP: HTTPClient {
         else { count = names.count }
         return (Data("{\"Items\":[],\"TotalRecordCount\":\(count)}".utf8),
                 HTTPURLResponse(url: baseURL, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+    }
+}
+
+private actor CancelledAlphabetPredicateHTTP: HTTPClient {
+    func send(_ endpoint: Endpoint, baseURL: URL) async throws -> (Data, HTTPURLResponse) {
+        if endpoint.queryItems.contains(.init(name: "NameStartsWith", value: "Z")) {
+            withUnsafeCurrentTask { $0?.cancel() }
+        }
+        return (
+            Data(#"{"Items":[],"TotalRecordCount":10000}"#.utf8),
+            HTTPURLResponse(url: baseURL, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        )
     }
 }

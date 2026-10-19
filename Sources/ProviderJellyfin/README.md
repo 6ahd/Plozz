@@ -105,6 +105,14 @@ count-only queries. Plozz logs that unsupported capability and omits the index
 without a retry message or the remaining 27 letter requests. Ordinary browsing,
 catalog order and paging are unchanged on mobile and TV.
 
+Servers can honor `Limit=0` while ignoring alphabet predicates. Before the
+remaining letter fan-out, Plozz compares `NameLessThan=Z` and `NameStartsWith=Z`
+with the total. If both disjoint queries return the entire nonempty library,
+alphabet filtering is unsupported and the rail is omitted after three requests.
+The probe counts are reused for supported indexes, retaining 28 requests overall.
+This does not scan or cap the library; empty, all-Z and non-Latin libraries remain
+valid. The compatibility result is logged without server or library identifiers.
+
 This handles virtual catalogs without matching profile names, hosts or server
 branding. For example, [AIOStreams' library handler](https://github.com/Viren070/AIOStreams/blob/6ca32ed21e3036d87c35c49b24f2cf507d065ed1/packages/server/src/routes/jellyfin/library.ts)
 clamps `Limit` to at least one, preserves catalog order and does not implement
@@ -112,10 +120,12 @@ clamps `Limit` to at least one, preserves catalog order and does not implement
 The result applies only to that scoped request; another library or refresh can
 still supply an index. No unsupported flag is persisted on the profile/account.
 
-Native Jellyfin/Emby count-only responses retain their existing bounded letter
-queries and ascending/descending offsets. Missing, negative or contradictory
-counts, invalid JSON, authorization/transport failures, and cancellation are
-still errors, not evidence that the capability is unsupported.
+Native Jellyfin/Emby count-only responses retain bounded letter queries and
+ascending/descending offsets. Apart from the exact ignored-predicate pattern
+above, missing, negative or contradictory counts, invalid JSON,
+authorization/transport failures, and cancellation are still errors, not evidence
+that the capability is unsupported. Rejected counts retain secret-safe numeric
+diagnostics so a response failure can be distinguished from unsupported behavior.
 
 ## Music
 
