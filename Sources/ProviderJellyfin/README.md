@@ -152,6 +152,10 @@ with the bridge's `No streams · ` marker is a negative lookup, not a file. It i
 excluded from inventories and rejected before creating a playback locator, even
 when the bridge supplies invented tracks and direct-play support. Ordinary file
 names and local files are not classified by loose keyword matching.
+An all-placeholder inventory throws `StreamingQualityError.noStreams`, distinct
+from a missing item, malformed response or connection failure. Detail pages can
+therefore offer a truthful, retryable `No streams found` action without treating
+a temporary error as proof that a title has no streams.
 Both backends advertise deferred inventory enrichment so detail menus can refresh
 through the same authoritative endpoint after their hero has painted.
 

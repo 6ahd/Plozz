@@ -456,6 +456,14 @@ struct SeriesDetailView: View {
                             seasonLoadState: (selectedSeasonID ?? seasons.first?.id)
                                 .map { viewModel.seasonLoadState(for: $0) }
                         ),
+                        onRetryPlaybackInventory: playTarget.flatMap { target in
+                            viewModel.hasNoPlaybackStreams(for: target) ? {
+                                Task { await viewModel.retryPlaybackInventory(for: target) }
+                            } : nil
+                        },
+                        isRetryingPlaybackInventory: playTarget.map {
+                            viewModel.isRetryingPlaybackInventory(for: $0)
+                        } ?? false,
                         playProgress: playTarget?.resumeProgressFraction,
                         playRemainingText: playTarget?.resumeRemainingText,
                         playSeasonEpisodeText: playTarget.flatMap { HeroForegroundModelBuilder.seasonEpisodeButtonText(for: $0) },

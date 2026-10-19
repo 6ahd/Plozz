@@ -229,7 +229,7 @@ final class JellyfinVersionsWatchlistRefreshTests: XCTestCase {
                     _ = try await JellyfinProvider(session: session, http: stub).playbackItem(id: "i1")
                     XCTFail("A negative add-on lookup must not open a player.")
                 } catch {
-                    XCTAssertEqual(error as? StreamingQualityError, .sourceUnavailable)
+                    XCTAssertEqual(error as? StreamingQualityError, .noStreams)
                 }
                 XCTAssertEqual(stub.sentMethods, [.get, .get])
             }

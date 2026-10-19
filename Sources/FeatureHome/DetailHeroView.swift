@@ -48,6 +48,8 @@ struct DetailHeroView: View, Equatable {
             && lhs.spoilerSettings == rhs.spoilerSettings
             && lhs.playTitle == rhs.playTitle
             && lhs.showsPlayPlaceholder == rhs.showsPlayPlaceholder
+            && lhs.isRetryingPlaybackInventory == rhs.isRetryingPlaybackInventory
+            && (lhs.onRetryPlaybackInventory == nil) == (rhs.onRetryPlaybackInventory == nil)
             && lhs.playProgress == rhs.playProgress
             && lhs.playRemainingText == rhs.playRemainingText
             && lhs.playSeasonEpisodeText == rhs.playSeasonEpisodeText
@@ -141,6 +143,8 @@ struct DetailHeroView: View, Equatable {
     let playTitle: LocalizedStringResource?
     let onPlay: (() -> Void)?
     var showsPlayPlaceholder: Bool = false
+    var onRetryPlaybackInventory: (() -> Void)?
+    var isRetryingPlaybackInventory = false
     /// When provided (`0..<1`), a thin watched-progress bar is shown inside the
     /// Play button, between the play icon and the remaining-time line.
     var playProgress: Double? = nil
@@ -1246,28 +1250,34 @@ struct DetailHeroView: View, Equatable {
         let liveResumeText = resumeText
         let sizingText = reservedResumeText ?? liveResumeText
         let button = Button {
-            if let action {
+            if let onRetryPlaybackInventory {
+                onRetryPlaybackInventory()
+            } else if let action {
                 heroTrailerController.stop()
                 action()
             }
         } label: {
             ZStack {
-                if let sizingText {
+                if let sizingText, onRetryPlaybackInventory == nil {
                     playResumeSizer(remaining: sizingText).hidden()
                 }
-                PlayResumeButtonLabel(
-                    title: title,
-                    progress: playProgress,
-                    remainingText: playRemainingText,
-                    seasonEpisodeText: playSeasonEpisodeText,
-                    onLight: playButtonHasFocus || colorScheme == .light,
-                    isPlaceholder: action == nil,
-                    separatesEpisodeText: (actionItem ?? item).startsWatching
-                )
+                if onRetryPlaybackInventory != nil {
+                    NoStreamsButtonLabel(isLoading: isRetryingPlaybackInventory)
+                } else {
+                    PlayResumeButtonLabel(
+                        title: title,
+                        progress: playProgress,
+                        remainingText: playRemainingText,
+                        seasonEpisodeText: playSeasonEpisodeText,
+                        onLight: playButtonHasFocus || colorScheme == .light,
+                        isPlaceholder: action == nil,
+                        separatesEpisodeText: (actionItem ?? item).startsWatching
+                    )
+                }
             }
         }
         .modifier(HeroActionButtonStyle(prominent: true))
-        .disabled(action == nil)
+        .disabled((action == nil && onRetryPlaybackInventory == nil) || isRetryingPlaybackInventory)
         .focused($playButtonHasFocus)
         .focused($heroActionRowFocus, equals: .play)
         .accessibilityIdentifier("detail-hero-play")

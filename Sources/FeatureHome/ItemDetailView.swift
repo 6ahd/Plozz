@@ -279,6 +279,14 @@ public struct ItemDetailView: View {
         // it for seeded opens stranded series pages with no seasons/episodes/Play
         // button. load() guards against flashing `.loading` over a seeded hero.
         .task { await viewModel.load() }
+        .alert("Couldn't load versions", isPresented: Binding(
+            get: { viewModel.playbackInventoryRetryError != nil },
+            set: { if !$0 { viewModel.playbackInventoryRetryError = nil } }
+        )) {
+            Button("OK", role: .cancel) { viewModel.playbackInventoryRetryError = nil }
+        } message: {
+            if let error = viewModel.playbackInventoryRetryError { Text(error) }
+        }
         .onDisappear {
             isPageVisible = false
             viewModel.suspendEnrichment()
@@ -678,6 +686,10 @@ public struct ItemDetailView: View {
                             childrenLoaded: detail.childrenLoaded,
                             seasonLoadState: nil
                         ),
+                        onRetryPlaybackInventory: viewModel.hasNoPlaybackStreams(for: detail.item) ? {
+                            Task { await viewModel.retryPlaybackInventory(for: detail.item) }
+                        } : nil,
+                        isRetryingPlaybackInventory: viewModel.isRetryingPlaybackInventory(for: detail.item),
                         playProgress: canPlay ? detail.item.resumeProgressFraction : nil,
                         playRemainingText: canPlay ? detail.item.resumeRemainingText : nil,
                         playSeasonEpisodeText: canPlay ? HeroForegroundModelBuilder.seasonEpisodeButtonText(for: detail.item) : nil,

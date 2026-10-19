@@ -30,6 +30,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   For a two-language source, an inline badge stays compact; if the format row
   cannot fit it, the language row spells out both names. Very large text may
   separate those names into wrapping chips instead of clipping either one.
+  Adaptive hero rows own `PlaybackSourceMenuState` and its presentation above
+  `ViewThatFits`; candidate rows contain only triggers. Late trailer, action or
+  inventory updates can rearrange the row without destroying an open version page.
   The full track inventory stays in the Audio menu;
   this display priority never changes playback's original/per-content-type policy.
   The compact mobile source-menu disclosure groups edition/picture facts above

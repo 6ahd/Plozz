@@ -1,6 +1,7 @@
 #if os(iOS)
 import CoreModels
-import CoreUI
+@testable import CoreUI
+import Observation
 import FeatureHomeCore
 import SwiftUI
 import UIKit
@@ -10,6 +11,74 @@ import XCTest
 
 @MainActor
 final class SeasonRequestLayoutTests: XCTestCase {
+    func testAdaptiveHeroRetainsPresentedVersionMenuWhileMetadataChanges() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let fixture = UpdatingDetailHero()
+        let host = UIHostingController(rootView: UpdatingDetailHeroView(fixture: fixture))
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            fixture.menu.isPresented = false
+            host.dismiss(animated: false)
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        window.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(200))
+        fixture.menu.open(from: CGRect(x: 300, y: 180, width: 48, height: 48))
+        let presentationDeadline = ContinuousClock.now + .seconds(5)
+        while host.presentedViewController?.view.window == nil, ContinuousClock.now < presentationDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let presented = try XCTUnwrap(host.presentedViewController)
+        fixture.menu.page = .versions
+        try await Task.sleep(for: .milliseconds(300))
+
+        // Trailer arrival and narrowing force different ViewThatFits candidates.
+        for width in [350.0, 280.0, 390.0] {
+            fixture.hasTrailer.toggle()
+            fixture.width = width
+            fixture.versions.append(.init(id: "copy-\(width)", name: "Another copy", height: 1080))
+            window.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(350))
+            XCTAssertTrue(fixture.menu.isPresented)
+            XCTAssertEqual(fixture.menu.page, .versions, "Relayout must not reset the drill-in page.")
+            XCTAssertTrue(host.presentedViewController === presented, "Keep the original native presentation alive.")
+            XCTAssertFalse(presented.isBeingDismissed)
+            XCTAssertNotNil(presented.view.window)
+        }
+        let image = UIGraphicsImageRenderer(bounds: presented.view.bounds).image { _ in
+            XCTAssertTrue(presented.view.drawHierarchy(in: presented.view.bounds, afterScreenUpdates: true))
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "versions-survive-hero-enrichment"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        XCTAssertTrue(text.localizedCaseInsensitiveContains("Version"), text)
+        XCTAssertTrue(text.localizedCaseInsensitiveContains("Another copy"), "Live inventory must still update: \(text)")
+        fixture.menu.isPresented = false
+        let dismissalDeadline = ContinuousClock.now + .seconds(5)
+        while host.presentedViewController != nil, ContinuousClock.now < dismissalDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertNil(host.presentedViewController, "Deliberate dismissal must still work.")
+    }
+
     private let item = MediaItem(id: "unreleased-series", title: "Phony", kind: .series)
     private var availability: MediaRequestAvailability {
         .init(status: .processing, seasons: [
@@ -116,11 +185,12 @@ final class SeasonRequestLayoutTests: XCTestCase {
 
     private func foreground(
         app: PlozziOSAppModel, extras: Bool, typeSize: DynamicTypeSize = .large,
-        sources: [MediaSourceRef] = []
+        sources: [MediaSourceRef] = [], noStreams: Bool = false
     ) -> some View {
         let presentation = HeroPresentation(item: item, artworkStyle: .compactPortrait, surface: .detail)
         return PlozziOSDetailHeroForeground(
             item: item, rootItem: item, playableItem: nil,
+            onRetryPlaybackInventory: noStreams ? {} : nil,
             sources: sources, selectedSourceAccountID: sources.first?.accountID,
             versions: [], selectedVersionID: nil,
             onSelectSource: { _ in }, onSelectVersion: { _ in },
@@ -128,7 +198,7 @@ final class SeasonRequestLayoutTests: XCTestCase {
             style: .compactPortrait,
             actionHandler: RequestLayoutActions(showsWatchlist: extras),
             onPlay: { _, _ in }, trailerItem: extras ? item : nil,
-            onPlayTrailer: extras ? { _ in } : nil, heroRequest: request
+            onPlayTrailer: extras ? { _ in } : nil, heroRequest: noStreams ? nil : request
         )
         .environment(app)
         .environment(\.dynamicTypeSize, typeSize)
@@ -139,6 +209,26 @@ final class SeasonRequestLayoutTests: XCTestCase {
 
     private func size(_ view: some View, width: CGFloat) -> CGSize {
         UIHostingController(rootView: view).sizeThatFits(in: CGSize(width: width, height: 3_000))
+    }
+
+    func testNoStreamsLabelKeepsSecondaryActionsInOverflowOnNarrowPhones() throws {
+        let app = PlozziOSAppModel()
+        let sources = [MediaSourceRef(accountID: "first", itemID: item.id),
+                       MediaSourceRef(accountID: "second", itemID: item.id)]
+        for width in [320.0, 360.0, 390.0] {
+            let baseline = foreground(app: app, extras: false, sources: sources, noStreams: true)
+            let actual = foreground(app: app, extras: true, sources: sources, noStreams: true)
+            XCTAssertLessThanOrEqual(size(actual, width: width).width, width + 0.5)
+            XCTAssertEqual(size(actual, width: width).height, size(baseline, width: width).height, accuracy: 1)
+            let image = try capture(actual, width: width, name: "no-streams-\(Int(width))")
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.recognitionLanguages = ["en-US"]
+            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+            let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+            XCTAssertTrue(text.localizedCaseInsensitiveContains("No streams found"), text)
+            XCTAssertFalse(text.localizedCaseInsensitiveContains("Play"), text)
+        }
     }
 
     private func assertBottomIconCount(
@@ -222,5 +312,43 @@ private final class RequestLayoutActions: MediaItemActionHandling {
         showsWatchlist ? [.addToWatchlist] : []
     }
     func perform(_ action: MediaItemAction, on item: MediaItem, context: MediaItemActionContext) {}
+}
+
+@MainActor @Observable
+private final class UpdatingDetailHero {
+    let app = PlozziOSAppModel()
+    let menu = PlaybackSourceMenuState()
+    var hasTrailer = false
+    var width = 350.0
+    var versions: [MediaVersion] = [
+        .init(id: "first", name: "Original copy", height: 2160),
+        .init(id: "second", name: "Another copy", height: 1080)
+    ]
+}
+
+private struct UpdatingDetailHeroView: View {
+    let fixture: UpdatingDetailHero
+
+    var body: some View {
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie)
+        let presentation = HeroPresentation(item: item, artworkStyle: .compactPortrait, surface: .detail)
+        PlozziOSDetailHeroForeground(
+            sourceMenu: fixture.menu,
+            item: item, rootItem: item, playableItem: item,
+            sources: [], selectedSourceAccountID: nil,
+            versions: fixture.versions, selectedVersionID: "first",
+            onSelectSource: { _ in }, onSelectVersion: { _ in },
+            presentation: presentation, fallbackPresentation: presentation, style: .compactPortrait,
+            actionHandler: RequestLayoutActions(showsWatchlist: true), onPlay: { _, _ in },
+            trailerItem: fixture.hasTrailer ? item : nil, onPlayTrailer: { _ in }
+        )
+        .frame(width: fixture.width)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.black)
+        .environment(fixture.app)
+        .environment(\.locale, Locale(identifier: "en_US"))
+        .environment(\.themePalette, .dark)
+        .environment(\.colorScheme, .dark)
+    }
 }
 #endif

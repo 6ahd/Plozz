@@ -1,5 +1,24 @@
 import SwiftUI
 
+public struct NoStreamsButtonLabel: View {
+    let isLoading: Bool
+
+    public init(isLoading: Bool) { self.isLoading = isLoading }
+
+    public var body: some View {
+        Label {
+            Text("No streams found")
+        } icon: {
+            if isLoading {
+                ProgressView()
+            } else {
+                Image(systemName: "arrow.clockwise")
+            }
+        }
+        .accessibilityHint("Try again")
+    }
+}
+
 /// The thin watched-progress bar shown inside a Play/Resume button, between the
 /// play glyph and the "… left" line. Its colours flip with the button's
 /// light/dark background — dark ink on a light (focused/selected) button, light

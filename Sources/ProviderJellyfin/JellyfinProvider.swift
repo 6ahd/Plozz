@@ -660,7 +660,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
                 let sources = inventory.MediaSources.filter { !Self.isUnavailablePlaceholder($0, itemID: id) }
                 guard !sources.isEmpty else {
                     PlozzLog.playback.error("The server returned an unavailable-source placeholder.")
-                    throw StreamingQualityError.sourceUnavailable
+                    throw StreamingQualityError.noStreams
                 }
                 item.versions = Self.versions(from: sources)
                 await probeDescriptors.remember(itemID: id, sources: sources)

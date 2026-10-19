@@ -430,6 +430,14 @@ private struct PlozziOSCanonicalItemDetailView: View {
             seriesHeroShowsSeries = false
         }
         .modifier(requestPresentation(inDownloadSheet: false))
+        .alert("Couldn't load versions", isPresented: Binding(
+            get: { viewModel.playbackInventoryRetryError != nil },
+            set: { if !$0 { viewModel.playbackInventoryRetryError = nil } }
+        )) {
+            Button("OK", role: .cancel) { viewModel.playbackInventoryRetryError = nil }
+        } message: {
+            if let error = viewModel.playbackInventoryRetryError { Text(error) }
+        }
         .plozziOSPlayerCover(
             item: $playbackRequest, orientation: appModel.settings.playback.settings.orientation
         ) { request, orientation in
@@ -492,6 +500,10 @@ private struct PlozziOSCanonicalItemDetailView: View {
                     backdropItem: detail.item,
                     playableItem: playableHeroTarget,
                     showsPlayPlaceholder: showsPlayPlaceholder,
+                    onRetryPlaybackInventory: viewModel.hasNoPlaybackStreams(for: versionTarget) ? {
+                        Task { await viewModel.retryPlaybackInventory(for: versionTarget) }
+                    } : nil,
+                    isRetryingPlaybackInventory: viewModel.isRetryingPlaybackInventory(for: versionTarget),
                     sources: options.sources,
                     scheduleLine: isDiscoveryItem
                         ? (

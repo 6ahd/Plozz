@@ -16,6 +16,12 @@ fallback when the user's server has no attached trailer.
   inventory contract. Mobile source/version actions use that episode even while
   the hero shows the series' artwork and description, matching tvOS. Choosing a
   version therefore remembers the episode/series preference, not a container file.
+  An explicit no-stream result from the provider replaces the detail Play action with
+  `No streams found` on both platforms. It rechecks the selected source without
+  starting playback; successful recovery restores Play. This page-local result is
+  scoped to the active server and episode, not inferred from timeouts, missing
+  metadata or generic source errors. Retry failures remain visible and secondary
+  mobile actions continue to overflow before the primary label is squeezed.
 
 - **Kids Discovery policy** — both shells consume the live profile's effective
   Hero settings, not a destructive rewrite of saved preferences. Kids profiles
