@@ -185,26 +185,28 @@ final class SeasonRequestLayoutTests: XCTestCase {
 
     private func foreground(
         app: PlozziOSAppModel, extras: Bool, typeSize: DynamicTypeSize = .large,
-        sources: [MediaSourceRef] = [], noStreams: Bool = false
+        sources: [MediaSourceRef] = [], noStreams: Bool = false,
+        isRetrying: Bool = false, colorScheme: ColorScheme = .dark
     ) -> some View {
         let presentation = HeroPresentation(item: item, artworkStyle: .compactPortrait, surface: .detail)
         return PlozziOSDetailHeroForeground(
             item: item, rootItem: item, playableItem: nil,
             onRetryPlaybackInventory: noStreams ? {} : nil,
+            isRetryingPlaybackInventory: isRetrying,
             sources: sources, selectedSourceAccountID: sources.first?.accountID,
             versions: [], selectedVersionID: nil,
             onSelectSource: { _ in }, onSelectVersion: { _ in },
             presentation: presentation, fallbackPresentation: presentation,
             style: .compactPortrait,
-            actionHandler: RequestLayoutActions(showsWatchlist: extras),
+            actionHandler: RequestLayoutActions(showsWatchlist: extras, includesWatched: noStreams && extras),
             onPlay: { _, _ in }, trailerItem: extras ? item : nil,
             onPlayTrailer: extras ? { _ in } : nil, heroRequest: noStreams ? nil : request
         )
         .environment(app)
         .environment(\.dynamicTypeSize, typeSize)
         .environment(\.locale, Locale(identifier: "en"))
-        .environment(\.themePalette, ThemePalette.dark)
-        .environment(\.colorScheme, .dark)
+        .environment(\.themePalette, colorScheme == .dark ? ThemePalette.dark : .light)
+        .environment(\.colorScheme, colorScheme)
     }
 
     private func size(_ view: some View, width: CGFloat) -> CGSize {
@@ -215,20 +217,100 @@ final class SeasonRequestLayoutTests: XCTestCase {
         let app = PlozziOSAppModel()
         let sources = [MediaSourceRef(accountID: "first", itemID: item.id),
                        MediaSourceRef(accountID: "second", itemID: item.id)]
-        for width in [320.0, 360.0, 390.0] {
-            let baseline = foreground(app: app, extras: false, sources: sources, noStreams: true)
-            let actual = foreground(app: app, extras: true, sources: sources, noStreams: true)
-            XCTAssertLessThanOrEqual(size(actual, width: width).width, width + 0.5)
-            XCTAssertEqual(size(actual, width: width).height, size(baseline, width: width).height, accuracy: 1)
-            let image = try capture(actual, width: width, name: "no-streams-\(Int(width))")
-            let request = VNRecognizeTextRequest()
-            request.recognitionLevel = .accurate
-            request.recognitionLanguages = ["en-US"]
-            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-            let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-            XCTAssertTrue(text.localizedCaseInsensitiveContains("No streams found"), text)
-            XCTAssertFalse(text.localizedCaseInsensitiveContains("Play"), text)
+        for width in [320.0, 345.0, 360.0, 390.0] {
+            for sources in [[], sources] {
+                let baseline = foreground(app: app, extras: false, sources: sources, noStreams: true)
+                let actual = foreground(app: app, extras: true, sources: sources, noStreams: true)
+                XCTAssertLessThanOrEqual(size(actual, width: width).width, width + 0.5)
+                XCTAssertEqual(size(actual, width: width).height, size(baseline, width: width).height, accuracy: 1)
+                let image = try capture(actual, width: width, name: "no-streams-\(Int(width))-sources-\(sources.count)")
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.recognitionLanguages = ["en-US"]
+                try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+                let lines = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+                let text = lines.joined(separator: " ")
+                XCTAssertTrue(lines.contains { $0.localizedCaseInsensitiveContains("No streams found") },
+                              "The complete label must occupy one line, not just appear somewhere in the button: \(lines)")
+                XCTAssertFalse(text.localizedCaseInsensitiveContains("Play"), text)
+            }
         }
+    }
+
+    func testNoStreamsLabelReportsItsFullSingleLineWidthBeforeOverflow() {
+        for isLoading in [false, true] {
+            let label = NoStreamsButtonLabel(isLoading: isLoading, onLight: true)
+                .font(.headline.weight(.semibold))
+            let natural = size(label, width: 2_000)
+            for width in [natural.width - 30, natural.width / 2] {
+                let constrained = size(label, width: width)
+                XCTAssertEqual(constrained.width, natural.width, accuracy: 0.5)
+                XCTAssertEqual(constrained.height, natural.height, accuracy: 0.5)
+            }
+        }
+    }
+
+    func testNoStreamsSpinnerIsCompactAndContrastsWithTheActualButtonSurface() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let app = PlozziOSAppModel()
+        for scheme in [ColorScheme.dark, .light] {
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 393, height: 844)
+            window.overrideUserInterfaceStyle = scheme == .dark ? .dark : .light
+            window.rootViewController = UIHostingController(rootView:
+                foreground(app: app, extras: true, noStreams: true, isRetrying: true, colorScheme: scheme)
+                    .frame(width: 345)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            )
+            window.makeKeyAndVisible()
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+                previous?.makeKeyAndVisible()
+            }
+            window.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(300))
+            let indicators = activityIndicators(in: window).filter { $0.window != nil && !$0.isHidden }
+            XCTAssertFalse(indicators.isEmpty, "Inspect the real native spinner, not an ImageRenderer placeholder.")
+            for indicator in indicators {
+                XCTAssertTrue(indicator.isAnimating)
+                XCTAssertLessThanOrEqual(indicator.bounds.width, 20)
+                XCTAssertLessThanOrEqual(indicator.bounds.height, 20)
+                let color = try XCTUnwrap(indicator.color).resolvedColor(with: indicator.traitCollection)
+                var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+                XCTAssertTrue(color.getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+                XCTAssertGreaterThanOrEqual(alpha, 0.8)
+                if scheme == .dark {
+                    XCTAssertLessThanOrEqual(max(red, green, blue), 0.2, "White primary button needs dark ink.")
+                } else {
+                    XCTAssertGreaterThanOrEqual(min(red, green, blue), 0.8, "Black primary button needs light ink.")
+                }
+            }
+            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+            }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "no-streams-native-spinner-\(scheme)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            let recognition = VNRecognizeTextRequest()
+            recognition.recognitionLevel = .accurate
+            recognition.recognitionLanguages = ["en-US"]
+            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([recognition])
+            let lines = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+            XCTAssertTrue(lines.contains { $0.localizedCaseInsensitiveContains("No streams found") }, "\(lines)")
+        }
+    }
+
+    private func activityIndicators(in view: UIView) -> [UIActivityIndicatorView] {
+        (view as? UIActivityIndicatorView).map { [$0] } ?? view.subviews.flatMap { activityIndicators(in: $0) }
     }
 
     private func assertBottomIconCount(
@@ -307,9 +389,13 @@ final class SeasonRequestLayoutTests: XCTestCase {
 @MainActor
 private final class RequestLayoutActions: MediaItemActionHandling {
     let showsWatchlist: Bool
-    init(showsWatchlist: Bool) { self.showsWatchlist = showsWatchlist }
+    let includesWatched: Bool
+    init(showsWatchlist: Bool, includesWatched: Bool = false) {
+        self.showsWatchlist = showsWatchlist
+        self.includesWatched = includesWatched
+    }
     func actions(for item: MediaItem, context: MediaItemActionContext) -> [MediaItemAction] {
-        showsWatchlist ? [.addToWatchlist] : []
+        (showsWatchlist ? [.addToWatchlist] : []) + (includesWatched ? [.markWatched] : [])
     }
     func perform(_ action: MediaItemAction, on item: MediaItem, context: MediaItemActionContext) {}
 }

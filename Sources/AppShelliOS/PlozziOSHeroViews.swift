@@ -2290,7 +2290,11 @@ struct PlozziOSDetailHeroForeground: View {
     ) -> some View {
         if let onRetryPlaybackInventory {
             Button(action: onRetryPlaybackInventory) {
-                NoStreamsButtonLabel(isLoading: isRetryingPlaybackInventory)
+                NoStreamsButtonLabel(
+                    isLoading: isRetryingPlaybackInventory,
+                    onLight: colorScheme == .dark,
+                    fitsAvailableWidth: wrapsText
+                )
             }
             .buttonStyle(PlozziOSHeroActionButtonStyle(
                 kind: .primary,

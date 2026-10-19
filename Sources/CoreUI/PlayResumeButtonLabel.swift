@@ -2,19 +2,32 @@ import SwiftUI
 
 public struct NoStreamsButtonLabel: View {
     let isLoading: Bool
+    let onLight: Bool
+    let fitsAvailableWidth: Bool
 
-    public init(isLoading: Bool) { self.isLoading = isLoading }
+    public init(isLoading: Bool, onLight: Bool, fitsAvailableWidth: Bool = false) {
+        self.isLoading = isLoading
+        self.onLight = onLight
+        self.fitsAvailableWidth = fitsAvailableWidth
+    }
 
     public var body: some View {
-        Label {
-            Text("No streams found")
-        } icon: {
-            if isLoading {
-                ProgressView()
-            } else {
-                Image(systemName: "arrow.clockwise")
+        HStack(spacing: 8) {
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(onLight ? .black : .white)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                }
             }
+            .frame(width: 20, height: 20)
+            Text("No streams found")
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
         }
+        .fixedSize(horizontal: !fitsAvailableWidth, vertical: true)
         .accessibilityHint("Try again")
     }
 }

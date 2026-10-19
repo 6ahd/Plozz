@@ -1262,7 +1262,10 @@ struct DetailHeroView: View, Equatable {
                     playResumeSizer(remaining: sizingText).hidden()
                 }
                 if onRetryPlaybackInventory != nil {
-                    NoStreamsButtonLabel(isLoading: isRetryingPlaybackInventory)
+                    NoStreamsButtonLabel(
+                        isLoading: isRetryingPlaybackInventory,
+                        onLight: playButtonHasFocus || colorScheme == .light
+                    )
                 } else {
                     PlayResumeButtonLabel(
                         title: title,

@@ -33,6 +33,9 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Adaptive hero rows own `PlaybackSourceMenuState` and its presentation above
   `ViewThatFits`; candidate rows contain only triggers. Late trailer, action or
   inventory updates can rearrange the row without destroying an open version page.
+  `NoStreamsButtonLabel` reserves its single-line width before actions overflow.
+  Only the final stacked layout can scale it to fit; the retry spinner occupies
+  the same 20-point icon slot and uses explicit contrast for the button surface.
   The full track inventory stays in the Audio menu;
   this display priority never changes playback's original/per-content-type policy.
   The compact mobile source-menu disclosure groups edition/picture facts above
