@@ -189,7 +189,11 @@ public struct PosterCardView: View {
     private var size: CGSize {
         switch style {
         case .poster:
-            return CGSize(width: metrics.posterWidth, height: metrics.posterHeight)
+            return CGSize(
+                width: metrics.posterWidth,
+                height: showsSeriesArtwork
+                    ? metrics.posterWidth / ContinueWatchingCardShape.portraitAspectRatio : metrics.posterHeight
+            )
         case .landscape:
             // A series-artwork card stands taller than the 16:9 art it carries so
             // its chrome has a band of its own beneath the picture, and is
@@ -277,7 +281,7 @@ public struct PosterCardView: View {
     }
 
     private var nativePosterTreatment: NativePosterImageTreatment {
-        if showsSeriesArtwork { return .extended }
+        if showsSeriesArtwork { return style == .poster ? .extendedPortrait : .extended }
         if PosterCardPresentation.preservesContainerArtwork(for: item.kind) { return .fitted }
         return hideThumbnail && !nativeUsesProtectedArtwork ? .blurred : .original
     }
@@ -394,7 +398,7 @@ public struct PosterCardView: View {
     private var posterCard: some View {
         VStack(alignment: .leading, spacing: metrics.posterCaptionTopSpacing) {
             Color.clear
-                .aspectRatio(2.0 / 3.0, contentMode: .fit)
+                .aspectRatio(borderlessAspectRatio, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .overlay { artwork }
                 .overlay(alignment: .topLeading) { statusCue(inset: 8) }
@@ -744,7 +748,7 @@ public struct PosterCardView: View {
     /// Aspect ratio for the borderless full-bleed image.
     private var borderlessAspectRatio: CGFloat {
         switch style {
-        case .poster: return 2.0 / 3.0
+        case .poster: return showsSeriesArtwork ? ContinueWatchingCardShape.portraitAspectRatio : 2.0 / 3.0
         // Matches `size`: series-artwork cards are taller than their picture.
         case .landscape: return showsSeriesArtwork
             ? ContinueWatchingCardShape.aspectRatio
@@ -797,15 +801,17 @@ public struct PosterCardView: View {
     /// every in-progress card looks the same whether or not its runtime is known.
     @Environment(\.plozzCardCaptionsHidden) private var ordinaryCaptionsHidden
     @Environment(\.plozzCardCaptionsHiddenWithArtworkTitle) private var artworkTitleCaptionsHidden
+    @Environment(\.plozzContinueWatchingPortraitCaptionsHidden) private var portraitCaptionsHidden
 
     private var captionsHidden: Bool {
-        showsSeriesArtwork ? artworkTitleCaptionsHidden : ordinaryCaptionsHidden
+        if showsSeriesArtwork, style == .poster { return portraitCaptionsHidden }
+        return showsSeriesArtwork ? artworkTitleCaptionsHidden : ordinaryCaptionsHidden
     }
 
     private var showsCaption: Bool { !captionsHidden }
 
     private var placeholderTitle: Text? {
-        captionsHidden && !showsSeriesArtwork ? primaryText : nil
+        captionsHidden && (!showsSeriesArtwork || style == .poster) ? primaryText : nil
     }
 
     /// Whether the resume chip names the episode, because no caption will.
@@ -855,8 +861,11 @@ public struct PosterCardView: View {
             showsPlayGlyphWhenIdle: showsSeriesArtwork,
             // The reflection already darkens this region; avoid compounding it
             // with the stronger scrim used by ordinary browsing cards.
-            bottomScrimStart: showsSeriesArtwork ? ContinueWatchingCardShape.scrimStart : nil,
-            bottomScrimDepth: showsSeriesArtwork ? ContinueWatchingCardShape.scrimDepth : nil
+            bottomScrimStart: showsSeriesArtwork
+                ? (style == .poster ? ContinueWatchingCardShape.portraitGeometry.reflectionStart
+                   : ContinueWatchingCardShape.scrimStart) : nil,
+            bottomScrimDepth: showsSeriesArtwork ? ContinueWatchingCardShape.scrimDepth : nil,
+            compactHorizontalLayout: showsSeriesArtwork && style == .poster
         )
     }
 
@@ -1124,7 +1133,7 @@ public struct PosterCardView: View {
     }
 
     private var textlessResolutionIdentity: String? {
-        guard showsSeriesArtwork, enablesAsyncArtworkFallback,
+        guard showsSeriesArtwork, style == .landscape, enablesAsyncArtworkFallback,
               presentationArtworkPolicy.prefersTextlessArtwork else { return nil }
         return "\(TextlessBackdropStore.key(for: item))|\(presentationArtworkPolicy.identity)"
     }
@@ -1161,7 +1170,7 @@ public struct PosterCardView: View {
 
     /// A prior show's or profile's completed wait cannot release this lookup early.
     private var textlessAnswerReady: Bool {
-        !enablesAsyncArtworkFallback || !presentationArtworkPolicy.prefersTextlessArtwork
+        style == .poster || !enablesAsyncArtworkFallback || !presentationArtworkPolicy.prefersTextlessArtwork
             || settledTextlessIdentity == textlessResolutionIdentity || textlessBackdropStore.hasAnswer(for: item)
     }
 
@@ -1186,7 +1195,13 @@ public struct PosterCardView: View {
             // the card's shape, which on a backdrop means cutting a fifth of the
             // frame off, and never by the blurred blow-up that costs the picture
             // its whole lower half.
-            content: { ExtendedArtworkFill(image: $0) }
+            content: { image in
+                if style == .poster {
+                    ExtendedArtworkFill(image: image, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0)
+                } else {
+                    ExtendedArtworkFill(image: image)
+                }
+            }
         ) {
             neutralPlaceholder
         }
@@ -1203,7 +1218,7 @@ public struct PosterCardView: View {
     /// candidate is a slot that names itself, or no textless art exists anywhere
     /// for a show whose only art is titled promotional key art.
     private var suppressesSeriesLogo: Bool {
-        artworkAlreadyCarriesTitle
+        style == .poster || artworkAlreadyCarriesTitle
             || (presentationArtworkPolicy.prefersTextlessArtwork
                 && textlessBackdropStore.suppressesLogo(for: item))
     }

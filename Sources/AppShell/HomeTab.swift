@@ -406,7 +406,8 @@ struct HomeTab: View {
                 ),
                 title: library.displayName,
                 spoilerSettings: spoilerSettings,
-                continueWatchingShowsSeriesArtwork: homeVisibility.continueWatchingShowsSeriesArtwork,
+                continueWatchingShowsSeriesArtwork: homeVisibility.continueWatchingUsesSeriesArtwork,
+                continueWatchingLayout: homeVisibility.continueWatchingLayout,
                 onSelect: {
                     navigate(
                         $0,

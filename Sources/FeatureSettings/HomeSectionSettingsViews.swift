@@ -131,6 +131,7 @@ struct HomeSectionSettingsView: View {
     let visibility: HomeLibraryVisibilityModel
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
+    @Environment(CardStyleSettingsModel.self) private var cards
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
 
@@ -142,12 +143,32 @@ struct HomeSectionSettingsView: View {
             }
             if choice.id == .global(.continueWatching) {
                 ContinueWatchingNextUpControl(visibility: visibility)
-                ContinueWatchingArtworkPicker(
-                    style: Binding(
-                        get: { visibility.continueWatchingShowsSeriesArtwork ? .logoAndArtwork : .thumbnail },
-                        set: { visibility.setContinueWatchingShowsSeriesArtwork($0 == .logoAndArtwork) }
+                ContinueWatchingArtworkPicker(style: Binding(
+                    get: {
+                        if visibility.continueWatchingLayout == .portrait { return .portraitPosters }
+                        return visibility.continueWatchingShowsSeriesArtwork ? .logoAndArtwork : .thumbnail
+                    },
+                    set: { option in
+                        if option.layout == .landscape {
+                            visibility.setContinueWatchingShowsSeriesArtwork(option.showsSeriesArtwork)
+                        }
+                        visibility.setContinueWatchingLayout(option.layout)
+                    }
+                ))
+                if visibility.continueWatchingLayout == .portrait {
+                    CardCaptionViewChoices(
+                        view: .continueWatchingPortrait,
+                        settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
+                        title: "Labels"
                     )
-                )
+                    #if os(iOS)
+                    .padding(.horizontal, 14)
+                    .settingsGroupSurface(cornerRadius: 12)
+                    #else
+                    .padding(SettingsFormMetrics.groupInset)
+                    .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+                    #endif
+                }
             }
             Button("Remove section", role: .destructive) {
                 do {

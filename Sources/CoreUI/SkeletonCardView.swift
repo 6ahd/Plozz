@@ -29,8 +29,11 @@ public struct SkeletonCardView: View {
     private let captionOverride: Bool?
     @Environment(\.plozzCardCaptionsHidden) private var captionsHidden
     @Environment(\.plozzCardCaptionsHiddenWithArtworkTitle) private var artworkTitleCaptionsHidden
+    @Environment(\.plozzContinueWatchingPortraitCaptionsHidden) private var portraitCaptionsHidden
     private var showsCaption: Bool {
-        captionOverride ?? !(showsSeriesArtwork ? artworkTitleCaptionsHidden : captionsHidden)
+        captionOverride ?? !(showsSeriesArtwork
+            ? (style == .poster ? portraitCaptionsHidden : artworkTitleCaptionsHidden)
+            : captionsHidden)
     }
     /// Mirrors `PosterCardView`'s series-artwork shape: taller than 16:9 (it
     /// reserves a band for its chrome) and narrower to compensate. Kept explicit
@@ -125,7 +128,7 @@ public struct SkeletonCardView: View {
     private var posterCard: some View {
         VStack(alignment: .leading, spacing: metrics.posterCaptionTopSpacing) {
             Color.clear
-                .aspectRatio(2.0 / 3.0, contentMode: .fit)
+                .aspectRatio(borderlessAspectRatio, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .overlay {
                     RoundedRectangle(cornerRadius: metrics.posterArtworkCornerRadius, style: .continuous)
@@ -311,7 +314,7 @@ public struct SkeletonCardView: View {
     /// Aspect ratio for the borderless full-bleed image (matches `PosterCardView`).
     private var borderlessAspectRatio: CGFloat {
         switch style {
-        case .poster: return 2.0 / 3.0
+        case .poster: return showsSeriesArtwork ? ContinueWatchingCardShape.portraitAspectRatio : 2.0 / 3.0
         case .landscape: return showsSeriesArtwork
             ? ContinueWatchingCardShape.aspectRatio
             : 16.0 / 9.0

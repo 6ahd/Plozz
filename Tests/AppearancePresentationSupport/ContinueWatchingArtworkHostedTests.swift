@@ -1,6 +1,7 @@
 import CoreModels
 import SwiftUI
 import UIKit
+import Vision
 import XCTest
 @testable import CoreUI
 @testable import MetadataKit
@@ -25,6 +26,111 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
     override func tearDown() async throws {
         MetadataProviderSettingsStore().save(savedProviders)
         try await super.tearDown()
+    }
+
+    func testPortraitKeepsPosterAndResumeChromeWithoutTextlessLookup() async throws {
+        for kind in [MediaItemKind.episode, .movie] {
+            let poster = try await cacheImage(.red, size: CGSize(width: 120, height: 180), footer: true)
+            let still = try await cacheImage(.green)
+            let backdrop = try await cacheImage(.blue)
+            let item = MediaItem(
+                id: UUID().uuidString, title: "Portrait fixture", kind: kind,
+                parentTitle: kind == .episode ? "Series fixture" : nil,
+                seasonNumber: 1, episodeNumber: 2, runtime: 3600, resumePosition: 900,
+                posterURL: kind == .episode ? still : poster,
+                seriesPosterURL: kind == .episode ? poster : nil,
+                backdropURL: backdrop, fallbackArtworkURL: backdrop
+            )
+            let gate = TextlessLookupGate()
+            defer { Task { await gate.finish(nil) } }
+            let store = makeStore { _ in await gate.lookup() }
+            let settings = ArtworkSettings(preference: .library)
+            let source = ContinueWatchingArtworkSource(
+                item: item, style: .poster, policy: .init(area: .continueWatching, settings: settings)
+            )
+            await source.prepare(store: store)
+            let key = ArtworkResolveKey.make(
+                references: source.references(textlessBackdrop: nil), variant: .posterCard,
+                maxAspectRatio: source.aspectGuard, pinIdentity: source.pinIdentity,
+                providerPolicyIdentity: source.policy.identity
+            )
+            XCTAssertEqual(ArtworkSeedMemo.prepared(for: key, variant: .posterCard)?.reference, .remote(poster))
+            #if os(tvOS)
+            let width: CGFloat = 300
+            let metrics = PlozzMetrics.standard
+            #else
+            let width: CGFloat = 132
+            let metrics = PlozzMetrics.touch(density: .standard)
+            #endif
+            for style in [CardStyle.borderless, .framed] {
+                try await withCard(
+                    item, store: store, style: style, settings: settings,
+                    shape: .poster, width: width, metrics: metrics
+                ) { window in
+                    try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
+                    let counts = try coloredPixels(window)
+                    XCTAssertEqual(counts[1], 0, "Portrait must not show the episode still.")
+                    XCTAssertEqual(counts[2], 0, "Portrait must not crop a landscape backdrop.")
+                    #if os(tvOS)
+                    if style == .borderless {
+                        let native = try XCTUnwrap(nativePoster(in: window))
+                        XCTAssertEqual(native.bounds.height / native.bounds.width,
+                                       1 / ContinueWatchingCardShape.portraitAspectRatio, accuracy: 0.02)
+                    }
+                    #endif
+                    let text = try recognizedText(window)
+                    XCTAssertTrue(text.contains { $0.contains("POSTER") },
+                                  "The original poster footer must remain readable above playback details: \(text)")
+                    XCTAssertTrue(text.contains { $0.contains("45m") },
+                                  "Portrait must retain the remaining time beside the episode and progress: \(text)")
+                    let attachment = XCTAttachment(image: UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                        window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                    })
+                    attachment.name = "Continue Watching portrait \(kind) \(style)"
+                    attachment.lifetime = .keepAlways
+                    add(attachment)
+                }
+            }
+            let requests = await gate.requests
+            XCTAssertEqual(requests, 0)
+        }
+    }
+
+    func testPortraitCaptionOverrideControlsRenderedLabelsInBothParentViews() async throws {
+        let poster = try await cacheImage(.red, size: CGSize(width: 120, height: 180))
+        let item = MediaItem(
+            id: UUID().uuidString, title: "Episode fixture", kind: .episode,
+            parentTitle: "Caption marker", seasonNumber: 1, episodeNumber: 2,
+            runtime: 3600, resumePosition: 900, seriesPosterURL: poster
+        )
+        let store = makeStore { _ in nil }
+        #if os(tvOS)
+        let width: CGFloat = 300
+        let metrics = PlozzMetrics.standard
+        #else
+        let width: CGFloat = 132
+        let metrics = PlozzMetrics.touch(density: .standard)
+        #endif
+        for parent in [CardCaptionView.home, .recommended] {
+            for choice in CardCaptionView.continueWatchingPortrait.customizationChoices {
+                var captions = CardCaptionSettings(overrides: [.home: true, .recommended: false])
+                captions.setOverride(choice, for: .continueWatchingPortrait)
+                for style in [CardStyle.borderless, .framed] {
+                    try await withCard(
+                        item, store: store, style: style, settings: .init(preference: .library),
+                        shape: .poster, width: width, metrics: metrics, captions: captions, captionView: parent
+                    ) { window in
+                        try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
+                        let text = try recognizedText(
+                            window, attachmentName: "Portrait captions \(parent) \(choice) \(style)"
+                        )
+                        let visible = text.contains { $0.localizedCaseInsensitiveContains("Caption marker") }
+                        XCTAssertEqual(visible, choice == .automatic ? parent == .home : choice == .show,
+                                       "\(parent) / \(choice) / \(style): \(text)")
+                    }
+                }
+            }
+        }
     }
 
     func testPreparationSeedsTheExactCardWinnerForEachSourcePreference() async throws {
@@ -59,7 +165,10 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
             for cardStyle in [CardStyle.borderless, .framed] {
                 try await withCard(fixture.item, store: store, style: cardStyle, settings: policy.settings) { window in
                     let expected = preference == .library ? 0 : 2
-                    XCTAssertGreaterThan(try coloredPixels(window)[expected], 500)
+                    XCTAssertGreaterThan(
+                        try coloredPixels(window)[expected], 500,
+                        "Prepared first paint: \(preference) / \(cardStyle)"
+                    )
                 }
             }
         }
@@ -274,13 +383,21 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         return (item, clean)
     }
 
-    private func cacheImage(_ color: UIColor?) async throws -> URL {
+    private func cacheImage(
+        _ color: UIColor?, size: CGSize = CGSize(width: 160, height: 90), footer: Bool = false
+    ) async throws -> URL {
         let url = try XCTUnwrap(URL(string: "https://example.invalid/textless-\(UUID()).png"))
         let data: Data
         if let color {
-            data = UIGraphicsImageRenderer(size: CGSize(width: 160, height: 90)).pngData {
+            data = UIGraphicsImageRenderer(size: size).pngData {
                 color.setFill()
-                $0.fill(CGRect(x: 0, y: 0, width: 160, height: 90))
+                $0.fill(CGRect(origin: .zero, size: size))
+                if footer {
+                    ("POSTER" as NSString).draw(
+                        in: CGRect(x: 8, y: size.height - 20, width: size.width - 16, height: 18),
+                        withAttributes: [.font: UIFont.boldSystemFont(ofSize: 12), .foregroundColor: UIColor.white]
+                    )
+                }
             }
         } else {
             data = Data([0])
@@ -305,6 +422,11 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
     private func withCard(
         _ item: MediaItem, store: TextlessBackdropStore, style: CardStyle,
         focus: CardFocusStyle = .system, settings: ArtworkSettings = .default,
+        shape: PosterCardView.Style = .landscape,
+        width: CGFloat = 300,
+        metrics: PlozzMetrics = .standard,
+        captions: CardCaptionSettings = .default,
+        captionView: CardCaptionView = .home,
         settingsChanges: [ArtworkSettings] = [],
         operation: (UIWindow) async throws -> Void
     ) async throws {
@@ -315,18 +437,23 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
             .first { $0.activationState == .foregroundActive })
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 500, height: 500)
+        window.frame = CGRect(x: 0, y: 0, width: 500, height: shape == .poster ? 800 : 500)
+        window.overrideUserInterfaceStyle = .dark
         let makeView = { (settings: ArtworkSettings) in
             PosterCardView(
-                item: item, style: .landscape, showsSeriesArtwork: true,
+                item: item, style: shape, showsSeriesArtwork: true, showsResumeChip: shape == .poster,
                 textlessBackdropStore: store, action: {}
             )
             .environment(\.plozzArtworkSettings, settings)
+            .environment(\.plozzMetrics, metrics)
             .environment(\.plozzArtworkProviders, MetadataProviderSettingsStore().load())
             .environment(\.plozzCardStyle, style)
             .environment(\.plozzCardFocusStyle, focus)
+            .environment(\.plozzCardCaptionView, captionView)
+            .environment(\.plozzCardCaptionSettings, captions)
             .environment(\.themePalette, .dark)
-            .frame(width: 300)
+            .environment(\.colorScheme, .dark)
+            .frame(width: width)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(.black)
         }
@@ -345,6 +472,24 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
             host.rootView = makeView(changedSettings)
             try await operation(window)
         }
+    }
+
+    private func recognizedText(_ window: UIWindow, attachmentName: String? = nil) throws -> [String] {
+        window.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        if let attachmentName {
+            let attachment = XCTAttachment(image: image)
+            attachment.name = attachmentName
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
     }
 
     private func coloredPixels(_ window: UIWindow) throws -> [Int] {

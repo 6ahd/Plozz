@@ -10,6 +10,7 @@ public struct HomeRowsSettingsView: View {
     public let visibility: HomeLibraryVisibilityModel
     @Environment(HeroSettingsModel.self) private var hero
     @Environment(HeroBackgroundSettingsModel.self) private var heroBackground
+    @Environment(CardStyleSettingsModel.self) private var cards
     @State private var inventory: HomeSectionCatalogModel
     @State private var isReordering = false
     @State private var isLifting = false
@@ -94,6 +95,7 @@ public struct HomeRowsSettingsView: View {
                                 choice: choice, inventory: inventory, visibility: visibility,
                                 libraries: libraries, accounts: accounts
                             )
+                            .environment(cards)
                         } label: {
                             HomeSectionChoiceLabel(choice: choice)
                         }

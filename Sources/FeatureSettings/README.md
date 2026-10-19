@@ -32,6 +32,18 @@ watch history and planning-list behavior are documented in
   section hides it without erasing its configuration or disabling its libraries.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
+  Continue Watching offers three native preview choices: Logo & Artwork,
+  Thumbnail & Title, and Portrait posters. They share equal card sizes on TV and
+  wide layouts, becoming preview-led rows on compact mobile layouts. Portrait
+  uses complete movie/show posters with the existing playback details in a
+  reflected extension below the picture; it
+  cannot combine with thumbnails and preserves the saved landscape artwork
+  preference. The presentation is profile-scoped and also applies to library
+  Continue Watching rows. Portrait exposes a Labels control bound to the same
+  Continue Watching (portrait) override in Appearance -> Cards -> Labels by view:
+  Follow Appearance inherits Home rows or Recommended; On/Off overrides only
+  portrait Continue Watching. Caption presets/reset clear this override, and
+  switching artwork presentation preserves it.
   Preset retains the confirmed Match server and Combined rows choices and shows
   Custom for edited arrangements. Selecting a new preset still requires
   confirmation.
@@ -43,9 +55,8 @@ watch history and planning-list behavior are documented in
   adding, removing and reordering wait for discovery to finish.
   Mobile library discovery publishes one identity-scoped snapshot, never pairing
   a previous viewer's library metadata with the newly active credentials.
-  Mobile Continue Watching artwork previews size their swatch by available width
-  instead of reserving a fixed-height empty area; TV and other shared preview
-  cards keep their existing sizing.
+  Continue Watching artwork previews remain inside equal native choices rather
+  than a separate floating preview; compact mobile layouts use preview-led rows.
 - `HomeSectionCatalog` owns typed choice deduplication and validated section
   edits; `HomeSectionCatalogModel` owns bounded, identity-fenced discovery.
   The UI writes through the existing profile-scoped `HomeLibraryVisibilityModel`.

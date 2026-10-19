@@ -931,7 +931,7 @@ public struct MediaRowView: View {
         switch presentation {
         case .poster:
             SkeletonCardView(
-                style: .poster, showsCaption: !captionsHidden,
+                style: .poster, showsSeriesArtwork: showsSeriesArtwork,
                 isFocused: isFocused, showsProgress: showsProgress, focus: focus
             )
         case .landscape:

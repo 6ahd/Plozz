@@ -87,6 +87,9 @@ struct PlozziOSHomeSkeletonScreen: View {
 
     let heroActive: Bool
     var showsPosterCaptions: Bool = CardCaptionSettings.default.showsLabels
+    var continueWatchingLayout: ContinueWatchingCardLayout = .landscape
+    var continueWatchingShowsSeriesArtwork = true
+    var continueWatchingShowsCaption = false
 
     var body: some View {
         PlozziOSHomeScrollView(heroActive: heroActive) {
@@ -96,7 +99,11 @@ struct PlozziOSHomeSkeletonScreen: View {
                     : .landscape
             )
         } rows: {
-            PlozziOSHomeSkeletonRail(title: Text(verbatim: " "), style: .landscape, showsCaption: showsPosterCaptions)
+            PlozziOSHomeSkeletonRail(
+                title: Text(verbatim: " "), style: continueWatchingLayout.cardStyle,
+                showsCaption: continueWatchingShowsCaption,
+                showsSeriesArtwork: continueWatchingShowsSeriesArtwork
+            )
             PlozziOSHomeSkeletonRail(title: Text(verbatim: " "), style: .poster, showsCaption: showsPosterCaptions)
             PlozziOSHomeSkeletonRail(title: Text(verbatim: " "), style: .poster, showsCaption: showsPosterCaptions)
         }

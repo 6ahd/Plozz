@@ -1,10 +1,12 @@
 #if canImport(SwiftUI)
 import SwiftUI
+import CoreModels
 
-/// How a Continue Watching card identifies itself.
-///
-/// A two-way *choice*, not an on/off: both states put artwork on the card, so any
-/// switch label would imply that turning it off leaves the card blank.
+public extension ContinueWatchingCardLayout {
+    var cardStyle: PosterCardView.Style { self == .portrait ? .poster : .landscape }
+}
+
+/// The three supported Continue Watching presentations; portrait never uses thumbnails.
 public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
     /// Artwork with the title laid over it as a logo, and nothing written below:
     /// the episode or year rides in the resume chip, on the artwork.
@@ -13,6 +15,13 @@ public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
     /// or a movie's year — written on two lines underneath. Masked to match the
     /// spoiler settings.
     case thumbnail
+    case portraitPosters
+
+    public var layout: ContinueWatchingCardLayout {
+        self == .portraitPosters ? .portrait : .landscape
+    }
+
+    public var showsSeriesArtwork: Bool { self != .thumbnail }
 
     public var displayName: LocalizedStringResource {
         switch self {
@@ -28,6 +37,8 @@ public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
                 defaultValue: "Thumbnail & Title",
                 comment: "Continue Watching card style option in Settings: plain artwork with the title written underneath."
             )
+        case .portraitPosters:
+            return "Portrait posters"
         }
     }
 
@@ -45,6 +56,8 @@ public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
                 defaultValue: "Title and details below the artwork.",
                 comment: "One-line explanation of the Thumbnail & Title option for Continue Watching cards."
             )
+        case .portraitPosters:
+            return "Movie and show posters with playback details on the artwork."
         }
     }
 }
@@ -52,16 +65,15 @@ public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
 /// A picture of one Continue Watching card in each
 /// ``ContinueWatchingArtworkStyle``.
 ///
-/// Each leans on the one thing that actually tells them apart: where the title
-/// lives. Both options put artwork on the card, so the previews show the title
-/// set into the artwork as a wordmark, or written on a line beneath it.
-///
 /// Fabricated throughout, like ``SpoilerModeSwatch`` — no media, network or theme.
 public struct ContinueWatchingArtworkSwatch: View {
     private let style: ContinueWatchingArtworkStyle
+    private var layout: ContinueWatchingCardLayout { style.layout }
     private let cornerRadius: CGFloat
 
-    public init(style: ContinueWatchingArtworkStyle, cornerRadius: CGFloat = 12) {
+    public init(
+        style: ContinueWatchingArtworkStyle, cornerRadius: CGFloat = 12
+    ) {
         self.style = style
         self.cornerRadius = cornerRadius
     }
@@ -88,7 +100,7 @@ public struct ContinueWatchingArtworkSwatch: View {
             // not two zoom levels) and from what the TALLER of them can fit.
             let cardWidth = min(
                 width * 0.94,
-                available * ContinueWatchingCardShape.aspectRatio
+                available * (layout == .portrait ? ContinueWatchingCardShape.portraitAspectRatio : ContinueWatchingCardShape.aspectRatio)
             )
             let cardHeight = cardWidth / cardAspectRatio
             VStack(spacing: gap) {
@@ -106,6 +118,7 @@ public struct ContinueWatchingArtworkSwatch: View {
         switch style {
         case .logoAndArtwork: return ContinueWatchingCardShape.aspectRatio
         case .thumbnail: return 16.0 / 9.0
+        case .portraitPosters: return ContinueWatchingCardShape.portraitAspectRatio
         }
     }
 
@@ -113,11 +126,13 @@ public struct ContinueWatchingArtworkSwatch: View {
         let radius = min(cornerRadius, width * 0.06)
         return ZStack {
             artwork(width: width, height: height)
-            if style == .logoAndArtwork {
+            if style.showsSeriesArtwork {
                 wordmark(width: width)
                     // Centred on the PICTURE, matching the real card: the band
                     // beneath it belongs to the chrome.
-                    .offset(y: -height * (1 - ContinueWatchingCardShape.mirrorLine) / 2)
+                    .offset(y: -height * (1 - (layout == .portrait
+                        ? ContinueWatchingCardShape.portraitGeometry.reflectionStart
+                        : ContinueWatchingCardShape.mirrorLine)) / 2)
             }
             chip(width: width, height: height)
         }
@@ -155,29 +170,14 @@ public struct ContinueWatchingArtworkSwatch: View {
     @ViewBuilder
     private func artwork(width: CGFloat, height: CGFloat) -> some View {
         switch style {
-        case .logoAndArtwork:
-            // Drawn through the real card's own fill, so the preview can't drift
-            // from what the card actually does — including the mirrored band that
-            // carries the chrome.
-            ExtendedArtworkFill(
-                picture: ZStack {
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.10, green: 0.20, blue: 0.46),
-                            Color(red: 0.38, green: 0.16, blue: 0.48)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    // A wide, even glow — poster lighting, not a photograph.
-                    RadialGradient(
-                        colors: [Color(red: 0.45, green: 0.72, blue: 1.0).opacity(0.38), .clear],
-                        center: .init(x: 0.5, y: 0.42),
-                        startRadius: 0,
-                        endRadius: width * 0.62
-                    )
-                }
-            )
+        case .logoAndArtwork, .portraitPosters:
+            if layout == .portrait {
+                ExtendedArtworkFill(
+                    picture: seriesPicture(width: width), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+                )
+            } else {
+                ExtendedArtworkFill(picture: seriesPicture(width: width))
+            }
         case .thumbnail:
             ZStack {
                 // A dusk horizon. A landscape reads as a *photograph of
@@ -217,18 +217,39 @@ public struct ContinueWatchingArtworkSwatch: View {
         }
     }
 
+    private func seriesPicture(width: CGFloat) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.10, green: 0.20, blue: 0.46),
+                    Color(red: 0.38, green: 0.16, blue: 0.48)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            RadialGradient(
+                colors: [Color(red: 0.45, green: 0.72, blue: 1.0).opacity(0.38), .clear],
+                center: .init(x: 0.5, y: 0.42),
+                startRadius: 0,
+                endRadius: width * 0.62
+            )
+        }
+    }
+
     /// The resume chip along the bottom — present in both, since it isn't what
     /// the choice is about. The logo card's scrim runs from high in the picture
     /// and finishes lighter, matching the real card.
     private func chip(width: CGFloat, height: CGFloat) -> some View {
-        let isLogo = style == .logoAndArtwork
-        let scrimHeight = isLogo
-            ? height * (1 - ContinueWatchingCardShape.scrimStart)
+        let isExtended = style.showsSeriesArtwork
+        let scrimStart = layout == .portrait
+            ? ContinueWatchingCardShape.portraitGeometry.reflectionStart : ContinueWatchingCardShape.scrimStart
+        let scrimHeight = isExtended
+            ? height * (1 - scrimStart)
             : height * 0.40
         return VStack(spacing: 0) {
             Spacer(minLength: 0)
             LinearGradient(
-                colors: [.clear, .black.opacity(isLogo ? ContinueWatchingCardShape.scrimDepth : 0.6)],
+                colors: [.clear, .black.opacity(isExtended ? ContinueWatchingCardShape.scrimDepth : 0.6)],
                 startPoint: .top,
                 endPoint: .bottom
             )

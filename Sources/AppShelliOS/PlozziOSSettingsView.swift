@@ -1815,6 +1815,7 @@ private struct PlozziOSScreensNavigationSettingsView: View {
             case .home:
                 PlozziOSHomeSettingsView(
                     hero: appModel.settings.hero, heroBackground: appModel.settings.heroBackground,
+                    cards: appModel.settings.cardStyle,
                     visibility: appModel.settings.homeVisibility,
                     accounts: appModel.accountsProviders.resolvedActiveAccounts
                 )
@@ -1932,6 +1933,7 @@ struct PlozziOSArtworkSettingsView: View {
 struct PlozziOSHomeSettingsView: View {
     @Bindable var hero: HeroSettingsModel
     @Bindable var heroBackground: HeroBackgroundSettingsModel
+    let cards: CardStyleSettingsModel
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
     @State private var librarySnapshot: (scope: HomeSectionCatalogModel.RequestID, choices: [HomeLibraryChoice])?
@@ -1950,6 +1952,7 @@ struct PlozziOSHomeSettingsView: View {
         .id(ObjectIdentifier(visibility))
         .environment(hero)
         .environment(heroBackground)
+        .environment(cards)
         .task(id: libraryRequestID) {
             await loadLibraries()
         }

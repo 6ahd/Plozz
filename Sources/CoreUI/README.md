@@ -6,6 +6,17 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+Continue Watching portrait cards reuse `PosterCardView` and its resume/download
+overlays below a complete 2:3 poster, in the shared reflected-artwork extension.
+They resolve movie or series posters, never episode stills or textless backdrops.
+Portrait uses zero side crop, no duplicate logo or logo dimming, and a scrim that
+starts below the original poster. Artwork-source preferences still apply.
+Native TV bitmaps, SwiftUI cards, previews, and loading placeholders share this
+extended shape. Portrait tightens the shared chip's horizontal spacing, preserving
+episode/time details and the progress/download elements in its narrower slot.
+Portrait labels use the existing caption settings' override,
+inheriting the row's Home or Recommended choice unless explicitly shown/hidden.
+
 - **Version choices** — `MediaVersionChoiceButton` is the shared native rounded
   card for pre-play, detail, and in-player pickers. It keeps edition/size and
   release text above the smaller wrapping format/language badges, with one

@@ -51,6 +51,10 @@ public extension EnvironmentValues {
         hidesCardCaptions(hasArtworkTitle: true)
     }
 
+    var plozzContinueWatchingPortraitCaptionsHidden: Bool {
+        hidesCardCaptions(hasArtworkTitle: true, isContinueWatchingPortrait: true)
+    }
+
     mutating func copyCardCaptionPresentation(from source: EnvironmentValues) {
         self[PlozzCardCaptionSettingsKey.self] = source[PlozzCardCaptionSettingsKey.self]
         self[PlozzCardCaptionViewKey.self] = source[PlozzCardCaptionViewKey.self]
@@ -58,11 +62,11 @@ public extension EnvironmentValues {
         self[PlozzCardCaptionsHiddenKey.self] = source[PlozzCardCaptionsHiddenKey.self]
     }
 
-    private func hidesCardCaptions(hasArtworkTitle: Bool) -> Bool {
+    private func hidesCardCaptions(hasArtworkTitle: Bool, isContinueWatchingPortrait: Bool = false) -> Bool {
         self[PlozzCardCaptionsHiddenKey.self]
             ?? !plozzCardCaptionSettings.showsLabels(
                 in: plozzCardCaptionView, isShowcase: plozzCardCaptionIsShowcase,
-                hasArtworkTitle: hasArtworkTitle
+                hasArtworkTitle: hasArtworkTitle, isContinueWatchingPortrait: isContinueWatchingPortrait
             )
     }
 

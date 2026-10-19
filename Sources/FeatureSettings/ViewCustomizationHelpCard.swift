@@ -7,6 +7,7 @@ struct ViewCustomizationHelp {
     let detail: LocalizedStringResource
     let illustration: Illustration
     var continueWatchingShowsSeriesArtwork = true
+    var continueWatchingLayout: ContinueWatchingCardLayout = .landscape
 
     enum Illustration: Hashable {
         case artwork(ArtworkArea)
@@ -52,7 +53,8 @@ struct ViewCustomizationHelpCard: View {
         case .artwork(let area):
             ArtworkScopeDiagram(
                 area: area, heroSettings: hero?.settings ?? .default,
-                continueWatchingShowsSeriesArtwork: help.continueWatchingShowsSeriesArtwork
+                continueWatchingShowsSeriesArtwork: help.continueWatchingShowsSeriesArtwork,
+                continueWatchingLayout: help.continueWatchingLayout
             )
                 .frame(width: 256, height: 144)
         case .captions(let style, let showsCaptions, let showsMixedCaptions):
@@ -81,6 +83,7 @@ struct ArtworkScopeDiagram: View {
     var detailKind: DetailKind = .movie
     var heroSettings: HeroSettings = .default
     var continueWatchingShowsSeriesArtwork = true
+    var continueWatchingLayout: ContinueWatchingCardLayout = .landscape
     @Environment(\.themePalette) private var palette
     @Environment(\.plozzNavigationStyle) private var navigationStyle
     @Environment(\.layoutDirection) private var layoutDirection
@@ -90,7 +93,7 @@ struct ArtworkScopeDiagram: View {
     }
 
     enum ArtworkKind: Hashable {
-        case none, navigation, backdrop, logo, poster, thumbnail, seriesCard, episode, cover
+        case none, navigation, backdrop, logo, poster, thumbnail, seriesCard, portraitSeriesCard, episode, cover
     }
 
     static let screen = CGSize(width: 320, height: 180)
@@ -112,7 +115,8 @@ struct ArtworkScopeDiagram: View {
     var body: some View {
         let regions = Self.regions(
             for: area, navigationStyle: navigationStyle, detailKind: detailKind,
-            heroSettings: heroSettings, continueWatchingShowsSeriesArtwork: continueWatchingShowsSeriesArtwork
+            heroSettings: heroSettings, continueWatchingShowsSeriesArtwork: continueWatchingShowsSeriesArtwork,
+            continueWatchingLayout: continueWatchingLayout
         )
         let screenBounds = CGRect(origin: .zero, size: Self.screen)
         Canvas { context, size in
@@ -159,7 +163,8 @@ struct ArtworkScopeDiagram: View {
         navigationStyle: NavigationStyle = .default,
         detailKind: DetailKind = .movie,
         heroSettings: HeroSettings = .default,
-        continueWatchingShowsSeriesArtwork: Bool = true
+        continueWatchingShowsSeriesArtwork: Bool = true,
+        continueWatchingLayout: ContinueWatchingCardLayout = .landscape
     ) -> [Region] {
         let libraryAreas: [ArtworkArea] = [.recommendedHero, .recommended, .browse, .collections, .playlists]
         let library = libraryAreas.contains(area)
@@ -220,7 +225,12 @@ struct ArtworkScopeDiagram: View {
                 }
             }
             if area == .continueWatching {
-                if continueWatchingShowsSeriesArtwork {
+                if continueWatchingLayout == .portrait {
+                    result += (0..<6).map {
+                        Region(leading + CGFloat($0) * 44, 126, 28, 28 / ContinueWatchingCardShape.portraitAspectRatio,
+                               highlighted: true, kind: .portraitSeriesCard)
+                    }
+                } else if continueWatchingShowsSeriesArtwork {
                     result += (0..<3).map {
                         Region(leading + CGFloat($0) * 90, 116, 80, 80 / ContinueWatchingCardShape.aspectRatio,
                                highlighted: true, kind: .seriesCard)
@@ -228,7 +238,11 @@ struct ArtworkScopeDiagram: View {
                 } else {
                     result += thumbnails(y: 126, highlighted: true, kind: .thumbnail)
                 }
-                result += (0..<3).map { Region(leading + 5 + CGFloat($0) * 90, 164, 47, 3) }
+                if continueWatchingLayout == .portrait {
+                    result += (0..<6).map { Region(leading + 3 + CGFloat($0) * 44, 172, 22, 2) }
+                } else {
+                    result += (0..<3).map { Region(leading + 5 + CGFloat($0) * 90, 164, 47, 3) }
+                }
             } else {
                 result += posters(y: 126, highlighted: !highlightsHero)
             }

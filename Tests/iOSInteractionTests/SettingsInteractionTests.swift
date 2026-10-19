@@ -1041,6 +1041,73 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Rows on Home"].exists)
     }
 
+    func testContinueWatchingOffersThreeStablePresentationChoices() {
+        openSettingsPage("Customize Home")
+        app.buttons["home-section-home-continueWatching"].tap()
+        XCTAssertTrue(app.navigationBars["Continue Watching"].waitForExistence(timeout: 3))
+        let choices = ["logoAndArtwork", "thumbnail", "portraitPosters"].map {
+            app.buttons["continue-watching-style-\($0)"]
+        }
+        for selected in [1, 2, 0] {
+            let choice = choices[selected]
+            reveal(choice)
+            choice.tap()
+            for (index, option) in choices.enumerated() {
+                XCTAssertTrue(option.exists)
+                XCTAssertEqual(option.isSelected, index == selected)
+            }
+            XCTAssertEqual(app.buttons["card-label-view-continueWatchingPortrait"].exists, selected == 2)
+            if selected == 2 { capture("continue-watching-three-presentations") }
+        }
+        XCTAssertFalse(app.segmentedControls["continue-watching-layout"].exists)
+    }
+
+    func testPortraitContinueWatchingLabelsShareTheAppearanceOverride() {
+        openSettingsPage("Customize Home")
+        app.buttons["home-section-home-continueWatching"].tap()
+        let portrait = app.buttons["continue-watching-style-portraitPosters"]
+        reveal(portrait, fullyVisible: true)
+        portrait.tap()
+        let labels = app.buttons["card-label-view-continueWatchingPortrait"]
+        XCTAssertTrue(labels.waitForExistence(timeout: 3))
+        XCTAssertEqual(labels.value as? String, "Follow Appearance")
+        selectCustomization(labels, expecting: "On")
+        capture("continue-watching-portrait-labels")
+        for title in ["Continue Watching", "Customize Home", "Screens & Navigation"] {
+            app.navigationBars[title].buttons["BackButton"].tap()
+        }
+        let appearance = categoryButton("Appearance")
+        reveal(appearance, settingsMenu: true)
+        appearance.tap()
+        app.buttons["appearance-cards"].tap()
+        let customize = app.buttons["card-label-customization"]
+        reveal(customize)
+        customize.tap()
+        XCTAssertTrue(labels.waitForExistence(timeout: 3))
+        XCTAssertEqual(labels.value as? String, "On")
+        selectCustomization(labels, expecting: "Off")
+        capture("appearance-portrait-labels")
+        for title in ["Labels by view", "Cards", "Appearance"] {
+            app.navigationBars[title].buttons["BackButton"].tap()
+        }
+        let screens = categoryButton("Screens & Navigation")
+        reveal(screens, settingsMenu: true)
+        screens.tap()
+        button("Customize Home").tap()
+        app.buttons["home-section-home-continueWatching"].tap()
+        XCTAssertTrue(labels.waitForExistence(timeout: 3))
+        XCTAssertEqual(labels.value as? String, "Off")
+        let landscape = app.buttons["continue-watching-style-logoAndArtwork"]
+        reveal(landscape, fullyVisible: true)
+        landscape.tap()
+        XCTAssertFalse(labels.exists)
+        reveal(portrait, fullyVisible: true)
+        portrait.tap()
+        XCTAssertTrue(labels.waitForExistence(timeout: 3))
+        XCTAssertEqual(labels.value as? String, "Off", "Changing artwork must preserve the label override.")
+        selectCustomization(labels, expecting: "Follow Appearance")
+    }
+
     func testHeroSettingsNavigationKeepsProfileModelsAndEdits() {
         openSettingsPage("Customize Home")
         app.buttons["home-section-hero"].tap()

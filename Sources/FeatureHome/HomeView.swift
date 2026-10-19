@@ -382,7 +382,11 @@ public struct HomeView: View {
                             .first { $0.kind == .continueWatching }?.count ?? 0
                     )
                 } else {
-                    HomeSkeletonView(layout: viewModel.skeletonLayout, heroActive: carouselSettings?.isActive ?? false, continueWatchingShowsSeriesArtwork: visibility.continueWatchingShowsSeriesArtwork)
+                    HomeSkeletonView(
+                        layout: viewModel.skeletonLayout, heroActive: carouselSettings?.isActive ?? false,
+                        continueWatchingShowsSeriesArtwork: visibility.continueWatchingUsesSeriesArtwork,
+                        continueWatchingLayout: visibility.continueWatchingLayout
+                    )
                 }
             }
         ) { content in
@@ -1325,8 +1329,8 @@ public struct HomeView: View {
         switch row.kind {
         case .continueWatching:
             MediaRowView(
-                title: Text(row.title), items: row.items, style: posterStyle(row.style),
-                spoilerSettings: spoilerSettings, showsSeriesArtwork: visibility.continueWatchingShowsSeriesArtwork,
+                title: Text(row.title), items: row.items, style: visibility.continueWatchingLayout.cardStyle,
+                spoilerSettings: spoilerSettings, showsSeriesArtwork: visibility.continueWatchingUsesSeriesArtwork,
                 loadingPlaceholderCount: row.loadingPlaceholderCount,
                 reservesLoadingFocus: reservesLoadingFocus, playsOnSelect: true,
                 liveChannels: liveTV.recentChannels, onSelect: onPlayItem
@@ -1414,7 +1418,7 @@ public struct HomeView: View {
         discoverItems: [MediaItem],
         discoverState: HomeHeroSlotState
     ) -> [(row: FocusHeroRow, source: FocusHomeRowSource)] {
-        let seriesArtwork = visibility.continueWatchingShowsSeriesArtwork
+        let seriesArtwork = visibility.continueWatchingUsesSeriesArtwork
         func entry(_ row: HomeRow) -> (row: FocusHeroRow, source: FocusHomeRowSource) {
             (
                 FocusHeroRow(
@@ -1424,6 +1428,7 @@ public struct HomeView: View {
                     items: row.items,
                     isPlaceholder: row.loadingPlaceholderCount > 0,
                     cardArtwork: row.style == .landscape
+                        && !(row.kind == .continueWatching && visibility.continueWatchingLayout == .portrait)
                         ? { PosterCardView.leadingLandscapeArtwork(
                             for: $0, showsSeriesArtwork: seriesArtwork,
                             prefersTextlessArtwork: artworkSettings.prefersTextlessArtwork(in: .continueWatching)
@@ -1509,8 +1514,8 @@ public struct HomeView: View {
                     MediaRowView(
                         title: Text(verbatim: "Continue Watching"),
                         items: [],
-                        style: .landscape,
-                        showsSeriesArtwork: visibility.continueWatchingShowsSeriesArtwork,
+                        style: visibility.continueWatchingLayout.cardStyle,
+                        showsSeriesArtwork: visibility.continueWatchingUsesSeriesArtwork,
                         loadingPlaceholderCount: continueWatchingCount > 0 ? continueWatchingCount : 8,
                         onSelect: { _ in }
                     )
@@ -1599,9 +1604,9 @@ public struct HomeView: View {
                     MediaRowView(
                         title: Text(row.title),
                         items: row.items,
-                        style: posterStyle(row.style),
+                        style: visibility.continueWatchingLayout.cardStyle,
                         spoilerSettings: spoilerSettings,
-                        showsSeriesArtwork: visibility.continueWatchingShowsSeriesArtwork,
+                        showsSeriesArtwork: visibility.continueWatchingUsesSeriesArtwork,
                         onFocusEntered: reporter.entered,
                         onFocusChange: onFocusChange,
                         onCardFocused: reporter.cardFocused,

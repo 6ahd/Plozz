@@ -206,6 +206,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 PlozziOSHomeSettingsView(
                     hero: HeroSettingsModel(store: InMemoryHeroSettingsStore()),
                     heroBackground: HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()),
+                    cards: CardStyleSettingsModel(),
                     visibility: visibility, accounts: []
                 )
             }
@@ -319,6 +320,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 PlozziOSHomeSettingsView(
                     hero: HeroSettingsModel(store: InMemoryHeroSettingsStore()),
                     heroBackground: HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()),
+                    cards: CardStyleSettingsModel(),
                     visibility: visibility,
                     accounts: [offline, online].map {
                         ResolvedAccount(account: Account(from: $0.session), provider: $0)
@@ -747,6 +749,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             content()
                 .environment(HeroSettingsModel(store: InMemoryHeroSettingsStore()))
                 .environment(HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()))
+                .environment(CardStyleSettingsModel())
                 .environment(\.themePalette, ThemePalette.dark)
                 .environment(\.colorScheme, .dark)
                 .environment(\.locale, Locale(identifier: "en_US"))
@@ -832,11 +835,13 @@ private struct HomeSettingsViewerHost: View {
     let visibility: HomeLibraryVisibilityModel
     private let hero = HeroSettingsModel(store: InMemoryHeroSettingsStore())
     private let heroBackground = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore())
+    private let cards = CardStyleSettingsModel()
 
     var body: some View {
         NavigationStack {
             PlozziOSHomeSettingsView(
                 hero: hero, heroBackground: heroBackground,
+                cards: cards,
                 visibility: visibility, accounts: source.accounts
             )
         }

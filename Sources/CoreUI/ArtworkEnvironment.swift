@@ -93,6 +93,7 @@ public extension EnvironmentValues {
             case .browse: area = .browse
             case .collections: area = .collections
             case .playlists: area = .playlists
+            case .continueWatchingPortrait: area = .continueWatching
             }
         }
         return ArtworkPresentationPolicy(

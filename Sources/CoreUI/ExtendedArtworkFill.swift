@@ -189,11 +189,15 @@ enum ExtendedArtworkBitmap {
         let source: ObjectIdentifier
         let size: CGSize
         let scale: CGFloat
+        let artworkAspectRatio: CGFloat
+        let sideCrop: CGFloat
 
-        init(image: UIImage, size: CGSize, scale: CGFloat) {
+        init(image: UIImage, size: CGSize, scale: CGFloat, artworkAspectRatio: CGFloat, sideCrop: CGFloat) {
             source = ObjectIdentifier(image)
             self.size = size
             self.scale = scale
+            self.artworkAspectRatio = artworkAspectRatio
+            self.sideCrop = sideCrop
         }
 
         override var hash: Int {
@@ -202,12 +206,15 @@ enum ExtendedArtworkBitmap {
             hasher.combine(size.width)
             hasher.combine(size.height)
             hasher.combine(scale)
+            hasher.combine(artworkAspectRatio)
+            hasher.combine(sideCrop)
             return hasher.finalize()
         }
 
         override func isEqual(_ object: Any?) -> Bool {
             guard let other = object as? CacheKey else { return false }
             return source == other.source && size == other.size && scale == other.scale
+                && artworkAspectRatio == other.artworkAspectRatio && sideCrop == other.sideCrop
         }
     }
 
@@ -231,9 +238,13 @@ enum ExtendedArtworkBitmap {
     private struct Content: View {
         let image: UIImage
         let size: CGSize
+        let artworkAspectRatio: CGFloat
+        let sideCrop: CGFloat
 
         var body: some View {
-            ExtendedArtworkFill(image: Image(uiImage: image))
+            ExtendedArtworkFill(
+                image: Image(uiImage: image), artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop
+            )
                 .frame(width: size.width, height: size.height)
                 .clipped()
         }
@@ -242,20 +253,28 @@ enum ExtendedArtworkBitmap {
     // Reuse one view graph; callers retain their immutable bitmap, not the renderer.
     private static var renderer: ImageRenderer<Content>?
 
-    static func render(image: UIImage, size: CGSize, scale: CGFloat) -> UIImage? {
+    static func render(
+        image: UIImage, size: CGSize, scale: CGFloat,
+        artworkAspectRatio: CGFloat = 16.0 / 9.0,
+        sideCrop: CGFloat = PlozzTheme.Metrics.continueWatchingArtworkSideCrop
+    ) -> UIImage? {
         guard size.width.isFinite, size.height.isFinite, scale.isFinite,
               size.width > 0, size.height > 0, scale > 0,
               image.size.width > 0, image.size.height > 0 else {
             PlozzLog.app.error("Unable to prepare extended artwork with invalid rendering dimensions")
             return nil
         }
-        let key = CacheKey(image: image, size: size, scale: scale)
+        let key = CacheKey(
+            image: image, size: size, scale: scale, artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop
+        )
         // Lazy rows recreate coordinators. Share the finished pixels without
         // retaining source images or accepting a recycled object identifier.
         if let cached = cache.object(forKey: key), cached.source === image {
             return cached.bitmap
         }
-        let content = Content(image: image, size: size)
+        let content = Content(
+            image: image, size: size, artworkAspectRatio: artworkAspectRatio, sideCrop: sideCrop
+        )
         let active: ImageRenderer<Content>
         if let renderer {
             renderer.content = content
@@ -297,6 +316,15 @@ enum ExtendedArtworkBitmap {
 /// drift apart. Everything here is a fraction of the card, so it holds at any
 /// display density.
 public enum ContinueWatchingCardShape {
+    /// Preserve the entire 2:3 poster, then reserve a reflected band for playback details.
+    public static let portraitAspectRatio: CGFloat =
+        (2.0 / 3.0) / (1 + PlozzTheme.Metrics.continueWatchingPortraitReflectionShare)
+
+    public static let portraitGeometry = ExtendedArtworkGeometry(
+        slot: CGSize(width: portraitAspectRatio, height: 1),
+        artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+    )
+
     /// Width ÷ height of the whole card, derived from how much reflection it
     /// should show (``PlozzTheme/Metrics/continueWatchingReflectionShare``)
     /// rather than picked as a magic number.

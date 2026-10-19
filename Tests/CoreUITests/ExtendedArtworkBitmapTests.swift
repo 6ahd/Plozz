@@ -6,6 +6,55 @@ import XCTest
 
 @MainActor
 final class ExtendedArtworkBitmapTests: XCTestCase {
+    func testPortraitBitmapPreservesPosterPixelsAboveItsReflectedExtension() throws {
+        let source = fixture(size: CGSize(width: 200, height: 300))
+        let size = CGSize(width: 200, height: 200 / ContinueWatchingCardShape.portraitAspectRatio)
+        let actual = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+        ))
+        let original = try pixels(source)
+        let rendered = try pixels(actual)
+        let pictureBytes = 200 * 296 * 4
+        let error = zip(original.prefix(pictureBytes), rendered.prefix(pictureBytes)).reduce(0.0) {
+            $0 + abs(Double($1.0) - Double($1.1))
+        } / Double(pictureBytes)
+        XCTAssertLessThanOrEqual(error, 0.8, "The poster, including its footer, must not be cropped or darkened.")
+        XCTAssertEqual(actual.size.height, size.height, accuracy: 1)
+        XCTAssertGreaterThan(rendered.count, original.count)
+
+        let reference = ImageRenderer(content:
+            ExtendedArtworkFill(image: Image(uiImage: source), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0)
+                .frame(width: size.width, height: size.height).clipped()
+        )
+        reference.scale = 1
+        reference.isOpaque = true
+        let referencePixels = try pixels(XCTUnwrap(reference.uiImage))
+        XCTAssertEqual(rendered.count, referencePixels.count)
+        let maximumDifference = zip(rendered, referencePixels).map { abs(Int($0) - Int($1)) }.max()
+        XCTAssertLessThanOrEqual(try XCTUnwrap(maximumDifference), 1,
+                                "Native TV color normalization may round a channel by one byte, not change the picture.")
+    }
+
+    func testBitmapCacheSeparatesArtworkAspectAndCrop() throws {
+        let source = fixture(size: CGSize(width: 200, height: 300))
+        let size = CGSize(width: 200, height: 360)
+        let portrait = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+        ))
+        let repeated = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+        ))
+        let differentAspect = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 16.0 / 9.0, sideCrop: 0
+        ))
+        let differentCrop = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0.1
+        ))
+        XCTAssertTrue(portrait === repeated)
+        XCTAssertFalse(portrait === differentAspect)
+        XCTAssertFalse(portrait === differentCrop)
+    }
+
     func testRecreatedCardsReuseThePreparedBitmap() throws {
         let source = fixture(size: CGSize(width: 640, height: 360))
         let size = CGSize(width: 320, height: 230)

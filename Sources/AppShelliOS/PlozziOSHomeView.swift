@@ -210,7 +210,13 @@ struct PlozziOSHomeView: View {
                         settings: appModel.settings.hero.effectiveSettings,
                         hasItems: false, recomputeComplete: false
                     ) != .hidden,
-                    showsPosterCaptions: appModel.settings.cardStyle.captions.showsLabels(in: .home)
+                    showsPosterCaptions: appModel.settings.cardStyle.captions.showsLabels(in: .home),
+                    continueWatchingLayout: appModel.settings.homeVisibility.continueWatchingLayout,
+                    continueWatchingShowsSeriesArtwork: appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
+                    continueWatchingShowsCaption: appModel.settings.cardStyle.captions.showsLabels(
+                        in: .home, hasArtworkTitle: appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
+                        isContinueWatchingPortrait: appModel.settings.homeVisibility.continueWatchingLayout == .portrait
+                    )
                 )
             case .empty:
                 ContentUnavailableView {
@@ -2292,6 +2298,13 @@ private struct PlozziOSHomeRowView: View {
         row.kind == .continueWatching ? liveTV.recentChannels : []
     }
 
+    private var cardStyle: PosterCardView.Style {
+        if row.kind == .continueWatching {
+            return appModel.settings.homeVisibility.continueWatchingLayout.cardStyle
+        }
+        return row.kind == .libraries || row.style == .landscape ? .landscape : .poster
+    }
+
     var body: some View {
         Group {
             if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty, liveChannels.isEmpty {
@@ -2307,22 +2320,24 @@ private struct PlozziOSHomeRowView: View {
                 // page shifting.
                 PlozziOSHomeSkeletonRail(
                     title: Text(row.title),
-                    style: row.kind == .libraries || row.style == .landscape ? .landscape : .poster,
+                    style: cardStyle,
                     cardCount: row.loadingPlaceholderCount > 0 ? row.loadingPlaceholderCount : 8,
                     showsCaption: row.kind == .libraries
                         || appModel.settings.cardStyle.captions.showsLabels(
                             in: .home,
                             hasArtworkTitle: row.kind == .continueWatching
-                                && appModel.settings.homeVisibility.continueWatchingShowsSeriesArtwork
+                                && appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
+                            isContinueWatchingPortrait: row.kind == .continueWatching
+                                && appModel.settings.homeVisibility.continueWatchingLayout == .portrait
                         ),
                     showsSeriesArtwork: row.kind == .continueWatching
-                        && appModel.settings.homeVisibility.continueWatchingShowsSeriesArtwork
+                        && appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork
                 )
             } else {
                 PlozziOSHomeMediaRail(
                     title: Text(row.title),
                     items: row.items,
-                    style: row.style == .landscape ? .landscape : .poster,
+                    style: cardStyle,
                     appModel: appModel,
                     // Continue Watching is a resume affordance: pressing it should
                     // carry on watching, which is what tvOS already did. The
@@ -2336,7 +2351,7 @@ private struct PlozziOSHomeRowView: View {
                     // Continue Watching identifies cards by show art + logo unless
                     // the user has turned that off in Customize Home.
                     showsSeriesArtwork: row.kind == .continueWatching
-                        && appModel.settings.homeVisibility.continueWatchingShowsSeriesArtwork,
+                        && appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
                     liveChannels: liveChannels,
                     onNavigationInteraction:
                         viewModel.noteHomeNavigationInteraction
@@ -2765,7 +2780,7 @@ struct PlozziOSHomeMediaCard: View {
             // The chip is requested explicitly rather than riding an implicit
             // "landscape means playable" rule, so presentation and behaviour stay
             // independently controlled.
-            showsResumeChip: isLandscape,
+            showsResumeChip: isLandscape || interaction == .play,
             downloadState: liveDownloadRecord?.badgeState,
             // No visible "…" while browsing: the actions people actually reach for
             // live on the detail page, which is far more discoverable than a tiny

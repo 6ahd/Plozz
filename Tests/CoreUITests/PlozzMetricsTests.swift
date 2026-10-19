@@ -198,6 +198,26 @@ final class PlozzMetricsTests: XCTestCase {
         XCTAssertTrue(target.plozzCardCaptionsHiddenWithArtworkTitle)
     }
 
+    func testPortraitCaptionEnvironmentInheritsParentAndSurvivesNativeHostingCopy() {
+        var source = EnvironmentValues()
+        source.plozzCardCaptionSettings.setOverride(.show, for: .home)
+        source.plozzCardCaptionSettings.setOverride(.hide, for: .recommended)
+        for parent in [CardCaptionView.home, .recommended] {
+            source.plozzCardCaptionView = parent
+            source.plozzCardCaptionSettings.setOverride(.automatic, for: .continueWatchingPortrait)
+            XCTAssertEqual(source.plozzContinueWatchingPortraitCaptionsHidden, parent == .recommended)
+            source.plozzCardCaptionSettings.setOverride(.show, for: .continueWatchingPortrait)
+            var hosted = EnvironmentValues()
+            hosted.copyCardCaptionPresentation(from: source)
+            XCTAssertFalse(hosted.plozzContinueWatchingPortraitCaptionsHidden)
+            XCTAssertEqual(hosted.plozzCardCaptionsHiddenWithArtworkTitle, parent == .recommended)
+            source.plozzCardCaptionSettings.setOverride(.hide, for: .continueWatchingPortrait)
+            hosted.copyCardCaptionPresentation(from: source)
+            XCTAssertTrue(hosted.plozzContinueWatchingPortraitCaptionsHidden)
+            XCTAssertEqual(hosted.plozzCardCaptionsHiddenWithArtworkTitle, parent == .recommended)
+        }
+    }
+
     func testShowcaseOnlyChangesInheritedLabelsAndDoesNotLeakIntoDestinations() {
         var environment = EnvironmentValues()
         environment.plozzCardCaptionView = .home

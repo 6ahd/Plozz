@@ -71,6 +71,7 @@ public struct LibraryBrowseView: View {
     private let title: Text
     private let spoilerSettings: SpoilerSettings
     private let continueWatchingShowsSeriesArtwork: Bool
+    private let continueWatchingLayout: ContinueWatchingCardLayout
     private let onSelect: (MediaItem) -> Void
     private let onSelectAtIndex: ((MediaItem, VideoPlaylistPlaybackOrigin?) -> Void)?
 
@@ -110,6 +111,7 @@ public struct LibraryBrowseView: View {
         title: Text,
         spoilerSettings: SpoilerSettings = .default,
         continueWatchingShowsSeriesArtwork: Bool = true,
+        continueWatchingLayout: ContinueWatchingCardLayout = .landscape,
         onSelect: @escaping (MediaItem) -> Void,
         onSelectAtIndex: ((MediaItem, VideoPlaylistPlaybackOrigin?) -> Void)? = nil
     ) {
@@ -117,6 +119,7 @@ public struct LibraryBrowseView: View {
         self.title = title
         self.spoilerSettings = spoilerSettings
         self.continueWatchingShowsSeriesArtwork = continueWatchingShowsSeriesArtwork
+        self.continueWatchingLayout = continueWatchingLayout
         self.onSelect = onSelect
         self.onSelectAtIndex = onSelectAtIndex
     }
@@ -353,11 +356,17 @@ public struct LibraryBrowseView: View {
         }
     }
 
+    private func recommendedCardStyle(_ section: LibrarySection) -> PosterCardView.Style {
+        section.id == "continueWatching"
+            ? continueWatchingLayout.cardStyle
+            : (section.style == .poster ? .poster : .landscape)
+    }
+
     private func recommendedRow(_ section: LibrarySection) -> some View {
         MediaRowView(
             title: section.displayName,
             items: section.items,
-            style: section.style == .poster ? .poster : .landscape,
+            style: recommendedCardStyle(section),
             spoilerSettings: spoilerSettings,
             showsSeriesArtwork: section.id == "continueWatching" && continueWatchingShowsSeriesArtwork,
             showsResumeChip: section.id == "continueWatching",
@@ -375,7 +384,7 @@ public struct LibraryBrowseView: View {
                 itemIDs: section.items.map(\.stablePresentationID),
                 leadItem: section.items.first,
                 items: section.items,
-                cardArtwork: section.style == .landscape
+                cardArtwork: recommendedCardStyle(section) == .landscape
                     ? { PosterCardView.leadingLandscapeArtwork(
                         for: $0,
                         showsSeriesArtwork: section.id == "continueWatching" && continueWatchingShowsSeriesArtwork,
@@ -395,7 +404,7 @@ public struct LibraryBrowseView: View {
                 MediaRowView(
                     title: section.displayName,
                     items: section.items,
-                    style: section.style == .poster ? .poster : .landscape,
+                    style: recommendedCardStyle(section),
                     spoilerSettings: spoilerSettings,
                     showsSeriesArtwork: section.id == "continueWatching" && continueWatchingShowsSeriesArtwork,
                     onFocusEntered: {

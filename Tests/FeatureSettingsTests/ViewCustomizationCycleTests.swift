@@ -31,14 +31,16 @@ final class ViewCustomizationCycleTests: XCTestCase {
             for view in CardCaptionView.allCases {
                 var settings = CardCaptionSettings(preference: preference)
                 let choices = view.customizationChoices
-                XCTAssertEqual(choices, [.home, .recommended].contains(view) ? [.show, .hide, .mixed] : [.show, .hide])
+                XCTAssertEqual(choices, view == .continueWatchingPortrait
+                    ? [.automatic, .show, .hide]
+                    : [.home, .recommended].contains(view) ? [.show, .hide, .mixed] : [.show, .hide])
                 let initial = choices.firstIndex(of: settings.customization(in: view))!
                 for step in 1...(choices.count * 3) {
                     settings.toggleCustomization(in: view)
                     XCTAssertEqual(settings.customization(in: view), choices[(initial + step) % choices.count])
-                    XCTAssertNotEqual(settings.override(for: view), .automatic)
-                    XCTAssertNil(settings.selectedPreset)
-                    XCTAssertEqual(settings.overrides.count + settings.mixedOverrides.count, 1)
+                    let followsParent = settings.customization(in: view) == .automatic
+                    XCTAssertEqual(settings.selectedPreset, followsParent ? preference : nil)
+                    XCTAssertEqual(settings.overrides.count + settings.mixedOverrides.count, followsParent ? 0 : 1)
                     XCTAssertEqual(settings.preference, preference)
                     for other in CardCaptionView.allCases where other != view {
                         for artworkTitle in [false, true] {
@@ -90,7 +92,8 @@ final class ViewCustomizationCycleTests: XCTestCase {
         XCTAssertEqual(String(localized: labels.customizationValue(in: .recommended)), "Mixed")
         XCTAssertEqual(String(localized: labels.customizationDetail(in: .home)),
                        "Labels are visible except in Showcase and on series artwork.")
-        for view in CardCaptionView.allCases where view != .home && view != .recommended {
+        XCTAssertEqual(String(localized: labels.customizationValue(in: .continueWatchingPortrait)), "Follow Appearance")
+        for view in CardCaptionView.allCases where view != .home && view != .recommended && view != .continueWatchingPortrait {
             XCTAssertEqual(String(localized: labels.customizationValue(in: view)), "On")
         }
         var customized = labels
@@ -177,6 +180,7 @@ final class ViewCustomizationCycleTests: XCTestCase {
                 case .poster: expected = 2.0 / 3
                 case .thumbnail, .episode: expected = 16.0 / 9
                 case .seriesCard: expected = ContinueWatchingCardShape.aspectRatio
+                case .portraitSeriesCard: expected = ContinueWatchingCardShape.portraitAspectRatio
                 case .cover: expected = 1
                 default: expected = nil
                 }
@@ -212,6 +216,17 @@ final class ViewCustomizationCycleTests: XCTestCase {
             ).filter(\.highlighted)
             XCTAssertEqual(watching.count, 3)
             XCTAssertTrue(watching.allSatisfy { $0.kind == (seriesArtwork ? .seriesCard : .thumbnail) })
+            let portrait = ArtworkScopeDiagram.regions(
+                for: .continueWatching, heroSettings: settings,
+                continueWatchingShowsSeriesArtwork: seriesArtwork, continueWatchingLayout: .portrait
+            ).filter(\.highlighted)
+            XCTAssertEqual(portrait.count, 6)
+            for region in portrait {
+                XCTAssertEqual(region.kind, .portraitSeriesCard)
+                XCTAssertEqual(region.frame.width / region.frame.height,
+                               ContinueWatchingCardShape.portraitAspectRatio, accuracy: 0.001)
+                XCTAssertTrue(CGRect(origin: .zero, size: ArtworkScopeDiagram.screen).contains(region.frame))
+            }
         }
     }
 
@@ -221,12 +236,26 @@ final class ViewCustomizationCycleTests: XCTestCase {
                 var settings = CardCaptionSettings(preference: preference)
                 for _ in 0..<3 {
                     let help = settings.customizationHelp(in: view, style: .framed)
-                    let expected = settings.customization(in: view) == .mixed
+                    let expected: String
+                    if view == .continueWatchingPortrait {
+                        switch settings.customization(in: view) {
+                        case .automatic: expected = "Uses Home rows or Recommended, depending on where the row appears."
+                        case .show: expected = "Labels are visible below Continue Watching posters."
+                        case .hide: expected = "Labels are hidden below Continue Watching posters."
+                        case .mixed: XCTFail("Unsupported portrait choice"); return
+                        }
+                    } else {
+                        expected = settings.customization(in: view) == .mixed
                         ? "Labels are visible except in Showcase and on series artwork."
                         : settings.showsLabels(in: view) ? "Labels are visible in this view." : "Labels are hidden in this view."
+                    }
                     XCTAssertEqual(String(localized: help.detail), expected)
                     XCTAssertEqual(help.illustration, .captions(
-                        style: .framed, showsCaptions: settings.showsLabels(in: view),
+                        style: .framed, showsCaptions: settings.showsLabels(
+                            in: view == .continueWatchingPortrait ? .home : view,
+                            hasArtworkTitle: view == .continueWatchingPortrait,
+                            isContinueWatchingPortrait: view == .continueWatchingPortrait
+                        ),
                         showsMixedCaptions: settings.customization(in: view) == .mixed
                     ))
                     settings.toggleCustomization(in: view)
