@@ -22,9 +22,10 @@ watch history and planning-list behavior are documented in
   Normal rows open their own settings. Source-specific rows and their settings
   use the shared provider brand mark, including the transport badge for shares;
   generic row glyphs appear only during reordering.
-  An inline Preset selector sits below the title; mobile keeps it visible while
-  scrolling and places an accessible + action beside Reorder/Done in the native
-  toolbar. TV keeps its labeled Add section beside Preset. A second, labeled
+  An inline Preset selector sits below the title; mobile contains it in the same
+  rounded settings surface as the section rows and scrolls it with the content.
+  An accessible + action remains beside Reorder/Done in the native toolbar.
+  TV keeps its labeled Add section beside Preset. A second, labeled
   Add section action follows the list. Reorder/Done switches to
   native movement controls with no Hidden drop zone; Hero stays
   pinned and cannot move. Mobile uses the shared page inset without extra gutters.

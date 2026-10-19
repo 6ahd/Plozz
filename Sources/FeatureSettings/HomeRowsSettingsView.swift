@@ -45,6 +45,12 @@ public struct HomeRowsSettingsView: View {
                 reorderButton
             }
             editorControls
+            #elseif os(iOS)
+            editorControls
+                .padding(14)
+                .settingsGroupSurface(cornerRadius: 12)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("home-row-preset-container")
             #endif
             HomeEditorLink {
                 HomeHeroSettingsView(libraries: libraries, accounts: accounts, visibility: visibility)
@@ -123,12 +129,6 @@ public struct HomeRowsSettingsView: View {
                 .accessibilityIdentifier("home-section-add")
                 reorderButton
             }
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            editorControls
-                .padding(.horizontal, 24)
-                .padding(.vertical, 8)
-                .background { SettingsPageBackground() }
         }
         #endif
         .task(id: HomeSectionCatalogModel.loadID(

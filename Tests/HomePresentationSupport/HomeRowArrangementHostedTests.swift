@@ -50,8 +50,8 @@ final class HomeRowArrangementHostedTests: XCTestCase {
     }
 
     #if os(iOS)
-    func testMobileActionBarRemainsReadableAndPinnedWhileSectionsScroll() async throws {
-        let suite = "HomePinnedActions.\(UUID())"
+    func testMobilePresetScrollsWithSectionsWhileToolbarRemainsVisible() async throws {
+        let suite = "HomeScrollingPreset.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
@@ -86,7 +86,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     }, object: nil
                 )
                 await self.fulfillment(of: [ready], timeout: 5)
-                let before = try await self.capture(window, name: "Home actions \(width) \(size)")
+                let before = try await self.capture(window, name: "Home preset container \(width) \(size)")
                 let text = before.map(\.0).joined(separator: " ")
                 for label in ["Preset", "Reorder", "Custom"] {
                     XCTAssertTrue(text.contains(label), text)
@@ -99,11 +99,14 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 })
                 let initialOffset = scroll.contentOffset.y
                 scroll.setContentOffset(CGPoint(x: 0, y: initialOffset + 300), animated: false)
-                let after = try await self.capture(window, name: "Home pinned actions \(width) \(size)")
+                let after = try await self.capture(window, name: "Home scrolled preset \(width) \(size)")
                 XCTAssertGreaterThan(scroll.contentOffset.y, initialOffset + 250)
-                for label in ["Preset", "Reorder"] {
-                    XCTAssertEqual(try self.y(label, in: before), try self.y(label, in: after), accuracy: 0.003)
-                }
+                XCTAssertFalse(after.contains { $0.0.contains("Preset") },
+                               "The preset must scroll away rather than remain pinned below the toolbar.")
+                XCTAssertEqual(try self.y("Reorder", in: before), try self.y("Reorder", in: after), accuracy: 0.003)
+                scroll.setContentOffset(CGPoint(x: 0, y: initialOffset), animated: false)
+                let restored = try await self.capture(window, name: "Home preset restored \(width) \(size)")
+                XCTAssertEqual(try self.y("Preset", in: before), try self.y("Preset", in: restored), accuracy: 0.003)
             }
         }
     }
@@ -576,12 +579,13 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 } inspect: { window in
                     let lines = try await self.capture(window, name: "Home preset \(title) text size \(size)")
                     let text = lines.map(\.0).joined(separator: " ")
-                    // Native wrapping can hyphenate words; OCR also sees the menu chevron as punctuation.
+                    // Wrapping hyphenates words; OCR can read the chevron as a stray single-letter word.
                     let readable = text.replacingOccurrences(of: "- ", with: "")
                         .filter { $0.isLetter || $0.isWhitespace }
-                        .split(whereSeparator: \.isWhitespace).joined(separator: " ")
+                        .split(whereSeparator: \.isWhitespace).filter { $0.count > 1 }
+                        .joined(separator: " ").lowercased()
                     XCTAssertTrue(text.contains("Preset"), text)
-                    XCTAssertTrue(readable.contains(title), text)
+                    XCTAssertTrue(readable.contains(title.lowercased()), text)
                     XCTAssertEqual(visibility.visibility.rowCustomization?.defaults, preset)
                 }
             }
