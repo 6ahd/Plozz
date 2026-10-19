@@ -65,6 +65,117 @@ final class PlayerOrientationTests: XCTestCase {
         XCTAssertEqual(orientation.supportedMask, .portrait)
     }
 
+    func testPlaybackWaitsForNativePrePlaySheetDismissal() async throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let anchor = PlozziOSPlayerPresentation<Color>.Anchor()
+        let coordinator = PlozziOSPlayerPresentation<Color>.Coordinator()
+        coordinator.anchor = anchor
+        coordinator.preference = .landscape
+        coordinator.makeContent = { _, _ in AnyView(Color.black) }
+        window.rootViewController = anchor
+        window.makeKeyAndVisible()
+        defer {
+            coordinator.host?.tearDown()
+            anchor.dismiss(animated: false)
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        try await waitUntil { scene.activationState == .foregroundActive }
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+        try await waitUntil { scene.effectiveGeometry.interfaceOrientation == .portrait }
+        coordinator.request = PlayerCloseProbe.makeRequest()
+        coordinator.reconcile()
+        try await waitUntil { coordinator.host?.orientation.isAvailable == true }
+        let player = try XCTUnwrap(coordinator.host)
+        try await waitUntil { player.transitionCoordinator == nil }
+        let picker = PortraitPrePlayController(rootView: Color.gray)
+        picker.modalPresentationStyle = .pageSheet
+        await withCheckedContinuation { continuation in
+            player.present(picker, animated: true) { continuation.resume() }
+        }
+
+        // Selection resumes preparation before SwiftUI commits the sheet dismissal.
+        player.orientation.beginPlayback()
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(scene.effectiveGeometry.interfaceOrientation, .portrait)
+        XCTAssertFalse(player.orientation.hasGeometryRequestFailed)
+        XCTAssertEqual(player.orientation.supportedMask, .landscape)
+        XCTAssertEqual(player.supportedInterfaceOrientations, .all)
+        await withCheckedContinuation { continuation in
+            picker.dismiss(animated: true) { continuation.resume() }
+        }
+        try await waitUntil(diagnostics: { self.orientationState(player, window, scene) }) {
+            scene.effectiveGeometry.interfaceOrientation.isLandscape
+        }
+        XCTAssertFalse(player.orientation.hasGeometryRequestFailed)
+    }
+
+    func testGeometryRejectionRetriesAreBoundedAndStaleFailuresAreIgnored() async throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let anchor = UIViewController()
+        window.rootViewController = anchor
+        window.makeKeyAndVisible()
+        defer {
+            (anchor.presentedViewController as? PlozziOSOrientationHostingController)?.tearDown()
+            anchor.dismiss(animated: false)
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        try await waitUntil { scene.activationState == .foregroundActive }
+        for rejectsPermanently in [false, true] {
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+            try await waitUntil { scene.effectiveGeometry.interfaceOrientation == .portrait }
+            var requests = 0
+            // UIKit may rotate from mask invalidation alone; control both sides of the rejected request.
+            var reportedOrientation = UIInterfaceOrientation.portrait
+            var delayedFailure: (@MainActor (Error) -> Void)?
+            let orientation = PlozziOSPlayerOrientation(preference: .landscape, isPlaybackActive: false)
+            let player = PlozziOSOrientationHostingController(
+                rootView: AnyView(Color.black), orientation: orientation,
+                currentInterfaceOrientation: { _ in reportedOrientation },
+                requestGeometry: { _, _, onError in
+                    requests += 1
+                    delayedFailure = onError
+                    if requests == 1 || rejectsPermanently {
+                        onError(NSError(domain: "orientation-test", code: 101))
+                    } else {
+                        reportedOrientation = .landscapeRight
+                    }
+                }
+            )
+            await withCheckedContinuation { continuation in
+                anchor.present(player, animated: true) { continuation.resume() }
+            }
+            orientation.beginPlayback()
+            if rejectsPermanently {
+                try await waitUntil { requests == 3 && orientation.hasGeometryRequestFailed }
+                try await Task.sleep(for: .milliseconds(350))
+                XCTAssertEqual(requests, 3, "Rejected geometry must not create an unbounded retry loop.")
+                XCTAssertEqual(orientation.supportedMask, .landscape)
+            } else {
+                try await waitUntil {
+                    reportedOrientation.isLandscape && !orientation.hasGeometryRequestFailed
+                }
+                XCTAssertEqual(requests, 2)
+            }
+            player.tearDown()
+            orientation.clearGeometryFailure()
+            delayedFailure?(NSError(domain: "stale-orientation-test", code: 101))
+            XCTAssertFalse(orientation.hasGeometryRequestFailed, "A dismissed host must ignore late failures.")
+            await withCheckedContinuation { continuation in
+                player.dismiss(animated: false) { continuation.resume() }
+            }
+        }
+    }
+
     func testLiveExpansionRotatesAndCollapseRestoresWithoutRecreatingContent() async throws {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone)
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
@@ -344,7 +455,7 @@ final class PlayerOrientationTests: XCTestCase {
         ))
     }
 
-    func testPreferenceIsSuspendedInWindowedModeAndFailureDoesNotPersist() {
+    func testWindowedModeSuspendsPreferenceButGeometryFailureDoesNotAbandonIt() {
         let orientation = PlozziOSPlayerOrientation(preference: .landscape)
         XCTAssertEqual(orientation.supportedMask, .all)
         orientation.updateAvailability(true)
@@ -354,9 +465,11 @@ final class PlayerOrientationTests: XCTestCase {
         XCTAssertEqual(orientation.preference, .landscape)
         orientation.updateAvailability(true)
         orientation.geometryRequestFailed(NSError(domain: "orientation-test", code: 1))
-        XCTAssertEqual(orientation.supportedMask, .all)
+        XCTAssertEqual(orientation.supportedMask, .landscape)
         XCTAssertEqual(orientation.preference, .landscape)
-        XCTAssertNotNil(orientation.status.message)
+        XCTAssertTrue(orientation.hasGeometryRequestFailed)
+        orientation.clearGeometryFailure()
+        XCTAssertFalse(orientation.hasGeometryRequestFailed)
         XCTAssertFalse(PlozziOSPlayerOrientation(preference: .landscape).hasGeometryRequestFailed)
     }
 
@@ -369,6 +482,10 @@ final class PlayerOrientationTests: XCTestCase {
         host.tearDown()
         XCTAssertNil(orientation.host)
     }
+}
+
+private final class PortraitPrePlayController: UIHostingController<Color> {
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .portrait }
 }
 
 @MainActor

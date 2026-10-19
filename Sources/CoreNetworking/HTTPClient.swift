@@ -116,6 +116,7 @@ public extension HTTPClient {
             return (value, response)
         } catch {
             diagnostic?.finish(.failed)
+            HTTPResponseDiagnostics.recordDecodeFailure(error, data: data, response: response)
             let contentType = response.value(forHTTPHeaderField: "Content-Type") ?? "<none>"
             PlozzLog.networking.error(
                 "Decode failed method=\(endpoint.method.rawValue) path=\(endpoint.path) "

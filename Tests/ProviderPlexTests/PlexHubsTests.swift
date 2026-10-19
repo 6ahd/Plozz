@@ -1,5 +1,6 @@
 import XCTest
 import CoreModels
+import CoreNetworking
 @testable import ProviderPlex
 
 /// `PlexProvider.libraryHubs` maps `/hubs/sections/{id}` into the additive
@@ -80,6 +81,21 @@ final class PlexHubsTests: XCTestCase {
         XCTAssertEqual(sections.first?.items.map(\.title), ["Drama A", "Drama B", "Drama C"])
         XCTAssertEqual(sections.first?.items.first?.libraryID, "1")
         XCTAssertTrue(sections.allSatisfy { $0.style == .poster && $0.items.count >= 3 })
+    }
+
+    func testMalformedHubResponseKeepsTypedErrorAndSafeRouteDiagnostic() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/hubs/sections/1", json: #"{"MediaContainer":{"Hub":false}}"#)
+        let provider = PlexProvider(session: makeSession(), http: stub)
+        let captured = await HTTPResponseDiagnostics.capture {
+            try await provider.libraryHubs(libraryID: "1", kind: .movie, limit: 20)
+        }
+        guard case .failure(let error) = captured.result else { return XCTFail("Malformed hubs must fail") }
+        XCTAssertEqual(error as? AppError, .decoding)
+        let response = try XCTUnwrap(captured.responses.last)
+        XCTAssertEqual(response.route, .libraryHubs)
+        XCTAssertEqual(response.path, "MediaContainer.Hub")
+        XCTAssertEqual(response.reason, .wrongType)
     }
 
     func testCapsItemsPerHubToLimit() async throws {

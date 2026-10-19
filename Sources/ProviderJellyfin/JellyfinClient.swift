@@ -660,7 +660,9 @@ public struct JellyfinClient: Sendable {
             ],
             headers: authHeaders
         )
-        return try await http.decode([MovieRecommendationDto].self, from: endpoint, baseURL: baseURL)
+        return try await HTTPResponseDiagnostics.$route.withValue(.movieRecommendations) {
+            try await http.decode(MovieRecommendationsResponse.self, from: endpoint, baseURL: baseURL).recommendations
+        }
     }
 
     func item(userID: String, id: String) async throws -> BaseItemDto {

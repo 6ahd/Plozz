@@ -174,8 +174,12 @@ applied to other windows, the ordinary guide, or inactive profiles.
 iPad follows system rotation and offers no app orientation control, preserving
 multitasking. iPadOS refuses forced Portrait/Landscape changes in multitasking
 mode, even when a window fills the display.
-Rejected geometry requests log the failure, show a status message, and fall
-back to Auto for the current presentation without changing the saved preference.
+Rotation waits for native presentation transitions, including dismissal of the
+pre-play sheet, rather than racing the selection continuation. Transient geometry
+rejections are logged and retried at most three times within a bounded reconciliation
+window; they never replace the saved preference with Auto or show a window-management
+toast. Dismissal, ownership changes, and newer requests cancel stale reconciliation.
+Returning to the foreground rechecks the active player's orientation.
 
 The mobile in-player Guide reuses the guide grid without its standalone top
 inset, aligning the ruler with the current-program column. That column uses the

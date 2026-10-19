@@ -9,6 +9,49 @@ import XCTest
 
 @MainActor
 final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
+    func testErrorDetailsSheetUsesCenteredInlineTitleAndLeadingCloseIcon() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let presenter = UIViewController()
+        window.rootViewController = presenter
+        window.makeKeyAndVisible()
+        defer {
+            presenter.dismiss(animated: false)
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        let sheet = UIHostingController(rootView: PlaybackDiagnosticDetailsSheet(
+            report: .onDemand(error: .noStreams, provider: .jellyfin, engine: nil, stage: .preparation)
+        ).environment(\.locale, Locale(identifier: "en_US")))
+        sheet.modalPresentationStyle = .pageSheet
+        await withCheckedContinuation { continuation in
+            presenter.present(sheet, animated: true) { continuation.resume() }
+        }
+        sheet.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(150))
+        func descendants(_ view: UIView) -> [UIView] {
+            [view] + view.subviews.flatMap(descendants)
+        }
+        let bar = try XCTUnwrap(descendants(sheet.view).compactMap { $0 as? UINavigationBar }.first)
+        let item = try XCTUnwrap(bar.topItem)
+        XCTAssertEqual(item.title, "Details")
+        XCTAssertLessThanOrEqual(bar.bounds.height, 64, "The title must remain inline, not a large scrolling heading.")
+        let buttons = (item.leftBarButtonItems ?? []) + item.leadingItemGroups.flatMap(\.barButtonItems)
+        XCTAssertEqual(buttons.count, 1)
+        XCTAssertNotNil(buttons.first?.image)
+        XCTAssertTrue((item.rightBarButtonItems ?? []).isEmpty && item.trailingItemGroups.isEmpty)
+        let title = try XCTUnwrap(descendants(bar).compactMap { $0 as? UILabel }.first { $0.text == "Details" })
+        XCTAssertEqual(title.convert(title.bounds, to: bar).midX, bar.bounds.midX, accuracy: 2)
+        let attachment = XCTAttachment(image: UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        })
+        attachment.name = "Centered Details title and leading Close"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     private let commonLabelKeys = [
         "File", "Size", "Delivery", "Stream", "Codec", "Resolution", "Frame Rate",
         "Color", "Codec Tag", "Channels", "Sample Rate", "Bitrate", "System output", "Connection", "Track",

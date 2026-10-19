@@ -125,7 +125,8 @@ public final class LibraryBrowseViewModel {
     }
     public private(set) var contentMode: LibraryContentMode = .titles
     public private(set) var recommendationState: LoadState<[LibrarySection]> = .idle
-    public private(set) var recommendationError: AppError?
+    public private(set) var recommendationDiagnostic: LibraryRecommendationDiagnostic?
+    public var recommendationError: AppError? { recommendationDiagnostic?.failures.first?.error }
 
     public var supportsRecommendations: Bool {
         browseScope == .library && provider.kind != .mediaShare
@@ -1057,11 +1058,11 @@ public final class LibraryBrowseViewModel {
         recommendationGeneration += 1
         let generation = recommendationGeneration
         recommendationsDirty = true
+        let previousState = recommendationState
         if recommendationState.value == nil { recommendationState = .loading }
-        recommendationError = nil
         defer {
             if generation == recommendationGeneration, case .loading = recommendationState {
-                recommendationState = .idle
+                recommendationState = previousState
             }
         }
         let provider = provider
@@ -1069,7 +1070,7 @@ public final class LibraryBrowseViewModel {
         let kind = containerKind
         let accountID = sourceAccountID
         let limit = 20
-        async let recent = Self.recommendationResult {
+        async let recent = HTTPResponseDiagnostics.capture {
             try await provider.items(
                 in: libraryID, kind: kind,
                 page: PageRequest(
@@ -1078,25 +1079,29 @@ public final class LibraryBrowseViewModel {
                 )
             )
         }
-        async let continueWatching = Self.recommendationResult {
+        async let continueWatching = HTTPResponseDiagnostics.capture {
             try await provider.continueWatching(limit: limit, inLibraries: [libraryID])
         }
-        async let hubs = Self.recommendationResult {
+        async let hubs = HTTPResponseDiagnostics.capture {
             try await provider.libraryHubs(libraryID: libraryID, kind: kind, limit: limit)
         }
         let (latestResult, watchingResult, hubResult) = await (recent, continueWatching, hubs)
         guard !Task.isCancelled, generation == recommendationGeneration,
-              watchRevision == recommendationWatchRevision else { return }
+              watchRevision == recommendationWatchRevision,
+              !latestResult.isCancelled, !watchingResult.isCancelled, !hubResult.isCancelled else { return }
+        let previousSections = recommendationState.value ?? []
         var sections: [LibrarySection] = []
-        var firstError: AppError?
-        func record(_ error: Error) {
+        var failures: [LibraryRecommendationDiagnostic.Failure] = []
+        var failedServers: [MediaServer] = []
+        func record(_ error: Error, section: LibraryRecommendationDiagnostic.Section, responses: [ResponseDecodingDiagnostic]) {
             let underlying = LibrarySourceFailure.underlying(error)
             let mapped = (underlying as? AppError) ?? .unknown(underlying.localizedDescription)
-            if firstError == nil { errorServers = failureServers(for: error) }
-            firstError = firstError ?? mapped
-            PlozzLog.app.error("Library recommendations failed for \(libraryID): \(String(describing: error))")
+            for server in failureServers(for: error) where !failedServers.contains(server) {
+                failedServers.append(server)
+            }
+            failures.append(.init(section: section, error: mapped, responses: responses))
         }
-        switch watchingResult {
+        switch watchingResult.result {
         case .success(let items):
             let scoped = items.filter { provider.contains($0, inLibrary: libraryID) }
             if !scoped.isEmpty {
@@ -1107,9 +1112,11 @@ public final class LibraryBrowseViewModel {
                     }
                 ))
             }
-        case .failure(let error): record(error)
+        case .failure(let error):
+            record(error, section: .continueWatching, responses: watchingResult.responses)
+            sections += previousSections.filter { $0.id == "continueWatching" }
         }
-        switch hubResult {
+        switch hubResult.result {
         case .success(let hubs):
             var occurrences: [String: Int] = [:]
             sections += hubs.compactMap { section -> LibrarySection? in
@@ -1127,9 +1134,11 @@ public final class LibraryBrowseViewModel {
                     }
                 )
             }
-        case .failure(let error): record(error)
+        case .failure(let error):
+            record(error, section: .recommendations, responses: hubResult.responses)
+            sections += previousSections.filter { $0.id.hasPrefix("hub:") }
         }
-        switch latestResult {
+        switch latestResult.result {
         case .success(let page):
             if !page.items.isEmpty {
                 sections.append(LibrarySection(
@@ -1139,9 +1148,16 @@ public final class LibraryBrowseViewModel {
                     }
                 ))
             }
-        case .failure(let error): record(error)
+        case .failure(let error):
+            record(error, section: .recentlyAdded, responses: latestResult.responses)
+            sections += previousSections.filter { $0.id == "recentlyAdded" }
         }
-        recommendationError = firstError
+        let firstError = failures.first?.error
+        errorServers = failedServers
+        recommendationDiagnostic = failures.isEmpty ? nil : .init(provider: provider.kind, failures: failures)
+        if let recommendationDiagnostic {
+            PlozzLog.app.error("Library recommendations failed: \(recommendationDiagnostic.supportText)")
+        }
         recommendationsDirty = firstError != nil
         if !sections.isEmpty {
             recommendationState = .loaded(sections)
@@ -1154,13 +1170,6 @@ public final class LibraryBrowseViewModel {
         } else {
             recommendationState = .empty
         }
-    }
-
-    private nonisolated static func recommendationResult<T: Sendable>(
-        _ operation: @escaping @Sendable () async throws -> T
-    ) async -> Result<T, Error> {
-        do { return .success(try await operation()) }
-        catch { return .failure(error) }
     }
 
     public func retryFailedPages() async {

@@ -5,6 +5,17 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+- **Library recommendation failures** — Continue Watching, server recommendations,
+  and Recently Added resolve independently. Partial and complete failures offer
+  the shared native Details / Try Again actions on mobile and TV. Details name
+  every failed section and reuse the existing shareable diagnostic sheet, without
+  server addresses, account names, library IDs, titles, or response bodies.
+  Decode failures retain bounded structured response evidence rather than only
+  `AppError.decoding`; provider error types and strict decoding are unchanged.
+  Refreshing preserves each failed family's previously loaded rows until that
+  family succeeds, including an authoritative empty result. Cancellation never
+  publishes a partial success or replaces the last completed diagnostic.
+
 - **Deferred version inventory** — providers that advertise lazy file discovery
   refresh movie/episode choices after detail first paint and the existing dwell
   gate. Inventory publication is fenced by the current source and cancellation;

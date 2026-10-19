@@ -13,7 +13,7 @@ public enum PlozziOSWindowOrientation {
 
     public static func supportedOrientations(for window: UIWindow?) -> UIInterfaceOrientationMask {
         guard let window else { return .all }
-        return owners.object(forKey: window)?.orientation.supportedMask ?? .all
+        return owners.object(forKey: window)?.supportedInterfaceOrientations ?? .all
     }
 
     static func acquire(_ owner: PlozziOSOrientationHostingController, for window: UIWindow) {
@@ -35,7 +35,6 @@ final class PlozziOSPlayerOrientation {
     private(set) var isPlaybackActive: Bool
     private(set) var hasGeometryRequestFailed = false
     private(set) var isAvailable = false
-    let status = TransientStatusPresenter()
     @ObservationIgnored weak var host: PlozziOSOrientationHostingController?
     @ObservationIgnored var close: () -> Void = {}
 
@@ -45,7 +44,7 @@ final class PlozziOSPlayerOrientation {
     }
 
     var requestedMask: UIInterfaceOrientationMask {
-        !isPlaybackActive || hasGeometryRequestFailed ? .all : Self.mask(for: preference)
+        isPlaybackActive ? Self.mask(for: preference) : .all
     }
 
     var supportedMask: UIInterfaceOrientationMask { isAvailable ? requestedMask : .all }
@@ -100,29 +99,43 @@ final class PlozziOSPlayerOrientation {
     func geometryRequestFailed(_ error: Error) {
         PlozzLog.playback.error("Player orientation request failed: \(error.localizedDescription)")
         hasGeometryRequestFailed = true
-        host?.invalidateOrientationPreferences()
-        status.present(
-            icon: "rotate.right",
-            text: "Unable to change orientation. Use a full-screen window and try again."
-        )
+    }
+
+    func clearGeometryFailure() {
+        hasGeometryRequestFailed = false
     }
 }
 
 /// Owns a full-screen cover or an in-place player's window-scoped orientation policy.
 final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
+    typealias GeometryRequest = @MainActor (
+        UIWindowScene, UIInterfaceOrientationMask, @escaping @MainActor (Error) -> Void
+    ) -> Void
+
     let orientation: PlozziOSPlayerOrientation
     private let ownsWindowOrientation: Bool
+    private let requestGeometry: GeometryRequest
+    private let currentInterfaceOrientation: @MainActor (UIWindowScene) -> UIInterfaceOrientation
     private weak var orientationWindow: UIWindow?
     private var precedingOrientation: UIInterfaceOrientation?
     private var requestGeneration = 0
     private var hasAppeared = false
+    private var geometryTask: Task<Void, Error>?
 
     init(
         rootView: AnyView, orientation: PlozziOSPlayerOrientation,
-        ownsWindowOrientation: Bool = false
+        ownsWindowOrientation: Bool = false,
+        currentInterfaceOrientation: @escaping @MainActor (UIWindowScene) -> UIInterfaceOrientation = {
+            $0.effectiveGeometry.interfaceOrientation
+        },
+        requestGeometry: @escaping GeometryRequest = { scene, mask, onError in
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask), errorHandler: onError)
+        }
     ) {
         self.orientation = orientation
         self.ownsWindowOrientation = ownsWindowOrientation
+        self.requestGeometry = requestGeometry
+        self.currentInterfaceOrientation = currentInterfaceOrientation
         super.init(rootView: rootView)
         modalPresentationStyle = .fullScreen
         orientation.host = self
@@ -133,7 +146,7 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
     }
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        orientation.supportedMask
+        hasPendingPresentation ? .all : orientation.supportedMask
     }
 
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
@@ -164,8 +177,9 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
     func tearDown() {
         hasAppeared = false
         requestGeneration += 1
+        geometryTask?.cancel()
+        geometryTask = nil
         if orientation.host === self {
-            orientation.status.dismiss()
             orientation.host = nil
         }
         releaseWindowOrientation()
@@ -206,6 +220,8 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
 
     func applyOrientation() {
         requestGeneration += 1
+        geometryTask?.cancel()
+        geometryTask = nil
         if ownsWindowOrientation {
             if hasAppeared, orientation.isAvailable, let window = viewIfLoaded?.window {
                 if orientationWindow !== window {
@@ -222,18 +238,67 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
         guard hasAppeared, orientation.isAvailable, let scene = view.window?.windowScene,
               scene.activationState == .foregroundActive else { return }
         let generation = requestGeneration
-        Task { @MainActor [weak self] in
-            // UIKit coalesces supported-orientation invalidation until the current update completes.
-            await Task.yield()
-            guard let self, self.requestGeneration == generation, self.orientation.host === self else { return }
-            let mask = self.orientation.supportedMask
-            if let current = PlozziOSPlayerOrientation.mask(for: scene.effectiveGeometry.interfaceOrientation),
-               !mask.intersection(current).isEmpty { return }
-            scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { [weak self] error in
-                guard let self, self.requestGeneration == generation, self.orientation.host === self else { return }
-                self.orientation.geometryRequestFailed(error)
+        geometryTask = Task { @MainActor [weak self] in
+            let deadline = ContinuousClock.now + .seconds(3)
+            var requests = 0
+            var nextRequest = ContinuousClock.now
+            defer {
+                if self?.requestGeneration == generation { self?.geometryTask = nil }
             }
+            while ContinuousClock.now < deadline {
+                // A yield alone can run again before UIKit commits a pending sheet dismissal.
+                try await Task.sleep(for: .milliseconds(50))
+                guard let self, self.requestGeneration == generation, self.orientation.host === self,
+                      self.hasAppeared, self.orientation.isAvailable,
+                      self.viewIfLoaded?.window?.windowScene === scene,
+                      scene.activationState == .foregroundActive else { return }
+                let mask = self.orientation.supportedMask
+                if let current = PlozziOSPlayerOrientation.mask(for: self.currentInterfaceOrientation(scene)),
+                   !mask.intersection(current).isEmpty {
+                    self.orientation.clearGeometryFailure()
+                    return
+                }
+                if let transition = self.transitionCoordinator ?? self.presentedViewController?.transitionCoordinator,
+                   transition.animate(alongsideTransition: nil, completion: { [weak self] _ in
+                       guard let self, self.requestGeneration == generation, self.orientation.host === self else { return }
+                       self.applyOrientation()
+                   }) {
+                    return
+                }
+                guard self.canRequestGeometry else { continue }
+                guard requests == 0 || self.orientation.hasGeometryRequestFailed else { continue }
+                guard requests < 3 else { return }
+                guard ContinuousClock.now >= nextRequest else { continue }
+                requests += 1
+                nextRequest = .now + .milliseconds(200)
+                self.orientation.clearGeometryFailure()
+                self.invalidateOrientationPreferences()
+                self.requestGeometry(scene, mask) { [weak self] error in
+                    guard let self, self.requestGeneration == generation, self.orientation.host === self else { return }
+                    self.orientation.geometryRequestFailed(error)
+                }
+            }
+            PlozzLog.playback.error("Player orientation did not settle before the presentation deadline.")
         }
+    }
+
+    private var canRequestGeometry: Bool {
+        !hasPendingPresentation && transitionCoordinator == nil && viewIfLoaded?.window?.isKeyWindow == true
+    }
+
+    private var hasPendingPresentation: Bool {
+        var controller: UIViewController? = self
+        while let current = controller {
+            guard !current.isBeingPresented, !current.isBeingDismissed,
+                  current.presentedViewController == nil else { return true }
+            if let transition = current.transitionCoordinator,
+               let from = transition.viewController(forKey: .from),
+               let to = transition.viewController(forKey: .to), from !== to {
+                return true
+            }
+            controller = current.parent
+        }
+        return false
     }
 
 }
@@ -244,8 +309,7 @@ extension View {
     ) -> some View {
         overlay(alignment: .top) {
             if isPresented, UIDevice.current.userInterfaceIdiom == .phone {
-                PlozziOSLiveOrientationStatus(preference: orientation)
-                    .padding(.top, 60)
+                PlozziOSLiveOrientationOwner(preference: orientation)
                     .allowsHitTesting(false)
             }
         }
@@ -267,7 +331,7 @@ extension View {
     }
 }
 
-private struct PlozziOSLiveOrientationStatus: View {
+private struct PlozziOSLiveOrientationOwner: View {
     let preference: PlaybackOrientation
     @State private var orientation: PlozziOSPlayerOrientation
     @Environment(\.scenePhase) private var scenePhase
@@ -278,15 +342,12 @@ private struct PlozziOSLiveOrientationStatus: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            PlozziOSLiveOrientationAttachment(orientation: orientation)
-                .frame(width: 0, height: 0)
-            TransientStatusView(presenter: orientation.status)
-        }
-        .onChange(of: preference) { _, value in orientation.updatePreference(value) }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { orientation.host?.applyOrientation() }
-        }
+        PlozziOSLiveOrientationAttachment(orientation: orientation)
+            .frame(width: 0, height: 0)
+            .onChange(of: preference) { _, value in orientation.updatePreference(value) }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { orientation.host?.applyOrientation() }
+            }
     }
 }
 
@@ -336,11 +397,17 @@ struct PlozziOSPlayerPresentation<Content: View>: UIViewControllerRepresentable 
     }
 
     private struct PresentationContent: View {
+        @Environment(\.scenePhase) private var scenePhase
         let request: PlozziOSPlaybackRequest
         let orientation: PlozziOSPlayerOrientation
         let content: (PlozziOSPlaybackRequest, PlozziOSPlayerOrientation) -> Content
 
-        var body: some View { content(request, orientation) }
+        var body: some View {
+            content(request, orientation)
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { orientation.host?.applyOrientation() }
+                }
+        }
     }
 
     static func dismantleUIViewController(_ controller: Anchor, coordinator: Coordinator) {

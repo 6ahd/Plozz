@@ -45,6 +45,26 @@ final class LibraryPresentationTests: XCTestCase {
         }
     }
 
+    func testPartialRecommendationFailuresOfferDetailsWithoutReplacingLoadedRows() async throws {
+        let appModel = PlozziOSAppModel()
+        for (width, textSize) in [(390.0, DynamicTypeSize.large), (320.0, .accessibility3)] {
+            let provider = LibraryPresentationProvider(artwork: nil, hubError: .decoding)
+            try await withLibrary(
+                provider: provider, appModel: appModel, size: CGSize(width: width, height: 844),
+                sizeClass: .compact, dynamicTypeSize: textSize
+            ) { window, model in
+                XCTAssertEqual(model.recommendationState.value?.map(\.id), ["continueWatching", "recentlyAdded"])
+                XCTAssertEqual(model.recommendationDiagnostic?.failures.map(\.section), [.recommendations])
+                let text = try self.capture(window, name: "library-partial-failure-\(width)")
+                    .compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                XCTAssertTrue(text.contains("Details"), text)
+                XCTAssertTrue(text.contains("Try Again"), text)
+                let scroll = try XCTUnwrap(self.scrollViews(in: window).first)
+                XCTAssertLessThanOrEqual(scroll.contentSize.width, scroll.bounds.width + 1)
+            }
+        }
+    }
+
     func testLibraryModesOnPhoneAndTablet() async throws {
         let artwork = try await seedArtwork()
         let appModel = PlozziOSAppModel()
@@ -317,6 +337,7 @@ final class LibraryPresentationTests: XCTestCase {
                         case .failed:
                             XCTAssertTrue(strings.contains("Unable to load"), strings)
                             XCTAssertTrue(strings.contains("Try Again"), strings)
+                            if mode == .recommended { XCTAssertTrue(strings.contains("Details"), strings) }
                         case .loading:
                             XCTAssertTrue(strings.contains("Loading"), strings)
                         case .loaded:
@@ -591,6 +612,7 @@ private struct LibraryPresentationProvider: MediaProvider, CapabilityReporting, 
     enum Outcome: Sendable { case loaded, empty, failed, loading }
     let artwork: URL?
     var outcome = Outcome.loaded
+    var hubError: AppError?
     var kind: ProviderKind = .jellyfin
     let capabilities: ProviderCapability = [.video, .libraryCollections, .videoPlaylists]
     var session: UserSession {
@@ -642,6 +664,7 @@ private struct LibraryPresentationProvider: MediaProvider, CapabilityReporting, 
     }
     func libraryHubs(libraryID: String, kind: MediaItemKind, limit: Int) async throws -> [LibrarySection] {
         try await prepare()
+        if let hubError { throw hubError }
         return [LibrarySection(id: "top-rated", title: "Top Rated", items: Array(titles(kind: kind).prefix(limit)))]
     }
     func latest(limit: Int) async throws -> [MediaItem] { [] }

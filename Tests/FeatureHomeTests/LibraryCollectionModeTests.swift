@@ -143,6 +143,81 @@ final class LibraryCollectionModeTests: XCTestCase {
         XCTAssertNotNil(model.recommendationState.value)
     }
 
+    func testRecommendationDecodingFailureIdentifiesTheFailedSectionForEveryProvider() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby, .plex, .silo] {
+            let watching = MediaItem(id: "watching", title: "Watching", kind: .movie, libraryID: "real-library")
+            let provider = LibraryModeProvider(kind: kind, watchingItems: [watching])
+            await provider.setHubError(.decoding)
+            let model = model(provider)
+            await model.loadFirstPageIfNeeded()
+            XCTAssertEqual(model.recommendationState.value?.map(\.id), ["continueWatching", "recentlyAdded"])
+            XCTAssertEqual(model.recommendationError, .decoding)
+            let diagnostic = try XCTUnwrap(model.recommendationDiagnostic)
+            XCTAssertEqual(diagnostic.provider, kind)
+            XCTAssertEqual(diagnostic.failures.map(\.section), [.recommendations])
+            XCTAssertEqual(diagnostic.failures.map(\.error), [.decoding])
+            XCTAssertEqual(model.errorServers, [provider.session.server])
+
+            await provider.setHubError(nil)
+            await model.loadRecommendations()
+            XCTAssertNil(model.recommendationDiagnostic)
+            XCTAssertNil(model.recommendationError)
+            XCTAssertTrue(model.errorServers.isEmpty)
+        }
+    }
+
+    func testRecommendationRetryPreservesFailedFamiliesUntilAnAuthoritativeSuccess() async throws {
+        let item = MediaItem(id: "movie", title: "Movie", kind: .movie, libraryID: "real-library")
+        let provider = LibraryModeProvider(
+            watchingItems: [item], nativeSections: [LibrarySection(id: "suggested", title: "Suggested", items: [item])]
+        )
+        let model = model(provider)
+        await model.loadRecommendations()
+        let original = try XCTUnwrap(model.recommendationState.value)
+        await provider.setHubError(.decoding)
+        await model.loadRecommendations()
+        XCTAssertEqual(model.recommendationState.value?.map(\.id), original.map(\.id),
+                       "Successful recent/resume requests must not erase the failed hub's existing content.")
+        await provider.setWatchingError(.serverUnreachable)
+        await provider.fail(.titles, at: 0)
+        await model.loadRecommendations()
+        XCTAssertEqual(model.recommendationState.value?.map(\.id), original.map(\.id))
+        XCTAssertEqual(model.recommendationDiagnostic?.failures.map(\.section),
+                       [.continueWatching, .recommendations, .recentlyAdded])
+
+        await provider.setHubError(nil)
+        await provider.setNativeSections([])
+        await provider.setWatchingError(nil)
+        await provider.clearFailures()
+        await model.loadRecommendations()
+        XCTAssertEqual(model.recommendationState.value?.map(\.id), ["continueWatching", "recentlyAdded"])
+        XCTAssertNil(model.recommendationDiagnostic)
+    }
+
+    func testAllRecommendationFailuresHaveDetailsAndProviderCancellationDoesNotPublishPartialSuccess() async throws {
+        let provider = LibraryModeProvider()
+        await provider.setHubError(.decoding)
+        await provider.setWatchingError(.unauthorized)
+        await provider.fail(.titles, at: 0)
+        let model = model(provider)
+        await model.loadRecommendations()
+        XCTAssertEqual(model.recommendationState, .failed(.unauthorized))
+        let diagnostic = try XCTUnwrap(model.recommendationDiagnostic)
+        XCTAssertEqual(diagnostic.failures.count, 3)
+
+        await provider.clearFailures()
+        await provider.setWatchingError(nil)
+        await provider.setHubError(.cancelled)
+        await model.loadRecommendations()
+        XCTAssertEqual(model.recommendationState, .failed(.unauthorized))
+        XCTAssertEqual(model.recommendationDiagnostic, diagnostic, "Cancellation must retain the last completed failure.")
+
+        let fresh = self.model(provider)
+        await fresh.loadRecommendations()
+        XCTAssertEqual(fresh.recommendationState, .idle)
+        XCTAssertNil(fresh.recommendationDiagnostic)
+    }
+
     func testCancelledRecommendationsCanRetryOnReappear() async {
         let provider = LibraryModeProvider()
         let model = model(provider)
@@ -580,6 +655,8 @@ private actor LibraryModeProvider: MediaProvider, CapabilityReporting {
     private var watchingItems: [MediaItem]
     private var nativeSections: [LibrarySection]
     private var failHubs: Bool
+    private var hubError: AppError?
+    private var watchingError: AppError?
     private var holds: Set<Key> = []
     private var held: [Key: CheckedContinuation<Void, Never>] = [:]
     private var heldObservers: [Key: CheckedContinuation<Void, Never>] = [:]
@@ -638,6 +715,8 @@ private actor LibraryModeProvider: MediaProvider, CapabilityReporting {
 
     func clearFailures() { failures = [] }
     func setFailHubs(_ value: Bool) { failHubs = value }
+    func setHubError(_ value: AppError?) { hubError = value }
+    func setWatchingError(_ value: AppError?) { watchingError = value }
     func setWatchingItems(_ items: [MediaItem]) { watchingItems = items }
     func setNativeSections(_ sections: [LibrarySection]) { nativeSections = sections }
 
@@ -705,10 +784,12 @@ private actor LibraryModeProvider: MediaProvider, CapabilityReporting {
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func continueWatching(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
         requestedWatchingLibraries.append(libraryIDs)
+        if let watchingError { throw watchingError }
         return Array(watchingItems.prefix(limit))
     }
     func libraryHubs(libraryID: String, kind: MediaItemKind, limit: Int) async throws -> [LibrarySection] {
         requestedHubLibraries.append(libraryID)
+        if let hubError { throw hubError }
         if failHubs { throw AppError.serverUnreachable }
         return nativeSections
     }

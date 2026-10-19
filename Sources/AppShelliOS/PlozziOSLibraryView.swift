@@ -259,9 +259,11 @@ struct PlozziOSLibraryGridView: View {
         .safeAreaInset(edge: .bottom) {
             if viewModel.contentMode == .recommended, let error = viewModel.recommendationError,
                viewModel.recommendationState.value != nil {
-                HStack {
-                    Text(error.userMessage).plozzForeground(.secondary)
-                    Button("Try Again") { Task { await viewModel.loadRecommendations() } }
+                VStack(alignment: .leading, spacing: 12) {
+                    InlineErrorMessage(Text(error.userMessage))
+                    ContentFailureActions(report: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library)) {
+                        Task { await viewModel.loadRecommendations() }
+                    }
                 }
                 .padding()
                 .background(.regularMaterial)
@@ -345,7 +347,9 @@ struct PlozziOSLibraryGridView: View {
                 }
                 Text(error.userMessage)
             } actions: {
-                Button("Try Again") { Task { await viewModel.loadRecommendations() } }
+                ContentFailureActions(report: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library)) {
+                    Task { await viewModel.loadRecommendations() }
+                }
             }
         }
     }

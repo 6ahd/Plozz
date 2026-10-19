@@ -83,9 +83,19 @@ row IDs across refreshes. Existing string IDs are unchanged; null or absent IDs
 retain the provider's recommendation-type/subject fallback. Malformed values
 still fail decoding rather than silently removing recommendations or errors.
 
+The movie-recommendation decoder also accepts the compatible bridge's verified
+empty query-result shape: exactly `Items: []`, `TotalRecordCount: 0`, and
+`StartIndex: 0`. This means no recommendation shelves, not a failed library.
+Canonical category arrays remain unchanged. Missing/null fields, contradictory
+counts, error or additional keys, and nonempty envelopes still fail with Details:
+the observed empty response does not establish a populated-envelope contract.
+The compatibility path adds no request, cache, or capability override; a later
+refresh can return normal categories, and cancellation continues to propagate.
+
 `JellyfinLibraryScopingTests` uses backend-specific recommendation fixtures and
 covers full Int64 boundaries, exact IDs above 2^53, malformed IDs, library scope,
-and stable category identity after rows are reordered.
+stable category identity after rows are reordered, and strict empty-envelope
+compatibility with refresh and cancellation.
 
 ## Music
 

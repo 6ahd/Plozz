@@ -11,6 +11,14 @@ and every provider/feature that talks to a remote server.
   - exposes a typed `decode(_:from:baseURL:)` convenience.
 - `Endpoint`: a transport-agnostic request description (method, path, query,
   headers, body) — providers build these, not raw `URLRequest`s.
+- `HTTPResponseDiagnostics`: opt-in task-local decode evidence for library
+  failures. It preserves the existing thrown `AppError` and fallback contracts,
+  discards evidence when the enclosing operation succeeds, and retains at most
+  four responses per failed operation. Only status, byte count, payload shape,
+  failure kind, expected value type and allowlisted coding-path fields survive.
+  Providers label known routes with closed-vocabulary values; the transport
+  never copies URLs, query parameters, raw keys, payloads or decoder descriptions
+  into the report. No additional requests or successful-response parsing is added.
 - `ServerURLNormalizer`: turns user-typed addresses (with/without scheme,
   trailing slash, port) into a well-formed `URL` for both Jellyfin and Plex.
 - `ProviderIconLoader`: best-effort, origin-only `/favicon.ico` requests for

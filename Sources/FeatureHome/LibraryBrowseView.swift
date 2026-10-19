@@ -200,10 +200,11 @@ public struct LibraryBrowseView: View {
         .safeAreaInset(edge: .bottom) {
             if viewModel.contentMode == .recommended, let error = viewModel.recommendationError,
                viewModel.recommendationState.value != nil {
-                HStack(spacing: PlozzTheme.Spacing.large) {
-                    Text(error.userMessage).plozzForeground(.secondary)
-                    Button("Try Again") { Task { await viewModel.loadRecommendations() } }
-                        .plozzActionButton()
+                VStack(alignment: .leading, spacing: 12) {
+                    InlineErrorMessage(Text(error.userMessage))
+                    ContentFailureActions(report: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library)) {
+                        Task { await viewModel.loadRecommendations() }
+                    }
                 }
                 .padding()
             }
@@ -315,6 +316,7 @@ public struct LibraryBrowseView: View {
             state: viewModel.recommendationState,
             emptyMessage: viewModel.emptyMessage,
             errorServers: viewModel.errorServers,
+            errorReport: viewModel.recommendationDiagnostic.map(PlaybackDiagnosticReport.library),
             onRetry: { Task { await viewModel.loadRecommendations() } }
         ) { sections in
             #if os(tvOS)

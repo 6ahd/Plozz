@@ -119,11 +119,8 @@ struct PlozziOSPlayerView: View {
         .statusBarHidden()
         .playerTouchLevelSession(isActive: viewModel?.externalPlaybackRouteName == nil)
         .overlay(alignment: .top) {
-            VStack {
-                TransientStatusView(presenter: playbackStatus)
-                TransientStatusView(presenter: orientation.status)
-            }
-            .padding(.top, 60)
+            TransientStatusView(presenter: playbackStatus)
+                .padding(.top, 60)
         }
         .onAppear {
             suspendHeroPlayback()

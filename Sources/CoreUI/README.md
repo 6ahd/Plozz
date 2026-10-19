@@ -53,6 +53,13 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   `PlaybackDiagnosticDetailsView` is shared by on-demand playback, Live TV and
   IPTV setup. It renders and shares only the structured `PlaybackDiagnosticReport`,
   including app/OS identity; it is not the continuously sampled diagnostics HUD.
+  Library recommendation failures reuse this sheet through `ContentFailureActions`
+  and `ContentStateView.errorReport`. Their structured report identifies failed
+  sections and safe response-decoding facts while retaining browsing themes and
+  already-loaded content; no playback-specific full-screen chrome is imposed.
+  On iPhone and iPad, every diagnostic sheet uses a centered native inline
+  "Details" title and a leading icon-only Close button, including the Live TV
+  guide's diagnostics destination. tvOS retains its existing heading and Done action.
 
 - **Touch hero actions** — `HeroActionRow` preserves readable intrinsic widths
   before falling back to a vertical arrangement. `TouchHeroActionButtonStyle`

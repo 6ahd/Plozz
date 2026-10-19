@@ -305,7 +305,11 @@ struct PrototypeSheetContent: View {
             navigationContent
         }
         #else
-        navigationContent
+        if case .diagnostics(let report) = destination {
+            PlaybackDiagnosticDetailsSheet(report: report)
+        } else {
+            navigationContent
+        }
         #endif
     }
 
