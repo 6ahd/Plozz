@@ -64,7 +64,7 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                         let panel = try XCTUnwrap(probe.frames["panel"])
                         let actual = try pixels(image, rect: panel.insetBy(dx: 12, dy: 12))
                         XCTAssertEqual(luminance(actual), luminance(native), accuracy: 0.05,
-                                       "Player panels must match untinted native regular glass.")
+                                       "Player video cards must match the unmodified native material.")
                     }
 
                     let circle = try XCTUnwrap(probe.frames["circle"])
@@ -269,7 +269,7 @@ private struct SurfaceFixture: View {
                 .foregroundStyle(Color.primary)
                 .frame(width: 700, height: 120)
                 .background(SurfaceEnvironmentProbe(probe: probe, surface: true))
-                .modifier(PanelGlassBackground())
+                .modifier(PanelGlassBackground(mediaGlass: true))
                 .recordSurface("panel", probe: probe)
             if #available(iOS 26.0, tvOS 26.0, *) {
                 Text(verbatim: "Player panel")
@@ -277,7 +277,11 @@ private struct SurfaceFixture: View {
                     .foregroundStyle(Color.primary)
                     .frame(width: 700, height: 120)
                     .background {
+                        #if os(iOS)
+                        Color.clear.glassEffect(.clear, in: RoundedRectangle(cornerRadius: 32))
+                        #else
                         Color.clear.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32))
+                        #endif
                     }
                     .recordSurface("reference-panel", probe: probe)
             }
@@ -287,7 +291,7 @@ private struct SurfaceFixture: View {
                     .foregroundStyle(Color.primary)
                     .frame(width: 700, height: 120)
             }
-            .buttonStyle(PlayerOverVideoCardStyle(focused: false, cornerRadius: 32))
+            .buttonStyle(PlayerOverVideoCardStyle(focused: false, cornerRadius: 32, mediaGlass: true))
             .disabled(true)
             .recordSurface("card", probe: probe)
             #if os(tvOS)

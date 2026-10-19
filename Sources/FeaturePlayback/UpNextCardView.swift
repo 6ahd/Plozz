@@ -247,7 +247,7 @@ private struct CountdownRing: View {
 }
 
 /// Shared Up Next/Cast focus treatment: keep the surface and mark focus with
-/// a contrasting ring and lift. Native glass stays dark; fallback follows the app.
+/// a contrasting ring and lift. The fallback follows the app's appearance.
 struct PlayerOverVideoCardStyle: ButtonStyle {
     let focused: Bool
     let cornerRadius: CGFloat
@@ -264,11 +264,14 @@ struct PlayerOverVideoCardStyle: ButtonStyle {
     /// to animate out of is measuring a position the viewer is actively
     /// changing.
     var pressScale: CGFloat = 0.94
+    var mediaGlass = false
 
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return configuration.label
-            .background { PlayerOverVideoSurface(focused: focused, cornerRadius: cornerRadius) }
+            .background {
+                PlayerOverVideoSurface(focused: focused, cornerRadius: cornerRadius, mediaGlass: mediaGlass)
+            }
             .overlay {
                 // Focus only. A resting hairline reads as an outline rather than
                 // an edge — tolerable on one floating card, busy repeated across a
@@ -294,6 +297,7 @@ struct PlayerOverVideoCardStyle: ButtonStyle {
 struct PlayerOverVideoSurface: View {
     var focused: Bool = false
     let cornerRadius: CGFloat
+    var mediaGlass = false
 
     /// Accessibility and user intent. Takes the flat scrim, because a viewer who
     /// asked for less transparency wants exactly that.
@@ -326,7 +330,11 @@ struct PlayerOverVideoSurface: View {
             // as a flat scrim. Drawn as a background underlay rather than wrapped
             // around the content: wrapping `.glassEffect` hangs tvOS 27's focus
             // engine (see PlozzGlassCardModifier).
+            #if os(iOS)
+            PlayerNativeGlassSurface(shape, glass: mediaGlass ? .clear : .regular)
+            #else
             PlayerNativeGlassSurface(shape)
+            #endif
         } else {
             scrim
         }

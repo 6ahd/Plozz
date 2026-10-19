@@ -69,10 +69,15 @@ Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
 without tint or a colored backing. Like AVKit video chrome, their symbols and
 progress remain white in both appearances. The controls scrim dims the video
 beneath the transport as well as the edge chrome, so white scenes remain legible
-without coloring the glass itself. Mobile cards and inline panels use untinted
-regular native glass without an added border. Their material follows the system
-Liquid Glass preference; do not substitute a custom Clear/Tinted setting or
-force a color scheme on mobile menus, sheets, or panels.
+without coloring the glass itself. Mobile Info and Cast cards use that same
+native media (`clear`) material, without a colored backing or an added border;
+their labels and badges retain light ink over the dimmed video, and their
+actions use the native mobile button treatment. Other inline
+panels retain regular native glass. Material variants describe the surface's
+role, not a replacement for the user's system Liquid Glass preference. Do not
+add a custom Clear/Tinted setting or force a color scheme on mobile menus,
+sheets, or panels. Badge-only contrast is scoped to the badge content, never
+the card's glass or its presentation host.
 tvOS playback chrome retains build 57's dark appearance with regular native
 glass, scoped by `playerPlatformAppearance` without changing the browsing theme
 or window. TV panels retain their thin edge and selected tabs their highlight.

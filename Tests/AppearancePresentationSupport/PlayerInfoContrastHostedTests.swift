@@ -56,7 +56,7 @@ final class PlayerInfoContrastHostedTests: XCTestCase {
                     #if os(tvOS)
                     let lightBackground = false
                     #else
-                    let lightBackground = palette.isLight
+                    let lightBackground = palette.isLight && (effects.flat || effects.opaque)
                     #endif
                     XCTAssertGreaterThan(try contrastingPixels(
                         image, in: badgeRect, lightBackground: lightBackground

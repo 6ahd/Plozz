@@ -3,6 +3,66 @@ import XCTest
 
 @MainActor
 final class PlayerLayoutInteractionTests: XCTestCase {
+    func testInfoAndCastDoNotAddALightBackingOverDarkVideo() throws {
+        try assertInfoAndCastAppearance(whiteVideo: false)
+    }
+
+    func testInfoAndCastRemainReadableOverBrightVideo() throws {
+        try assertInfoAndCastAppearance(whiteVideo: true)
+    }
+
+    private func assertInfoAndCastAppearance(whiteVideo: Bool) throws {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        let backdrop = whiteVideo ? "white" : "black"
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        for orientation in [UIDeviceOrientation.portrait, .landscapeLeft] {
+            XCUIDevice.shared.orientation = orientation
+            for appearance in ["light", "dark"] {
+                app.launchArguments = ["--player-layout-fixture", "--\(appearance)"]
+                if whiteVideo { app.launchArguments.append("--white-video") }
+                app.launch()
+                XCTAssertTrue(app.buttons["Info"].waitForExistence(timeout: 10))
+                app.buttons["Info"].tap()
+                let title = app.staticTexts["Now Playing"]
+                XCTAssertTrue(title.waitForExistence(timeout: 5))
+                capture(app, name: "Info \(appearance) \(orientation.rawValue) over \(backdrop) video")
+                let titleFrame = title.frame
+                let infoImage = uprightImage(XCUIScreen.main.screenshot().image, screen: app.frame)
+                let infoBackground = try brightness(infoImage, in: CGRect(
+                    x: titleFrame.minX - 8, y: titleFrame.midY - 2, width: 4, height: 4
+                ), screen: app.frame)
+                XCTAssertLessThan(infoBackground, whiteVideo ? 0.8 : 0.45,
+                                  "Info must retain separation between the dimmed video and light text.")
+                let infoInk = try visibleBounds(infoImage, in: titleFrame,
+                                                screen: app.frame, threshold: 230)
+                XCTAssertGreaterThan(infoInk.width, 20, "Info must retain legible video-overlay text.")
+                app.buttons["Cast"].tap()
+                let face = app.buttons["player-cast-face-actor"]
+                XCTAssertTrue(face.waitForExistence(timeout: 5))
+                capture(app, name: "Cast \(appearance) \(orientation.rawValue) over \(backdrop) video")
+                let faceFrame = face.frame
+                let castImage = uprightImage(XCUIScreen.main.screenshot().image, screen: app.frame)
+                let castBackground = try brightness(castImage, in: CGRect(
+                    x: faceFrame.minX + 8, y: faceFrame.midY - 2, width: 4, height: 4
+                ), screen: app.frame)
+                XCTAssertLessThan(castBackground, whiteVideo ? 0.8 : 0.45,
+                                  "Cast must use the same unpainted video surface as Info.")
+                let castInk = try visibleBounds(castImage, in: app.staticTexts["Actor"].firstMatch.frame,
+                                                screen: app.frame, threshold: 230)
+                XCTAssertGreaterThan(castInk.width, 20, "Cast names must remain readable in Light mode.")
+                face.tap()
+                XCTAssertTrue(app.buttons["Back"].waitForExistence(timeout: 5))
+                capture(app, name: "Cast detail \(appearance) \(orientation.rawValue) over \(backdrop) video")
+                app.buttons["Back"].tap()
+                XCTAssertTrue(face.waitForExistence(timeout: 5))
+                app.terminate()
+            }
+        }
+    }
+
     func testPlaybackRolloversDoNotMoveTheScrubber() {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
@@ -205,6 +265,43 @@ final class PlayerLayoutInteractionTests: XCTestCase {
         }
         attachMeasurements(["Portrait"] + ["Close player", "Skip backward", "Play", "Skip forward", "Info", "Cast", "Episodes", "Playlist", "Subtitles"]
             .map { "\($0): \(app.buttons[$0].frame)" })
+    }
+
+    private func uprightImage(_ image: UIImage, screen: CGRect) -> UIImage {
+        UIGraphicsImageRenderer(size: screen.size).image { context in
+            if screen.width > screen.height, let source = image.cgImage,
+               source.width < source.height {
+                // Screen captures retain portrait pixels in landscapeLeft.
+                context.cgContext.translateBy(x: 0, y: screen.height)
+                context.cgContext.rotate(by: -.pi / 2)
+                UIImage(cgImage: source).draw(in: CGRect(
+                    x: 0, y: 0, width: screen.height, height: screen.width
+                ))
+            } else {
+                image.draw(in: CGRect(origin: .zero, size: screen.size))
+            }
+        }
+    }
+
+    private func brightness(_ image: UIImage, in frame: CGRect, screen: CGRect) throws -> Double {
+        let source = try XCTUnwrap(image.cgImage)
+        let scale = CGFloat(source.width) / screen.width
+        let crop = try XCTUnwrap(source.cropping(to: CGRect(
+            x: (frame.minX - screen.minX) * scale, y: (frame.minY - screen.minY) * scale,
+            width: frame.width * scale, height: frame.height * scale
+        ).integral))
+        var bytes = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
+        try bytes.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(
+                data: buffer.baseAddress, width: crop.width, height: crop.height,
+                bitsPerComponent: 8, bytesPerRow: crop.width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+            ))
+            context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
+        }
+        return stride(from: 0, to: bytes.count, by: 4).reduce(0) {
+            $0 + Double(bytes[$1]) * 0.2126 + Double(bytes[$1 + 1]) * 0.7152 + Double(bytes[$1 + 2]) * 0.0722
+        } / Double(crop.width * crop.height) / 255
     }
 
     private func visibleBounds(_ image: UIImage, in frame: CGRect, screen: CGRect, threshold: UInt8) throws -> CGRect {

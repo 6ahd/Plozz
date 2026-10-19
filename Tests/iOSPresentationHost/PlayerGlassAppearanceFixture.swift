@@ -69,19 +69,19 @@ struct PlayerGlassAppearanceFixture: View {
                 .accessibilityIdentifier("appearance-track")
             Text(verbatim: "Player panel")
                 .font(.title)
-                .foregroundStyle(Color.primary)
+                .foregroundStyle(reduced && light ? Color.black : .white)
                 .frame(maxWidth: 500)
                 .frame(height: 120)
-                .playerPanelBackground()
+                .modifier(PanelGlassBackground(mediaGlass: true))
                 .accessibilityIdentifier("appearance-panel")
             if #available(iOS 26.0, *) {
                 Text(verbatim: "Player panel")
                     .font(.title)
-                    .foregroundStyle(Color.primary)
+                    .foregroundStyle(.white)
                     .frame(maxWidth: 500)
                     .frame(height: 120)
                     .background {
-                        Color.clear.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32))
+                        UIKitGlassReference()
                     }
                     .accessibilityIdentifier("appearance-reference")
             }
@@ -94,4 +94,17 @@ struct PlayerGlassAppearanceFixture: View {
         .environment(\.plozzReduceTransparency, reduced)
         .preferredColorScheme(light ? .light : .dark)
     }
+}
+
+@available(iOS 26.0, *)
+private struct UIKitGlassReference: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        let view = UIVisualEffectView(effect: UIGlassEffect(style: .clear))
+        view.layer.cornerRadius = 32
+        view.layer.cornerCurve = .continuous
+        view.clipsToBounds = true
+        return view
+    }
+
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
 }

@@ -118,7 +118,7 @@ final class PlayerGlassAppearanceInteractionTests: XCTestCase {
                 let native = try pixels(screenshot.image, frame: reference.frame, screen: app.frame)
                 let panel = try XCTUnwrap(sample["panel"])
                 XCTAssertEqual(luminance(panel), luminance(native), accuracy: 0.05,
-                               "Player glass must match stock regular glass, not a forced dark material.")
+                               "Video-card glass must match stock UIKit media glass without extra backing or tint.")
                 let circleFrame = app.buttons["appearance-circle"].frame
                 let circle = try pixels(screenshot.image, frame: CGRect(
                     x: circleFrame.midX - 40, y: circleFrame.midY - 40, width: 80, height: 80

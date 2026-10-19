@@ -589,6 +589,7 @@ public extension View {
 /// artwork, and focus controls in the material's layout subtree.
 struct PanelGlassBackground: ViewModifier {
     var cornerRadius: CGFloat = 32
+    var mediaGlass = false
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: cornerRadius, style: .continuous) }
 
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
@@ -601,11 +602,13 @@ struct PanelGlassBackground: ViewModifier {
                     .plozzFrostedBackground(shape)
                     .plozzFrostedBorder(shape)
             } else if #available(iOS 26.0, tvOS 26.0, *) {
+                #if os(iOS)
+                content.background { PlayerNativeGlassSurface(shape, glass: mediaGlass ? .clear : .regular) }
+                #else
                 content
                     .background { PlayerNativeGlassSurface(shape) }
-                    #if os(tvOS)
                     .overlay(shape.stroke(.white.opacity(0.12), lineWidth: 1))
-                    #endif
+                #endif
             } else {
                 content
                     .plozzFrostedBackground(shape)
