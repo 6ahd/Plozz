@@ -5,6 +5,182 @@ import XCTest
 @testable import FeatureLiveTVCore
 
 final class LiveTVPlaylistParserTests: XCTestCase {
+    func testProviderMetadataDoesNotTurnAChannelListIntoHLS() throws {
+        for metadata in [
+            "#EXT-X-SESSION-DATA:DATA-ID=\"com.xui.1_5_5r2\"",
+            "#EXT-X-PROVIDER-METADATA:VALUE=\"fixture\"",
+            "#EXT-X-STREAM-INF-EXTRA:VALUE=\"not a rendition\""
+        ] {
+            let input = """
+            #EXTM3U
+            \(metadata)
+            #EXTINF:-1 tvg-id="one",First
+            https://example.test/one.m3u8
+            \(metadata)
+            #EXTINF:-1 tvg-id="two",Second
+            https://example.test/two.ts
+
+            """
+            let parser = M3UPlaylistParser()
+            let result = try parser.parse(input)
+            XCTAssertEqual(result.channels.map(\.name), ["First", "Second"])
+            XCTAssertEqual(result.entryCount, 2)
+            XCTAssertEqual(result.skippedEntryCount, 0)
+            for chunkSize in [1, 7, 65_536] {
+                var stream = parser.makeCatalogStream()
+                let data = Data(input.utf8)
+                var names: [String] = []
+                for start in stride(from: 0, to: data.count, by: chunkSize) {
+                    try stream.append(data.subdata(in: start..<min(start + chunkSize, data.count)))
+                    names += stream.takeCatalogEntries().map(\.channel.name)
+                }
+                XCTAssertEqual(try stream.finish().entryCount, 2)
+                names += stream.takeCatalogEntries().map(\.channel.name)
+                XCTAssertEqual(names, ["First", "Second"])
+                XCTAssertFalse(stream.hasPlayableHLSTag)
+                XCTAssertEqual(stream.byteCount, data.count)
+            }
+        }
+    }
+
+    func testHLSDirectivesStillRejectSegmentsAfterProviderMetadata() throws {
+        for directive in [
+            "#EXT-X-TARGETDURATION:6", "#EXT-X-STREAM-INF:BANDWIDTH=800000",
+            "#EXT-X-MEDIA-SEQUENCE:1", "#EXT-X-VERSION:7", "#EXT-X-ALLOW-CACHE:YES",
+            "#EXT-X-KEY:METHOD=AES-128,URI=\"key\"", "#EXT-X-MAP:URI=\"init.mp4\"",
+            "#EXT-X-BYTERANGE:1024", "#EXT-X-ENDLIST", "#EXT-X-DISCONTINUITY",
+            "#EXT-X-I-FRAME-STREAM-INF:BANDWIDTH=1,URI=\"iframe.m3u8\"",
+            "#EXT-X-MEDIA:TYPE=AUDIO,URI=\"audio.m3u8\"",
+            "#EXT-X-PART:DURATION=1,URI=\"part.mp4\"",
+            "#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES",
+            "#ext-x-targetduration:6"
+        ] {
+            let input = """
+            #EXTM3U
+            #EXT-X-SESSION-DATA:DATA-ID="fixture"
+            #EXTINF:6,First segment
+            https://example.test/one.ts
+            \(directive)
+            #EXTINF:6,Second segment
+            https://example.test/two.ts
+            """
+            XCTAssertThrowsError(try M3UPlaylistParser().parse(input), directive) {
+                XCTAssertEqual($0 as? LiveTVSourceImportError, .streamManifest)
+            }
+            var stream = M3UPlaylistParser().makeCatalogStream()
+            try stream.append(Data(input.utf8))
+            XCTAssertThrowsError(try stream.finish(), directive) {
+                XCTAssertEqual($0 as? LiveTVSourceImportError, .streamManifest)
+            }
+            XCTAssertTrue(stream.takeCatalogEntries().isEmpty, directive)
+        }
+    }
+
+    func testMixedCaseDirectivesPreserveCaseSensitiveValues() throws {
+        let input = """
+        \u{FEFF}#extm3u X-TVG-URL="../Guide.XML"
+        #extgrp:News; Local
+        #extinf:-1 TVG-ID="Station.ID" TVG-NAME="Guide Name",Station
+        #extvlcopt:HTTP-USER-AGENT=Fixture/One
+        ../Live/Channel.TS?Token=AbC
+        """
+        let parser = M3UPlaylistParser(baseURL: URL(string: "https://example.test/Lists/Source"))
+        let result = try parser.parse(input)
+        let channel = try XCTUnwrap(result.channels.first)
+        XCTAssertEqual(result.entryCount, 1)
+        XCTAssertEqual(channel.name, "Station")
+        XCTAssertEqual(channel.guideID, "Station.ID")
+        XCTAssertEqual(channel.groups, ["News", "Local"])
+        XCTAssertEqual(channel.httpHeaders, ["User-Agent": "Fixture/One"])
+        XCTAssertEqual(channel.streamURL?.absoluteString, "https://example.test/Live/Channel.TS?Token=AbC")
+        XCTAssertEqual(result.declaredGuideURLs.map(\.absoluteString), ["https://example.test/Guide.XML"])
+        var stream = parser.makeCatalogStream()
+        for byte in input.utf8 { try stream.append(byte) }
+        _ = try stream.finish()
+        let indexed = try XCTUnwrap(stream.takeCatalogEntries().first?.channel)
+        XCTAssertEqual(indexed.id, channel.id)
+        XCTAssertEqual(indexed.httpHeaders, channel.httpHeaders)
+        XCTAssertEqual(indexed.streamURL, channel.streamURL)
+        XCTAssertEqual(indexed.groups, channel.groups)
+    }
+
+    func testQuotedVLCHeadersAreUnwrappedAndRemainEntryScoped() throws {
+        let input = """
+        #EXTM3U
+        #EXTVLCOPT: http-user-agent = "Before/1.0"
+        #EXTINF:-1,First
+        #EXTVLCOPT:http-referrer='https://example.test/Watch?ID=AbC'
+        https://example.test/one
+        #EXTINF:-1,Override
+        #EXTVLCOPT:http-user-agent="Directive/2.0"
+        https://example.test/two|User-Agent=Pipe%2F3.0
+        #EXTINF:-1,Unconfigured
+        https://example.test/three
+        """
+        let channels = try M3UPlaylistParser().parse(input).channels
+        XCTAssertEqual(channels[0].httpHeaders, [
+            "User-Agent": "Before/1.0", "Referer": "https://example.test/Watch?ID=AbC"
+        ])
+        XCTAssertEqual(channels[1].httpHeaders, ["User-Agent": "Pipe/3.0"])
+        XCTAssertTrue(channels[2].httpHeaders.isEmpty)
+    }
+
+    func testMetadataAliasesRespectPrimaryValuesAndPreserveChannelIdentity() throws {
+        let parser = M3UPlaylistParser(baseURL: URL(string: "https://example.test/lists/source"))
+        let original = "#EXTM3U\n#EXTINF:-1,Station\nhttps://example.test/live\n"
+        let aliased = original.replacingOccurrences(
+            of: "#EXTINF:-1,", with: "#EXTINF:-1 channel-id=\"guide.alias\" channel-number=\"42\" logo=\"../Logo.png\","
+        )
+        let channel = try XCTUnwrap(parser.parse(aliased).channels.first)
+        XCTAssertEqual(channel.id, try parser.parse(original).channels.first?.id)
+        XCTAssertEqual(channel.number, 42)
+        XCTAssertEqual(channel.logoURL?.absoluteString, "https://example.test/Logo.png")
+        XCTAssertEqual(channel.guideID, "guide.alias")
+        let primary = aliased.replacingOccurrences(
+            of: "#EXTINF:-1", with: "#EXTINF:-1 tvg-id=\"primary\" tvg-chno=\"7\" tvg-logo=\"/Primary.png\""
+        )
+        let preferred = try XCTUnwrap(parser.parse(primary).channels.first)
+        XCTAssertEqual(preferred.number, 7)
+        XCTAssertEqual(preferred.guideID, "primary")
+        XCTAssertEqual(preferred.logoURL?.absoluteString, "https://example.test/Primary.png")
+    }
+
+    func testQuotedVLCValuesCannotBypassHeaderValidationOrAuthenticationAdmission() throws {
+        let input = """
+        #EXTM3U
+        #EXTINF:-1,Invalid headers
+        #EXTVLCOPT:http-user-agent="Bad\u{7}Value"
+        #EXTVLCOPT:http-referrer="file:///private"
+        #EXTVLCOPT:http-host="other.test"
+        https://example.test/one
+        #EXTINF:-1,Account headers
+        #EXTVLCOPT:http-cookie="session=fixture"
+        #EXTVLCOPT:http-authorization='Bearer fixture'
+        https://example.test/two
+        #EXTINF:-1,No inherited headers
+        https://example.test/three
+        """
+        for permitsAuthentication in [false, true] {
+            let channels = try M3UPlaylistParser(permitsAuthenticationHeaders: permitsAuthentication).parse(input).channels
+            XCTAssertTrue(channels[0].httpHeaders.isEmpty)
+            XCTAssertEqual(channels[1].httpHeaders, permitsAuthentication
+                ? ["Cookie": "session=fixture", "Authorization": "Bearer fixture"] : [:])
+            XCTAssertTrue(channels[2].httpHeaders.isEmpty)
+        }
+    }
+
+    func testMixedCaseOversizedMetadataKeepsCatalogLimitsAndSkippedEntryAccounting() throws {
+        var stream = M3UPlaylistParser().makeCatalogStream()
+        try stream.append(Data(("#extm3u x-tvg-url=\"" + String(repeating: "x", count: 65_536) + "\"\n").utf8))
+        try stream.append(Data(("#extinf:-1," + String(repeating: "x", count: 65_536) + "\n").utf8))
+        try stream.append(Data("https://example.test/skipped\n#extinf:-1,Kept\nhttps://example.test/kept\n".utf8))
+        let result = try stream.finish()
+        XCTAssertEqual(result.entryCount, 2)
+        XCTAssertEqual(result.skippedEntryCount, 1)
+        XCTAssertEqual(stream.takeCatalogEntries().map(\.channel.name), ["Kept"])
+        XCTAssertLessThanOrEqual(stream.bufferedByteCount, M3UPlaylistParser.maximumLineBytes + 3)
+    }
+
     func testEmptyResponsesWithoutAPlaylistHeaderStillFail() throws {
         for input in [
             "", " \r\n\t", "# Playlist awaiting channels\n", "#EXTM3Uinvalid\n"

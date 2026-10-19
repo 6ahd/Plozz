@@ -6,6 +6,24 @@ import Foundation
 import XCTest
 
 final class IPTVProviderTests: XCTestCase {
+    func testChannelIDAliasImprovesGuideMatchingWithoutReplacingSavedItems() throws {
+        var identities: [String] = []
+        for attributes in ["", "channel-id=\"guide.alias\" logo=\"https://example.test/logo.png\" channel-number=\"42\""] {
+            var parser = M3UPlaylistParser().makeCatalogStream()
+            try parser.append(Data("#EXTM3U\n#EXTINF:-1 \(attributes),Station\nhttps://example.test/live.ts\n".utf8))
+            _ = try parser.finish()
+            let record = try XCTUnwrap(parser.takeCatalogEntries().flatMap(IPTVMapping.playlistEntry).first)
+            identities.append(record.item.id)
+            XCTAssertTrue(record.isLive)
+            if !attributes.isEmpty {
+                XCTAssertEqual(record.guideID, "guide.alias")
+                XCTAssertEqual(record.channelNumber, 42)
+                XCTAssertEqual(record.item.posterURL?.absoluteString, "https://example.test/logo.png")
+            }
+        }
+        XCTAssertEqual(identities[0], identities[1])
+    }
+
     func testXtreamMissingNamesUseNativeIdentityWithoutChangingNamedEntries() throws {
         for (library, field, prefix) in [
             ("live", "stream_id", "live"), ("movies", "stream_id", "movie"),

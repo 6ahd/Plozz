@@ -5,6 +5,27 @@ import XCTest
 @testable import FeatureLiveTVCore
 
 final class LiveTVSourceLoaderTests: XCTestCase {
+    func testProviderMetadataLoadsAsChannelsRatherThanOneDirectStream() async throws {
+        let url = fixtureURL()
+        let body = Data("""
+        #EXTM3U
+        #EXT-X-SESSION-DATA:DATA-ID="com.xui.1_5_5r2"
+        #EXTINF:-1,One
+        https://example.test/one.m3u8
+        #EXTINF:-1,Two
+        https://example.test/two.ts
+        """.utf8)
+        LoaderProtocol.state.register(url, [.init(
+            status: 200, headers: ["Content-Type": "application/octet-stream"], body: body
+        )])
+        defer { LoaderProtocol.state.remove(url) }
+        let imported = try await loader().loadPlaylist(from: url)
+        XCTAssertEqual(imported.channels.map(\.name), ["One", "Two"])
+        XCTAssertEqual(imported.entryCount, 2)
+        XCTAssertEqual(imported.skippedEntryCount, 0)
+        XCTAssertEqual(LoaderProtocol.state.requests(url).count, 1)
+    }
+
     func testRequestsDoNotInheritSessionCookiesOrStoredCredentials() async throws {
         let url = fixtureURL()
         let configuration = URLSessionConfiguration.ephemeral
