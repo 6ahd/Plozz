@@ -256,6 +256,7 @@ public struct PlayerTouchScrubBar: View {
     private let feedback: TouchFeedback
 
     @State private var isTouching = false
+    @GestureState private var isDragging = false
     @State private var scrubStartSeconds: TimeInterval = 0
 
     /// Generous enough to hit without aiming, independent of the bar's own
@@ -297,6 +298,7 @@ public struct PlayerTouchScrubBar: View {
                 // `minimumDistance: 0` so a tap anywhere on the bar seeks there
                 // rather than needing a drag to register at all.
                 DragGesture(minimumDistance: 0)
+                    .updating($isDragging) { _, dragging, _ in dragging = true }
                     .onChanged { value in
                         if !isTouching {
                             scrubStartSeconds = currentSeconds
@@ -318,6 +320,12 @@ public struct PlayerTouchScrubBar: View {
             )
         }
         .frame(height: Self.touchTargetHeight)
+        .onChange(of: isDragging) { _, dragging in
+            if !dragging, isTouching {
+                isTouching = false
+                onScrubbingChanged(false)
+            }
+        }
     }
 }
 

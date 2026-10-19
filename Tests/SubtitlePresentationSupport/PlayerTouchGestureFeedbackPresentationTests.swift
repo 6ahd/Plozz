@@ -95,6 +95,28 @@ final class PlayerTouchGestureFeedbackPresentationTests: XCTestCase {
         }
     }
 
+    func testNativeSkipCountAndChevronKeepLightInkInBothAppearances() async throws {
+        guard #available(iOS 26.0, *) else { throw XCTSkip("Native Liquid Glass requires iOS 26.") }
+        for scheme in [ColorScheme.light, .dark] {
+            for direction in [PlayerTouchSkipDirection.forward, .backward] {
+                try await withFeedback(reduceMotion: true, reducePanelGlass: false, colorScheme: scheme) { fixture, window in
+                    fixture.seek(by: direction == .forward ? 25 : -25)
+                    try await Task.sleep(for: .milliseconds(150))
+                    let frame = try self.captureIndicator(window, direction: direction, label: "Native skip \(scheme)")
+                    let middle = frame.width / 2
+                    for region in [
+                        CGRect(x: 0, y: 20, width: middle, height: 32),
+                        CGRect(x: middle, y: 20, width: frame.width - middle, height: 32)
+                    ] {
+                        let ink = self.cropped(frame, to: region)
+                        XCTAssertGreaterThan(ink.pixels.filter { $0 > 230 }.count, 20,
+                                             "Both the signed count and chevron need light ink in \(scheme).")
+                    }
+                }
+            }
+        }
+    }
+
     func testSkipCapsulesContainMovingAndParkedChevronsWithNativeAndReducedGlass() async throws {
         for reducePanelGlass in [false, true] {
             if !reducePanelGlass {

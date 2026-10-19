@@ -74,6 +74,7 @@ public struct LiveChannelPlayerView: View {
     @State private var engineInitializationFailed = false
     @State private var controlsVisible = true
     @State private var touchGestures = PlayerTouchGestureState()
+    @State private var touchScrubbing = false
     @State private var touchBackgroundTapRevision = 0
     @State private var mobileSubtitleViewport = VideoSubtitleViewport()
     @State private var tracksArePresented = false
@@ -371,7 +372,11 @@ public struct LiveChannelPlayerView: View {
                             onDismissControls: dismissControls,
                             hasTouchGestureSurface: true,
                             touchBackgroundTapRevision: touchBackgroundTapRevision,
-                            touchTimelineOnly: !controlsVisible
+                            touchTimelineOnly: !controlsVisible,
+                            onTouchScrubbingChanged: {
+                                touchScrubbing = $0
+                                if $0 { touchGestures.cancel() }
+                            }
                         )
                         .onAppear(perform: focusPlaybackControlIfNeeded)
                         .transition(.opacity)
@@ -415,7 +420,7 @@ public struct LiveChannelPlayerView: View {
                         permitsExternalPresentation: permitsExternalPresentation
                             && networkBlock == nil && (isExpanded || model.continuesExternally),
                         isVisible: isActive && scenePhase == .active,
-                        showsControls: controlsVisible && isExpanded,
+                        showsControls: controlsVisible && isExpanded && !touchScrubbing,
                         intendsPlayback: model.intendsPlayback,
                         hasSelectedSubtitle: model.selectedSubtitleID != nil,
                         continuationChanged: { [weak model] in model?.setExternalContinuation($0) },
@@ -1021,14 +1026,14 @@ public struct LiveChannelPlayerView: View {
                 state: touchGestures,
                 shortcutsEnabled: isActive && isAuthorized && sourceMatchesCurrentModel
                     && model.networkBlock == nil && model.hasPresentedFrame && !model.continuesExternally
-                    && !tracksArePresented && !guidePresented && !diagnosticsEnabled
+                    && !tracksArePresented && !guidePresented && !diagnosticsEnabled && !touchScrubbing
                     && scenePhase == .active,
                 levelsEnabled: touchLevelsEnabled() && isExpanded && !isMultiview
                     && isActive && isAuthorized && sourceMatchesCurrentModel
                     && model.networkBlock == nil && model.hasPresentedFrame && !model.continuesExternally
-                    && !tracksArePresented && !guidePresented && !diagnosticsEnabled,
+                    && !tracksArePresented && !guidePresented && !diagnosticsEnabled && !touchScrubbing,
                 isActive: isActive && isAuthorized && isExpanded && !isMultiview
-                    && !model.continuesExternally && scenePhase == .active,
+                    && !model.continuesExternally && !touchScrubbing && scenePhase == .active,
                 canSeek: model.canSeekWindow,
                 canBoost: false,
                 canZoom: model.engine.capabilities.contains(.videoZoom),
@@ -1055,7 +1060,9 @@ public struct LiveChannelPlayerView: View {
                 onGestureStarted: dismissControls
             )
             .ignoresSafeArea()
-            PlayerTouchGestureFeedbackView(state: touchGestures)
+            if !touchScrubbing {
+                PlayerTouchGestureFeedbackView(state: touchGestures)
+            }
         }
     }
     #endif

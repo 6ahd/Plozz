@@ -3,6 +3,72 @@ import XCTest
 
 @MainActor
 final class PlayerLayoutInteractionTests: XCTestCase {
+    func testBackgroundingCancelsScrubPresentation() {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        XCUIDevice.shared.orientation = .portrait
+        defer { app.terminate() }
+        for playing in [false, true] {
+            app.launchArguments = ["--player-layout-fixture", "--scrubbing"]
+            if playing { app.launchArguments.append("--playing") }
+            app.launch()
+            let transport = app.buttons[playing ? "Pause" : "Play"]
+            XCTAssertTrue(app.buttons["player-timeline-current-time"].waitForExistence(timeout: 10))
+            XCTAssertFalse(transport.exists)
+            XCUIDevice.shared.press(.home)
+            app.activate()
+            XCTAssertTrue(transport.waitForExistence(timeout: 10))
+            XCTAssertTrue(app.buttons["Info"].exists)
+            XCTAssertTrue(app.buttons["player-timeline-current-time"].exists)
+            if playing {
+                wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    !transport.exists
+                }, object: nil)], timeout: 8)
+            }
+            app.terminate()
+        }
+    }
+
+    func testScrubbingShowsOnlyTimelineAndRestoresControlsWithoutMovingIt() {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        for orientation in [UIDeviceOrientation.portrait, .landscapeLeft] {
+            XCUIDevice.shared.orientation = orientation
+            app.launchArguments = ["--player-layout-fixture", "--scrubbing", "--light"]
+            app.launch()
+            let current = app.buttons["player-timeline-current-time"]
+            XCTAssertTrue(current.waitForExistence(timeout: 10))
+            let scrubber = app.descendants(matching: .any)["player-timeline-scrubber"].firstMatch
+            let original = scrubber.frame
+            XCTAssertTrue(app.buttons["player-timeline-end-time"].exists)
+            for label in ["Close player", "Play", "Skip backward", "Skip forward", "Subtitles", "Info", "Cast"] {
+                XCTAssertFalse(app.buttons[label].exists, "\(label) must not remain accessible while scrubbing.")
+            }
+            XCTAssertFalse(app.staticTexts["Wayward"].exists)
+            XCTAssertFalse(app.descendants(matching: .any)["player-track-controls"].firstMatch.exists)
+            XCTAssertEqual(app.buttons.count, 2, "Only the two timestamp labels should remain in the control tree.")
+            capture(app, name: "Timeline-only scrubbing \(orientation.rawValue)")
+            scrubber.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.5))
+                .press(forDuration: 0.1, thenDragTo: scrubber.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.7, dy: 0.5)
+                ))
+            XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["Info"].exists)
+            XCTAssertEqual(scrubber.frame, original, "Scrub completion must not move the finger's target.")
+            scrubber.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.5))
+                .press(forDuration: 0.1, thenDragTo: scrubber.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)
+                ))
+            let probe = app.descendants(matching: .any)["player-layout-fixture"].firstMatch
+            XCTAssertEqual(probe.value as? String, "scrubbing:false,starts:1",
+                           "A real drag must enter and leave the same scrub state used by the overlay.")
+            XCTAssertEqual(scrubber.frame, original)
+            app.terminate()
+        }
+    }
+
     func testInfoAndCastDoNotAddALightBackingOverDarkVideo() throws {
         try assertInfoAndCastAppearance(whiteVideo: false)
     }

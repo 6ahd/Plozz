@@ -100,6 +100,7 @@ struct LiveChannelOverlay: View {
     var hasTouchGestureSurface = false
     var touchBackgroundTapRevision = 0
     var touchTimelineOnly = false
+    var onTouchScrubbingChanged: (Bool) -> Void = { _ in }
 
     @Environment(\.playerCardMetrics) private var metrics
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -158,6 +159,9 @@ struct LiveChannelOverlay: View {
     /// The timeline's own native focus, from its button style. `focus` can lag
     /// it (the shared state follows the pills; see `tabFocused`).
     @State private var timelineFocused = false
+    #if os(iOS)
+    @Environment(\.scenePhase) private var scenePhase
+    #endif
 
     /// Touch, stood up: the cards take their compact, shorter forms.
     private var isTouchPortrait: Bool {
@@ -171,6 +175,15 @@ struct LiveChannelOverlay: View {
     var body: some View {
         layout
             .onChange(of: scrubBehind) { _, behind in scrubMoved(behind) }
+            #if os(iOS)
+            .onChange(of: scrubBehind != nil) { _, scrubbing in
+                if scrubbing { openMenu = nil }
+                onTouchScrubbingChanged(scrubbing)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { resetScrub() }
+            }
+            #endif
             // A finger held still is still scrubbing: keep the transport up
             // until it lifts, which is what confirms the position.
             .task(id: scrubBehind != nil) {
@@ -214,6 +227,9 @@ struct LiveChannelOverlay: View {
         .onDisappear {
             resetScrub()
             onTracksPresentationChange(false)
+            #if os(iOS)
+            onTouchScrubbingChanged(false)
+            #endif
         }
         #if os(iOS)
         .plozzSheet(isPresented: $showsCustomZoom) {
@@ -763,6 +779,7 @@ struct LiveChannelOverlay: View {
             scrubBehind: $scrubBehind,
             scrubThumbnail: scrubThumbnail,
             showsScrubThumbnail: tracks.offersScrubThumbnails,
+            previewAvailableSize: availableSize,
             seekToBehindLive: seekWindowSeconds == nil ? nil : onSeekBehindLive
         )
     }
@@ -1234,6 +1251,8 @@ struct LiveChannelOverlay: View {
 /// tap on the video puts away an open menu, then an open card, then the
 /// controls themselves.
 extension LiveChannelOverlay {
+    private var touchChromeHidden: Bool { touchTimelineOnly || scrubBehind != nil }
+
     /// Leaves the top row level with the host's presentation controls.
     static let touchTopBarInset: CGFloat = 0
     /// The close button's width plus the row's spacing: where the host starts
@@ -1276,9 +1295,7 @@ extension LiveChannelOverlay {
                     .allowsHitTesting(false)
                 VStack(spacing: 0) {
                     topBar
-                        .opacity(touchTimelineOnly ? 0 : 1)
-                        .allowsHitTesting(!touchTimelineOnly)
-                        .accessibilityHidden(touchTimelineOnly)
+                        .playerTouchChromeHidden(touchChromeHidden)
                     Spacer(minLength: 0)
                     touchBottomCluster
                 }
@@ -1288,9 +1305,7 @@ extension LiveChannelOverlay {
             if !cardOpen, openMenu == nil {
                 centerTransport
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .opacity(touchTimelineOnly ? 0 : 1)
-                    .allowsHitTesting(!touchTimelineOnly)
-                    .accessibilityHidden(touchTimelineOnly)
+                    .playerTouchChromeHidden(touchChromeHidden)
                     .transition(.opacity)
             }
         }
@@ -1415,9 +1430,7 @@ extension LiveChannelOverlay {
                         }
                     }
                 }
-                .opacity(touchTimelineOnly ? 0 : 1)
-                .allowsHitTesting(!touchTimelineOnly)
-                .accessibilityHidden(touchTimelineOnly)
+                .playerTouchChromeHidden(touchChromeHidden)
                 .transition(.opacity)
                 timeline
                     .frame(height: PlayerTouchLayout.timelineRowHeight)
@@ -1427,9 +1440,7 @@ extension LiveChannelOverlay {
                     .transition(.opacity)
             }
             touchTabRow
-                .opacity(touchTimelineOnly ? 0 : 1)
-                .allowsHitTesting(!touchTimelineOnly)
-                .accessibilityHidden(touchTimelineOnly)
+                .playerTouchChromeHidden(touchChromeHidden)
             if cardOpen {
                 card
                     .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .card)
@@ -1470,7 +1481,7 @@ extension LiveChannelOverlay {
         .shadow(color: .black.opacity(0.4), radius: 4, y: 1)
         .reportSubtitleControlsFrame(
             in: tracks.subtitles.controlsLayout, region: .title,
-            isVisible: !cardOpen && !touchTimelineOnly
+            isVisible: !cardOpen && !touchChromeHidden
         )
         .frame(maxWidth: .infinity, alignment: .leading)
         // Hidden under an open track menu when it rises over it; stood up the
@@ -1486,7 +1497,7 @@ extension LiveChannelOverlay {
             touchTrackBadges
         }
         .reportSubtitleControlsFrame(
-            in: tracks.subtitles.controlsLayout, region: .trackControls, isVisible: !touchTimelineOnly
+            in: tracks.subtitles.controlsLayout, region: .trackControls, isVisible: !touchChromeHidden
         )
     }
 
@@ -1500,7 +1511,7 @@ extension LiveChannelOverlay {
             )
             .accessibilityIdentifier("live-channel-go-live")
             .reportSubtitleControlsFrame(
-                in: tracks.subtitles.controlsLayout, region: .trackControls, isVisible: !touchTimelineOnly
+                in: tracks.subtitles.controlsLayout, region: .trackControls, isVisible: !touchChromeHidden
             )
         }
     }
@@ -1943,6 +1954,7 @@ private struct LiveChannelTimeline: View {
     var scrubThumbnail: CGImage?
     /// Scrubbing shows the preview box at once, as VOD does, filled when a frame lands.
     var showsScrubThumbnail = false
+    var previewAvailableSize: CGSize = .zero
     /// Touch: a drag along the bar seeks through the window.
     var seekToBehindLive: ((TimeInterval) -> Void)?
 
@@ -2049,7 +2061,10 @@ private struct LiveChannelTimeline: View {
                 }
                 #endif
                 if scrubbing, showsScrubThumbnail {
-                    LiveChannelScrubThumbnail(image: scrubThumbnail, knobX: knobX, barWidth: width)
+                    LiveChannelScrubThumbnail(
+                        image: scrubThumbnail, knobX: knobX, barWidth: width,
+                        availableSize: previewAvailableSize
+                    )
                         .transition(.opacity)
                 }
                 #if os(tvOS)
@@ -2163,6 +2178,7 @@ private struct LiveChannelScrubThumbnail: View {
     let image: CGImage?
     let knobX: CGFloat
     let barWidth: CGFloat
+    var availableSize: CGSize = .zero
     @Environment(\.plozzReduceTransparency) private var reduceTransparency
 
     #if os(tvOS)
@@ -2178,6 +2194,14 @@ private struct LiveChannelScrubThumbnail: View {
     #endif
 
     var body: some View {
+        #if os(iOS)
+        let size = PlayerTouchLayout.scrubPreviewSize(availableSize: availableSize)
+        PlayerTouchScrubPreview(image: image, availableSize: availableSize)
+            .position(
+                x: min(max(knobX, size.width / 2), max(size.width / 2, barWidth - size.width / 2)),
+                y: -(Self.lift + size.height / 2)
+            )
+        #else
         let aspect = image.map { $0.height > 0 ? CGFloat($0.width) / CGFloat($0.height) : 16.0 / 9.0 } ?? 16.0 / 9.0
         let height = Self.width / aspect
         let visualWidth = Self.width + 2 * Self.border
@@ -2213,6 +2237,7 @@ private struct LiveChannelScrubThumbnail: View {
         .position(x: x, y: -(Self.lift + height / 2))
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        #endif
     }
 }
 

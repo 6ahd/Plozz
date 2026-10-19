@@ -72,7 +72,9 @@ beneath the transport as well as the edge chrome, so white scenes remain legible
 without coloring the glass itself. Mobile Info and Cast cards use that same
 native media (`clear`) material, without a colored backing or an added border;
 their labels and badges retain light ink over the dimmed video, and their
-actions use the native mobile button treatment. Other inline
+actions use native secondary bordered buttons rather than nesting glass surfaces.
+Their semantic foreground follows the panel's contrast; the system owns the
+button's fill and interaction states. Other inline
 panels retain regular native glass. Material variants describe the surface's
 role, not a replacement for the user's system Liquid Glass preference. Do not
 add a custom Clear/Tinted setting or force a color scheme on mobile menus,
@@ -118,6 +120,18 @@ widths from the video's total duration: `mm:ss` below an hour, `h:mm:ss` from an
 hour onward, with extra hour digits reserved only for longer videos. Both elapsed
 and remaining columns stay fixed across playback rollovers and scrubbing, with
 4-point gaps beside the track. Clock mode retains its locale-aware width samples.
+
+During mobile VOD or Live scrubbing, only the original timeline, its timestamps,
+and an available thumbnail remain visible. Top/center controls, title, track
+actions, routing controls, cards, and gesture feedback are hidden. The preview
+floats above the timeline without changing its layout or touch target; its 16:9
+frame grows to 360 points wide, bounded by the available window. Releasing or
+cancelling a scrub restores the controls. TV's remote scrub presentation is unchanged.
+
+Double-tap skip, speed, and unavailable-level feedback are Plozz components
+using native media glass and SF Symbols, not stock AVKit HUDs. They share the
+transport's foreground pairing: light ink on native media glass in either theme,
+theme-aware ink on the reduced-glass fallback.
 
 ## Skip-marker timeline
 

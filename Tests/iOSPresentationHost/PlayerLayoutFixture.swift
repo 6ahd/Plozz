@@ -8,6 +8,7 @@ import SwiftUI
 struct PlayerLayoutFixture: View {
     @State private var model: PlayerViewModel
     @State private var timelineSampleIndex = 0
+    @State private var scrubStarts = 0
 
     init() {
         let provider = PlayerLayoutProvider()
@@ -24,7 +25,9 @@ struct PlayerLayoutFixture: View {
         model.controls.bufferedSeconds = 900
         model.controls.title = "Wayward"
         model.controls.subtitle = "S1 E4 - Mud"
-        model.controls.intendsPause = true
+        model.controls.intendsPause = !ProcessInfo.processInfo.arguments.contains("--playing")
+        model.controls.isScrubbing = ProcessInfo.processInfo.arguments.contains("--scrubbing")
+        model.controls.scrubSeconds = model.controls.currentSeconds
         model.controls.infoCard.cast = [MediaPerson(id: "actor", name: "Actor", role: "Character")]
         _model = State(initialValue: model)
     }
@@ -67,6 +70,12 @@ struct PlayerLayoutFixture: View {
             }
         }
         .statusBarHidden()
+        .onChange(of: model.controls.isScrubbing) { _, active in
+            if active { scrubStarts += 1 }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("player-layout-fixture")
+        .accessibilityValue("scrubbing:\(model.controls.isScrubbing),starts:\(scrubStarts)")
         .environment(\.themePalette, light ? .light : .dark)
         .environment(\.colorScheme, light ? .light : .dark)
         .preferredColorScheme(light ? .light : .dark)

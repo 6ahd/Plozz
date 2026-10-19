@@ -16,10 +16,89 @@ public enum PlayerTouchLayout {
     public static func transportSpacing(availableWidth: CGFloat, portrait: Bool = false) -> CGFloat {
         min(portrait ? 39 : 68, max(0, (availableWidth - playDiameter - 2 * skipDiameter) / 2))
     }
+
+    public static func scrubPreviewSize(availableSize: CGSize) -> CGSize {
+        let height = max(0, availableSize.height - 2 * edgeInset - 44 - timelineRowHeight - 24)
+        let width = max(0, min(360, availableSize.width - 2 * horizontalInset, height * 16 / 9))
+        return CGSize(width: width, height: width * 9 / 16)
+    }
+}
+
+#if os(iOS)
+public struct PlayerTouchScrubPreview: View {
+    private let image: CGImage?
+    private let size: CGSize
+
+    public init(image: CGImage?, availableSize: CGSize) {
+        self.image = image
+        self.size = PlayerTouchLayout.scrubPreviewSize(availableSize: availableSize)
+    }
+
+    public var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12).fill(.black.opacity(0.72))
+            if let image {
+                Image(decorative: image, scale: 1).resizable().scaledToFit()
+            } else {
+                ProgressView().tint(.white)
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.2), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.45), radius: 12, y: 4)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+public extension View {
+    func playerTouchChromeHidden(_ hidden: Bool) -> some View {
+        modifier(PlayerTouchChromeVisibility(hidden: hidden))
+    }
+}
+
+private struct PlayerTouchChromeVisibility: ViewModifier {
+    let hidden: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        // Opacity alone leaves native glass controls in the accessibility tree.
+        if hidden {
+            content.hidden()
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func playerTouchPanelAction() -> some View {
+        buttonStyle(PlayerTouchPanelActionStyle())
+            .controlSize(.regular)
+            .buttonBorderShape(.capsule)
+            .frame(minWidth: 44, minHeight: 44)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
+private struct PlayerTouchPanelActionStyle: PrimitiveButtonStyle {
+    @Environment(\.playerControlForeground) private var foreground
+
+    func makeBody(configuration: Configuration) -> some View {
+        Button(role: configuration.role, action: configuration.trigger) {
+            configuration.label
+                .foregroundStyle(foreground)
+                .frame(minWidth: 20, minHeight: 28)
+        }
+        .buttonStyle(.bordered)
+        .tint(foreground)
+    }
 }
 
 /// Keep native edge margins without adding them to the window's safe area.
-#if os(iOS)
 public struct PlayerTouchChromePadding: ViewModifier {
     private let isEnabled: Bool
 

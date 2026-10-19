@@ -463,7 +463,8 @@ struct InfoPanelView: View {
             .animation(.easeOut(duration: 0.2), value: isFocused)
         }
         #if os(iOS)
-        .playerTouchTab(selected: prominent)
+        .playerTouchPanelAction()
+        .accessibilityAddTraits(prominent ? .isSelected : [])
         #else
         .buttonStyle(InfoActionButtonStyle(
             focused: isFocused,

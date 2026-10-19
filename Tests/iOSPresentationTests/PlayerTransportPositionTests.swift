@@ -10,6 +10,87 @@ import XCTest
 
 @MainActor
 final class PlayerTransportPositionTests: XCTestCase {
+    func testScrubPreviewGrowsWithoutMovingTheTimelineInPhoneAndTabletWindows() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let model = PlayerViewModel(provider: LayoutProvider(), itemID: "fixture")
+        model.controls.duration = 1200
+        model.controls.currentSeconds = 600
+        model.controls.title = "A title"
+        model.controls.subtitle = "Season 1, Episode 2"
+        let thumbnail = try XCTUnwrap(UIGraphicsImageRenderer(size: CGSize(width: 160, height: 90)).image { context in
+            UIColor.cyan.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 160, height: 90))
+        }.cgImage)
+        let host = UIHostingController(rootView: ScrubLayoutFixture(model: model, thumbnail: thumbnail))
+        host.safeAreaRegions = []
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        for size in [
+            CGSize(width: 956, height: 440), CGSize(width: 440, height: 956),
+            CGSize(width: 568, height: 320), CGSize(width: 320, height: 568),
+            CGSize(width: 1024, height: 768), CGSize(width: 768, height: 1024)
+        ] {
+            model.controls.isScrubbing = false
+            window.frame = CGRect(origin: .zero, size: size)
+            host.view.frame = window.bounds
+            window.layoutIfNeeded()
+            try await Task.sleep(for: .milliseconds(300))
+            let original = try XCTUnwrap(model.controls.subtitleLayout.frame(for: .timeline))
+            model.controls.isScrubbing = true
+            try await Task.sleep(for: .milliseconds(300))
+            XCTAssertEqual(model.controls.subtitleLayout.frame(for: .timeline), original)
+            XCTAssertNil(model.controls.subtitleLayout.frame(for: .title))
+            XCTAssertNil(model.controls.subtitleLayout.frame(for: .trackControls))
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+                XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+            }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "Larger scrub preview \(Int(size.width))x\(Int(size.height))"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            let bitmap = try pixels(image)
+            var minX = Int(size.width), minY = Int(size.height), maxX = 0, maxY = 0
+            for y in 0..<Int(size.height) {
+                for x in 0..<Int(size.width) {
+                    let i = (y * Int(size.width) + x) * 4
+                    if bitmap[i] < 80, bitmap[i + 1] > 200, bitmap[i + 2] > 200 {
+                        minX = min(minX, x); maxX = max(maxX, x)
+                        minY = min(minY, y); maxY = max(maxY, y)
+                    }
+                }
+            }
+            let preview = CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
+            let expected = PlayerTouchLayout.scrubPreviewSize(availableSize: size)
+            XCTAssertGreaterThan(preview.width, 240, "The rendered preview must be larger than the former 240-point preview.")
+            XCTAssertEqual(preview.width, expected.width, accuracy: 2)
+            XCTAssertEqual(preview.height, expected.height, accuracy: 2)
+            XCTAssertGreaterThanOrEqual(preview.minX, 0)
+            XCTAssertGreaterThanOrEqual(preview.minY, 0)
+            XCTAssertLessThanOrEqual(preview.maxX, size.width)
+            XCTAssertLessThan(preview.maxY, original.minY, "The thumbnail must never cover the bar or timestamps.")
+            for columns in [21..<64, (Int(size.width) - 64)..<(Int(size.width) - 21)] {
+                let ink = (Int(original.minY)..<Int(original.maxY)).flatMap { y in
+                    columns.map { x in bitmap[(y * Int(size.width) + x) * 4] }
+                }
+                XCTAssertGreaterThan(ink.max() ?? 0, 200, "Scrubbing must not dim the timestamp labels.")
+            }
+            model.controls.isScrubbing = false
+            try await Task.sleep(for: .milliseconds(200))
+            XCTAssertEqual(model.controls.subtitleLayout.frame(for: .timeline), original)
+            XCTAssertNotNil(model.controls.subtitleLayout.frame(for: .title))
+        }
+    }
+
     func testTransportIsCenteredOnTheVideoAfterResizing() async throws {
         let model = PlayerViewModel(provider: LayoutProvider(), itemID: "fixture")
         model.controls.duration = 3600
@@ -107,6 +188,36 @@ final class PlayerTransportPositionTests: XCTestCase {
                 }
                 XCTAssertGreaterThan(darkPixels, 50, "\(label): all three icons need dark ink on light fallback.")
             }
+        }
+    }
+
+    private struct ScrubLayoutFixture: View {
+        let model: PlayerViewModel
+        let thumbnail: CGImage
+
+        var body: some View {
+            GeometryReader { geometry in
+                VStack {
+                    Spacer()
+                    PlozziOSPlayerTransport(
+                        viewModel: model, showsTransport: true, showsUpNext: false, playbackControls: EmptyView(),
+                        timelineOnly: model.controls.isScrubbing, displayedSeconds: 600,
+                        isScrubbing: model.controls.isScrubbing, scrubPreviewImage: thumbnail, showsScrubPreview: true,
+                        pictureInPictureAvailable: false, onTogglePictureInPicture: {},
+                        onScrubChanged: { _ in }, onScrubEditingChanged: { _ in },
+                        onSkipBackward: {}, onPlayPause: {}, onSkipForward: {}, onShowSpeed: {},
+                        supportsVideoZoom: false, onShowCustomZoom: {}, onShowSubtitles: {}, onShowSync: {},
+                        onShowQuality: {}, hasVersions: false, onShowVersions: {},
+                        onOptionsMenuPresentationChange: { _ in }, isCardOpen: .constant(false),
+                        onInteraction: {}, availableSize: geometry.size
+                    )
+                }
+                .modifier(PlayerTouchChromePadding())
+            }
+            .background(.black)
+            .environment(\.themePalette, .light)
+            .environment(\.colorScheme, .light)
+            .ignoresSafeArea()
         }
     }
 

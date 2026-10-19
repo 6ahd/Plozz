@@ -508,13 +508,15 @@ private struct PlayerTouchLevelMeter: View {
 }
 
 private struct PlayerTouchFeedbackPill: ViewModifier {
+    @Environment(\.playerControlForeground) private var foreground
+
     func body(content: Content) -> some View {
         content
             .font(.callout.weight(.semibold))
-            .foregroundStyle(Color.primary)
+            .foregroundStyle(foreground)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .modifier(PanelGlassBackground(cornerRadius: 999))
+            .modifier(PanelGlassBackground(cornerRadius: 999, mediaGlass: true))
     }
 }
 

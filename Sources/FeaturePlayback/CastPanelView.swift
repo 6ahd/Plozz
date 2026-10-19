@@ -825,7 +825,7 @@ private struct CastMemberDetail: View {
                 Image(systemName: "chevron.backward")
             }
             #if os(iOS)
-            .playerTouchTab(selected: false)
+            .playerTouchPanelAction()
             #else
             .buttonStyle(PlozzPanelHeaderButtonStyle())
             #endif
@@ -926,7 +926,7 @@ private struct CastMemberDetail: View {
                             .font(.system(size: 13, weight: .medium))
                         }
                         #if os(iOS)
-                        .playerTouchTab(selected: false)
+                        .playerTouchPanelAction()
                         #else
                         .buttonStyle(PlozzPanelHeaderButtonStyle())
                         #endif
@@ -1199,7 +1199,7 @@ private struct CastMemberDetail: View {
                         .font(metrics.captionFont)
                     }
                     #if os(iOS)
-                    .playerTouchTab(selected: false)
+                    .playerTouchPanelAction()
                     #else
                     .buttonStyle(PlozzPanelHeaderButtonStyle())
                     #endif

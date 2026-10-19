@@ -25,8 +25,6 @@ struct PlozziOSPlayerControlsOverlay: View {
     let onClose: () -> Void
 
     @State private var controlsVisible = true
-    @State private var scrubSeconds: TimeInterval = 0
-    @State private var isScrubbing = false
     @State private var scrubPreviewCoordinator: ScrubPreviewCoordinator?
     @State private var presentedSheet: PlozziOSPlayerSheet?
     @State private var optionsMenuPresented = false
@@ -45,13 +43,16 @@ struct PlozziOSPlayerControlsOverlay: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pictureInPicture = PlozziOSPictureInPictureController()
 
+    private var isScrubbing: Bool { viewModel.controls.isScrubbing }
+    private var scrubSeconds: TimeInterval { viewModel.controls.scrubSeconds }
+
     var body: some View {
         ZStack {
             PlayerTouchGestureSurface(
                 state: touchGestures,
                 shortcutsEnabled: touchShortcutsEnabled,
                 levelsEnabled: keyboardShortcutsEnabled && viewModel.volumeBrightnessGesturesEnabled,
-                isActive: !isPlayingElsewhere && scenePhase == .active,
+                isActive: !isPlayingElsewhere && !isScrubbing && scenePhase == .active,
                 canSeek: viewModel.controls.duration.isFinite && viewModel.controls.duration > 0,
                 canBoost: !viewModel.controls.intendsPause
                     && viewModel.controls.engineCapabilities.contains(.playbackSpeed),
@@ -89,7 +90,7 @@ struct PlozziOSPlayerControlsOverlay: View {
 
             if controlsVisible || touchGestures.skip != nil || showsUpNext {
                 VStack(spacing: 0) {
-                    if controlsVisible {
+                    if controlsVisible && !isScrubbing {
                         PlozziOSPlayerTopBar(
                             pictureInPictureAvailable: pictureInPicture.isAvailable,
                             onTogglePictureInPicture: {
@@ -105,7 +106,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                         showsTransport: controlsVisible || touchGestures.skip != nil,
                         showsUpNext: showsUpNext,
                         playbackControls: primaryPlaybackControls(compact: true),
-                        timelineOnly: !controlsVisible,
+                        timelineOnly: !controlsVisible || isScrubbing,
                         displayedSeconds: isScrubbing
                             ? scrubSeconds
                             : (touchGestures.skip?.target ?? viewModel.controls.currentSeconds),
@@ -118,15 +119,17 @@ struct PlozziOSPlayerControlsOverlay: View {
                             noteInteraction()
                         },
                         onScrubChanged: { value in
-                            scrubSeconds = value
+                            viewModel.controls.scrubSeconds = value
                             scrubPreviewCoordinator?.update(for: value)
                             noteInteraction()
                         },
                         onScrubEditingChanged: { editing in
-                            isScrubbing = editing
+                            guard editing || isScrubbing else { return }
+                            viewModel.controls.isScrubbing = editing
                             if editing {
                                 controlsVisible = true
-                                scrubSeconds = viewModel.controls.currentSeconds
+                                viewModel.controls.scrubSeconds = viewModel.controls.currentSeconds
+                                cancelTouchInteraction()
                                 cancelAutoHide()
                             } else {
                                 viewModel.requestSeek(to: scrubSeconds)
@@ -183,16 +186,18 @@ struct PlozziOSPlayerControlsOverlay: View {
                 .modifier(PlayerTouchChromePadding())
             }
 
-            if controlsVisible && !isCardOpen && !showsUpNext {
+            if controlsVisible && !isScrubbing && !isCardOpen && !showsUpNext {
                 primaryPlaybackControls(compact: PlayerTouchLayout.usesCompactTransport(
                     contentHeight: availableSize.height - 2 * PlayerTouchLayout.edgeInset
                 ))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            PlayerTouchGestureFeedbackView(state: touchGestures)
+            if !isScrubbing {
+                PlayerTouchGestureFeedbackView(state: touchGestures)
+            }
 
-            if viewModel.controls.skipButtonVisible, !touchGestures.isActive {
+            if viewModel.controls.skipButtonVisible, !touchGestures.isActive, !isScrubbing {
                 Button {
                     let canSkip = viewModel.controls.activeSkipSegment != nil
                     viewModel.skipActiveSegment()
@@ -241,10 +246,18 @@ struct PlozziOSPlayerControlsOverlay: View {
             cancelAutoHide()
             cancelTouchInteraction()
             scrubPreviewCoordinator?.clear()
+            viewModel.controls.isScrubbing = false
             viewModel.controls.timelineClock.isEnabled = false
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { cancelTouchInteraction() }
+            if phase != .active {
+                cancelAutoHide()
+                cancelTouchInteraction()
+                viewModel.controls.isScrubbing = false
+                scrubPreviewCoordinator?.clear()
+            } else {
+                scheduleAutoHide()
+            }
         }
         .onChange(of: touchShortcutsEnabled) { _, enabled in
             if !enabled { cancelTouchInteraction() }
@@ -378,6 +391,7 @@ struct PlozziOSPlayerControlsOverlay: View {
     }
 
     private func backgroundTapped() {
+        guard !isScrubbing else { return }
         touchGestures.clearSkip()
         if isCardOpen {
             isCardOpen = false
@@ -737,7 +751,7 @@ private struct PlozziOSPlaybackOptionsMenu: View {
     }
 }
 
-private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
+struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
     let viewModel: PlayerViewModel
     let showsTransport: Bool
     let showsUpNext: Bool
@@ -807,29 +821,6 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
 
     private var transportControls: some View {
         VStack(spacing: 0) {
-            if isScrubbing, showsScrubPreview {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.black.opacity(0.72))
-
-                    if let scrubPreviewImage {
-                        Image(decorative: scrubPreviewImage, scale: 1)
-                            .resizable()
-                            .scaledToFit()
-                    } else {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                }
-                .frame(width: 240, height: 135)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.45), radius: 12, y: 4)
-            }
-
             HStack(alignment: .bottom, spacing: 16) {
                 // Episode line ABOVE the title, matching `titleBlock` on tvOS:
                 // "S1, E2 · Episode Title" reads as a qualifier of the series
@@ -862,9 +853,7 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
                     )
             }
             .foregroundStyle(.white)
-            .opacity(isCardOpen || timelineOnly || !showsTransport ? 0 : 1)
-            .allowsHitTesting(!isCardOpen && !timelineOnly && showsTransport)
-            .accessibilityHidden(isCardOpen || timelineOnly || !showsTransport)
+            .playerTouchChromeHidden(isCardOpen || timelineOnly || !showsTransport)
 
             PlozziOSPlayerTimeline(
                 model: viewModel.controls, displayedSeconds: displayedSeconds, isScrubbing: isScrubbing,
@@ -881,6 +870,12 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
             .opacity(isCardOpen ? 0 : 1)
             .allowsHitTesting(!isCardOpen && showsTransport)
             .accessibilityHidden(isCardOpen || !showsTransport)
+            .overlay(alignment: .bottom) {
+                if isScrubbing, showsScrubPreview {
+                    PlayerTouchScrubPreview(image: scrubPreviewImage, availableSize: availableSize)
+                        .padding(.bottom, PlayerTouchLayout.timelineRowHeight + 12)
+                }
+            }
 
             // Info / Cast tabs sit BELOW the scrubber, matching tvOS, and the
             // card grows upward out of them.
@@ -897,9 +892,7 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
                     }
                 }
             )
-            .opacity(timelineOnly ? 0 : 1)
-            .allowsHitTesting(!timelineOnly)
-            .accessibilityHidden(timelineOnly)
+            .playerTouchChromeHidden(timelineOnly)
 
             // Deliberately no .font / .foregroundStyle / .buttonStyle here. Those
             // travel through the environment into a Menu's POPUP content, not just
@@ -1019,6 +1012,7 @@ struct PlozziOSPlayerTimeline: View {
         alignment: Alignment
     ) -> some View {
         Button {
+            guard !isScrubbing else { return }
             model.timelineClock.isEnabled.toggle()
             onInteraction()
         } label: {
@@ -1041,7 +1035,8 @@ struct PlozziOSPlayerTimeline: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(isScrubbing)
+        .allowsHitTesting(!isScrubbing)
+        .accessibilityRespondsToUserInteraction(!isScrubbing)
         .accessibilityLabel(Text(label))
         .accessibilityValue(text)
         .accessibilityHint("Switch between playback and clock times")
