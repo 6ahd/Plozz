@@ -395,7 +395,7 @@ public final class ItemDetailViewModel {
         guard let activeProvider else { return nil }
         if let match = sources.first(where: { $0.accountID == activeSourceAccountID && $0.itemID == activeItemID })
             ?? sources.first(where: { $0.accountID == activeSourceAccountID }) {
-            return match
+            return Self.fillingSourceDisplayMetadata(in: match, provider: activeProvider)
         }
         return MediaSourceRef(
             accountID: activeSourceAccountID ?? activeProvider.session.server.id,
@@ -2379,7 +2379,7 @@ public final class ItemDetailViewModel {
         tagged.sources.removeAll { tagged.rejectedSourceIDs.contains($0.id) }
         if editionOpeningSource?.matches(tagged) == true {
             tagged.editionOpeningSource = editionOpeningSource
-            tagged.edition = Self.nonblankEdition(tagged.edition) ?? Self.nonblankEdition(openingEdition)
+            tagged.edition = Self.nonblank(tagged.edition) ?? Self.nonblank(openingEdition)
         } else {
             tagged.editionOpeningSource = nil
         }
@@ -2789,13 +2789,35 @@ public final class ItemDetailViewModel {
     /// The primary/active source is always retained so the page the user
     /// navigated to never loses its own entry. This is what keeps a disabled
     /// server from lingering in the picker when it's restored from a stale
-    /// on-disk snapshot persisted while the server was still enabled.
+    /// on-disk snapshot persisted while the server was still enabled. Repairs
+    /// missing display labels using only each retained source's owning provider.
     private func prunedToActiveAccounts(_ candidate: [MediaSourceRef]) -> [MediaSourceRef] {
-        candidate.filter { source in
-            !rejectedSourceIDs.contains(source.id)
-                && (source.accountID == activeSourceAccountID
-                    || alternateProviderResolver(source.accountID) != nil)
+        candidate.compactMap { source in
+            guard !rejectedSourceIDs.contains(source.id) else { return nil }
+            let isActiveSource = source.accountID == activeSourceAccountID
+            let provider = isActiveSource ? activeProvider : alternateProviderResolver(source.accountID)
+            guard isActiveSource || provider != nil else { return nil }
+            return Self.fillingSourceDisplayMetadata(in: source, provider: provider)
         }
+    }
+
+    private static func fillingSourceDisplayMetadata(
+        in source: MediaSourceRef,
+        from known: MediaSourceRef? = nil,
+        provider: (any MediaProvider)? = nil
+    ) -> MediaSourceRef {
+        let known = known.flatMap {
+            $0.accountID == source.accountID && $0.itemID == source.itemID ? $0 : nil
+        }
+        var result = source
+        result.providerKind = result.providerKind ?? known?.providerKind ?? provider?.kind
+        if nonblank(result.serverName) == nil {
+            result.serverName = nonblank(known?.serverName) ?? nonblank(provider?.session.server.name)
+        }
+        if nonblank(result.accountName) == nil {
+            result.accountName = nonblank(known?.accountName) ?? nonblank(provider?.session.userName)
+        }
+        return result
     }
 
     /// Stamps the primary source with the freshly-fetched detail so the picker and
@@ -2839,33 +2861,33 @@ public final class ItemDetailViewModel {
                 if let revision = version.sourceMetadata?.sourceRevision {
                     return revision == candidate.sourceMetadata?.sourceRevision
                 }
-                guard let file = Self.nonblankEdition(version.fileName) else { return false }
-                return file == Self.nonblankEdition(candidate.fileName)
+                guard let file = Self.nonblank(version.fileName) else { return false }
+                return file == Self.nonblank(candidate.fileName)
             }
         }
         var result = fresh
-        let freshEdition = nonblankEdition(fresh.edition)
+        let freshEdition = nonblank(fresh.edition)
         result.edition = freshEdition
         result.versions = fresh.versions.enumerated().map { index, version in
             var restored = version
-            restored.edition = nonblankEdition(version.edition)
+            restored.edition = nonblank(version.edition)
                 ?? freshEdition
-                ?? matches[index].flatMap { nonblankEdition($0.edition) }
+                ?? matches[index].flatMap { nonblank($0.edition) }
             return restored
         }
         if freshEdition == nil,
-           let previousEdition = nonblankEdition(known.edition),
+           let previousEdition = nonblank(known.edition),
            !incoming.isEmpty,
            matches.allSatisfy({ $0 != nil }),
            result.versions.allSatisfy({
-               nonblankEdition($0.edition)?.caseInsensitiveCompare(previousEdition) == .orderedSame
+               nonblank($0.edition)?.caseInsensitiveCompare(previousEdition) == .orderedSame
            }) {
             result.edition = previousEdition
         }
         return result
     }
 
-    private static func nonblankEdition(_ value: String?) -> String? {
+    private static func nonblank(_ value: String?) -> String? {
         guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
               !trimmed.isEmpty else { return nil }
         return trimmed
@@ -2887,7 +2909,11 @@ public final class ItemDetailViewModel {
         guard !discovered.isEmpty || !resolution.rejectedSourceIDs.isEmpty else { return }
         if retained.isEmpty, let accountID = activeSourceAccountID, primary.locallyValidatedPlayableSource {
             retained = [stampedPrimarySource(
-                MediaSourceRef(accountID: accountID, itemID: primary.id, kind: primary.kind),
+                Self.fillingSourceDisplayMetadata(
+                    in: MediaSourceRef(accountID: accountID, itemID: primary.id, kind: primary.kind),
+                    from: discovered.first { $0.accountID == accountID && $0.itemID == primary.id },
+                    provider: activeProvider
+                ),
                 from: primary
             )]
         }
@@ -2900,22 +2926,20 @@ public final class ItemDetailViewModel {
             // Already had a (seeded) picker: union in any newly-found servers,
             // preserving existing order + already-enriched versions.
             result = retained
-            // Refresh each KEPT source's locality from the re-discovery first: a
-            // repeated discovery may re-classify a server local↔remote after a
-            // network change (e.g. the device got home onto the LAN, or dropped
-            // off it onto Tailscale) WITHOUT surfacing any new server. That
-            // must still update the picker highlight and the play default, so we
-            // publish on a locality change even when the server count is
-            // unchanged (the count-grew guard below alone would swallow it).
-            let discoveredLocality = Dictionary(
-                discovered.compactMap { ref in ref.locality.map { (sourceKey(ref), $0) } },
-                uniquingKeysWith: { first, _ in first }
+            // Rediscovery can repair sparse labels or change locality without
+            // adding a source. Keep the live versions and per-account watch state.
+            let discoveredByKey = Dictionary(
+                discovered.map { (sourceKey($0), $0) },
+                uniquingKeysWith: { first, next in
+                    var combined = Self.fillingSourceDisplayMetadata(in: first, from: next)
+                    combined.locality = first.locality ?? next.locality
+                    return combined
+                }
             )
             result = result.map { existing in
-                guard let refreshed = discoveredLocality[sourceKey(existing)],
-                      refreshed != existing.locality else { return existing }
-                var copy = existing
-                copy.locality = refreshed
+                guard let refreshed = discoveredByKey[sourceKey(existing)] else { return existing }
+                var copy = Self.fillingSourceDisplayMetadata(in: existing, from: refreshed)
+                copy.locality = refreshed.locality ?? existing.locality
                 return copy
             }
             var keys = Set(result.map(sourceKey))
@@ -2923,10 +2947,7 @@ public final class ItemDetailViewModel {
                 result.append(source)
             }
         }
-        // Publish when discovery expanded the server list or refreshed locality.
-        // Even an unchanged result must continue into retargeting: the same list
-        // may already have arrived from a snapshot while the active detail provider
-        // is still the merge primary.
+        // Metadata-only repairs must also reach the picker and snapshot cache.
         if result != sources || !resolution.rejectedSourceIDs.isEmpty {
             sources = result
             applyUnifiedWatchState()

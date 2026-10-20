@@ -585,6 +585,11 @@ Positive source rejections travel with cached items and detail snapshots.
 Sparse reloads cannot clear them, and detail discovery distinguishes explicit
 rejection from a missing search result. Successfully fetched alternate details
 must pass the same identity checks before contributing versions or watch state.
+Detail source discovery, seeded cards, and restored snapshots fill missing server,
+provider, and user labels from the exact owning account or matching discovered
+source. Existing display names, file versions, and per-account watch state survive
+metadata-only repairs. Separate sign-ins to the same physical server remain
+separately selectable; naming never changes the active playback source.
 Rejecting an indexed bridge also removes membership supported only through that
 bridge, including references already carried by an open detail page.
 Watch actions preserve these exclusions through queued persistence, coalescing,
