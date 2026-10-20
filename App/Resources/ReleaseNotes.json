@@ -2,6 +2,44 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/059.3",
+      "version": "2026.10.20",
+      "marketingVersion": "2026.9.25",
+      "build": "59.3",
+      "releasedAt": "2026-10-20",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "Try experimental Dolby Vision FEL decoding for supported Profile 7 videos in Playback > Advanced. Off by default; uses more GPU and memory and loses Dolby Atmos objects and DTS:X height audio."
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Updated to AetherEngine 7.44.0; playback diagnostics now show its name and version.",
+            {
+              "text": "Faster startup for supported HDR and Dolby Vision videos when Apple TV switches display modes.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            {
+              "text": "Some supported DTS:X tracks losing height audio at playback start on tvOS 26+.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Distortion in loud passages of supported DTS:X height-audio tracks on tvOS 26+.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/059.2",
       "version": "2026.10.20",
       "marketingVersion": "2026.9.25",
