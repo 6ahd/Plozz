@@ -184,8 +184,6 @@ struct PlozziOSHomeHeroSkeleton: View {
         HStack(spacing: 12) {
             pill(width: 150)
             pill(width: 48)
-            pill(width: 48)
-            pill(width: 48)
         }
     }
 

@@ -1712,6 +1712,30 @@ private struct PlozziOSStableHomeHeroMetadata: View {
     }
 }
 
+struct PlozziOSHomeHeroArtworkLink: View {
+    @Environment(PlozziOSAppModel.self) private var appModel
+
+    let item: MediaItem
+    let provider: any MediaProvider
+
+    var body: some View {
+        NavigationLink {
+            PlozziOSItemDetailView(
+                appModel: appModel,
+                provider: provider,
+                item: item,
+                seerService: appModel.seerService
+            )
+        } label: {
+            Color.clear.contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("More Info")
+        .accessibilityValue(Text(verbatim: item.title))
+        .accessibilityIdentifier("home-hero-artwork-detail")
+    }
+}
+
 struct PlozziOSHomeHeroForeground: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(PlozziOSAppModel.self) private var appModel
@@ -1722,7 +1746,6 @@ struct PlozziOSHomeHeroForeground: View {
     let watchlistItem: MediaItem
     let presentation: HeroPresentation
     let style: HeroArtworkStyle
-    let provider: (any MediaProvider)?
     let onPlay: (MediaItem) -> Void
     var heroRequest: PlozziOSHeroRequest?
     /// "New episode every Friday" for a returning series, from the shared
@@ -1819,32 +1842,6 @@ struct PlozziOSHomeHeroForeground: View {
                 isWatchlisted ? "In Watchlist" : "Not in Watchlist"
             )
         }
-
-        if let provider {
-            let infoIsPrimary = !hasPlayAction && !showsRequestPrimary
-            NavigationLink {
-                PlozziOSItemDetailView(
-                    appModel: appModel,
-                    provider: provider,
-                    item: detailItem,
-                    seerService: appModel.seerService
-                )
-            } label: {
-                if infoIsPrimary {
-                    Label("More Info", systemImage: "info.circle")
-                } else {
-                    Image(systemName: "info.circle")
-                        .font(.headline.weight(.semibold))
-                }
-            }
-            .buttonStyle(
-                PlozziOSHeroActionButtonStyle(
-                    kind: infoIsPrimary ? .primary : .secondary,
-                    circular: !infoIsPrimary
-                )
-            )
-            .accessibilityLabel("More Info")
-        }
     }
 
     /// One-tap Seerr request CTA for a discovery movie, matching the detail hero.
@@ -1852,16 +1849,6 @@ struct PlozziOSHomeHeroForeground: View {
     private var heroRequestButton: some View {
         if let heroRequest {
             PlozziOSHeroRequestButton(item: item, request: heroRequest)
-        }
-    }
-
-    /// Whether the request pill provides the leading (primary-ish) action, so
-    /// "More Info" should step down to a secondary circular button.
-    private var showsRequestPrimary: Bool {
-        guard let heroRequest else { return false }
-        switch heroRequest.cta {
-        case .request, .requested, .downloading: return true
-        case .play, .unavailable: return false
         }
     }
 

@@ -165,6 +165,12 @@ and omitted from the current picker rather than blocking a confirmed primary.
   configured. Completion belongs to the current curation inputs and profile;
   cancelled work cannot settle a replacement request. This never changes saved
   preferences or treats a failed fetch as authority to erase cached candidates.
+  On iPhone and iPad, tapping the Home hero artwork opens its item/provider
+  detail page instead of a separate More Info button. The artwork link sits behind
+  the foreground actions, so Play, Watchlist and requests stay independent. Horizontal paging
+  and vertical scrolling do not open details; in-flight page transitions disable
+  the artwork link. VoiceOver exposes the artwork as More Info with the current
+  title. The tvOS More Info button is unchanged.
 - **Collections hero source** — an opt-in source mixes individual movies and
   shows from multiple account-qualified collections across libraries, not collection cards. TV and
   mobile use the same `MediaProvider.collectionMembers` loader and existing

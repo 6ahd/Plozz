@@ -14,7 +14,7 @@ import UIKit
 
 @MainActor
 @Observable
-private final class PlozziOSHomeHeroPullModel {
+final class PlozziOSHomeHeroPullModel {
     var distance: CGFloat = 0
     var isVisible = true
 
@@ -1241,7 +1241,7 @@ struct PlozziOSHomeView: View {
     }
 }
 
-private struct PlozziOSHomeHeroCarousel: View {
+struct PlozziOSHomeHeroCarousel: View {
     @Environment(\.plozzArtworkPolicy) private var artworkPolicy
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -1387,6 +1387,11 @@ private struct PlozziOSHomeHeroCarousel: View {
                         isSelected: true
                     )
 
+                    if let provider = provider(for: currentItem) {
+                        PlozziOSHomeHeroArtworkLink(item: currentItem, provider: provider)
+                            .disabled(!isFrontmost || transitionInProgress || dragOffset != 0)
+                    }
+
                     let rootItem = rootItem(for: currentItem)
                     let playItem = playTarget(for: currentItem) ?? currentItem
                     // Hoisted: folding this call into the view initialiser below
@@ -1409,7 +1414,6 @@ private struct PlozziOSHomeHeroCarousel: View {
                             surface: .home
                         ),
                         style: style,
-                        provider: provider(for: currentItem),
                         onPlay: onPlay,
                         heroRequest: heroRequest(for: currentItem),
                         scheduleLine: scheduleLine

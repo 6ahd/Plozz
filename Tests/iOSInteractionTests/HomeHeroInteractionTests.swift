@@ -1,0 +1,84 @@
+import XCTest
+
+@MainActor
+final class HomeHeroInteractionTests: XCTestCase {
+    private var app: XCUIApplication!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
+        app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        app.launchArguments = ["--home-hero-fixture"]
+        app.launch()
+    }
+
+    override func tearDown() async throws {
+        if let testRun, testRun.failureCount > 0 {
+            let attachment = XCTAttachment(screenshot: app.screenshot())
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        app.terminate()
+        app = nil
+        try await super.tearDown()
+    }
+
+    func testArtworkTapOpensCurrentItemAndAccountAfterPaging() {
+        let artwork = app.buttons["home-hero-artwork-detail"]
+        XCTAssertTrue(artwork.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertEqual(artwork.label, "More Info")
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label == %@", "More Info")).count, 1,
+                       "Only the artwork link should expose More Info; the mobile action button is removed.")
+        XCTAssertEqual(artwork.value as? String, "Hero Movie")
+        artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).tap()
+        assertDetail("Details for movie from jellyfin")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(artwork.wait(for: \.isHittable, toEqual: true, timeout: 5))
+
+        let start = artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.3))
+        let end = artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.3))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        let paged = expectation(for: NSPredicate(format: "value == %@", "Hero Episode"), evaluatedWith: artwork)
+        wait(for: [paged], timeout: 5)
+        XCTAssertTrue(artwork.wait(for: \.isEnabled, toEqual: true, timeout: 5))
+        XCTAssertFalse(app.navigationBars.buttons.firstMatch.exists,
+                       "A carousel swipe must not activate the artwork link.")
+        artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).tap()
+        assertDetail("Details for series from emby")
+    }
+
+    func testForegroundActionsAndVerticalScrollingRemainIndependent() {
+        let artwork = app.buttons["home-hero-artwork-detail"]
+        XCTAssertTrue(artwork.waitForExistence(timeout: 15), app.debugDescription)
+        let play = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Play")).firstMatch
+        XCTAssertTrue(play.wait(for: \.isHittable, toEqual: true, timeout: 5), app.debugDescription)
+        play.tap()
+        XCTAssertTrue(app.staticTexts["hero-play-count"].wait(for: \.label, toEqual: "1", timeout: 5))
+        XCTAssertTrue(artwork.isHittable)
+        app.buttons["Add to Watchlist"].tap()
+        XCTAssertTrue(app.staticTexts["hero-watchlist-count"].wait(for: \.label, toEqual: "1", timeout: 5))
+        XCTAssertTrue(artwork.isHittable)
+        XCTAssertFalse(app.navigationBars.buttons.firstMatch.exists)
+
+        let followingRow = app.staticTexts["hero-following-row"]
+        let initialY = followingRow.frame.minY
+        let start = artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+        let end = artwork.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        XCTAssertTrue(followingRow.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        XCTAssertLessThan(followingRow.frame.minY, initialY - 80)
+        XCTAssertFalse(app.navigationBars.buttons.firstMatch.exists)
+        XCTAssertEqual(artwork.value as? String, "Hero Movie", "Vertical scrolling must not page the carousel.")
+    }
+
+    private func assertDetail(_ text: String) {
+        let detail = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
+        XCTAssertTrue(detail.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["home-hero-artwork-detail"].wait(
+            for: \.isHittable, toEqual: false, timeout: 5
+        ))
+        XCTAssertEqual(app.staticTexts["hero-play-count"].label, "0", "Artwork taps must not start playback.")
+    }
+}

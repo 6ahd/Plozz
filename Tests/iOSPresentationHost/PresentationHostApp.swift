@@ -134,7 +134,9 @@ struct PresentationHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--player-layout-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--home-hero-fixture") {
+                HomeHeroInteractionFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--player-layout-fixture") {
                 PlayerLayoutFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--device-setup-fixture") {
                 DeviceSetupInteractionFixture()
