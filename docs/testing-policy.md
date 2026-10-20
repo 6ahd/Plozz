@@ -134,6 +134,8 @@ including when package-test evidence is reused.
 
 Keep the authoritative passing summary and expected-bundle
 evidence, not just a success marker; missing or changed evidence reruns the gate.
+Package integrity scans have a two-minute per-checkout bound for large dependency
+trees; metadata reads retain their 30-second bound. A timeout is never clean evidence.
 A failed fresh attempt invalidates an earlier success. Inputs changing between
 phases prevent the combined candidate from being declared ready. Invalidating a
 cached full-suite result does not itself require running that suite: reassess
