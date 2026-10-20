@@ -116,8 +116,13 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             (self.focusFrame(in: window)?.width ?? 0) > 500 && model.isPanelOpen
         }
         try await Task.sleep(for: .milliseconds(500))
+        try await waitForHostedLayout(window)
         XCTAssertTrue(model.isPanelOpen)
         let image = DetailTransitionSnapshot.image(of: window)
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "Apple TV version menu"
+        attachment.lifetime = .keepAlways
+        add(attachment)
         let text = VNRecognizeTextRequest()
         text.recognitionLevel = .accurate
         text.recognitionLanguages = ["en-US"]
@@ -125,12 +130,7 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
         text.minimumTextHeight = 0.001
         text.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([text])
-        let visibleText = (text.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-        for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "Atmos", "80 Mbps", "2h", "GROUP.mkv"] {
-            XCTAssertTrue(visibleText.localizedCaseInsensitiveContains(fact), "Missing version fact \(fact): \(visibleText)")
-        }
-        XCTAssertFalse(visibleText.contains("torrent_name"))
-        XCTAssertFalse(visibleText.contains("media_type"))
+        let screenText = (text.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         let selectedText = try XCTUnwrap(text.results?.first {
             $0.topCandidates(1).first?.string.contains("Extended") == true
         })
@@ -139,12 +139,20 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             x: rect.midX * window.bounds.width,
             y: (1 - rect.midY) * window.bounds.height
         )
-        XCTAssertTrue(try XCTUnwrap(focusFrame(in: window)).contains(center),
+        let focusedFrame = try XCTUnwrap(focusFrame(in: window))
+        XCTAssertTrue(focusedFrame.contains(center),
                       "Native focus must land on the playing Extended version, not the first row.")
-        let attachment = XCTAttachment(image: image)
-        attachment.name = "Apple TV version menu"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        let crop = try XCTUnwrap(image.cgImage?.cropping(to: focusedFrame.applying(
+            CGAffineTransform(scaleX: image.scale, y: image.scale)
+        ).integral))
+        try VNImageRequestHandler(cgImage: crop).perform([text])
+        let rowText = (text.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        let visibleText = screenText + " " + rowText
+        for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "Atmos", "80 Mbps", "2h", "GROUP.mkv"] {
+            XCTAssertTrue(visibleText.localizedCaseInsensitiveContains(fact), "Missing version fact \(fact): \(visibleText)")
+        }
+        XCTAssertFalse(visibleText.contains("torrent_name"))
+        XCTAssertFalse(visibleText.contains("media_type"))
     }
 
     private func controls(_ model: PlayerControlsModel) -> AnyView {
