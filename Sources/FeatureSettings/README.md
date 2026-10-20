@@ -61,20 +61,65 @@ watch history and planning-list behavior are documented in
   libraries for those controls must not restore a separate management list.
 - **Customize Home** is one shared section editor on TV, iPhone and iPad.
   Normal rows open their own settings. Source-specific rows and their settings
-  use the shared provider brand mark, including the transport badge for shares;
+  use the shared provider brand mark, including the transport badge for shares.
+  In the editor, Add section, and reorder rows, the mark sits beside the
+  library/server name on the second line rather than before the section title;
   generic row glyphs appear only during reordering.
-  An inline Preset selector sits below the title; mobile uses a secondary heading
+  An inline Preset selector sits below the title, with up/down chevrons beside
+  its current value to expose the native menu; mobile uses a secondary heading
   with a trailing native menu capsule and a divider, not another section card.
+  TV gives this control row additional vertical separation from the header and sections.
   It scrolls with the content and stacks at large text sizes when needed.
   An accessible + action remains beside Reorder/Done in the native toolbar.
   TV keeps its labeled Add section beside Preset. A second, labeled
   Add section action follows the list. Reorder/Done switches to
   native movement controls with no Hidden drop zone; Hero stays
-  pinned and cannot move. Mobile uses the shared page inset without extra gutters.
+  pinned and cannot move. Its editable row carries a subtle pin rather than a
+  lock, without a “Pinned at top” subtitle in either editing mode.
+  On TV, the single-line title is “Home layout: Hero” or “Home layout: Showcase”,
+  reflecting the active layout and opening the Home layout settings page.
+  Mobile uses the shared page inset without extra gutters.
   Add section offers available existing rows not already shown. Removing a
   section hides it without erasing its configuration or disabling its libraries.
+  Section context menus also offer removal. Reorder menus include Move to top
+  and Move to bottom within the movable sections, never above Home layout.
+  On TV, picked-up rows retain native focus during rapid directional presses
+  and held Up/Down; reaching an edge does not move focus out of the list.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
+  Continue Watching offers three native preview choices: Artwork + logo,
+  Thumbnail, and Poster. Simple fabricated illustrations distinguish a backdrop
+  with an overlaid logo, an unbranded scene, and portrait poster artwork without
+  implying a fixed title position. Figures preserve their proportions; artwork
+  and playback controls use a shared scale that preserves the cards' relative
+  sizes, with larger compact previews, 12-point horizontal gutters, and tighter
+  vertical padding. Visible artwork and optional labels are centered together,
+  with no empty caption space when labels are off.
+  TV examples use a taller preview area and larger playback details for viewing-distance
+  legibility; this illustration-only adjustment does not change real cards or mobile previews.
+  Their containers use the same `ThemeCardButtonStyle` as `PreviewCard`, including
+  its shared selection and focus treatment, rather than a separate glass action-button style.
+  Each choice owns its hit shape and accessibility label so scaled decorative
+  artwork cannot overlap neighboring controls or expose fabricated playback text.
+  They share equal choice sizes on TV and
+  wide layouts, becoming preview-led rows on compact mobile layouts. The native
+  Playback details control applies to all three choices: Detailed retains the
+  play/progress/text overlay; Progress only uses the existing shared white bar
+  without playback text on the artwork. Detailed remains the default.
+  Portrait uses complete movie/show posters, with a short progressively blurred
+  reflection in Detailed or standard-height posters in Progress only.
+  Portrait cannot combine with thumbnails and preserves the saved landscape artwork
+  preference. The presentation is profile-scoped and also applies to library
+  Continue Watching rows. All three styles expose a Labels control bound to the same
+  Continue Watching override in Appearance -> Cards -> Labels by view:
+  Follow Appearance inherits Home rows or Recommended; On/Off controls the labels
+  below any Continue Watching artwork. Each preview shows or hides its caption
+  lines using the same choice. The previous portrait override is preserved.
+  Caption presets/reset clear this override, and
+  switching artwork presentation preserves it. Playback details is independently
+  profile-scoped, survives layout changes, and does not change the Labels override.
+  The Merge Next Up explanation belongs to the native toggle's label, not a
+  separate helper-text row.
   Preset retains the confirmed Match server and Combined rows choices and shows
   Custom for edited arrangements. Selecting a new preset still requires
   confirmation.
@@ -82,13 +127,18 @@ watch history and planning-list behavior are documented in
   One bottom card on the main editor uses shared `InlineErrorMessage` warnings
   to name affected sources and offers Retry, without repeating these on detail pages.
   The root and every catalog-editing destination keep discovery active while
-  visible and retain loading status and local edit failures. Preset changes reload the catalog;
-  adding, removing and reordering wait for discovery to finish.
+  visible and retain loading status and local edit failures. Preset changes reload the catalog.
+  Reorder is available as soon as two known sections can move, independently of
+  server discovery or failures. An editing session snapshots its known rows so
+  late discovery cannot move or disable a lifted row; the first actual move
+  saves that arrangement, retaining unavailable saved identities. Newly discovered
+  sections remain available through Add section. Known, identity-scoped sections
+  remain focusable and editable while optional discovery runs; loading only
+  delays choices that have not been discovered yet.
   Mobile library discovery publishes one identity-scoped snapshot, never pairing
   a previous viewer's library metadata with the newly active credentials.
-  Mobile Continue Watching artwork previews size their swatch by available width
-  instead of reserving a fixed-height empty area; TV and other shared preview
-  cards keep their existing sizing.
+  Continue Watching artwork previews remain inside equal native choices rather
+  than a separate floating preview; compact mobile layouts use preview-led rows.
 - `HomeSectionCatalog` owns typed choice deduplication and validated section
   edits; `HomeSectionCatalogModel` owns bounded, identity-fenced discovery.
   The UI writes through the existing profile-scoped `HomeLibraryVisibilityModel`.

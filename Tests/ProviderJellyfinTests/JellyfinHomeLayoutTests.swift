@@ -81,6 +81,65 @@ final class JellyfinHomeLayoutTests: XCTestCase {
         XCTAssertTrue(layout.omitsReading)
     }
 
+    func testNullCustomPreferencesPreserveConfiguredLayoutOnBothServers() async throws {
+        for kind: ProviderKind in [.jellyfin, .emby] {
+            let stub = StubHTTPClient()
+            if kind == .emby {
+                stub.stub(pathSuffix: "/Users/selected-user/HomeSections", json: "{}", status: 404)
+            }
+            let json = preferences(["latestmedia", "resume", "nextup", "folders"])
+                .replacingOccurrences(of: #""CustomPrefs":{"#, with: #""CustomPrefs":{"tvhome":null,"unknown":null,"#)
+            stub.stub(pathSuffix: "/DisplayPreferences/usersettings", json: json)
+            stub.stub(pathSuffix: "/Users/selected-user/Views", json: views)
+
+            let response = try await JellyfinProvider(session: session(kind), http: stub).serverHomeLayout()
+            let layout = try XCTUnwrap(response)
+            XCTAssertEqual(layout.source, .webPreferences)
+            XCTAssertEqual(layout.sections.map(\.id), [
+                "web:0:latestmedia:shows", "web:0:latestmedia:movies",
+                "web:1:resume", "web:2:nextup", "web:3:folders"
+            ])
+            XCTAssertEqual(stub.sentPaths, (kind == .emby ? ["/Users/selected-user/HomeSections"] : []) + [
+                "/DisplayPreferences/usersettings", "/Users/selected-user/Views"
+            ])
+        }
+    }
+
+    func testNullSlotsUseDefaultsWhileExplicitNoneStaysHidden() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/DisplayPreferences/usersettings", json: """
+        {"CustomPrefs":{"homesection0":null,"homesection1":null,"homesection4":"none","tvhome":null}}
+        """)
+        stub.stub(pathSuffix: "/Users/selected-user/Views", json: views)
+
+        let response = try await JellyfinProvider(session: session(), http: stub).serverHomeLayout()
+        let layout = try XCTUnwrap(response)
+        XCTAssertEqual(layout.sections.map(\.id), [
+            "web:0:smalllibrarytiles", "web:1:resume", "web:5:nextup",
+            "web:6:latestmedia:shows", "web:6:latestmedia:movies"
+        ])
+        XCTAssertTrue(layout.omitsMusic)
+        XCTAssertTrue(layout.omitsReading)
+    }
+
+    func testNonStringCustomPreferencesStillFailDecoding() async throws {
+        for value in ["true", "42", "[]", "{}"] {
+            for key in ["tvhome", "homesection0"] {
+                let stub = StubHTTPClient()
+                stub.stub(pathSuffix: "/DisplayPreferences/usersettings", json: """
+                {"CustomPrefs":{"\(key)":\(value)}}
+                """)
+                do {
+                    _ = try await JellyfinProvider(session: session(), http: stub).serverHomeLayout()
+                    XCTFail("Non-string preference must throw")
+                } catch {
+                    XCTAssertEqual(error as? AppError, .decoding)
+                }
+                XCTAssertEqual(stub.sentPaths, ["/DisplayPreferences/usersettings"])
+            }
+        }
+    }
+
     func testLatestIsBoundedScopedAndFiltersNonVideoWithoutChangingPlaybackIDs() async throws {
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/Users/selected-user/Items/Latest", json: """

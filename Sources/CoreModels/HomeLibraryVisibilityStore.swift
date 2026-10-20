@@ -294,6 +294,30 @@ public final class HomeLibraryVisibilityModel {
         visibility.continueWatchingShowsSeriesArtwork
     }
 
+    public var continueWatchingUsesSeriesArtwork: Bool {
+        visibility.continueWatchingUsesSeriesArtwork
+    }
+
+    public var continueWatchingLayout: ContinueWatchingCardLayout {
+        visibility.continueWatchingLayout
+    }
+
+    public var continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails {
+        visibility.continueWatchingPlaybackDetails
+    }
+
+    public func setContinueWatchingPlaybackDetails(_ details: ContinueWatchingPlaybackDetails) {
+        guard visibility.continueWatchingPlaybackDetails != details else { return }
+        visibility.continueWatchingPlaybackDetails = details
+        store.save(visibility)
+    }
+
+    public func setContinueWatchingLayout(_ layout: ContinueWatchingCardLayout) {
+        guard visibility.continueWatchingLayout != layout else { return }
+        visibility.continueWatchingLayout = layout
+        store.save(visibility)
+    }
+
     /// Sets the Continue Watching artwork treatment and persists.
     public func setContinueWatchingShowsSeriesArtwork(_ showsSeriesArtwork: Bool) {
         guard visibility.continueWatchingShowsSeriesArtwork != showsSeriesArtwork else { return }

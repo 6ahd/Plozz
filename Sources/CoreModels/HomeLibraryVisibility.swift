@@ -104,9 +104,15 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     /// spoiler-safe by construction — there is no episode frame on the card to
     /// hide — so with this on the row never masks and never blurs.
     ///
-    /// Turning it **off** restores the episode thumbnail and hands the row back to
+    /// In Landscape, turning it **off** restores the episode thumbnail and hands the row back to
     /// the spoiler settings, which blur or replace it as configured.
     public var continueWatchingShowsSeriesArtwork: Bool
+    public var continueWatchingLayout: ContinueWatchingCardLayout
+    public var continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails
+
+    public var continueWatchingUsesSeriesArtwork: Bool {
+        continueWatchingLayout == .portrait || continueWatchingShowsSeriesArtwork
+    }
 
     public init(
         mergeLibrariesOnHome: Bool = true,
@@ -116,6 +122,8 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         enabledLibraryHomeRows: Set<String> = [],
         hasSeededLibraryRows: Bool = false,
         continueWatchingShowsSeriesArtwork: Bool = true,
+        continueWatchingLayout: ContinueWatchingCardLayout = .landscape,
+        continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails = .default,
         rowCustomization: HomeRowCustomization? = nil,
         mergeNextUpIntoContinueWatching: Bool = true
     ) {
@@ -126,6 +134,8 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.enabledLibraryHomeRows = enabledLibraryHomeRows
         self.hasSeededLibraryRows = hasSeededLibraryRows
         self.continueWatchingShowsSeriesArtwork = continueWatchingShowsSeriesArtwork
+        self.continueWatchingLayout = continueWatchingLayout
+        self.continueWatchingPlaybackDetails = continueWatchingPlaybackDetails
         self.rowCustomization = rowCustomization
         self.mergeNextUpIntoContinueWatching = mergeNextUpIntoContinueWatching
     }
@@ -355,6 +365,9 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         case enabledLibraryHomeRows
         case hasSeededLibraryRows
         case continueWatchingShowsSeriesArtwork
+        case continueWatchingLayout
+        // Preserve the stored preference introduced with portrait cards.
+        case continueWatchingPlaybackDetails = "continueWatchingPortraitDetails"
         case rowCustomization
         case mergeNextUpIntoContinueWatching
     }
@@ -387,6 +400,12 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
             Bool.self,
             forKey: .continueWatchingShowsSeriesArtwork
         ) ?? true
+        self.continueWatchingLayout = try container.decodeIfPresent(
+            ContinueWatchingCardLayout.self, forKey: .continueWatchingLayout
+        ) ?? .landscape
+        self.continueWatchingPlaybackDetails = try container.decodeIfPresent(
+            ContinueWatchingPlaybackDetails.self, forKey: .continueWatchingPlaybackDetails
+        ) ?? .default
         self.rowCustomization = try container.decodeIfPresent(HomeRowCustomization.self, forKey: .rowCustomization)
         self.mergeNextUpIntoContinueWatching = try container.decodeIfPresent(
             Bool.self, forKey: .mergeNextUpIntoContinueWatching
@@ -402,9 +421,21 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         try container.encode(enabledLibraryHomeRows.sorted(), forKey: .enabledLibraryHomeRows)
         try container.encode(hasSeededLibraryRows, forKey: .hasSeededLibraryRows)
         try container.encode(continueWatchingShowsSeriesArtwork, forKey: .continueWatchingShowsSeriesArtwork)
+        try container.encode(continueWatchingLayout, forKey: .continueWatchingLayout)
+        try container.encode(continueWatchingPlaybackDetails, forKey: .continueWatchingPlaybackDetails)
         try container.encodeIfPresent(rowCustomization, forKey: .rowCustomization)
         try container.encode(mergeNextUpIntoContinueWatching, forKey: .mergeNextUpIntoContinueWatching)
     }
+}
+
+public enum ContinueWatchingCardLayout: String, CaseIterable, Codable, Sendable {
+    case landscape, portrait
+}
+
+public enum ContinueWatchingPlaybackDetails: String, CaseIterable, Codable, Sendable {
+    case detailed, progressOnly
+
+    public static let `default`: Self = .detailed
 }
 
 /// A global (cross-server, cross-library) row on Home. The hero is handled

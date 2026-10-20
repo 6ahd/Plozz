@@ -36,24 +36,17 @@ private struct PlayerGlassButtonModifier: ViewModifier {
     let prominent: Bool
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
     @Environment(\.plozzReduceTransparency) private var reduceTransparency
-    @Environment(\.playerSurfaceColorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         Group {
             if reducePanelGlass || reduceTransparency {
                 content.buttonStyle(PlayerFrostedButtonStyle(prominent: prominent))
             } else if #available(iOS 26.0, tvOS 26.0, *) {
-                #if os(tvOS)
-                content.buttonStyle(PlayerNativeTVButtonStyle(prominent: prominent))
-                #else
                 if prominent {
-                    content.buttonStyle(.glassProminent).foregroundStyle(.black)
-                } else if #available(iOS 26.1, *) {
-                    content.buttonStyle(GlassButtonStyle(PlayerNativeGlass.material()))
+                    content.buttonStyle(.glassProminent)
                 } else {
-                    content.buttonStyle(.glassProminent).tint(.black).foregroundStyle(.white)
+                    content.buttonStyle(.glass)
                 }
-                #endif
             } else {
                 if prominent {
                     content.buttonStyle(.borderedProminent)
@@ -62,36 +55,9 @@ private struct PlayerGlassButtonModifier: ViewModifier {
                 }
             }
         }
-        .tint(colorScheme == .light ? .black : .white)
-        .playerSurfaceAppearance()
+        .playerPlatformAppearance()
     }
 }
-
-#if os(tvOS)
-@available(tvOS 26.0, *)
-private struct PlayerNativeTVButtonStyle: PrimitiveButtonStyle {
-    let prominent: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        Button(role: configuration.role, action: configuration.trigger) {
-            NativeLabel(content: configuration.label, prominent: prominent)
-        }
-        .buttonStyle(.glassProminent)
-        .tint(prominent ? .white : .black)
-    }
-
-    private struct NativeLabel<Content: View>: View {
-        let content: Content
-        let prominent: Bool
-        @Environment(\.isFocused) private var isFocused
-
-        var body: some View {
-            // The native focus lift turns the black-tinted surface white.
-            content.foregroundStyle(prominent || isFocused ? Color.black : .white)
-        }
-    }
-}
-#endif
 
 private struct PlayerFrostedButtonStyle: ButtonStyle {
     let prominent: Bool

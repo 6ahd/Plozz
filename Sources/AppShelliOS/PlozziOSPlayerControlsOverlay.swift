@@ -10,7 +10,6 @@ private enum PlozziOSPlayerSheet: String, Identifiable {
     case speed
     case zoom
     case subtitles
-    case sync
     case quality
 
     var id: Self { self }
@@ -25,8 +24,6 @@ struct PlozziOSPlayerControlsOverlay: View {
     let onClose: () -> Void
 
     @State private var controlsVisible = true
-    @State private var scrubSeconds: TimeInterval = 0
-    @State private var isScrubbing = false
     @State private var scrubPreviewCoordinator: ScrubPreviewCoordinator?
     @State private var presentedSheet: PlozziOSPlayerSheet?
     @State private var optionsMenuPresented = false
@@ -45,13 +42,16 @@ struct PlozziOSPlayerControlsOverlay: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pictureInPicture = PlozziOSPictureInPictureController()
 
+    private var isScrubbing: Bool { viewModel.controls.isScrubbing }
+    private var scrubSeconds: TimeInterval { viewModel.controls.scrubSeconds }
+
     var body: some View {
         ZStack {
             PlayerTouchGestureSurface(
                 state: touchGestures,
                 shortcutsEnabled: touchShortcutsEnabled,
                 levelsEnabled: keyboardShortcutsEnabled && viewModel.volumeBrightnessGesturesEnabled,
-                isActive: !isPlayingElsewhere && scenePhase == .active,
+                isActive: !isPlayingElsewhere && !isScrubbing && scenePhase == .active,
                 canSeek: viewModel.controls.duration.isFinite && viewModel.controls.duration > 0,
                 canBoost: !viewModel.controls.intendsPause
                     && viewModel.controls.engineCapabilities.contains(.playbackSpeed),
@@ -76,7 +76,8 @@ struct PlozziOSPlayerControlsOverlay: View {
             if controlsVisible || touchGestures.skip != nil {
                 LinearGradient(
                     colors: [
-                        .black.opacity(controlsVisible ? 0.65 : 0), .clear,
+                        .black.opacity(controlsVisible ? 0.65 : 0),
+                        .black.opacity(controlsVisible ? 0.35 : 0),
                         .black.opacity(controlsVisible ? 0.82 : 0.45),
                     ],
                     startPoint: .top,
@@ -88,8 +89,9 @@ struct PlozziOSPlayerControlsOverlay: View {
 
             if controlsVisible || touchGestures.skip != nil || showsUpNext {
                 VStack(spacing: 0) {
-                    if controlsVisible {
+                    if controlsVisible && !isScrubbing {
                         PlozziOSPlayerTopBar(
+                            subtitleLayout: viewModel.controls.subtitleLayout,
                             pictureInPictureAvailable: pictureInPicture.isAvailable,
                             onTogglePictureInPicture: {
                                 pictureInPicture.toggle()
@@ -99,16 +101,12 @@ struct PlozziOSPlayerControlsOverlay: View {
                         )
                     }
                     Spacer(minLength: 0)
-                    if controlsVisible && !isCardOpen && !showsUpNext {
-                        primaryPlaybackControls(compact: false)
-                    }
-                    Spacer(minLength: 0)
                     PlozziOSPlayerTransport(
                         viewModel: viewModel,
                         showsTransport: controlsVisible || touchGestures.skip != nil,
                         showsUpNext: showsUpNext,
                         playbackControls: primaryPlaybackControls(compact: true),
-                        timelineOnly: !controlsVisible,
+                        timelineOnly: !controlsVisible || isScrubbing,
                         displayedSeconds: isScrubbing
                             ? scrubSeconds
                             : (touchGestures.skip?.target ?? viewModel.controls.currentSeconds),
@@ -121,15 +119,17 @@ struct PlozziOSPlayerControlsOverlay: View {
                             noteInteraction()
                         },
                         onScrubChanged: { value in
-                            scrubSeconds = value
+                            viewModel.controls.scrubSeconds = value
                             scrubPreviewCoordinator?.update(for: value)
                             noteInteraction()
                         },
                         onScrubEditingChanged: { editing in
-                            isScrubbing = editing
+                            guard editing || isScrubbing else { return }
+                            viewModel.controls.isScrubbing = editing
                             if editing {
                                 controlsVisible = true
-                                scrubSeconds = viewModel.controls.currentSeconds
+                                viewModel.controls.scrubSeconds = viewModel.controls.currentSeconds
+                                cancelTouchInteraction()
                                 cancelAutoHide()
                             } else {
                                 viewModel.requestSeek(to: scrubSeconds)
@@ -161,10 +161,6 @@ struct PlozziOSPlayerControlsOverlay: View {
                             presentedSheet = .subtitles
                             cancelAutoHide()
                         },
-                        onShowSync: {
-                            presentedSheet = .sync
-                            cancelAutoHide()
-                        },
                         onShowQuality: {
                             presentedSheet = .quality
                             cancelAutoHide()
@@ -183,11 +179,20 @@ struct PlozziOSPlayerControlsOverlay: View {
                         availableSize: availableSize
                     )
                 }
+                .modifier(PlayerTouchChromePadding())
             }
 
-            PlayerTouchGestureFeedbackView(state: touchGestures)
+            if controlsVisible && !isScrubbing && !isCardOpen && !showsUpNext {
+                primaryPlaybackControls(compact: PlayerTouchLayout.usesCompactTransport(in: availableSize))
+                    .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .centerTransport)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
 
-            if viewModel.controls.skipButtonVisible, !touchGestures.isActive {
+            if !isScrubbing {
+                PlayerTouchGestureFeedbackView(state: touchGestures)
+            }
+
+            if viewModel.controls.skipButtonVisible, !touchGestures.isActive, !isScrubbing {
                 Button {
                     let canSkip = viewModel.controls.activeSkipSegment != nil
                     viewModel.skipActiveSegment()
@@ -236,10 +241,18 @@ struct PlozziOSPlayerControlsOverlay: View {
             cancelAutoHide()
             cancelTouchInteraction()
             scrubPreviewCoordinator?.clear()
+            viewModel.controls.isScrubbing = false
             viewModel.controls.timelineClock.isEnabled = false
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { cancelTouchInteraction() }
+            if phase != .active {
+                cancelAutoHide()
+                cancelTouchInteraction()
+                viewModel.controls.isScrubbing = false
+                scrubPreviewCoordinator?.clear()
+            } else {
+                scheduleAutoHide()
+            }
         }
         .onChange(of: touchShortcutsEnabled) { _, enabled in
             if !enabled { cancelTouchInteraction() }
@@ -275,26 +288,25 @@ struct PlozziOSPlayerControlsOverlay: View {
                 PlayerZoomSettingsSheet(model: viewModel.controls.videoZoom)
             case .subtitles:
                 PlozziOSSubtitleOptionsSheet(viewModel: viewModel)
-            case .sync:
-                PlozziOSPlaybackSyncSheet(viewModel: viewModel)
             case .quality:
                 PlozziOSStreamingQualitySheet(viewModel: viewModel)
             }
         }
+        .ignoresSafeArea()
     }
 
     private func primaryPlaybackControls(compact: Bool) -> some View {
-        HStack(spacing: compact ? 20 : 28) {
+        HStack(spacing: compact ? 20 : PlayerTouchLayout.transportSpacing(in: availableSize)) {
             Button {
                 seek(by: -viewModel.controls.skipGesture.backwardInterval.seconds)
                 backwardSpins -= 1
             } label: {
                 PlozziOSSkipGlyph(
                     seconds: viewModel.controls.skipGesture.backwardInterval.rawValue,
-                    direction: .backward, size: compact ? 24 : 30, turns: backwardSpins
+                    direction: .backward, size: compact ? 24 : 34, turns: backwardSpins
                 )
             }
-            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : 64))
+            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : PlayerTouchLayout.skipDiameter))
             .accessibilityLabel("Skip backward")
 
             Button {
@@ -302,9 +314,9 @@ struct PlozziOSPlayerControlsOverlay: View {
                 noteInteraction()
             } label: {
                 Image(systemName: viewModel.controls.intendsPause ? "play.fill" : "pause.fill")
-                    .font(.system(size: compact ? 24 : 32))
+                    .font(.system(size: compact ? 24 : 44))
             }
-            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : 76))
+            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : PlayerTouchLayout.playDiameter))
             .accessibilityLabel(viewModel.controls.intendsPause ? "Play" : "Pause")
 
             Button {
@@ -313,10 +325,10 @@ struct PlozziOSPlayerControlsOverlay: View {
             } label: {
                 PlozziOSSkipGlyph(
                     seconds: viewModel.controls.skipGesture.forwardInterval.rawValue,
-                    direction: .forward, size: compact ? 24 : 30, turns: forwardSpins
+                    direction: .forward, size: compact ? 24 : 34, turns: forwardSpins
                 )
             }
-            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : 64))
+            .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compact ? 44 : PlayerTouchLayout.skipDiameter))
             .accessibilityLabel("Skip forward")
         }
         .shadow(color: .black.opacity(0.4), radius: 8, y: 2)
@@ -369,6 +381,7 @@ struct PlozziOSPlayerControlsOverlay: View {
     }
 
     private func backgroundTapped() {
+        guard !isScrubbing else { return }
         touchGestures.clearSkip()
         if isCardOpen {
             isCardOpen = false
@@ -580,13 +593,13 @@ private struct PlozziOSAirPlayRouteButton: UIViewRepresentable {
         let view = AVRoutePickerView()
         // Surfaces Apple TV class receivers ahead of audio-only routes.
         view.prioritizesVideoDevices = true
-        view.tintColor = context.environment.playerSurfaceColorScheme == .light ? .black : .white
+        view.tintColor = context.environment.playerControlTint
         view.activeTintColor = view.tintColor
         return view
     }
 
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
-        uiView.tintColor = context.environment.playerSurfaceColorScheme == .light ? .black : .white
+        uiView.tintColor = context.environment.playerControlTint
         uiView.activeTintColor = uiView.tintColor
     }
 }
@@ -598,6 +611,7 @@ private struct PlozziOSAirPlayRouteButton: UIViewRepresentable {
 /// corner. Route and PiP join it on the left because they are the same class of
 /// thing: WHERE this is playing, not what.
 private struct PlozziOSPlayerTopBar: View {
+    let subtitleLayout: SubtitleControlsLayout
     let pictureInPictureAvailable: Bool
     let onTogglePictureInPicture: () -> Void
     let onClose: () -> Void
@@ -610,28 +624,28 @@ private struct PlozziOSPlayerTopBar: View {
             }
             .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
             .accessibilityLabel("Close player")
+            .reportSubtitleControlsFrame(in: subtitleLayout, region: .topControls)
 
-            PlozziOSAirPlayRouteButton()
-                .frame(width: 44, height: 44)
-                .background { PlayerGlassCircleSurface() }
-                .clipShape(Circle())
-                .accessibilityLabel(Text(verbatim: "AirPlay"))
+            PlayerGlassControlGroup {
+                PlozziOSAirPlayRouteButton()
+                    .frame(width: 44, height: 44)
+                    .accessibilityLabel(Text(verbatim: "AirPlay"))
 
-            if pictureInPictureAvailable {
-                Button(action: onTogglePictureInPicture) {
-                    Image(systemName: "pip.enter")
-                        .font(.headline)
+                if pictureInPictureAvailable {
+                    Button(action: onTogglePictureInPicture) {
+                        Image(systemName: "pip.enter")
+                            .font(.headline)
+                    }
+                    .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
+                    .accessibilityLabel("Picture in Picture")
                 }
-                .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
-                .accessibilityLabel("Picture in Picture")
             }
+            .reportSubtitleControlsFrame(in: subtitleLayout, region: .topControls)
 
             Spacer(minLength: 0)
         }
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.horizontal)
-        .padding(.top)
     }
 }
 
@@ -662,7 +676,6 @@ private struct PlozziOSPlaybackOptionsMenu: View {
     let hasAudioControls: Bool
     let supportsPlaybackSpeed: Bool
     let videoZoom: PlayerVideoZoomModel?
-    let supportsSync: Bool
     let supportsDialogEnhance: Bool
     let dialogEnhanceEnabled: Bool
     let supportsQuality: Bool
@@ -671,16 +684,15 @@ private struct PlozziOSPlaybackOptionsMenu: View {
     let onSetDialogEnhance: (Bool) -> Void
     let onShowSpeed: () -> Void
     let onShowCustomZoom: () -> Void
-    let onShowSync: () -> Void
     let onShowQuality: () -> Void
     let onShowVersions: () -> Void
     let onPresentationChange: (Bool) -> Void
 
     var body: some View {
-        PlayerOptionsMenuButton(makeMenu: makeMenu, onPresentationChange: onPresentationChange)
-            .frame(width: 44, height: 44)
-            .background { PlayerGlassCircleSurface() }
-            .clipShape(Circle())
+        if hasAudioControls || supportsPlaybackSpeed || videoZoom != nil || supportsQuality || supportsVersions {
+            PlayerOptionsMenuButton(makeMenu: makeMenu, onPresentationChange: onPresentationChange)
+                .frame(width: 44, height: 44)
+        }
     }
 
     private func makeMenu() -> UIMenu {
@@ -713,9 +725,6 @@ private struct PlozziOSPlaybackOptionsMenu: View {
         if supportsPlaybackSpeed {
             items.append(action("Playback Speed", icon: "speedometer", perform: onShowSpeed))
         }
-        if supportsSync {
-            items.append(action("Playback Sync", icon: "slider.horizontal.3", perform: onShowSync))
-        }
         return UIMenu(children: items)
     }
 
@@ -732,7 +741,7 @@ private struct PlozziOSPlaybackOptionsMenu: View {
     }
 }
 
-private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
+struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
     let viewModel: PlayerViewModel
     let showsTransport: Bool
     let showsUpNext: Bool
@@ -753,7 +762,6 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
     let supportsVideoZoom: Bool
     let onShowCustomZoom: () -> Void
     let onShowSubtitles: () -> Void
-    let onShowSync: () -> Void
     let onShowQuality: () -> Void
     let hasVersions: Bool
     let onShowVersions: () -> Void
@@ -797,50 +805,25 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
                 transportControls.hidden()
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .bottom)
     }
 
     private var transportControls: some View {
-        VStack(spacing: 12) {
-            if isScrubbing, showsScrubPreview {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.black.opacity(0.72))
-
-                    if let scrubPreviewImage {
-                        Image(decorative: scrubPreviewImage, scale: 1)
-                            .resizable()
-                            .scaledToFit()
-                    } else {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                }
-                .frame(width: 240, height: 135)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.45), radius: 12, y: 4)
-            }
-
+        VStack(spacing: 0) {
             HStack(alignment: .bottom, spacing: 16) {
                 // Episode line ABOVE the title, matching `titleBlock` on tvOS:
                 // "S1, E2 · Episode Title" reads as a qualifier of the series
                 // name, so it belongs above the thing it qualifies. This had the
                 // two the other way round.
                 VStack(alignment: .leading, spacing: 1) {
-                    if !viewModel.controls.subtitle.isEmpty {
+                    if !viewModel.controls.subtitle.isEmpty, !PlayerTouchLayout.usesCompactTitle(in: availableSize) {
                         Text(viewModel.controls.subtitle)
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.85))
                             .lineLimit(1)
                     }
                     Text(viewModel.controls.title)
-                        .font(.title3.weight(.semibold))
+                        .font(PlayerTouchLayout.usesCompactTitle(in: availableSize) ? .headline : .title3.weight(.semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
@@ -859,15 +842,14 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
                     )
             }
             .foregroundStyle(.white)
-            .opacity(isCardOpen || timelineOnly || !showsTransport ? 0 : 1)
-            .allowsHitTesting(!isCardOpen && !timelineOnly && showsTransport)
-            .accessibilityHidden(isCardOpen || timelineOnly || !showsTransport)
+            .playerTouchChromeHidden(isCardOpen || timelineOnly || !showsTransport)
 
             PlozziOSPlayerTimeline(
                 model: viewModel.controls, displayedSeconds: displayedSeconds, isScrubbing: isScrubbing,
                 onScrubChanged: onScrubChanged, onScrubEditingChanged: onScrubEditingChanged,
                 onInteraction: onInteraction
             )
+            .frame(height: PlayerTouchLayout.timelineRowHeight)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("player-timeline")
             .reportSubtitleControlsFrame(
@@ -877,6 +859,12 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
             .opacity(isCardOpen ? 0 : 1)
             .allowsHitTesting(!isCardOpen && showsTransport)
             .accessibilityHidden(isCardOpen || !showsTransport)
+            .overlay(alignment: .bottom) {
+                if isScrubbing, showsScrubPreview {
+                    PlayerTouchScrubPreview(image: scrubPreviewImage, availableSize: availableSize)
+                        .padding(.bottom, PlayerTouchLayout.timelineRowHeight + 12)
+                }
+            }
 
             // Info / Cast tabs sit BELOW the scrubber, matching tvOS, and the
             // card grows upward out of them.
@@ -893,9 +881,7 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
                     }
                 }
             )
-            .opacity(timelineOnly ? 0 : 1)
-            .allowsHitTesting(!timelineOnly)
-            .accessibilityHidden(timelineOnly)
+            .playerTouchChromeHidden(timelineOnly)
 
             // Deliberately no .font / .foregroundStyle / .buttonStyle here. Those
             // travel through the environment into a Menu's POPUP content, not just
@@ -911,7 +897,16 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
     /// Two stable controls leave the title room in portrait.
     @ViewBuilder
     private var trackControls: some View {
-        HStack(spacing: 12) {
+        // Opacity alone leaves native glass children exposed to accessibility.
+        if isCardOpen || timelineOnly || !showsTransport {
+            trackControlGroup.hidden()
+        } else {
+            trackControlGroup
+        }
+    }
+
+    private var trackControlGroup: some View {
+        PlayerGlassControlGroup {
             Button(action: onShowSubtitles) {
                 Image(systemName: "captions.bubble")
                     .font(.title3)
@@ -920,6 +915,7 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
             .accessibilityLabel("Subtitles")
             playbackOptions
         }
+        .accessibilityIdentifier("player-track-controls")
     }
 
     private var playbackOptions: some View {
@@ -928,7 +924,6 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
             hasAudioControls: viewModel.controls.hasAudioControls,
             supportsPlaybackSpeed: viewModel.controls.engineCapabilities.contains(.playbackSpeed),
             videoZoom: supportsVideoZoom ? viewModel.controls.videoZoom : nil,
-            supportsSync: supportsSync,
             supportsDialogEnhance: supportsDialogEnhance,
             dialogEnhanceEnabled: viewModel.controls.dialogEnhanceEnabled,
             supportsQuality: viewModel.streamingQualityAvailable,
@@ -943,16 +938,10 @@ private struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
             },
             onShowSpeed: onShowSpeed,
             onShowCustomZoom: onShowCustomZoom,
-            onShowSync: onShowSync,
             onShowQuality: onShowQuality,
             onShowVersions: onShowVersions,
             onPresentationChange: onOptionsMenuPresentationChange
         )
-    }
-
-    private var supportsSync: Bool {
-        viewModel.controls.engineCapabilities.contains(.audioDelay)
-            || viewModel.controls.subtitleDelayAdjustable
     }
 
     private var supportsDialogEnhance: Bool {
@@ -972,12 +961,14 @@ struct PlozziOSPlayerTimeline: View {
     var body: some View {
         PlayerClockTimeline(model: model, enabled: model.timelineClock.isEnabled) { clock in
             let visibleClock = isScrubbing ? nil : clock
-            HStack(spacing: 16) {
+            let durationTime = playbackTime(model.duration)
+            HStack(spacing: 4) {
                 timeButton(
                     Text(verbatim: visibleClock?.current ?? playbackTime(displayedSeconds)),
+                    layoutText: Text(verbatim: durationTime),
                     samples: (clock?.currentWidthSamples ?? []).map { Text(verbatim: $0) },
                     label: visibleClock != nil ? "Current time" : "Elapsed time",
-                    identifier: "player-timeline-current-time"
+                    identifier: "player-timeline-current-time", alignment: .leading
                 )
                 PlayerTouchScrubBar(
                     currentSeconds: displayedSeconds, duration: model.duration,
@@ -989,55 +980,65 @@ struct PlozziOSPlayerTimeline: View {
                 timeButton(
                     visibleClock.map { $0.end.map { Text($0) } ?? Text(verbatim: "--:--") }
                         ?? Text(verbatim: "-\(playbackTime(max(model.duration - displayedSeconds, 0)))"),
+                    layoutText: Text(verbatim: "-\(durationTime)"),
                     samples: (clock?.endWidthSamples ?? []).map { Text($0) },
                     label: visibleClock != nil ? "Estimated end time" : "Remaining time",
-                    identifier: "player-timeline-end-time"
+                    identifier: "player-timeline-end-time", alignment: .trailing
                 )
             }
         }
     }
 
     private func timeButton(
-        _ text: Text, samples: [Text], label: LocalizedStringResource, identifier: String
+        _ text: Text, layoutText: Text, samples: [Text], label: LocalizedStringResource, identifier: String,
+        alignment: Alignment
     ) -> some View {
         Button {
+            guard !isScrubbing else { return }
             model.timelineClock.isEnabled.toggle()
             onInteraction()
         } label: {
             ZStack {
-                Text(verbatim: "-\(playbackTime(model.duration))").hidden()
+                layoutText.hidden()
                 ForEach(samples.indices, id: \.self) { index in
                     samples[index].hidden()
                 }
             }
             .accessibilityHidden(true)
-            .overlay {
+            .overlay(alignment: alignment) {
                 text
                     .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
             .font(.caption.monospacedDigit())
             .fixedSize()
-            .frame(minWidth: 44, minHeight: 44)
+            .frame(minWidth: 44, minHeight: 44, alignment: alignment)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(isScrubbing)
+        .allowsHitTesting(!isScrubbing)
+        .accessibilityRespondsToUserInteraction(!isScrubbing)
         .accessibilityLabel(Text(label))
         .accessibilityValue(text)
         .accessibilityHint("Switch between playback and clock times")
         .accessibilityIdentifier(identifier)
     }
 
-    private func playbackTime(_ seconds: TimeInterval) -> String {
-        guard seconds.isFinite, seconds >= 0, seconds < Double(Int.max) else { return "--:--" }
-        let total = max(Int(seconds.rounded()), 0)
+    func playbackTime(_ seconds: TimeInterval) -> String {
+        let rounded = seconds.rounded()
+        let duration = model.duration.rounded()
+        guard seconds.isFinite, seconds >= 0, rounded < Double(Int.max),
+              duration.isFinite, duration >= 0, duration < Double(Int.max) else { return "--:--" }
+        let total = Int(rounded)
         let hours = total / 3_600
+        let durationHours = Int(duration) / 3_600
         let minutes = (total % 3_600) / 60
         let remainder = total % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, remainder)
+        if durationHours > 0 || hours > 0 {
+            return String(format: "%0*ld:%02ld:%02ld", String(durationHours).count, hours, minutes, remainder)
         }
-        return String(format: "%d:%02d", minutes, remainder)
+        return String(format: "%02ld:%02ld", minutes, remainder)
     }
 }
 
@@ -1107,7 +1108,6 @@ private struct PlozziOSSkipGlyph: View {
                 // is centred a little below the circle's own centre.
                 .offset(y: size * 0.06)
         }
-        .foregroundStyle(Color.primary)
     }
 }
 
@@ -1120,6 +1120,7 @@ private struct PlozziOSSubtitleOptionsSheet: View {
             Form {
                 primaryTracks
                 secondaryTracks
+                PlozziOSPlaybackSyncControls(viewModel: viewModel)
                 appearance
                 remoteSearch
             }
@@ -1354,58 +1355,51 @@ private struct PlozziOSPlaybackSpeedSheet: View {
     }
 }
 
-private struct PlozziOSPlaybackSyncSheet: View {
-    @Environment(\.dismiss) private var dismiss
+private struct PlozziOSPlaybackSyncControls: View {
     let viewModel: PlayerViewModel
 
     var body: some View {
-        NavigationStack {
-            Form {
-                if viewModel.controls.engineCapabilities.contains(.audioDelay) {
-                    Section("Audio Delay") {
-                        Slider(
-                            value: Binding(
-                                get: { viewModel.controls.audioDelaySeconds },
-                                set: { viewModel.setAudioDelay($0) }
-                            ),
-                            in: -2...2,
-                            step: 0.05
-                        )
-                        Text(
-                            viewModel.controls.audioDelaySeconds,
-                            format: .number.precision(.fractionLength(2))
-                        )
-                        .plozzForeground(.secondary)
-                    }
-                }
-
-                if viewModel.controls.subtitleDelayAdjustable {
-                    Section("Subtitle Delay") {
-                        Slider(
-                            value: Binding(
-                                get: { viewModel.controls.subtitleDelaySeconds },
-                                set: { viewModel.setSubtitleDelay($0) }
-                            ),
-                            in: -2...2,
-                            step: 0.05
-                        )
-                        Text(
-                            viewModel.controls.subtitleDelaySeconds,
-                            format: .number.precision(.fractionLength(2))
-                        )
-                        .plozzForeground(.secondary)
-                    }
+        Group {
+            if viewModel.controls.engineCapabilities.contains(.audioDelay) {
+                Section("Audio Delay") {
+                    Slider(
+                        value: Binding(
+                            get: { viewModel.controls.audioDelaySeconds },
+                            set: { viewModel.setAudioDelay($0) }
+                        ),
+                        in: -2...2,
+                        step: 0.05
+                    )
+                    .accessibilityLabel("Audio Delay")
+                    .accessibilityIdentifier("player-audio-delay")
+                    Text(
+                        viewModel.controls.audioDelaySeconds,
+                        format: .number.precision(.fractionLength(2))
+                    )
+                    .plozzForeground(.secondary)
                 }
             }
-            .navigationTitle("Playback Sync")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+
+            if viewModel.controls.subtitleDelayAdjustable {
+                Section("Subtitle Delay") {
+                    Slider(
+                        value: Binding(
+                            get: { viewModel.controls.subtitleDelaySeconds },
+                            set: { viewModel.setSubtitleDelay($0) }
+                        ),
+                        in: -2...2,
+                        step: 0.05
+                    )
+                    .accessibilityLabel("Subtitle Delay")
+                    .accessibilityIdentifier("player-subtitle-delay")
+                    Text(
+                        viewModel.controls.subtitleDelaySeconds,
+                        format: .number.precision(.fractionLength(2))
+                    )
+                    .plozzForeground(.secondary)
                 }
             }
         }
-        .presentationDetents([.medium])
     }
 }
 

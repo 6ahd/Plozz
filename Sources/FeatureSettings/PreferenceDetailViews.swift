@@ -119,14 +119,16 @@ struct AppearanceDetailView: View {
                     subpage: SettingsDetailSubpage {
                         ArtworkCustomizationView(
                             cards: cardStyle,
-                            continueWatchingShowsSeriesArtwork: librariesScope.homeVisibility.continueWatchingShowsSeriesArtwork
+                            continueWatchingShowsSeriesArtwork: librariesScope.homeVisibility.continueWatchingUsesSeriesArtwork,
+                            continueWatchingLayout: librariesScope.homeVisibility.continueWatchingLayout
                         )
                     }
                 ) {
                     VStack(alignment: .leading, spacing: 32) {
                         ArtworkSettingsControls(
                             cards: cardStyle,
-                            continueWatchingShowsSeriesArtwork: librariesScope.homeVisibility.continueWatchingShowsSeriesArtwork
+                            continueWatchingShowsSeriesArtwork: librariesScope.homeVisibility.continueWatchingUsesSeriesArtwork,
+                            continueWatchingLayout: librariesScope.homeVisibility.continueWatchingLayout
                         )
                         if canManageProviders {
                             #if os(tvOS)

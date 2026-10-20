@@ -4,13 +4,16 @@ import os
 public enum CardCaptionView: String, CaseIterable, Codable, Sendable {
     case home, recommended, browse, collections, playlists, search, watchlist
     case related, episodes, extras, filmography
+    // Retain the override originally introduced for portrait cards.
+    case continueWatching = "continueWatchingPortrait"
 
     public static var customizableCases: [Self] {
         allCases
     }
 
     public var customizationChoices: [CardCaptionOverride] {
-        self == .home || self == .recommended ? [.show, .hide, .mixed] : [.show, .hide]
+        if self == .continueWatching { return [.automatic, .show, .hide] }
+        return self == .home || self == .recommended ? [.show, .hide, .mixed] : [.show, .hide]
     }
 
     public var displayName: LocalizedStringResource {
@@ -26,6 +29,7 @@ public enum CardCaptionView: String, CaseIterable, Codable, Sendable {
         case .episodes: "Episode browser"
         case .extras: "Extras"
         case .filmography: "Filmography"
+        case .continueWatching: "Continue Watching"
         }
     }
 }
@@ -88,6 +92,7 @@ public struct CardCaptionSettings: Codable, Equatable, Sendable {
     }
 
     public func customization(in view: CardCaptionView) -> CardCaptionOverride {
+        if view == .continueWatching { return override(for: view) }
         if view.customizationChoices.contains(.mixed),
            mixedOverrides.contains(view) || (preference == .recommended && overrides[view] == nil) {
             return .mixed
@@ -120,8 +125,12 @@ public struct CardCaptionSettings: Codable, Equatable, Sendable {
     }
 
     public func showsLabels(
-        in view: CardCaptionView, isShowcase: Bool = false, hasArtworkTitle: Bool = false
+        in view: CardCaptionView, isShowcase: Bool = false, hasArtworkTitle: Bool = false,
+        isContinueWatching: Bool = false
     ) -> Bool {
+        if isContinueWatching, let override = overrides[.continueWatching] {
+            return override
+        }
         if mixedOverrides.contains(view) { return !(isShowcase || hasArtworkTitle) }
         return overrides[view] ?? inheritedShowsLabels(
             in: view, isShowcase: isShowcase, hasArtworkTitle: hasArtworkTitle

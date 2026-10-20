@@ -87,6 +87,9 @@ struct PlozziOSHomeSkeletonScreen: View {
 
     let heroActive: Bool
     var showsPosterCaptions: Bool = CardCaptionSettings.default.showsLabels
+    var continueWatchingLayout: ContinueWatchingCardLayout = .landscape
+    var continueWatchingShowsSeriesArtwork = true
+    var continueWatchingShowsCaption = false
 
     var body: some View {
         PlozziOSHomeScrollView(heroActive: heroActive) {
@@ -96,7 +99,11 @@ struct PlozziOSHomeSkeletonScreen: View {
                     : .landscape
             )
         } rows: {
-            PlozziOSHomeSkeletonRail(title: Text(verbatim: " "), style: .landscape, showsCaption: showsPosterCaptions)
+            PlozziOSHomeSkeletonRail(
+                title: Text(verbatim: " "), style: continueWatchingLayout.cardStyle,
+                showsCaption: continueWatchingShowsCaption,
+                showsSeriesArtwork: continueWatchingShowsSeriesArtwork
+            )
             PlozziOSHomeSkeletonRail(title: Text(verbatim: " "), style: .poster, showsCaption: showsPosterCaptions)
             PlozziOSHomeSkeletonRail(title: Text(verbatim: " "), style: .poster, showsCaption: showsPosterCaptions)
         }
@@ -177,14 +184,12 @@ struct PlozziOSHomeHeroSkeleton: View {
     }
 
     /// Mirrors the action row: pills whose height is driven by the same
-    /// `.headline` label plus `PlozziOSHeroActionButtonStyle`'s 12pt vertical
+    /// `.headline` label plus the hero action fallback's 12pt vertical
     /// padding and 48pt floor, so the row grows with Dynamic Type exactly as the
     /// real buttons do.
     private var actionRow: some View {
         HStack(spacing: 12) {
             pill(width: 150)
-            pill(width: 48)
-            pill(width: 48)
             pill(width: 48)
         }
     }

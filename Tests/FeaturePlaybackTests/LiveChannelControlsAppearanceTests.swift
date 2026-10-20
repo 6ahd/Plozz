@@ -127,6 +127,7 @@ final class LiveChannelControlsAppearanceTests: XCTestCase {
             Text(title).font(.system(size: 26, weight: .semibold))
         }
         .buttonStyle(InfoActionButtonStyle(focused: focused, prominent: false))
+        .environment(\.colorScheme, .dark)
         .foregroundStyle(.white)
         .background(.black)
         let renderer = ImageRenderer(content: button)

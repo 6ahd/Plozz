@@ -551,6 +551,8 @@ public struct SettingsCheckmark: View {
 /// icons on both platforms — no per-call-site styling. Rows that need a coloured
 /// icon (e.g. a destructive red row) opt out by setting their own `.labelStyle`.
 public struct SettingsIconLabelStyle: LabelStyle {
+    @ScaledMetric(relativeTo: .body) private var iconColumnWidth = SettingsRowMetrics.iconColumnWidth
+
     public init() {}
 
     public func makeBody(configuration: Configuration) -> some View {
@@ -558,6 +560,7 @@ public struct SettingsIconLabelStyle: LabelStyle {
             configuration.title
         } icon: {
             configuration.icon
+                .frame(width: iconColumnWidth)
                 .settingsRowIcon()
         }
     }

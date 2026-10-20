@@ -6,6 +6,46 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+Continue Watching's profile-scoped Playback details choice applies to Artwork + logo,
+Thumbnail, and Poster, on Home and library rows.
+Detailed keeps the existing play/progress/text overlay; Progress only uses the
+shared white progress bar without that overlay. Other cards are unaffected.
+The previously stored portrait-only preference is retained.
+
+Continue Watching portrait cards reuse `PosterCardView`. Detailed adds a reflected
+extension 10% of the complete 2:3 poster's height (half the previous extension).
+Only this band gradually blurs as it darkens;
+the poster stays sharp. Native TV caches the finished reflection, including its
+blur treatment in the cache identity; Reduce Transparency retains the unblurred
+fallback. Landscape reflection is unchanged.
+Progress only uses the ordinary 2:3 poster and existing
+`MediaCardPlaybackIndicators` white bar, including shared thickness, focus,
+insets, watch-state rules and download badges; it does not create another bar style.
+The shared indicator falls back to the existing resume fraction when the provider
+omits a percentage, so switching treatments does not lose known progress.
+They resolve movie or series posters, never episode stills or textless backdrops.
+Portrait uses zero side crop, no duplicate logo or logo dimming. Detailed keeps
+the landscape Continue Watching scrim's start, easing and depth; the slight
+reflection blur is additional, not a replacement for that scrim.
+Progress only uses the shared bar's scrim.
+Artwork-source preferences still apply.
+Native TV bitmaps, SwiftUI cards, previews, and loading placeholders share this
+selected shape. Detailed tightens only the shared chip's horizontal spacing,
+preserving episode/time details and the progress/download elements in its narrower
+slot. Its outer insets are even and match landscape Continue Watching; compact
+spacing between controls does not reduce the leading edge inset.
+All three artwork styles share the existing Continue Watching caption override,
+inheriting the row's Home or Recommended choice unless explicitly shown/hidden.
+Its original portrait preference is retained. Settings previews resolve this
+same choice for each style, including Showcase inheritance, and keep artwork
+geometry stable when their caption lines appear or disappear.
+`plozzContinueWatchingPlaybackDetails` carries the active profile's choice through
+both app roots and native hosting boundaries without changing non-Continue-Watching cards.
+
+Full-width card progress bars use `PlozzMetrics.resumeChipBarHeight`, matching
+Detailed without changing it: 8 pt on TV and 6 pt on mobile at standard settings.
+Density, Dynamic Type, and the minimum height follow the same shared metric.
+
 - **Version choices** — `MediaVersionChoiceButton` is the shared native rounded
   card for pre-play, detail, and in-player pickers. It keeps edition/size and
   release text above the smaller wrapping format/language badges, with one
@@ -49,6 +89,19 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   enabled entries only and keeps them enabled through native dragging, remote
   lift-and-move and context-menu movement. It has no Hidden divider or Hide/Show
   actions. Existing callers keep the reorder-and-hide behavior by default.
+  Rows can opt into `providerMarkInSubtitle` to place their provider/transport
+  mark beside the secondary source name; other callers retain leading marks.
+  Menu edge moves stay within the item's current section and preserve peer order.
+  Hosts may provide removal independently of the Hidden divider.
+  TV lift-and-move uses the vertical axis of `SettingsAdjustmentFocusScope`,
+  retaining the native focus item instead of inferring direction from neighboring
+  focus changes. Press repetition stops on release, focus loss, screen changes,
+  dismissal, or app deactivation; ordinary navigation remains native when dropped.
+
+- **Settings icon columns** — `SettingsRowLabel` reserves one icon column on TV.
+  Grouped `Label` controls use `SettingsIconLabelStyle` with a shared,
+  Dynamic Type-scaled column, so wide symbols cannot shift neighboring titles.
+  Both keep icons centered and text leading-aligned in either layout direction.
 
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
   error layout, bounded symbol inline with the heading, readable summary, adaptive
@@ -160,10 +213,17 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   keeps visible title-and-icon labels and uses the same `playerGlassButton`
   treatment, including native menus. Only the existing reduced-transparency
   playback path draws the shared frosted fallback.
-  `playerSurfaceAppearance()` keeps native playback glass dark across browsing
-  themes, scoped to each surface and its contents. Fallback surfaces inherit the
-  app appearance and pair light fills with dark foregrounds; never apply the
-  modifier to the full player or a sheet presenter.
+  Mobile video chrome uses untinted clear Liquid Glass with white symbols and
+  progress in both appearances; `playerControlForeground`/`playerControlTint`
+  keep SwiftUI and UIKit controls consistent without overriding menu appearance.
+  Mobile panels use regular native glass with no extra decoration and leave
+  the system Liquid Glass preference in control. Mobile fallback surfaces inherit
+  the app appearance and pair light fills with dark foregrounds.
+  Playback progress is the exception: seek tracks and level meters keep light
+  progress over a subdued track even in the light-theme fallback.
+  `playerPlatformAppearance` scopes tvOS playback chrome to dark regular glass,
+  as in build 57, without changing the surrounding browsing or window appearance.
+  It is a no-op on iOS.
 - **Settings steppers** — TV makes the whole labeled row one focus target using
   the existing `SettingsFormButtonStyle`, including its helper, persistent minus/plus cues and
   `SettingsRowMetrics.titleFont` value. Labels must be supplied to the shared
@@ -605,6 +665,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   grids, landscape/episode card widths and mobile sizing are unchanged.
   Native Browse uses the correction for both borderless and framed system-focus
   cells. Debug's `--original-library-posters` opts out of Browse only.
+  Browse rasterizes its SwiftUI overlay to concrete pixels on the main actor
+  before background composition, including fully transparent overlays. Passing
+  a deferred renderer image to the worker can retain the previous missing-art
+  placeholder's center glyph and wash over loaded posters. Missing artwork keeps
+  its placeholder; watch badges, episode counts and progress remain independent.
   The collection cell remains the focus and selection owner,
   with the same opaque artwork, native ancestor-focus adjustment, and immediate
   foreground alignment as row posters. Reuse clears both image layers.

@@ -19,7 +19,6 @@ struct PlozziOSSettingsView: View {
     /// A server we're signing an ADDITIONAL user into, so the Add Server sheet
     /// opens pre-filled with it instead of at the provider chooser.
     @State private var addUserServer: MediaServer?
-    @State private var addServerPresentationColorScheme: ColorScheme = .dark
     let appModel: PlozziOSAppModel
     let onClose: () -> Void
     /// Opens the profile picker. Owned by the root, because the picker can raise
@@ -115,7 +114,6 @@ struct PlozziOSSettingsView: View {
                 initialIPTVPlaylist: iptvSetup?.playlist, initialIPTVAccount: iptvSetup?.account,
                 initialIPTVMode: iptvSetup?.mode ?? .playlist
             )
-                .preferredColorScheme(addServerPresentationColorScheme)
                 .presentationSizing(.page)
         }
         .plozzSheet(item: plexUserSelectionBinding) { selection in
@@ -123,14 +121,12 @@ struct PlozziOSSettingsView: View {
                 selection: selection,
                 onSelect: appModel.selectPlexUserDuringOnboarding
             )
-            .preferredColorScheme(addServerPresentationColorScheme)
         }
         .plozzSheet(item: plexPINBinding) { request in
             PlozziOSPlexPINView(
                 model: appModel.plexHomeUsers,
                 request: request
             )
-            .preferredColorScheme(addServerPresentationColorScheme)
         }
         .plozzSheet(item: librarySelectionBinding) { selection in
             PlozziOSLibrarySelectionView(
@@ -140,7 +136,6 @@ struct PlozziOSSettingsView: View {
                 visibility: appModel.settings.homeVisibility,
                 onContinue: appModel.completeLibrarySelection
             )
-            .preferredColorScheme(addServerPresentationColorScheme)
         }
     }
 
@@ -153,7 +148,6 @@ struct PlozziOSSettingsView: View {
     }
 
     private func showAddServer() {
-        addServerPresentationColorScheme = palette.isLight ? .light : .dark
         appModel.beginManagedServerPresentation()
         showingAddServer = true
     }
@@ -1410,7 +1404,6 @@ private struct PlozziOSProfilesView: View {
                     onFinished: { showingAddProfile = false }
                 )
             }
-            .preferredColorScheme(palette.isLight ? .light : .dark)
         }
         .plozzSheet(item: $editingProfile) { profile in
             NavigationStack {
@@ -1421,7 +1414,6 @@ private struct PlozziOSProfilesView: View {
                     onFinished: { editingProfile = nil }
                 )
             }
-            .preferredColorScheme(palette.isLight ? .light : .dark)
         }
         // New-profile setup. A profile is created holding EVERY server, so this
         // runs before its first watchlist import and asks which servers it
@@ -1815,6 +1807,7 @@ private struct PlozziOSScreensNavigationSettingsView: View {
             case .home:
                 PlozziOSHomeSettingsView(
                     hero: appModel.settings.hero, heroBackground: appModel.settings.heroBackground,
+                    cards: appModel.settings.cardStyle,
                     visibility: appModel.settings.homeVisibility,
                     accounts: appModel.accountsProviders.resolvedActiveAccounts
                 )
@@ -1932,6 +1925,7 @@ struct PlozziOSArtworkSettingsView: View {
 struct PlozziOSHomeSettingsView: View {
     @Bindable var hero: HeroSettingsModel
     @Bindable var heroBackground: HeroBackgroundSettingsModel
+    let cards: CardStyleSettingsModel
     let visibility: HomeLibraryVisibilityModel
     let accounts: [ResolvedAccount]
     @State private var librarySnapshot: (scope: HomeSectionCatalogModel.RequestID, choices: [HomeLibraryChoice])?
@@ -1950,6 +1944,7 @@ struct PlozziOSHomeSettingsView: View {
         .id(ObjectIdentifier(visibility))
         .environment(hero)
         .environment(heroBackground)
+        .environment(cards)
         .task(id: libraryRequestID) {
             await loadLibraries()
         }

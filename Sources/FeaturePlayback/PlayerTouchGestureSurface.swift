@@ -365,6 +365,7 @@ public struct PlayerTouchGestureFeedbackView: View {
 
     public var body: some View {
         PlayerTouchGestureFeedbackContent(state: state, reduceMotion: reduceMotion)
+            .modifier(WindowSafeAreaPadding())
     }
 }
 
@@ -459,20 +460,17 @@ private struct PlayerTouchLevelMeter: View {
     let isDirectInteraction: Bool
     let reduceMotion: Bool
     let onFrameChange: (CGRect) -> Void
-    @Environment(\.playerSurfaceColorScheme) private var colorScheme
 
     var body: some View {
         let stretch = reduceMotion ? 0 : 20 * (overshoot / (abs(overshoot) + 80))
         let height = 156 + abs(stretch)
         let width: Double = isDirectInteraction ? 44 : 32
         ZStack(alignment: .bottom) {
-            Color.clear
-                .modifier(PanelGlassBackground(cornerRadius: 999))
-            Rectangle()
-                .fill(Color.primary)
+            PlayerScrubTrackSurface(height: height)
+            PlayerTouchProgressFill(isActive: isDragging)
                 .frame(height: height * value)
-            icon.foregroundStyle(Color.primary)
-            icon.foregroundStyle(colorScheme == .light ? Color.white : .black)
+            icon.foregroundStyle(.white)
+            icon.foregroundStyle(.black)
                 .mask(alignment: .bottom) {
                     Rectangle().frame(height: height * value)
                 }
@@ -488,7 +486,6 @@ private struct PlayerTouchLevelMeter: View {
         )
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onFrameChange($0) }
         .contentShape(Rectangle())
-        .playerSurfaceAppearance()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kind == .brightness ? "Brightness" : "Volume")
         .accessibilityValue(Text(value, format: .percent.precision(.fractionLength(0))))
@@ -511,13 +508,15 @@ private struct PlayerTouchLevelMeter: View {
 }
 
 private struct PlayerTouchFeedbackPill: ViewModifier {
+    @Environment(\.playerControlForeground) private var foreground
+
     func body(content: Content) -> some View {
         content
             .font(.callout.weight(.semibold))
-            .foregroundStyle(Color.primary)
+            .foregroundStyle(foreground)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .modifier(PanelGlassBackground(cornerRadius: 999))
+            .modifier(PanelGlassBackground(cornerRadius: 999, mediaGlass: true))
     }
 }
 

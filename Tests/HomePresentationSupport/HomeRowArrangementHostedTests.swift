@@ -14,6 +14,185 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testReorderRemovalPreservesOtherSettingsAndRemainsAvailableToAdd() throws {
+        let suite = "HomeReorderRemoval.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        let visibility = HomeLibraryVisibilityModel(store: store)
+        visibility.useRowDefaults(.combined)
+        let catalog = HomeSectionCatalog(libraries: [])
+        var session = HomeSectionReorderSession(catalog: catalog, visibility: visibility.visibility)
+        let original = catalog.sections(in: session.visibility).enabled
+        visibility.setContinueWatchingShowsSeriesArtwork(false)
+        try session.remove(.global(.continueWatching), savingTo: visibility)
+        XCTAssertEqual(catalog.sections(in: session.visibility).enabled, original.filter { $0 != .global(.continueWatching) })
+        XCTAssertTrue(catalog.sections(in: store.load()).disabled.contains(.global(.continueWatching)))
+        XCTAssertFalse(store.load().continueWatchingShowsSeriesArtwork)
+        XCTAssertThrowsError(try session.remove(.server(accountID: "missing", section: "missing"), savingTo: visibility))
+        try visibility.setHomeSectionVisible(true, id: .global(.continueWatching), catalog: catalog)
+        XCTAssertEqual(catalog.sections(in: store.load()).enabled.last, .global(.continueWatching))
+        XCTAssertFalse(store.load().continueWatchingShowsSeriesArtwork)
+    }
+
+    func testReorderSnapshotSavesKnownRowsBeforeOrAfterDiscoveryWithoutLosingPreferences() async throws {
+        for completesBeforeMove in [false, true] {
+            let suite = "HomeReorderSnapshot.\(UUID())"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let store = HomeLibraryVisibilityStore(defaults: defaults)
+            let visibility = HomeLibraryVisibilityModel(store: store)
+            visibility.useRowDefaults(.matchServer)
+            let requested = expectation(description: "Native layout discovery remains pending")
+            let provider = HomeSettingsLibraryProvider(
+                name: "Slow server", kind: .plex,
+                homeLayout: .init(
+                    sections: [.init(id: "native", kind: .recommendations)], source: .promotedHubs
+                ),
+                holdsHome: true, onFirstHomeRequest: { requested.fulfill() }
+            )
+            defer { Task { await provider.resumeHome() } }
+            let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+            let inventory = HomeSectionCatalogModel()
+            let load = Task { await inventory.load(libraries: [], accounts: [account], visibility: visibility) }
+            await fulfillment(of: [requested], timeout: 5)
+            var session = HomeSectionReorderSession(catalog: inventory.catalog, visibility: visibility.visibility)
+            let original = session.catalog.sections(in: session.visibility).enabled
+            XCTAssertGreaterThan(original.count, 1)
+            let saved = store.load()
+            try session.move(original, savingTo: visibility)
+            XCTAssertEqual(store.load(), saved, "Entering Reorder or making no move must not freeze a preset.")
+            if completesBeforeMove {
+                await provider.resumeHome()
+                await load.value
+                XCTAssertEqual(session.catalog.sections(in: session.visibility).enabled, original)
+            }
+            visibility.setContinueWatchingShowsSeriesArtwork(false)
+            let reordered = Array(original.reversed())
+            try session.move(reordered, savingTo: visibility)
+            XCTAssertEqual(store.load().rowCustomization?.defaults, .custom)
+            XCTAssertFalse(store.load().continueWatchingShowsSeriesArtwork,
+                           "Saving a reorder must not overwrite unrelated settings changed after entry.")
+            if !completesBeforeMove {
+                await provider.resumeHome()
+                await load.value
+            }
+            XCTAssertEqual(inventory.catalog.sections(in: visibility.visibility).enabled, reordered)
+            XCTAssertEqual(inventory.catalog.sections(in: store.load()).enabled, reordered)
+            XCTAssertTrue(inventory.catalog.sections(in: visibility.visibility).disabled.contains(
+                .server(accountID: account.account.id, section: "native")
+            ), "Late discoveries remain available to add without changing the saved arrangement.")
+            XCTAssertFalse(inventory.isLoading)
+        }
+    }
+
+    #if os(tvOS)
+    func testAddSectionIsFocusableBeforeDiscoveryFinishes() async throws {
+        let suite = "HomeAddImmediateFocus.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        visibility.setGlobalRowEnabled(false, for: .recentlyAdded)
+        let requested = expectation(description: "Discovery remains pending while adding a known section")
+        let provider = HomeSettingsLibraryProvider(
+            name: "Slow server", holdsHome: true, onFirstHomeRequest: { requested.fulfill() }
+        )
+        defer { Task { await provider.resumeHome() } }
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let inventory = HomeSectionCatalogModel()
+        try await withWindow {
+            HomeAddSectionView(inventory: inventory, visibility: visibility, libraries: [], accounts: [account])
+                .frame(width: SettingsFormMetrics.pageWidth)
+        } inspect: { window in
+            await self.fulfillment(of: [requested], timeout: 5)
+            XCTAssertTrue(inventory.isLoading)
+            let lines = try await self.capture(window, name: "Add section during pending discovery")
+            let label = try XCTUnwrap(lines.first { $0.0.contains("Recently Added") }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let item = try XCTUnwrap(self.focusableItem(at: point, in: window),
+                                    "Known sections must remain enabled while optional discovery runs.")
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            system.requestFocusUpdate(to: item)
+            system.updateFocusIfNeeded()
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in system.focusedItem === item }, object: nil
+            )
+            await self.fulfillment(of: [focused], timeout: 2)
+            XCTAssertTrue(inventory.isLoading, "Focus must not depend on the held provider finishing.")
+            try visibility.setHomeSectionVisible(true, id: .global(.recentlyAdded), catalog: inventory.currentCatalog(
+                libraries: [], accounts: [account], visibility: visibility
+            ))
+            await provider.resumeHome()
+            let finished = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in !inventory.isLoading }, object: nil
+            )
+            await self.fulfillment(of: [finished], timeout: 5)
+            XCTAssertTrue(inventory.catalog.sections(in: visibility.visibility).enabled.contains(.global(.recentlyAdded)))
+        }
+        await provider.resumeHome()
+    }
+
+    func testReorderRemainsFocusableDuringSlowDiscoveryAndFailure() async throws {
+        let suite = "HomeReorderDiscovery.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        let requested = expectation(description: "Server discovery remains pending")
+        let provider = HomeSettingsLibraryProvider(
+            name: "Slow server", homeError: .serverUnreachable, holdsHome: true,
+            onFirstHomeRequest: { requested.fulfill() }
+        )
+        defer { Task { await provider.resumeHome() } }
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let inventory = HomeSectionCatalogModel()
+        try await withWindow {
+            HomeRowsSettingsView(libraries: [], accounts: [account], visibility: visibility, inventory: inventory)
+                .frame(width: SettingsFormMetrics.pageWidth)
+        } inspect: { window in
+            await self.fulfillment(of: [requested], timeout: 5)
+            XCTAssertTrue(inventory.isLoading)
+            XCTAssertGreaterThan(inventory.catalog.sections(in: visibility.visibility).enabled.count, 1)
+            try await self.assertReorderFocusable(in: window, name: "Reorder during pending discovery")
+            await provider.resumeHome()
+            let finished = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in !inventory.isLoading }, object: nil
+            )
+            await self.fulfillment(of: [finished], timeout: 5)
+            XCTAssertEqual(inventory.serverFailures[account.account.id], .serverUnreachable)
+            try await self.assertReorderFocusable(in: window, name: "Reorder after discovery failure")
+            let requests = await provider.homeRequests
+            XCTAssertEqual(requests, 1, "An idle page must not retry a failed server automatically.")
+        }
+        await provider.resumeHome()
+    }
+
+    private func assertReorderFocusable(in window: UIWindow, name: String) async throws {
+        let lines = try await capture(window, name: name)
+        let label = try XCTUnwrap(lines.first { $0.0.contains("Reorder") }).1
+        let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+        XCTAssertNotNil(focusableItem(at: point, in: window),
+                        "Known sections must be reorderable without waiting for server discovery.")
+    }
+
+    private func focusableItem(at point: CGPoint, in window: UIWindow) -> (any UIFocusItem)? {
+        var containers: [any UIFocusItemContainer] = [window]
+        var seen = Set<ObjectIdentifier>()
+        while let container = containers.popLast() {
+            guard seen.insert(ObjectIdentifier(container)).inserted else { continue }
+            let bounds = container.coordinateSpace.convert(window.bounds, from: window)
+            for item in container.focusItems(in: bounds) {
+                if let child = item.focusItemContainer { containers.append(child) }
+                if let view = item as? UIView { containers.append(view) }
+                let frame = container.coordinateSpace.convert(item.frame, to: window)
+                if !(item is UIScrollView), item.canBecomeFocused, frame.contains(point) { return item }
+            }
+        }
+        return nil
+    }
+    #endif
+
     func testPresetSelectionRefreshesRecoveredNativeSectionsBeforeSavingCustomRows() async throws {
         let suite = "HomePresetRecovery.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -210,6 +389,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 PlozziOSHomeSettingsView(
                     hero: HeroSettingsModel(store: InMemoryHeroSettingsStore()),
                     heroBackground: HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()),
+                    cards: CardStyleSettingsModel(),
                     visibility: visibility, accounts: []
                 )
             }
@@ -323,6 +503,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 PlozziOSHomeSettingsView(
                     hero: HeroSettingsModel(store: InMemoryHeroSettingsStore()),
                     heroBackground: HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()),
+                    cards: CardStyleSettingsModel(),
                     visibility: visibility,
                     accounts: [offline, online].map {
                         ResolvedAccount(account: Account(from: $0.session), provider: $0)
@@ -539,7 +720,10 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                         disabledSectionTitle: "Hidden", disabledPlaceholder: "No hidden rows",
                         isLifting: .constant(false),
                         row: {
-                            .init(title: Text(verbatim: $0), subtitle: Text("Movies"))
+                            .init(
+                                title: Text(verbatim: $0), providerKind: .jellyfin,
+                                subtitle: Text("Movies"), providerMarkInSubtitle: true
+                            )
                         }, onChange: { _ in }
                     )
                     .padding(30)
@@ -660,17 +844,22 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     ForEach(choices.indices, id: \.self) { index in
                         Group {
                             if reference {
-                                HStack(spacing: 12) {
-                                    ProviderBrandMark(
-                                        provider: sources[index].0, size: 32, showsBackground: false,
-                                        mediaShareTransport: sources[index].1
-                                    )
-                                    .frame(width: 36)
-                                    HomeEditorRowLabel(
-                                        title: choices[index].homeEditorTitle,
-                                        subtitle: choices[index].homeEditorSource
-                                    )
+                                HStack(spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        choices[index].homeEditorTitle.font(.body.weight(.medium))
+                                        HStack(spacing: 6) {
+                                            ProviderBrandMark(
+                                                provider: sources[index].0, size: 20, showsBackground: false,
+                                                mediaShareTransport: sources[index].1
+                                            )
+                                            choices[index].homeEditorSource.font(.footnote).settingsRowSecondary()
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    Image(systemName: "chevron.forward").font(.footnote).settingsRowSecondary()
                                 }
+                                .multilineTextAlignment(.leading)
+                                .frame(minHeight: 44)
                             } else {
                                 HomeSectionChoiceLabel(choice: choices[index])
                             }
@@ -699,16 +888,98 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             return bytes
         }
         for index in choices.indices {
-            let rect = CGRect(x: 26, y: 44 + index * 80, width: 32, height: 32)
+            let rect = CGRect(x: 24, y: 24 + index * 80, width: 24, height: 72)
             let actual = try XCTUnwrap(screenshots[0].cropping(to: rect))
             let reference = try XCTUnwrap(screenshots[1].cropping(to: rect))
             let actualPixels = try pixels(actual)
             let referencePixels = try pixels(reference)
             XCTAssertTrue(stride(from: 0, to: referencePixels.count, by: 4).contains {
-                referencePixels[$0..<$0 + 3].contains { $0 > 30 }
+                let channels = referencePixels[$0..<$0 + 3]
+                return (channels.max() ?? 0) - (channels.min() ?? 0) > 30
             }, "The shared reference must contain visible artwork.")
-            XCTAssertTrue(actualPixels == referencePixels, "Source \(sources[index]) must render the shared mark.")
+            XCTAssertTrue(actualPixels == referencePixels,
+                          "Source \(sources[index]) must render the shared mark below the title beside the source.")
         }
+    }
+
+    func testReorderProviderMarkCanMoveBesideTheSubtitleWithoutChangingDefaultPlacement() async throws {
+        for secondary in [false, true] {
+            try await withWindow(size: CGSize(width: 900, height: 300)) {
+                LiftableReorderList(
+                    sections: .init(enabled: ["row"], disabled: []),
+                    disabledSectionTitle: "Hidden", disabledPlaceholder: "No hidden rows",
+                    isLifting: .constant(false), allowsHiding: false,
+                    row: { _ in
+                        .init(
+                            title: Text("Recently Added"), symbolName: "rectangle.grid.1x2",
+                            providerKind: .jellyfin, subtitle: Text("Movies"),
+                            providerMarkInSubtitle: secondary
+                        )
+                    },
+                    onChange: { _ in }
+                )
+                .padding(24)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } inspect: { window in
+                let image = try await self.snapshot(window, name: "Reorder secondary provider \(secondary)")
+                let cgImage = try XCTUnwrap(image.cgImage)
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.recognitionLanguages = ["en-US"]
+                try VNImageRequestHandler(cgImage: cgImage).perform([request])
+                func textFrame(_ text: String) throws -> CGRect {
+                    let result = try XCTUnwrap(request.results?.first {
+                        $0.topCandidates(1).first?.string.contains(text) == true
+                    })
+                    let candidate = try XCTUnwrap(result.topCandidates(1).first)
+                    let range = try XCTUnwrap(candidate.string.range(of: text))
+                    let rect = try XCTUnwrap(candidate.boundingBox(for: range)).boundingBox
+                    return CGRect(
+                        x: rect.minX * image.size.width, y: (1 - rect.maxY) * image.size.height,
+                        width: rect.width * image.size.width, height: rect.height * image.size.height
+                    )
+                }
+                let title = try textFrame("Recently Added")
+                let source = try textFrame("Movies")
+                let mark = try self.coloredArtworkBounds(in: cgImage)
+                if secondary {
+                    XCTAssertGreaterThan(mark.minY, title.maxY)
+                    XCTAssertEqual(mark.midY, source.midY, accuracy: 5)
+                    XCTAssertLessThanOrEqual(mark.maxX, source.minX)
+                    XCTAssertGreaterThan(mark.midX, title.minX)
+                } else {
+                    XCTAssertLessThan(mark.maxX, title.minX,
+                                      "Other reorder consumers must keep their leading provider mark.")
+                }
+            }
+        }
+    }
+
+    private func coloredArtworkBounds(in image: CGImage) throws -> CGRect {
+        let width = image.width
+        let height = image.height
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        try bytes.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(
+                data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        var bounds = CGRect.null
+        for y in 0..<height {
+            for x in 0..<width {
+                let offset = (y * width + x) * 4
+                let channels = bytes[offset..<(offset + 3)]
+                if bytes[offset + 3] > 150,
+                   (channels.max() ?? 0) - (channels.min() ?? 0) > 40 {
+                    bounds = bounds.union(CGRect(x: x, y: y, width: 1, height: 1))
+                }
+            }
+        }
+        XCTAssertFalse(bounds.isNull, "The provider mark must contain visible colored artwork.")
+        return bounds
     }
 
     #if os(tvOS)
@@ -753,6 +1024,7 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             content()
                 .environment(HeroSettingsModel(store: InMemoryHeroSettingsStore()))
                 .environment(HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore()))
+                .environment(CardStyleSettingsModel())
                 .environment(\.themePalette, colorScheme == .dark ? ThemePalette.dark : ThemePalette.light)
                 .environment(\.colorScheme, colorScheme)
                 .environment(\.locale, Locale(identifier: "en_US"))
@@ -838,11 +1110,13 @@ private struct HomeSettingsViewerHost: View {
     let visibility: HomeLibraryVisibilityModel
     private let hero = HeroSettingsModel(store: InMemoryHeroSettingsStore())
     private let heroBackground = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore())
+    private let cards = CardStyleSettingsModel()
 
     var body: some View {
         NavigationStack {
             PlozziOSHomeSettingsView(
                 hero: hero, heroBackground: heroBackground,
+                cards: cards,
                 visibility: visibility, accounts: source.accounts
             )
         }
@@ -864,6 +1138,7 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     private var homeContinuations: [CheckedContinuation<Void, Never>] = []
     private let onFirstHomeRequest: (@Sendable () -> Void)?
     private var requestedHome = false
+    private(set) var homeRequests = 0
 
     init(
         name: String, isOffline: Bool = false, homeError: AppError? = nil,
@@ -895,6 +1170,7 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
         libraryContinuation = nil
     }
     func serverHomeLayout() async throws -> ServerHomeLayout? {
+        homeRequests += 1
         if !requestedHome {
             requestedHome = true
             onFirstHomeRequest?()

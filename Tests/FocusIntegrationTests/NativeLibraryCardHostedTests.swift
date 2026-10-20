@@ -1218,6 +1218,59 @@ final class NativeLibraryCardHostedTests: XCTestCase {
         }
     }
 
+    func testLibraryPosterCompositionNeverDrawsPlaceholderOverLoadedArtwork() async throws {
+        var environment = EnvironmentValues()
+        environment.themePalette = .dark
+        environment.colorScheme = .dark
+        let size = CGSize(width: 280, height: 420)
+        for style in [WatchStatusIndicator.watched, .unwatched] {
+            environment.plozzWatchStatusIndicator = style
+            for kind in [MediaItemKind.movie, .series] {
+                for played in [false, true] {
+                    let item = MediaItem(
+                        id: UUID().uuidString, title: "Poster", kind: kind,
+                        unwatchedEpisodeCount: kind == .series && !played ? 12 : nil,
+                        isPlayed: played
+                    )
+                    let presentation = NativeLibraryPosterBitmap.Presentation(
+                        item: item, spoilerSettings: .default, environment: environment
+                    )
+                    let placeholder = await NativeLibraryPosterBitmap.composite(
+                        source: nil, key: .init(image: nil, presentation: presentation, size: size, scale: 2),
+                        environment: environment
+                    )
+                    let missingArtwork = try XCTUnwrap(placeholder)
+                    let placeholderRegion = CGRect(x: 80, y: 120, width: 120, height: 180)
+                        .applying(CGAffineTransform(scaleX: missingArtwork.scale, y: missingArtwork.scale))
+                    let placeholderPixels = try rgba(XCTUnwrap(missingArtwork.cgImage?.cropping(to: placeholderRegion)))
+                    let placeholderLevels = stride(from: 0, to: placeholderPixels.count, by: 4).map {
+                        placeholderPixels[$0]
+                    }
+                    XCTAssertGreaterThan(Set(placeholderLevels).count, 1, "Missing artwork must retain its placeholder glyph.")
+                    let source = try XCTUnwrap(UIImage(data: artworkData(.blue)))
+                    let result = await NativeLibraryPosterBitmap.composite(
+                        source: source, key: .init(image: source, presentation: presentation, size: size, scale: 2),
+                        environment: environment
+                    )
+                    let image = try XCTUnwrap(result)
+                    let region = CGRect(x: 80, y: 120, width: 120, height: 180)
+                        .applying(CGAffineTransform(scaleX: image.scale, y: image.scale))
+                    let pixels = try rgba(XCTUnwrap(image.cgImage?.cropping(to: region)))
+                    let unexpected = stride(from: 0, to: pixels.count, by: 4).filter {
+                        pixels[$0] > 5 || pixels[$0 + 1] > 5 || pixels[$0 + 2] < 250 || pixels[$0 + 3] != 255
+                    }.count
+                    if unexpected > 0 {
+                        let attachment = XCTAttachment(image: image)
+                        attachment.name = "loaded-poster-\(style)-\(kind)-\(played)"
+                        attachment.lifetime = .keepAlways
+                        add(attachment)
+                    }
+                    XCTAssertEqual(unexpected, 0, "\(style), \(kind), played=\(played): loaded artwork must have no placeholder glyph or wash.")
+                }
+            }
+        }
+    }
+
     func testCompositedLibraryBitmapUsesLivePresentationAndBoundsStorage() throws {
         var environment = EnvironmentValues()
         environment.themePalette = .dark

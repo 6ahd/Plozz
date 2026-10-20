@@ -76,8 +76,8 @@ public struct PlozzMetrics: Equatable, Sendable {
     /// its slot, so cards separate and the focus outline has room (scaled).
     public let borderlessCardSideMargin: CGFloat
 
-    /// Density-scaled artwork progress, with separate touch and TV visibility floors.
-    public let progressBarHeight: CGFloat
+    /// Full-width card progress matches the Detailed resume bar, including density and Dynamic Type.
+    public var progressBarHeight: CGFloat { resumeChipBarHeight }
 
     /// Leg length of the "unwatched" corner flag, density-scaled and floored at
     /// `PlozzTheme.Metrics.unwatchedFlagMinSize` so it grows with the display-size
@@ -210,6 +210,29 @@ public struct PlozzMetrics: Equatable, Sendable {
         return (focusCaptionPush * PlozzTheme.Metrics.highlightCaptionPushRatio).rounded()
     }
 
+    /// Artwork dimensions shared by real cards and their Settings illustrations.
+    public func artworkSize(
+        for style: PosterCardView.Style,
+        showsSeriesArtwork: Bool = false,
+        playbackDetails: ContinueWatchingPlaybackDetails = .default
+    ) -> CGSize {
+        switch style {
+        case .poster:
+            return CGSize(
+                width: posterWidth,
+                height: showsSeriesArtwork ? posterWidth / playbackDetails.cardAspectRatio : posterHeight
+            )
+        case .landscape:
+            if showsSeriesArtwork {
+                return CGSize(
+                    width: continueWatchingWidth,
+                    height: (continueWatchingWidth / ContinueWatchingCardShape.aspectRatio).rounded()
+                )
+            }
+            return CGSize(width: landscapeWidth, height: landscapeHeight)
+        }
+    }
+
     /// Exact rail footprint for a shared media card. Home uses this instead of a
     /// separate iOS width table so the slot can never be wider than the rendered
     /// surface and create invisible inter-card spacing.
@@ -218,10 +241,7 @@ public struct PlozzMetrics: Equatable, Sendable {
         cardStyle: CardStyle,
         showsSeriesArtwork: Bool = false
     ) -> CGFloat {
-        let artworkWidth = switch style {
-        case .poster: posterWidth
-        case .landscape: showsSeriesArtwork ? continueWatchingWidth : landscapeWidth
-        }
+        let artworkWidth = artworkSize(for: style, showsSeriesArtwork: showsSeriesArtwork).width
         let sideInset = switch cardStyle {
         case .framed: cardInset
         case .borderless: borderlessCardSideMargin
@@ -423,12 +443,6 @@ public struct PlozzMetrics: Equatable, Sendable {
 
         self.focusCaptionPush = step(PlozzTheme.Metrics.focusCaptionPush)
         self.borderlessCardSideMargin = step(PlozzTheme.Metrics.borderlessCardSideMargin)
-        self.progressBarHeight = max(
-            step(PlozzTheme.Metrics.progressBarHeight),
-            geometryScale < 1
-                ? PlozzTheme.Metrics.touchProgressBarMinHeight
-                : PlozzTheme.Metrics.progressBarMinHeight
-        )
         self.unwatchedFlagSize = max(
             step(PlozzTheme.Metrics.unwatchedFlagSize),
             PlozzTheme.Metrics.unwatchedFlagMinSize

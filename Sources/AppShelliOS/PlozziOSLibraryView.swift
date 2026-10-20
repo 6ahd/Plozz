@@ -352,7 +352,8 @@ struct PlozziOSLibraryGridView: View {
                         section: section,
                         spoilerSettings: settings.spoilers.settings,
                         showsSeriesArtwork: section.id == "continueWatching"
-                            && settings.homeVisibility.continueWatchingShowsSeriesArtwork,
+                            && settings.homeVisibility.continueWatchingUsesSeriesArtwork,
+                        continueWatchingLayout: settings.homeVisibility.continueWatchingLayout,
                         onSelect: { selectedRecommendedItem = $0 }
                     )
                     .environment(\.plozzArtworkArea, section.id == "continueWatching" ? .continueWatching : .recommended)
@@ -608,11 +609,14 @@ struct PlozziOSLibraryRecommendationRow: View {
     let section: LibrarySection
     let spoilerSettings: SpoilerSettings
     let showsSeriesArtwork: Bool
+    var continueWatchingLayout: ContinueWatchingCardLayout = .landscape
     let onSelect: (MediaItem) -> Void
 
     var body: some View {
         let inset = PlozziOSPageLayout.horizontalInset(for: horizontalSizeClass)
-        let style: PosterCardView.Style = section.style == .poster ? .poster : .landscape
+        let style: PosterCardView.Style = section.id == "continueWatching"
+            ? continueWatchingLayout.cardStyle
+            : (section.style == .poster ? .poster : .landscape)
         PlozziOSMediaSection(
             title: section.displayName,
             artworkInset: cardStyle == .framed ? metrics.cardInset : 0

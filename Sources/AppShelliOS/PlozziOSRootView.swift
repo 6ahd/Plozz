@@ -30,7 +30,6 @@ public struct PlozziOSRootView: View {
     @State private var showingAddServer = false
     @State private var providerSetupRouter = ManagedProviderSetupRouter()
     @State private var iptvSetup: ManagedProviderSetupRouter.Request?
-    @State private var addServerPresentationColorScheme: ColorScheme = .dark
     @State private var showingSettings = false
     /// Owned here rather than in the tab shell so `receivePairingURL` can see
     /// whether it is up before asking for another sheet.
@@ -193,7 +192,6 @@ public struct PlozziOSRootView: View {
                     showDetectedCover = false
                 }
             )
-            .preferredColorScheme(resolvedPalette.isLight ? .light : .dark)
         }
         .background {
             PlozziOSScenePhaseEffects(appModel: appModel)
@@ -220,19 +218,16 @@ public struct PlozziOSRootView: View {
                     appModel.clearPendingSyncedServerPrompt()
                 }
             )
-            .preferredColorScheme(resolvedPalette.isLight ? .light : .dark)
         }
         .plozzFullScreenCover(item: $pairingServer) { descriptor in
             PlozziOSSyncSetupReceiveView(appModel: appModel, requestedServer: descriptor) {
                 pairingServer = nil
             }
-            .preferredColorScheme(resolvedPalette.isLight ? .light : .dark)
         }
         .plozzFullScreenCover(isPresented: $showReceiveFromDetected) {
             PlozziOSSyncSetupReceiveView(appModel: appModel) {
                 showReceiveFromDetected = false
             }
-            .preferredColorScheme(resolvedPalette.isLight ? .light : .dark)
         }
         .background { AppBackground(palette: resolvedPalette) }
         .environment(\.familyGuidanceProvider, appModel.familyGuidance)
@@ -251,6 +246,7 @@ public struct PlozziOSRootView: View {
         )
         .mediaItemActionHandler(appModel.mediaItemActionHandler)
         .environment(\.plozzCardCaptionSettings, appModel.settings.cardStyle.captions)
+        .environment(\.plozzContinueWatchingPlaybackDetails, appModel.settings.homeVisibility.continueWatchingPlaybackDetails)
         .environment(\.plozzArtworkSettings, appModel.settings.cardStyle.artwork)
         .environment(\.plozzArtworkProviders, appModel.metadataProviderSettingsModel.settings)
         .environment(
@@ -283,7 +279,7 @@ public struct PlozziOSRootView: View {
         .environment(appModel)
         .environment(heroTrailerController)
         .environment(sidebarGeometry)
-        .syncsWindowInterfaceStyle(isLight: resolvedPalette.isLight)
+        .syncsWindowInterfaceStyle(appModel.settings.theme.theme.preferredColorScheme)
         .id(shellIdentity)
         .onChange(of: shellIdentity) {
             heroTrailerController.stop()
@@ -315,7 +311,6 @@ public struct PlozziOSRootView: View {
                 initialIPTVPlaylist: iptvSetup?.playlist, initialIPTVAccount: iptvSetup?.account,
                 initialIPTVMode: iptvSetup?.mode ?? .playlist
             )
-                .preferredColorScheme(addServerPresentationColorScheme)
                 .presentationSizing(.page)
         }
         .plozzSheet(
@@ -325,7 +320,6 @@ public struct PlozziOSRootView: View {
                 selection: selection,
                 onSelect: appModel.selectPlexUserDuringOnboarding
             )
-            .preferredColorScheme(addServerPresentationColorScheme)
         }
         .plozzSheet(
             item: librarySelectionBinding
@@ -337,7 +331,6 @@ public struct PlozziOSRootView: View {
                 visibility: appModel.settings.homeVisibility,
                 onContinue: appModel.completeLibrarySelection
             )
-            .preferredColorScheme(addServerPresentationColorScheme)
         }
         // Presented ONCE for the whole first-run flow, not per step. Keyed by
         // `item:` the cover tore down and rebuilt on every step change — because
@@ -399,7 +392,6 @@ public struct PlozziOSRootView: View {
                     )
                 }
             }
-            .preferredColorScheme(resolvedPalette.isLight ? .light : .dark)
         }
         .environment(\.themePalette, resolvedPalette)
         .environment(\.gradientBackgroundsEnabled, appModel.settings.theme.gradientEnabled)
@@ -619,7 +611,6 @@ public struct PlozziOSRootView: View {
     }
 
     private func showAddServer() {
-        addServerPresentationColorScheme = resolvedPalette.isLight ? .light : .dark
         appModel.beginManagedServerPresentation()
         showingAddServer = true
     }
@@ -799,7 +790,6 @@ struct PlozziOSTabShell: View {
     private var sidebarGeometry
     @Environment(HeroTrailerController.self)
     private var heroTrailerController
-    @State private var settingsPresentationColorScheme: ColorScheme = .dark
     @State private var selectedDestination: PlozziOSDestination = .home
     @State private var isMoreSelected = false
     @State private var moreDestination: PlozziOSDestination?
@@ -1436,7 +1426,6 @@ struct PlozziOSTabShell: View {
                 onSwitchTo: { pendingSwitchProfileID = $0 },
                 systemColorScheme: systemColorScheme
             )
-            .preferredColorScheme(settingsPresentationColorScheme)
             .presentationSizing(.page)
             // Elevation edge for the all-black theme: without it the sheet's
             // dark surface blends straight into the dark page behind it, so the
@@ -1501,7 +1490,6 @@ struct PlozziOSTabShell: View {
 
     private func showSettings() {
         hasChosenNavigationDestination = true
-        settingsPresentationColorScheme = settingsPalette.isLight ? .light : .dark
         showingSettings = true
     }
 

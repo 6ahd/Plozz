@@ -8,7 +8,9 @@ import FeaturePlayback
 struct FocusHostApp: App {
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.arguments.contains("--playback-failure-fixture") {
+            if ProcessInfo.processInfo.arguments.contains("--reorder-input-fixture") {
+                ReorderInputFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--playback-failure-fixture") {
                 PlaybackFailureFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--setup-picker-fixture") {
                 SetupPickerFixture()
@@ -82,6 +84,39 @@ struct FocusHostApp: App {
                 Color.black
             }
         }
+    }
+}
+
+private struct ReorderInputFixture: View {
+    @State private var sections = OrderedVisibilityList.Sections(enabled: Array(0..<24), disabled: [24, 25])
+    @State private var isLifting = false
+    @State private var positions: [Int] = []
+    private var allowsHiding: Bool { ProcessInfo.processInfo.arguments.contains("--with-hidden-rows") }
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Button("Done") {}.disabled(isLifting)
+            ScrollView {
+                LiftableReorderList(
+                    sections: .init(enabled: sections.enabled, disabled: allowsHiding ? sections.disabled : []),
+                    disabledSectionTitle: "Hidden", disabledPlaceholder: "No hidden rows",
+                    isLifting: $isLifting, allowsHiding: allowsHiding,
+                    row: { .init(title: Text(verbatim: "Row \($0)")) },
+                    onChange: {
+                        sections = $0
+                        if let index = $0.combined.firstIndex(of: 0) { positions.append(index) }
+                    }
+                )
+                .padding(36)
+            }
+            Text(verbatim: "Position \(sections.combined.firstIndex(of: 0) ?? -1); hidden \(sections.disabled.contains(0))")
+                .accessibilityIdentifier("reorder-fixture-position")
+                .accessibilityValue(Text(verbatim: positions.map(String.init).joined(separator: ",")))
+        }
+        .frame(width: 960)
+        .padding(.vertical, 60)
+        .environment(\.themePalette, .dark)
+        .environment(\.colorScheme, .dark)
     }
 }
 

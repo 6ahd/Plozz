@@ -81,6 +81,56 @@ final class HomeLibraryVisibilityTests: XCTestCase {
 
     func testContinueWatchingShowsSeriesArtworkDefaultsOn() {
         XCTAssertTrue(HomeLibraryVisibility.default.continueWatchingShowsSeriesArtwork)
+        XCTAssertEqual(HomeLibraryVisibility.default.continueWatchingLayout, .landscape)
+        XCTAssertEqual(HomeLibraryVisibility.default.continueWatchingPlaybackDetails, .detailed)
+    }
+
+    func testPortraitOverridesThumbnailsWithoutErasingTheLandscapeChoice() throws {
+        var visibility = HomeLibraryVisibility(continueWatchingShowsSeriesArtwork: false)
+        visibility.continueWatchingLayout = .portrait
+        var decoded = try JSONDecoder().decode(
+            HomeLibraryVisibility.self, from: JSONEncoder().encode(visibility)
+        )
+        XCTAssertEqual(decoded.continueWatchingLayout, .portrait)
+        XCTAssertTrue(decoded.continueWatchingUsesSeriesArtwork)
+        XCTAssertFalse(decoded.continueWatchingShowsSeriesArtwork)
+        decoded.continueWatchingLayout = .landscape
+        XCTAssertFalse(decoded.continueWatchingUsesSeriesArtwork)
+    }
+
+    func testLegacyThumbnailPreferenceRemainsLandscape() throws {
+        let decoded = try JSONDecoder().decode(
+            HomeLibraryVisibility.self,
+            from: Data(#"{"continueWatchingShowsSeriesArtwork":false}"#.utf8)
+        )
+        XCTAssertEqual(decoded.continueWatchingLayout, .landscape)
+        XCTAssertFalse(decoded.continueWatchingUsesSeriesArtwork)
+        XCTAssertEqual(decoded.continueWatchingPlaybackDetails, .detailed)
+    }
+
+    func testPlaybackDetailsRoundTripWithoutChangingArtworkOrLayout() throws {
+        for layout in ContinueWatchingCardLayout.allCases {
+            for details in ContinueWatchingPlaybackDetails.allCases {
+                let original = HomeLibraryVisibility(
+                    continueWatchingShowsSeriesArtwork: false, continueWatchingLayout: layout,
+                    continueWatchingPlaybackDetails: details
+                )
+                let decoded = try JSONDecoder().decode(
+                    HomeLibraryVisibility.self, from: JSONEncoder().encode(original)
+                )
+                XCTAssertEqual(decoded, original)
+                XCTAssertEqual(decoded.continueWatchingUsesSeriesArtwork, layout == .portrait)
+            }
+        }
+    }
+
+    func testPortraitOnlyStoredPlaybackPreferenceIsPreservedForAllLayouts() throws {
+        let decoded = try JSONDecoder().decode(
+            HomeLibraryVisibility.self,
+            from: Data(#"{"continueWatchingPortraitDetails":"progressOnly","continueWatchingLayout":"landscape"}"#.utf8)
+        )
+        XCTAssertEqual(decoded.continueWatchingPlaybackDetails, .progressOnly)
+        XCTAssertEqual(decoded.continueWatchingLayout, .landscape)
     }
 
     func testContinueWatchingArtworkChoiceSurvivesARoundTrip() throws {
@@ -214,6 +264,31 @@ final class HomeLibraryVisibilityTests: XCTestCase {
 }
 
 final class HomeLibraryVisibilityStoreTests: XCTestCase {
+    @MainActor
+    func testContinueWatchingLayoutPersistsAndSwitchesWithItsProfile() {
+        let suite = "test.portraitVisibility.\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let first = HomeLibraryVisibilityStore(defaults: defaults)
+        let second = HomeLibraryVisibilityStore(defaults: defaults, namespace: "second")
+        let model = HomeLibraryVisibilityModel(store: first)
+        model.setContinueWatchingShowsSeriesArtwork(false)
+        model.setContinueWatchingLayout(.portrait)
+        model.setContinueWatchingPlaybackDetails(.progressOnly)
+        let restored = HomeLibraryVisibilityModel(store: first)
+        XCTAssertEqual(restored.continueWatchingLayout, .portrait)
+        XCTAssertTrue(restored.continueWatchingUsesSeriesArtwork)
+        XCTAssertEqual(HomeLibraryVisibilityModel(store: second).continueWatchingLayout, .landscape)
+        XCTAssertEqual(restored.continueWatchingPlaybackDetails, .progressOnly)
+        XCTAssertEqual(HomeLibraryVisibilityModel(store: second).continueWatchingPlaybackDetails, .detailed)
+        restored.setContinueWatchingLayout(.landscape)
+        XCTAssertFalse(restored.continueWatchingUsesSeriesArtwork)
+        XCTAssertEqual(first.load().continueWatchingLayout, .landscape)
+        XCTAssertEqual(first.load().continueWatchingPlaybackDetails, .progressOnly)
+        restored.setContinueWatchingLayout(.portrait)
+        XCTAssertEqual(restored.continueWatchingPlaybackDetails, .progressOnly)
+    }
+
     private func makeDefaults() -> UserDefaults {
         let suite = "test.homeVisibility.\(UUID().uuidString)"
         return UserDefaults(suiteName: suite)!

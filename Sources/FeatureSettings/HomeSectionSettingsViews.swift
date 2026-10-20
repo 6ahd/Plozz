@@ -72,12 +72,35 @@ struct HomeEditorRowLabel: View {
     let title: Text
     let subtitle: Text?
     var accessory = "chevron.forward"
+    var titleSymbol: String? = nil
+    var subtitleProvider: ProviderKind? = nil
+    var mediaShareTransport: MediaShareTransportKind? = nil
+    @ScaledMetric(relativeTo: .footnote) private var sourceMarkSize: CGFloat = 20
 
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                title.font(.body.weight(.medium))
-                subtitle?.font(.footnote).settingsRowSecondary()
+                HStack(spacing: 8) {
+                    title.font(.body.weight(.medium))
+                    if let titleSymbol {
+                        Image(systemName: titleSymbol)
+                            .font(.footnote)
+                            .settingsRowSecondary()
+                            .accessibilityHidden(true)
+                    }
+                }
+                if let subtitle {
+                    HStack(spacing: 6) {
+                        if let subtitleProvider {
+                            ProviderBrandMark(
+                                provider: subtitleProvider, size: sourceMarkSize, showsBackground: false,
+                                mediaShareTransport: mediaShareTransport
+                            )
+                            .accessibilityHidden(true)
+                        }
+                        subtitle.font(.footnote).settingsRowSecondary()
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: accessory).font(.footnote).settingsRowSecondary().accessibilityHidden(true)
@@ -115,13 +138,12 @@ struct HomeSectionChoiceLabel: View {
     var accessory = "chevron.forward"
 
     var body: some View {
-        HStack(spacing: 12) {
-            choice.homeEditorProviderMark
-            HomeEditorRowLabel(
-                title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
-                accessory: accessory
-            )
-        }
+        HomeEditorRowLabel(
+            title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
+            accessory: accessory,
+            subtitleProvider: choice.library?.providerKind ?? choice.serverRow?.providerKind,
+            mediaShareTransport: choice.library?.transportKind
+        )
     }
 }
 
@@ -131,6 +153,10 @@ struct HomeSectionSettingsView: View {
     let visibility: HomeLibraryVisibilityModel
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
+    @Environment(CardStyleSettingsModel.self) private var cards
+    #if os(tvOS)
+    @Environment(HeroSettingsModel.self) private var hero
+    #endif
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
 
@@ -142,21 +168,42 @@ struct HomeSectionSettingsView: View {
             }
             if choice.id == .global(.continueWatching) {
                 ContinueWatchingNextUpControl(visibility: visibility)
-                ContinueWatchingArtworkPicker(
-                    style: Binding(
-                        get: { visibility.continueWatchingShowsSeriesArtwork ? .logoAndArtwork : .thumbnail },
-                        set: { visibility.setContinueWatchingShowsSeriesArtwork($0 == .logoAndArtwork) }
-                    )
+                ContinueWatchingArtworkPicker(style: Binding(
+                    get: {
+                        if visibility.continueWatchingLayout == .portrait { return .portraitPosters }
+                        return visibility.continueWatchingShowsSeriesArtwork ? .logoAndArtwork : .thumbnail
+                    },
+                    set: { option in
+                        if option.layout == .landscape {
+                            visibility.setContinueWatchingShowsSeriesArtwork(option.showsSeriesArtwork)
+                        }
+                        visibility.setContinueWatchingLayout(option.layout)
+                    }
+                ), playbackDetails: visibility.continueWatchingPlaybackDetails,
+                   captions: cards.captions, isShowcase: previewsShowcase)
+                ContinueWatchingPlaybackDetailsControl(visibility: visibility)
+                CardCaptionViewChoices(
+                    view: .continueWatching,
+                    settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
+                    title: "Labels"
                 )
+                #if os(iOS)
+                .padding(.horizontal, 14)
+                .settingsGroupSurface(cornerRadius: 12)
+                #else
+                .padding(SettingsFormMetrics.groupInset)
+                .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+                #endif
             }
             Button("Remove section", role: .destructive) {
                 do {
-                    try visibility.setHomeSectionVisible(false, id: choice.id, catalog: inventory.catalog)
+                    try visibility.setHomeSectionVisible(false, id: choice.id, catalog: inventory.currentCatalog(
+                        libraries: libraries, accounts: accounts, visibility: visibility
+                    ))
                     dismiss()
                 } catch { failed = true }
             }
             .plozzActionButton(role: .secondary)
-            .disabled(inventory.isLoading)
             .accessibilityIdentifier("home-section-remove")
             if failed { InlineErrorMessage(Text("Couldn't update this section. Try again.")) }
             if inventory.isLoading { ProgressView("Loading available sections…") }
@@ -166,6 +213,52 @@ struct HomeSectionSettingsView: View {
         )) {
             await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
+    }
+
+    private var previewsShowcase: Bool {
+        #if os(tvOS)
+        hero.settings.style == .followsFocus
+        #else
+        false
+        #endif
+    }
+}
+
+private struct ContinueWatchingPlaybackDetailsControl: View {
+    let visibility: HomeLibraryVisibilityModel
+
+    var body: some View {
+        let selection = visibility.continueWatchingPlaybackDetails
+        Group {
+            #if os(iOS)
+            ViewCustomizationMenu(
+                id: "continue-watching-playback-details", title: "Playback details",
+                value: selection.displayName, detail: selection.detail,
+                selection: Binding(
+                    get: { visibility.continueWatchingPlaybackDetails },
+                    set: { visibility.setContinueWatchingPlaybackDetails($0) }
+                )
+            ) {
+                ForEach(ContinueWatchingPlaybackDetails.allCases, id: \.self) { details in
+                    Text(details.displayName).tag(details)
+                }
+            }
+            #else
+            ViewCustomizationRow(
+                id: "continue-watching-playback-details", title: "Playback details",
+                value: selection.displayName, detail: selection.detail
+            ) {
+                visibility.setContinueWatchingPlaybackDetails(selection == .detailed ? .progressOnly : .detailed)
+            }
+            #endif
+        }
+        #if os(iOS)
+        .padding(.horizontal, 14)
+        .settingsGroupSurface(cornerRadius: 12)
+        #else
+        .padding(SettingsFormMetrics.groupInset)
+        .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+        #endif
     }
 }
 
@@ -179,7 +272,7 @@ struct HomeAddSectionView: View {
 
     var body: some View {
         HomeEditorPage(title: Text("Add section"), showsHeader: true) {
-            let catalog = inventory.catalog
+            let catalog = inventory.currentCatalog(libraries: libraries, accounts: accounts, visibility: visibility)
             let disabled = Set(catalog.sections(in: visibility.visibility).disabled)
             let choices = catalog.editableChoices(in: visibility.visibility).filter { disabled.contains($0.id) }
             if choices.isEmpty && !inventory.isLoading {
@@ -188,14 +281,13 @@ struct HomeAddSectionView: View {
             ForEach(choices) { choice in
                 Button {
                     do {
-                        try visibility.setHomeSectionVisible(true, id: choice.id, catalog: inventory.catalog)
+                        try visibility.setHomeSectionVisible(true, id: choice.id, catalog: catalog)
                         dismiss()
                     } catch { failed = true }
                 } label: {
                     HomeSectionChoiceLabel(choice: choice, accessory: "plus")
                 }
                 .buttonStyle(SettingsFormButtonStyle())
-                .disabled(inventory.isLoading)
                 .accessibilityIdentifier("home-add-\(choice.id.presentationID)")
             }
             if inventory.isLoading { ProgressView("Loading available sections…") }
@@ -242,7 +334,7 @@ struct HomeHeroSettingsView: View {
 
     @ViewBuilder private var page: some View {
         @Bindable var hero = hero
-        HomeEditorPage(title: Text("Hero"), showsHeader: true) {
+        HomeEditorPage(title: pageTitle, showsHeader: true) {
             #if os(tvOS)
             HomeLayoutPicker(layout: $hero.settings.style)
             if hero.settings.style == .followsFocus {
@@ -267,6 +359,14 @@ struct HomeHeroSettingsView: View {
             HeroSettingsControls(libraries: availableLibraries, accounts: accounts)
             #endif
         }
+    }
+
+    private var pageTitle: Text {
+        #if os(tvOS)
+        Text("Home layout")
+        #else
+        Text("Hero")
+        #endif
     }
 }
 
@@ -374,7 +474,6 @@ struct HomeRowPresetPicker: View {
     }
 
     @ViewBuilder private var picker: some View {
-        #if os(iOS)
         Menu {
             selectionPicker.pickerStyle(.inline).labelsHidden()
         } label: {
@@ -384,21 +483,22 @@ struct HomeRowPresetPicker: View {
                     .font(.caption2.weight(.semibold))
                     .accessibilityHidden(true)
             }
-            .font(.subheadline.weight(.semibold))
-            .padding(.vertical, 6)
+            #if os(iOS)
+                .font(.subheadline.weight(.semibold))
+                .padding(.vertical, 6)
+            #endif
         }
+        #if os(tvOS)
+        .menuStyle(.button)
+        .plozzActionButton(role: .secondary)
+        #else
         .buttonStyle(.bordered)
         .buttonBorderShape(.capsule)
         .frame(minHeight: 44)
+        #endif
         .accessibilityLabel(Text("Preset"))
         .accessibilityValue(currentTitle)
         .accessibilityIdentifier("home-row-preset")
-        #else
-        selectionPicker
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .accessibilityIdentifier("home-row-preset")
-        #endif
     }
 
     private var currentTitle: Text {

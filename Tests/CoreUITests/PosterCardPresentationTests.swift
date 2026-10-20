@@ -116,6 +116,23 @@ final class MediaFolderCardLayoutTests: XCTestCase {
 #endif
 
 final class PosterCardPresentationTests: XCTestCase {
+    func testProgressFallsBackToResumePositionWhenPercentageIsMissing() {
+        for kind in [MediaItemKind.movie, .episode] {
+            var item = MediaItem(id: "resume", title: "Resume", kind: kind, runtime: 3600, resumePosition: 900)
+            let resumed = MediaPlaybackIndicatorState(item)
+            XCTAssertEqual(resumed.playedPercentage, 0.25)
+            XCTAssertTrue(MediaPlaybackIndicatorPresentation.showsProgress(for: resumed))
+
+            item.playedPercentage = 0.4
+            XCTAssertEqual(MediaPlaybackIndicatorState(item).playedPercentage, 0.4)
+            item.playedPercentage = nil
+            item.resumePosition = 0
+            XCTAssertFalse(MediaPlaybackIndicatorPresentation.showsProgress(for: MediaPlaybackIndicatorState(item)))
+            item.resumePosition = 3600
+            XCTAssertFalse(MediaPlaybackIndicatorPresentation.showsProgress(for: MediaPlaybackIndicatorState(item)))
+        }
+    }
+
     #if os(tvOS)
     @MainActor
     func testNativeContainerArtworkFitsLandscapeAndSquareEdges() throws {

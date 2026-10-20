@@ -491,7 +491,7 @@ public struct MediaPlaybackIndicatorState: Equatable, Sendable {
     public init(_ item: MediaItem) {
         kind = item.kind
         isPlayed = item.isPlayed
-        playedPercentage = item.playedPercentage
+        playedPercentage = item.playedPercentage ?? item.resumeProgressFraction
         unwatchedEpisodeCount = item.unwatchedEpisodeCount
         resumePosition = item.resumePosition
         // Same shared classifier the corner mark and the detail page use, so a card
