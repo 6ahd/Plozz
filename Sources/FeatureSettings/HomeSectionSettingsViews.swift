@@ -132,6 +132,9 @@ struct HomeSectionSettingsView: View {
     let libraries: [AggregatedLibrary]
     let accounts: [ResolvedAccount]
     @Environment(CardStyleSettingsModel.self) private var cards
+    #if os(tvOS)
+    @Environment(HeroSettingsModel.self) private var hero
+    #endif
     @SettingsPageDismiss private var dismiss
     @State private var failed = false
 
@@ -154,22 +157,21 @@ struct HomeSectionSettingsView: View {
                         }
                         visibility.setContinueWatchingLayout(option.layout)
                     }
-                ), playbackDetails: visibility.continueWatchingPlaybackDetails)
+                ), playbackDetails: visibility.continueWatchingPlaybackDetails,
+                   captions: cards.captions, isShowcase: previewsShowcase)
                 ContinueWatchingPlaybackDetailsControl(visibility: visibility)
-                if visibility.continueWatchingLayout == .portrait {
-                    CardCaptionViewChoices(
-                        view: .continueWatchingPortrait,
-                        settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
-                        title: "Labels"
-                    )
-                    #if os(iOS)
-                    .padding(.horizontal, 14)
-                    .settingsGroupSurface(cornerRadius: 12)
-                    #else
-                    .padding(SettingsFormMetrics.groupInset)
-                    .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
-                    #endif
-                }
+                CardCaptionViewChoices(
+                    view: .continueWatching,
+                    settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
+                    title: "Labels"
+                )
+                #if os(iOS)
+                .padding(.horizontal, 14)
+                .settingsGroupSurface(cornerRadius: 12)
+                #else
+                .padding(SettingsFormMetrics.groupInset)
+                .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+                #endif
             }
             Button("Remove section", role: .destructive) {
                 do {
@@ -188,6 +190,14 @@ struct HomeSectionSettingsView: View {
         )) {
             await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
+    }
+
+    private var previewsShowcase: Bool {
+        #if os(tvOS)
+        hero.settings.style == .followsFocus
+        #else
+        false
+        #endif
     }
 }
 

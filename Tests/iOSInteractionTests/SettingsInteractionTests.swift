@@ -1056,7 +1056,13 @@ final class SettingsInteractionTests: XCTestCase {
                 XCTAssertTrue(option.exists)
                 XCTAssertEqual(option.isSelected, index == selected)
             }
-            XCTAssertEqual(app.buttons["card-label-view-continueWatchingPortrait"].exists, selected == 2)
+            XCTAssertEqual(choice.label, ["Logo", "Thumbnail", "Portrait"][selected])
+            let labels = app.buttons["card-label-view-continueWatchingPortrait"]
+            XCTAssertTrue(labels.exists)
+            selectCustomization(labels, expecting: "On")
+            capture("continue-watching-\(selected)-labels-on")
+            selectCustomization(labels, expecting: "Off")
+            capture("continue-watching-\(selected)-labels-off")
             let details = app.buttons["continue-watching-playback-details"]
             XCTAssertTrue(details.exists)
             selectCustomization(details, expecting: "Progress only")
@@ -1066,7 +1072,7 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertFalse(app.segmentedControls["continue-watching-layout"].exists)
     }
 
-    func testPortraitContinueWatchingLabelsShareTheAppearanceOverride() {
+    func testContinueWatchingLabelsShareTheAppearanceOverride() {
         openSettingsPage("Customize Home")
         app.buttons["home-section-home-continueWatching"].tap()
         let portrait = app.buttons["continue-watching-style-portraitPosters"]
@@ -1108,7 +1114,8 @@ final class SettingsInteractionTests: XCTestCase {
         let landscape = app.buttons["continue-watching-style-logoAndArtwork"]
         reveal(landscape, fullyVisible: true)
         landscape.tap()
-        XCTAssertFalse(labels.exists)
+        XCTAssertTrue(labels.exists)
+        XCTAssertEqual(labels.value as? String, "Off")
         XCTAssertTrue(details.exists)
         XCTAssertEqual(details.value as? String, "Progress only")
         reveal(portrait, fullyVisible: true)
@@ -1208,7 +1215,7 @@ final class SettingsInteractionTests: XCTestCase {
         watching.tap()
         let merge = app.switches["home-merge-next-up"]
         let original = merge.value as? String
-        let thumbnail = app.buttons["Thumbnail & Title"]
+        let thumbnail = app.buttons["continue-watching-style-thumbnail"]
         XCTAssertTrue(thumbnail.waitForExistence(timeout: 3), app.debugDescription)
         XCTAssertLessThan(thumbnail.frame.height, thumbnail.frame.width * 1.5,
                           "Artwork cards should scale with width, not keep the old 200pt swatch slot.")

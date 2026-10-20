@@ -813,12 +813,14 @@ public struct PosterCardView: View {
     /// (see ``MediaCardPlaybackIndicators``), which needs no runtime metadata — so
     /// every in-progress card looks the same whether or not its runtime is known.
     @Environment(\.plozzCardCaptionsHidden) private var ordinaryCaptionsHidden
-    @Environment(\.plozzCardCaptionsHiddenWithArtworkTitle) private var artworkTitleCaptionsHidden
-    @Environment(\.plozzContinueWatchingPortraitCaptionsHidden) private var portraitCaptionsHidden
+    @Environment(\.plozzContinueWatchingCaptionsHidden) private var continueWatchingCaptionsHidden
+    @Environment(\.plozzContinueWatchingCaptionsHiddenWithArtworkTitle) private var continueWatchingArtworkCaptionsHidden
 
     private var captionsHidden: Bool {
-        if showsSeriesArtwork, style == .poster { return portraitCaptionsHidden }
-        return showsSeriesArtwork ? artworkTitleCaptionsHidden : ordinaryCaptionsHidden
+        if presentationArtworkPolicy.area == .continueWatching {
+            return showsSeriesArtwork ? continueWatchingArtworkCaptionsHidden : continueWatchingCaptionsHidden
+        }
+        return ordinaryCaptionsHidden
     }
 
     private var showsCaption: Bool { !captionsHidden }

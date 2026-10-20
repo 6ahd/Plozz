@@ -7,6 +7,8 @@ import CoreUI
 struct ContinueWatchingArtworkPicker: View {
     @Binding var style: ContinueWatchingArtworkStyle
     var playbackDetails: ContinueWatchingPlaybackDetails = .default
+    var captions: CardCaptionSettings = .default
+    var isShowcase = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -76,7 +78,8 @@ struct ContinueWatchingArtworkPicker: View {
 
     private func swatch(_ option: ContinueWatchingArtworkStyle) -> some View {
         ContinueWatchingArtworkSwatch(
-            style: option, cornerRadius: PlozzTheme.Metrics.Radius.content, playbackDetails: playbackDetails
+            style: option, cornerRadius: PlozzTheme.Metrics.Radius.content, playbackDetails: playbackDetails,
+            showsCaptions: option.showsCaptions(settings: captions, isShowcase: isShowcase)
         )
         .accessibilityHidden(true)
     }

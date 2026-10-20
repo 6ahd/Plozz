@@ -28,13 +28,16 @@ public struct SkeletonCardView: View {
     /// An explicit resolved preference takes precedence over inherited presentation defaults.
     private let captionOverride: Bool?
     @Environment(\.plozzCardCaptionsHidden) private var captionsHidden
-    @Environment(\.plozzCardCaptionsHiddenWithArtworkTitle) private var artworkTitleCaptionsHidden
-    @Environment(\.plozzContinueWatchingPortraitCaptionsHidden) private var portraitCaptionsHidden
+    @Environment(\.plozzContinueWatchingCaptionsHidden) private var continueWatchingCaptionsHidden
+    @Environment(\.plozzContinueWatchingCaptionsHiddenWithArtworkTitle) private var continueWatchingArtworkCaptionsHidden
+    @Environment(\.plozzArtworkPolicy) private var artworkPolicy
     @Environment(\.plozzContinueWatchingPlaybackDetails) private var playbackDetails
     private var showsCaption: Bool {
-        captionOverride ?? !(showsSeriesArtwork
-            ? (style == .poster ? portraitCaptionsHidden : artworkTitleCaptionsHidden)
-            : captionsHidden)
+        if let captionOverride { return captionOverride }
+        if showsSeriesArtwork || artworkPolicy.area == .continueWatching {
+            return !(showsSeriesArtwork ? continueWatchingArtworkCaptionsHidden : continueWatchingCaptionsHidden)
+        }
+        return !captionsHidden
     }
     /// Mirrors `PosterCardView`'s series-artwork shape: taller than 16:9 (it
     /// reserves a band for its chrome) and narrower to compensate. Kept explicit

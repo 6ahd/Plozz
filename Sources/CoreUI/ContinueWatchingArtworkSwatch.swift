@@ -8,12 +8,9 @@ public extension ContinueWatchingCardLayout {
 
 /// The three supported Continue Watching presentations; portrait never uses thumbnails.
 public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
-    /// Artwork with the title laid over it as a logo, and nothing written below:
-    /// the episode or year rides in the resume chip, on the artwork.
+    /// Landscape artwork with a logo.
     case logoAndArtwork
-    /// Plain artwork, with the title *and* its details — the episode designation,
-    /// or a movie's year — written on two lines underneath. Masked to match the
-    /// spoiler settings.
+    /// Episode thumbnails or movie artwork, respecting spoiler settings.
     case thumbnail
     case portraitPosters
 
@@ -27,38 +24,38 @@ public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
         switch self {
         case .logoAndArtwork:
             return LocalizedStringResource(
-                "continueWatchingArtwork.logoAndArtwork",
-                defaultValue: "Logo & Artwork",
+                "continueWatchingArtwork.logo",
+                defaultValue: "Logo",
                 comment: "Continue Watching card style option in Settings: artwork with the title laid over it as a logo."
             )
         case .thumbnail:
             return LocalizedStringResource(
-                "continueWatchingArtwork.thumbnailAndTitle",
-                defaultValue: "Thumbnail & Title",
-                comment: "Continue Watching card style option in Settings: plain artwork with the title written underneath."
+                "continueWatchingArtwork.thumbnail",
+                defaultValue: "Thumbnail",
+                comment: "Continue Watching artwork option in Settings: episode thumbnails or movie artwork."
             )
         case .portraitPosters:
-            return "Portrait posters"
+            return "Portrait"
         }
     }
 
     public var detail: LocalizedStringResource {
         switch self {
         case .logoAndArtwork:
-            return LocalizedStringResource(
-                "continueWatchingArtwork.logoAndArtwork.detail",
-                defaultValue: "Title and details on the artwork.",
-                comment: "One-line explanation of the Logo & Artwork option for Continue Watching cards."
-            )
+            return "Landscape artwork with a logo."
         case .thumbnail:
-            return LocalizedStringResource(
-                "continueWatchingArtwork.thumbnailAndTitle.detail",
-                defaultValue: "Title and details below the artwork.",
-                comment: "One-line explanation of the Thumbnail & Title option for Continue Watching cards."
-            )
+            return "Episode thumbnails and movie artwork."
         case .portraitPosters:
-            return "Movie and show posters with playback details on the artwork."
+            return "Movie and show posters."
         }
+    }
+
+    public func showsCaptions(
+        settings: CardCaptionSettings, in view: CardCaptionView = .home, isShowcase: Bool = false
+    ) -> Bool {
+        settings.showsLabels(
+            in: view, isShowcase: isShowcase, hasArtworkTitle: showsSeriesArtwork, isContinueWatching: true
+        )
     }
 }
 
@@ -71,6 +68,7 @@ public struct ContinueWatchingArtworkSwatch: View {
     private var layout: ContinueWatchingCardLayout { style.layout }
     private let cornerRadius: CGFloat
     private let playbackDetails: ContinueWatchingPlaybackDetails
+    private let showsCaptions: Bool
     @Environment(\.plozzReduceTransparency) private var reduceTransparency
     @Environment(\.plozzMetrics) private var metrics
 
@@ -78,22 +76,19 @@ public struct ContinueWatchingArtworkSwatch: View {
 
     public init(
         style: ContinueWatchingArtworkStyle, cornerRadius: CGFloat = 12,
-        playbackDetails: ContinueWatchingPlaybackDetails = .default
+        playbackDetails: ContinueWatchingPlaybackDetails = .default, showsCaptions: Bool
     ) {
         self.style = style
         self.cornerRadius = cornerRadius
         self.playbackDetails = playbackDetails
+        self.showsCaptions = showsCaptions
     }
 
     public var body: some View {
         GeometryReader { geo in
             let width = geo.size.width
             let height = geo.size.height
-            // Lay the caption out FIRST and give the card what's left, so the two
-            // never overflow the slot. Both options reserve the caption strip even
-            // though only one draws into it — otherwise the thumbnail card renders
-            // smaller and the pair reads as a scale difference rather than a
-            // content one.
+            // Reserve caption space even when hidden so toggling labels cannot resize the artwork.
             let barHeight = max(3, height * 0.03)
             let captionHeight = barHeight * 2 + height * 0.025
             let gap = height * 0.09
@@ -101,10 +96,6 @@ public struct ContinueWatchingArtworkSwatch: View {
             // slot's edge.
             let bottomInset = height * 0.04
             let available = height - captionHeight - gap - bottomInset
-            // The two options are now different SHAPES — the logo card is taller,
-            // because it reserves a band under its picture for the chrome. Size
-            // both from one shared width (so the pair still reads as one scale,
-            // not two zoom levels) and from what the TALLER of them can fit.
             let cardWidth = min(
                 width * 0.94,
                 available * (layout == .portrait ? playbackDetails.cardAspectRatio : ContinueWatchingCardShape.aspectRatio)
@@ -113,7 +104,7 @@ public struct ContinueWatchingArtworkSwatch: View {
             VStack(spacing: gap) {
                 card(width: cardWidth, height: cardHeight)
                 caption(width: cardWidth, barHeight: barHeight, spacing: height * 0.025)
-                    .opacity(style == .thumbnail ? 1 : 0)
+                    .opacity(showsCaptions ? 1 : 0)
             }
             .frame(width: width, height: height, alignment: .center)
         }
@@ -260,6 +251,7 @@ public struct ContinueWatchingArtworkSwatch: View {
     /// and finishes lighter, matching the real card.
     private func chip(width: CGFloat, height: CGFloat) -> some View {
         let isExtended = style.showsSeriesArtwork
+        let barHeight = max(1, metrics.resumeChipBarHeight * width / metrics.posterWidth)
         let scrimHeight = isExtended
             ? height * (1 - ContinueWatchingCardShape.scrimStart)
             : height * 0.40
@@ -278,11 +270,11 @@ public struct ContinueWatchingArtworkSwatch: View {
                         .frame(width: width * 0.056, height: width * 0.067)
                     Capsule()
                         .fill(.white.opacity(0.45))
-                        .frame(width: width * 0.19, height: width * 0.025)
+                        .frame(width: width * 0.19, height: barHeight)
                         .overlay(alignment: .leading) {
                             Capsule()
                                 .fill(.white)
-                                .frame(width: width * 0.19 * 0.42, height: width * 0.025)
+                                .frame(width: width * 0.19 * 0.42, height: barHeight)
                         }
                     Capsule()
                         .fill(.white.opacity(0.9))
@@ -294,9 +286,7 @@ public struct ContinueWatchingArtworkSwatch: View {
         }
     }
 
-    /// The two caption lines under the card — the title, then its details — which
-    /// only the thumbnail option has. With the logo on the artwork there is
-    /// nothing left for a caption to say.
+    /// Optional title and detail lines, independent of artwork and playback chrome.
     private func caption(width: CGFloat, barHeight: CGFloat, spacing: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: spacing) {
             Capsule().fill(Color.primary.opacity(0.34))

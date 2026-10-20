@@ -76,8 +76,8 @@ public struct PlozzMetrics: Equatable, Sendable {
     /// its slot, so cards separate and the focus outline has room (scaled).
     public let borderlessCardSideMargin: CGFloat
 
-    /// Density-scaled artwork progress, with separate touch and TV visibility floors.
-    public let progressBarHeight: CGFloat
+    /// Full-width card progress matches the Detailed resume bar, including density and Dynamic Type.
+    public var progressBarHeight: CGFloat { resumeChipBarHeight }
 
     /// Leg length of the "unwatched" corner flag, density-scaled and floored at
     /// `PlozzTheme.Metrics.unwatchedFlagMinSize` so it grows with the display-size
@@ -423,12 +423,6 @@ public struct PlozzMetrics: Equatable, Sendable {
 
         self.focusCaptionPush = step(PlozzTheme.Metrics.focusCaptionPush)
         self.borderlessCardSideMargin = step(PlozzTheme.Metrics.borderlessCardSideMargin)
-        self.progressBarHeight = max(
-            step(PlozzTheme.Metrics.progressBarHeight),
-            geometryScale < 1
-                ? PlozzTheme.Metrics.touchProgressBarMinHeight
-                : PlozzTheme.Metrics.progressBarMinHeight
-        )
         self.unwatchedFlagSize = max(
             step(PlozzTheme.Metrics.unwatchedFlagSize),
             PlozzTheme.Metrics.unwatchedFlagMinSize

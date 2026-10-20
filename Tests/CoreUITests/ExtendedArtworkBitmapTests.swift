@@ -7,6 +7,61 @@ import XCTest
 
 @MainActor
 final class ExtendedArtworkBitmapTests: XCTestCase {
+    func testContinueWatchingPreviewsToggleOnlyTheirCaptionPixels() throws {
+        for style in ContinueWatchingArtworkStyle.allCases {
+            for details in ContinueWatchingPlaybackDetails.allCases {
+                for scheme in [ColorScheme.light, .dark] {
+                    for size in [CGSize(width: 96, height: 112), CGSize(width: 240, height: 200)] {
+                        let images = try [false, true].map { captions in
+                            let renderer = ImageRenderer(content:
+                                ContinueWatchingArtworkSwatch(
+                                    style: style, playbackDetails: details, showsCaptions: captions
+                                )
+                                .frame(width: size.width, height: size.height)
+                                .environment(\.colorScheme, scheme)
+                                .background(scheme == .dark ? Color.black : .white)
+                            )
+                            renderer.scale = 1
+                            return try pixels(XCTUnwrap(renderer.uiImage))
+                        }
+                        let changed = stride(from: 0, to: images[0].count, by: 4).filter {
+                            images[0][$0..<($0 + 3)] != images[1][$0..<($0 + 3)]
+                        }
+                        XCTAssertGreaterThan(changed.count, 30, "\(style) / \(details) must show caption lines.")
+                        XCTAssertTrue(changed.allSatisfy { index in
+                            images.allSatisfy { image in
+                                abs(Int(image[index]) - Int(image[index + 1])) <= 1
+                                    && abs(Int(image[index]) - Int(image[index + 2])) <= 1
+                            }
+                        }, "Only neutral caption pixels may change; the colored artwork must stay in place.")
+                    }
+                }
+            }
+        }
+    }
+
+    func testSharedCardProgressRendersAtTheUnchangedDetailedHeight() throws {
+        let item = MediaItem(id: "progress", title: "Movie", kind: .movie, runtime: 3600, resumePosition: 1800)
+        for metrics in [PlozzMetrics.standard, .touch(density: .standard)] {
+            let renderer = ImageRenderer(content:
+                MediaCardPlaybackIndicators(
+                    item: item, hidesStatus: true, badgeInset: 0,
+                    progressHeight: metrics.progressBarHeight, progressBottomInset: 20
+                )
+                .environment(\.plozzMetrics, metrics)
+                .plozzChromeFocused(true)
+                .frame(width: 200, height: 100)
+                .background(.black)
+            )
+            renderer.scale = 1
+            let rgba = try pixels(XCTUnwrap(renderer.uiImage))
+            let brightRows = (0..<100).filter { row in
+                (0..<3).allSatisfy { rgba[(row * 200 + 50) * 4 + $0] > 150 }
+            }
+            XCTAssertEqual(brightRows.count, Int(metrics.resumeChipBarHeight))
+        }
+    }
+
     func testPortraitResumeChromeKeepsTheLandscapeBottomInset() throws {
         let item = MediaItem(id: "resume", title: "Movie", kind: .movie, runtime: 3600, resumePosition: 900)
         for metrics in [PlozzMetrics.standard, .touch(density: .standard)] {

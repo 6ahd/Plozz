@@ -108,8 +108,8 @@ struct HomeSkeletonView: View {
 /// live server data while the cached hero and stable rows are already visible.
 struct HomeSkeletonRowView: View {
     @Environment(\.plozzCardCaptionsHidden) private var captionsHidden
-    @Environment(\.plozzCardCaptionsHiddenWithArtworkTitle) private var artworkTitleCaptionsHidden
-    @Environment(\.plozzContinueWatchingPortraitCaptionsHidden) private var portraitCaptionsHidden
+    @Environment(\.plozzContinueWatchingCaptionsHidden) private var continueWatchingCaptionsHidden
+    @Environment(\.plozzContinueWatchingCaptionsHiddenWithArtworkTitle) private var continueWatchingArtworkCaptionsHidden
     let row: HomeRowLayout
     /// Matches the loaded card's series-artwork shape and Recommended caption default.
     var continueWatchingShowsSeriesArtwork: Bool = true
@@ -192,8 +192,10 @@ struct HomeSkeletonRowView: View {
     }
 
     private func showsCaption(for kind: HomeRowKind) -> Bool {
-        if kind == .continueWatching, continueWatchingLayout == .portrait { return !portraitCaptionsHidden }
-        return kind == .libraries || !(usesSeriesArtwork(kind) ? artworkTitleCaptionsHidden : captionsHidden)
+        if kind == .continueWatching {
+            return !(usesSeriesArtwork(kind) ? continueWatchingArtworkCaptionsHidden : continueWatchingCaptionsHidden)
+        }
+        return kind == .libraries || !captionsHidden
     }
 
     /// Matches the selected Continue Watching layout and each other row's fixed shape.

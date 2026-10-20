@@ -48,7 +48,7 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
                         width: width,
                         showsSeriesArtwork: presentation.showsSeriesArtwork,
                         showsResumeChip: true, artworkArea: .continueWatching,
-                        captions: .init(overrides: [.home: false, .continueWatchingPortrait: false]),
+                        captions: .init(overrides: [.home: false, .continueWatching: false]),
                         playbackDetails: details
                     ) { window in
                         try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
@@ -58,8 +58,11 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
                         XCTAssertEqual(text.contains { $0.contains("45m") }, details == .detailed,
                                        "\(presentation) / \(style) / \(details): \(text)")
                         if details == .progressOnly {
-                            XCTAssertGreaterThan(try artworkPixels(window).lightRun, 42,
+                            let pixels = try artworkPixels(window)
+                            XCTAssertGreaterThan(pixels.lightRun, 42,
                                                  "The shared white bar must replace the playback chip.")
+                            XCTAssertEqual(Double(pixels.barHeight), Double(PlozzMetrics.standard.resumeChipBarHeight),
+                                           accuracy: 1, "Full-width progress must match Detailed, allowing native focus scaling.")
                         }
                     }
                 }
@@ -208,41 +211,50 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         }
     }
 
-    func testPortraitCaptionOverrideControlsRenderedLabelsInBothParentViews() async throws {
+    func testCaptionOverrideControlsEveryContinueWatchingStyleInBothParentViews() async throws {
         let poster = try await cacheImage(.red, size: CGSize(width: 120, height: 180))
+        let backdrop = try await cacheImage(.red)
+        let logo = try await cacheImage(.blue, size: CGSize(width: 160, height: 50))
         let item = MediaItem(
-            id: UUID().uuidString, title: "Episode fixture", kind: .episode,
+            id: UUID().uuidString, title: "Caption marker", kind: .episode,
             parentTitle: "Caption marker", seasonNumber: 1, episodeNumber: 2,
-            runtime: 3600, resumePosition: 900, seriesPosterURL: poster
+            runtime: 3600, resumePosition: 900, posterURL: backdrop, seriesPosterURL: poster,
+            backdropURL: backdrop, logoURL: logo
         )
         let store = makeStore { _ in nil }
         #if os(tvOS)
-        let width: CGFloat = 300
         let metrics = PlozzMetrics.standard
         #else
-        let width: CGFloat = 132
         let metrics = PlozzMetrics.touch(density: .standard)
         #endif
         for parent in [CardCaptionView.home, .recommended] {
-            for choice in CardCaptionView.continueWatchingPortrait.customizationChoices {
+            for choice in CardCaptionView.continueWatching.customizationChoices {
                 var captions = CardCaptionSettings(overrides: [.home: true, .recommended: false])
-                captions.setOverride(choice, for: .continueWatchingPortrait)
+                captions.setOverride(choice, for: .continueWatching)
                 let presentations = ContinueWatchingPlaybackDetails.allCases.flatMap { details in
                     [CardStyle.borderless, .framed].map { ($0, details) }
                 }
                 for (style, details) in presentations {
-                    try await withCard(
-                        item, store: store, style: style, settings: .init(preference: .library),
-                        shape: .poster, width: width, metrics: metrics, captions: captions, captionView: parent,
-                        playbackDetails: details
-                    ) { window in
-                        try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
-                        let text = try recognizedText(
-                            window, attachmentName: "Portrait captions \(parent) \(choice) \(style) \(details)"
+                    for artwork in ContinueWatchingArtworkStyle.allCases {
+                        let width = metrics.cardSlotWidth(
+                            for: artwork.layout.cardStyle, cardStyle: style,
+                            showsSeriesArtwork: artwork.showsSeriesArtwork
                         )
-                        let visible = text.contains { $0.localizedCaseInsensitiveContains("Caption marker") }
-                        XCTAssertEqual(visible, choice == .automatic ? parent == .home : choice == .show,
-                                       "\(parent) / \(choice) / \(style): \(text)")
+                        try await withCard(
+                            item, store: store, style: style, settings: .init(preference: .library),
+                            shape: artwork.layout.cardStyle, width: width, metrics: metrics,
+                            showsSeriesArtwork: artwork.showsSeriesArtwork,
+                            showsResumeChip: true, artworkArea: .continueWatching,
+                            captions: captions, captionView: parent, playbackDetails: details
+                        ) { window in
+                            try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
+                            let text = try recognizedText(
+                                window, attachmentName: "Captions \(artwork) \(parent) \(choice) \(style) \(details)"
+                            )
+                            let visible = text.contains { $0.localizedCaseInsensitiveContains("Caption marker") }
+                            XCTAssertEqual(visible, choice == .automatic ? parent == .home : choice == .show,
+                                           "\(artwork) / \(parent) / \(choice) / \(style): \(text)")
+                        }
                     }
                 }
             }
@@ -661,7 +673,7 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         try artworkPixels(window).colors
     }
 
-    private func artworkPixels(_ window: UIWindow) throws -> (colors: [Int], lightRun: Int, centerRed: [UInt8]) {
+    private func artworkPixels(_ window: UIWindow) throws -> (colors: [Int], lightRun: Int, barHeight: Int, centerRed: [UInt8]) {
         window.layoutIfNeeded()
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -671,7 +683,7 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         return try artworkPixels(image)
     }
 
-    private func artworkPixels(_ image: UIImage) throws -> (colors: [Int], lightRun: Int, centerRed: [UInt8]) {
+    private func artworkPixels(_ image: UIImage) throws -> (colors: [Int], lightRun: Int, barHeight: Int, centerRed: [UInt8]) {
         let cg = try XCTUnwrap(image.cgImage)
         let context = try XCTUnwrap(CGContext(
             data: nil, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
@@ -683,11 +695,18 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         var counts = [0, 0, 0]
         var lightRun = 0
         var longestLightRun = 0
+        var longestRowRun = 0
+        var barHeight = 0
         for index in stride(from: 0, to: cg.width * cg.height * 4, by: 4) {
-            if index % (cg.width * 4) == 0 { lightRun = 0 }
+            if index % (cg.width * 4) == 0 {
+                if longestRowRun > 42 { barHeight += 1 }
+                lightRun = 0
+                longestRowRun = 0
+            }
             if (0..<3).allSatisfy({ bytes[index + $0] > 150 }) {
                 lightRun += 1
                 longestLightRun = max(longestLightRun, lightRun)
+                longestRowRun = max(longestRowRun, lightRun)
             } else {
                 lightRun = 0
             }
@@ -696,8 +715,9 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
                 counts[channel] += 1
             }
         }
+        if longestRowRun > 42 { barHeight += 1 }
         let centerRed = (0..<cg.height).map { bytes[($0 * cg.width + cg.width / 2) * 4] }
-        return (counts, longestLightRun, centerRed)
+        return (counts, longestLightRun, barHeight, centerRed)
     }
 
     private func waitUntil(_ context: String = "", _ condition: () throws -> Bool) async throws {

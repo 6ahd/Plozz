@@ -85,13 +85,21 @@ final class PlozzMetricsTests: XCTestCase {
         )
     }
 
-    func testMobileArtworkProgressIsSlimmerWithoutChangingTelevision() {
+    func testAllCardProgressBarsMatchDetailedAcrossDensityAndDynamicType() {
         for density in UIDensity.allCases {
-            XCTAssertEqual(PlozzMetrics.touch(density: density).progressBarHeight, 8)
-            XCTAssertEqual(
-                PlozzMetrics(density: density).progressBarHeight,
-                max((12 * CGFloat(density.scale)).rounded(), 9))
+            for type in DynamicTypeSize.allCases {
+                for metrics in [PlozzMetrics(density: density, dynamicTypeSize: type),
+                                .touch(density: density, dynamicTypeSize: type)] {
+                    XCTAssertEqual(metrics.progressBarHeight, metrics.resumeChipBarHeight)
+                    XCTAssertGreaterThanOrEqual(metrics.progressBarHeight, 3)
+                }
+            }
         }
+        #if os(tvOS)
+        XCTAssertEqual(PlozzMetrics.standard.progressBarHeight, 8)
+        #else
+        XCTAssertEqual(PlozzMetrics.touch(density: .standard).progressBarHeight, 6)
+        #endif
     }
 
     func testTouchCardsUseProportionateBadgesAndCaptionSpacing() {
@@ -198,36 +206,43 @@ final class PlozzMetricsTests: XCTestCase {
         XCTAssertTrue(target.plozzCardCaptionsHiddenWithArtworkTitle)
     }
 
-    func testPortraitCaptionEnvironmentInheritsParentAndSurvivesNativeHostingCopy() {
+    func testContinueWatchingCaptionEnvironmentInheritsParentAndSurvivesNativeHostingCopy() {
         var source = EnvironmentValues()
         source.plozzCardCaptionSettings.setOverride(.show, for: .home)
         source.plozzCardCaptionSettings.setOverride(.hide, for: .recommended)
         for parent in [CardCaptionView.home, .recommended] {
             source.plozzCardCaptionView = parent
-            source.plozzCardCaptionSettings.setOverride(.automatic, for: .continueWatchingPortrait)
-            XCTAssertEqual(source.plozzContinueWatchingPortraitCaptionsHidden, parent == .recommended)
-            source.plozzCardCaptionSettings.setOverride(.show, for: .continueWatchingPortrait)
+            source.plozzCardCaptionSettings.setOverride(.automatic, for: .continueWatching)
+            XCTAssertEqual(source.plozzContinueWatchingCaptionsHiddenWithArtworkTitle, parent == .recommended)
+            XCTAssertEqual(source.plozzContinueWatchingCaptionsHidden, parent == .recommended)
+            source.plozzCardCaptionSettings.setOverride(.show, for: .continueWatching)
             var hosted = EnvironmentValues()
             hosted.copyCardCaptionPresentation(from: source)
-            XCTAssertFalse(hosted.plozzContinueWatchingPortraitCaptionsHidden)
+            XCTAssertFalse(hosted.plozzContinueWatchingCaptionsHiddenWithArtworkTitle)
+            XCTAssertFalse(hosted.plozzContinueWatchingCaptionsHidden)
             XCTAssertEqual(hosted.plozzCardCaptionsHiddenWithArtworkTitle, parent == .recommended)
-            source.plozzCardCaptionSettings.setOverride(.hide, for: .continueWatchingPortrait)
+            source.plozzCardCaptionSettings.setOverride(.hide, for: .continueWatching)
             hosted.copyCardCaptionPresentation(from: source)
-            XCTAssertTrue(hosted.plozzContinueWatchingPortraitCaptionsHidden)
+            XCTAssertTrue(hosted.plozzContinueWatchingCaptionsHiddenWithArtworkTitle)
+            XCTAssertTrue(hosted.plozzContinueWatchingCaptionsHidden)
             XCTAssertEqual(hosted.plozzCardCaptionsHiddenWithArtworkTitle, parent == .recommended)
         }
+        source.plozzCardCaptionSettings = .default
+        source.plozzCardCaptionView = .home
+        XCTAssertFalse(source.plozzContinueWatchingCaptionsHidden)
+        XCTAssertTrue(source.plozzContinueWatchingCaptionsHiddenWithArtworkTitle)
     }
 
     func testPortraitPlaybackDetailsSurviveHostingWithoutChangingLabels() {
         var source = EnvironmentValues()
         XCTAssertEqual(source.plozzContinueWatchingPlaybackDetails, .detailed)
-        source.plozzCardCaptionSettings.setOverride(.show, for: .continueWatchingPortrait)
+        source.plozzCardCaptionSettings.setOverride(.show, for: .continueWatching)
         var hosted = EnvironmentValues()
         for details in ContinueWatchingPlaybackDetails.allCases {
             source.plozzContinueWatchingPlaybackDetails = details
             hosted.copyHostedPresentation(from: source)
             XCTAssertEqual(hosted.plozzContinueWatchingPlaybackDetails, details)
-            XCTAssertFalse(hosted.plozzContinueWatchingPortraitCaptionsHidden)
+            XCTAssertFalse(hosted.plozzContinueWatchingCaptionsHiddenWithArtworkTitle)
         }
     }
 

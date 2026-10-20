@@ -32,8 +32,8 @@ watch history and planning-list behavior are documented in
   section hides it without erasing its configuration or disabling its libraries.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
-  Continue Watching offers three native preview choices: Logo & Artwork,
-  Thumbnail & Title, and Portrait posters. They share equal card sizes on TV and
+  Continue Watching offers three native preview choices: Logo,
+  Thumbnail, and Portrait. They share equal card sizes on TV and
   wide layouts, becoming preview-led rows on compact mobile layouts. The native
   Playback details control applies to all three choices: Detailed retains the
   play/progress/text overlay; Progress only uses the existing shared white bar
@@ -42,10 +42,12 @@ watch history and planning-list behavior are documented in
   reflection in Detailed or standard-height posters in Progress only.
   Portrait cannot combine with thumbnails and preserves the saved landscape artwork
   preference. The presentation is profile-scoped and also applies to library
-  Continue Watching rows. Portrait exposes a Labels control bound to the same
-  Continue Watching (portrait) override in Appearance -> Cards -> Labels by view:
-  Follow Appearance inherits Home rows or Recommended; On/Off overrides only
-  portrait Continue Watching. Caption presets/reset clear this override, and
+  Continue Watching rows. All three styles expose a Labels control bound to the same
+  Continue Watching override in Appearance -> Cards -> Labels by view:
+  Follow Appearance inherits Home rows or Recommended; On/Off controls the labels
+  below any Continue Watching artwork. Each preview shows or hides its caption
+  lines using the same choice. The previous portrait override is preserved.
+  Caption presets/reset clear this override, and
   switching artwork presentation preserves it. Playback details is independently
   profile-scoped, survives layout changes, and does not change the Labels override.
   Preset retains the confirmed Match server and Combined rows choices and shows

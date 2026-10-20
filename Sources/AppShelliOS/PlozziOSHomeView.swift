@@ -215,7 +215,7 @@ struct PlozziOSHomeView: View {
                     continueWatchingShowsSeriesArtwork: appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
                     continueWatchingShowsCaption: appModel.settings.cardStyle.captions.showsLabels(
                         in: .home, hasArtworkTitle: appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
-                        isContinueWatchingPortrait: appModel.settings.homeVisibility.continueWatchingLayout == .portrait
+                        isContinueWatching: true
                     )
                 )
             case .empty:
@@ -2327,8 +2327,7 @@ private struct PlozziOSHomeRowView: View {
                             in: .home,
                             hasArtworkTitle: row.kind == .continueWatching
                                 && appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork,
-                            isContinueWatchingPortrait: row.kind == .continueWatching
-                                && appModel.settings.homeVisibility.continueWatchingLayout == .portrait
+                            isContinueWatching: row.kind == .continueWatching
                         ),
                     showsSeriesArtwork: row.kind == .continueWatching
                         && appModel.settings.homeVisibility.continueWatchingUsesSeriesArtwork

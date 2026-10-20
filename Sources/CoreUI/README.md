@@ -6,8 +6,8 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
-Continue Watching's profile-scoped Playback details choice applies to Logo &
-Artwork, Thumbnail & Title, and Portrait posters, on Home and library rows.
+Continue Watching's profile-scoped Playback details choice applies to Logo,
+Thumbnail, and Portrait, on Home and library rows.
 Detailed keeps the existing play/progress/text overlay; Progress only uses the
 shared white progress bar without that overlay. Other cards are unaffected.
 The previously stored portrait-only preference is retained.
@@ -33,10 +33,17 @@ Native TV bitmaps, SwiftUI cards, previews, and loading placeholders share this
 selected shape. Detailed tightens only the shared chip's horizontal spacing,
 preserving episode/time details and the progress/download elements in its narrower
 slot. Its vertical inset from the bottom remains identical to landscape Continue Watching.
-Portrait labels use the existing caption settings' override,
+All three artwork styles share the existing Continue Watching caption override,
 inheriting the row's Home or Recommended choice unless explicitly shown/hidden.
+Its original portrait preference is retained. Settings previews resolve this
+same choice for each style, including Showcase inheritance, and keep artwork
+geometry stable when their caption lines appear or disappear.
 `plozzContinueWatchingPlaybackDetails` carries the active profile's choice through
 both app roots and native hosting boundaries without changing non-Continue-Watching cards.
+
+Full-width card progress bars use `PlozzMetrics.resumeChipBarHeight`, matching
+Detailed without changing it: 8 pt on TV and 6 pt on mobile at standard settings.
+Density, Dynamic Type, and the minimum height follow the same shared metric.
 
 - **Version choices** — `MediaVersionChoiceButton` is the shared native rounded
   card for pre-play, detail, and in-player pickers. It keeps edition/size and

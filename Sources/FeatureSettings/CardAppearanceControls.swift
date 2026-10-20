@@ -179,11 +179,11 @@ struct CardCaptionCustomizationContent: View {
         ) {
             #if os(tvOS)
             CardCaptionViewChoices(view: .home, settings: $settings)
-            CardCaptionViewChoices(view: .continueWatchingPortrait, settings: $settings)
+            CardCaptionViewChoices(view: .continueWatching, settings: $settings)
             #else
             Section("Home") {
                 CardCaptionViewChoices(view: .home, settings: $settings)
-                CardCaptionViewChoices(view: .continueWatchingPortrait, settings: $settings)
+                CardCaptionViewChoices(view: .continueWatching, settings: $settings)
             }
             #endif
             Section {
@@ -198,7 +198,7 @@ struct CardCaptionCustomizationContent: View {
             }
             Section {
                 ForEach(CardCaptionView.customizableCases.filter {
-                    $0 != .home && $0 != .continueWatchingPortrait && !$0.isLibraryView
+                    $0 != .home && $0 != .continueWatching && !$0.isLibraryView
                 }, id: \.rawValue) { view in
                     CardCaptionViewChoices(view: view, settings: $settings)
                 }
@@ -233,7 +233,7 @@ struct CardCaptionViewChoices: View {
             )
         ) {
             ForEach(view.customizationChoices) { choice in
-                Text(view == .continueWatchingPortrait && choice == .automatic
+                Text(view == .continueWatching && choice == .automatic
                     ? LocalizedStringResource("Follow Appearance") : choice.displayName).tag(choice)
             }
         }
@@ -250,33 +250,36 @@ struct CardCaptionViewChoices: View {
 
 extension CardCaptionSettings {
     func customizationHelp(in view: CardCaptionView, style: CardStyle) -> ViewCustomizationHelp {
+        let isContinueWatching = view == .continueWatching
+        let parent = isContinueWatching ? CardCaptionView.home : view
+        let showsCaptions = showsLabels(in: parent, isContinueWatching: isContinueWatching)
+        let showsArtworkCaptions = showsLabels(
+            in: parent, hasArtworkTitle: true, isContinueWatching: isContinueWatching
+        )
         return ViewCustomizationHelp(
             detail: customizationDetail(in: view),
             illustration: .captions(
-                style: style, showsCaptions: showsLabels(
-                    in: view == .continueWatchingPortrait ? .home : view,
-                    hasArtworkTitle: view == .continueWatchingPortrait,
-                    isContinueWatchingPortrait: view == .continueWatchingPortrait
-                ),
+                style: style, showsCaptions: showsCaptions,
                 showsMixedCaptions: customization(in: view) == .mixed
+                    || (isContinueWatching && showsCaptions != showsArtworkCaptions)
             )
         )
     }
 
     func customizationValue(in view: CardCaptionView) -> LocalizedStringResource {
-        if view == .continueWatchingPortrait, customization(in: view) == .automatic {
+        if view == .continueWatching, customization(in: view) == .automatic {
             return "Follow Appearance"
         }
         return customization(in: view).displayName
     }
 
     func customizationDetail(in view: CardCaptionView) -> LocalizedStringResource {
-        if view == .continueWatchingPortrait {
+        if view == .continueWatching {
             switch customization(in: view) {
             case .automatic: return "Uses Home rows or Recommended, depending on where the row appears."
-            case .show: return "Labels are visible below Continue Watching posters."
-            case .hide: return "Labels are hidden below Continue Watching posters."
-            case .mixed: preconditionFailure("Portrait Continue Watching does not support mixed labels.")
+            case .show: return "Labels are visible below Continue Watching artwork."
+            case .hide: return "Labels are hidden below Continue Watching artwork."
+            case .mixed: preconditionFailure("Continue Watching does not support mixed label overrides.")
             }
         }
         if customization(in: view) == .mixed {

@@ -4,14 +4,15 @@ import os
 public enum CardCaptionView: String, CaseIterable, Codable, Sendable {
     case home, recommended, browse, collections, playlists, search, watchlist
     case related, episodes, extras, filmography
-    case continueWatchingPortrait
+    // Retain the override originally introduced for portrait cards.
+    case continueWatching = "continueWatchingPortrait"
 
     public static var customizableCases: [Self] {
         allCases
     }
 
     public var customizationChoices: [CardCaptionOverride] {
-        if self == .continueWatchingPortrait { return [.automatic, .show, .hide] }
+        if self == .continueWatching { return [.automatic, .show, .hide] }
         return self == .home || self == .recommended ? [.show, .hide, .mixed] : [.show, .hide]
     }
 
@@ -28,7 +29,7 @@ public enum CardCaptionView: String, CaseIterable, Codable, Sendable {
         case .episodes: "Episode browser"
         case .extras: "Extras"
         case .filmography: "Filmography"
-        case .continueWatchingPortrait: "Continue Watching (portrait)"
+        case .continueWatching: "Continue Watching"
         }
     }
 }
@@ -91,7 +92,7 @@ public struct CardCaptionSettings: Codable, Equatable, Sendable {
     }
 
     public func customization(in view: CardCaptionView) -> CardCaptionOverride {
-        if view == .continueWatchingPortrait { return override(for: view) }
+        if view == .continueWatching { return override(for: view) }
         if view.customizationChoices.contains(.mixed),
            mixedOverrides.contains(view) || (preference == .recommended && overrides[view] == nil) {
             return .mixed
@@ -125,9 +126,9 @@ public struct CardCaptionSettings: Codable, Equatable, Sendable {
 
     public func showsLabels(
         in view: CardCaptionView, isShowcase: Bool = false, hasArtworkTitle: Bool = false,
-        isContinueWatchingPortrait: Bool = false
+        isContinueWatching: Bool = false
     ) -> Bool {
-        if isContinueWatchingPortrait, let override = overrides[.continueWatchingPortrait] {
+        if isContinueWatching, let override = overrides[.continueWatching] {
             return override
         }
         if mixedOverrides.contains(view) { return !(isShowcase || hasArtworkTitle) }
