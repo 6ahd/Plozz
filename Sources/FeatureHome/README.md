@@ -165,12 +165,18 @@ and omitted from the current picker rather than blocking a confirmed primary.
   configured. Completion belongs to the current curation inputs and profile;
   cancelled work cannot settle a replacement request. This never changes saved
   preferences or treats a failed fetch as authority to erase cached candidates.
-  On iPhone and iPad, tapping the Home hero artwork opens its item/provider
-  detail page instead of a separate More Info button. The artwork link sits behind
-  the foreground actions, so Play, Watchlist and requests stay independent. Horizontal paging
-  and vertical scrolling do not open details; in-flight page transitions disable
-  the artwork link. VoiceOver exposes the artwork as More Info with the current
-  title. The tvOS More Info button is unchanged.
+  On iPhone and iPad, tapping the Home hero artwork, logo or metadata opens its
+  item/provider detail page instead of a separate More Info button. The artwork
+  link sits behind the non-interactive metadata and foreground actions, so Play,
+  Watchlist and requests stay independent. Horizontal paging and vertical scrolling
+  do not open details; in-flight page transitions disable the artwork link.
+  VoiceOver exposes the artwork as More Info with the current title.
+  The tvOS More Info button is unchanged.
+  Mobile Home and detail hero actions share native Liquid Glass buttons on iOS 26+.
+  Primary actions use the prominent style with their existing monochrome theme
+  tint and contrasting label; secondary actions use untinted glass. The existing
+  solid styles remain on older systems and when transparency/panel glass is reduced.
+  Native controls own the glass and press treatment; tvOS and multiview are unchanged.
 - **Collections hero source** — an opt-in source mixes individual movies and
   shows from multiple account-qualified collections across libraries, not collection cards. TV and
   mobile use the same `MediaProvider.collectionMembers` loader and existing

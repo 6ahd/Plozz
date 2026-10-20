@@ -72,6 +72,41 @@ final class HomeHeroInteractionTests: XCTestCase {
         XCTAssertEqual(artwork.value as? String, "Hero Movie", "Vertical scrolling must not page the carousel.")
     }
 
+    func testTitleAndDescriptionOpenDetailsWithoutStartingPlayback() {
+        let artwork = app.buttons["home-hero-artwork-detail"]
+        XCTAssertTrue(artwork.waitForExistence(timeout: 15), app.debugDescription)
+        for label in ["Hero Movie", "A movie description in the Home hero."] {
+            let text = app.staticTexts[label].firstMatch
+            XCTAssertTrue(text.waitForExistence(timeout: 10), app.debugDescription)
+            capture("home-hero-glass")
+            text.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            assertDetail("Details for movie from jellyfin")
+            capture("detail-hero-glass")
+            app.navigationBars.buttons.firstMatch.tap()
+            XCTAssertTrue(artwork.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        }
+    }
+
+    func testLoadedLogoOpensDetails() {
+        app.terminate()
+        app.launchArguments += ["--hero-logo", "--hero-light"]
+        app.launch()
+        let artwork = app.buttons["home-hero-artwork-detail"]
+        XCTAssertTrue(artwork.waitForExistence(timeout: 15), app.debugDescription)
+        let logo = app.images["Hero Movie"].firstMatch
+        XCTAssertTrue(logo.waitForExistence(timeout: 10), app.debugDescription)
+        capture("home-hero-loaded-logo")
+        logo.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        assertDetail("Details for movie from jellyfin")
+    }
+
+    private func capture(_ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     private func assertDetail(_ text: String) {
         let detail = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
         XCTAssertTrue(detail.waitForExistence(timeout: 15), app.debugDescription)

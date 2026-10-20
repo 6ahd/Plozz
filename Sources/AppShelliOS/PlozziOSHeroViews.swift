@@ -1769,6 +1769,9 @@ struct PlozziOSHomeHeroForeground: View {
                 scheduleLine: scheduleLine,
                 logoFallback: PlozziOSHeroMetadata.tmdbLogoFallback(for: item)
             )
+            // The artwork link underneath owns navigation for the whole hero,
+            // including its logo and metadata, but not the action row.
+            .allowsHitTesting(false)
 
             // Keep the actions on a single row: try the full Play pill first, then
             // shrink its resume trailing (drop "• 58m", then hide the text, keeping
@@ -2513,7 +2516,62 @@ struct PlozziOSDetailHeroForeground: View {
 
 }
 
-private typealias PlozziOSHeroActionButtonStyle = TouchHeroActionButtonStyle
+struct PlozziOSHeroActionButtonStyle: PrimitiveButtonStyle {
+    let kind: TouchHeroActionButtonStyle.Kind
+    var circular = false
+    var minimumWidth: CGFloat?
+    @Environment(\.themePalette) private var palette
+    @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
+    @Environment(\.plozzReduceTransparency) private var reduceTransparency
+
+    func makeBody(configuration: Configuration) -> some View {
+        if #available(iOS 26.0, *), !reducePanelGlass, !reduceTransparency {
+            if circular {
+                nativeButton(configuration)
+                    .buttonBorderShape(.circle)
+                    .buttonSizing(.flexible)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .frame(width: 48, height: 48)
+            } else {
+                nativeButton(configuration)
+                    .buttonBorderShape(.roundedRectangle(radius: 24))
+                    .buttonSizing(minimumWidth == nil ? .fitted : .flexible)
+                    .frame(minWidth: minimumWidth, minHeight: 48)
+                    .fixedSize(horizontal: minimumWidth != nil, vertical: true)
+            }
+        } else {
+            Button(role: configuration.role, action: configuration.trigger) {
+                configuration.label
+            }
+            .buttonStyle(TouchHeroActionButtonStyle(
+                kind: kind, circular: circular, minimumWidth: minimumWidth
+            ))
+        }
+    }
+
+    @available(iOS 26.0, *)
+    @ViewBuilder
+    private func nativeButton(_ configuration: Configuration) -> some View {
+        let button = Button(role: configuration.role, action: configuration.trigger) {
+            configuration.label
+                .font(.headline.weight(.semibold))
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(kind == .primary ? palette.backgroundBase : palette.primaryText)
+                // Keep the native icon slot stable even for short glyphs such as ellipsis.
+                .frame(width: circular ? 18 : nil, height: circular ? 18 : nil)
+        }
+        .controlSize(.large)
+
+        if kind == .primary {
+            button
+                .buttonStyle(.glassProminent)
+                .tint(palette.primaryText)
+        } else {
+            button.buttonStyle(.glass)
+        }
+    }
+}
 
 private struct PlozziOSHeroMetadata: View {
     enum Mode {

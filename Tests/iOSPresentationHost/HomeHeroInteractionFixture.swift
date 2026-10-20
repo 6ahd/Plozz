@@ -4,9 +4,13 @@ import FeatureAuth
 import FeatureHomeCore
 import Observation
 import SwiftUI
+import UIKit
 @testable import AppShelliOS
 
 struct HomeHeroInteractionFixture: View {
+    private var colorScheme: ColorScheme {
+        ProcessInfo.processInfo.arguments.contains("--hero-light") ? .light : .dark
+    }
     @State private var appModel: PlozziOSAppModel
     @State private var trailer = HeroTrailerController()
     @State private var sidebar = PlozziOSSidebarGeometryModel()
@@ -16,6 +20,26 @@ struct HomeHeroInteractionFixture: View {
 
     init() {
         SyncSetupFeatureFlag().isEnabled = false
+        if ProcessInfo.processInfo.arguments.contains("--hero-logo") {
+            let image = UIGraphicsImageRenderer(size: CGSize(width: 560, height: 100)).image { _ in
+                ("HERO MOVIE" as NSString).draw(
+                    at: CGPoint(x: 8, y: 8),
+                    withAttributes: [.font: UIFont.boldSystemFont(ofSize: 72), .foregroundColor: UIColor.systemTeal]
+                )
+            }
+            guard let data = image.pngData(),
+                  let cache = ArtworkSession.shared.configuration.urlCache,
+                  let response = HTTPURLResponse(
+                    url: HeroInteractionProvider.logoURL, statusCode: 200, httpVersion: nil,
+                    headerFields: ["Content-Type": "image/png", "Cache-Control": "max-age=86400"]
+                  ) else {
+                fatalError("Unable to prepare hero logo")
+            }
+            cache.storeCachedResponse(
+                CachedURLResponse(response: response, data: data),
+                for: URLRequest(url: HeroInteractionProvider.logoURL)
+            )
+        }
         let accounts = AccountStore(secureStore: InMemorySecureStore())
         let defaults = UserDefaults(suiteName: "HomeHeroInteractionFixture")!
         defaults.removePersistentDomain(forName: "HomeHeroInteractionFixture")
@@ -65,6 +89,9 @@ struct HomeHeroInteractionFixture: View {
         .environment(\.mediaItemActionHandler, actions)
         .environment(\.plozzMetrics, .touch(density: .standard))
         .environment(\.locale, Locale(identifier: "en_US"))
+        .environment(\.themePalette, colorScheme == .dark ? .dark : .light)
+        .environment(\.colorScheme, colorScheme)
+        .preferredColorScheme(colorScheme)
         .plozziOSTracksHeroContainerHeight()
     }
 }
@@ -85,6 +112,7 @@ private final class HeroInteractionActions: MediaItemActionHandling {
 
 private struct HeroInteractionProvider: MediaProvider {
     let kind: ProviderKind
+    static let logoURL = URL(string: "https://hero.invalid/logo.png")!
 
     var account: Account {
         Account(
@@ -100,9 +128,14 @@ private struct HeroInteractionProvider: MediaProvider {
 
     static var slides: [MediaItem] {
         [
-            MediaItem(id: "movie", title: "Hero Movie", kind: .movie).taggingSource(ProviderKind.jellyfin.rawValue),
+            MediaItem(
+                id: "movie", title: "Hero Movie", kind: .movie,
+                overview: "A movie description in the Home hero.",
+                logoURL: ProcessInfo.processInfo.arguments.contains("--hero-logo") ? logoURL : nil
+            ).taggingSource(ProviderKind.jellyfin.rawValue),
             MediaItem(
                 id: "episode", title: "Hero Episode", kind: .episode,
+                overview: "An episode description in the Home hero.",
                 parentTitle: "Hero Series", seasonNumber: 1, episodeNumber: 2, seriesID: "series"
             ).taggingSource(ProviderKind.emby.rawValue)
         ]

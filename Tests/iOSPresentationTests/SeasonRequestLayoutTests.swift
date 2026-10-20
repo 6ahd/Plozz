@@ -100,8 +100,11 @@ final class SeasonRequestLayoutTests: XCTestCase {
         let button = PlozziOSHeroRequestButton(item: item, request: request)
             .environment(\.dynamicTypeSize, .large)
         let primary = size(button, width: 2_000)
-        XCTAssertEqual(primary.height, 48, accuracy: 0.5,
-                       "The complete request status must remain a normal single-line button, not a subtitle card.")
+        let singleLine = size(Button("Play", action: {})
+            .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary)), width: 2_000)
+        XCTAssertEqual(primary.height, singleLine.height, accuracy: 0.5,
+                       "The complete request status must remain a native single-line button, not a subtitle card.")
+        XCTAssertLessThan(primary.width, 500, "Request buttons must report their readable width, not fill the proposal.")
         let overflowSpacingAndWidth: CGFloat = 12 + 48
         for width in [primary.width + overflowSpacingAndWidth - 2,
                       primary.width + overflowSpacingAndWidth + 2, 500, 720] {
