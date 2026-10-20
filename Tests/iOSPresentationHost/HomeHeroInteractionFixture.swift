@@ -17,6 +17,11 @@ struct HomeHeroInteractionFixture: View {
     @State private var pull = PlozziOSHomeHeroPullModel()
     @State private var actions = HeroInteractionActions()
     @State private var playCount = 0
+    @State private var presentsSeasons = false
+    @State private var pinnedIDs = ""
+    private var testsAutoAdvance: Bool {
+        ProcessInfo.processInfo.arguments.contains("--hero-auto-advance")
+    }
 
     init() {
         SyncSetupFeatureFlag().isEnabled = false
@@ -64,14 +69,32 @@ struct HomeHeroInteractionFixture: View {
             PlozziOSHomeScrollView(heroActive: true) {
                 PlozziOSHomeHeroCarousel(
                     items: HeroInteractionProvider.slides,
-                    autoAdvance: false,
-                    autoAdvanceSeconds: 30,
+                    autoAdvance: testsAutoAdvance,
+                    autoAdvanceSeconds: 3,
                     onPlay: { _ in playCount += 1 },
+                    onPinnedItemsChanged: { pinnedIDs = $0.sorted().joined(separator: ",") },
+                    isFrontmost: !presentsSeasons,
                     pullModel: pull
                 )
             } rows: {
                 Text("Below the hero").accessibilityIdentifier("hero-following-row")
                 Color.clear.frame(height: 1_200)
+            }
+            .overlay(alignment: .topTrailing) {
+                if testsAutoAdvance {
+                    Button("Open Seasons") { presentsSeasons = true }
+                }
+            }
+            .plozzSheet(isPresented: $presentsSeasons) {
+                PlozziOSSeasonRequestSheet(
+                    series: MediaItem(id: "series", title: "Fixture Series", kind: .series),
+                    availability: HeroRequestControlsFixture.availableSeasons,
+                    isRequesting: false, isRefreshing: false, refreshFailed: false, actingName: nil,
+                    onRefresh: {}, onRequest: { _ in }
+                )
+                .overlay(alignment: .bottom) {
+                    Text(verbatim: pinnedIDs).accessibilityIdentifier("sheet-hero-selection")
+                }
             }
             .navigationTitle("Home fixture")
             .navigationBarTitleDisplayMode(.inline)

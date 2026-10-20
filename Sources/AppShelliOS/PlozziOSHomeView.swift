@@ -502,6 +502,10 @@ struct PlozziOSHomeView: View {
                             ]
                             : nil
                     },
+                    seasonRefreshFailed: {
+                        heroSeasonRequestContext == appModel.plozziOSSeasonRequestContextID
+                            && heroSeasonLookupFailures.contains(heroSeasonRequestKey(for: $0))
+                    },
                     onRefreshSeasonRequests: {
                         await refreshHeroSeasonAvailability(for: $0)
                     },
@@ -1277,6 +1281,7 @@ struct PlozziOSHomeHeroCarousel: View {
     var onRequest: ((MediaItem) -> Void)?
     var onOpenSeasonRequests: ((MediaItem) -> Void)?
     var seasonRequestState: (MediaItem) -> SeasonRequestState? = { _ in nil }
+    var seasonRefreshFailed: (MediaItem) -> Bool = { _ in false }
     var onRefreshSeasonRequests: ((MediaItem) async -> Bool)?
     /// Reports the slides on screen, so a background curation can fold new media
     /// in without displacing what the viewer is looking at (see `HeroLiveMerge`).
@@ -1432,7 +1437,7 @@ struct PlozziOSHomeHeroCarousel: View {
             .contentShape(Rectangle())
             .gesture(
                 PlozziOSHorizontalHeroDragGesture(
-                    isEnabled: !transitionInProgress,
+                    isEnabled: isActive && !transitionInProgress,
                     onChanged: { translation in
                         dragOffset = translation.width
                     },
@@ -1485,7 +1490,7 @@ struct PlozziOSHomeHeroCarousel: View {
                     // selectedItemID which snaps at the end). Falls back to the
                     // selected id when idle.
                     selectedItemID: transitionTargetID ?? selectedItemID,
-                    autoAdvance: autoAdvance,
+                    autoAdvance: autoAdvance && isActive,
                     autoAdvanceSeconds: autoAdvanceSeconds,
                     dwellStart: dwellStart,
                     // The dwell counts only once it belongs to the slide on
@@ -1515,11 +1520,11 @@ struct PlozziOSHomeHeroCarousel: View {
         .task(
             id: PlozziOSHeroTimerID(
                 itemIDs: items.map(\.id),
-                autoAdvance: autoAdvance,
+                autoAdvance: autoAdvance && isActive,
                 seconds: autoAdvanceSeconds
             )
         ) {
-            guard autoAdvance, items.count > 1 else { return }
+            guard autoAdvance, isActive, items.count > 1 else { return }
             var countdownItemID = selectedItemID
             while !Task.isCancelled {
                 do {
@@ -1527,6 +1532,7 @@ struct PlozziOSHomeHeroCarousel: View {
                 } catch {
                     return
                 }
+                guard !Task.isCancelled else { return }
                 if countdownItemID != selectedItemID {
                     countdownItemID = selectedItemID
                     dwellTrailerSeconds = 0
@@ -1544,6 +1550,13 @@ struct PlozziOSHomeHeroCarousel: View {
                     dwellTrailerSeconds = 0
                 }
             }
+        }
+        .onChange(of: isActive) { _, active in
+            if active {
+                dwellStart = .now
+                dwellTrailerSeconds = 0
+            }
+            installTrailerEndHandler()
         }
         .onChange(of: selectedItemID, initial: true) {
             dwellStart = .now
@@ -1616,6 +1629,8 @@ struct PlozziOSHomeHeroCarousel: View {
 
     @Environment(PlozziOSAppModel.self) private var appModel
 
+    private var isActive: Bool { isFrontmost && scenePhase == .active }
+
     private var heroSeasonRefreshKey: String {
         let hasActiveRequests = currentItem.flatMap {
             seasonRequestState($0)?.availability
@@ -1646,20 +1661,13 @@ struct PlozziOSHomeHeroCarousel: View {
               let onRefreshSeasonRequests else {
             return
         }
-        repeat {
-            let refreshed = await onRefreshSeasonRequests(item)
-            guard refreshed,
-                  seasonRequestState(item)?.availability?.seasons
-                    .contains(where: \.isInFlight) == true,
-                  !Task.isCancelled else {
-                return
-            }
-            do {
-                try await Task.sleep(for: .seconds(20))
-            } catch {
-                return
-            }
-        } while !Task.isCancelled
+        await plozziOSPollHeroSeasonRequests {
+            // A newer sheet/manual refresh may supersede this lookup without a server failure.
+            _ = await onRefreshSeasonRequests(item)
+        } shouldContinue: {
+            !seasonRefreshFailed(item)
+                && seasonRequestState(item)?.availability?.seasons.contains(where: \.isInFlight) == true
+        }
     }
 
     private var currentItem: MediaItem? {
@@ -1829,7 +1837,7 @@ struct PlozziOSHomeHeroCarousel: View {
     private var endHandlerOwnerID: String { "ios-home-carousel" }
 
     private func installTrailerEndHandler() {
-        guard autoAdvance, items.count > 1 else {
+        guard autoAdvance, isActive, items.count > 1 else {
             trailerController.clearEndHandler(ownerID: endHandlerOwnerID)
             return
         }
@@ -1874,7 +1882,7 @@ struct PlozziOSHomeHeroCarousel: View {
         forward: Bool,
         releaseVelocity: CGFloat? = nil
     ) {
-        guard !transitionInProgress,
+        guard isActive, !transitionInProgress,
               let target = adjacentItem(forward: forward) else {
             return
         }
@@ -2199,6 +2207,23 @@ private struct PlozziOSHeroTimerID: Equatable {
     let itemIDs: [String]
     let autoAdvance: Bool
     let seconds: Int
+}
+
+@MainActor
+func plozziOSPollHeroSeasonRequests(
+    interval: Duration = .seconds(20),
+    refresh: () async -> Void,
+    shouldContinue: () -> Bool
+) async {
+    while !Task.isCancelled {
+        await refresh()
+        guard !Task.isCancelled, shouldContinue() else { return }
+        do {
+            try await Task.sleep(for: interval)
+        } catch {
+            return
+        }
+    }
 }
 
 private struct PlozziOSFeaturedRow: View {

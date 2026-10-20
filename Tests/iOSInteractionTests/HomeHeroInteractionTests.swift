@@ -100,6 +100,37 @@ final class HomeHeroInteractionTests: XCTestCase {
         assertDetail("Details for movie from jellyfin")
     }
 
+    func testSeasonsSheetPausesAutoAdvanceAndResumesWithAFreshDwell() {
+        app.terminate()
+        app.launchArguments += ["--hero-auto-advance"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Open Seasons"].waitForExistence(timeout: 15))
+        app.buttons["Open Seasons"].tap()
+        let selection = app.staticTexts["sheet-hero-selection"]
+        XCTAssertTrue(selection.waitForExistence(timeout: 5))
+        let current = selection.label
+        XCTAssertFalse(current.isEmpty)
+        XCTAssertFalse(current.contains(","), "Open the sheet before a transition begins.")
+        let hiddenAdvance = expectation(
+            for: NSPredicate(format: "label != %@", current), evaluatedWith: selection
+        )
+        hiddenAdvance.isInverted = true
+        wait(for: [hiddenAdvance], timeout: 5)
+        app.buttons["Close"].tap()
+        let artwork = app.buttons["home-hero-artwork-detail"]
+        XCTAssertTrue(artwork.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        let title = artwork.value as? String ?? ""
+        let immediateAdvance = expectation(
+            for: NSPredicate(format: "value != %@", title), evaluatedWith: artwork
+        )
+        immediateAdvance.isInverted = true
+        wait(for: [immediateAdvance], timeout: 1)
+        let resumedAdvance = expectation(
+            for: NSPredicate(format: "value != %@", title), evaluatedWith: artwork
+        )
+        wait(for: [resumedAdvance], timeout: 6)
+    }
+
     private func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

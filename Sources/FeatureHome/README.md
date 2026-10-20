@@ -184,6 +184,9 @@ and omitted from the current picker rather than blocking a confirmed primary.
   Home pauses hero navigation/auto-advance while the sheet is open, dismisses it
   when the request profile/server changes, and presents confirmations/errors in
   the sheet without bypassing the existing request-context checks.
+  Closing the sheet starts a fresh carousel dwell interval. Status polling
+  continues for the selected series while the sheet is open; a lookup superseded
+  by a sheet/manual refresh is not treated as a server failure.
 - **Collections hero source** — an opt-in source mixes individual movies and
   shows from multiple account-qualified collections across libraries, not collection cards. TV and
   mobile use the same `MediaProvider.collectionMembers` loader and existing

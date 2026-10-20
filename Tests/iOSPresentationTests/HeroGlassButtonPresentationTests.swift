@@ -8,6 +8,47 @@ import XCTest
 
 @MainActor
 final class HeroGlassButtonPresentationTests: XCTestCase {
+    func testSeasonPollingContinuesAfterSupersededLookupUntilRequestsSettle() async {
+        var lookups = 0
+        var hasInFlightSeasons = true
+        await plozziOSPollHeroSeasonRequests(interval: .milliseconds(1)) {
+            lookups += 1
+            if lookups == 1 {
+                // The sheet wins the first lookup; its authoritative state still has a pending season.
+                return
+            }
+            hasInFlightSeasons = false
+        } shouldContinue: {
+            hasInFlightSeasons
+        }
+        XCTAssertEqual(lookups, 2, "A superseded fetch must not terminate status polling.")
+    }
+
+    func testSeasonPollingStopsOnFailureAndCancellation() async {
+        var failedLookups = 0
+        await plozziOSPollHeroSeasonRequests(interval: .milliseconds(1)) {
+            failedLookups += 1
+        } shouldContinue: {
+            false
+        }
+        XCTAssertEqual(failedLookups, 1)
+
+        let started = expectation(description: "Initial status lookup completed")
+        var lookups = 0
+        let polling = Task {
+            await plozziOSPollHeroSeasonRequests(interval: .seconds(20)) {
+                lookups += 1
+                started.fulfill()
+            } shouldContinue: {
+                true
+            }
+        }
+        await fulfillment(of: [started], timeout: 2)
+        polling.cancel()
+        await polling.value
+        XCTAssertEqual(lookups, 1)
+    }
+
     func testSeasonRequestButtonKeepsItsPrimaryContainerAcrossAvailabilityStates() {
         let item = MediaItem(id: "series", title: "Series", kind: .series)
         let availability = MediaRequestAvailability(status: .unknown, seasons: [
