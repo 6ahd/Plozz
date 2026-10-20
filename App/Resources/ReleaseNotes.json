@@ -32,6 +32,7 @@
           "category": "Fixed",
           "items": [
             "Series pages failing to resume an in-progress episode on some Jellyfin-compatible servers.",
+            "AIOStreams Continue Watching disappearing when libraries are turned off.",
             {
               "text": "Episode rows jumping or losing the selected episode when returning from Related or other detail sections.",
               "platforms": ["tvOS"]

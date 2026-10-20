@@ -151,6 +151,14 @@ public struct JellyfinClient: Sendable {
 
     // MARK: System
 
+    func watchHistorySystemInfo() async throws -> JellyfinWatchHistoryInfo {
+        try await http.decode(
+            JellyfinWatchHistoryInfo.self,
+            from: Endpoint(path: "/System/Info/Public", redirectPolicy: .sameOrigin),
+            baseURL: baseURL
+        )
+    }
+
     /// `GET /System/Info/Public` — used to validate a manual URL and read the
     /// server's identity/name. No auth required.
     public func publicSystemInfo() async throws -> MediaServer {
