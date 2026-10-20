@@ -1,3 +1,4 @@
+import CoreImage
 import CoreModels
 import CoreUI
 #if os(tvOS)
@@ -363,13 +364,18 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     .frame(width: 900, height: 650)
                     #endif
                 } inspect: { window in
-                    let lines = try await self.capture(window, name: "Merge Next Up \(scheme) \(size)")
+                    let lines = try await self.capture(
+                        window, name: "Merge Next Up \(scheme) \(size)", scale: window.traitCollection.displayScale
+                    )
                     let text = lines.map(\.0).joined(separator: " ")
                     XCTAssertTrue(text.contains("Merge Next Up rows"), text)
                     XCTAssertTrue(text.contains("next episodes"), text)
                     visibility.setGlobalRowEnabled(false, for: .continueWatching)
-                    let disabled = try await self.capture(window, name: "Merge Next Up with hidden Continue Watching")
-                    XCTAssertTrue(disabled.map(\.0).joined(separator: " ").contains("Add Continue Watching"), text)
+                    let disabled = try await self.capture(
+                        window, name: "Merge Next Up with hidden Continue Watching", scale: window.traitCollection.displayScale
+                    )
+                    let disabledText = disabled.map(\.0).joined(separator: " ")
+                    XCTAssertTrue(disabledText.contains("Add Continue Watching"), disabledText)
                 }
             }
         }
@@ -1039,11 +1045,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         try await inspect(window)
     }
 
-    private func snapshot(_ window: UIWindow, name: String) async throws -> UIImage {
+    private func snapshot(_ window: UIWindow, name: String, scale: CGFloat = 1) async throws -> UIImage {
         try await Task.sleep(for: .milliseconds(400))
         window.layoutIfNeeded()
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
+        format.scale = scale
         let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
         }
@@ -1054,14 +1060,23 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         return image
     }
 
-    private func capture(_ window: UIWindow, name: String) async throws -> [(String, CGRect)] {
-        let image = try await snapshot(window, name: name)
+    private func capture(_ window: UIWindow, name: String, scale: CGFloat = 1) async throws -> [(String, CGRect)] {
+        let image = try await snapshot(window, name: name, scale: scale)
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
-        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-        return (request.results ?? []).compactMap { result in
-            result.topCandidates(1).first.map { ($0.string, result.boundingBox) }
+        request.minimumTextHeight = 0.001
+        let original = try XCTUnwrap(image.cgImage)
+        var images = [original]
+        if scale > 1 {
+            let inverted = CIImage(cgImage: original).applyingFilter("CIColorInvert")
+            images.append(try XCTUnwrap(CIContext().createCGImage(inverted, from: inverted.extent)))
+        }
+        return try images.flatMap { image in
+            try VNImageRequestHandler(cgImage: image).perform([request])
+            return (request.results ?? []).compactMap { result in
+                result.topCandidates(1).first.map { ($0.string, result.boundingBox) }
+            }
         }
     }
 

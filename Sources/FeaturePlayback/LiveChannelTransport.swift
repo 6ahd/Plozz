@@ -114,6 +114,7 @@ struct LiveChannelOverlay: View {
     @State private var trackOptions = PlayerControlsModel()
     @State private var subtitleScreen: PlayerControls.SubtitleScreen = .tracks
     @State private var playbackScreen: PlayerControls.PlaybackScreen = .options
+    @State private var audioScreen: PlayerControls.AudioScreen = .options
     @State private var nativePlaybackMenuPresented = false
     @State private var showsCustomZoom = false
     @State private var panelHeights: [PlayerControls.Category: CGFloat] = [:]
@@ -238,6 +239,7 @@ struct LiveChannelOverlay: View {
         }
         #endif
         #if os(tvOS)
+        .observingSystemPlaybackAudio(trackOptions.systemAudio, isVisible: true)
         .onExitCommand(perform: handleExit)
         .background(TVFocusActivityObserver(onActivity: onControlActivity))
         #endif
@@ -574,7 +576,7 @@ struct LiveChannelOverlay: View {
             // A live channel draws one subtitle line.
             offersDualSubtitles: false,
             playbackScreen: $playbackScreen, videoZoom: tracks.videoZoom,
-            offersPlaybackSpeed: false
+            offersPlaybackSpeed: false, audioScreen: $audioScreen
         )
         .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .menu, isVisible: !styleEditing)
         .id(kind)
@@ -584,9 +586,19 @@ struct LiveChannelOverlay: View {
 
     // MARK: Badges
 
-    /// VOD's rule (`PlayerControlsModel.hasSelectableAudio`): Audio only when
-    /// there's more than one track to choose between.
-    private var showsAudio: Bool { tracks.audioTracks.count > 1 }
+    private var showsAudio: Bool {
+        #if os(tvOS)
+        Self.showsAudio(trackCount: tracks.audioTracks.count, systemAudio: trackOptions.systemAudio)
+        #else
+        tracks.audioTracks.count > 1
+        #endif
+    }
+
+    #if os(tvOS)
+    static func showsAudio(trackCount: Int, systemAudio: SystemPlaybackAudio) -> Bool {
+        trackCount > 1 || !systemAudio.availableSettings.isEmpty
+    }
+    #endif
 
     /// Subtitles once the stream offers any, as VOD.
     private var showsSubtitles: Bool { !tracks.subtitleTracks.isEmpty }
@@ -1207,6 +1219,7 @@ struct LiveChannelOverlay: View {
         menuReturnFocus = focus ?? kind.control
         subtitleScreen = .tracks
         playbackScreen = .options
+        audioScreen = .options
         openMenu = kind
         // After tvOS's own default-focus pass over the new rows — see
         // `PlayerControls.restoreFocus`.
@@ -1222,18 +1235,24 @@ struct LiveChannelOverlay: View {
     }
 
     private func closeMenu() {
+        #if os(tvOS)
+        let returnFocus: LiveChannelControl? = menuReturnFocus == .audio && !showsAudio ? .timeline : menuReturnFocus
+        #else
         let returnFocus = menuReturnFocus
+        #endif
         openMenu = nil
         menuReturnFocus = nil
         subtitleScreen = .tracks
         playbackScreen = .options
+        audioScreen = .options
         DispatchQueue.main.async { focus = returnFocus }
     }
 
     private func handleExit() {
         if cancelPendingScrub() { return }
         if (openMenu == .subtitles && subtitleScreen != .tracks)
-            || (openMenu == .playback && playbackScreen != .options) {
+            || (openMenu == .playback && playbackScreen != .options)
+            || (openMenu == .audio && audioScreen != .options) {
             panelBackRequest &+= 1
         } else if openMenu != nil {
             closeMenu()

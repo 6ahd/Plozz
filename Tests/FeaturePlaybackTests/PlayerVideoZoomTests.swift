@@ -294,7 +294,7 @@ final class PlayerVideoZoomTests: XCTestCase {
     }
 
     func testCapabilityGatesAndSelectedSpeedFocus() {
-        let model = PlayerControlsModel()
+        let model = controlsWithoutSystemAudio()
         model.engineCapabilities = [.videoZoom]
         XCTAssertEqual(model.trackControlCategories, [.playback])
         XCTAssertEqual(PlayerOptionsPanel.preferredFocus(
