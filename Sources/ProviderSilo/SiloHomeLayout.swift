@@ -88,7 +88,7 @@ extension SiloProvider {
                let target = card.play_content_id, target != card.content_id {
                 candidate = try await item(id: target)
                 candidate = inheritingSeriesArtwork(candidate, from: map(card))
-                candidate.resumePosition = card.position_seconds ?? candidate.resumePosition
+                Self.applyResume(position: card.position_seconds, duration: card.duration_seconds, to: &candidate)
                 candidate.lastPlayedAt = card.progress_updated_at.flatMap(Self.date) ?? candidate.lastPlayedAt
             }
             if let allowed {

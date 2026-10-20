@@ -91,6 +91,8 @@ struct SiloUserState: Decodable, Sendable {
 
 struct SiloWatchRollup: Decodable, Sendable {
     let played: Bool
+    let watched_count: Int?
+    let unplayed_count: Int?
     let position_seconds: Double?
     let duration_seconds: Double?
 }
