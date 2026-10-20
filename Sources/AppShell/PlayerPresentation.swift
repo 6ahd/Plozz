@@ -1,5 +1,6 @@
 #if canImport(SwiftUI)
 import SwiftUI
+import AppRuntime
 import CoreModels
 import CoreNetworking
 import CoreUI
@@ -54,10 +55,13 @@ struct PlayerPresentation: View {
     let versionPreferences: any VersionPreferenceStoring
     let prepareVersion: (PlaybackVersionChoiceModel, MediaItem) async throws -> MediaItem
     let versionAuthorizationScope: [String]
+    let playbackSettings: PlaybackSettings
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.externalPlaybackContext) private var externalContext
     @State private var versionChoice = PlaybackVersionChoiceModel()
     @State private var versionChoiceFailed = false
     @State private var sourceUnavailable = false
+    @State private var externalFailure: ExternalPlayerError?
     @State private var versionChoiceFailureMessage: LocalizedStringResource = "Please try playing this video again."
 
     /// The currently-active play request; changes when auto-advancing episodes.
@@ -78,7 +82,8 @@ struct PlayerPresentation: View {
         themePalette: ThemePalette,
         versionPreferences: any VersionPreferenceStoring,
         prepareVersion: @escaping (PlaybackVersionChoiceModel, MediaItem) async throws -> MediaItem,
-        versionAuthorizationScope: [String]
+        versionAuthorizationScope: [String],
+        playbackSettings: PlaybackSettings = .default
     ) {
         self.make = make
         self.makeFailover = makeFailover
@@ -87,6 +92,7 @@ struct PlayerPresentation: View {
         self.versionPreferences = versionPreferences
         self.prepareVersion = prepareVersion
         self.versionAuthorizationScope = versionAuthorizationScope
+        self.playbackSettings = playbackSettings
         self._activeRequest = State(initialValue: request)
     }
 
@@ -107,6 +113,7 @@ struct PlayerPresentation: View {
         }
         .task {
             if viewModel == nil {
+                ExternalPlaybackRuntime.shared.beginPlaybackIntent()
                 HandoffDiagnostics.emit(
                     "presentation READY trace=\(activeRequest.traceID.uuidString.prefix(8)) "
                         + "item=\(activeRequest.item.id) "
@@ -114,6 +121,8 @@ struct PlayerPresentation: View {
                 )
                 do {
                     activeRequest = try await preparedRequest(activeRequest)
+                    guard !Task.isCancelled, isPresented else { return }
+                    if await openExternalPlayer() { return }
                     guard !Task.isCancelled, isPresented else { return }
                     viewModel = try make(activeRequest, nil, nil)
                 } catch is CancellationError {
@@ -140,15 +149,32 @@ struct PlayerPresentation: View {
             viewModel?.controls.versions.onSelect = nil
         }
         .playbackVersionChoice(versionChoice)
+        .alert("External player unavailable", isPresented: Binding(
+            get: { externalFailure != nil },
+            set: { if !$0 { externalFailure = nil } }
+        )) {
+            Button("Play in Plozz") {
+                do {
+                    viewModel = try make(activeRequest, nil, nil)
+                    updateVersionMenu()
+                } catch { showVersionChoiceFailure(error) }
+            }
+            Button("Cancel", role: .cancel) { dismiss() }
+        } message: {
+            if let failure = externalFailure { Text(failure.message) }
+        }
         .environment(\.themePalette, themePalette)
         .onChange(of: versionChoice.prompt?.id) { _, id in
             if id != nil { viewModel?.setPaused(true) }
         }
         .onChange(of: versionAuthorizationScope) { _, _ in
-            guard versionChoice.isPreparing else { return }
+            guard versionChoice.isPreparing || viewModel == nil else { return }
             versionChoice.cancel()
             handoffTask?.cancel()
             dismiss()
+        }
+        .onChange(of: externalContext?().identity) { _, _ in
+            if viewModel == nil { dismiss() }
         }
         // Even a no-op handler consumes Back; loaded playback owns the command.
         .onExitCommand(perform: viewModel == nil ? {
@@ -209,6 +235,26 @@ struct PlayerPresentation: View {
                 item: nextItem, startPosition: activeRequest.startPosition,
                 versionPreferences: versionPreferences
             ))
+        }
+    }
+
+    private func openExternalPlayer() async -> Bool {
+        guard playbackSettings.externalPlayer.player != .builtIn else { return false }
+        do {
+            guard let externalContext else { throw ExternalPlayerError.unavailable }
+            let opened = try await ExternalPlaybackRuntime.shared.launch(
+                item: activeRequest.item, startPosition: activeRequest.startPosition,
+                settings: playbackSettings, context: externalContext, isPresented: { isPresented }
+            )
+            if opened { dismiss() }
+            return opened
+        } catch is CancellationError {
+            if isPresented { dismiss() }
+            return true
+        } catch {
+            PlozzLog.playback.error("External player handoff failed.")
+            externalFailure = (error as? ExternalPlayerError) ?? .preparationFailed
+            return true
         }
     }
 

@@ -1571,6 +1571,7 @@ public final class AppState {
     /// Handles an incoming deep link. Recognised `plozz://item/<id>` links queue
     /// the item for playback once the user is signed in.
     public func handle(url: URL) {
+        if ExternalPlaybackRuntime.shared.receive(url) { return }
         // `plozz://shots/…` is the capture rig asking for a screen. Checked
         // first because it shares the scheme; outside DEBUG this always
         // declines, so a shipped build falls straight through to Top Shelf.
@@ -1582,6 +1583,34 @@ public final class AppState {
             // every signed-in account for an id that is only unique within one.
             pendingPlay.accountID = reference.accountID
         }
+    }
+
+    func externalPlaybackContext() -> ExternalPlaybackContext {
+        ExternalPlaybackContext(
+            profileID: profilesModel.activeProfileID,
+            authorizationID: accountsProviders.liveTVAuthorizationID,
+            accounts: accountsProviders.resolvedActiveAccounts,
+            isAuthorized: isActiveProfileAuthorized,
+            resolver: authenticatedHTTPResolver
+        )
+    }
+
+    func finishExternalPlayback(_ result: ExternalPlaybackCompletion) async throws {
+        guard isActiveProfileAuthorized else { throw CancellationError() }
+        guard var mutation = WatchMutationFactory.playbackStop(
+                item: result.item, position: result.position, watchedPercent: result.watchedPercent,
+                primaryAccountID: result.item.sourceAccountID,
+                additionalSources: identityIndex.identitySnapshotStore.current.sourceRefs(for: result.item),
+                crossServerSync: profileSettings.playbackModel.settings.syncWatchAcrossServers
+              )?.bindingServerScope(accountsProviders.watchMutationServerScope) else { return }
+        mutation.id = result.id
+        mutation.capturedAt = result.reportedAt
+        let identity = externalPlaybackContext().identity
+        guard try await result.enqueue(mutation, using: watchReconciler),
+              externalPlaybackContext().identity == identity else { return }
+        publishOptimisticWatchState(
+            itemID: result.item.id, mutation: mutation, watchedPercent: result.watchedPercent, item: result.item
+        )
     }
 
     /// Servers this device already has accounts on, grouped for the picker's

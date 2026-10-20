@@ -61,6 +61,8 @@ struct PlozziOSPlayerView: View {
     @State private var playbackStatus = TransientStatusPresenter()
     @State private var versionChoice = PlaybackVersionChoiceModel()
     @State private var versionChoiceFailed = false
+    @State private var externalFailure: ExternalPlayerError?
+    @State private var usesBuiltInFallback = false
     @State private var versionChoiceFailureMessage: LocalizedStringResource = "Please try playing this video again."
     /// See the bisect note in `body`.
 
@@ -151,15 +153,19 @@ struct PlozziOSPlayerView: View {
             }
 
         }
-        .task {
+        .task(id: usesBuiltInFallback) {
+            ExternalPlaybackRuntime.shared.beginPlaybackIntent()
             suspendHeroPlayback()
             let session = playbackSession ?? appModel.makePlaybackSession()
             playbackSession = session
             let item: MediaItem
             do {
-                item = try await prepareVersion(request.item, session: session)
+                if let activeItem {
+                    item = activeItem
+                } else {
+                    item = try await prepareVersion(request.item, session: session)
+                }
                 activeItem = item
-                orientation.beginPlayback()
             } catch is CancellationError {
                 if isPresented { dismiss() }
                 return
@@ -169,6 +175,9 @@ struct PlozziOSPlayerView: View {
             }
             guard usesStreamingQuality else {
                 if viewModel == nil {
+                    if await openExternalPlayer(item: item) { return }
+                    guard !Task.isCancelled, isPresented, isCurrentPlaybackSession else { return }
+                    orientation.beginPlayback()
                     viewModel = makeViewModel(item: item, startPosition: request.startPosition)
                     PlozziOSScreenshotSeed.freezeIfRequested(viewModel)
                 }
@@ -180,6 +189,12 @@ struct PlozziOSPlayerView: View {
                 let connection = resolvedStreamingConnection()
                 if viewModel == nil {
                     streamingConnection = connection
+                    if await openExternalPlayer(
+                        item: item,
+                        streamingOptions: appModel.settings.playback.settings.streaming.options(for: connection)
+                    ) { return }
+                    guard !Task.isCancelled, isPresented, isCurrentPlaybackSession else { return }
+                    orientation.beginPlayback()
                     viewModel = makeViewModel(item: item, startPosition: request.startPosition)
                     PlozziOSScreenshotSeed.freezeIfRequested(viewModel)
                 } else if streamingConnection != connection {
@@ -189,6 +204,18 @@ struct PlozziOSPlayerView: View {
             }
         }
         .playbackVersionChoice(versionChoice)
+        .alert("External player unavailable", isPresented: Binding(
+            get: { externalFailure != nil },
+            set: { if !$0 { externalFailure = nil } }
+        )) {
+            Button("Play in Plozz") {
+                guard activeItem != nil, isCurrentPlaybackSession else { dismiss(); return }
+                usesBuiltInFallback = true
+            }
+            Button("Cancel", role: .cancel) { dismiss() }
+        } message: {
+            if let failure = externalFailure { Text(failure.message) }
+        }
         .onChange(of: versionChoice.prompt?.id) { _, id in
             if id != nil { viewModel?.setPaused(true) }
         }
@@ -331,6 +358,30 @@ struct PlozziOSPlayerView: View {
     }
 
     private func dismiss() { orientation.close() }
+
+    private func openExternalPlayer(
+        item: MediaItem, streamingOptions: StreamingPlaybackOptions? = nil
+    ) async -> Bool {
+        guard !usesBuiltInFallback,
+              appModel.settings.playback.settings.externalPlayer.player != .builtIn else { return false }
+        do {
+            let model = appModel
+            let opened = try await ExternalPlaybackRuntime.shared.launch(
+                item: item, startPosition: request.startPosition,
+                settings: model.settings.playback.settings, streamingOptions: streamingOptions,
+                context: { model.externalPlaybackContext() }, isPresented: { isPresented && isCurrentPlaybackSession }
+            )
+            if opened { dismiss() }
+            return opened
+        } catch is CancellationError {
+            if isPresented { dismiss() }
+            return true
+        } catch {
+            PlozzLog.playback.error("External player handoff failed.")
+            externalFailure = (error as? ExternalPlayerError) ?? .preparationFailed
+            return true
+        }
+    }
 
     private func prepareVersion(
         _ item: MediaItem, session: PlozziOSAppModel.PlaybackSession

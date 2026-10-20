@@ -371,8 +371,13 @@ public struct PlozziOSRootView: View {
         }
         .installNightShiftOverlay(appModel.settings.nightShift)
         .onOpenURL { url in
+            if ExternalPlaybackRuntime.shared.receive(url) { return }
             receivePairingURL(url)
         }
+        .externalPlayerSupport(
+            context: { appModel.externalPlaybackContext() },
+            onProgress: { try await appModel.finishExternalPlayback($0) }
+        )
         .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
             if let url = activity.webpageURL {
                 receivePairingURL(url)

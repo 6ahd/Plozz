@@ -1791,6 +1791,33 @@ final class PlozziOSAppModel {
         )
     }
 
+    func externalPlaybackContext() -> ExternalPlaybackContext {
+        ExternalPlaybackContext(
+            profileID: profiles.activeProfileID,
+            authorizationID: accountsProviders.liveTVAuthorizationID,
+            accounts: accountsProviders.resolvedActiveAccounts,
+            isAuthorized: isActiveProfileAuthorized,
+            resolver: authenticatedHTTPResolver,
+            offlineResolver: downloads.offlineResolver
+        )
+    }
+
+    func finishExternalPlayback(_ result: ExternalPlaybackCompletion) async throws {
+        guard isActiveProfileAuthorized else { throw CancellationError() }
+        guard var mutation = WatchMutationFactory.playbackStop(
+                item: result.item, position: result.position, watchedPercent: result.watchedPercent,
+                primaryAccountID: result.item.sourceAccountID,
+                additionalSources: identityIndex.identitySnapshotStore.current.sourceRefs(for: result.item),
+                crossServerSync: settings.playback.settings.syncWatchAcrossServers
+              )?.bindingServerScope(accountsProviders.watchMutationServerScope) else { return }
+        mutation.id = result.id
+        mutation.capturedAt = result.reportedAt
+        let identity = externalPlaybackContext().identity
+        guard try await result.enqueue(mutation, using: watchReconciler),
+              externalPlaybackContext().identity == identity else { return }
+        publishPlaybackMutation(mutation, item: result.item, watchedPercent: result.watchedPercent)
+    }
+
     func isCurrentPlaybackSession(_ session: PlaybackSession) -> Bool {
         profiles.activeProfileID == session.profileID
             && accountsProviders.liveTVAuthorizationID == session.serverAuthorization

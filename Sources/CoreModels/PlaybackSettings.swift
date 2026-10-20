@@ -41,6 +41,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// iPhone full-screen player preference. iPad follows system rotation.
     public var orientation: PlaybackOrientation
     public var streaming: StreamingQualitySettings
+    public var externalPlayer: ExternalPlayerSettings
 
     /// Nil until the profile answers the first multi-version playback prompt
     /// or explicitly chooses a mode in Settings.
@@ -174,7 +175,8 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         orientation: PlaybackOrientation = .landscape,
         streaming: StreamingQualitySettings = .default,
         versionSelectionMode: PlaybackVersionSelectionMode? = nil,
-        rememberVersionPerSeries: Bool = true
+        rememberVersionPerSeries: Bool = true,
+        externalPlayer: ExternalPlayerSettings = .init()
     ) {
         self.skipIntros = skipIntros
         self.skipModeOverrides = skipModeOverrides
@@ -200,6 +202,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         self.streaming = streaming
         self.versionSelectionMode = versionSelectionMode
         self.rememberVersionPerSeries = rememberVersionPerSeries
+        self.externalPlayer = externalPlayer
     }
 
     public static let `default` = PlaybackSettings()
@@ -229,6 +232,7 @@ public extension PlaybackSettings {
         case volumeBrightnessGestures
         case orientation
         case streaming
+        case externalPlayer
         case versionSelectionMode
         case rememberVersionPerSeries
         case syncWatchAcrossServers
@@ -299,6 +303,7 @@ public extension PlaybackSettings {
         self.orientation = (try? container.decode(PlaybackOrientation.self, forKey: .orientation))
             ?? defaults.orientation
         self.streaming = (try? container.decode(StreamingQualitySettings.self, forKey: .streaming)) ?? .default
+        self.externalPlayer = (try? container.decodeIfPresent(ExternalPlayerSettings.self, forKey: .externalPlayer)) ?? .init()
         self.versionSelectionMode = try? container.decode(PlaybackVersionSelectionMode.self, forKey: .versionSelectionMode)
         self.rememberVersionPerSeries =
             (try? container.decodeIfPresent(Bool.self, forKey: .rememberVersionPerSeries))
@@ -371,6 +376,7 @@ public extension PlaybackSettings {
         try container.encode(volumeBrightnessGestures, forKey: .volumeBrightnessGestures)
         try container.encode(orientation, forKey: .orientation)
         try container.encode(streaming, forKey: .streaming)
+        try container.encode(externalPlayer, forKey: .externalPlayer)
         try container.encodeIfPresent(versionSelectionMode, forKey: .versionSelectionMode)
         try container.encode(rememberVersionPerSeries, forKey: .rememberVersionPerSeries)
         try container.encode(syncWatchAcrossServers, forKey: .syncWatchAcrossServers)

@@ -2112,6 +2112,7 @@ struct PlozziOSPlaybackSettingsView: View {
     let hasStreamingServer: Bool
     let streamingSupport: StreamingQualitySupport
     @State private var showsAdvancedStreaming = false
+    @State private var showsAdvancedPlayback = false
 
     private static let policyCategories: [ContentCategory] = [.movie, .tvShow, .anime]
     private static let audioOptions: [AudioLanguagePreference] =
@@ -2286,11 +2287,19 @@ struct PlozziOSPlaybackSettingsView: View {
                     isOn: $model.settings.rememberSubtitleTrackPerSeries
                 )
             }
+            SettingsSectionGroup {
+                Button { showsAdvancedPlayback = true } label: {
+                    SettingsDisclosureLabel { Text("Advanced") }
+                }
+            }
         }
         .settingsPageSurface()
         .navigationTitle("Playback")
         .navigationDestination(isPresented: $showsAdvancedStreaming) {
             PlozziOSAdvancedStreamingSettings(settings: $model.settings.streaming, support: streamingSupport)
+        }
+        .navigationDestination(isPresented: $showsAdvancedPlayback) {
+            PlaybackAdvancedSettingsView(model: model)
         }
     }
 

@@ -1,10 +1,28 @@
 #if canImport(SwiftUI)
 @testable import FeatureSettings
 import CoreUI
+import CoreModels
 import XCTest
 
 @MainActor
 final class SettingsWorkspaceNavigationTests: XCTestCase {
+    func testExternalPlayerAndCustomTemplateAreNestedPagesAndRemainProfileScoped() throws {
+        let suite = "ExternalPlayerSettingsTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = PlaybackSettingsModel(store: PlaybackSettingsStore(defaults: defaults, namespace: "one"))
+        let advanced = ExternalPlayerSettingsRows.advanced(model: model)
+        XCTAssertEqual(advanced.map(\.id), ["external-player"])
+        XCTAssertEqual(advanced.first?.presentation, .page)
+        let external = try XCTUnwrap(advanced.first?.childRows?())
+        XCTAssertEqual(external.map(\.id), ["default-player", "external-player-help", "custom-player"])
+        XCTAssertEqual(external.last?.presentation, .page)
+        XCTAssertEqual(model.settings.externalPlayer.player, .builtIn)
+        model.settings.externalPlayer.player = .infuse
+        XCTAssertEqual(PlaybackSettingsStore(defaults: defaults, namespace: "one").load().externalPlayer.player, .infuse)
+        XCTAssertEqual(PlaybackSettingsStore(defaults: defaults, namespace: "two").load().externalPlayer.player, .builtIn)
+    }
+
     #if os(tvOS)
     func testSharedStackRetainsRepeatedRouteIdentityAndReturnsToItsSource() {
         let pages = SettingsPageNavigation<SettingsRoute>()

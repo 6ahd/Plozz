@@ -610,7 +610,7 @@ struct PlaybackDetailView: View {
                         }
                     }
                 }
-            ] + displayFadeRows
+            ] + displayFadeRows + advancedRows
         }
         #endif
         return subtitleRows
@@ -623,6 +623,13 @@ struct PlaybackDetailView: View {
             + scrubbingRows
             + displayFadeRows
             + upNextRows
+            + advancedRows
+    }
+
+    private var advancedRows: [SettingsSplitRow] {
+        [.page(id: "playback-advanced", title: "Advanced") {
+            ExternalPlayerSettingsRows.advanced(model: playback)
+        }]
     }
 
     private var readAheadRows: [SettingsSplitRow] {

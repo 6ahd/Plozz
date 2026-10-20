@@ -910,6 +910,10 @@ public struct RootView: View {
             )
         )
         .onOpenURL { appState.handle(url: $0) }
+        .externalPlayerSupport(
+            context: { appState.externalPlaybackContext() },
+            onProgress: { try await appState.finishExternalPlayback($0) }
+        )
         // Window-level HDR/DV exit veil: a black layer above Home that the player
         // raises (via the injected `DisplayVeilModel`) just before it dismisses, so
         // black survives the dismiss and keeps covering the screen through the TV's

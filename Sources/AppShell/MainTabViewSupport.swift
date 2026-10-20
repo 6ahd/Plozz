@@ -941,7 +941,8 @@ extension View {
                 versionAuthorizationScope: accounts.flatMap {
                     [$0.account.id, $0.provider.session.userID, $0.plexHomeUserID ?? "",
                      $0.credentialRevision.rawValue.uuidString]
-                }
+                },
+                playbackSettings: playbackSettingsModel.settings
             )
         }
         .resumePrompt(item: resumePrompt) { item, startPosition in

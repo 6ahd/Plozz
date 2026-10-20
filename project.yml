@@ -254,6 +254,11 @@ targets:
           - CFBundleURLName: com.thatcube.Plozz.deeplink
             CFBundleURLSchemes:
               - ${PLOZZ_URL_SCHEME}
+              - "$(PRODUCT_BUNDLE_IDENTIFIER).external-player"
+        LSApplicationQueriesSchemes:
+          - nativeplayer
+          - infuse
+          - vlc-x-callback
     settings:
       base:
         # ${PLOZZ_ID_SUFFIX} is EMPTY for a normal (canonical) build → the real
@@ -432,6 +437,10 @@ targets:
           - CFBundleURLName: com.thatcube.Plozz.deeplink
             CFBundleURLSchemes:
               - ${PLOZZ_URL_SCHEME}
+              - "$(PRODUCT_BUNDLE_IDENTIFIER).external-player"
+        LSApplicationQueriesSchemes:
+          - infuse
+          - vlc-x-callback
         TraktClientID: "$(TRAKT_CLIENT_ID)"
         WetrakrClientID: "$(WETRAKR_CLIENT_ID)"
         SimklClientID: "$(SIMKL_CLIENT_ID)"
