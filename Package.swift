@@ -1005,7 +1005,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MetadataKitTests",
-            dependencies: ["MetadataKit", "CoreModels"]
+            dependencies: ["MetadataKit", "CoreModels", "TestSupportNetworking"]
         ),
         .testTarget(
             name: "FeatureDiscoveryTests",
