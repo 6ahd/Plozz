@@ -8,6 +8,14 @@ import XCTest
 
 @MainActor
 final class PlayerVersionMenuHostedTests: XCTestCase {
+    private struct NoSystemAudio: SystemPlaybackAudioControlling {
+        func read() -> SystemPlaybackAudioState { .init(values: [:]) }
+        func setEnabled(_ enabled: Bool, for setting: SystemPlaybackAudioSetting) throws {
+            XCTFail("Version tests must not change system audio.")
+            throw SystemPlaybackAudio.Failure.unavailable
+        }
+    }
+
     func testDetailVersionPanelShowsTheSameRichFactsWithNativeFocus() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
@@ -45,12 +53,7 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
         try await waitUntil { (self.focusFrame(in: window)?.width ?? 0) > 500 }
         try await Task.sleep(for: .milliseconds(400))
         let image = DetailTransitionSnapshot.image(of: window)
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.recognitionLanguages = ["en-US"]
-        request.usesLanguageCorrection = false
-        request.minimumTextHeight = 0.001
-        request.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
+        let request = textRequest()
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
         let visible = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "80 Mbps", "2h", "GROUP.mkv"] {
@@ -84,7 +87,7 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
-        let model = PlayerControlsModel()
+        let model = PlayerControlsModel(systemAudio: SystemPlaybackAudio(backend: NoSystemAudio()))
         model.controlsVisible = true
         model.versions.options = [
             .init(version: .init(id: "1080", fileName: "Movie-1080.mkv", edition: "Theatrical", height: 1080), isSelected: false),
@@ -116,21 +119,24 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             (self.focusFrame(in: window)?.width ?? 0) > 500 && model.isPanelOpen
         }
         try await Task.sleep(for: .milliseconds(500))
-        try await waitForHostedLayout(window)
         XCTAssertTrue(model.isPanelOpen)
         let image = DetailTransitionSnapshot.image(of: window)
-        let attachment = XCTAttachment(image: image)
-        attachment.name = "Apple TV version menu"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-        let text = VNRecognizeTextRequest()
-        text.recognitionLevel = .accurate
-        text.recognitionLanguages = ["en-US"]
-        text.usesLanguageCorrection = false
-        text.minimumTextHeight = 0.001
-        text.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
-        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([text])
-        let screenText = (text.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        let text = textRequest()
+        let pixels = try XCTUnwrap(image.cgImage)
+        try VNImageRequestHandler(cgImage: pixels).perform([text])
+        let focusedFrame = try XCTUnwrap(focusFrame(in: window))
+        let crop = focusedFrame.applying(CGAffineTransform(scaleX: image.scale, y: image.scale)).integral
+        let focusedPixels = try XCTUnwrap(pixels.cropping(to: crop))
+        let focusedText = textRequest()
+        // The full-frame OCR pass can miss small format text; keep the same pixels and scope a second pass.
+        try VNImageRequestHandler(cgImage: focusedPixels).perform([focusedText])
+        let visibleText = ((text.results ?? []) + (focusedText.results ?? []))
+            .compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "Atmos", "80 Mbps", "2h", "GROUP.mkv"] {
+            XCTAssertTrue(visibleText.localizedCaseInsensitiveContains(fact), "Missing version fact \(fact): \(visibleText)")
+        }
+        XCTAssertFalse(visibleText.contains("torrent_name"))
+        XCTAssertFalse(visibleText.contains("media_type"))
         let selectedText = try XCTUnwrap(text.results?.first {
             $0.topCandidates(1).first?.string.contains("Extended") == true
         })
@@ -139,20 +145,12 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             x: rect.midX * window.bounds.width,
             y: (1 - rect.midY) * window.bounds.height
         )
-        let focusedFrame = try XCTUnwrap(focusFrame(in: window))
-        XCTAssertTrue(focusedFrame.contains(center),
+        XCTAssertTrue(try XCTUnwrap(focusFrame(in: window)).contains(center),
                       "Native focus must land on the playing Extended version, not the first row.")
-        let crop = try XCTUnwrap(image.cgImage?.cropping(to: focusedFrame.applying(
-            CGAffineTransform(scaleX: image.scale, y: image.scale)
-        ).integral))
-        try VNImageRequestHandler(cgImage: crop).perform([text])
-        let rowText = (text.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-        let visibleText = screenText + " " + rowText
-        for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "Atmos", "80 Mbps", "2h", "GROUP.mkv"] {
-            XCTAssertTrue(visibleText.localizedCaseInsensitiveContains(fact), "Missing version fact \(fact): \(visibleText)")
-        }
-        XCTAssertFalse(visibleText.contains("torrent_name"))
-        XCTAssertFalse(visibleText.contains("media_type"))
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "Apple TV version menu"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     private func controls(_ model: PlayerControlsModel) -> AnyView {
@@ -160,6 +158,16 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             model: model, palette: .dark,
             actions: PlayerOptionsActions(), onExitToSurface: {}
         ).background(.black))
+    }
+
+    private func textRequest() -> VNRecognizeTextRequest {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        request.usesLanguageCorrection = false
+        request.minimumTextHeight = 0.001
+        request.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
+        return request
     }
 
     private func focusFrame(in window: UIWindow) -> CGRect? {

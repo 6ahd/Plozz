@@ -87,10 +87,7 @@ final class AlternateAddressHTTPIntegrationTests: XCTestCase {
 
         _ = try registry.provider(for: .init(session: updated.session(token: token),
             accountID: updated.id, credentialRevision: updated.credentialRevision))
-        var expectedLibraryIDs = ["movies"]
-        if kind == .jellyfin || kind == .emby {
-            expectedLibraryIDs.append("\(kind.rawValue):collections")
-        }
+        let expectedLibraryIDs = kind.usesMediaBrowserAPI ? ["movies", "\(kind.rawValue):collections"] : ["movies"]
         if !cold {
             let libraries = try await provider.libraries()
             XCTAssertEqual(libraries.map(\.id), expectedLibraryIDs)

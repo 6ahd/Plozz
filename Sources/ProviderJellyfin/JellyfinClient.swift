@@ -376,7 +376,9 @@ public struct JellyfinClient: Sendable {
     /// `EnableResumable=false` keeps NextUp complementary rather than overlapping:
     /// in-progress episodes already come back from `/Items/Resume`, so NextUp is
     /// scoped to the next-after-completed episode. `EnableRewatching=false` avoids
-    /// resurfacing fully-watched series.
+    /// resurfacing fully-watched series. A series-specific resume lookup includes
+    /// resumable candidates because compatible servers may not scope Resume to a
+    /// series; the provider still prefers Resume when both return the same episode.
     func nextUpItems(
         userID: String, limit: Int, parentID: String? = nil, seriesID: String? = nil
     ) async throws -> [BaseItemDto] {
@@ -411,7 +413,7 @@ public struct JellyfinClient: Sendable {
             URLQueryItem(name: "UserId", value: userID),
             URLQueryItem(name: "Limit", value: String(limit)),
             URLQueryItem(name: "MediaTypes", value: "Video"),
-            URLQueryItem(name: "EnableResumable", value: "false"),
+            URLQueryItem(name: "EnableResumable", value: seriesID == nil ? "false" : "true"),
             URLQueryItem(name: "EnableRewatching", value: "false"),
             URLQueryItem(name: "Fields", value: "Overview,PrimaryImageAspectRatio,ProviderIds")
         ]

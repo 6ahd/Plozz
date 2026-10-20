@@ -18,6 +18,7 @@ public protocol AccountPersisting: Sendable {
         revision: CredentialRevision
     ) throws -> MediaShareCredentialEnvelope
     func add(_ account: Account, token: String) throws
+    func registerAuthenticatedSession(_ session: UserSession) throws -> AccountRegistration
     func addMediaShare(
         _ account: Account,
         credential: MediaShareCredentialEnvelope,
@@ -30,6 +31,11 @@ public protocol AccountPersisting: Sendable {
     func updateMediaShareLibrary(from descriptor: SyncedAccountDescriptor) throws -> Bool
     func updateServerAddresses(expected: Account, alternatives: [URL]) throws
     func updateServerMetadata(expected: Account, server: MediaServer) throws
+}
+
+public struct AccountRegistration: Sendable {
+    public let account: Account
+    public let previousAccount: Account?
 }
 
 public extension AccountPersisting {
@@ -362,6 +368,45 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
         }
     }
 
+    /// Reconnects an exact server/login without replacing the account ID referenced
+    /// by profiles, Plex Home bindings, libraries, and cached media.
+    public func registerAuthenticatedSession(_ session: UserSession) throws -> AccountRegistration {
+        Self.processMutationLock.lock()
+        defer { Self.processMutationLock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
+        defer { invalidateCredentialCacheAfterMutationLocked() }
+        let accounts = try persistedAccountsLockedThrowing()
+        var account = Account(id: Account.stableID(for: session), from: session)
+        let matchesIdentity: (Account) -> Bool = {
+            $0.server.provider == session.server.provider
+                && $0.server.id == session.server.id
+                && $0.userID == session.userID
+        }
+        let exact = accounts.first { $0.id == account.id }
+        if let exact, !matchesIdentity(exact) { throw AppError.conflict }
+        let hasKnownIdentity = !session.server.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !session.userID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let previous = exact ?? (hasKnownIdentity ? accounts.first(where: matchesIdentity) : nil)
+        if let previous {
+            account.id = previous.id
+            account.addedAt = previous.addedAt
+            account.server.alternateConnectionURLs = previous.server.alternateConnectionURLs
+        }
+        if account.server.provider == .mediaShare {
+            let credential = try legacySMBInputCredential(account: account, password: session.accessToken)
+            try addMediaShareLocked(account, credential: credential, generatedPrivateKey: nil)
+            guard let saved = try persistedAccountsLockedThrowing().first(where: { $0.id == account.id }) else {
+                throw AccountStoreError.mediaShareCredentialInvariantViolation
+            }
+            return AccountRegistration(account: saved, previousAccount: previous)
+        }
+        let saved = try addManagedAccountLocked(
+            account, token: session.accessToken, activate: previous == nil
+        )
+        return AccountRegistration(account: saved, previousAccount: previous)
+    }
+
     public func updateServerAddresses(expected: Account, alternatives: [URL]) throws {
         guard [.jellyfin, .emby, .plex, .silo].contains(expected.server.provider) else {
             throw AccountStoreError.metadataUpdatesUnavailable
@@ -507,12 +552,15 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
         }
     }
 
-    private func addManagedAccountLocked(_ account: Account, token: String) throws {
+    @discardableResult
+    private func addManagedAccountLocked(
+        _ account: Account, token: String, activate: Bool = true
+    ) throws -> Account {
         var accounts = try persistedAccountsLockedThrowing()
         var persistedAccount = account
         if let index = accounts.firstIndex(where: { $0.id == account.id }) {
             let existing = accounts[index]
-            let existingToken = secureStore.string(for: tokenKey(account.id))
+            let existingToken = try secureStore.readString(for: tokenKey(account.id))
             persistedAccount.credentialRevision = existingToken == token
                 ? existing.credentialRevision
                 : CredentialRevision()
@@ -522,8 +570,9 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
         }
         try secureStore.setString(token, for: tokenKey(account.id))
         try saveAccountsLocked(accounts)
-        addToActiveSetLocked(account.id, within: accounts)
+        if activate { addToActiveSetLocked(account.id, within: accounts) }
         PlozzLog.auth.info("Added account for user \(account.userName)")
+        return persistedAccount
     }
 
     private func addMediaShareLocked(

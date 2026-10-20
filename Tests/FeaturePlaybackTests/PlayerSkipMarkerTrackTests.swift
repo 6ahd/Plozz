@@ -39,7 +39,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         XCTAssertTrue(SkipMarkerTrackLayout.ranges(segments: segments, duration: 100).isEmpty)
     }
 
-    func testFlatPerformanceTrackKeepsSubduedFillAcrossAppAppearances() throws {
+    func testFlatPerformanceTrackUsesAStaticFillAcrossAppAppearances() throws {
         XCTAssertEqual(PlayerScrubTrackSurface.flatFillOpacity, 0.22)
         for height in [CGFloat(12), 20] {
             for scheme in [ColorScheme.light, .dark] {
@@ -57,7 +57,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
                             .background(background)
                     )
                     XCTAssertTrue(actual.bytes == reference.bytes,
-                                  "The fallback track must match the static 22% white fill at \(height)/\(scheme).")
+                                  "The fallback track uses the same static fill over video in either app appearance.")
                 }
             }
         }

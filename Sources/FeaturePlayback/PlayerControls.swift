@@ -152,6 +152,10 @@ struct PlayerControls: View {
         case subSync    // Subtitles header Sync (timing) button
     }
 
+    enum AudioScreen: Equatable {
+        case options, dialogue
+    }
+
     /// Sub-screens of the Subtitles panel. `tracks` is the default list; the
     /// header ✎ Edit opens `style`, and the trailing row opens `download`. The
     /// Style screen has its own detail sub-screens (`styleOutline` / `styleBackground`
@@ -192,6 +196,7 @@ struct PlayerControls: View {
     @State private var openPanel: Category?
     @State private var subtitleScreen: SubtitleScreen = .tracks
     @State private var playbackScreen: PlaybackScreen = .options
+    @State private var audioScreen: AudioScreen = .options
     @FocusState private var focus: FocusSlot?
 
     /// Side margin shared by the controls layer and its trailing options panels.
@@ -319,6 +324,9 @@ struct PlayerControls: View {
         // is nil for Info, so this can't fire for — or retime — the Info reveal.
         .animation(.easeInOut(duration: 0.2), value: optionsPanel)
         .animation(.spring(response: 0.22, dampingFraction: 0.72), value: model.skipGesture.hintVisible)
+        #if os(tvOS)
+        .observingSystemPlaybackAudio(model.systemAudio, isVisible: model.controlsVisible)
+        #endif
         .task {
             // The capture rig asking for a panel it cannot reach without the
             // remote. Set before the player was built, so one read is enough —
@@ -475,6 +483,7 @@ struct PlayerControls: View {
             model.controlBarActivity &+= 1
             subtitleScreen = .tracks
             playbackScreen = .options
+            audioScreen = .options
             guard let panel else {
                 // Panel fully closed. Reset the measured panel height so the next
                 // open snaps to its natural size instead of morphing from a stale
@@ -483,7 +492,14 @@ struct PlayerControls: View {
                 // Return focus to whatever transport control opened it (skip while
                 // the whole bar is hiding — focus is intentionally cleared then).
                 // Then let the title fade back in after a short beat.
-                if model.controlBarVisible { restoreFocus(panelReturnFocus) }
+                if model.controlBarVisible {
+                    if panelReturnFocus == .button(.audio), !model.hasAudioControls {
+                        if model.trackControlCategories.isEmpty { onExitToSurface() }
+                        else { restoreFocus(initialFocus) }
+                    } else {
+                        restoreFocus(panelReturnFocus)
+                    }
+                }
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(500))
                     if openPanel == nil { titleVisible = true }
@@ -1190,7 +1206,7 @@ struct PlayerControls: View {
                     close: { openPanel = nil }, backRequest: panelBackRequest,
                     maximumHeight: max(0, availableHeight - Self.horizontalMargin
                         - (styleEditing ? Self.horizontalMargin : menuBottomInset)),
-                    playbackScreen: $playbackScreen
+                    playbackScreen: $playbackScreen, audioScreen: $audioScreen
                 )
                 .reportSubtitleControlsFrame(
                     in: model.subtitleLayout, region: .menu, isVisible: model.controlsVisible && !styleEditing
@@ -1489,6 +1505,10 @@ struct PlayerControls: View {
         let subtitle: Text?
         let isSelected: Bool
         let isToggle: Bool
+        var isUpdating: Bool = false
+        var startsSection: Bool = false
+        var marqueeTitle: Bool = false
+        var submenu: PlayerOptionsRowSpec?
         var isExternal: Bool = false
         var facts: Text?
         var titleLineLimit: Int? = 1
@@ -1499,7 +1519,8 @@ struct PlayerControls: View {
     private func handleExit() {
         // Back returns from a submenu before closing its parent panel.
         if (openPanel == .subtitles && subtitleScreen != .tracks)
-            || (openPanel == .playback && playbackScreen != .options) {
+            || (openPanel == .playback && playbackScreen != .options)
+            || (openPanel == .audio && audioScreen != .options) {
             panelBackRequest &+= 1
             return
         }

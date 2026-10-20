@@ -2,6 +2,187 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/059.2",
+      "version": "2026.10.20",
+      "marketingVersion": "2026.9.25",
+      "build": "59.2",
+      "releasedAt": "2026-10-20",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            {
+              "text": "Adjust Reduce Loud Sounds and Enhance Dialogue, including Enhance More, from the Audio menu during videos and Live TV on supported Apple TV audio outputs.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            {
+              "text": "Long audio-track names scroll when focused.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release/059.1",
+      "version": "2026.10.20",
+      "marketingVersion": "2026.9.25",
+      "build": "59.1",
+      "releasedAt": "2026-10-20",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "Connect WeTrakr for watch tracking and watchlist sync.",
+            "Choose an external player for compatible videos on this device; unsupported sources stay in Plozz.",
+            {
+              "text": "Choose Apple's native player for compatible videos.",
+              "platforms": ["tvOS"]
+            },
+            "Use portrait posters, progress-only cards and separate labels in Continue Watching.",
+            "Choose whether Next Up merges into Continue Watching.",
+            "Find a Collections directory alongside Jellyfin and Emby libraries.",
+            {
+              "text": "Find the Mozz music-player beta in Settings.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Customize Home has clearer section pages, Add/Remove and Reorder actions.",
+            "Move Home sections straight to the top or bottom.",
+            {
+              "text": "Hold a remote direction to keep moving a Home section.",
+              "platforms": ["tvOS"]
+            },
+            "Jellyfin and Emby collections follow the server's own listings.",
+            "Refreshed glass playback controls with light/dark and reduced-effects support.",
+            "Choose versions automatically, with separate control over remembered series choices.",
+            "Version choices show readable filenames and richer picture, audio and size details.",
+            "Retry missing stream listings from title details.",
+            "IPTV playlists recognize more logo, channel-number and guide-ID fields.",
+            "Software-played live streams start closer to the live broadcast.",
+            {
+              "text": "Updated TrueHD Atmos detection and rendering on supported Apple TVs.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "DTS:X object audio uses compatible standard layouts; other layouts use channel audio.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Tap Home hero artwork to open details.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Manage season requests in a Seasons sheet from Home and title details.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Larger video and Live TV touch controls, with a roomier guide.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Cleaner scrubbing with larger previews and fewer overlapping controls.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Find supported audio and subtitle timing controls in the Subtitles sheet.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Device setup transfers show progress, completion and retry actions.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Signing in again to the same server and user creating a duplicate connection.",
+            "Missing server names in the detail-page Servers menu after repeated sign-ins.",
+            "Collection, playlist and folder covers cropping wide or square artwork.",
+            "Jellyfin/Emby collection browsing failing after brief connection interruptions.",
+            "Library refresh failures clearing loaded recommendations; errors now offer Details and Try Again.",
+            "Empty recommendations and broken alphabet navigation on compatible Jellyfin/Emby servers.",
+            "Jellyfin/Emby Home layouts failing when preferences are unset.",
+            "Missing progress indicators when servers supply only a resume position.",
+            "Version selection relying on stale or unavailable playback sources.",
+            "Automatic playback failing before it could try another available source.",
+            "Server/version menus closing while metadata finishes loading.",
+            "Incorrect filenames, sizes and audio languages for remote Jellyfin/Emby sources.",
+            "Watchlist changes losing their pending state after sync-state saving failures.",
+            "Device setup silently restarting instead of reporting failures and timeouts.",
+            "Jellyfin/Emby reconnects losing supported redirected server addresses.",
+            "Background server refreshes restoring removed accounts.",
+            "Cancelled Jellyfin/Emby sign-ins continuing as successful connections.",
+            "Silo sign-in failing after brief approval connection interruptions.",
+            "Incorrect Silo watched indicators, episode counts and resume progress.",
+            "IPTV imports rejecting XUI metadata, mixed-case directives or quoted headers.",
+            "Live playback recovery from temporary server limits and expired playlists.",
+            "Slow or encrypted HLS playback, and audio probing on connection-limited servers.",
+            "TrueHD startup and seeking failures.",
+            "Software playback starting before video is ready or giving up on slow-network seeks.",
+            {
+              "text": "Removed servers opening the wrong source, and title details colliding across servers.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Placeholder icons remaining over loaded posters.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Scrolling getting stuck in Hero customization.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Home heroes continuing to advance behind other screens or while inactive.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Settings-tab navigation becoming unresponsive.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "System appearance not following device changes in presented settings screens.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Non-native switches in playback and Live TV settings.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Playback controls getting stuck after interrupted scrubbing.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Playback timelines shifting as time labels change.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Subtitle placement around playback controls and unused landscape video height.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Playback orientation changing at the wrong time around version choices and sheets.",
+              "platforms": ["iOS"]
+            },
+            {
+              "text": "Live TV losing its playback orientation when opening a covering sheet.",
+              "platforms": ["iOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/059",
       "version": "2026.10.20",
       "marketingVersion": "2026.9.25",

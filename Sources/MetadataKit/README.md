@@ -70,6 +70,9 @@ load-bearing.
 [`GET /v4/media`](https://theintrodb.org/openapi.yaml), not the retired v3
 endpoint. Server markers retain priority by segment kind on TV and mobile.
 Lookups remain optional and cancellation prevents late publication.
+Both databases use `MetadataHTTP`, which sends the identifying
+`User-Agent: Plozz/1.0 (+https://github.com/thatcube/Plozz)` header.
+Request-level tests cover that header on TheIntroDB movie and episode lookups.
 
 TheIntroDB prefers TVDB identity, then TMDB/IMDb when ordering is unspecified.
 An episode's own TVDB ID is sent as `tvdb_episode_id`, never as the show's ID.

@@ -1,3 +1,4 @@
+import CoreImage
 import CoreModels
 import CoreUI
 #if os(tvOS)
@@ -363,13 +364,17 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     .frame(width: 900, height: 650)
                     #endif
                 } inspect: { window in
-                    let text = try await self.captureScrollContent(window, name: "Merge Next Up \(scheme) \(size)")
+                    let lines = try await self.capture(
+                        window, name: "Merge Next Up \(scheme) \(size)", scale: window.traitCollection.displayScale
+                    )
+                    let text = lines.map(\.0).joined(separator: " ")
                     XCTAssertTrue(text.contains("Merge Next Up rows"), text)
                     XCTAssertTrue(text.contains("next episodes"), text)
                     visibility.setGlobalRowEnabled(false, for: .continueWatching)
-                    let disabledText = try await self.captureScrollContent(
-                        window, name: "Merge Next Up with hidden Continue Watching"
+                    let disabled = try await self.capture(
+                        window, name: "Merge Next Up with hidden Continue Watching", scale: window.traitCollection.displayScale
                     )
+                    let disabledText = disabled.map(\.0).joined(separator: " ")
                     XCTAssertTrue(disabledText.contains("Add Continue Watching"), disabledText)
                 }
             }
@@ -1055,34 +1060,23 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         return image
     }
 
-    private func captureScrollContent(_ window: UIWindow, name: String) async throws -> String {
-        let image = try await snapshot(window, name: name, scale: window.screen.scale)
-        func scrollView(in view: UIView) -> UIScrollView? {
-            if let scroll = view as? UIScrollView { return scroll }
-            return view.subviews.lazy.compactMap { scrollView(in: $0) }.first
-        }
-        let scroll = try XCTUnwrap(scrollView(in: window))
-        let visibleContent = scroll.convert(CGRect(origin: .zero, size: scroll.contentSize), to: window)
-            .intersection(window.bounds)
-        // Keep the native pixels, but exclude the empty viewport from small-text recognition.
-        let crop = try XCTUnwrap(image.cgImage?.cropping(to: visibleContent.applying(
-            CGAffineTransform(scaleX: image.scale, y: image.scale)
-        ).integral))
-        return try recognizedText(in: crop).map(\.0).joined(separator: " ")
-    }
-
-    private func capture(_ window: UIWindow, name: String) async throws -> [(String, CGRect)] {
-        let image = try await snapshot(window, name: name)
-        return try recognizedText(in: XCTUnwrap(image.cgImage))
-    }
-
-    private func recognizedText(in image: CGImage) throws -> [(String, CGRect)] {
+    private func capture(_ window: UIWindow, name: String, scale: CGFloat = 1) async throws -> [(String, CGRect)] {
+        let image = try await snapshot(window, name: name, scale: scale)
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
-        try VNImageRequestHandler(cgImage: image).perform([request])
-        return (request.results ?? []).compactMap { result in
-            result.topCandidates(1).first.map { ($0.string, result.boundingBox) }
+        request.minimumTextHeight = 0.001
+        let original = try XCTUnwrap(image.cgImage)
+        var images = [original]
+        if scale > 1 {
+            let inverted = CIImage(cgImage: original).applyingFilter("CIColorInvert")
+            images.append(try XCTUnwrap(CIContext().createCGImage(inverted, from: inverted.extent)))
+        }
+        return try images.flatMap { image in
+            try VNImageRequestHandler(cgImage: image).perform([request])
+            return (request.results ?? []).compactMap { result in
+                result.topCandidates(1).first.map { ($0.string, result.boundingBox) }
+            }
         }
     }
 
