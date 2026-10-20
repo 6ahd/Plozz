@@ -9,7 +9,7 @@ import XCTest
 @MainActor
 final class PlayerVersionMenuHostedTests: XCTestCase {
     private struct NoSystemAudio: SystemPlaybackAudioControlling {
-        func read() -> [SystemPlaybackAudioSetting: Bool] { [:] }
+        func read() -> SystemPlaybackAudioState { .init(values: [:]) }
         func setEnabled(_ enabled: Bool, for setting: SystemPlaybackAudioSetting) throws {
             XCTFail("Version tests must not change system audio.")
             throw SystemPlaybackAudio.Failure.unavailable

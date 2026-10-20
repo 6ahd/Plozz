@@ -6,8 +6,8 @@ import Observation
 import SwiftUI
 
 enum SystemPlaybackAudioSetting: Int, CaseIterable {
-    case reduceLoudSounds = -100
     case enhanceDialogue = -101
+    case reduceLoudSounds = -100
 
     var title: LocalizedStringResource {
         switch self {
@@ -40,10 +40,54 @@ enum SystemPlaybackAudioSetting: Int, CaseIterable {
     }
 }
 
+enum SystemDialogueLevel: Int {
+    case off = 0, enhance = 1, enhanceMore = 2, isolate = 3
+
+    // Isolate has an additional Accessibility gate. Preserve its reported state,
+    // but don't offer it without a verified availability signal for that mode.
+    static let choices: [Self] = [.enhanceMore, .enhance, .off]
+
+    var title: LocalizedStringResource {
+        switch self {
+        case .off: "Off"
+        case .enhance: "Enhance"
+        case .enhanceMore: "Enhance More"
+        case .isolate: "Isolate"
+        }
+    }
+
+    static func effective(enabled: Bool, rawValue: Int?) -> Self {
+        guard enabled else { return .off }
+        guard let rawValue, let level = Self(rawValue: rawValue), level != .off else {
+            return .enhance
+        }
+        return level
+    }
+
+    var command: (name: Notification.Name, object: String?) {
+        if self == .off {
+            return (SystemPlaybackAudioSetting.enhanceDialogue.notification(enabled: false), nil)
+        }
+        return (.init("com.apple.TVPAudioVideoSettings.setEnhanceDialogueLevel"), String(rawValue))
+    }
+}
+
+struct SystemPlaybackAudioState: Equatable {
+    var values: [SystemPlaybackAudioSetting: Bool]
+    var dialogueLevel: SystemDialogueLevel? = nil
+}
+
 @MainActor
 protocol SystemPlaybackAudioControlling {
-    func read() -> [SystemPlaybackAudioSetting: Bool]
+    func read() -> SystemPlaybackAudioState
     func setEnabled(_ enabled: Bool, for setting: SystemPlaybackAudioSetting) throws
+    func setDialogueLevel(_ level: SystemDialogueLevel) throws
+}
+
+extension SystemPlaybackAudioControlling {
+    func setDialogueLevel(_ level: SystemDialogueLevel) throws {
+        throw SystemPlaybackAudio.Failure.unavailable
+    }
 }
 
 /// Undocumented tvOS integration: the system owns availability, processing and
@@ -56,11 +100,18 @@ struct SystemPlaybackAudioPreferences: SystemPlaybackAudioControlling {
         (NSClassFromString("NSDistributedNotificationCenter") as? NotificationCenter.Type)?.default
     }
 
-    func read() -> [SystemPlaybackAudioSetting: Bool] {
+    func read() -> SystemPlaybackAudioState {
         CFPreferencesAppSynchronize(domain)
-        return Self.availableValues(canPost: notificationCenter != nil) { key in
+        let values = Self.availableValues(canPost: notificationCenter != nil) { key in
             CFPreferencesGetAppBooleanValue(key as CFString, domain, nil)
         }
+        let offersLevels = values[.enhanceDialogue] != nil
+            && CFPreferencesGetAppBooleanValue("enhanceDialogueLevelsIsAvailable" as CFString, domain, nil)
+        let level = offersLevels ? SystemDialogueLevel.effective(
+            enabled: values[.enhanceDialogue] == true,
+            rawValue: CFPreferencesCopyAppValue("enhancedialoguelevel" as CFString, domain) as? Int
+        ) : nil
+        return SystemPlaybackAudioState(values: values, dialogueLevel: level)
     }
 
     static func availableValues(
@@ -75,10 +126,19 @@ struct SystemPlaybackAudioPreferences: SystemPlaybackAudioControlling {
     }
 
     func setEnabled(_ enabled: Bool, for setting: SystemPlaybackAudioSetting) throws {
-        guard let center = notificationCenter, read()[setting] != nil else {
+        guard let center = notificationCenter, read().values[setting] != nil else {
             throw SystemPlaybackAudio.Failure.unavailable
         }
         center.post(name: setting.notification(enabled: enabled), object: nil)
+    }
+
+    func setDialogueLevel(_ level: SystemDialogueLevel) throws {
+        guard SystemDialogueLevel.choices.contains(level), let center = notificationCenter,
+              read().dialogueLevel != nil else {
+            throw SystemPlaybackAudio.Failure.unavailable
+        }
+        let command = level.command
+        center.post(name: command.name, object: command.object)
     }
 }
 
@@ -92,14 +152,17 @@ final class SystemPlaybackAudio {
     static let shared = SystemPlaybackAudio(backend: SystemPlaybackAudioPreferences())
 
     private let backend: any SystemPlaybackAudioControlling
-    private(set) var values: [SystemPlaybackAudioSetting: Bool]
+    private(set) var state: SystemPlaybackAudioState
     private(set) var pending: Set<SystemPlaybackAudioSetting> = []
     var failure: Failure?
 
     init(backend: any SystemPlaybackAudioControlling) {
         self.backend = backend
-        values = backend.read()
+        state = backend.read()
     }
+
+    var values: [SystemPlaybackAudioSetting: Bool] { state.values }
+    var dialogueLevel: SystemDialogueLevel? { state.dialogueLevel }
 
     var availableSettings: [SystemPlaybackAudioSetting] {
         SystemPlaybackAudioSetting.allCases.filter { values[$0] != nil }
@@ -107,33 +170,55 @@ final class SystemPlaybackAudio {
 
     func refresh() {
         let latest = backend.read()
-        if latest != values { values = latest }
+        if latest != state { state = latest }
     }
 
     func setEnabled(_ enabled: Bool, for setting: SystemPlaybackAudioSetting) async {
+        await apply(setting, isSupported: { $0.values[setting] != nil },
+                    isConfirmed: { $0.values[setting] == enabled }) {
+            try backend.setEnabled(enabled, for: setting)
+        }
+    }
+
+    func setDialogueLevel(_ level: SystemDialogueLevel) async {
+        await apply(.enhanceDialogue, isSupported: {
+            $0.dialogueLevel != nil && SystemDialogueLevel.choices.contains(level)
+        }, isConfirmed: {
+            $0.dialogueLevel == level && $0.values[.enhanceDialogue] == (level != .off)
+        }) {
+            try backend.setDialogueLevel(level)
+        }
+    }
+
+    private func apply(
+        _ setting: SystemPlaybackAudioSetting,
+        isSupported: (SystemPlaybackAudioState) -> Bool,
+        isConfirmed: (SystemPlaybackAudioState) -> Bool,
+        send: () throws -> Void
+    ) async {
         guard !pending.contains(setting) else { return }
         failure = nil
         refresh()
-        guard let current = values[setting] else {
+        guard isSupported(state) else {
             report(.unavailable)
             return
         }
-        guard current != enabled else { return }
+        guard !isConfirmed(state) else { return }
         pending.insert(setting)
         defer { pending.remove(setting) }
         do {
             try Task.checkCancellation()
-            try backend.setEnabled(enabled, for: setting)
+            try send()
             // Posting is not acknowledgement. Keep the real checkmark until the
             // system confirms, including when the output changes during the wait.
             for _ in 0..<10 {
                 try await Task.sleep(for: .milliseconds(100))
                 refresh()
-                guard let current = values[setting] else {
+                guard isSupported(state) else {
                     report(.unavailable)
                     return
                 }
-                if current == enabled { return }
+                if isConfirmed(state) { return }
             }
             report(.unconfirmed)
         } catch is CancellationError {

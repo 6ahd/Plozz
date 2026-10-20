@@ -3,6 +3,15 @@ import SwiftUI
 import CoreUI
 import CoreModels
 
+struct PlayerOptionsDivider: View {
+    @Environment(\.plozzHDRDisplayActive) private var hdrDisplayActive
+
+    var body: some View {
+        Color.primary.opacity(hdrDisplayActive ? 0.10 : 0.16)
+            .frame(height: PlozzFrostedSurface.dividerHeight)
+    }
+}
+
 /// A reusable full-width column of selectable / toggle track rows, extracted from
 /// `PlayerControls`. Shared by the Subtitles track list and the Audio pane — both
 /// render the same compact rows (title, optional external badge / subtitle,
@@ -17,6 +26,12 @@ struct PlayerMenuRowStack: View {
     var body: some View {
         VStack(alignment: .leading, spacing: rows.contains { $0.versionPresentation != nil } ? 12 : 2) {
             ForEach(rows) { row in
+                if row.startsSection {
+                    PlayerOptionsDivider()
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .accessibilityHidden(true)
+                }
                 if let presentation = row.versionPresentation {
                     MediaVersionChoiceButton(
                         presentation: presentation,
@@ -26,6 +41,8 @@ struct PlayerMenuRowStack: View {
                     )
                     .accessibilityIdentifier("player-option-row-\(row.id)")
                     .focused($focus, equals: .row(row.id))
+                } else if let submenu = row.submenu {
+                    PlayerOptionsRow(row: submenu, palette: palette, focus: $focus, titleLineLimit: 2)
                 } else if row.isToggle {
                     compactToggleRow(row)
                 } else {
@@ -39,9 +56,15 @@ struct PlayerMenuRowStack: View {
         Button(action: row.action) {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    row.title
-                        .font(.body)
-                        .lineLimit(row.titleLineLimit)
+                    #if os(tvOS)
+                    if row.marqueeTitle {
+                        MarqueeText(text: row.title)
+                    } else {
+                        row.title.font(.body).lineLimit(row.titleLineLimit)
+                    }
+                    #else
+                    row.title.font(.body).lineLimit(row.titleLineLimit)
+                    #endif
                     if let facts = row.facts {
                         facts
                             .font(.caption2)

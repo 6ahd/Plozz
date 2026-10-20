@@ -69,12 +69,22 @@ On tvOS, the shared Audio menu offers **Reduce Loud Sounds** and **Enhance
 Dialogue** when Apple TV reports support for the current output. These are
 Apple TV-wide settings, not profile preferences or engine capabilities; VOD and
 Live TV share one system-backed state, even with only one audio track.
+Adjustments appear above the track list, separated by the shared panel divider
+only when both groups are present. Long audio labels reuse the focus-driven player
+menu marquee, preserving localized `Text` and the Reduce Motion fallback.
 `SystemPlaybackAudio` uses the undocumented sound-preferences/distributed-
 notification bridge, fails closed when it is unavailable, and requires bounded
 state readback before showing a changed selection. Controls refresh while visible,
 on route changes and on foreground return. No preference is changed on startup,
 profile changes, or teardown, and Plozz never writes the system preference domain.
-The binary dialogue control leaves dialogue-strength selection to Apple TV.
+When tvOS reports dialogue-level support, **Enhance Dialogue** opens the existing
+player-style submenu with **Enhance More**, **Enhance**, and **Off**. Outputs with
+binary-only support keep a toggle. The tvOS Audio menu and its submenu use a
+580-point width so the default English title and level fit on one line, without
+widening other menus. A level change must confirm both enablement
+and the requested strength; Back returns to the Audio menu. An existing Isolate
+state is displayed accurately but is not offered without a verified signal for
+its additional Accessibility gate.
 This does not configure audio sessions, decoding, channel layouts, Atmos, Spatial
 Audio or head tracking. System processing and its audible effect still depend on
 the output/content; availability and preference acknowledgement are not proof of

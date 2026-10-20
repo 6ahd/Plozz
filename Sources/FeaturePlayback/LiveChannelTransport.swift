@@ -114,6 +114,7 @@ struct LiveChannelOverlay: View {
     @State private var trackOptions = PlayerControlsModel()
     @State private var subtitleScreen: PlayerControls.SubtitleScreen = .tracks
     @State private var playbackScreen: PlayerControls.PlaybackScreen = .options
+    @State private var audioScreen: PlayerControls.AudioScreen = .options
     @State private var nativePlaybackMenuPresented = false
     @State private var showsCustomZoom = false
     @State private var panelHeights: [PlayerControls.Category: CGFloat] = [:]
@@ -575,7 +576,7 @@ struct LiveChannelOverlay: View {
             // A live channel draws one subtitle line.
             offersDualSubtitles: false,
             playbackScreen: $playbackScreen, videoZoom: tracks.videoZoom,
-            offersPlaybackSpeed: false
+            offersPlaybackSpeed: false, audioScreen: $audioScreen
         )
         .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .menu, isVisible: !styleEditing)
         .id(kind)
@@ -1218,6 +1219,7 @@ struct LiveChannelOverlay: View {
         menuReturnFocus = focus ?? kind.control
         subtitleScreen = .tracks
         playbackScreen = .options
+        audioScreen = .options
         openMenu = kind
         // After tvOS's own default-focus pass over the new rows — see
         // `PlayerControls.restoreFocus`.
@@ -1242,13 +1244,15 @@ struct LiveChannelOverlay: View {
         menuReturnFocus = nil
         subtitleScreen = .tracks
         playbackScreen = .options
+        audioScreen = .options
         DispatchQueue.main.async { focus = returnFocus }
     }
 
     private func handleExit() {
         if cancelPendingScrub() { return }
         if (openMenu == .subtitles && subtitleScreen != .tracks)
-            || (openMenu == .playback && playbackScreen != .options) {
+            || (openMenu == .playback && playbackScreen != .options)
+            || (openMenu == .audio && audioScreen != .options) {
             panelBackRequest &+= 1
         } else if openMenu != nil {
             closeMenu()
