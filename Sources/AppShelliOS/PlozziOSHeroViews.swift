@@ -288,14 +288,9 @@ struct PlozziOSHeroRequest {
     var isRequesting: Bool
     var actingName: String?
     var onRequest: (MediaItem) -> Void
-    /// For a **series**: the loaded Seerr season-request availability (nil while it
-    /// loads), plus per-season request/refresh callbacks. Series never fall back to
-    /// a whole-title request while coverage is unresolved.
+    /// The current season summary. The shared Seasons sheet owns per-season actions.
     var seasonAvailability: MediaRequestAvailability? = nil
-    var onRequestSeasons: (([Int]) -> Void)? = nil
-    var seasonRefreshFailed = false
-    var onRefreshSeasons: (() -> Void)? = nil
-    /// Detail pages reuse their season manager rather than opening a second request flow.
+    /// Home and detail heroes open the same season manager.
     var onOpenSeasonRequests: (() -> Void)? = nil
 }
 
@@ -325,50 +320,6 @@ struct PlozziOSHeroRequestButton: View {
             }
             .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary))
             .accessibilityHint("Choose seasons and review their request status.")
-        } else if showsSeasonRequestControl,
-           let onRequestSeasons = request.onRequestSeasons {
-            if let availability = request.seasonAvailability {
-                let presentation = SeasonRequestPresentation(
-                    availability: availability,
-                    isSubmitting: request.isRequesting
-                )
-                let accessibilityHint =
-                    presentation.detail
-                    ?? "Choose seasons and review their request status."
-                let accessibilityHintText = request.actingName.map {
-                    Text(
-                        "Requests as \($0). Choose seasons and review their request status."
-                    )
-                } ?? Text(accessibilityHint)
-                Menu {
-                    SeasonRequestMenuContent(
-                        availability: availability,
-                        isSubmitting: request.isRequesting,
-                        refreshFailed: request.seasonRefreshFailed,
-                        onRefresh: request.onRefreshSeasons,
-                        onRequest: onRequestSeasons
-                    )
-                } label: {
-                    PlozziOSSeasonRequestSummaryLabel(
-                        presentation: presentation
-                    )
-                }
-                .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary))
-                .accessibilityLabel(Text(presentation.title))
-                .accessibilityHint(accessibilityHintText)
-            } else if request.seasonRefreshFailed,
-                      let onRefreshSeasons = request.onRefreshSeasons {
-                Button(action: onRefreshSeasons) {
-                    Label("Retry Season Status", systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary))
-            } else {
-                Button {} label: {
-                    Label("Loading Seasons…", systemImage: "clock")
-                }
-                .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary))
-                .disabled(true)
-            }
         } else {
             switch request.cta {
             case .request:
@@ -402,18 +353,6 @@ struct PlozziOSHeroRequestButton: View {
             case .play, .unavailable:
                 EmptyView()
             }
-        }
-    }
-
-    private var showsSeasonRequestControl: Bool {
-        guard item.kind == .series, request.onRequestSeasons != nil else {
-            return false
-        }
-        switch request.cta {
-        case .play:
-            return false
-        case .request, .requested, .downloading, .unavailable:
-            return true
         }
     }
 
@@ -2542,6 +2481,7 @@ struct PlozziOSHeroActionButtonStyle: PrimitiveButtonStyle {
         } else {
             Button(role: configuration.role, action: configuration.trigger) {
                 configuration.label
+                    .tint(kind == .primary ? palette.backgroundBase : palette.primaryText)
             }
             .buttonStyle(TouchHeroActionButtonStyle(
                 kind: kind, circular: circular, minimumWidth: minimumWidth

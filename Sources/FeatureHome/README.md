@@ -177,6 +177,13 @@ and omitted from the current picker rather than blocking a confirmed primary.
   tint and contrasting label; secondary actions use untinted glass. The existing
   solid styles remain on older systems and when transparency/panel glass is reduced.
   Native controls own the glass and press treatment; tvOS and multiview are unchanged.
+  Request Seasons is a primary button, not a dropdown. Home and request-only
+  detail heroes open the same Seasons sheet with per-season status, Request All
+  Missing, refresh/retry and the active request identity. Unknown/loading status
+  still opens that sheet; failures never enable a whole-series request.
+  Home pauses hero navigation/auto-advance while the sheet is open, dismisses it
+  when the request profile/server changes, and presents confirmations/errors in
+  the sheet without bypassing the existing request-context checks.
 - **Collections hero source** — an opt-in source mixes individual movies and
   shows from multiple account-qualified collections across libraries, not collection cards. TV and
   mobile use the same `MediaProvider.collectionMembers` loader and existing

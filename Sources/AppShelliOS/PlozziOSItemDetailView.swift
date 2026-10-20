@@ -392,27 +392,43 @@ private struct PlozziOSCanonicalItemDetailView: View {
         }
         .plozzSheet(isPresented: $presentsSeriesDownloads) {
             if let detail = viewModel.state.value {
-                PlozziOSSeriesDownloadPicker(
-                    series: detail.item,
-                    seasons: detail.children.filter { $0.kind == .season },
-                    looseEpisodes: detail.children.filter { $0.kind == .episode },
-                    viewModel: viewModel,
-                    presentation: seriesDownloadPresentation(for: detail),
-                    seasonRequestAvailability: currentSeasonRequestAvailability(for: detail),
-                    isRequestingSeasons: isRequesting,
-                    isRefreshingSeasons: seasonRequestScope == seasonRequestScopeKey(for: detail)
-                        && isRefreshingSeasonRequests,
-                    seasonRequestRefreshFailed: currentSeasonRequestRefreshFailed(for: detail),
-                    requestActingName: appModel.activeSeerrRequestActingName,
-                    onRefreshSeasonRequests: { seasonRequestRetryToken &+= 1 },
-                    onRequestSeasons: { beginRequest(detail.item, seasons: $0) },
-                    onDownloadBatch: downloadBatch,
-                    onDownloadSeason: downloadSeason,
-                    onDownloadEpisode: downloadEpisode
-                )
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .modifier(requestPresentation(inDownloadSheet: true))
+                if !seriesDownloadPresentation(for: detail).hasLibraryDownloads,
+                   seriesDownloadPresentation(for: detail).canRequestSeasons {
+                    PlozziOSSeasonRequestSheet(
+                        series: detail.item,
+                        availability: currentSeasonRequestAvailability(for: detail),
+                        isRequesting: isRequesting,
+                        isRefreshing: seasonRequestScope == seasonRequestScopeKey(for: detail)
+                            && isRefreshingSeasonRequests,
+                        refreshFailed: currentSeasonRequestRefreshFailed(for: detail),
+                        actingName: appModel.activeSeerrRequestActingName,
+                        onRefresh: { seasonRequestRetryToken &+= 1 },
+                        onRequest: { beginRequest(detail.item, seasons: $0) }
+                    )
+                    .modifier(requestPresentation(inDownloadSheet: true))
+                } else {
+                    PlozziOSSeriesDownloadPicker(
+                        series: detail.item,
+                        seasons: detail.children.filter { $0.kind == .season },
+                        looseEpisodes: detail.children.filter { $0.kind == .episode },
+                        viewModel: viewModel,
+                        presentation: seriesDownloadPresentation(for: detail),
+                        seasonRequestAvailability: currentSeasonRequestAvailability(for: detail),
+                        isRequestingSeasons: isRequesting,
+                        isRefreshingSeasons: seasonRequestScope == seasonRequestScopeKey(for: detail)
+                            && isRefreshingSeasonRequests,
+                        seasonRequestRefreshFailed: currentSeasonRequestRefreshFailed(for: detail),
+                        requestActingName: appModel.activeSeerrRequestActingName,
+                        onRefreshSeasonRequests: { seasonRequestRetryToken &+= 1 },
+                        onRequestSeasons: { beginRequest(detail.item, seasons: $0) },
+                        onDownloadBatch: downloadBatch,
+                        onDownloadSeason: downloadSeason,
+                        onDownloadEpisode: downloadEpisode
+                    )
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+                    .modifier(requestPresentation(inDownloadSheet: true))
+                }
             }
         }
         .onChange(of: presentsSeriesDownloads) { _, isPresented in
@@ -1504,7 +1520,7 @@ private struct PlozziOSRequestAction: View {
     }
 }
 
-private struct PlozziOSRequestPresentation: ViewModifier {
+struct PlozziOSRequestPresentation: ViewModifier {
     @Binding var presentsDownloads: Bool
     let isSheet: Bool
     @Binding var error: LocalizedStringResource?
@@ -1512,13 +1528,14 @@ private struct PlozziOSRequestPresentation: ViewModifier {
     @Binding var confirmationSeasons: [Int]?
     @Binding var confirmationContext: String?
     let onConfirm: (MediaItem, [Int]?, String) -> Void
+    var errorTitle = Text(verbatim: "Seerr")
 
     private var isEnabled: Bool { presentsDownloads == isSheet }
 
     func body(content: Content) -> some View {
         content
             .alert(
-                Text(verbatim: "Seerr"),
+                errorTitle,
                 isPresented: Binding(
                     get: { isEnabled && error != nil },
                     set: { if isEnabled && !$0 { error = nil } }
@@ -2034,17 +2051,10 @@ private struct PlozziOSSeriesDownloadPicker: View {
             } label: {
                 PlozziOSSeasonDownloadRow(row: row, series: series, viewModel: viewModel)
             }
-        } else if row.canRequest, let number = row.number {
-            Button {
-                onRequestSeasons([number])
-            } label: {
-                PlozziOSSeasonDownloadRow(row: row, series: series, viewModel: viewModel)
-            }
-            .buttonStyle(.plain)
-            .disabled(isRequestingSeasons)
-            .accessibilityLabel(Text("Request \(Text(row.title))"))
         } else {
-            PlozziOSSeasonDownloadRow(row: row, series: series, viewModel: viewModel)
+            PlozziOSSeasonRequestRow(
+                row: row, isRequesting: isRequestingSeasons, onRequest: onRequestSeasons
+            )
         }
     }
 

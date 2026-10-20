@@ -1,4 +1,5 @@
 #if os(iOS)
+import CoreModels
 import CoreUI
 import SwiftUI
 import UIKit
@@ -7,6 +8,31 @@ import XCTest
 
 @MainActor
 final class HeroGlassButtonPresentationTests: XCTestCase {
+    func testSeasonRequestButtonKeepsItsPrimaryContainerAcrossAvailabilityStates() {
+        let item = MediaItem(id: "series", title: "Series", kind: .series)
+        let availability = MediaRequestAvailability(status: .unknown, seasons: [
+            .init(number: 1, title: "Season 1", status: .unknown),
+            .init(number: 2, title: "Season 2", status: .unknown)
+        ])
+        let detail = PlozziOSHeroRequestButton(item: item, request: .init(
+            cta: .request, isRequesting: false, onRequest: { _ in },
+            seasonAvailability: availability, onOpenSeasonRequests: {}
+        ))
+        for reduced in [false, true] {
+            let buttonSize = measure(detail.environment(\.plozzReduceTransparency, reduced), width: 400)
+            for availability in [nil, availability] {
+                let home = PlozziOSHeroRequestButton(item: item, request: .init(
+                    cta: .request, isRequesting: false, onRequest: { _ in },
+                    seasonAvailability: availability, onOpenSeasonRequests: {}
+                ))
+                let homeSize = measure(home.environment(\.plozzReduceTransparency, reduced), width: 400)
+                XCTAssertGreaterThanOrEqual(homeSize.height, 48, "The season manager action needs its primary container.")
+                XCTAssertEqual(homeSize.height, buttonSize.height, accuracy: 1)
+                XCTAssertGreaterThan(homeSize.width, 180)
+            }
+        }
+    }
+
     func testCircularGlassRetainsItsTouchTargetAtEveryTextSize() {
         for size in [DynamicTypeSize.large, .xxxLarge, .accessibility3, .accessibility5] {
             let button = Button {} label: { Image(systemName: "bookmark") }

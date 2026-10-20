@@ -137,10 +137,12 @@ struct PlozziOSHomeView: View {
     @State private var heroRequestConfirmSeasons: [Int]?
     @State private var heroRequestConfirmContext: String?
     @State private var heroRequestError: LocalizedStringResource?
+    @State private var heroSeasonRequestItem: MediaItem?
     @State private var heroSeasonRequestStates: [String: SeasonRequestState] = [:]
     @State private var heroSeasonRequestContext: String?
     @State private var heroSeasonLookupFailures: Set<String> = []
     @State private var heroSeasonLookupIDs: [String: UUID] = [:]
+    @State private var heroSeasonRefreshingKeys: Set<String> = []
     @State private var watchlistIntentRevision = 0
     @State private var discoveryIdentityRevision = 0
     @State private var homeHasAppeared = false
@@ -369,52 +371,42 @@ struct PlozziOSHomeView: View {
             play: { item, seconds in playForScreenshot(item, seconds: seconds) },
             dismiss: { playbackRequest = nil }
         ))
-        .alert(
-            "Request as Administrator?",
-            isPresented: Binding(
-                get: { heroRequestConfirmItem != nil },
-                set: {
-                    if !$0 {
-                        heroRequestConfirmItem = nil
-                        heroRequestConfirmSeasons = nil
-                    }
-                }
+        .plozzSheet(item: $heroSeasonRequestItem) { item in
+            PlozziOSSeasonRequestSheet(
+                series: item,
+                availability: heroSeasonRequestStates[heroSeasonRequestKey(for: item)]?.availability,
+                isRequesting: isRequestingHero,
+                isRefreshing: heroSeasonRefreshingKeys.contains(heroSeasonRequestKey(for: item)),
+                refreshFailed: heroSeasonLookupFailures.contains(heroSeasonRequestKey(for: item)),
+                actingName: appModel.activeSeerrRequestActingName,
+                onRefresh: { Task { await refreshHeroSeasonAvailability(for: item) } },
+                onRequest: { beginHeroSeasonRequest(item, $0) }
             )
-        ) {
-            Button("Request as Administrator") {
-                guard let item = heroRequestConfirmItem,
-                      let context = heroRequestConfirmContext else { return }
-                let seasons = heroRequestConfirmSeasons
-                heroRequestConfirmItem = nil
-                heroRequestConfirmSeasons = nil
-                Task { await requestFromHero(item, seasons: seasons, context: context) }
-            }
-            Button("Cancel", role: .cancel) {
-                heroRequestConfirmItem = nil
-                heroRequestConfirmSeasons = nil
-            }
-        } message: {
-            Text(
-                """
-                This profile isn’t linked to a Seerr user. \
-                The request will use the unrestricted administrator account.
-                """
-            )
+            .modifier(heroRequestPresentation(inSheet: true))
+            .task { await refreshHeroSeasonAvailability(for: item) }
         }
+        .modifier(heroRequestPresentation(inSheet: false))
         .onChange(of: appModel.plozziOSSeasonRequestContextID) { _, _ in
             ensureHeroSeasonRequestContext()
         }
-        .alert(
-            "Request Failed",
-            isPresented: Binding(
-                get: { heroRequestError != nil },
-                set: { if !$0 { heroRequestError = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            heroRequestError.map { Text($0) } ?? Text(verbatim: "")
-        }
+    }
+
+    private func heroRequestPresentation(inSheet: Bool) -> PlozziOSRequestPresentation {
+        PlozziOSRequestPresentation(
+            presentsDownloads: Binding(
+                get: { heroSeasonRequestItem != nil },
+                set: { if !$0 { heroSeasonRequestItem = nil } }
+            ),
+            isSheet: inSheet,
+            error: $heroRequestError,
+            confirmationItem: $heroRequestConfirmItem,
+            confirmationSeasons: $heroRequestConfirmSeasons,
+            confirmationContext: $heroRequestConfirmContext,
+            onConfirm: { item, seasons, context in
+                Task { await requestFromHero(item, seasons: seasons, context: context) }
+            },
+            errorTitle: Text("Request Failed")
+        )
     }
 
     private func toggleTrailerMute() {
@@ -498,7 +490,10 @@ struct PlozziOSHomeView: View {
                     isRequesting: isRequestingHero,
                     requestStatus: { heroRequestStatuses[$0.id] },
                     onRequest: beginHeroRequest,
-                    onRequestSeasons: beginHeroSeasonRequest,
+                    onOpenSeasonRequests: { item in
+                        ensureHeroSeasonRequestContext()
+                        heroSeasonRequestItem = item
+                    },
                     seasonRequestState: {
                         heroSeasonRequestContext
                             == appModel.plozziOSSeasonRequestContextID
@@ -506,13 +501,6 @@ struct PlozziOSHomeView: View {
                                 heroSeasonRequestKey(for: $0)
                             ]
                             : nil
-                    },
-                    seasonRefreshFailed: {
-                        heroSeasonRequestContext
-                            == appModel.plozziOSSeasonRequestContextID
-                            && heroSeasonLookupFailures.contains(
-                                heroSeasonRequestKey(for: $0)
-                            )
                     },
                     onRefreshSeasonRequests: {
                         await refreshHeroSeasonAvailability(for: $0)
@@ -523,7 +511,7 @@ struct PlozziOSHomeView: View {
                     identityIndexRevision: discoveryIdentityRevision,
                     isFrontmost: homeIsFrontmost && homeHasAppeared
                         && playbackRequest == nil && heroRequestConfirmItem == nil
-                        && heroRequestError == nil,
+                        && heroRequestError == nil && heroSeasonRequestItem == nil,
                     pullModel: heroPullModel
                 )
                 .environment(\.plozzArtworkArea, .home)
@@ -939,6 +927,8 @@ struct PlozziOSHomeView: View {
         heroSeasonRequestStates = [:]
         heroSeasonLookupFailures = []
         heroSeasonLookupIDs = [:]
+        heroSeasonRefreshingKeys = []
+        heroSeasonRequestItem = nil
         heroRequestConfirmItem = nil
         heroRequestConfirmSeasons = nil
         heroRequestConfirmContext = nil
@@ -957,15 +947,22 @@ struct PlozziOSHomeView: View {
               appModel.seerService.isConfigured else {
             return false
         }
+        heroSeasonRefreshingKeys.insert(itemKey)
+        defer {
+            if heroSeasonLookupIDs[itemKey] == lookupID {
+                heroSeasonRefreshingKeys.remove(itemKey)
+            }
+        }
         let availability = await appModel.seerService
             .requestAvailability(for: item)
         guard !Task.isCancelled,
               heroSeasonRequestContext == context,
               appModel.plozziOSSeasonRequestContextID == context,
               heroSeasonLookupIDs[itemKey] == lookupID,
-              heroItems.contains(where: {
+              (heroSeasonRequestItem.map { heroSeasonRequestKey(for: $0) == itemKey } == true
+                || heroItems.contains(where: {
                   heroSeasonRequestKey(for: $0) == itemKey
-              }) else {
+              })) else {
             return false
         }
         guard let availability else {
@@ -1278,11 +1275,8 @@ struct PlozziOSHomeHeroCarousel: View {
     var isRequesting: Bool = false
     var requestStatus: (MediaItem) -> MediaAvailabilityStatus? = { _ in nil }
     var onRequest: ((MediaItem) -> Void)?
-    /// Per-season request handler for a featured **series** (item, chosen season
-    /// numbers). When set, the series Request CTA becomes a season-picker menu.
-    var onRequestSeasons: ((MediaItem, [Int]) -> Void)?
+    var onOpenSeasonRequests: ((MediaItem) -> Void)?
     var seasonRequestState: (MediaItem) -> SeasonRequestState? = { _ in nil }
-    var seasonRefreshFailed: (MediaItem) -> Bool = { _ in false }
     var onRefreshSeasonRequests: ((MediaItem) async -> Bool)?
     /// Reports the slides on screen, so a background curation can fold new media
     /// in without displacing what the viewer is looking at (see `HeroLiveMerge`).
@@ -1653,8 +1647,8 @@ struct PlozziOSHomeHeroCarousel: View {
             return
         }
         repeat {
-            _ = await onRefreshSeasonRequests(item)
-            guard !seasonRefreshFailed(item),
+            let refreshed = await onRefreshSeasonRequests(item)
+            guard refreshed,
                   seasonRequestState(item)?.availability?.seasons
                     .contains(where: \.isInFlight) == true,
                   !Task.isCancelled else {
@@ -1720,9 +1714,8 @@ struct PlozziOSHomeHeroCarousel: View {
     }
 
     /// Request CTA descriptor for a discovery **movie or series** hero. Movies get
-    /// a one-tap whole-title Request; series get a season-picker menu (once their
-    /// availability has loaded) so you choose which seasons to request. `nil` for
-    /// in-library items and other kinds, so those keep the normal Play / More Info.
+    /// a one-tap whole-title Request; series open the shared Seasons sheet.
+    /// In-library items keep their normal playback actions.
     private func heroRequest(for item: MediaItem) -> PlozziOSHeroRequest? {
         // Asked through the one shared classifier rather than the availability flag
         // alone: a hero the index can resolve to an owned copy must keep Play and
@@ -1756,19 +1749,8 @@ struct PlozziOSHomeHeroCarousel: View {
             actingName: appModel.activeSeerrRequestActingName,
             onRequest: onRequest,
             seasonAvailability: seasonState?.availability,
-            onRequestSeasons: (
-                supportsSeasonRequests ? onRequestSeasons : nil
-            ).map { handler in
-                { seasons in
-                    handler(item, seasons)
-                }
-            },
-            seasonRefreshFailed:
-                supportsSeasonRequests && seasonRefreshFailed(item),
-            onRefreshSeasons: supportsSeasonRequests ? {
-                guard let onRefreshSeasonRequests else { return }
-                Task { _ = await onRefreshSeasonRequests(item) }
-            } : nil
+            onOpenSeasonRequests: (supportsSeasonRequests ? onOpenSeasonRequests : nil)
+                .map { handler in { handler(item) } }
         )
     }
 

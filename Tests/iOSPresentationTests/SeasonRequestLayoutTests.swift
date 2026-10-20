@@ -90,7 +90,7 @@ final class SeasonRequestLayoutTests: XCTestCase {
     private var request: PlozziOSHeroRequest {
         .init(
             cta: .requested, isRequesting: false, actingName: nil, onRequest: { _ in },
-            seasonAvailability: availability, onRequestSeasons: { _ in },
+            seasonAvailability: availability,
             onOpenSeasonRequests: {}
         )
     }
