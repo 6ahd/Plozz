@@ -80,6 +80,19 @@ remain intact. Ordinary Home Next Up requests continue excluding resumable
 episodes. This does not bypass excluded libraries or change server-owned
 minimum-resume thresholds.
 
+AIOStreams is the explicit exception to library-filtered Home history. Its
+`/System/Info/Public` extension (`aiostreams.features.history`) identifies
+account-wide watch state that cannot be attributed to its virtual catalogs.
+For that verified server identity, combined Continue Watching, resume-only Home,
+and account-wide native Resume/Next Up rows stay unfiltered even when some or all
+catalogs are disabled. Returned history is not stamped with an invented library.
+Catalog visibility still controls browsing and catalog-specific rows; active
+account, server-user, and profile boundaries remain unchanged.
+Ordinary Jellyfin/Emby retain library filtering. Empty feeds, display names,
+URLs, and advertised Jellyfin version numbers never enable this exception.
+Capability results are kept only for the current provider session; a missing
+endpoint retains ordinary scoping, while other failures and cancellation propagate.
+
 Home recommendations are opt-in individual rows on every platform. Their Home
 identity is the recommendation type and its occurrence within that type, not
 the changing baseline movie title or category ID. This keeps a hidden

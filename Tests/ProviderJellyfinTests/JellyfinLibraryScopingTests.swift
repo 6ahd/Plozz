@@ -8,7 +8,7 @@ import CoreNetworking
 /// and Home-filters — items by fetching **scoped per library** via `ParentId`
 /// and stamping each result's `libraryID`. These pin down: the scoped path sends
 /// `ParentId`, stamps `libraryID`, the unscoped path (nil) leaves it nil
-/// (fail-open) and sends no `ParentId`, and an empty scope short-circuits.
+/// (fail-open) and sends no `ParentId`, and an empty scope never requests history.
 final class JellyfinLibraryScopingTests: XCTestCase {
     private func makeSession() -> UserSession {
         UserSession(
@@ -324,13 +324,14 @@ final class JellyfinLibraryScopingTests: XCTestCase {
                       "Unscoped fetch must not send a ParentId")
     }
 
-    func testEmptyScopeReturnsNothingWithoutRequesting() async throws {
+    func testEmptyScopeReturnsNothingWithoutRequestingHistory() async throws {
         let stub = StubHTTPClient()
         let provider = JellyfinProvider(session: makeSession(), http: stub)
 
         let items = try await provider.continueWatching(limit: 10, inLibraries: [])
         XCTAssertTrue(items.isEmpty, "Hiding every library must yield an empty row")
-        XCTAssertTrue(stub.sentPaths.isEmpty, "An empty scope must short-circuit before any request")
+        XCTAssertEqual(stub.sentPaths, ["/System/Info/Public"],
+                       "An ordinary server's empty scope must not request history after capability discovery.")
     }
 
     func testUnlimitedScopedContinueWatchingPagesWithinParentLibrary() async throws {
