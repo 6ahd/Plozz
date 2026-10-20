@@ -14,7 +14,13 @@ final class DetailReturnFocusRemoteTests: XCTestCase {
         try checkRelatedEntry(arguments: [], hasRelated: true)
     }
 
-    private func checkRelatedEntry(arguments: [String], hasRelated: Bool) throws {
+    func testRapidPassThroughEpisodesPreservesTheBrowsedEpisode() throws {
+        try checkRelatedEntry(arguments: [], hasRelated: true, passesThroughHero: true)
+    }
+
+    private func checkRelatedEntry(
+        arguments: [String], hasRelated: Bool, passesThroughHero: Bool = false
+    ) throws {
         continueAfterFailure = false
         for style in ["system", "highlight", "outlined"] {
             let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
@@ -37,12 +43,28 @@ final class DetailReturnFocusRemoteTests: XCTestCase {
                 NSPredicate(format: "label CONTAINS %@", nextRow)
             ).firstMatch.waitForExistence(timeout: 10))
             let focused = app.descendants(matching: .any).matching(focus).firstMatch
-            for horizontalMoves in [0, 2, 1, 5] {
-                for _ in 0..<horizontalMoves { XCUIRemote.shared.press(.right) }
+            let horizontalMoves = passesThroughHero ? [0, 0, 3, 0] : [0, 2, 1, 5]
+            for (roundTrip, moves) in horizontalMoves.enumerated() {
+                for _ in 0..<moves { XCUIRemote.shared.press(.right) }
                 assertSeriesRowFocused("Fixture Episode", in: app)
+                let episodeNumber = roundTrip < 2 ? 1 : 4
+                let rememberedEpisode = "E\(episodeNumber) · Fixture Episode \(episodeNumber),"
+                if passesThroughHero { assertSeriesRowFocused(rememberedEpisode, in: app) }
                 XCUIRemote.shared.press(.down)
                 assertSeriesRowFocused(nextRow, in: app)
                 assertSeriesFocusVisible(focused, in: app)
+                if passesThroughHero {
+                    for _ in 0..<(roundTrip % 3) { XCUIRemote.shared.press(.right) }
+                    XCUIRemote.shared.press(.up)
+                    XCUIRemote.shared.press(.up)
+                    XCUIRemote.shared.press(.up)
+                    XCTAssertTrue(play.hasFocus, "Rapid Up must reach the hero.")
+                    XCUIRemote.shared.press(.down)
+                    if app.buttons["Season 2"].hasFocus { XCUIRemote.shared.press(.down) }
+                    assertSeriesRowFocused(rememberedEpisode, in: app)
+                    assertSeriesFocusVisible(focused, in: app)
+                    continue
+                }
                 XCUIRemote.shared.press(.up)
                 assertSeriesRowFocused("Fixture Episode", in: app)
                 assertSeriesFocusVisible(focused, in: app)

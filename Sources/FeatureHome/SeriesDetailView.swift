@@ -1145,7 +1145,9 @@ struct SeriesDetailView: View {
             precedingContainerIDs: precedingSeasonIDs,
             episodeEntry: MediaRowEpisodeEntry(
                 phase: episodeEntryPhase,
-                isActive: browserEntry == .hero || seasonBarEngaged,
+                // Returning through a different Related column must not replace
+                // the browsed episode with the geometrically nearest card.
+                isActive: browserEntry == .hero || seasonBarEngaged || !browserHoldsFocus,
                 isEnabled: !holdsHeroFocusDuringEntrance,
                 onPlaceholderFocus: {
                     // Entering a loading slot is not an explicit choice of a

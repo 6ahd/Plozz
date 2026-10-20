@@ -332,6 +332,10 @@ and omitted from the current picker rather than blocking a confirmed primary.
   A populated Related rail owns a full-width native focus section, so Down from
   a horizontally distant episode reaches even a single Related card before
   Cast. Empty and loading Related rows add no focus stop.
+  Leaving for lower details also re-arms the episode entry gate. Returning
+  through a different Related column, even while rapidly passing through to
+  the hero, preserves the last browsed episode instead of remembering a
+  geometrically closer card encountered in transit.
   The compact logo above Seasons fits wholly inside its 200pt slot, including
   tall wordmarks; it does not use the full hero's flexible height allowance.
   This changes only artwork sizing, not season/episode focus geometry.

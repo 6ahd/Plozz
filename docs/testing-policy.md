@@ -946,9 +946,16 @@ horizontally scrolled episode positions with one or three Related cards and a
 competing Cast row. Every populated Related row must receive focus before Cast;
 an empty Related row must allow direct Cast entry. Both directions and all card
 focus styles are covered.
+`testRapidPassThroughEpisodesPreservesTheBrowsedEpisode` moves among Related
+columns, immediately sends three Up presses through Episodes and Seasons to the
+hero, then returns Down. Across every focus style, actual native focus must
+return to Episode 1 (then a deliberately browsed Episode 4), rather than
+replacing its remembered selection with Episode 2 during the upward pass.
+Remote calls in the reproduction arrive about 220ms apart, before the page
+animations finish.
 System Reduce Motion must reach the same destination without the full-page animation.
-The same production test samples the rail's presented position after completion:
-it must stay within one point of its final position. Checking page offset alone
+The production browser-layout test also samples the rail's presented position
+after completion: it must stay within one point of its final position. Checking page offset alone
 misses the spring's measured 7–8.5pt post-completion movement of the whole browser.
 
 `NativePosterComparisonTests` is an opt-in, simulator-only comparison, enabled by
