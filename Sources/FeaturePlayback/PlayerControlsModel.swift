@@ -561,7 +561,19 @@ public final class PlayerControlsModel {
     /// against the observable surface, so they cost nothing here.
     public let upNextCard = UpNextModel()
 
-    public init() {}
+    #if os(tvOS)
+    let systemAudio: SystemPlaybackAudio
+
+    init(systemAudio: SystemPlaybackAudio) {
+        self.systemAudio = systemAudio
+    }
+    #endif
+
+    public init() {
+        #if os(tvOS)
+        systemAudio = .shared
+        #endif
+    }
 
     /// Where the transport playhead should render: the scrub target while
     /// scrubbing, otherwise the live position.
@@ -578,7 +590,12 @@ public final class PlayerControlsModel {
     }
 
     public var hasSelectableAudio: Bool { audioOptions.count > 1 }
-    public var hasAudioControls: Bool { hasSelectableAudio || engineCapabilities.contains(.dialogEnhance) }
+    public var hasAudioControls: Bool {
+        #if os(tvOS)
+        if !systemAudio.availableSettings.isEmpty { return true }
+        #endif
+        return hasSelectableAudio || engineCapabilities.contains(.dialogEnhance)
+    }
     public var hasSelectableSubtitles: Bool { !subtitleOptions.isEmpty }
 
     /// The skippable segment whose window currently contains the live position,

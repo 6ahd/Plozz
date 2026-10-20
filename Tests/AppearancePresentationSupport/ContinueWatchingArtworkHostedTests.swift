@@ -326,13 +326,24 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
                 ) { Color.green }
                 .frame(width: 160, height: 90)
             )
-            XCTAssertNotNil(renderer.uiImage, "Rendering must not need an asynchronous view load.")
+            let expected = preference == .library ? 0 : 2
+            let firstPaint = try XCTUnwrap(renderer.uiImage)
+            XCTAssertGreaterThan(try artworkPixels(firstPaint).colors[expected], 500,
+                                 "The resolver must paint the prepared winner without an asynchronous image load.")
             for cardStyle in [CardStyle.borderless, .framed] {
                 try await withCard(fixture.item, store: store, style: cardStyle, settings: policy.settings) { window in
-                    let expected = preference == .library ? 0 : 2
+                    #if os(tvOS)
+                    if cardStyle == .borderless {
+                        // Native artwork composition is asynchronous even when its source bitmap is prepared.
+                        try await waitUntil {
+                            guard let image = self.nativePoster(in: window)?.image else { return false }
+                            return try self.artworkPixels(image).colors[expected] > 500
+                        }
+                    }
+                    #endif
                     XCTAssertGreaterThan(
                         try coloredPixels(window)[expected], 500,
-                        "Prepared first paint: \(preference) / \(cardStyle)"
+                        "Prepared card winner: \(preference) / \(cardStyle)"
                     )
                 }
             }

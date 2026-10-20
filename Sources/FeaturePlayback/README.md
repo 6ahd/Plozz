@@ -65,6 +65,32 @@ bounded language-match/accessibility flags without track titles or URLs.
 
 ## Player appearance
 
+On tvOS, the shared Audio menu offers **Reduce Loud Sounds** and **Enhance
+Dialogue** when Apple TV reports support for the current output. These are
+Apple TV-wide settings, not profile preferences or engine capabilities; VOD and
+Live TV share one system-backed state, even with only one audio track.
+Adjustments appear above the track list, separated by the shared panel divider
+only when both groups are present. Long audio labels reuse the focus-driven player
+menu marquee, preserving localized `Text` and the Reduce Motion fallback.
+`SystemPlaybackAudio` uses the undocumented sound-preferences/distributed-
+notification bridge, fails closed when it is unavailable, and requires bounded
+state readback before showing a changed selection. Controls refresh while visible,
+on route changes and on foreground return. No preference is changed on startup,
+profile changes, or teardown, and Plozz never writes the system preference domain.
+When tvOS reports dialogue-level support, **Enhance Dialogue** opens the existing
+player-style submenu with **Enhance More**, **Enhance**, and **Off**. Outputs with
+binary-only support keep a toggle. The tvOS Audio menu and its submenu use a
+580-point width so the default English title and level fit on one line, without
+widening other menus. A level change must confirm both enablement
+and the requested strength; Back returns to the Audio menu. An existing Isolate
+state is displayed accurately but is not offered without a verified signal for
+its additional Accessibility gate.
+This does not configure audio sessions, decoding, channel layouts, Atmos, Spatial
+Audio or head tracking. System processing and its audible effect still depend on
+the output/content; availability and preference acknowledgement are not proof of
+processing for every engine route. Undocumented integration carries OS
+compatibility and App Review risk. iOS/iPadOS controls are unchanged.
+
 Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
 without tint or a colored backing. Like AVKit video chrome, their symbols and
 progress remain white in both appearances. The controls scrim dims the video
@@ -283,7 +309,10 @@ The actual presented UIKit hosting controller owns on-demand orientations.
 Expanded Live TV uses the same policy through a window-scoped owner without
 moving or recreating the playing view. Collapsing the player or leaving Live TV
 releases that owner and restores the preceding guide orientation when a forced
-preference was used. Auto continues to follow system rotation. No restriction is
+preference was used. Native options menus and Custom zoom controls retain the
+expanded player's window restriction, including when a presentation temporarily
+covers its embedded owner; only removing that owner ends its policy.
+Auto continues to follow system rotation. No restriction is
 applied to other windows, the ordinary guide, or inactive profiles.
 iPad follows system rotation and offers no app orientation control, preserving
 multitasking. iPadOS refuses forced Portrait/Landscape changes in multitasking

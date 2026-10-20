@@ -28,6 +28,11 @@ final class PlayerOptionsPanelIntegrationTests: XCTestCase {
         XCTAssertEqual(PlayerOptionsPanel.width(for: .subtitles, subtitleScreen: .download), 860)
         XCTAssertEqual(PlayerOptionsPanel.width(for: .version, subtitleScreen: .tracks), 860)
         XCTAssertEqual(PlayerOptionsPanel.width(for: .playback, subtitleScreen: .tracks), 520)
+        #if os(tvOS)
+        XCTAssertEqual(PlayerOptionsPanel.width(for: .audio, subtitleScreen: .tracks), 580)
+        #else
+        XCTAssertEqual(PlayerOptionsPanel.width(for: .audio, subtitleScreen: .tracks), 520)
+        #endif
         XCTAssertEqual(
             String(localized: PlayerOptionsPanel.headerTitle(for: .playback, subtitleScreen: .tracks, playbackScreen: .zoom)),
             String(localized: LocalizedStringResource("Zoom Mode"))
@@ -107,7 +112,7 @@ final class PlayerOptionsPanelIntegrationTests: XCTestCase {
     }
 
     func testTrackRowsAndFocusRemainCapabilityDrivenForBothHosts() {
-        let model = PlayerControlsModel()
+        let model = controlsWithoutSystemAudio()
         var pickedAudio: [Int] = []
         var pickedSubtitle: [Int] = []
         var dialogEnhance: [Bool] = []

@@ -72,6 +72,14 @@ recommendation shelves per library. Resume-only Home requests do not call Next
 Up; disabled Next Up rows are not fetched. Other consumers of `continueWatching`
 retain the existing combined feed and its independent-endpoint failure handling.
 
+Series-specific resume lookups allow resumable `/Shows/NextUp` candidates.
+Compatible bridges can return an empty series-scoped `/Items/Resume` even when
+their account-wide feed contains the saved episode. The existing two scoped
+requests still suffice: exact series matching and Resume-first deduplication
+remain intact. Ordinary Home Next Up requests continue excluding resumable
+episodes. This does not bypass excluded libraries or change server-owned
+minimum-resume thresholds.
+
 Home recommendations are opt-in individual rows on every platform. Their Home
 identity is the recommendation type and its occurrence within that type, not
 the changing baseline movie title or category ID. This keeps a hidden
