@@ -107,7 +107,7 @@ final class PlayerOptionsPanelIntegrationTests: XCTestCase {
     }
 
     func testTrackRowsAndFocusRemainCapabilityDrivenForBothHosts() {
-        let model = PlayerControlsModel()
+        let model = controlsWithoutSystemAudio()
         var pickedAudio: [Int] = []
         var pickedSubtitle: [Int] = []
         var dialogEnhance: [Bool] = []

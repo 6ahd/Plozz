@@ -94,15 +94,23 @@ struct PlayerMenuRowStack: View {
                     }
                 }
                 Spacer(minLength: 8)
-                Image(systemName: row.isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.body)
-                    .playerMenuRowMark(isSelected: row.isSelected, accent: palette.accent)
+                if row.isUpdating {
+                    ProgressView()
+                } else {
+                    Image(systemName: row.isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.body)
+                        .playerMenuRowMark(isSelected: row.isSelected, accent: palette.accent)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
         .buttonStyle(PlayerMenuRowButtonStyle())
+        #if os(tvOS)
+        .accessibilityIdentifier("player-option-row-\(row.id)")
+        .accessibilityValue(row.isUpdating ? Text("Updating") : (row.isSelected ? Text("On") : Text("Off")))
+        #endif
         .focusEffectDisabled()
         .focused($focus, equals: .row(row.id))
     }
@@ -116,15 +124,30 @@ struct AudioPaneView: View {
     let rows: [PlayerControls.TrackRow]
     let palette: ThemePalette
     @FocusState.Binding var focus: PlayerControls.FocusSlot?
+    let close: () -> Void
 
     @ViewBuilder
     var body: some View {
         if rows.isEmpty {
+            #if os(tvOS)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("No audio controls available")
+                    .font(.title3)
+                    .plozzForeground(.secondary)
+                Button("Back", action: close)
+                    .buttonStyle(PlayerMenuRowButtonStyle())
+                    .focusEffectDisabled()
+                    .focused($focus, equals: .subBack)
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 16)
+            #else
             Text("No alternate audio")
                 .font(.title3)
                 .plozzForeground(.secondary)
                 .padding(.horizontal, 28)
                 .padding(.vertical, 16)
+            #endif
         } else {
             PlayerMenuRowStack(rows: rows, palette: palette, focus: $focus)
                 .padding(.horizontal, 14)

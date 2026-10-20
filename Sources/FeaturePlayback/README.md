@@ -65,6 +65,22 @@ bounded language-match/accessibility flags without track titles or URLs.
 
 ## Player appearance
 
+On tvOS, the shared Audio menu offers **Reduce Loud Sounds** and **Enhance
+Dialogue** when Apple TV reports support for the current output. These are
+Apple TV-wide settings, not profile preferences or engine capabilities; VOD and
+Live TV share one system-backed state, even with only one audio track.
+`SystemPlaybackAudio` uses the undocumented sound-preferences/distributed-
+notification bridge, fails closed when it is unavailable, and requires bounded
+state readback before showing a changed selection. Controls refresh while visible,
+on route changes and on foreground return. No preference is changed on startup,
+profile changes, or teardown, and Plozz never writes the system preference domain.
+The binary dialogue control leaves dialogue-strength selection to Apple TV.
+This does not configure audio sessions, decoding, channel layouts, Atmos, Spatial
+Audio or head tracking. System processing and its audible effect still depend on
+the output/content; availability and preference acknowledgement are not proof of
+processing for every engine route. Undocumented integration carries OS
+compatibility and App Review risk. iOS/iPadOS controls are unchanged.
+
 Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
 without tint or a colored backing. Like AVKit video chrome, their symbols and
 progress remain white in both appearances. The controls scrim dims the video

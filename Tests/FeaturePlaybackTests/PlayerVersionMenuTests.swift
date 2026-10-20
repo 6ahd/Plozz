@@ -6,7 +6,7 @@ import XCTest
 @MainActor
 final class PlayerVersionMenuTests: XCTestCase {
     func testVersionControlAppearsOnlyForRealAlternativesAndPreservesOtherControls() {
-        let controls = PlayerControlsModel()
+        let controls = controlsWithoutSystemAudio()
         controls.engineCapabilities = [.playbackSpeed]
         XCTAssertEqual(controls.trackControlCategories, [.playback])
         controls.versions.options = [

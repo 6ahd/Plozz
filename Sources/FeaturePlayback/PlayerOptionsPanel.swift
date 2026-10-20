@@ -91,6 +91,28 @@ struct PlayerOptionsPanel: View {
     var body: some View {
         morphingPanel(for: category)
             .onAppear { reconcileSubtitleScreen() }
+            #if os(tvOS)
+            .onAppear {
+                if category == .audio { model.systemAudio.refresh() }
+            }
+            .onChange(of: model.systemAudio.availableSettings) { _, _ in
+                guard category == .audio else { return }
+                let rows = Self.audioRows(model: model, actions: actions)
+                if case let .row(id) = focus, !rows.contains(where: { $0.id == id }) {
+                    restoreFocus(rows.first.map { .row($0.id) } ?? .subBack)
+                } else if focus == .subBack, let first = rows.first {
+                    restoreFocus(.row(first.id))
+                }
+            }
+            .alert("Couldn't change audio setting", isPresented: Binding(
+                get: { category == .audio && model.systemAudio.failure != nil },
+                set: { if !$0 { model.systemAudio.failure = nil } }
+            )) {
+                Button("OK", role: .cancel) { model.systemAudio.failure = nil }
+            } message: {
+                Text("Try changing this setting in Apple TV Settings.")
+            }
+            #endif
             .onChange(of: model.subtitleStyleAdjustable) { _, _ in reconcileSubtitleScreen() }
             .onChange(of: backRequest) { _, _ in
                 if category == .subtitles, subtitleScreen != .tracks {
@@ -181,7 +203,14 @@ struct PlayerOptionsPanel: View {
                 return .row(PlaybackOptionsPane.speedSlot)
             }
             return nil
-        case .audio, .version:
+        case .audio:
+            #if os(tvOS)
+            return audioRows(model: model, actions: PlayerOptionsActions()).isEmpty
+                ? .subBack : .row(selectedRowIndex(for: panel, model: model))
+            #else
+            return .row(selectedRowIndex(for: panel, model: model))
+            #endif
+        case .version:
             return .row(selectedRowIndex(for: panel, model: model))
         case .sync:
             if model.engineCapabilities.contains(.audioDelay) { return .row(0) }
@@ -405,7 +434,9 @@ struct PlayerOptionsPanel: View {
             }
             .padding(.horizontal, 14)
         case .subtitles: subtitleBody
-        case .audio: AudioPaneView(rows: Self.audioRows(model: model, actions: actions), palette: palette, focus: $focus)
+        case .audio: AudioPaneView(
+            rows: Self.audioRows(model: model, actions: actions), palette: palette, focus: $focus, close: close
+        )
         case .playback:
             PlaybackOptionsPane(
                 model: model, zoom: videoZoom, palette: palette, actions: actions,
@@ -704,8 +735,8 @@ struct PlayerOptionsPanel: View {
         }
     }
 
-    /// Audio menu rows: selectable tracks followed by the Dialog Enhance toggle
-    /// when supported. A single track is not an actionable menu row.
+    /// A single track is metadata, not an action. System controls remain separate
+    /// from any engine-local effect and use stable IDs across track-list changes.
     static func audioRows(model: PlayerControlsModel, actions: PlayerOptionsActions) -> [TrackRow] {
         var rows: [TrackRow] = []
         var index = 0
@@ -733,6 +764,24 @@ struct PlayerOptionsPanel: View {
             ))
             index += 1
         }
+        #if os(tvOS)
+        let audio = model.systemAudio
+        for setting in audio.availableSettings {
+            let enabled = audio.values[setting] == true
+            rows.append(TrackRow(
+                id: setting.rawValue,
+                header: nil,
+                title: Text(setting.title),
+                subtitle: Text("Applies across Apple TV"),
+                isSelected: enabled,
+                isToggle: true,
+                isUpdating: audio.pending.contains(setting),
+                action: {
+                    Task { await audio.setEnabled(!enabled, for: setting) }
+                }
+            ))
+        }
+        #endif
         return rows
     }
 
@@ -767,7 +816,8 @@ struct PlayerOptionsPanel: View {
             // Open focused on the active subtitle (incl. "Off"), else the top row.
             return subtitleRows(model: model, actions: actions).first(where: { $0.isSelected })?.id ?? 0
         case .audio:
-            return audioRows(model: model, actions: actions).first(where: { $0.isSelected })?.id ?? 0
+            let rows = audioRows(model: model, actions: actions)
+            return rows.first(where: { $0.isSelected })?.id ?? rows.first?.id ?? 0
         case .playback:
             return model.engineCapabilities.contains(.videoZoom) ? PlaybackOptionsPane.zoomSlot : PlaybackOptionsPane.speedSlot
         case .sync:

@@ -8,6 +8,14 @@ import XCTest
 
 @MainActor
 final class PlayerVersionMenuHostedTests: XCTestCase {
+    private struct NoSystemAudio: SystemPlaybackAudioControlling {
+        func read() -> [SystemPlaybackAudioSetting: Bool] { [:] }
+        func setEnabled(_ enabled: Bool, for setting: SystemPlaybackAudioSetting) throws {
+            XCTFail("Version tests must not change system audio.")
+            throw SystemPlaybackAudio.Failure.unavailable
+        }
+    }
+
     func testDetailVersionPanelShowsTheSameRichFactsWithNativeFocus() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
@@ -79,7 +87,7 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
-        let model = PlayerControlsModel()
+        let model = PlayerControlsModel(systemAudio: SystemPlaybackAudio(backend: NoSystemAudio()))
         model.controlsVisible = true
         model.versions.options = [
             .init(version: .init(id: "1080", fileName: "Movie-1080.mkv", edition: "Theatrical", height: 1080), isSelected: false),
