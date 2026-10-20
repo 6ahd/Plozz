@@ -388,9 +388,9 @@ public struct MyLibrariesDetailView: View {
                     title: { $0.library.displayName },
                     bordered: false,
                     flushLeading: false,
-                    isChecked: { scope.homeVisibility.isEnabled($0.key) },
+                    isChecked: { scope.homeVisibility.isVisibleOnHome($0) },
                     onToggle: { lib in
-                        scope.homeVisibility.setEnabled(!scope.homeVisibility.isEnabled(lib.key), for: lib.key)
+                        scope.homeVisibility.setEnabled(!scope.homeVisibility.isVisibleOnHome(lib), for: lib.key)
                     }
                 )
             }

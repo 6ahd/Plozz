@@ -542,7 +542,7 @@ struct PlaybackDetailView: View {
         [
             SettingsSplitRow(
                 id: "version-selection", title: "Version selection",
-                description: "Ask before each multi-version video, including autoplay, or remember your choice for each movie or series."
+                description: "Ask before each multi-version video, including autoplay, or choose automatically without opening the version picker."
             ) {
                 #if os(tvOS)
                 SettingsControlRows {
@@ -562,6 +562,13 @@ struct PlaybackDetailView: View {
                 #else
                 PlaybackVersionPreferencePicker(model: playback)
                 #endif
+            },
+            SettingsSplitRow(
+                id: "remember-series-version", title: "Remember series version choices",
+                description: "Reuse the version type you pick for later episodes. When choosing automatically, use the best available version if that type is missing."
+            ) {
+                Toggle("Remember per series", isOn: $playback.settings.rememberVersionPerSeries)
+                    .accessibilityIdentifier("playback-remember-series-version")
             }
         ]
     }

@@ -479,7 +479,7 @@ final class HomeViewModelSnapshotHydrationTests: XCTestCase {
         XCTAssertEqual(afterCancellation, beforeCancellation)
     }
 
-    func testFirstDetailCanResumeBeforeOtherServersAndHomeMetadataFinish() async {
+    func testFirstDetailCanResumeBeforeOtherServersAndHomeMetadataFinish() async throws {
         for merged in [true, false] {
             let show = MediaItem(id: "show", title: "Show", kind: .series, sourceAccountID: "fast")
             let episode = MediaItem(
@@ -514,7 +514,7 @@ final class HomeViewModelSnapshotHydrationTests: XCTestCase {
                 crossServerSourceResolver: nil,
                 continueWatchingSnapshot: { home.continueWatchingForDetail }
             )
-            let detail = environment.makeViewModel(for: show, libraryOrigin: nil)
+            let detail = try environment.makeViewModel(for: show, libraryOrigin: nil)
             XCTAssertEqual(detail.serverResumeEpisode?.id, episode.id, "merged=\(merged)")
             XCTAssertEqual(detail.serverResumeEpisode?.resumePosition, 867)
             home.applyWatchedState(MediaItemMutation(

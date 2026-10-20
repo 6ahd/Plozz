@@ -322,15 +322,20 @@ struct HomeRowPresetPicker: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 8) {
-                Text("Preset")
+                presetLabel
+                #if os(iOS)
+                Spacer(minLength: 12)
+                #endif
                 picker
                     #if os(iOS)
                     .fixedSize()
                     #endif
             }
+                #if !os(iOS)
                 .fixedSize(horizontal: true, vertical: false)
+                #endif
             VStack(alignment: .leading, spacing: 4) {
-                Text("Preset")
+                presetLabel
                 picker.fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -359,6 +364,15 @@ struct HomeRowPresetPicker: View {
         }
     }
 
+    private var presetLabel: some View {
+        Text("Preset")
+            #if os(iOS)
+            .font(.subheadline.weight(.semibold))
+            .settingsRowSecondary()
+            .fixedSize()
+            #endif
+    }
+
     @ViewBuilder private var picker: some View {
         #if os(iOS)
         Menu {
@@ -370,9 +384,12 @@ struct HomeRowPresetPicker: View {
                     .font(.caption2.weight(.semibold))
                     .accessibilityHidden(true)
             }
-            .frame(minHeight: 44)
+            .font(.subheadline.weight(.semibold))
+            .padding(.vertical, 6)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.capsule)
+        .frame(minHeight: 44)
         .accessibilityLabel(Text("Preset"))
         .accessibilityValue(currentTitle)
         .accessibilityIdentifier("home-row-preset")

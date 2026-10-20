@@ -85,7 +85,7 @@ struct PlozziOSLibrarySelectionView: View {
                             library.library.title,
                             isOn: Binding(
                                 get: {
-                                    visibility.isEnabled(library.key)
+                                    visibility.isVisibleOnHome(library.key, library: library.library)
                                 },
                                 set: {
                                     visibility.setEnabled($0, for: library.key)

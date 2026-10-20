@@ -456,6 +456,14 @@ struct SeriesDetailView: View {
                             seasonLoadState: (selectedSeasonID ?? seasons.first?.id)
                                 .map { viewModel.seasonLoadState(for: $0) }
                         ),
+                        onRetryPlaybackInventory: playTarget.flatMap { target in
+                            viewModel.hasNoPlaybackStreams(for: target) ? {
+                                Task { await viewModel.retryPlaybackInventory(for: target) }
+                            } : nil
+                        },
+                        isRetryingPlaybackInventory: playTarget.map {
+                            viewModel.isRetryingPlaybackInventory(for: $0)
+                        } ?? false,
                         playProgress: playTarget?.resumeProgressFraction,
                         playRemainingText: playTarget?.resumeRemainingText,
                         playSeasonEpisodeText: playTarget.flatMap { HeroForegroundModelBuilder.seasonEpisodeButtonText(for: $0) },
@@ -1464,6 +1472,7 @@ struct SeriesDetailView: View {
     /// this show in 4K", and every later episode matches the same shape.
     private func selectVersion(_ id: String) {
         versionOverride = id
+        guard versionPreferences.remembersSeriesVersions else { return }
         guard let target = playTarget,
               let version = playVersions.first(where: { $0.id == id }) else {
             if let target = playTarget {

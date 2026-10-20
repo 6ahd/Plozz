@@ -123,7 +123,7 @@ struct ViewCustomizationList<Content: View>: View {
     @Environment(\.themePalette) private var palette
     @FocusState private var focusedRow: String?
     @State private var hasEnteredList = false
-    @State private var topFadeHeight: CGFloat = 0
+    @State private var topFadeStrength: CGFloat = 0
     @Namespace private var focusScope
 
     var body: some View {
@@ -184,15 +184,17 @@ struct ViewCustomizationList<Content: View>: View {
             .contentMargins(.bottom, help == nil ? 0 : 40, for: .scrollContent)
             .scrollClipDisabled()
             .mask {
+                // Keep mask geometry stable while native focus scrolls the controls.
                 VerticalEdgeFadeMask(
-                    topFade: topFadeHeight, bottomFade: help == nil ? 0 : 40, horizontalOverhang: 20
+                    fadeHeight: 40, topStrength: topFadeStrength,
+                    bottomStrength: help == nil ? 0 : 1, horizontalOverhang: 20
                 )
                 .ignoresSafeArea(.container, edges: help == nil ? .vertical : .top)
             }
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                min(40, max(0, geometry.contentOffset.y + geometry.contentInsets.top))
-            } action: { _, height in
-                topFadeHeight = height
+                min(1, max(0, (geometry.contentOffset.y + geometry.contentInsets.top) / 40))
+            } action: { _, strength in
+                topFadeStrength = strength
             }
             .accessibilityIdentifier("view-customization-scroll")
             if let help {

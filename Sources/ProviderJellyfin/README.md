@@ -83,9 +83,49 @@ row IDs across refreshes. Existing string IDs are unchanged; null or absent IDs
 retain the provider's recommendation-type/subject fallback. Malformed values
 still fail decoding rather than silently removing recommendations or errors.
 
+The movie-recommendation decoder also accepts the compatible bridge's verified
+empty query-result shape: exactly `Items: []`, `TotalRecordCount: 0`, and
+`StartIndex: 0`. This means no recommendation shelves, not a failed library.
+Canonical category arrays remain unchanged. Missing/null fields, contradictory
+counts, error or additional keys, and nonempty envelopes still fail with Details:
+the observed empty response does not establish a populated-envelope contract.
+The compatibility path adds no request, cache, or capability override; a later
+refresh can return normal categories, and cancellation continues to propagate.
+
 `JellyfinLibraryScopingTests` uses backend-specific recommendation fixtures and
 covers full Int64 boundaries, exact IDs above 2^53, malformed IDs, library scope,
-and stable category identity after rows are reordered.
+stable category identity after rows are reordered, and strict empty-envelope
+compatibility with refresh and cancellation.
+
+## Library alphabet navigation
+
+The A–Z index first requests the library's total with `Limit=0`. A valid response
+that nevertheless contains items establishes that the endpoint does not honor
+count-only queries. Plozz logs that unsupported capability and omits the index
+without a retry message or the remaining 27 letter requests. Ordinary browsing,
+catalog order and paging are unchanged on mobile and TV.
+
+Servers can honor `Limit=0` while ignoring alphabet predicates. Before the
+remaining letter fan-out, Plozz compares `NameLessThan=Z` and `NameStartsWith=Z`
+with the total. If both disjoint queries return the entire nonempty library,
+alphabet filtering is unsupported and the rail is omitted after three requests.
+The probe counts are reused for supported indexes, retaining 28 requests overall.
+This does not scan or cap the library; empty, all-Z and non-Latin libraries remain
+valid. The compatibility result is logged without server or library identifiers.
+
+This handles virtual catalogs without matching profile names, hosts or server
+branding. For example, [AIOStreams' library handler](https://github.com/Viren070/AIOStreams/blob/6ca32ed21e3036d87c35c49b24f2cf507d065ed1/packages/server/src/routes/jellyfin/library.ts)
+clamps `Limit` to at least one, preserves catalog order and does not implement
+`NameLessThan`/`NameStartsWith` counts. Its page totals are not alphabet offsets.
+The result applies only to that scoped request; another library or refresh can
+still supply an index. No unsupported flag is persisted on the profile/account.
+
+Native Jellyfin/Emby count-only responses retain bounded letter queries and
+ascending/descending offsets. Apart from the exact ignored-predicate pattern
+above, missing, negative or contradictory counts, invalid JSON,
+authorization/transport failures, and cancellation are still errors, not evidence
+that the capability is unsupported. Rejected counts retain secret-safe numeric
+diagnostics so a response failure can be distinguished from unsupported behavior.
 
 ## Music
 
@@ -110,6 +150,62 @@ and Emby. Universal-profile syntax is defined by released Jellyfin's
 [`UniversalAudioController`](https://github.com/jellyfin/jellyfin/blob/v10.11.0/Jellyfin.Api/Controllers/UniversalAudioController.cs).
 
 ## Playback negotiation
+
+Remote-source descriptions can explicitly declare a file size while the bridge's
+structured `Size` field contains a conflicting value derived from another field.
+For remote sources only, one unambiguous byte-unit size in the source description
+owns the displayed/mapped file size and version sorting. Decimal GB/MB and French
+Go/Mo are distinct from bitrate tokens such as Mb/Mbps; binary GiB/MiB keep their
+binary multipliers. Filenames, locators, and conflicting size declarations are not
+size evidence. Local sources retain the structured byte count, and raw source
+revisions/IDs/playback locators are unchanged.
+
+Remote descriptions may also explicitly name languages that the bridge omits
+from `MediaStreams`. Dedicated fields such as `🌍 French | Multi | English`
+supplement the same source's display-language inventory before playback, on
+detail pages, and in the player. Named languages are deduplicated against the
+structured codes; `Multi` is not counted. Local files keep their stream metadata.
+The bridge's compact `🇫🇷 🇨🇦 🇬🇧 ✓ • 💾 87,8 Go` and globe-prefixed variant
+also carry language flags. Those explicit headers supply French/English before
+playback; the Canadian variant does not become a third language. Flag parsing
+requires the compact header's size-field shape; arbitrary country/subtitle
+labels and filenames are not language evidence.
+Description languages never create selectable audio tracks, change playback
+preferences, override codecs, or leak into other versions.
+
+Remote movie/episode detail responses sometimes expose one generic source while
+`GET /Items/{id}/PlaybackInfo?UserId=...` contains the actual inventory. During
+browsing, only that explicitly remote single-source case requests the inventory. Each
+version retains its original source ID and its own technical/audio-language
+facts; generic item streams must not overwrite the real default source.
+The playback gate uses `playbackItem(id:)`, which always requests this inventory
+for movies and episodes and requires it to succeed. Add-on servers can resolve
+their streams lazily at this endpoint; item-detail source counts and `IsRemote`
+flags do not establish completeness, even after an earlier playback.
+Browsing can retain lightweight metadata after a failed inventory request, but
+playback cannot mistake that fallback for a confirmed single-version title.
+Both paths use GETs without selecting or starting a source. Missing or duplicate
+IDs and unsupported/failed inventory requests block playback through its error
+presentation while leaving browsing available. Cancellation still propagates.
+An explicitly remote source whose ID is the item ID and whose description starts
+with the bridge's `No streams · ` marker is a negative lookup, not a file. It is
+excluded from inventories and rejected before creating a playback locator, even
+when the bridge supplies invented tracks and direct-play support. Ordinary file
+names and local files are not classified by loose keyword matching.
+An all-placeholder inventory throws `StreamingQualityError.noStreams`, distinct
+from a missing item, malformed response or connection failure. Detail pages can
+therefore offer a truthful, retryable `No streams found` action without treating
+a temporary error as proof that a title has no streams.
+Both backends advertise deferred inventory enrichment so detail menus can refresh
+through the same authoritative endpoint after their hero has painted.
+
+Inventory GET does not send a device profile, open a stream, or report playback.
+Its generated `PlaySessionId` is not an owned encoding session and needs no stop
+request. This differs from playback negotiation below; see the pinned
+[`MediaInfoController`](https://github.com/jellyfin/jellyfin/blob/e53a6d3e6ae29cb05c55c7b8edf2d237a1f75c16/Jellyfin.Api/Controllers/MediaInfoController.cs)
+and `MediaInfoHelper`. If actual negotiation omits an explicitly selected source,
+both ordinary and quality-controlled playback fail rather than substitute a
+different version, and release any negotiation session they own.
 
 Forced conversion disables both `AllowVideoStreamCopy` and
 `AllowAudioStreamCopy` in PlaybackInfo's body and query. Disabling DirectStream
@@ -183,29 +279,69 @@ reload, and failed-read recovery, not just successful HTTP responses.
 
 Jellyfin and Emby retain native `boxsets` libraries and `BoxSet` items. Both also
 advertise `.libraryCollections` for the shared Collections option inside a
-movie/TV library. `MediaProvider.collections(in:page:)` returns only groups with
-at least one direct member in the selected library's recursive item set.
+movie/TV library. `MediaProvider.collections(in:page:)` displays the authenticated
+server's collection list, matching the native Jellyfin client.
+
+Keep both native entry points: a Collections library beside Movies/TV Shows and
+the Collections shortcut inside those libraries. If a video account's views omit
+a `boxsets` library, Plozz adds one localized, account-scoped directory without
+scanning media. A real `boxsets` view retains its identity and title;
+never add a duplicate. Empty and music-only accounts get no synthetic directory.
+Each collection directory uses one `Limit=1` BoxSet request to establish whether
+it contains any collections. Home automatically hides a confirmed-empty entry
+unless the profile explicitly enables it in Libraries. Discovery retains the
+entry for that control; a later refresh shows newly populated directories.
+Failures are logged and remain unknown, never converted into an empty result.
+This check does not load collection members or populate the full browse cache.
+
+The synthetic directory ID is navigation identity only. Browsing it uses the same
+cached BoxSet listing without `ParentId`; the in-library shortcut still forwards
+its real library ID. It offers collection sorting, not media filters or a
+request-per-letter index. It is excluded from scoped Home media feeds and search
+library enumeration, so it cannot widen a hidden-library query to the whole server.
 
 Do not assume `ParentId=<movie-library>&IncludeItemTypes=BoxSet` scopes this query:
 released Jellyfin 10.10.7/10.11.0 and the published Emby implementation explicitly
-clear `ParentId` for BoxSet listing. Latest Jellyfin development source has newer
-linked-ancestor handling, but relying on it would leak unrelated collections on
-older servers.
+clear `ParentId` for BoxSet listing. Send the selected library as browsing
+context and respect the result: it may contain all collections visible to that
+server user or a server-filtered subset. Do not enumerate library media and
+collection members to impose stricter client-side filtering.
 
-The shared compatible strategy reads the global BoxSet list and the selected
-library's IDs in bounded 200-item pages, then checks collection member IDs with
-at most four concurrent probes, stopping each probe at its first intersection.
-ID queries disable collection collapsing, images, and user data. A provider/session-bound, single-flight
+Compatible endpoints can serve virtual catalogs rather than indexed local media.
+[AIOMetadata's Jellyfin server](https://github.com/cedya77/aiometadata/blob/dev/docs/jellyfin.md)
+and [AIOStreams' Jellyfin server](https://github.com/Viren070/AIOStreams/blob/main/packages/docs/content/docs/reference/jellyfin-extensions.mdx)
+are separate implementations, even when AIOStreams uses AIOMetadata as an addon.
+Use verified endpoint capabilities and response contracts for optimizations;
+neither an addon name nor a server version establishes collection scoping.
+
+The compatible strategy reads only the BoxSet list in 500-item pages, retaining
+primary image tags. Collection-list responses are much smaller than full media
+records; the larger batch avoids extra round trips for typical catalogs.
+A provider/session-bound, single-flight
 snapshot (maximum four library/sort entries) supplies subsequent grid pages
-without repeated per-poster requests; page zero refreshes it. Failed, repeated,
-or truncated pages fail the load rather than silently exclude uncertain groups.
-Each consumer owns its own cancellable wait: leaving one page does not cancel a
-replacement page's shared work. Only the last consumer cancels the worker, and
-late cleanup cannot remove a newer flight.
+without further listing requests; page zero refreshes it. This cache is in memory,
+not persisted across app restarts. Some compatible
+servers omit rows while retaining their paging offsets, so a short
+page can overlap the next page's prefix. Enumeration deduplicates that prefix
+and advances by raw response-row count, not the number of new IDs. If a repeated
+tail alone reaches the exact reported end, enumeration makes one extra request
+at that boundary and requires an empty page before accepting completion. This
+covers a sparse final list page without accepting a server that ignores offsets.
+Connection failures get one cancellation-aware retry of the same read, with a
+250-ms delay; other errors are not retried. Remaining request failures, early
+empty pages, duplicates within a page, and other non-advancing/non-prefix repeats
+remain errors. Browse Details includes the
+failed enumeration stage, reason, offset, row count and reported total, never
+collection/library IDs or media titles.
+Only completed snapshots are cached; missing child counts do not mean an empty
+collection. The native listing path needs no membership-progress phase.
+Each consumer owns its own cancellable wait: leaving
+one page does not cancel a replacement page's shared work. Only the last consumer
+cancels the worker, and late cleanup cannot remove a newer flight.
 
-Filtering preserves the server's requested collection-list sort. Random order
-is the exception: enumerate candidates in stable name order, scope the complete
-set, then shuffle the snapshot once. Cached grid pages retain that order instead
+Listing preserves the server's requested collection-list sort. Random order
+is the exception: enumerate candidates in stable name order, shuffle once, then
+retain that order. Visible cards and cached grid pages retain that order instead
 of requesting independently shuffled server pages that could omit collections.
 
 `MediaProvider.collectionMembers(of:page:)` pages direct members through

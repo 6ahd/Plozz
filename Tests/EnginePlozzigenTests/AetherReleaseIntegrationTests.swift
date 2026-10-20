@@ -5,12 +5,21 @@ import XCTest
 @testable import EnginePlozzigen
 
 final class AetherReleaseIntegrationTests: XCTestCase {
-    func testResolvedEngineAndSourceCreditIdentifyPinnedDTSXIntegration() throws {
-        XCTAssertEqual(AetherEngine.version, "7.36.0")
+    func testResolvedEngineAndSourceCreditIdentifyPinnedMainIntegration() throws {
+        XCTAssertEqual(AetherEngine.version, "7.42.0")
         let credit = try XCTUnwrap(PlozzAttributions.entries.first { $0.title == "AetherEngine" })
         XCTAssertTrue(credit.detail.contains(
-            "https://github.com/brandomoore/AetherEngine/tree/299a3d9ea767e2382158c2a3d137c4b1d302ab4a"
+            "https://github.com/brandomoore/AetherEngine/tree/deb90eb3f740fe1ddda74301a64e3937e480877d"
         ))
+    }
+
+    func testPreviouslyIncludedOptionalComponentsRemainBuiltIn() {
+        for component in [
+            AetherEngine.OptionalComponent.trueHDObjectAudio,
+            .dtsxObjectAudio, .dualLayerDolbyVision, .dolbyVisionStillReshaping
+        ] {
+            XCTAssertTrue(component.isBuiltIn, "\(component.traitName) must not silently become a no-op")
+        }
     }
 
     func testEngineLivesInItsOwnDynamicFramework() {
@@ -73,7 +82,7 @@ final class AetherReleaseIntegrationTests: XCTestCase {
     func testTrueHDLegalCreditIncludesSourceAndBothLicenses() throws {
         let credit = try XCTUnwrap(PlozzAttributions.entries.first { $0.title == "LibTrueHD" })
         XCTAssertTrue(credit.detail.contains(
-            "https://github.com/superuser404notfound/LibTrueHD/tree/2.3.0"
+            "https://github.com/superuser404notfound/LibTrueHD/tree/3.0.0"
         ))
         XCTAssertTrue(credit.detail.contains("Quick104"))
         XCTAssertTrue(credit.detail.contains("Rainbaby"))
@@ -84,13 +93,17 @@ final class AetherReleaseIntegrationTests: XCTestCase {
     func testDTSXLegalCreditIncludesSourceAndLicense() throws {
         let credit = try XCTUnwrap(PlozzAttributions.entries.first { $0.title == "LibDTSX" })
         XCTAssertTrue(credit.detail.contains(
-            "https://github.com/superuser404notfound/LibDTSX/tree/1.0.1"
+            "https://github.com/superuser404notfound/LibDTSX/tree/3.0.0"
         ))
         XCTAssertTrue(credit.detail.contains("kristofferR"))
         XCTAssertTrue(credit.detail.contains("harletty"))
         XCTAssertTrue(credit.detail.contains("LibDTSXNotices.txt"))
         XCTAssertTrue(credit.detail.contains("LibDTSXLicense.txt"))
-        XCTAssertEqual(credit.licenses.map(\.label), ["Apache-2.0"])
+        XCTAssertTrue(credit.detail.contains("LibDTSXLgplLicense.txt"))
+        XCTAssertTrue(credit.detail.contains("LibDTSXGplLicense.txt"))
+        XCTAssertTrue(credit.detail.contains("LibDTSXLgpl21License.txt"))
+        XCTAssertTrue(credit.detail.contains("DTSX.framework"))
+        XCTAssertEqual(Set(credit.licenses.map(\.label)), ["LGPL-3.0+", "Apache-2.0"])
     }
 
     func testReleasedProbeCancellationAPIIsAvailable() {

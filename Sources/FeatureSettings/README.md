@@ -22,9 +22,11 @@ watch history and planning-list behavior are documented in
   Normal rows open their own settings. Source-specific rows and their settings
   use the shared provider brand mark, including the transport badge for shares;
   generic row glyphs appear only during reordering.
-  An inline Preset selector sits below the title; mobile keeps it visible while
-  scrolling and places an accessible + action beside Reorder/Done in the native
-  toolbar. TV keeps its labeled Add section beside Preset. A second, labeled
+  An inline Preset selector sits below the title; mobile uses a secondary heading
+  with a trailing native menu capsule and a divider, not another section card.
+  It scrolls with the content and stacks at large text sizes when needed.
+  An accessible + action remains beside Reorder/Done in the native toolbar.
+  TV keeps its labeled Add section beside Preset. A second, labeled
   Add section action follows the list. Reorder/Done switches to
   native movement controls with no Hidden drop zone; Hero stays
   pinned and cannot move. Mobile uses the shared page inset without extra gutters.
@@ -121,6 +123,9 @@ watch history and planning-list behavior are documented in
   TV forms share row/section spacing and contained, concentric focus geometry;
   steppers focus the whole labeled row, with visible minus/plus cues and
   Left/Right adjustment. Values stay aligned to the trailing column.
+  `ViewCustomizationList` varies edge-fade strength over fixed mask geometry.
+  Resizing the mask while native focus scrolls can feed back into layout and
+  leave long forms, including Hero content sources, unresponsive.
   `SettingsControlRows` separates controls sharing a container, keeping each
   helper with its control and omitting the divider after the last visible row.
   Hero copy uses **content** for the overall selection and **item** for one entry,

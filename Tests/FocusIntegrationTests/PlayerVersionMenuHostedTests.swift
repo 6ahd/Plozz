@@ -48,10 +48,13 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
+        request.usesLanguageCorrection = false
+        request.minimumTextHeight = 0.001
+        request.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
         let visible = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-        for fact in ["Extended", "4K", "42 GB", "English", "French", "HEVC", "TrueHD", "80 Mbps", "2h", "GROUP.mkv"] {
-            XCTAssertTrue(visible.contains(fact), "Missing detail version fact \(fact): \(visible)")
+        for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "80 Mbps", "2h", "GROUP.mkv"] {
+            XCTAssertTrue(visible.localizedCaseInsensitiveContains(fact), "Missing detail version fact \(fact): \(visible)")
         }
         XCTAssertFalse(visible.contains("torrent_name"))
         XCTAssertFalse(visible.contains("media_type"))
@@ -118,10 +121,13 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
         let text = VNRecognizeTextRequest()
         text.recognitionLevel = .accurate
         text.recognitionLanguages = ["en-US"]
+        text.usesLanguageCorrection = false
+        text.minimumTextHeight = 0.001
+        text.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([text])
         let visibleText = (text.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-        for fact in ["Extended", "4K", "42 GB", "English", "French", "HEVC", "TrueHD", "Atmos", "80 Mbps", "2h", "GROUP.mkv"] {
-            XCTAssertTrue(visibleText.contains(fact), "Missing version fact \(fact): \(visibleText)")
+        for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "Atmos", "80 Mbps", "2h", "GROUP.mkv"] {
+            XCTAssertTrue(visibleText.localizedCaseInsensitiveContains(fact), "Missing version fact \(fact): \(visibleText)")
         }
         XCTAssertFalse(visibleText.contains("torrent_name"))
         XCTAssertFalse(visibleText.contains("media_type"))

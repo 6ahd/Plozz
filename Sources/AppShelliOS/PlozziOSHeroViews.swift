@@ -465,6 +465,8 @@ struct PlozziOSDetailHeroSection: View {
     let backdropItem: MediaItem
     let playableItem: MediaItem?
     var showsPlayPlaceholder: Bool = false
+    var onRetryPlaybackInventory: (() -> Void)?
+    var isRetryingPlaybackInventory = false
     let sources: [MediaSourceRef]
     /// The air-schedule badge for a series, resolved by the detail page.
     var scheduleLine: LocalizedStringResource? = nil
@@ -517,6 +519,8 @@ struct PlozziOSDetailHeroSection: View {
                 rootItem: backdropItem,
                 playableItem: playableItem,
                 showsPlayPlaceholder: showsPlayPlaceholder,
+                onRetryPlaybackInventory: onRetryPlaybackInventory,
+                isRetryingPlaybackInventory: isRetryingPlaybackInventory,
                 sources: sources,
                 scheduleLine: scheduleLine,
                 selectedSourceAccountID: selectedSourceAccountID,
@@ -824,12 +828,13 @@ private struct PlozziOSHeroPlaybackID: Equatable {
 /// stand about three quarters of the phone tall so its metadata sits low; a hero
 /// that simply *filled* that slot would crop 16:9 backdrop art past 3x, and
 /// would crop it by a different amount on every phone. Mirroring buys the height
-/// back and leaves the picture alone.
+/// back and leaves the picture alone. A 24pt top reflection moves the original
+/// artwork below more of the status-bar chrome without growing the stage.
 ///
 /// Only ever mirrors a still. Video cannot be mirrored — one AVPlayer renders in
 /// one AVPlayerLayer at a time — so a hero playing a trailer fills the stage with
 /// it instead; see ``PlozziOSHeroBackdrop``.
-private struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
+struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
     /// How far the mirror is drawn up *behind* the picture's bottom edge, so the
     /// two overlap instead of meeting at a line that splits open the moment the
     /// hero is scaled by an overscroll pull. Same reasoning, and same value, as
@@ -846,12 +851,18 @@ private struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
                 width: width,
                 height: height
             )
+            let topHeight = min(max(height, 0), HeroStageMetrics.topReflectionHeight)
             ZStack(alignment: .top) {
+                if topHeight > 0 {
+                    topMirror(geometry, width: width, height: topHeight)
+                        .environment(\.heroArtworkDisplayReporter, nil)
+                }
                 sizedPicture(geometry)
+                    .offset(y: topHeight)
                 if geometry.reflectionHeight > 0 {
                     mirror(geometry, width: width)
                         .environment(\.heroArtworkDisplayReporter, nil)
-                        .offset(y: geometry.pictureHeight - Self.seamOverlap)
+                        .offset(y: topHeight + geometry.pictureHeight - Self.seamOverlap)
                 }
             }
             // Flatten the picture and its mirror into one layer before anyone
@@ -886,6 +897,26 @@ private struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
             )
         )
         .frame(width: geometry.renderedWidth, height: geometry.pictureHeight)
+    }
+
+    private func topMirror(
+        _ geometry: ExtendedArtworkGeometry,
+        width: CGFloat,
+        height: CGFloat
+    ) -> some View {
+        Color.clear
+            .frame(width: width, height: height + Self.seamOverlap)
+            .overlay(alignment: .bottom) {
+                sizedPicture(geometry)
+                    .scaleEffect(x: 1, y: -1)
+            }
+            .mask {
+                LinearGradient(
+                    colors: [.white.opacity(0.82), .white],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
     }
 
     /// The band under the picture: the same image flipped, so its top row is the
@@ -931,7 +962,7 @@ private struct PlozziOSExtendedHeroArtwork<Picture: View>: View {
 }
 
 /// The slot ``PlozziOSExtendedHeroArtwork`` is asking a picture to fill.
-private struct PlozziOSHeroPictureLayout {
+struct PlozziOSHeroPictureLayout {
     let width: CGFloat
     let height: CGFloat
 }
@@ -1863,6 +1894,8 @@ struct PlozziOSHomeHeroForeground: View {
 }
 
 struct PlozziOSDetailHeroForeground: View {
+    @State private var isVersionPickerPresented = false
+    @State var sourceMenu = PlaybackSourceMenuState()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(PlozziOSAppModel.self) private var appModel
 
@@ -1870,6 +1903,8 @@ struct PlozziOSDetailHeroForeground: View {
     let rootItem: MediaItem
     let playableItem: MediaItem?
     var showsPlayPlaceholder: Bool = false
+    var onRetryPlaybackInventory: (() -> Void)?
+    var isRetryingPlaybackInventory = false
     let sources: [MediaSourceRef]
     /// The air-schedule badge for a series, resolved by the detail page.
     var scheduleLine: LocalizedStringResource? = nil
@@ -2086,6 +2121,19 @@ struct PlozziOSDetailHeroForeground: View {
         .contextMenu {
             detailContextMenu
         }
+        .playbackSourceMenu(
+            state: sourceMenu, sources: sources, selectedSourceID: selectedSourceAccountID,
+            versions: versions, selectedVersionID: selectedVersionID,
+            onSelectSource: onSelectSource, onSelectVersion: onSelectVersion,
+            onPerformAction: performCompactPanelAction
+        )
+        .plozzSheet(isPresented: $isVersionPickerPresented) {
+            MediaVersionPicker(
+                versions: versions,
+                selectedVersionID: selectedVersion?.id,
+                onSelect: onSelectVersion
+            )
+        }
     }
 
     /// A secondary hero action that can either sit inline as its own button or
@@ -2267,7 +2315,20 @@ struct PlozziOSDetailHeroForeground: View {
         resume: PlayResumeButtonLabel.ResumeTrailingStyle = .full,
         wrapsText: Bool = false
     ) -> some View {
-        if playableItem != nil || showsPlayPlaceholder {
+        if let onRetryPlaybackInventory {
+            Button(action: onRetryPlaybackInventory) {
+                NoStreamsButtonLabel(
+                    isLoading: isRetryingPlaybackInventory,
+                    onLight: colorScheme == .dark,
+                    fitsAvailableWidth: wrapsText
+                )
+            }
+            .buttonStyle(PlozziOSHeroActionButtonStyle(
+                kind: .primary,
+                minimumWidth: style == .compactPortrait && !wrapsText ? 180 : nil
+            ))
+            .disabled(isRetryingPlaybackInventory)
+        } else if playableItem != nil || showsPlayPlaceholder {
             Button {
                 if let playableItem { onPlay(playableItem, false) }
             } label: {
@@ -2318,21 +2379,15 @@ struct PlozziOSDetailHeroForeground: View {
         actions: [PlaybackSourceMenuAction],
         fileBrowserAction: ActionEntry?
     ) -> some View {
-        PlaybackSourceMenuButton(
-            sources: sources,
-            selectedSourceID: selectedSourceAccountID,
-            versions: versions,
-            selectedVersionID: selectedVersionID,
+        PlaybackSourceMenuTrigger(
+            state: sourceMenu,
             actions: actions + (fileBrowserAction.map { entry in
                 [PlaybackSourceMenuAction(
                     id: "media.\(entry.action.rawValue)",
                     title: entry.action.title,
                     systemImage: entry.action.systemImage
                 )]
-            } ?? []),
-            onSelectSource: onSelectSource,
-            onSelectVersion: onSelectVersion,
-            onPerformAction: performCompactPanelAction
+            } ?? [])
         ) {
             Image(systemName: "ellipsis")
                 .font(.headline.weight(.bold))
@@ -2444,25 +2499,10 @@ struct PlozziOSDetailHeroForeground: View {
             }
             .pickerStyle(.menu)
         }
-        if versions.count > 1, let selectedVersion {
-            Picker(
-                selection: Binding(
-                    get: { selectedVersion.id },
-                    set: onSelectVersion
-                )
-            ) {
-                ForEach(versions.sortedForPicker()) { version in
-                    versionTitleText(version.displayLabel)
-                        .tag(version.id)
-                }
-            } label: {
-                Label {
-                    versionTitleText(selectedVersion.displayLabel)
-                } icon: {
-                    Image(systemName: "film.stack")
-                }
+        if versions.count > 1 {
+            Button("Version", systemImage: "film.stack") {
+                isVersionPickerPresented = true
             }
-            .pickerStyle(.menu)
         }
     }
 
@@ -2473,17 +2513,6 @@ struct PlozziOSDetailHeroForeground: View {
 
     private var selectedVersion: MediaVersion? {
         versions.first { $0.id == selectedVersionID } ?? versions.first
-    }
-
-    /// Renders a `MediaVersion` title: the joined technical facts (or provider
-    /// name) verbatim when known, otherwise our own generic "Version" copy —
-    /// kept as a real resource here rather than baked into a `String` so it
-    /// translates like everything else.
-    private func versionTitleText(_ displayLabel: String?) -> Text {
-        if let displayLabel {
-            return Text(verbatim: displayLabel)
-        }
-        return Text("Version", comment: "Generic label for a playback version/source with no distinguishing facts (resolution, edition, etc.) known.")
     }
 
     private func seasonEpisodeText(for item: MediaItem) -> String? {

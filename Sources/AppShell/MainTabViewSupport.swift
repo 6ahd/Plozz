@@ -22,27 +22,30 @@ import AniListService
 import MALService
 import LastFmService
 
-/// Resolves the provider that owns `accountID`, falling back to the primary
-/// (first) account. `accounts` is guaranteed non-empty by the caller
-/// (`RootView`).
-///
-/// The fallback is legitimate only for a **nil** `accountID` (a genuinely
-/// untagged item — e.g. a route with no owning server — plays from the primary
-/// account). A **non-nil but unmatched** `accountID` is different: it means the
-/// caller handed an explicit source whose account is no longer signed in, and
-/// silently playing it from `accounts[0]` is the "random / wrong server" symptom
-/// — you'd stream a *different server's* copy than the one selected. The play
-/// paths prune to live accounts first (`bestSourcePlayItem`) so this shouldn't
-/// be reached in practice; when it is, emit a (gated) diagnostic so the stale
-/// pick is observable on device rather than masquerading as a successful play.
-func resolveProvider(_ accountID: String?, in accounts: [ResolvedAccount]) -> any MediaProvider {
+/// An empty enabled-source set is valid. Only genuinely untagged items may use
+/// the primary account; a missing explicit source must never change servers.
+func resolveProvider(_ accountID: String?, in accounts: [ResolvedAccount]) throws -> any MediaProvider {
+    let account: ResolvedAccount?
     if let accountID {
-        if let match = accounts.first(where: { $0.account.id == accountID }) {
-            return match.provider
-        }
-        FanoutDiagnostics.emit("resolveProvider fallback: explicit account \(accountID) not signed in; using primary \(accounts[0].account.id)")
+        account = accounts.first { $0.account.id == accountID }
+    } else {
+        account = accounts.first
     }
-    return accounts[0].provider
+    guard let account else {
+        PlozzLog.app.error("Media source is no longer available for this route")
+        throw AppError.unauthorized
+    }
+    return account.provider
+}
+
+struct MediaSourceUnavailableView: View {
+    var body: some View {
+        ContentUnavailableView(
+            "Source Unavailable",
+            systemImage: "externaldrive.badge.exclamationmark",
+            description: Text("Connect or enable this source in Settings, then try again.")
+        )
+    }
 }
 
 /// Resolves a specific account id to its provider, or `nil` when that account is
@@ -299,7 +302,7 @@ func resolveLibraryBrowse(
     in accounts: [ResolvedAccount],
     identitySources: @escaping @Sendable (MediaItem) -> [MediaSourceRef],
     identityRevision: @escaping @Sendable () -> Int = { 0 }
-) -> (provider: any MediaProvider, sourceAccountID: String?) {
+) throws -> (provider: any MediaProvider, sourceAccountID: String?) {
     let accountIDs = library.allSourceAccountIDs
     if accountIDs.count > 1 {
         let sources: [AggregatedLibrarySource] = accountIDs.compactMap { accountID in
@@ -324,8 +327,10 @@ func resolveLibraryBrowse(
         if let only = sources.first {
             return (only.provider, only.accountID)
         }
+        PlozzLog.app.error("No active source remains for the requested library")
+        throw AppError.unauthorized
     }
-    return (resolveProvider(library.sourceAccountID, in: accounts), library.sourceAccountID)
+    return (try resolveProvider(library.sourceAccountID, in: accounts), library.sourceAccountID)
 }
 
 /// Builds the provider that backs the combined **All Libraries** grid: every
@@ -440,9 +445,8 @@ func librarySourceSignature(_ library: MediaLibrary) -> String {
 ///
 /// `accounts` are the currently signed-in accounts. A merged card's `sources`
 /// can still list a server the user has since removed (the eager index snapshot
-/// lags an account sign-out), and ``resolveProvider(_:in:)`` silently falls back
-/// to `accounts[0]` for an unknown account — so selecting a dead source would
-/// play the *wrong* server's copy (or fail). Pruning to live accounts before
+/// lags an account sign-out). Selecting a dead source would fail even when a
+/// reachable copy remains. Pruning to live accounts before
 /// selection guarantees we only ever pick a server we can actually resolve, and
 /// drops the stale refs from the item handed to the player.
 ///
@@ -569,7 +573,7 @@ private func makePlayerViewModel(
     adoptedResolved: PlayerViewModel.PrefetchedPlayback? = nil,
     continuation: PlaybackContinuation? = nil,
     versionPreferences: any VersionPreferenceStoring = VersionPreferenceStore()
-) -> PlayerViewModel {
+) throws -> PlayerViewModel {
     if let videoID = request.item.youTubeTrailerVideoID {
         let trailerItem = request.item
         let onlineTrailerResolver = ItemDetailViewModel.defaultOnlineTrailerResolver
@@ -631,7 +635,7 @@ private func makePlayerViewModel(
     // playthrough auto-advances and controls can offer a mid-play jump. The
     // provider is captured (a value-type session); `children(of:)` lists the
     // season in broadcast order. Movies/trailers pass no resolver.
-    let episodeProvider = resolveProvider(request.item.sourceAccountID, in: accounts)
+    let episodeProvider = try resolveProvider(request.item.sourceAccountID, in: accounts)
     let neighborResolver: (@Sendable () async -> (previous: MediaItem?, next: MediaItem?))?
     if convergingItem.kind == .episode, let seasonID = convergingItem.seasonID {
         let originAccountID = convergingItem.sourceAccountID
@@ -879,7 +883,7 @@ extension View {
             PlayerPresentation(
                 request: request,
                 make: { request, adopted, continuation in
-                    let model = makePlayerViewModel(
+                    let model = try makePlayerViewModel(
                         for: request,
                         accounts: accounts,
                         networkFileResolver: networkFileResolver,
@@ -930,6 +934,7 @@ extension View {
                     return try await choice.prepare(
                         item, provider: account.provider, settings: playbackSettingsModel,
                         preferences: versionPreferences, offlineResolver: offlinePlaybackResolver,
+                        sourceResolver: crossServerSourceResolver(in: accounts, identitySources: identitySources),
                         isCurrent: { playRequest.wrappedValue?.traceID == request.traceID }
                     )
                 },
@@ -942,10 +947,9 @@ extension View {
         .resumePrompt(item: resumePrompt) { item, startPosition in
             let origin = pendingPlaylistOrigin.wrappedValue
                 .flatMap { $0.containsSelection(item) ? $0 : nil }
-            let playlist = origin.map {
-                VideoPlaylistPlaybackContext(
-                    origin: $0, provider: resolveProvider($0.accountID, in: accounts)
-                )
+            let playlist: VideoPlaylistPlaybackContext? = origin.flatMap { origin in
+                guard let provider = try? resolveProvider(origin.accountID, in: accounts) else { return nil }
+                return VideoPlaylistPlaybackContext(origin: origin, provider: provider)
             }
             pendingPlaylistOrigin.wrappedValue = nil
             let request = PlayRequest(

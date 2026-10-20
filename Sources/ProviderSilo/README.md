@@ -41,6 +41,20 @@ rejected with an address-specific message. Pending polls honor Silo's extended
 expiry; canceled/consumed requests offer a fresh code. A failed start can be
 retried in place, while a failed profile lookup retains successful approval.
 
+Connection failures during polling retain the same code and approval link.
+Scheduled polling backs off after a transport failure, never below the server's
+interval, with at most three consecutive failed polls and no work past the
+current deadline or cancellation. A successful pending response resets the
+failure count. Authentication, malformed responses, rate limits and terminal
+statuses are not retried. Device-start and other credential exchanges are never
+automatically replayed.
+
+The server consumes approval while minting its login session. If an approved
+response is lost after that commit, a subsequent `consumed` response still
+requires a fresh code; the client cannot recover tokens it never received.
+Recovered transport interruptions are logged locally; only the terminal failure
+enters the existing consent-gated setup diagnostic path.
+
 Setup errors identify validation, code creation, polling, profile loading, PIN
 verification, or session completion. With crash-reporting consent, at most ten
 distinct failures per reporter lifetime are sent using fixed stage/reason/response

@@ -379,10 +379,11 @@ public struct PlexClient: Sendable {
 
     /// Sends and decodes JSON, with the same self-healing retry as `send`.
     private func decode<T: Decodable>(_ type: T.Type, _ endpoint: Endpoint, using client: HTTPClient? = nil) async throws -> T {
-        let (data, _) = try await send(endpoint, using: client)
+        let (data, response) = try await send(endpoint, using: client)
         do {
             return try JSONDecoder.plozz.decode(T.self, from: data)
         } catch {
+            HTTPResponseDiagnostics.recordDecodeFailure(error, data: data, response: response)
             PlozzLog.networking.error("Decoding \(String(describing: T.self)) failed")
             throw AppError.decoding
         }
@@ -716,11 +717,13 @@ public struct PlexClient: Sendable {
             URLQueryItem(name: "count", value: String(max(1, count))),
             URLQueryItem(name: "includeGuids", value: "1")
         ]
-        return try await decodeStreamEnriched(
-            PlexMediaContainerResponse.self,
-            path: "/hubs/sections/\(sectionID)",
-            query: query
-        ).MediaContainer.Hub ?? []
+        return try await HTTPResponseDiagnostics.$route.withValue(.libraryHubs) {
+            try await decodeStreamEnriched(
+                PlexMediaContainerResponse.self,
+                path: "/hubs/sections/\(sectionID)",
+                query: query
+            ).MediaContainer.Hub ?? []
+        }
     }
 
     func promotedHubs(sectionID: String, count: Int) async throws -> [PlexHub] {

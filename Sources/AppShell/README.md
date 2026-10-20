@@ -42,6 +42,26 @@ registry.
 
 ## Invariants
 
+- **Missing sources are a recoverable route state.** Home, Watchlist, Search,
+  library and series-context destinations show an unavailable state when their
+  library provider no longer resolves. External Watchlist/Search details remain
+  available without any enabled media server and keep their metadata/request
+  behavior. An untagged library item may use the active primary
+  provider; an explicit missing account never falls back to a different server.
+  Classification and source selection use the same active-source snapshot so
+  a stale index cannot send an external ID to a different server. Failed model
+  construction is not cached; title, episode and season cache keys include their
+  account and library origin inside the existing profile/credential scope.
+  Player creation propagates missing-source failures into its visible error path.
+  Online trailers bypass library version preparation and retain their dedicated
+  provider even when no media-server account is enabled.
+
+- **Mobile notification completion stays on the main actor.** The download
+  notification delegate uses the explicit completion-handler entry point.
+  Navigation is queued before completion; ignored and malformed notifications
+  also complete exactly once on the main actor because UIKit may snapshot
+  immediately afterward.
+
 - **One root presentation at a time.** `RootPresentationCoordinator` retains the
   current native cover until its dismissal completes. Startup introductions,
   release notes, identity gates, synced-server prompts, and device setup wait
@@ -65,6 +85,25 @@ registry.
   per-server transfer scope and pending sign-in state, and wrap full server and
   profile names. Headers scroll; Done/Continue remains reachable independently
   of the number of servers or profiles.
+
+- **Visible pairing failures on both platforms.** Mobile automatic offers use
+  one retained cover for confirmation, progress, retry and completion, waiting
+  for existing root presentations. Sender authorization is rechecked during
+  transfer; dismissing cancels the connection and any matching-code wait.
+  Receivers stop advertising after failure and retain the error until an
+  explicit retry. A failed TV-to-phone source QR requires a new scan.
+  Sender retries keep the confirmed invitation pinned; a newly generated
+  receiver code requires closing the old flow and accepting/scanning the new one.
+  Matching-code confirmation is bounded to 60 seconds.
+
+- **Device setup diagnostics.** Each attempt logs fixed role/route/stage/outcome
+  categories and bounded elapsed time through `PlozzLog`, so manual diagnostics
+  include pairing failures. With crash-reporting consent enabled, failures also
+  reach Sentry automatically through `DeviceSetupDiagnostics`; no raw logs,
+  device names, URLs, account IDs, codes, keys or credentials are uploaded.
+  Failures are grouped by role/route/stage/reason and deduplicated to at most ten
+  distinct reports per reporting session. Opt-out invalidates retained attempt
+  callbacks. Explicit local cancellation/decline is not a failure report.
 
 - **Composition root, not a feature.** This is the **only** module
   allowed to import all the others. Feature modules don't import
@@ -101,6 +140,14 @@ and Settings. Its illustrations omit navigation chrome, since Home layout and
 navigation style are independent choices.
 
 ## Native navigation planning
+
+Settings retains the last visible navigation shell while its style picker saves
+the profile's new preference immediately. Construct the replacement chrome only
+when leaving Settings: mounting a hidden, disabled native sidebar resets the
+picker's focus. Opening and closing Settings without changing style keeps the
+visited tabs and their state; a Settings-first launch does not mount hidden chrome.
+Top-bar selection also prepares its nonpersistent library-navigation handoff
+before a style change, so the first render cannot temporarily dismiss Settings.
 
 Native tab builders capture the resolved selection and library entries before
 constructing their children. The sidebar reuses that plan for content, labels,

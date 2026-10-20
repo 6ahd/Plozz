@@ -461,6 +461,7 @@ struct PlozziOSHomeView: View {
         let rows = HomeRow.rows(
             for: content,
             isLibraryVisible: visibility.isVisibleOnHome,
+            isLibraryTileVisible: visibility.isVisibleOnHome,
             isGlobalRowEnabled: visibility.isGlobalRowEnabled,
             includesEmptyWatchlist:
                 viewModel.watchlistLoadingPlaceholderCount > 0,

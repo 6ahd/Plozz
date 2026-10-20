@@ -196,24 +196,11 @@ public struct PlozziOSRootView: View {
         .background {
             PlozziOSScenePhaseEffects(appModel: appModel)
         }
-        .alert(
-            syncSetupOfferTitle,
-            isPresented: Binding(
-                // Presentation is driven purely by pendingSyncSetupOffer; the two
-                // buttons own confirm/decline, so the setter must NOT have a side
-                // effect (that would double-fire and race the button action).
-                get: { appModel.pendingSyncSetupOffer != nil },
-                set: { _ in }
-            ),
-            presenting: appModel.pendingSyncSetupOffer
-        ) { _ in
-            Button("Set Up") { appModel.confirmSyncSetupOffer() }
-            Button("Not Now", role: .cancel) { appModel.declineSyncSetupOffer() }
-        } message: { _ in
-            Text(syncSetupOfferServerName != nil
-                 ? "Sign this device in to “\(syncSetupOfferServerName!)”."
-                 : "Send your servers and sign-in so it’s ready to watch.")
-        }
+        .modifier(PlozziOSSyncSetupOfferPresenter(
+            appModel: appModel,
+            canPresent: setupPresentationReady && !releaseNotes.hasPendingStartupNotes
+                && appModel.isActiveProfileAuthorized && !appModel.managementRequiresParentalPIN
+        ))
         .plozzSheet(item: serverPromptBinding, onDismiss: consumeServerPromptFollowUp) { descriptor in
             SyncedServerSetupPrompt(
                 descriptor: descriptor,
@@ -244,6 +231,10 @@ public struct PlozziOSRootView: View {
         }
         .background { AppBackground(palette: resolvedPalette) }
         .environment(\.familyGuidanceProvider, appModel.familyGuidance)
+        .environment(
+            \.versionPickerAudioLanguage,
+            appModel.settings.playback.settings.audioLanguagePreference.explicitLanguageCode
+        )
         // See the tvOS root: reading `dynamicTypeSize` is what rebuilds the metrics
         // when the reader's text size changes, rather than only on relaunch.
         .environment(
@@ -387,9 +378,9 @@ public struct PlozziOSRootView: View {
                         onClose: { appModel.pendingPairingInvite = nil }
                     )
                 } else {
-                    PlozziOSSyncSetupDeepLinkView(
+                    PlozziOSSyncSetupSendFlow(
                         appModel: appModel,
-                        invite: pairing.invite,
+                        request: .link(pairing.invite),
                         onClose: { appModel.pendingPairingInvite = nil }
                     )
                 }
@@ -419,6 +410,10 @@ public struct PlozziOSRootView: View {
     }
 
     private var releaseNotesStartupReady: Bool {
+        setupPresentationReady && appModel.pendingSyncSetupOffer == nil
+    }
+
+    private var setupPresentationReady: Bool {
         appModel.canEnterApp
             && !appModel.pendingStandaloneLiveTVEntry
             && !appModel.mustChooseProfile
@@ -439,25 +434,6 @@ public struct PlozziOSRootView: View {
             && appModel.pendingLibrarySelection == nil
             && appModel.pendingSyncedServerPrompt == nil
             && appModel.pendingPairingInvite == nil
-            && appModel.pendingSyncSetupOffer == nil
-    }
-
-    /// The name THIS device holds for the offer's requested account (a per-server
-    /// offer is only surfaced when this device has the account), rather than trusting
-    /// the rendezvous-supplied string.
-    private var syncSetupOfferServerName: String? {
-        guard let requested = appModel.pendingSyncSetupOffer?.requestedAccountID else { return nil }
-        return appModel.accountsProviders.accounts.first(where: { $0.id == requested })?.server.name
-    }
-
-    /// Title for the same-Apple-ID setup offer alert. Names the specific server when
-    /// the offering device asked for just one, else the device-level framing.
-    private var syncSetupOfferTitle: LocalizedStringResource {
-        let device = appModel.pendingSyncSetupOffer?.deviceName ?? "your device"
-        if let server = syncSetupOfferServerName {
-            return "Set up “\(server)” on “\(device)”?"
-        }
-        return "Set up “\(device)”?"
     }
 
     private var shellIdentity: String {

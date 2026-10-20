@@ -9,6 +9,61 @@ import XCTest
 
 @MainActor
 final class NativeSidebarPresentationHostedTests: XCTestCase {
+    func testSettingsDefersSidebarConstructionFromPinnedAndTopBarNavigation() async throws {
+        for initialStyle in [NavigationStyle.rail, .tabBar] {
+            let fixture = try await makeFixture()
+            defer { fixture.close() }
+            let model = ShellModel(style: initialStyle)
+            fixture.window.rootViewController = UIHostingController(rootView: SettingsShell(model: model))
+            try await waitUntil { model.pages[initialStyle]?.window != nil }
+            let original = try XCTUnwrap(model.pages[initialStyle])
+
+            model.showsSettings = true
+            try await waitUntil { model.settingsButton?.window != nil }
+            let settings = try XCTUnwrap(model.settingsButton)
+            let focusSystem = try XCTUnwrap(UIFocusSystem.focusSystem(for: fixture.window))
+            focusSystem.requestFocusUpdate(to: settings)
+            focusSystem.updateFocusIfNeeded()
+            try await waitUntil { settings.isFocused }
+
+            for style in [NavigationStyle.sidebar, .rail, .tabBar, .sidebar] {
+                model.style = style
+                fixture.window.layoutIfNeeded()
+                try await Task.sleep(for: .milliseconds(100))
+                XCTAssertEqual(model.creations, [initialStyle: 1],
+                               "Changing a preference must not build hidden navigation.")
+                XCTAssertTrue(settings.isFocused)
+                XCTAssertTrue(model.pages[initialStyle] === original)
+                XCTAssertNotNil(original.window)
+            }
+
+            model.showsSettings = false
+            try await waitUntil { model.pages[.sidebar]?.window != nil }
+            XCTAssertEqual(model.creations[.sidebar], 1)
+            XCTAssertNil(original.window)
+            let sidebar = try XCTUnwrap(model.pages[.sidebar])
+            model.showsSettings = true
+            try await waitUntil { model.settingsButton?.window != nil }
+            model.showsSettings = false
+            try await waitUntil { model.settingsButton?.window == nil }
+            XCTAssertTrue(model.pages[.sidebar] === sidebar)
+            XCTAssertEqual(model.creations[.sidebar], 1, "Ordinary Settings visits must retain the active tab.")
+        }
+    }
+
+    func testSettingsFirstLaunchDoesNotConstructHiddenSidebar() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let model = ShellModel(style: .sidebar)
+        model.showsSettings = true
+        fixture.window.rootViewController = UIHostingController(rootView: SettingsShell(model: model))
+        try await waitUntil { model.settingsButton?.window != nil }
+        XCTAssertTrue(model.creations.isEmpty)
+        model.showsSettings = false
+        try await waitUntil { model.pages[.sidebar]?.window != nil }
+        XCTAssertEqual(model.creations, [.sidebar: 1])
+    }
+
     func testNativeSidebarDisplaysOfflineStatusAndRemovesItAfterRecovery() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }
@@ -180,6 +235,51 @@ final class NativeSidebarPresentationHostedTests: XCTestCase {
             window.rootViewController = nil
             model.buttons.removeAll()
             previous?.makeKeyAndVisible()
+        }
+    }
+
+    @MainActor @Observable
+    fileprivate final class ShellModel {
+        var style: NavigationStyle
+        var showsSettings = false
+        @ObservationIgnored var creations: [NavigationStyle: Int] = [:]
+        @ObservationIgnored var pages: [NavigationStyle: UIButton] = [:]
+        @ObservationIgnored weak var settingsButton: UIButton?
+
+        init(style: NavigationStyle) { self.style = style }
+    }
+
+    private struct SettingsShell: View {
+        let model: ShellModel
+
+        var body: some View {
+            SettingsNavigationShell(style: model.style, showsSettings: model.showsSettings) { style in
+                ShellButton(model: model, style: style)
+                    .id(style)
+            } settings: {
+                ShellButton(model: model, style: nil)
+            }
+        }
+    }
+
+    private struct ShellButton: UIViewRepresentable {
+        let model: ShellModel
+        let style: NavigationStyle?
+
+        func makeUIView(context: Context) -> UIButton {
+            let button = UIButton(type: .system)
+            button.setTitle(style?.rawValue ?? "Settings", for: .normal)
+            if let style {
+                model.creations[style, default: 0] += 1
+                model.pages[style] = button
+            } else {
+                model.settingsButton = button
+            }
+            return button
+        }
+
+        func updateUIView(_ button: UIButton, context: Context) {
+            button.isEnabled = context.environment.isEnabled
         }
     }
 

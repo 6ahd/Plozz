@@ -5,6 +5,63 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+Playback inventory failures on automatically selected TV sources use the existing
+untried-account failover before constructing a player. Every replacement still
+loads authoritative inventory; explicit selections, cancellation and revoked
+presentation scope never fail over. An unavailable unselected edition is logged
+and omitted from the current picker rather than blocking a confirmed primary.
+
+- **Library browse failures** — Browse, Collections, Playlists and their member
+  pages use the shared Details / Try Again actions on mobile and TV, including
+  nonfatal later-page failures. `LibraryLoadDiagnostic` identifies the requested
+  section and retains safe response/paging evidence. Retry and mode changes clear
+  stale reports; cancelled or superseded requests cannot publish one.
+  Jellyfin/Emby Collections uses the native server-defined list without a
+  library/member scan. A dedicated Collections library entry coexists with the
+  movie/TV library shortcut. Synthesized directory entries stay in navigation,
+  but never enter scoped playable-media feed requests or per-library Home rows.
+  Confirmed-empty collection directories stay out of Home's Libraries row until
+  populated or explicitly enabled in the profile's Libraries checklist. The
+  shared row resolver applies this on both platforms without hiding discovery.
+  Providers with intermediate discovery can display confirmed cards while remaining candidates
+  are checked. Both platforms show native progress and retain the stable card
+  slots. Partial failures retain those cards with an explicit incomplete-list
+  message and Details / Try Again; interrupted discovery restarts on return.
+  Reappearance must not restart an already-running first page, and sparse-page
+  prefetch waits until discovery is complete. Aggregated libraries retain their
+  existing complete-source merge rather than leaking unmerged source progress.
+  Browse network errors do not assume a local-network server. Task-local
+  diagnostics preserve the failing route and numeric URL error (for example,
+  timeout versus connection loss), without addresses or raw error text.
+- **Library recommendation failures** — Continue Watching, server recommendations,
+  and Recently Added resolve independently. Partial and complete failures offer
+  the shared native Details / Try Again actions on mobile and TV. Details name
+  every failed section and reuse the existing shareable diagnostic sheet, without
+  server addresses, account names, library IDs, titles, or response bodies.
+  Decode failures retain bounded structured response evidence rather than only
+  `AppError.decoding`; provider error types and strict decoding are unchanged.
+  Refreshing preserves each failed family's previously loaded rows until that
+  family succeeds, including an authoritative empty result. Cancellation never
+  publishes a partial success or replaces the last completed diagnostic.
+
+- **Deferred version inventory** — providers that advertise lazy file discovery
+  refresh movie/episode choices after detail first paint and the existing dwell
+  gate. Inventory publication is fenced by the current source and cancellation;
+  later cross-server discovery cannot overwrite it with the original sparse
+  seed. Leaving cancels the work and returning resumes an unfinished attempt.
+  Failure keeps browsing available but never authorizes playback: Play runs its
+  own strict gate. Providers with complete detail inventories incur no extra fetch.
+  Series heroes resolve the episode that Play would start through the same
+  inventory contract. Mobile source/version actions use that episode even while
+  the hero shows the series' artwork and description, matching tvOS. Choosing a
+  version therefore remembers the episode/series preference, not a container file.
+  An explicit no-stream result from the provider replaces the detail Play action with
+  `No streams found` on both platforms. It rechecks the selected source without
+  starting playback; successful recovery restores Play. This page-local result is
+  scoped to the active server and episode, not inferred from timeouts, missing
+  metadata or generic source errors. Retry failures remain visible and secondary
+  mobile actions continue to overflow before the primary label is squeezed.
+
 - **Kids Discovery policy** — both shells consume the live profile's effective
   Hero settings, not a destructive rewrite of saved preferences. Kids profiles
   exclude external Discovery, including Showcase, cached attributed titles, and

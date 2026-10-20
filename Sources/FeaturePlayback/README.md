@@ -271,7 +271,10 @@ Live TV guide. Landscape permits either sideways direction.
 Orientation is configured only in Settings > Playback, never in the player's
 options menu. Explicitly saved Auto or Portrait choices remain unchanged when
 loading existing profiles; older settings without an orientation use Landscape.
-Episode/version handoffs retain the preference for the active presentation.
+The on-demand cover follows system orientation while loading versions and showing
+the first-use question or pre-play version picker. The saved rotation preference
+activates only after that gate completes; cancelling or failing the gate never
+forces rotation. Episode/version handoffs retain the preference once playback starts.
 The mobile presentation owner supplies the shared player's dismissal action.
 Failure-screen Back and end-of-playback dismissal use that same owner as the
 mobile X button, rather than a SwiftUI dismiss action outside a SwiftUI cover.
@@ -285,8 +288,12 @@ applied to other windows, the ordinary guide, or inactive profiles.
 iPad follows system rotation and offers no app orientation control, preserving
 multitasking. iPadOS refuses forced Portrait/Landscape changes in multitasking
 mode, even when a window fills the display.
-Rejected geometry requests log the failure, show a status message, and fall
-back to Auto for the current presentation without changing the saved preference.
+Rotation waits for native presentation transitions, including dismissal of the
+pre-play sheet, rather than racing the selection continuation. Transient geometry
+rejections are logged and retried at most three times within a bounded reconciliation
+window; they never replace the saved preference with Auto or show a window-management
+toast. Dismissal, ownership changes, and newer requests cancel stale reconciliation.
+Returning to the foreground rechecks the active player's orientation.
 
 The mobile in-player Guide reuses the guide grid without its standalone top
 inset, aligning the ruler with the current-program column. That column uses the
@@ -416,12 +423,36 @@ System volume remains at the user's chosen level.
 ## Mobile playback settings
 
 Before the first multi-version movie or episode, both platforms ask the profile
-to **Ask every time** or **Remember my choice**, using the shared Live TV
-introduction layout. Both answers lead to the version picker for that video.
+to **Ask every time** or **Choose automatically**, using the shared Live TV
+introduction layout. Asking opens the version picker; choosing automatically
+immediately resolves and starts that video without another choice.
 Settings > Playback > Version selection can change the mode later; the existing
 profile settings payload carries it through switching, transfer, and cloud sync.
 Unanswered older profiles retain their per-title memories but still see the
 introduction on their first multi-version playback.
+The old Remember my choice mode migrates to automatic selection.
+
+Before deciding whether a picker is needed, the gate awaits the provider's
+authoritative `playbackItem(id:)` inventory, even for a cached one-version seed.
+Both shells await the existing bounded cross-server discovery rather than relying
+on the detail page's speculative background pass. Same-account edition sources
+are refreshed before presenting their files; partial lists and failed
+remote discovery cannot fall through into playback. Local downloads remain
+usable without a server lookup. tvOS shows a loading indicator during this wait.
+Cached automatic recommendations are recomputed against the complete inventory;
+deliberate selections keep their precedence.
+Discovered primary references are stamped with that fresh inventory before a
+choice is routed, so selecting one file cannot collapse the remaining choices.
+Preparation failures retain their typed message on both platforms and record a
+safe stage/error code in the playback journal; raw server descriptions and URLs
+are not shown.
+
+**Remember series version choices** is an independent, default-on profile setting,
+not a first-use question. It controls reads and writes of episode/series version
+preferences across detail pages, player switches, and the pre-play picker.
+Disabling it retains stored preferences without applying or replacing them;
+movie-specific memories and explicit selections remain intact. Asking always
+opens the picker, with the preferred/recommended version selected.
 
 On tvOS, the introduction and version list stay in the player's existing overlay
 as centered, content-sized cards, up to 1,100 points wide and 860 points tall.
@@ -429,10 +460,12 @@ Longer content scrolls within the available safe-area height; shorter content
 must not stretch the card or push Cancel to the screen edge.
 
 `PlaybackVersionChoiceModel` gates player creation and next-episode/playlist
-handoffs. Ask every time includes autoplay. Remember reuses a movie's exact
-file, or matches all known descriptor facts across a series; it does not silently
-substitute a different resolution, range, or cut. Missing matches ask again,
-including when only one fallback remains. Cancelling does not start playback
+handoffs. Ask every time includes autoplay. Automatic selection uses the shared
+detail-page resolver: explicit selection, permitted movie/series preference,
+then the existing device-capability recommendation and server-default fallback.
+A missing preference never opens a picker in automatic mode, even when only one
+version remains. Automatic choices do not overwrite explicit memories or turn
+an automatic source into a manually locked source. Cancelling does not start playback
 or record an unchosen file. In-player version changes and retry/failover do not
 repeat the introduction. Qualified picker IDs still resolve to original
 account/item/file identities before playback.
@@ -979,11 +1012,13 @@ account/file routing and playback continuation as mobile, swapping players
 inside the existing cover. An explicit choice never silently fails over to
 another source. Resolved file lists refresh the playing source without
 discarding other editions in a combined title.
-Detail and in-player version pickers share `MediaVersion.PickerPresentation`.
-Quality and file size lead; wrapping secondary text adds video format, available
-audio languages, primary audio format, bitrate and runtime when supplied.
-The release filename/name stays on its own tertiary line. These describe the
-source file, not the engine's negotiated output; missing facts are not guessed.
+Pre-play, detail, context-menu and in-player version pickers share
+`MediaVersion.PickerPresentation` and `CoreUI.MediaVersionChoiceButton`.
+Edition/quality/size and release text precede the compact wrapping badge footer,
+including video format, audio format and reported audio languages. Bitrate and
+runtime remain text when supplied. These describe the source file, not the
+engine's negotiated output; missing facts are not guessed. A reported English
+track does not establish that the file is English-only.
 Every native startup resume waits for readiness and verifies both seek completion
 and the actual landing. A rejected seek fails before playback starts at zero,
 allowing the existing alternate-engine fallback to keep the requested position

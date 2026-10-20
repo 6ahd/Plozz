@@ -102,6 +102,10 @@ public final class SentryCrashReporter: CrashReporter {
             guard SentrySDK.isEnabled, let event = Self.siloSetupEvent(diagnostic) else { return }
             SentrySDK.capture(event: event)
         }
+        DeviceSetupDiagnostics.shared.start { diagnostic in
+            guard SentrySDK.isEnabled, let event = Self.deviceSetupEvent(diagnostic) else { return }
+            SentrySDK.capture(event: event)
+        }
         configureSetupDiagnostics(context)
     }
 
@@ -126,6 +130,7 @@ public final class SentryCrashReporter: CrashReporter {
         guard isActive else { return }
         PerformanceDiagnostics.shared.stop()
         SiloSetupDiagnostics.shared.stop()
+        DeviceSetupDiagnostics.shared.stop()
         for observer in diagnosticObservers { NotificationCenter.default.removeObserver(observer) }
         diagnosticObservers.removeAll()
         playlistDiagnosticGate.reset()
@@ -295,6 +300,21 @@ public final class SentryCrashReporter: CrashReporter {
             data["delivery"] = facts
         }
         return data
+    }
+
+    nonisolated static func deviceSetupData(_ diagnostic: DeviceSetupDiagnostic) -> [String: Any] {
+        [
+            "role": diagnostic.role.rawValue, "route": diagnostic.route.rawValue,
+            "stage": diagnostic.stage.rawValue, "outcome": diagnostic.outcome.rawValue,
+            "reason": diagnostic.reason.rawValue, "elapsedMilliseconds": diagnostic.elapsedMilliseconds
+        ]
+    }
+
+    nonisolated static func deviceSetupEvent(_ diagnostic: DeviceSetupDiagnostic) -> Event? {
+        let event = Event(level: .warning)
+        event.tags = ["report.kind": "device-setup"]
+        event.context = ["device_setup": deviceSetupData(diagnostic)]
+        return CrashRedaction.scrub(event)
     }
 
     nonisolated static func siloSetupData(_ diagnostic: SiloSetupDiagnostic) -> [String: Any] {

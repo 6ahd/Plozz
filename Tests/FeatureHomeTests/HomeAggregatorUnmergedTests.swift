@@ -9,6 +9,24 @@ import Synchronization
 /// a block — Home stays lean by default.
 @MainActor
 final class HomeAggregatorUnmergedTests: XCTestCase {
+    func testCollectionDirectoryStaysInLibrariesButNeverWidensScopedMediaFeeds() async {
+        let directory = MediaLibrary(
+            id: "jellyfin:collections", title: "Collections", kind: .collection, synthesizedName: .collections
+        )
+        let stub = UnmergedStub(libraries: [
+            lib("L1", "Movies", .movie), lib("hidden", "Hidden", .movie), directory
+        ])
+        let content = await HomeAggregator().unmergedContent(
+            from: [resolved("acct", provider: stub)],
+            visibility: vis([("acct:\(directory.id)", .recentlyAdded)], disabled: ["acct:hidden"])
+        )
+        XCTAssertTrue(content.libraries.contains { $0.library == directory.taggingSource("acct") })
+        XCTAssertTrue(content.librarySections.isEmpty)
+        XCTAssertFalse(stub.itemsRequested)
+        XCTAssertFalse(stub.scopedLibraryRequests.isEmpty)
+        XCTAssertTrue(stub.scopedLibraryRequests.allSatisfy { $0 == ["L1"] })
+    }
+
 
     /// Enables the given per-library row kinds for `libraryKey` on top of a base.
     private func vis(_ rows: [(String, LibraryHomeRowKind)],
@@ -527,6 +545,8 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
     private let nativeItems: [String: [MediaItem]]
     private let nativeError: AppError?
     private let nativeCalls = Mutex<[String]>([])
+    private let scopedFeedCalls = Mutex<[[String]]>([])
+    var scopedLibraryRequests: [[String]] { scopedFeedCalls.withLock { $0 } }
     var nativeRequests: [String] { nativeCalls.withLock { $0 } }
     private let nativeBatches = Mutex<[[String]]>([])
     var nativeBatchRequests: [[String]] { nativeBatches.withLock { $0 } }
@@ -572,11 +592,16 @@ private final class UnmergedStub: MediaProvider, @unchecked Sendable {
     }
     func continueWatching(limit: Int) async throws -> [MediaItem] { stubbedContinueWatching }
     func continueWatching(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
+        if let libraryIDs { scopedFeedCalls.withLock { $0.append(libraryIDs) } }
         scopedCalls.withLock { $0.append(libraryIDs) }
         return stubbedContinueWatching.filter { item in
             guard let libraryIDs else { return true }
             return item.libraryID.map(libraryIDs.contains) ?? true
         }
+    }
+    func latest(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
+        if let libraryIDs { scopedFeedCalls.withLock { $0.append(libraryIDs) } }
+        return stubbedLatest
     }
     func homeNextUp(libraryID: String, limit: Int) async throws -> [MediaItem] {
         nextUpCalls.withLock { $0.append(libraryID) }

@@ -19,6 +19,8 @@ final class FakeMediaProvider: MediaProvider, InteractiveBrowseActivityReporting
     SupplementalStreamFactsProviding, @unchecked Sendable {
     let kind: ProviderKind
     let session: UserSession
+    var playbackInventoryRequiresEnrichment = false
+    var playbackItemHandler: (@Sendable (String) async throws -> MediaItem)?
 
     /// Serializes mutation/reads of the call-counter state touched concurrently by
     /// `item(id:)`, `children(of:)`, `libraries()`, and `items(in:page:)`.
@@ -185,6 +187,10 @@ final class FakeMediaProvider: MediaProvider, InteractiveBrowseActivityReporting
         }
         guard let item = allItems.first(where: { $0.id == id }) else { throw AppError.notFound }
         return item
+    }
+    func playbackItem(id: String) async throws -> MediaItem {
+        if let playbackItemHandler { return try await playbackItemHandler(id) }
+        return try await item(id: id)
     }
     /// Optional gate that, when present for a given parent id, suspends the
     /// `children(of:)` call until released. Lets tests observe state published

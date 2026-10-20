@@ -620,7 +620,7 @@ extension PlozziOSAppModel {
     /// shared/stale Apple ID can't silently harvest tokens (matches Apple's "set up new
     /// device" pattern, which also confirms on the source).
     func checkForSyncSetupOffer() {
-        guard SyncSetupFeatureFlag().isEnabled, !isAutoAdoptingSyncSetup, pendingSyncSetupOffer == nil else { return }
+        guard SyncSetupFeatureFlag().isEnabled, pendingSyncSetupOffer == nil else { return }
         let localIDs = Set(accountsProviders.accounts.map(\.id))
         guard !localIDs.isEmpty else { return }         // nothing to give
         // Pairing hands another device this household's servers, profiles and
@@ -639,26 +639,25 @@ extension PlozziOSAppModel {
         pendingSyncSetupOffer = offer
     }
 
-    /// The user confirmed — push config + credentials to the offered device (pinned
-    /// key ⇒ no SAS, no typing).
-    func confirmSyncSetupOffer() {
-        guard !managementRequiresParentalPIN else { return }
-        guard let offer = pendingSyncSetupOffer else { return }
-        pendingSyncSetupOffer = nil
-        isAutoAdoptingSyncSetup = true
-        let model = SyncSetupPairingModel(service: syncSetup)
-        Task { @MainActor in
-            await model.adopt(offer)
-            isAutoAdoptingSyncSetup = false
-        }
+    func makeSyncSetupSender() -> SyncSetupPairingModel {
+        let profile = profiles.activeProfile
+        let accounts = accountsProviders.accounts
+        let scope = Set(accounts.map(\.connectionScopeKey))
+        let identity = profile.plexPlaybackIdentityKey(for: accounts)
+        return SyncSetupPairingModel(service: syncSetup, isAuthorized: { [weak self] in
+            guard let self else { return false }
+            let currentAccounts = self.accountsProviders.accounts
+            return self.isActiveProfileAuthorized && !self.managementRequiresParentalPIN
+                && self.profiles.activeProfileID == profile.id
+                && Set(currentAccounts.map(\.connectionScopeKey)) == scope
+                && self.profiles.activeProfile.plexPlaybackIdentityKey(for: currentAccounts) == identity
+        })
     }
 
     /// The user declined — don't re-prompt for this exact offer.
-    func declineSyncSetupOffer() {
-        if let offer = pendingSyncSetupOffer {
-            dismissedSyncSetupOfferKeys.insert(Self.offerKey(offer))
-        }
-        pendingSyncSetupOffer = nil
+    func declineSyncSetupOffer(_ offer: SyncPairingRendezvous) {
+        dismissedSyncSetupOfferKeys.insert(Self.offerKey(offer))
+        if pendingSyncSetupOffer == offer { pendingSyncSetupOffer = nil }
     }
 
     private static func offerKey(_ offer: SyncPairingRendezvous) -> String {

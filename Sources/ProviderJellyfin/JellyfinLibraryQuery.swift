@@ -3,11 +3,15 @@ import Foundation
 
 extension JellyfinProvider: MediaLibraryQueryProviding {
     public func supportedSortFields(in containerID: String, kind: MediaItemKind) -> [SortField] {
-        [.name, .year, .releaseDate, .criticRating, .communityRating, .contentRating,
+        if containerID == collectionDirectoryID { return [.name, .dateAdded, .random] }
+        return [.name, .year, .releaseDate, .criticRating, .communityRating, .contentRating,
          .runtime, .progress, .plays, .lastPlayed, .dateAdded, .random]
     }
 
     public func libraryQueryCapabilities(in containerID: String, kind: MediaItemKind) -> LibraryQueryCapabilities {
+        if containerID == collectionDirectoryID {
+            return LibraryQueryCapabilities(nativeSortFields: [.name, .dateAdded, .random])
+        }
         var nativeFilters: Set<LibraryFilter> = [.all, .unwatched, .inProgress]
         var fields = Set(supportedSortFields(in: containerID, kind: kind))
         fields.remove(.progress)
@@ -23,13 +27,17 @@ extension JellyfinProvider: MediaLibraryQueryProviding {
     }
 
     public func libraryQueryFacets(in containerID: String, kind: MediaItemKind) async throws -> LibraryQueryFacets {
-        try await client.libraryFacets(
+        if containerID == collectionDirectoryID { return LibraryQueryFacets() }
+        return try await client.libraryFacets(
             userID: session.userID, parentID: containerID,
             includeItemTypes: Self.query(forContainerKind: kind).includeItemTypes
         )
     }
 
     public func libraryQueryInventory(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
+        if containerID == collectionDirectoryID {
+            return try await items(in: containerID, kind: kind, page: page)
+        }
         let query = Self.query(forContainerKind: kind)
         let fields = libraryQueryCapabilities(in: containerID, kind: kind).nativeSortFields
         let response = try await client.items(
