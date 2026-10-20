@@ -591,6 +591,9 @@ private final class FailingRemovalAccountStore:
     }
 
     func add(_ account: Account, token: String) throws {}
+    func registerAuthenticatedSession(_ session: UserSession) throws -> AccountRegistration {
+        throw AccountStoreError.metadataUpdatesUnavailable
+    }
 
     func addMediaShare(
         _ account: Account,

@@ -45,12 +45,7 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
         try await waitUntil { (self.focusFrame(in: window)?.width ?? 0) > 500 }
         try await Task.sleep(for: .milliseconds(400))
         let image = DetailTransitionSnapshot.image(of: window)
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.recognitionLanguages = ["en-US"]
-        request.usesLanguageCorrection = false
-        request.minimumTextHeight = 0.001
-        request.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
+        let request = textRequest()
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
         let visible = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "80 Mbps", "2h", "GROUP.mkv"] {
@@ -118,14 +113,17 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(500))
         XCTAssertTrue(model.isPanelOpen)
         let image = DetailTransitionSnapshot.image(of: window)
-        let text = VNRecognizeTextRequest()
-        text.recognitionLevel = .accurate
-        text.recognitionLanguages = ["en-US"]
-        text.usesLanguageCorrection = false
-        text.minimumTextHeight = 0.001
-        text.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
-        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([text])
-        let visibleText = (text.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        let text = textRequest()
+        let pixels = try XCTUnwrap(image.cgImage)
+        try VNImageRequestHandler(cgImage: pixels).perform([text])
+        let focusedFrame = try XCTUnwrap(focusFrame(in: window))
+        let crop = focusedFrame.applying(CGAffineTransform(scaleX: image.scale, y: image.scale)).integral
+        let focusedPixels = try XCTUnwrap(pixels.cropping(to: crop))
+        let focusedText = textRequest()
+        // The full-frame OCR pass can miss small format text; keep the same pixels and scope a second pass.
+        try VNImageRequestHandler(cgImage: focusedPixels).perform([focusedText])
+        let visibleText = ((text.results ?? []) + (focusedText.results ?? []))
+            .compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         for fact in ["Extended", "4K", "42 GB", "English", "+1", "HEVC", "TrueHD", "Atmos", "80 Mbps", "2h", "GROUP.mkv"] {
             XCTAssertTrue(visibleText.localizedCaseInsensitiveContains(fact), "Missing version fact \(fact): \(visibleText)")
         }
@@ -152,6 +150,16 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             model: model, palette: .dark,
             actions: PlayerOptionsActions(), onExitToSurface: {}
         ).background(.black))
+    }
+
+    private func textRequest() -> VNRecognizeTextRequest {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        request.usesLanguageCorrection = false
+        request.minimumTextHeight = 0.001
+        request.customWords = ["4K", "HEVC", "Mbps", "TrueHD"]
+        return request
     }
 
     private func focusFrame(in window: UIWindow) -> CGRect? {

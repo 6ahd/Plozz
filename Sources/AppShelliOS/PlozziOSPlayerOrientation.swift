@@ -146,7 +146,7 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
     }
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        hasPendingPresentation ? .all : orientation.supportedMask
+        !ownsWindowOrientation && hasPendingPresentation ? .all : orientation.supportedMask
     }
 
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
@@ -171,7 +171,8 @@ final class PlozziOSOrientationHostingController: UIHostingController<AnyView> {
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        if isBeingDismissed || presentingViewController == nil { tearDown() }
+        // An embedded live owner can be covered by its own controls without ending playback.
+        if isBeingDismissed || (!ownsWindowOrientation && presentingViewController == nil) { tearDown() }
     }
 
     func tearDown() {

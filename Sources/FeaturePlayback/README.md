@@ -283,7 +283,10 @@ The actual presented UIKit hosting controller owns on-demand orientations.
 Expanded Live TV uses the same policy through a window-scoped owner without
 moving or recreating the playing view. Collapsing the player or leaving Live TV
 releases that owner and restores the preceding guide orientation when a forced
-preference was used. Auto continues to follow system rotation. No restriction is
+preference was used. Native options menus and Custom zoom controls retain the
+expanded player's window restriction, including when a presentation temporarily
+covers its embedded owner; only removing that owner ends its policy.
+Auto continues to follow system rotation. No restriction is
 applied to other windows, the ordinary guide, or inactive profiles.
 iPad follows system rotation and offers no app orientation control, preserving
 multitasking. iPadOS refuses forced Portrait/Landscape changes in multitasking

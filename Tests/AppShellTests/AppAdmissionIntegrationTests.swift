@@ -3,6 +3,7 @@ import CoreSecureStore
 import FeatureAuth
 import Foundation
 import XCTest
+@testable import AppRuntime
 @testable import AppShell
 
 @MainActor
@@ -71,6 +72,9 @@ final class AppAdmissionIntegrationTests: XCTestCase {
             accountStore: accounts,
             registry: ProviderRegistry(),
             profilesModel: profiles,
+            homeLibraryVisibilityModel: HomeLibraryVisibilityModel(
+                store: HomeLibraryVisibilityStore(defaults: defaults)
+            ),
             appAdmissionStore: admission
         )
         return Harness(state: state, accounts: accounts, profiles: profiles, defaults: defaults)
@@ -83,6 +87,50 @@ final class AppAdmissionIntegrationTests: XCTestCase {
         XCTAssertFalse(harness.state.pendingStandaloneLiveTVEntry)
         XCTAssertEqual(harness.state.state, .onboarding(.selectingServer, canReturnToApp: false))
         XCTAssertEqual(harness.profiles.activeProfile.name, "Me")
+    }
+
+    func testPlexReconnectPreservesLegacyAccountProfileBindingsAndLibrarySelections() throws {
+        for batch in [false, true] {
+            let harness = try makeHarness(profileSetupComplete: true, withAccount: true, accountProvider: .plex)
+            let original = try XCTUnwrap(harness.accounts.loadAccounts().first)
+            let profileID = harness.profiles.activeProfileID
+            harness.profiles.update(harness.profiles.activeProfile.settingHomeUserBinding(
+                .init(homeUserID: "parent", name: "Parent", requiresPIN: false),
+                forPlexAccount: original.id
+            ))
+            harness.profiles.setActiveAccountIDs([original.id], for: profileID)
+            let other = harness.profiles.add(name: "Kids", activeAccountIDs: [original.id])
+            harness.profiles.update(other.settingHomeUserBinding(
+                .init(homeUserID: "child", name: "Child", requiresPIN: false),
+                forPlexAccount: original.id
+            ))
+            harness.profiles.select(profileID)
+            harness.state.plexHomeUsers.plexHomeUsersFetch = { _, _ in
+                [PlexHomeUser(id: "parent", name: "Parent", requiresPIN: false)]
+            }
+            harness.state.plexHomeUsers.plexHomeUserSwitch = { _, _, _, _ in "HOME-TOKEN" }
+            harness.state.plexHomeUsers.plexServerTokenResolve = { _, _, _ in "HOME-SERVER-TOKEN" }
+            harness.state.bootstrap()
+            let visibility = harness.state.profileSettings.homeLibraryVisibilityModel
+            visibility.setEnabled(false, for: "\(original.id):movies")
+
+            let session = original.session(token: "test-token")
+            if batch {
+                harness.state.didAuthenticatePlexMany([session, session])
+            } else {
+                XCTAssertTrue(harness.state.didAuthenticate(session))
+            }
+
+            XCTAssertEqual(harness.accounts.loadAccounts(), [original])
+            XCTAssertEqual(harness.state.pendingLibrarySelectionAccountIDs, [original.id])
+            XCTAssertEqual(harness.profiles.activeProfile.homeUserBinding(forPlexAccount: original.id)?.homeUserID, "parent")
+            XCTAssertEqual(harness.profiles.profiles.first { $0.id == other.id }?
+                .homeUserBinding(forPlexAccount: original.id)?.homeUserID, "child")
+            XCTAssertEqual(harness.profiles.storedActiveAccountIDs(for: profileID), [original.id])
+            XCTAssertEqual(harness.profiles.storedActiveAccountIDs(for: other.id), [original.id])
+            XCTAssertFalse(visibility.visibility.isEnabled("\(original.id):movies"))
+            harness.state.plexHomeUsers.forgetAccount(original.id)
+        }
     }
 
     func testSyncedUnknownIdentityDoesNotBlockKnownNonPlexSources() throws {
