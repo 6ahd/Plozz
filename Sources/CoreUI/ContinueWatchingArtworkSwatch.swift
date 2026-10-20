@@ -70,19 +70,19 @@ public struct ContinueWatchingArtworkSwatch: View {
     private let style: ContinueWatchingArtworkStyle
     private var layout: ContinueWatchingCardLayout { style.layout }
     private let cornerRadius: CGFloat
-    private let portraitDetails: ContinueWatchingPortraitDetails
+    private let playbackDetails: ContinueWatchingPlaybackDetails
     @Environment(\.plozzReduceTransparency) private var reduceTransparency
     @Environment(\.plozzMetrics) private var metrics
 
-    private var usesProgressOnlyPortrait: Bool { layout == .portrait && portraitDetails == .progressOnly }
+    private var usesProgressOnlyPortrait: Bool { layout == .portrait && playbackDetails == .progressOnly }
 
     public init(
         style: ContinueWatchingArtworkStyle, cornerRadius: CGFloat = 12,
-        portraitDetails: ContinueWatchingPortraitDetails = .default
+        playbackDetails: ContinueWatchingPlaybackDetails = .default
     ) {
         self.style = style
         self.cornerRadius = cornerRadius
-        self.portraitDetails = portraitDetails
+        self.playbackDetails = playbackDetails
     }
 
     public var body: some View {
@@ -107,7 +107,7 @@ public struct ContinueWatchingArtworkSwatch: View {
             // not two zoom levels) and from what the TALLER of them can fit.
             let cardWidth = min(
                 width * 0.94,
-                available * (layout == .portrait ? portraitDetails.cardAspectRatio : ContinueWatchingCardShape.aspectRatio)
+                available * (layout == .portrait ? playbackDetails.cardAspectRatio : ContinueWatchingCardShape.aspectRatio)
             )
             let cardHeight = cardWidth / cardAspectRatio
             VStack(spacing: gap) {
@@ -125,7 +125,7 @@ public struct ContinueWatchingArtworkSwatch: View {
         switch style {
         case .logoAndArtwork: return ContinueWatchingCardShape.aspectRatio
         case .thumbnail: return 16.0 / 9.0
-        case .portraitPosters: return portraitDetails.cardAspectRatio
+        case .portraitPosters: return playbackDetails.cardAspectRatio
         }
     }
 
@@ -141,7 +141,7 @@ public struct ContinueWatchingArtworkSwatch: View {
                         ? ContinueWatchingCardShape.portraitGeometry.reflectionStart
                         : ContinueWatchingCardShape.mirrorLine)) / 2)
             }
-            if usesProgressOnlyPortrait {
+            if playbackDetails == .progressOnly {
                 MediaCardPlaybackIndicators(
                     item: MediaItem(id: "continue-watching-preview", title: "", kind: .movie, runtime: 100, resumePosition: 42),
                     hidesStatus: true, badgeInset: 0,
@@ -260,10 +260,8 @@ public struct ContinueWatchingArtworkSwatch: View {
     /// and finishes lighter, matching the real card.
     private func chip(width: CGFloat, height: CGFloat) -> some View {
         let isExtended = style.showsSeriesArtwork
-        let scrimStart = layout == .portrait
-            ? ContinueWatchingCardShape.portraitGeometry.reflectionStart : ContinueWatchingCardShape.scrimStart
         let scrimHeight = isExtended
-            ? height * (1 - scrimStart)
+            ? height * (1 - ContinueWatchingCardShape.scrimStart)
             : height * 0.40
         return VStack(spacing: 0) {
             Spacer(minLength: 0)

@@ -1057,6 +1057,10 @@ final class SettingsInteractionTests: XCTestCase {
                 XCTAssertEqual(option.isSelected, index == selected)
             }
             XCTAssertEqual(app.buttons["card-label-view-continueWatchingPortrait"].exists, selected == 2)
+            let details = app.buttons["continue-watching-playback-details"]
+            XCTAssertTrue(details.exists)
+            selectCustomization(details, expecting: "Progress only")
+            selectCustomization(details, expecting: "Detailed")
             if selected == 2 { capture("continue-watching-three-presentations") }
         }
         XCTAssertFalse(app.segmentedControls["continue-watching-layout"].exists)
@@ -1071,7 +1075,7 @@ final class SettingsInteractionTests: XCTestCase {
         let labels = app.buttons["card-label-view-continueWatchingPortrait"]
         XCTAssertTrue(labels.waitForExistence(timeout: 3))
         XCTAssertEqual(labels.value as? String, "Follow Appearance")
-        let details = app.buttons["continue-watching-portrait-details"]
+        let details = app.buttons["continue-watching-playback-details"]
         XCTAssertTrue(details.exists)
         XCTAssertEqual(details.value as? String, "Detailed")
         selectCustomization(details, expecting: "Progress only")
@@ -1105,7 +1109,8 @@ final class SettingsInteractionTests: XCTestCase {
         reveal(landscape, fullyVisible: true)
         landscape.tap()
         XCTAssertFalse(labels.exists)
-        XCTAssertFalse(details.exists)
+        XCTAssertTrue(details.exists)
+        XCTAssertEqual(details.value as? String, "Progress only")
         reveal(portrait, fullyVisible: true)
         portrait.tap()
         XCTAssertTrue(labels.waitForExistence(timeout: 3))

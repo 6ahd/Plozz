@@ -76,10 +76,14 @@ public struct PosterCardView: View {
     /// focused through movement and light instead — see `plozzCardFocusLift`.
     @Environment(\.plozzCardFocusStyle) private var focusStyle
     @Environment(\.plozzArtworkPolicy) private var inheritedArtworkPolicy
-    @Environment(\.plozzContinueWatchingPortraitDetails) private var portraitDetails
+    @Environment(\.plozzContinueWatchingPlaybackDetails) private var playbackDetails
+
+    private var usesProgressOnly: Bool {
+        presentationArtworkPolicy.area == .continueWatching && playbackDetails == .progressOnly
+    }
 
     private var usesProgressOnlyPortrait: Bool {
-        showsSeriesArtwork && style == .poster && portraitDetails == .progressOnly
+        showsSeriesArtwork && style == .poster && usesProgressOnly
     }
 
     private var presentationArtworkPolicy: ArtworkPresentationPolicy {
@@ -170,7 +174,7 @@ public struct PosterCardView: View {
     }
 
     private var cardAccessibilityValue: String? {
-        let subtitle = usesProgressOnlyPortrait ? item.posterCaptionSubtitle(showsRuntime: true)
+        let subtitle = usesProgressOnly ? item.posterCaptionSubtitle(showsRuntime: true)
             : (showsSeriesArtwork ? nil : subtitleText)
         guard var count = MediaPlaybackIndicatorState(item).episodeCountAccessibilityLabel(
             enabled: showsUnwatchedEpisodeCount, hidesStatus: hidesPlaybackStatus
@@ -198,7 +202,7 @@ public struct PosterCardView: View {
             return CGSize(
                 width: metrics.posterWidth,
                 height: showsSeriesArtwork
-                    ? metrics.posterWidth / portraitDetails.cardAspectRatio : metrics.posterHeight
+                    ? metrics.posterWidth / playbackDetails.cardAspectRatio : metrics.posterHeight
             )
         case .landscape:
             // A series-artwork card stands taller than the 16:9 art it carries so
@@ -757,7 +761,7 @@ public struct PosterCardView: View {
     /// Aspect ratio for the borderless full-bleed image.
     private var borderlessAspectRatio: CGFloat {
         switch style {
-        case .poster: return showsSeriesArtwork ? portraitDetails.cardAspectRatio : 2.0 / 3.0
+        case .poster: return showsSeriesArtwork ? playbackDetails.cardAspectRatio : 2.0 / 3.0
         // Matches `size`: series-artwork cards are taller than their picture.
         case .landscape: return showsSeriesArtwork
             ? ContinueWatchingCardShape.aspectRatio
@@ -828,7 +832,7 @@ public struct PosterCardView: View {
 
     private var showsResumeChip: Bool {
         (playsOnSelect || showsResumeChipOverride)
-            && !usesProgressOnlyPortrait
+            && !usesProgressOnly
             && !hideThumbnail
             // Resume progress qualifies on its own. Gating solely on runtime text
             // meant an item whose provider didn't supply a runtime dropped to the
@@ -871,9 +875,7 @@ public struct PosterCardView: View {
             showsPlayGlyphWhenIdle: showsSeriesArtwork,
             // The reflection already darkens this region; avoid compounding it
             // with the stronger scrim used by ordinary browsing cards.
-            bottomScrimStart: showsSeriesArtwork
-                ? (style == .poster ? ContinueWatchingCardShape.portraitGeometry.reflectionStart
-                   : ContinueWatchingCardShape.scrimStart) : nil,
+            bottomScrimStart: showsSeriesArtwork ? ContinueWatchingCardShape.scrimStart : nil,
             bottomScrimDepth: showsSeriesArtwork ? ContinueWatchingCardShape.scrimDepth : nil,
             compactHorizontalLayout: showsSeriesArtwork && style == .poster
         )

@@ -6,7 +6,7 @@ import CoreUI
 /// Equal-weight native choices keep every presentation visible without a separate layout control.
 struct ContinueWatchingArtworkPicker: View {
     @Binding var style: ContinueWatchingArtworkStyle
-    var portraitDetails: ContinueWatchingPortraitDetails = .default
+    var playbackDetails: ContinueWatchingPlaybackDetails = .default
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -76,7 +76,7 @@ struct ContinueWatchingArtworkPicker: View {
 
     private func swatch(_ option: ContinueWatchingArtworkStyle) -> some View {
         ContinueWatchingArtworkSwatch(
-            style: option, cornerRadius: PlozzTheme.Metrics.Radius.content, portraitDetails: portraitDetails
+            style: option, cornerRadius: PlozzTheme.Metrics.Radius.content, playbackDetails: playbackDetails
         )
         .accessibilityHidden(true)
     }

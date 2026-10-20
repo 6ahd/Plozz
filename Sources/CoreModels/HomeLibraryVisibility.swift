@@ -108,7 +108,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     /// the spoiler settings, which blur or replace it as configured.
     public var continueWatchingShowsSeriesArtwork: Bool
     public var continueWatchingLayout: ContinueWatchingCardLayout
-    public var continueWatchingPortraitDetails: ContinueWatchingPortraitDetails
+    public var continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails
 
     public var continueWatchingUsesSeriesArtwork: Bool {
         continueWatchingLayout == .portrait || continueWatchingShowsSeriesArtwork
@@ -123,7 +123,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         hasSeededLibraryRows: Bool = false,
         continueWatchingShowsSeriesArtwork: Bool = true,
         continueWatchingLayout: ContinueWatchingCardLayout = .landscape,
-        continueWatchingPortraitDetails: ContinueWatchingPortraitDetails = .default,
+        continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails = .default,
         rowCustomization: HomeRowCustomization? = nil,
         mergeNextUpIntoContinueWatching: Bool = true
     ) {
@@ -135,7 +135,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.hasSeededLibraryRows = hasSeededLibraryRows
         self.continueWatchingShowsSeriesArtwork = continueWatchingShowsSeriesArtwork
         self.continueWatchingLayout = continueWatchingLayout
-        self.continueWatchingPortraitDetails = continueWatchingPortraitDetails
+        self.continueWatchingPlaybackDetails = continueWatchingPlaybackDetails
         self.rowCustomization = rowCustomization
         self.mergeNextUpIntoContinueWatching = mergeNextUpIntoContinueWatching
     }
@@ -366,7 +366,8 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         case hasSeededLibraryRows
         case continueWatchingShowsSeriesArtwork
         case continueWatchingLayout
-        case continueWatchingPortraitDetails
+        // Preserve the stored preference introduced with portrait cards.
+        case continueWatchingPlaybackDetails = "continueWatchingPortraitDetails"
         case rowCustomization
         case mergeNextUpIntoContinueWatching
     }
@@ -402,8 +403,8 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.continueWatchingLayout = try container.decodeIfPresent(
             ContinueWatchingCardLayout.self, forKey: .continueWatchingLayout
         ) ?? .landscape
-        self.continueWatchingPortraitDetails = try container.decodeIfPresent(
-            ContinueWatchingPortraitDetails.self, forKey: .continueWatchingPortraitDetails
+        self.continueWatchingPlaybackDetails = try container.decodeIfPresent(
+            ContinueWatchingPlaybackDetails.self, forKey: .continueWatchingPlaybackDetails
         ) ?? .default
         self.rowCustomization = try container.decodeIfPresent(HomeRowCustomization.self, forKey: .rowCustomization)
         self.mergeNextUpIntoContinueWatching = try container.decodeIfPresent(
@@ -421,7 +422,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         try container.encode(hasSeededLibraryRows, forKey: .hasSeededLibraryRows)
         try container.encode(continueWatchingShowsSeriesArtwork, forKey: .continueWatchingShowsSeriesArtwork)
         try container.encode(continueWatchingLayout, forKey: .continueWatchingLayout)
-        try container.encode(continueWatchingPortraitDetails, forKey: .continueWatchingPortraitDetails)
+        try container.encode(continueWatchingPlaybackDetails, forKey: .continueWatchingPlaybackDetails)
         try container.encodeIfPresent(rowCustomization, forKey: .rowCustomization)
         try container.encode(mergeNextUpIntoContinueWatching, forKey: .mergeNextUpIntoContinueWatching)
     }
@@ -431,7 +432,7 @@ public enum ContinueWatchingCardLayout: String, CaseIterable, Codable, Sendable 
     case landscape, portrait
 }
 
-public enum ContinueWatchingPortraitDetails: String, CaseIterable, Codable, Sendable {
+public enum ContinueWatchingPlaybackDetails: String, CaseIterable, Codable, Sendable {
     case detailed, progressOnly
 
     public static let `default`: Self = .detailed

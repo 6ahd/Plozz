@@ -6,6 +6,12 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
+Continue Watching's profile-scoped Playback details choice applies to Logo &
+Artwork, Thumbnail & Title, and Portrait posters, on Home and library rows.
+Detailed keeps the existing play/progress/text overlay; Progress only uses the
+shared white progress bar without that overlay. Other cards are unaffected.
+The previously stored portrait-only preference is retained.
+
 Continue Watching portrait cards reuse `PosterCardView`. Detailed adds a reflected
 extension 10% of the complete 2:3 poster's height (half the previous extension).
 Only this band gradually blurs as it darkens;
@@ -18,8 +24,10 @@ insets, watch-state rules and download badges; it does not create another bar st
 The shared indicator falls back to the existing resume fraction when the provider
 omits a percentage, so switching treatments does not lose known progress.
 They resolve movie or series posters, never episode stills or textless backdrops.
-Portrait uses zero side crop, no duplicate logo or logo dimming. Detailed's scrim
-starts below the original poster; Progress only uses the shared bar's scrim.
+Portrait uses zero side crop, no duplicate logo or logo dimming. Detailed keeps
+the landscape Continue Watching scrim's start, easing and depth; the slight
+reflection blur is additional, not a replacement for that scrim.
+Progress only uses the shared bar's scrim.
 Artwork-source preferences still apply.
 Native TV bitmaps, SwiftUI cards, previews, and loading placeholders share this
 selected shape. Detailed tightens only the shared chip's horizontal spacing,
@@ -27,7 +35,7 @@ preserving episode/time details and the progress/download elements in its narrow
 slot. Its vertical inset from the bottom remains identical to landscape Continue Watching.
 Portrait labels use the existing caption settings' override,
 inheriting the row's Home or Recommended choice unless explicitly shown/hidden.
-`plozzContinueWatchingPortraitDetails` carries the active profile's choice through
+`plozzContinueWatchingPlaybackDetails` carries the active profile's choice through
 both app roots and native hosting boundaries without changing non-Continue-Watching cards.
 
 - **Version choices** — `MediaVersionChoiceButton` is the shared native rounded

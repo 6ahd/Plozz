@@ -33,13 +33,13 @@ final class ExtendedArtworkGeometryTests: XCTestCase {
     }
 
     func testProgressOnlyPortraitUsesTheStandardPosterWithoutAnExtension() {
-        let aspect = ContinueWatchingPortraitDetails.progressOnly.cardAspectRatio
+        let aspect = ContinueWatchingPlaybackDetails.progressOnly.cardAspectRatio
         XCTAssertEqual(aspect, 2.0 / 3.0, accuracy: 0.001)
         let geometry = ExtendedArtworkGeometry(
             slot: CGSize(width: 200, height: 200 / aspect), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
         )
         XCTAssertEqual(geometry.reflectionHeight, 0)
-        XCTAssertEqual(ContinueWatchingPortraitDetails.detailed.cardAspectRatio,
+        XCTAssertEqual(ContinueWatchingPlaybackDetails.detailed.cardAspectRatio,
                        ContinueWatchingCardShape.portraitAspectRatio)
     }
 

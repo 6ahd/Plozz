@@ -220,13 +220,13 @@ final class PlozzMetricsTests: XCTestCase {
 
     func testPortraitPlaybackDetailsSurviveHostingWithoutChangingLabels() {
         var source = EnvironmentValues()
-        XCTAssertEqual(source.plozzContinueWatchingPortraitDetails, .detailed)
+        XCTAssertEqual(source.plozzContinueWatchingPlaybackDetails, .detailed)
         source.plozzCardCaptionSettings.setOverride(.show, for: .continueWatchingPortrait)
         var hosted = EnvironmentValues()
-        for details in ContinueWatchingPortraitDetails.allCases {
-            source.plozzContinueWatchingPortraitDetails = details
+        for details in ContinueWatchingPlaybackDetails.allCases {
+            source.plozzContinueWatchingPlaybackDetails = details
             hosted.copyHostedPresentation(from: source)
-            XCTAssertEqual(hosted.plozzContinueWatchingPortraitDetails, details)
+            XCTAssertEqual(hosted.plozzContinueWatchingPlaybackDetails, details)
             XCTAssertFalse(hosted.plozzContinueWatchingPortraitCaptionsHidden)
         }
     }

@@ -2,18 +2,18 @@
 import CoreModels
 import SwiftUI
 
-private struct ContinueWatchingPortraitDetailsKey: EnvironmentKey {
-    static let defaultValue = ContinueWatchingPortraitDetails.default
+private struct ContinueWatchingPlaybackDetailsKey: EnvironmentKey {
+    static let defaultValue = ContinueWatchingPlaybackDetails.default
 }
 
 public extension EnvironmentValues {
-    var plozzContinueWatchingPortraitDetails: ContinueWatchingPortraitDetails {
-        get { self[ContinueWatchingPortraitDetailsKey.self] }
-        set { self[ContinueWatchingPortraitDetailsKey.self] = newValue }
+    var plozzContinueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails {
+        get { self[ContinueWatchingPlaybackDetailsKey.self] }
+        set { self[ContinueWatchingPlaybackDetailsKey.self] = newValue }
     }
 }
 
-public extension ContinueWatchingPortraitDetails {
+public extension ContinueWatchingPlaybackDetails {
     var cardAspectRatio: CGFloat {
         self == .detailed ? ContinueWatchingCardShape.portraitAspectRatio : 2.0 / 3.0
     }
@@ -26,8 +26,8 @@ public extension ContinueWatchingPortraitDetails {
     }
     var detail: LocalizedStringResource {
         switch self {
-        case .detailed: "Playback information in a softly blurred reflection."
-        case .progressOnly: "A progress bar over the poster, without playback text."
+        case .detailed: "Play icon, progress, and playback information."
+        case .progressOnly: "A progress bar without playback text."
         }
     }
 }

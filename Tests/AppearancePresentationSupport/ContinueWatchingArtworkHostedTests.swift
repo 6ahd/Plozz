@@ -28,6 +28,108 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         try await super.tearDown()
     }
 
+    func testPlaybackDetailsAppliesToEveryContinueWatchingLayout() async throws {
+        let art = try await cacheImage(.red, size: CGSize(width: 120, height: 180))
+        let backdrop = try await cacheImage(.red)
+        let item = MediaItem(
+            id: UUID().uuidString, title: "Movie", kind: .movie,
+            runtime: 3600, resumePosition: 900, posterURL: art, backdropURL: backdrop
+        )
+        for presentation in ContinueWatchingArtworkStyle.allCases {
+            for style in [CardStyle.borderless, .framed] {
+                for details in ContinueWatchingPlaybackDetails.allCases {
+                    let width = PlozzMetrics.standard.cardSlotWidth(
+                        for: presentation.layout.cardStyle, cardStyle: style,
+                        showsSeriesArtwork: presentation.showsSeriesArtwork
+                    )
+                    try await withCard(
+                        item, store: makeStore { _ in nil }, style: style,
+                        settings: .init(preference: .library), shape: presentation.layout.cardStyle,
+                        width: width,
+                        showsSeriesArtwork: presentation.showsSeriesArtwork,
+                        showsResumeChip: true, artworkArea: .continueWatching,
+                        captions: .init(overrides: [.home: false, .continueWatchingPortrait: false]),
+                        playbackDetails: details
+                    ) { window in
+                        try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
+                        let text = try recognizedText(
+                            window, attachmentName: "Playback details \(presentation) \(style) \(details)"
+                        )
+                        XCTAssertEqual(text.contains { $0.contains("45m") }, details == .detailed,
+                                       "\(presentation) / \(style) / \(details): \(text)")
+                        if details == .progressOnly {
+                            XCTAssertGreaterThan(try artworkPixels(window).lightRun, 42,
+                                                 "The shared white bar must replace the playback chip.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func testProgressOnlyPreferenceDoesNotChangeOtherCards() async throws {
+        let art = try await cacheImage(.red, size: CGSize(width: 120, height: 180))
+        let backdrop = try await cacheImage(.red)
+        let item = MediaItem(
+            id: UUID().uuidString, title: "Movie", kind: .movie,
+            runtime: 3600, resumePosition: 900, posterURL: art, backdropURL: backdrop
+        )
+        for style in [CardStyle.borderless, .framed] {
+            try await withCard(
+                item, store: makeStore { _ in nil }, style: style,
+                settings: .init(preference: .library),
+                width: PlozzMetrics.standard.cardSlotWidth(for: .landscape, cardStyle: style),
+                showsSeriesArtwork: false,
+                showsResumeChip: true, artworkArea: .recommended,
+                captions: .init(overrides: [.recommended: false]), captionView: .recommended,
+                playbackDetails: .progressOnly
+            ) { window in
+                try await waitUntil {
+                    try self.recognizedText(window).contains { $0.contains("45m") }
+                }
+            }
+        }
+    }
+
+    func testPortraitDetailedKeepsTheLandscapeLegibilityScrim() async throws {
+        let poster = try await cacheImage(.red, size: CGSize(width: 120, height: 180))
+        let item = MediaItem(
+            id: UUID().uuidString, title: "Scrim fixture", kind: .movie,
+            runtime: 3600, resumePosition: 900, posterURL: poster
+        )
+        let width: CGFloat = 300
+        try await withCard(
+            item, store: makeStore { _ in nil }, style: .borderless,
+            settings: .init(preference: .library), shape: .poster, width: width
+        ) { window in
+            try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
+            #if os(tvOS)
+            // Native focus enlarges the displayed image; sample its composited bitmap.
+            let image = try XCTUnwrap(nativePoster(in: window)?.image)
+            let column = try self.artworkPixels(image).centerRed
+            let height = CGFloat(column.count)
+            let top: CGFloat = 0
+            #else
+            let column = try self.artworkPixels(window).centerRed
+            let artworkWidth = width - 2 * PlozzMetrics.standard.borderlessCardSideMargin
+            let height = artworkWidth / ContinueWatchingPlaybackDetails.detailed.cardAspectRatio
+            let top = (window.bounds.height - height) / 2
+            #endif
+            let original = Double(column[Int(top + height * 0.45)])
+            XCTAssertGreaterThan(original, 200)
+            for fraction: CGFloat in [0.72, 0.80, 0.86] {
+                let position = (fraction - ContinueWatchingCardShape.scrimStart)
+                    / (1 - ContinueWatchingCardShape.scrimStart)
+                let expected = 1 - ContinueWatchingCardShape.scrimDepth
+                    * ArtworkGradientRamp.eased(position, bias: 1)
+                let actual = Double(column[Int(top + height * fraction)]) / original
+                XCTAssertEqual(actual, Double(expected), accuracy: 0.04,
+                               "The landscape scrim must darken the picture above the reflection at \(fraction).")
+            }
+            _ = try recognizedText(window, attachmentName: "Portrait with landscape Detailed scrim")
+        }
+    }
+
     func testPortraitKeepsPosterAndResumeChromeWithoutTextlessLookup() async throws {
         for kind in [MediaItemKind.episode, .movie] {
             let poster = try await cacheImage(.red, size: CGSize(width: 120, height: 180), footer: true)
@@ -62,13 +164,13 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
             let width: CGFloat = 132
             let metrics = PlozzMetrics.touch(density: .standard)
             #endif
-            let presentations = ContinueWatchingPortraitDetails.allCases.flatMap { details in
+            let presentations = ContinueWatchingPlaybackDetails.allCases.flatMap { details in
                 [CardStyle.borderless, .framed].map { ($0, details) }
             }
             for (style, details) in presentations {
                 try await withCard(
                     item, store: store, style: style, settings: settings,
-                    shape: .poster, width: width, metrics: metrics, portraitDetails: details
+                    shape: .poster, width: width, metrics: metrics, playbackDetails: details
                 ) { window in
                     try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
                     let counts = try coloredPixels(window)
@@ -125,14 +227,14 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
             for choice in CardCaptionView.continueWatchingPortrait.customizationChoices {
                 var captions = CardCaptionSettings(overrides: [.home: true, .recommended: false])
                 captions.setOverride(choice, for: .continueWatchingPortrait)
-                let presentations = ContinueWatchingPortraitDetails.allCases.flatMap { details in
+                let presentations = ContinueWatchingPlaybackDetails.allCases.flatMap { details in
                     [CardStyle.borderless, .framed].map { ($0, details) }
                 }
                 for (style, details) in presentations {
                     try await withCard(
                         item, store: store, style: style, settings: .init(preference: .library),
                         shape: .poster, width: width, metrics: metrics, captions: captions, captionView: parent,
-                        portraitDetails: details
+                        playbackDetails: details
                     ) { window in
                         try await waitUntil { try self.coloredPixels(window)[0] > 10_000 }
                         let text = try recognizedText(
@@ -153,7 +255,7 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
             id: UUID().uuidString, title: "Episode", kind: .episode, parentTitle: "Series",
             seasonNumber: 1, episodeNumber: 2, runtime: 3600, resumePosition: 900, seriesPosterURL: poster
         )
-        let modes: [ContinueWatchingPortraitDetails] = [.detailed, .progressOnly, .detailed]
+        let modes: [ContinueWatchingPlaybackDetails] = [.detailed, .progressOnly, .detailed]
         var step = 0
         #if os(tvOS)
         var owner: NativePosterButton?
@@ -476,10 +578,13 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         shape: PosterCardView.Style = .landscape,
         width: CGFloat = 300,
         metrics: PlozzMetrics = .standard,
+        showsSeriesArtwork: Bool = true,
+        showsResumeChip: Bool? = nil,
+        artworkArea: ArtworkArea? = nil,
         captions: CardCaptionSettings = .default,
         captionView: CardCaptionView = .home,
-        portraitDetails: ContinueWatchingPortraitDetails = .default,
-        detailsChanges: [ContinueWatchingPortraitDetails] = [],
+        playbackDetails: ContinueWatchingPlaybackDetails = .default,
+        detailsChanges: [ContinueWatchingPlaybackDetails] = [],
         settingsChanges: [ArtworkSettings] = [],
         operation: (UIWindow) async throws -> Void
     ) async throws {
@@ -490,28 +595,30 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
             .first { $0.activationState == .foregroundActive })
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 500, height: shape == .poster ? 800 : 500)
+        window.frame = CGRect(x: 0, y: 0, width: max(500, width + 200), height: shape == .poster ? 800 : 500)
         window.overrideUserInterfaceStyle = .dark
-        let makeView = { (settings: ArtworkSettings, details: ContinueWatchingPortraitDetails) in
+        let makeView = { (settings: ArtworkSettings, details: ContinueWatchingPlaybackDetails) in
             PosterCardView(
-                item: item, style: shape, showsSeriesArtwork: true, showsResumeChip: shape == .poster,
+                item: item, style: shape, showsSeriesArtwork: showsSeriesArtwork,
+                showsResumeChip: showsResumeChip ?? (shape == .poster),
                 textlessBackdropStore: store, action: {}
             )
             .environment(\.plozzArtworkSettings, settings)
+            .environment(\.plozzArtworkArea, artworkArea)
             .environment(\.plozzMetrics, metrics)
             .environment(\.plozzArtworkProviders, MetadataProviderSettingsStore().load())
             .environment(\.plozzCardStyle, style)
             .environment(\.plozzCardFocusStyle, focus)
             .environment(\.plozzCardCaptionView, captionView)
             .environment(\.plozzCardCaptionSettings, captions)
-            .environment(\.plozzContinueWatchingPortraitDetails, details)
+            .environment(\.plozzContinueWatchingPlaybackDetails, details)
             .environment(\.themePalette, .dark)
             .environment(\.colorScheme, .dark)
             .frame(width: width)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(.black)
         }
-        let host = UIHostingController(rootView: makeView(settings, portraitDetails))
+        let host = UIHostingController(rootView: makeView(settings, playbackDetails))
         host.safeAreaRegions = []
         window.rootViewController = host
         window.makeKeyAndVisible()
@@ -523,7 +630,7 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         }
         try await operation(window)
         for changedSettings in settingsChanges {
-            host.rootView = makeView(changedSettings, portraitDetails)
+            host.rootView = makeView(changedSettings, playbackDetails)
             try await operation(window)
         }
         for changedDetails in detailsChanges {
@@ -554,13 +661,17 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         try artworkPixels(window).colors
     }
 
-    private func artworkPixels(_ window: UIWindow) throws -> (colors: [Int], lightRun: Int) {
+    private func artworkPixels(_ window: UIWindow) throws -> (colors: [Int], lightRun: Int, centerRed: [UInt8]) {
         window.layoutIfNeeded()
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
+        return try artworkPixels(image)
+    }
+
+    private func artworkPixels(_ image: UIImage) throws -> (colors: [Int], lightRun: Int, centerRed: [UInt8]) {
         let cg = try XCTUnwrap(image.cgImage)
         let context = try XCTUnwrap(CGContext(
             data: nil, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
@@ -585,7 +696,8 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
                 counts[channel] += 1
             }
         }
-        return (counts, longestLightRun)
+        let centerRed = (0..<cg.height).map { bytes[($0 * cg.width + cg.width / 2) * 4] }
+        return (counts, longestLightRun, centerRed)
     }
 
     private func waitUntil(_ context: String = "", _ condition: () throws -> Bool) async throws {

@@ -87,7 +87,7 @@ struct ArtworkScopeDiagram: View {
     @Environment(\.themePalette) private var palette
     @Environment(\.plozzNavigationStyle) private var navigationStyle
     @Environment(\.layoutDirection) private var layoutDirection
-    @Environment(\.plozzContinueWatchingPortraitDetails) private var portraitDetails
+    @Environment(\.plozzContinueWatchingPlaybackDetails) private var playbackDetails
 
     enum DetailKind: CaseIterable {
         case movie, series
@@ -117,7 +117,7 @@ struct ArtworkScopeDiagram: View {
         let regions = Self.regions(
             for: area, navigationStyle: navigationStyle, detailKind: detailKind,
             heroSettings: heroSettings, continueWatchingShowsSeriesArtwork: continueWatchingShowsSeriesArtwork,
-            continueWatchingLayout: continueWatchingLayout, continueWatchingPortraitDetails: portraitDetails
+            continueWatchingLayout: continueWatchingLayout, continueWatchingPlaybackDetails: playbackDetails
         )
         let screenBounds = CGRect(origin: .zero, size: Self.screen)
         Canvas { context, size in
@@ -166,7 +166,7 @@ struct ArtworkScopeDiagram: View {
         heroSettings: HeroSettings = .default,
         continueWatchingShowsSeriesArtwork: Bool = true,
         continueWatchingLayout: ContinueWatchingCardLayout = .landscape,
-        continueWatchingPortraitDetails: ContinueWatchingPortraitDetails = .default
+        continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails = .default
     ) -> [Region] {
         let libraryAreas: [ArtworkArea] = [.recommendedHero, .recommended, .browse, .collections, .playlists]
         let library = libraryAreas.contains(area)
@@ -229,7 +229,7 @@ struct ArtworkScopeDiagram: View {
             if area == .continueWatching {
                 if continueWatchingLayout == .portrait {
                     result += (0..<6).map {
-                        Region(leading + CGFloat($0) * 44, 126, 28, 28 / continueWatchingPortraitDetails.cardAspectRatio,
+                        Region(leading + CGFloat($0) * 44, 126, 28, 28 / continueWatchingPlaybackDetails.cardAspectRatio,
                                highlighted: true, kind: .portraitSeriesCard)
                     }
                 } else if continueWatchingShowsSeriesArtwork {
@@ -243,7 +243,7 @@ struct ArtworkScopeDiagram: View {
                 if continueWatchingLayout == .portrait {
                     result += (0..<6).map {
                         Region(leading + 3 + CGFloat($0) * 44,
-                               126 + 28 / continueWatchingPortraitDetails.cardAspectRatio - 4, 22, 2)
+                               126 + 28 / continueWatchingPlaybackDetails.cardAspectRatio - 4, 22, 2)
                     }
                 } else {
                     result += (0..<3).map { Region(leading + 5 + CGFloat($0) * 90, 164, 47, 3) }

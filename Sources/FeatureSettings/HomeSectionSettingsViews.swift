@@ -154,9 +154,9 @@ struct HomeSectionSettingsView: View {
                         }
                         visibility.setContinueWatchingLayout(option.layout)
                     }
-                ), portraitDetails: visibility.continueWatchingPortraitDetails)
+                ), playbackDetails: visibility.continueWatchingPlaybackDetails)
+                ContinueWatchingPlaybackDetailsControl(visibility: visibility)
                 if visibility.continueWatchingLayout == .portrait {
-                    ContinueWatchingPortraitDetailsControl(visibility: visibility)
                     CardCaptionViewChoices(
                         view: .continueWatchingPortrait,
                         settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
@@ -191,31 +191,31 @@ struct HomeSectionSettingsView: View {
     }
 }
 
-private struct ContinueWatchingPortraitDetailsControl: View {
+private struct ContinueWatchingPlaybackDetailsControl: View {
     let visibility: HomeLibraryVisibilityModel
 
     var body: some View {
-        let selection = visibility.continueWatchingPortraitDetails
+        let selection = visibility.continueWatchingPlaybackDetails
         Group {
             #if os(iOS)
             ViewCustomizationMenu(
-                id: "continue-watching-portrait-details", title: "Playback details",
+                id: "continue-watching-playback-details", title: "Playback details",
                 value: selection.displayName, detail: selection.detail,
                 selection: Binding(
-                    get: { visibility.continueWatchingPortraitDetails },
-                    set: { visibility.setContinueWatchingPortraitDetails($0) }
+                    get: { visibility.continueWatchingPlaybackDetails },
+                    set: { visibility.setContinueWatchingPlaybackDetails($0) }
                 )
             ) {
-                ForEach(ContinueWatchingPortraitDetails.allCases, id: \.self) { details in
+                ForEach(ContinueWatchingPlaybackDetails.allCases, id: \.self) { details in
                     Text(details.displayName).tag(details)
                 }
             }
             #else
             ViewCustomizationRow(
-                id: "continue-watching-portrait-details", title: "Playback details",
+                id: "continue-watching-playback-details", title: "Playback details",
                 value: selection.displayName, detail: selection.detail
             ) {
-                visibility.setContinueWatchingPortraitDetails(selection == .detailed ? .progressOnly : .detailed)
+                visibility.setContinueWatchingPlaybackDetails(selection == .detailed ? .progressOnly : .detailed)
             }
             #endif
         }

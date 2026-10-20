@@ -34,12 +34,13 @@ watch history and planning-list behavior are documented in
   and presentation, including the existing TV Home Layout/Showcase options.
   Continue Watching offers three native preview choices: Logo & Artwork,
   Thumbnail & Title, and Portrait posters. They share equal card sizes on TV and
-  wide layouts, becoming preview-led rows on compact mobile layouts. Portrait
-  uses complete movie/show posters. Its native Playback details control offers
-  Detailed (a shorter, progressively blurred reflection containing playback
-  information) or Progress only (standard-height posters with the existing shared
-  white progress bar and no playback text). Detailed remains the default; it
-  cannot combine with thumbnails and preserves the saved landscape artwork
+  wide layouts, becoming preview-led rows on compact mobile layouts. The native
+  Playback details control applies to all three choices: Detailed retains the
+  play/progress/text overlay; Progress only uses the existing shared white bar
+  without playback text on the artwork. Detailed remains the default.
+  Portrait uses complete movie/show posters, with a short progressively blurred
+  reflection in Detailed or standard-height posters in Progress only.
+  Portrait cannot combine with thumbnails and preserves the saved landscape artwork
   preference. The presentation is profile-scoped and also applies to library
   Continue Watching rows. Portrait exposes a Labels control bound to the same
   Continue Watching (portrait) override in Appearance -> Cards -> Labels by view:

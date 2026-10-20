@@ -251,7 +251,7 @@ public struct PlozziOSRootView: View {
         )
         .mediaItemActionHandler(appModel.mediaItemActionHandler)
         .environment(\.plozzCardCaptionSettings, appModel.settings.cardStyle.captions)
-        .environment(\.plozzContinueWatchingPortraitDetails, appModel.settings.homeVisibility.continueWatchingPortraitDetails)
+        .environment(\.plozzContinueWatchingPlaybackDetails, appModel.settings.homeVisibility.continueWatchingPlaybackDetails)
         .environment(\.plozzArtworkSettings, appModel.settings.cardStyle.artwork)
         .environment(\.plozzArtworkProviders, appModel.metadataProviderSettingsModel.settings)
         .environment(
