@@ -88,6 +88,7 @@ enum SeriesHeroRevealTransition {
     // A spring's logical completion leaves a visible tail on this 588pt travel.
     // Slow earlier for a gentle landing, while still ending at the declared time.
     static let duration: TimeInterval = 0.9
+    static let pageScrollDuration: TimeInterval = 0.6
     static var ambient: Animation { .timingCurve(0.4, 0, 0.2, 1, duration: duration) }
 
     /// The one deliberate exception: the receded logo leaves faster than it
@@ -399,6 +400,7 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
         var reduceMotion = false
         private weak var scrollView: UIScrollView?
         private var wasScrollEnabled: Bool?
+        private var focusLeftBrowser = false
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
@@ -418,7 +420,7 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
         }
 
         func apply() {
-            guard window != nil, isActive else {
+            guard window != nil, isActive, !focusLeftBrowser else {
                 restore()
                 return
             }
@@ -443,9 +445,15 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
 
         @objc private func focusDidUpdate(_ notification: Notification) {
             guard let context = notification.userInfo?[UIFocusSystem.focusUpdateContextUserInfoKey]
-                    as? UIFocusUpdateContext,
-                  NativeFocusRegion.contains(context.nextFocusedItem, in: self),
-                  !NativeFocusRegion.contains(context.previouslyFocusedItem, in: self),
+                    as? UIFocusUpdateContext else { return }
+            let isInside = NativeFocusRegion.contains(context.nextFocusedItem, in: self)
+            if context.nextFocusedItem != nil {
+                focusLeftBrowser = !isInside
+            }
+            // Release synchronously, before UIKit schedules the next row's scroll.
+            // SwiftUI's previous reveal state can survive several rapid moves.
+            apply()
+            guard isInside, !NativeFocusRegion.contains(context.previouslyFocusedItem, in: self),
                   let coordinator = notification.userInfo?[UIFocusSystem.animationCoordinatorUserInfoKey]
                     as? UIFocusAnimationCoordinator,
                   let scroll = enclosingScrollView else { return }
@@ -467,7 +475,7 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
                 } else {
                     // Focus-effect timing is too short for a full-page return.
                     UIView.animate(
-                        withDuration: SeriesHeroRevealTransition.duration,
+                        withDuration: SeriesHeroRevealTransition.pageScrollDuration,
                         delay: 0,
                         options: [.beginFromCurrentState, .allowUserInteraction,
                                   .overrideInheritedDuration, .overrideInheritedCurve, .curveEaseInOut],

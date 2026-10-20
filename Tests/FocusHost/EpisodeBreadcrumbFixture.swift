@@ -9,6 +9,7 @@ struct EpisodeBreadcrumbFixture: View {
     @State private var path: [MediaItem] = []
     @State private var entered = false
     @State private var model = EpisodeBreadcrumbModel()
+    private let seriesNavigation = ProcessInfo.processInfo.arguments.contains("--series-navigation")
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -30,10 +31,16 @@ struct EpisodeBreadcrumbFixture: View {
                 }
         }
         .environment(\.themePalette, .dark)
+        .environment(\.plozzCardFocusStyle, .system)
         .preferredColorScheme(.dark)
-        .onAppear {
+        .task {
             guard !entered else { return }
             entered = true
+            if seriesNavigation {
+                await model.prepareRelated()
+                path.append(model.provider.series)
+                return
+            }
             if ProcessInfo.processInfo.arguments.contains("--from-show") {
                 path.append(model.provider.series)
             }
@@ -47,6 +54,7 @@ private final class EpisodeBreadcrumbModel {
     let provider: EpisodeBreadcrumbProvider
     let episode: ItemDetailViewModel
     let show: ItemDetailViewModel
+    let relatedStore = RelatedTitlesStore(directory: nil)
     let actions = EpisodeBreadcrumbActions()
     let trailer = HeroTrailerController()
     let background = HeroBackgroundSettingsModel(store: InMemoryHeroBackgroundSettingsStore(
@@ -55,18 +63,38 @@ private final class EpisodeBreadcrumbModel {
 
     init() {
         provider = EpisodeBreadcrumbProvider(
-            isUpcoming: ProcessInfo.processInfo.arguments.contains("--upcoming")
+            isUpcoming: ProcessInfo.processInfo.arguments.contains("--upcoming"),
+            hasBrowser: ProcessInfo.processInfo.arguments.contains("--series-navigation")
         )
         episode = Self.detail(provider.episode, provider: provider)
-        show = Self.detail(provider.series, provider: provider)
+        let related = provider.related
+        let loader = RelatedTitlesLoader(
+            resolver: RelatedTitlesResolver(providers: []), store: relatedStore,
+            search: { _, _ in related }
+        )
+        show = Self.detail(provider.series, provider: provider, relatedTitlesLoader: loader)
     }
 
-    private static func detail(_ item: MediaItem, provider: EpisodeBreadcrumbProvider) -> ItemDetailViewModel {
+    func prepareRelated() async {
+        await relatedStore.store(RelatedTitlesRecord(
+            seedKey: MetadataQuery(provider.series).seriesScoped.enrichmentCacheKey,
+            titles: provider.related.map {
+                RelatedTitle(title: $0.title, year: nil, kind: .series,
+                             providerIDs: $0.providerIDs, source: .tmdb)
+            },
+            refreshedAt: Date()
+        ))
+    }
+
+    private static func detail(
+        _ item: MediaItem, provider: EpisodeBreadcrumbProvider,
+        relatedTitlesLoader: RelatedTitlesLoader? = nil
+    ) -> ItemDetailViewModel {
         ItemDetailViewModel(
             provider: provider, itemID: item.id, initialItem: item,
             sourceAccountID: "breadcrumb-account",
             onlineTrailerResolver: { _ in [] }, playableVideoIDResolver: { _ in nil },
-            trailerCache: TrailerResolutionCache()
+            trailerCache: TrailerResolutionCache(), relatedTitlesLoader: relatedTitlesLoader
         )
     }
 }
@@ -81,6 +109,7 @@ private final class EpisodeBreadcrumbActions: MediaItemActionHandling {
 
 private struct EpisodeBreadcrumbProvider: MediaProvider {
     let isUpcoming: Bool
+    let hasBrowser: Bool
 
     var kind: ProviderKind { .jellyfin }
     var session: UserSession {
@@ -104,11 +133,31 @@ private struct EpisodeBreadcrumbProvider: MediaProvider {
         if isUpcoming { item.scheduledAirDate = .distantFuture }
         return item
     }
+    var related: [MediaItem] {
+        guard hasBrowser else { return [] }
+        return (1...3).map {
+            MediaItem(id: "related-\($0)", title: "Related Show \($0)", kind: .series,
+                      providerIDs: ["Tmdb": "\(100 + $0)"], allowsTitleBasedMetadataMatching: false)
+        }
+    }
     func libraries() async throws -> [MediaLibrary] { [] }
     func continueWatching(limit: Int) async throws -> [MediaItem] { [] }
     func latest(limit: Int) async throws -> [MediaItem] { [] }
     func item(id: String) async throws -> MediaItem { id == "show" ? series : episode }
-    func children(of itemID: String) async throws -> [MediaItem] { [] }
+    func children(of itemID: String) async throws -> [MediaItem] {
+        guard hasBrowser else { return [] }
+        if itemID == "show" {
+            return [MediaItem(id: "season-2", title: "Season 2", kind: .season,
+                              seasonNumber: 2, seriesID: "show")]
+        }
+        return (1...12).map { index in
+            var item = episode
+            item.id = "episode-\(index)"
+            item.episodeNumber = index
+            item.title = "Fixture Episode \(index)"
+            return item
+        }
+    }
     func items(in containerID: String, kind: MediaItemKind, page: PageRequest) async throws -> MediaPage {
         MediaPage(items: [], startIndex: 0, totalCount: 0)
     }

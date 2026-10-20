@@ -931,10 +931,17 @@ remain on the episode, its full frame must be onscreen, the page must return to
 zero, and the horizontal row offset must remain unchanged. Screenshots retain
 the rendered result; testing only the focused item misses an offscreen selection.
 Presentation-layer samples also require at least eight intermediate positions
-and at least 350ms between 5% and 95% of the normal-motion return. The 0.9-second
-page animation must not inherit the much shorter focus-effect duration. A rapid
-reversal must leave Related focused and visible, and system Reduce Motion must
-reach the same destination without the full-page animation.
+and 300-600ms between 5% and 95% of the normal-motion return. The 0.6-second
+page animation must not inherit the much shorter focus-effect duration; its
+visible duration must match an unforced native downward reveal within 150ms.
+Nine-move native-focus bursts at 0, 30, 80, 150, and 300ms intervals end on each
+row, across all three focus styles. The final focused item must be fully visible,
+its page destination correct, and scrolling enabled. These exact-target bursts
+exercise animation races, not directional candidate selection.
+`DetailReturnFocusRemoteTests.testEpisodeRelatedDirectionsRevealTheFocusedRow`
+separately uses actual remote Up/Down on the production series detail. Remote
+calls may wait for idle; the hosted burst matrix supplies the rapid timing.
+System Reduce Motion must reach the same destination without the full-page animation.
 The same production test samples the rail's presented position after completion:
 it must stay within one point of its final position. Checking page offset alone
 misses the spring's measured 7–8.5pt post-completion movement of the whole browser.

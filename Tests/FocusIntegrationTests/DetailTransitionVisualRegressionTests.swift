@@ -741,8 +741,10 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                     XCTAssertGreaterThanOrEqual(moving.count, 8,
                                                 "\(style): the return must render intermediate positions, not jump.")
                     if let first = moving.first, let last = moving.last {
-                        XCTAssertGreaterThanOrEqual(last.time - first.time, 0.35,
+                        XCTAssertGreaterThanOrEqual(last.time - first.time, 0.3,
                                                     "\(style): the visible return must not inherit the short focus-effect timing.")
+                        XCTAssertLessThanOrEqual(last.time - first.time, 0.6,
+                                                 "\(style): returning up must not linger longer than a row transition.")
                     }
                 }
                 let screenshot = XCTAttachment(image: renderedKeylineSnapshot(in: window))
@@ -758,29 +760,78 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 XCTAssertEqual(system.focusedItem.map(ObjectIdentifier.init), ObjectIdentifier(episode))
 
                 if roundTrip == 2, !reduceMotion {
-                    host.target = southPark
+                    let first = try XCTUnwrap(moving.first)
+                    let last = try XCTUnwrap(moving.last)
+                    try await assertRapidEpisodeRelatedNavigation(
+                        episode: episode, related: southPark, page: page,
+                        window: window, host: host, style: style,
+                        upwardDuration: last.time - first.time
+                    )
+                }
+            }
+        }
+    }
+
+    private func assertRapidEpisodeRelatedNavigation(
+        episode: any UIFocusItem, related: any UIFocusItem, page: UIScrollView,
+        window: UIWindow, host: TransitionShowController, style: CardFocusStyle,
+        upwardDuration: TimeInterval
+    ) async throws {
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        let started = CACurrentMediaTime()
+        var downwardMotion: [(time: TimeInterval, y: CGFloat)] = [
+            (0, (page.layer.presentation() ?? page.layer).bounds.minY)
+        ]
+        host.target = related
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        while CACurrentMediaTime() - started < 0.8 {
+            downwardMotion.append((CACurrentMediaTime() - started,
+                                   (page.layer.presentation() ?? page.layer).bounds.minY))
+            try await Task.sleep(for: .milliseconds(16))
+        }
+        let downwardTrace = XCTAttachment(string: downwardMotion.map { "t=\($0.time), y=\($0.y)" }.joined(separator: "\n"))
+        downwardTrace.name = "episode-related-downward-motion-\(style)"
+        downwardTrace.lifetime = .keepAlways
+        add(downwardTrace)
+        let departure = try XCTUnwrap(downwardMotion.first).y
+        let arrival = try XCTUnwrap(downwardMotion.last).y
+        XCTAssertGreaterThan(arrival - departure, 100, "Down must reveal Related without manually scrolling.")
+        let moving = downwardMotion.filter {
+            $0.y > departure + (arrival - departure) * 0.05
+                && $0.y < arrival - (arrival - departure) * 0.05
+        }
+        let first = try XCTUnwrap(moving.first)
+        let last = try XCTUnwrap(moving.last)
+        XCTAssertEqual(upwardDuration, last.time - first.time, accuracy: 0.15,
+                       "\(style): Up and Down must have comparable visible animation time.")
+        for milliseconds in [0, 30, 80, 150, 300] {
+            for finishesOnEpisode in [false, true] {
+                var trace: [String] = []
+                for step in 0..<9 {
+                    let target = step.isMultiple(of: 2) == finishesOnEpisode ? episode : related
+                    host.target = target
                     system.requestFocusUpdate(to: host)
                     system.updateFocusIfNeeded()
-                    try await waitUntil {
-                        system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(southPark)
-                            && host.settledFocusItemID == ObjectIdentifier(southPark)
-                    }
-                    host.target = episode
-                    system.requestFocusUpdate(to: host)
-                    system.updateFocusIfNeeded()
-                    try await Task.sleep(for: .milliseconds(150))
-                    host.target = southPark
-                    system.requestFocusUpdate(to: host)
-                    system.updateFocusIfNeeded()
-                    try await waitUntil {
-                        system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(southPark)
-                    }
-                    host.target = nil
-                    try await Task.sleep(for: .milliseconds(1200))
-                    XCTAssertGreaterThan(page.contentOffset.y + page.adjustedContentInset.top, 100,
-                                         "Returning to Related must interrupt an in-flight upward reveal.")
-                    XCTAssertTrue(window.bounds.contains(try XCTUnwrap(focusFrame(southPark, in: window))))
-                    XCTAssertEqual(system.focusedItem.map(ObjectIdentifier.init), ObjectIdentifier(southPark))
+                    trace.append("step=\(step), target=\(target === episode ? "episode" : "related"), accepted=\(system.focusedItem === target), offset=\(page.contentOffset.y), enabled=\(page.isScrollEnabled)")
+                    if milliseconds > 0 { try await Task.sleep(for: .milliseconds(milliseconds)) }
+                }
+                host.target = nil
+                try await Task.sleep(for: .milliseconds(1200))
+                let target = finishesOnEpisode ? episode : related
+                let label = "\(style)-\(milliseconds)ms-\(finishesOnEpisode ? "up" : "down")"
+                let attachment = XCTAttachment(string: trace.joined(separator: "\n"))
+                attachment.name = "rapid-episode-related-\(label)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+                XCTAssertEqual(system.focusedItem.map(ObjectIdentifier.init), ObjectIdentifier(target), label)
+                XCTAssertTrue(window.bounds.contains(try XCTUnwrap(focusFrame(target, in: window))),
+                              "\(label): the page must reveal the row that actually received focus.")
+                XCTAssertTrue(page.isScrollEnabled, "\(label): a departed browser must release its scroll guard.")
+                if finishesOnEpisode {
+                    XCTAssertEqual(page.contentOffset.y + page.adjustedContentInset.top, 0, accuracy: 1, label)
+                } else {
+                    XCTAssertGreaterThan(page.contentOffset.y + page.adjustedContentInset.top, 100, label)
                 }
             }
         }

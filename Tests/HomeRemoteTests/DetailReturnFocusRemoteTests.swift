@@ -2,6 +2,60 @@ import XCTest
 
 @MainActor
 final class DetailReturnFocusRemoteTests: XCTestCase {
+    func testEpisodeRelatedDirectionsRevealTheFocusedRow() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        app.launchArguments = ["--episode-breadcrumb-fixture", "--series-navigation"]
+        app.launch()
+        defer { app.terminate() }
+        let play = app.buttons["detail-hero-play"]
+        XCTAssertTrue(play.waitForExistence(timeout: 20))
+        let focus = NSPredicate(format: "hasFocus == true")
+        XCTAssertEqual(XCTWaiter.wait(
+            for: [XCTNSPredicateExpectation(predicate: focus, object: play)], timeout: 10
+        ), .completed)
+        XCUIRemote.shared.press(.down)
+        if app.buttons["Season 2"].hasFocus { XCUIRemote.shared.press(.down) }
+        let focused = app.descendants(matching: .any).matching(focus).firstMatch
+        assertSeriesRowFocused("Fixture Episode", in: app)
+        XCTAssertTrue(app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS %@", "Related Show")
+        ).firstMatch.waitForExistence(timeout: 10))
+        for _ in 0..<4 {
+            XCUIRemote.shared.press(.down)
+            assertSeriesRowFocused("Related Show", in: app)
+            assertSeriesFocusVisible(focused, in: app)
+            XCUIRemote.shared.press(.up)
+            assertSeriesRowFocused("Fixture Episode", in: app)
+            assertSeriesFocusVisible(focused, in: app)
+        }
+    }
+
+    private func assertSeriesFocusVisible(
+        _ focused: XCUIElement, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        let visible = NSPredicate { _, _ in focused.exists && app.frame.contains(focused.frame) }
+        XCTAssertEqual(XCTWaiter.wait(
+            for: [XCTNSPredicateExpectation(predicate: visible, object: nil)], timeout: 2
+        ), .completed, "The focused row must come fully onscreen.", file: file, line: line)
+    }
+
+    private func assertSeriesRowFocused(
+        _ label: String, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        let matches = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", label))
+        let ownsFocus = matches.allElementsBoundByIndex.contains {
+            $0.hasFocus || $0.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch.exists
+        }
+        if !ownsFocus {
+            let hierarchy = XCTAttachment(string: app.debugDescription)
+            hierarchy.name = "series-navigation-missing-\(label)"
+            hierarchy.lifetime = .keepAlways
+            add(hierarchy)
+        }
+        XCTAssertTrue(ownsFocus, "Expected native focus in \(label)", file: file, line: line)
+    }
+
     func testSequentialNativeLibraryDetailsNeverRetainADismissedPage() throws {
         try checkSequentialNativeDetails(waitForTrailer: false)
     }

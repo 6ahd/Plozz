@@ -324,8 +324,11 @@ and omitted from the current picker rather than blocking a confirmed primary.
   coordinated focus animation. A SwiftUI focus-entry scroll alone can be
   overwritten by the native card's reveal, leaving actual focus offscreen.
   The page return overrides the short native focus-effect timing with a
-  0.9-second ease-in/ease-out animation. It remains interruptible and applies
-  its destination immediately with Reduce Motion.
+  0.6-second ease-in/ease-out animation, paced against the native downward
+  reveal. It remains interruptible and applies its destination immediately
+  with Reduce Motion. Leaving the browser releases its scroll guard during the
+  native focus handoff, before UIKit reveals the next row; stale SwiftUI reveal
+  state cannot relock the page during rapid Up/Down reversals.
   The compact logo above Seasons fits wholly inside its 200pt slot, including
   tall wordmarks; it does not use the full hero's flexible height allowance.
   This changes only artwork sizing, not season/episode focus geometry.
