@@ -824,6 +824,48 @@ final class IPTVIntegrationTests: XCTestCase {
         }
     }
 
+    func testMixedNativeGuideSuccessAndFailedFallbackRemainsAnErrorWithoutLosingChannels() async throws {
+        for status in [401, 429, 503] {
+            IPTVFixture.state.reset()
+            IPTVFixture.state.handler = { request in
+                if request.url?.query?.contains("action=get_live_streams") == true {
+                    return (200, [:], Data(#"[{"stream_id":10,"name":"News"},{"stream_id":11,"name":"Sports"}]"#.utf8))
+                }
+                if request.url?.query?.contains("action=get_simple_data_table") == true,
+                   request.url?.query?.contains("stream_id=11") == true {
+                    return (200, [:], Data(#"{"epg_listings":[]}"#.utf8))
+                }
+                if request.url?.path == "/prefix/xmltv.php" { return (status, [:], Data()) }
+                return try Self.xtream(request)
+            }
+            let provider = try await makeXtreamGuideProvider { _, _, _, _, _ in
+                XCTFail("A failed fallback response must not be parsed or published as an empty success.")
+                return []
+            }
+            do {
+                _ = try await provider.liveTVGuide(
+                    channelIDs: ["live:10", "live:11"], from: Date(timeIntervalSince1970: 100),
+                    to: Date(timeIntervalSince1970: 500)
+                )
+                XCTFail("A successful native row does not make the whole mixed batch complete.")
+            } catch {
+                switch status {
+                case 401: XCTAssertEqual(error as? IPTVError, .authentication)
+                case 429:
+                    guard case AppError.rateLimited = error else { return XCTFail("Expected the original rate limit.") }
+                default: XCTAssertEqual(error as? IPTVError, .httpStatus(status))
+                }
+            }
+            let channels = try await provider.cachedLiveTVCatalog()
+            XCTAssertEqual(channels?.channels.map(\.id), ["live:10", "live:11"])
+            XCTAssertEqual(IPTVFixture.state.requests.filter {
+                $0.url?.query?.contains("action=get_simple_data_table") == true
+            }.count, 2)
+            XCTAssertEqual(IPTVFixture.state.requests.filter { $0.url?.path == "/prefix/xmltv.php" }.count, 1)
+            await provider.teardown()
+        }
+    }
+
     func testExplicitXtreamGuideBypassesNativeAPIAndFailedFallbackRemainsAnError() async throws {
         let guideURL = try XCTUnwrap(URL(string: "https://cdn.test/guide.xml"))
         IPTVFixture.state.handler = { request in

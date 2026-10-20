@@ -1,3 +1,4 @@
+import CoreModels
 import Foundation
 
 /// Bounded, namespace-tolerant `PROPFIND` multistatus parser, built on

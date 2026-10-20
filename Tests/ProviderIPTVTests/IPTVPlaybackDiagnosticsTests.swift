@@ -110,6 +110,55 @@ final class IPTVPlaybackDiagnosticsTests: XCTestCase {
         }
     }
 
+    func testExpiredRateLimitCanRecoverOnTheSameProxyWithoutRetainingItsFailure() async throws {
+        IPTVFixture.state.handler = { _ in
+            if IPTVFixture.state.requests.count == 1 {
+                return (429, ["Retry-After": "0"], Data())
+            }
+            return (200, ["Content-Type": "video/mp2t"], Data(repeating: 0x47, count: 188))
+        }
+        let proxy = try IPTVPlaybackProxy(
+            origin: XCTUnwrap(URL(string: "https://provider.test/channel.ts")),
+            headers: [:], configuration: IPTVFixture.configuration()
+        )
+        addTeardownBlock { await proxy.stop() }
+        let url = try await proxy.start()
+        let session = URLSession(configuration: .ephemeral)
+        defer { session.invalidateAndCancel() }
+        let (_, refused) = try await session.data(from: url)
+        XCTAssertEqual((refused as? HTTPURLResponse)?.statusCode, 429)
+        XCTAssertEqual(PlaybackDeliveryFailure.state(for: url)?.error, .rateLimited(retryAfter: 0))
+        let (body, recovered) = try await session.data(from: url)
+        XCTAssertEqual((recovered as? HTTPURLResponse)?.statusCode, 200)
+        XCTAssertEqual(body.count, 188)
+        XCTAssertEqual(IPTVFixture.state.requests.count, 2)
+        XCTAssertNil(PlaybackDeliveryFailure.state(for: url)?.error)
+        XCTAssertNil(PlaybackDeliveryFailure.state(for: url)?.diagnostic)
+    }
+
+    func testConnectionLimitUsesOriginalResponseWithoutOpeningADiagnosticStream() async throws {
+        IPTVFixture.state.handler = { _ in
+            (503, ["Content-Type": "application/json"], Data("""
+            {"error":"All active M3U profiles have reached maximum connection limits","private":"fixture-secret"}
+            """.utf8))
+        }
+        let proxy = try IPTVPlaybackProxy(
+            origin: XCTUnwrap(URL(string: "https://provider.test/channel.ts")),
+            headers: [:], configuration: IPTVFixture.configuration()
+        )
+        addTeardownBlock { await proxy.stop() }
+        let url = try await proxy.start()
+        let session = URLSession(configuration: .ephemeral)
+        defer { session.invalidateAndCancel() }
+        let (body, response) = try await session.data(from: url)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 503)
+        XCTAssertTrue(body.isEmpty)
+        XCTAssertEqual(PlaybackDeliveryFailure.state(for: url)?.error, .conflict)
+        XCTAssertEqual(IPTVFixture.state.requests.count, 1)
+        let evidence = try XCTUnwrap(PlaybackDeliveryFailure.state(for: url)?.evidence)
+        XCTAssertFalse(String(decoding: try JSONEncoder().encode(evidence), as: UTF8.self).contains("fixture-secret"))
+    }
+
     func testProxyNetworkFailurePreservesCodeWithoutInventingHTTPResponse() async throws {
         IPTVFixture.state.handler = { _ in throw URLError(.timedOut) }
         let diagnostics = PlaybackFailureDiagnostics()

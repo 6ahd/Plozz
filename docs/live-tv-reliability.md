@@ -7,12 +7,12 @@ errors, and uninterrupted healthy viewing over adding more Live TV features.
 Dispatcharr-specific setup, DVR, archive catch-up, recommendations, and sports
 integrations are deferred, not approved implementation work.
 
-This assessment was made on 2026-10-20 against Plozz
-`2e7b200f689045dc1c18d23b06270e01d65f3341`. It is a source and test-coverage
-inspection, not a new runtime result or confirmation against a real Dispatcharr
-installation. The priorities below distinguish observed implementation behavior
-from risks that still need reproduction. Existing tests are evidence of the
-intended contracts, not a claim that they were rerun for this document.
+The initial assessment on 2026-10-20 used Plozz
+`2e7b200f689045dc1c18d23b06270e01d65f3341`. The first implementation pass now
+includes reproduced transport fixes and controlled, rendered-playback results
+on tvOS and iOS simulators. It does not establish interoperability with a real
+Dispatcharr installation. Implemented changes, measured outcomes, and remaining
+coverage gaps are separated below.
 
 The goal is no app-induced interruption while the source remains healthy, and
 bounded, truthful recovery when it does not. A client cannot guarantee an
@@ -39,72 +39,76 @@ See [current Live TV behavior](live-tv-prototype.md),
 Do not replace these mechanisms with another player, generic retry wrapper,
 periodic channel restart, permissive guide-name matching, or extra stream probes.
 
-## Hardening priorities
+## First hardening pass
 
 ### 1. Exercise continuous playback, not just successful startup
 
-**Observed coverage limit:** the controlled HLS fixture in
+**Original coverage limit:** the controlled HLS fixture in
 [IPTVPlaybackHostedTests](../Tests/SubtitlePresentationSupport/IPTVPlaybackHostedTests.swift)
 is a finite playlist with `EXT-X-ENDLIST`. Its ordinary render check requires
 a first frame and more than 0.2 seconds of progress. An opt-in local relay case
 observes 20 seconds of continued advancement. Those checks are useful, but do
 not establish long-running rolling-HLS recovery or uninterrupted playback.
 
-Extend that existing fixture and hosted runner rather than introducing a new
-test framework. Exercise raw transport streams, rolling MPEG-TS HLS, and rolling
-fMP4 HLS through the actual proxy, engine, player model, and ownership path.
-Use valid timestamped media and advancing sequences; a repeated static manifest
-or a mocked `.playing` state is not continuous-playback evidence.
+**Implemented:** [IPTVContinuityHostedTests](../Tests/SubtitlePresentationSupport/IPTVContinuityHostedTests.swift)
+uses the existing HTTP fixture and hosted runners with the real provider,
+playback lease, proxy, `PlozzigenVideoEngine`, and `LiveChannelPlayerModel`.
+Synthetic timestamped media drives advancing four-segment live playlists with
+no `EXT-X-ENDLIST`. Both MPEG-TS and fMP4 HLS are covered.
 
-First add bounded cases for a brief mid-stream disconnect, a delayed segment,
-an expired redirected delivery session, and a failed guide refresh while video
-continues. Add manifest discontinuities and key/init-segment changes where the
-current route supports them. Extend to an explicitly selected longer soak only
-after the short cases complete reliably.
+The tests count changing decoded-image fingerprints, measure player progress
+and image gaps, and assert no terminal error or manual retry. They inject a raw
+TS disconnect after the first frame, a five-second segment delay, an expired
+redirected session, and HTTP/malformed-guide failures during viewing. Closing
+the lease must leave zero upstream requests and no retained relay failure entry.
+Existing lifecycle tests separately cover root serialization and stop races.
 
-Measure first-frame time, actual presentation/progress, recovery duration,
-unexpected terminal transitions, origin opens, peak concurrent root requests,
-and cleanup. A progressing clock alone does not prove an unfrozen picture or
-audible audio. Keep healthy-stream and fault-injected results separate.
+Manifest discontinuities, key/init-segment changes, repeated disruptions over
+hours, and physical-device/audio observations remain follow-up coverage, not
+claims made by these short controlled runs.
 
 ### 2. Separate temporary throttling from terminal refusals
 
-**Observed behavior:** `IPTVPlaybackProxy.refusal` caches HTTP 401, 403, 429, 451,
-and 509 for the proxy's remaining lifetime. Immediate repeated requests avoid
-the upstream, intentionally preventing native fallback from hammering a refusal.
-There is no cooldown expiry in that cached state. `IPTVHTTP.bytes` parses
-`Retry-After` as a numeric delay for 429, not an HTTP-date.
+**Reproduced and fixed:** a finite 429 refusal previously blocked the same proxy
+for its entire lifetime. Playback 429/509 now accepts nonnegative integer seconds
+or an HTTP-date, computes a monotonic deadline, and suppresses upstream requests
+until that deadline. A later request can then reach the upstream and clears only
+the obsolete rate-limit error, preserving diagnostic request history.
 
-This is a hardening candidate, not yet a demonstrated production retry failure:
-the coordinator can retire a failed lease and create a new proxy. Reproduce both
-same-proxy requests and the actual visible retry path before changing semantics.
+Overlapping HLS child refusals cannot shorten an existing cooldown. A regression
+first demonstrated that a later one-second response overrode a ten-second
+response; the proxy now retains the longer deadline. Missing or malformed
+delays remain conservatively suppressed until a new lease. Authorization,
+access, and recognized capacity refusals remain terminal for that proxy and
+cannot be replaced by a late throttle.
 
-Add a deterministic sequence: upstream 429 with a finite `Retry-After`, then
-healthy media. Assert no request storm during the delay and that an authorized
-retry can reach the recovered upstream afterward. Cover numeric/date/malformed
-headers, cancellation during backoff, channel replacement, and repeated refusal.
-Keep terminal authorization/access failures distinct. Do not add automatic
-retries to every HTTP failure or remove the existing immediate-refusal guard.
+No timer, polling, or new automatic retry loop was added. The existing visible
+retry path is covered through the coordinator: it closes the failed lease once
+and opens a fresh one for rate-limit and capacity errors.
 
 Owner: [IPTVHTTP](../Sources/ProviderIPTV/IPTVHTTP.swift),
 [IPTVPlaybackProxy](../Sources/ProviderIPTV/IPTVPlaybackProxy.swift), and the
-existing [proxy diagnostics tests](../Tests/ProviderIPTVTests/IPTVPlaybackDiagnosticsTests.swift).
+[proxy diagnostics tests](../Tests/ProviderIPTVTests/IPTVPlaybackDiagnosticsTests.swift),
+[recovery tests](../Tests/ProviderIPTVTests/IPTVPlaybackRecoveryTests.swift), and
+[coordinator tests](../Tests/FeatureLiveTVCoreTests/LiveTVPlaybackCoordinatorTests.swift).
 
 ### 3. Make connection-limit errors actionable without another stream
 
-**Observed gap:** Dispatcharr can return HTTP 503 with a JSON error identifying
-exhausted provider connections. Plozz retains the HTTP status, but `IPTVHTTP.bytes`
-cancels non-success bodies before classification; there is no Dispatcharr-style
-capacity classification. A 503 alone is not proof of a connection limit:
-Dispatcharr also uses it for other temporary failures.
+**Reproduced and fixed:** a Dispatcharr-style capacity refusal previously lost
+its typed cause. Playback GET responses with HTTP 503 and JSON content now inspect
+at most 4 KiB of the original body for the recognized `error` field containing
+`maximum connection limits`. That maps to the existing safe tuner-unavailable
+message instead of generic HTTP 503 copy. Provider prose, URLs, and credentials
+are not retained or forwarded.
 
-Reproduce capacity refusal, ordinary 503, and malformed/private error bodies.
-If adding classification, inspect only a bounded body from the original failed
-request, map recognized evidence to a safe typed category, and discard the body.
-Do not persist provider prose, URLs, or credentials. Do not open a second stream
-to diagnose the first, automatically stop another viewer, or treat every 503 as
-an exhausted tuner. Preserve usable current playback when an additional stream
-cannot be opened, subject to the existing single-connection handoff policy.
+Inspection is cancellation-aware and limited to one second after response-body
+inspection begins; it does not replace connection/first-byte/startup timeouts.
+Oversized, malformed, unrecognized, unavailable, or non-JSON bodies retain the
+ordinary 503 failure and are not cached as capacity exhaustion.
+
+The hosted engine/model regression requires the typed error and exactly one
+upstream request. There is no second diagnostic GET, no automatic eviction of
+another viewer, and no change to the existing single-connection handoff policy.
 
 Sources: [Dispatcharr refusal handling][dispatcharr-stream],
 [Rivulet's capacity check][rivulet-busy], and
@@ -125,9 +129,13 @@ earlier one supplied rows. The current array-or-error return shape does not
 publish those partial successes. The import layer can preserve previously
 published windows, but cannot publish new rows from a batch that threw.
 
-Start with mixed-success fixtures, including cold and cached guides. Keep video
-and channel identity stable while guide fetches time out, return malformed data,
-or fail on one source. If partial publication is warranted, represent incomplete
+**Added coverage:** mixed native-guide success plus XMLTV fallback 401, 429, or
+503 remains an explicit error while channels stay available. The rendered
+rolling-stream fixture also preserves the same player and delivery session
+through a guide 503 and malformed XML. Existing import/cache regressions protect
+last-good windows. Partial-success publication is deliberately unchanged.
+
+If partial publication is warranted, represent incomplete
 coverage and its error explicitly; never turn failure into an empty successful
 guide or suppress authentication/cancellation. Do not change guide matching or
 profile boundaries to make row counts look better.
@@ -146,6 +154,10 @@ first. Sustained healthy playback does not replenish that retune budget.
 Terminal engine failure and end-of-stream are not automatically treated as
 source-reset requests.
 
+**Unchanged:** the bounded disconnect, delayed-segment, and expired-session cases
+recovered with the pinned engine and current budgets. They do not demonstrate a
+need to increase retries or upgrade the engine.
+
 These bounds prevent loops. Do not simply lengthen/remove them, reset budgets
 on every frame, or turn all end-of-stream signals into retries. Reproduce
 separated disruptions in one long session and distinguish upstream engine
@@ -162,21 +174,72 @@ The pinned engine revision is owned by [Package.swift](../Package.swift).
 Inspect its actual contract before changing the adapter or proposing an upgrade;
 do not assume upstream lacks recovery because a host-level test uses a spy.
 
-## Smallest useful execution order
+## Controlled playback results
 
-1. Establish the rolling-stream baseline and deterministic refusal fixtures.
-2. Reproduce and fix only confirmed retry/error-classification defects, one
-   coherent change at a time, retaining the existing ownership boundaries.
-3. Exercise mixed guide failures during rendered playback; change partial-result
-   behavior only with explicit error/coverage semantics.
-4. Run the longer continuity and lifecycle scenarios against the candidate.
+Final hosted runs on 2026-10-20 used tvOS 26.2 (Apple TV 4K simulator), iOS 26.2
+(iPhone 17 Pro simulator), and engine revision
+`deb90eb3f740fe1ddda74301a64e3937e480877d`. Each platform completed 20 tests,
+with zero failures and one explicitly opt-in real-relay test skipped. All seven
+new continuity/capacity cases ran on both platforms.
+
+Values below are tvOS / iOS. Observation starts at the first decoded frame.
+
+| Case | Observation | Changing images | Longest image gap | Origin opens |
+| --- | --- | --- | --- | --- |
+| Healthy TS HLS | 25 s | 374 / 374 | 0.161 / 0.160 s | 1 / 1 |
+| Healthy fMP4 HLS | 60 s | 899 / 899 | 0.160 / 0.156 s | 1 / 1 |
+| Five-second fMP4 segment delay | 25 s | 359 / 343 | 1.125 / 2.121 s | 1 / 1 |
+| Expired redirected fMP4 session | 25 s | 374 / 374 | 0.164 / 0.156 s | 2 / 2 |
+| Guide failures during fMP4 playback | 25 s | 373 / 373 | 0.231 / 0.220 s | 1 / 1 |
+| Raw TS disconnect after first frame | 25 s | 329 / 298 | 2.158 / 5.089 s | 2 / 2 |
+
+Healthy fMP4 advanced 59.87 seconds across 30 manifest sequence positions.
+Raw TS first-frame startup was 8.22 / 8.46 seconds; recovery advanced 21.97 /
+19.86 seconds during observation. The raw reconnect fixture reopens synthetic
+media, not a real broadcaster's live edge. Outages can produce visible gaps:
+these results prove bounded recovery in this workload, not seamless recovery
+from every provider failure. Audio was muted, so audible audio continuity was
+not established. Sixty seconds is not an hours-long soak.
+
+The final targeted package run completed 1,229 passing tests, nine skips, and
+one failure in the unchanged
+`PlayerSkipMarkerTrackTests.testFlatPerformanceTrackPairsItsSurfaceWithTheAppAppearance`
+pixel-equality assertion. All 126 IPTV tests passed (six additional skips).
+The unrelated rendering failure was reproduced on a second run and left outside
+this work; the package run is not a full green result. The earlier six-module
+run additionally exercised CoreModels, FeatureLiveTVCore, EnginePlozzigen, and
+MediaTransportHTTP; its new refusal-body timing fixture was corrected and rerun.
+
+### Fixture provenance and reproduction
+
+The four `live-continuity*` files in `Tests/SubtitlePresentationSupport/Fixtures`
+were generated locally with ffmpeg from `testsrc2=size=160x90:rate=15` and
+`sine=frequency=440:sample_rate=48000`, not downloaded television content.
+Both variants are 90 seconds of H.264 (`libx264`, ultrafast, CRF 32, GOP 30,
+scene-cut disabled, yuv420p) and mono 48 kHz AAC at 32 kbps. HLS uses two-second
+segments, `hls_list_size=0`, and `hls_flags=single_file`, once with segment type
+`mpegts`, once with `fmp4`. The stored finite manifests are segment indexes;
+the HTTP fixture serves only an advancing four-segment live window.
+
+Use `IPTVContinuityHostedTests` and `IPTVPlaybackHostedTests` in the existing
+`PlozzFocusTests` or `PlozziOSPresentationTests` schemes. Preserve explicit owned
+simulator selection, bounded runners, and structured result bundles.
+
+## Remaining execution priorities
+
+1. Extend the passing rolling fixtures to discontinuities, key/init changes,
+   and repeated separated disruptions in a longer, explicitly bounded soak.
+2. Exercise preview/fullscreen/Multiview and background lifecycle transitions
+   during those real playback workloads.
+3. Validate against real Dispatcharr and physical devices, including audio.
+4. Change partial-guide publication only with explicit error/coverage semantics.
 
 Use the [testing policy](testing-policy.md) for selected suites and existing
 hosted runners. Cover tvOS and iOS/iPadOS when shared behavior changes, and keep
 Jellyfin/Emby and Plex lifecycle contracts intact. Use
 [the performance lab](performance-lab.md) for resource/cost measurements, not
-elapsed unit-test time. Do not run a full suite or install a new dependency merely
-to perform this documentation assessment.
+elapsed unit-test time. Do not add retries or dependencies without a demonstrated
+failure in the existing path.
 
 For each behavioral change, retain a failing baseline, the same passing
 reproduction, source/platform/engine identity, request and cleanup counts, and
@@ -197,8 +260,8 @@ Simulator evidence does not establish real-provider or physical-device behavior.
   file rejection. Obtain the relevant sanitized response/fixture; do not assume
   a cloud-hosted download is returning M3U bytes rather than an HTML page.
 
-Keep follow-up evidence on the existing report when it matches. The unproven
-hardening candidates above are not newly established shipped defects.
+Keep follow-up evidence on the existing report when it matches. The controlled
+fixes above do not establish the cause of these reports or resolve them.
 
 ## Deferred feature gaps
 

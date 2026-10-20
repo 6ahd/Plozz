@@ -3,6 +3,19 @@ import Foundation
 import XCTest
 
 final class PlaybackDiagnosticReportTests: XCTestCase {
+    func testRecognizedConnectionLimitIsNotReplacedByGenericServerErrorCopy() throws {
+        let attempt = try XCTUnwrap(PlaybackFailureDiagnostics().begin(
+            layer: .iptvProxy, content: .live, captureForPresentation: true
+        ))
+        let diagnostic = attempt.fail(stage: .response, httpStatus: 503)
+        let report = LiveChannelFailureReport(failure: .engine(.conflict), diagnostic: diagnostic)
+        XCTAssertEqual(report.message, LiveChannelPlaybackFailure.engineMessage(.conflict))
+        XCTAssertTrue(PlaybackDiagnosticReport.playback(report).supportText.contains("failure=tunerUnavailable"))
+        XCTAssertTrue(PlaybackDiagnosticReport.playback(report).supportText.contains("http_status=503"))
+        let ordinary = LiveChannelFailureReport(failure: .engine(.invalidResponse), diagnostic: diagnostic)
+        XCTAssertNotEqual(ordinary.message, report.message)
+    }
+
     func testOnDemandReportPreservesFactsWithoutInventingSessionExpiry() {
         let report = PlaybackDiagnosticReport.onDemand(
             error: .playback(.init(kind: .unavailable, httpStatus: 410, engineFailure: .sourceRefused)),

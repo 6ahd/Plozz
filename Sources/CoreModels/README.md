@@ -14,6 +14,10 @@ language every other module speaks.
   playback, Live TV and IPTV setup. Preserve typed reasons and numeric causes,
   distinguish preparation/opening/playback, and never export raw error text.
 - Shared decode/encode helpers: `JSONDecoder.plozz`, `JSONEncoder.plozz`.
+- `HTTPDate` shares HTTP timestamp parsing/formatting and strict `Retry-After`
+  interpretation across HTTP media transports and IPTV. Consumers convert
+  finite retry delays to monotonic deadlines; malformed headers remain unknown,
+  not permission to retry immediately.
 - Subtitle behaviour + appearance model: `SubtitleBehavior`, `SubtitleStyle`,
   plus the neutral `SubtitleColor` / `SubtitleEdgeStyle` / `SubtitleMode` primitives.
 - Profiles persistence contract: `ProfilePersisting`, `ProfileStore`,

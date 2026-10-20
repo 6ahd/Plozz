@@ -16,8 +16,9 @@ For past failures, attempted repairs and related tests, see the short
 not a specification.
 
 For the reliability-first hardening priorities and explicitly deferred feature
-gaps, see [Live TV reliability](live-tv-reliability.md). It separates inspected
-behavior from risks that still need reproduction.
+gaps, see [Live TV reliability](live-tv-reliability.md). It records finite
+provider cooldowns, safe connection-limit errors, controlled rolling-playback
+results, and remaining real-provider/long-session coverage gaps.
 
 ## Diagnosing disappearing sources
 

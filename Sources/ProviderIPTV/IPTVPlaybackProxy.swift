@@ -14,6 +14,7 @@ actor IPTVPlaybackProxy {
     private let formatHint: MediaFormatHint
     private let http: IPTVHTTP
     private let isLive: Bool
+    private let uptime: @Sendable () -> TimeInterval
     private let diagnostic: PlaybackFailureAttempt?
     private let key = SymmetricKey(size: .bits256)
     /// Derives each address's nonce from its URL, so a segment keeps one
@@ -29,7 +30,7 @@ actor IPTVPlaybackProxy {
     private var shutdown: Task<Void, Never>?
     private var liveRootRequest: UUID?
     private var rootWaiters: [(UUID, CheckedContinuation<Void, Error>)] = []
-    private var refusal: (status: Int, retryAfter: TimeInterval?)?
+    private var refusal: (status: Int, expiresAt: TimeInterval?)?
     private var playbackURL: URL?
     private var deliveryFailure: PlaybackDeliveryFailure?
     private var livePlaylistURL: URL?
@@ -40,12 +41,14 @@ actor IPTVPlaybackProxy {
         origin: URL, headers: [String: String], formatHint: MediaFormatHint = .init(),
         configuration: URLSessionConfiguration? = nil,
         sensitiveValues: [String] = [], content: PlaybackFailureDiagnostic.Content = .live,
-        diagnostics: PlaybackFailureDiagnostics = .shared
+        diagnostics: PlaybackFailureDiagnostics = .shared,
+        uptime: @escaping @Sendable () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     ) throws {
         self.origin = origin
         self.headers = headers
         self.formatHint = formatHint
         isLive = content == .live
+        self.uptime = uptime
         http = IPTVHTTP(
             configuration: configuration, resourceTimeout: 86_400,
             sensitiveValues: sensitiveValues, redirectScope: .playback
@@ -250,8 +253,15 @@ actor IPTVPlaybackProxy {
             }
             if isLive, url == origin { try await acquireLiveRoot(id) }
             if let refusal {
-                try await Self.send(connection, data: Self.failureHead(refusal.status, retryAfter: refusal.retryAfter))
-                return
+                if let expiresAt = refusal.expiresAt, uptime() >= expiresAt {
+                    self.refusal = nil
+                    deliveryFailure?.clearRateLimit()
+                } else {
+                    try await Self.send(connection, data: Self.failureHead(
+                        refusal.status, retryAfter: refusal.expiresAt.map { max(0, $0 - uptime()) }
+                    ))
+                    return
+                }
             }
             var outgoing: [String: String] = [:]
             for field in text.components(separatedBy: "\r\n").dropFirst() {
@@ -359,7 +369,8 @@ actor IPTVPlaybackProxy {
                     httpStatus: evidence.status, format: evidence.format,
                     evidence: .init(delivery: deliveryFailure?.evidence)
                 )
-                if let status = evidence.status, [401, 403, 429, 451, 509].contains(status) {
+                if let status = evidence.status,
+                   [401, 403, 429, 451, 509].contains(status) || error as? AppError == .conflict {
                     let retryAfter: TimeInterval?
                     if case AppError.rateLimited(let delay) = error { retryAfter = delay }
                     else { retryAfter = nil }
@@ -368,10 +379,21 @@ actor IPTVPlaybackProxy {
                     case 401, 403: appError = .unauthorized
                     case 429, 509: appError = .rateLimited(retryAfter: retryAfter)
                     case 451: appError = .accessRestricted
+                    case 503: appError = .conflict
                     default: appError = .invalidResponse
                     }
+                    if ![429, 509].contains(status) { deliveryFailure?.clearRateLimit() }
                     deliveryFailure?.record(appError, diagnostic: failureDiagnostic)
-                    refusal = (status, retryAfter)
+                    if refusal == nil || refusal.map({ [429, 509].contains($0.status) }) == true {
+                        var expiresAt = retryAfter.map { uptime() + $0 }.flatMap { $0.isFinite ? $0 : nil }
+                        if let previous = refusal, [429, 509].contains(status) {
+                            // Overlapping HLS requests may extend, but never shorten, a cooldown.
+                            expiresAt = previous.expiresAt.flatMap { previousExpiry in
+                                expiresAt.map { max(previousExpiry, $0) }
+                            }
+                        }
+                        refusal = (status, expiresAt)
+                    }
                 }
             }
             if !Task.isCancelled { PlozzLog.playback.error("Authenticated IPTV delivery failed") }
@@ -380,7 +402,7 @@ actor IPTVPlaybackProxy {
                     let status = responseEvidence.snapshot.status
                     try await Self.send(connection, data: Self.failureHead(
                         status.flatMap { (400...599).contains($0) ? $0 : nil } ?? 502,
-                        retryAfter: refusal?.retryAfter
+                        retryAfter: refusal?.expiresAt.map { max(0, $0 - uptime()) }
                     ))
                 } catch { connection.cancel() }
             }
