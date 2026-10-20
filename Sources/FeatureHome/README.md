@@ -310,6 +310,16 @@ and omitted from the current picker rather than blocking a confirmed primary.
 - **Series** — `SeriesDetailView` + `SeriesResume` provide one stable
   series backdrop with focus-driven season tabs and an episode rail; the
   hero text updates as focus moves without distracting backdrop swaps.
+  On tvOS, opening an individual episode from Home or Search starts at the hero
+  with Play focused, just like opening the show. The episode's source, season,
+  and prepared rail target are retained; the rail does not claim initial focus
+  or bypass the cinematic entrance. Returning from a child page retains the
+  existing focus-restoration behavior rather than claiming Play again.
+  Episode-rail re-entry measures the remembered card before revealing it.
+  An already-visible card keeps its horizontal position instead of snapping to
+  the leading edge when focus moves to Seasons, the hero, or lower details.
+  Ratings and Details count as leaving the browser, so returning restores its
+  full vertical stage without replacing the browsed card with a loading slot.
   The compact logo above Seasons fits wholly inside its 200pt slot, including
   tall wordmarks; it does not use the full hero's flexible height allowance.
   This changes only artwork sizing, not season/episode focus geometry.

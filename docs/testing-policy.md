@@ -576,8 +576,9 @@ Back starts toward that shape immediately while native focus restores underneath
 A replaced source or changed window size uses a nonspatial fallback. A temporarily
 unrealized source still returns to its captured shape without waiting for focus.
 The episode browser keeps its layout while masked until its final reveal and
-cannot take entry focus during a whole-show entrance. Episode-context opens
-retain their existing initial-focus behavior; Reduce Motion reveals it directly.
+cannot take entry focus during a whole-show or episode-context entrance.
+Both routes must reach the actual native Hero Play control; Reduce Motion
+retains the same entry destination.
 Its rendered keyline check waits for native focus completion and the artwork's
 painted width to settle, then compares artwork and About in one captured frame.
 The settling condition is independent of x-position, so real misalignment still
@@ -907,8 +908,8 @@ gated until the episode reveal finishes.
 Lower detail content first mounts after the episode row has received focus and the browser's recede
 animation has completed, so rapid early Down presses cannot enter its blank
 scroll region. The page remains at least one viewport tall before that reveal.
-Explicit episode entry keeps its immediate browser behavior; Reduce Motion uses
-an immediate completion. Once revealed, lower content remains mounted so later
+Episode-context entry keeps the hero visible and the prepared episode unfocused;
+Reduce Motion uses an immediate completion. Once revealed, lower content remains mounted so later
 navigation preserves its state. No extra hosting controller divides native
 button focus from the original page tree.
 `DetailTransitionVisualRegressionTests` also moves horizontally between real
@@ -918,6 +919,11 @@ must be restored afterward. Pixel checks compare the season pill's outer edge,
 resting episode artwork, and About's leading keyline. Coverage includes all
 card focus styles, explicit episode entry, and scroll-guard
 removal without disabling nested rails or overriding an existing entrance gate.
+Single-season round trips through the lower information sections must preserve
+the horizontal episode offset, restore the page to the browser's vertical stage,
+and settle native focus without leaving scrolling disabled. The isolated
+episode-row regression repeats re-entry across all card focus styles and retains
+the browsed card while its entry geometry remounts.
 The same production test samples the rail's presented position after completion:
 it must stay within one point of its final position. Checking page offset alone
 misses the spring's measured 7–8.5pt post-completion movement of the whole browser.

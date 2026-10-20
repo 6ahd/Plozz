@@ -8,6 +8,7 @@ import MetadataKit
 import Observation
 import SwiftUI
 import UIKit
+import Vision
 import XCTest
 
 @MainActor
@@ -385,6 +386,14 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
     }
 
     func testProductionShowDoesNotScrollIntoEpisodesWhileTheHeroEnters() async throws {
+        try await assertProductionHeroEntrance(episodeContext: false)
+    }
+
+    func testProductionEpisodeContextOpensOnHero() async throws {
+        try await assertProductionHeroEntrance(episodeContext: true)
+    }
+
+    private func assertProductionHeroEntrance(episodeContext: Bool) async throws {
         let settingsStore = MetadataProviderSettingsStore()
         let originalSettings = settingsStore.load()
         var settings = originalSettings
@@ -393,9 +402,9 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         defer { settingsStore.save(originalSettings) }
         let scene = try await activeScene()
         let artwork = try await seedArtwork()
-        let provider = TransitionShowProvider(artwork: artwork)
+        let provider = TransitionShowProvider(artwork: artwork, episodeCount: 12)
         let model = TransitionShowModel(provider: provider)
-        let host = UIHostingController(rootView: TransitionShowRoot(model: model))
+        let host = UIHostingController(rootView: TransitionShowRoot(model: model, directEntry: episodeContext))
         let previous = scene.windows.first(where: \.isKeyWindow)
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
@@ -403,27 +412,45 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         window.makeKeyAndVisible()
         host.view.layoutIfNeeded()
         defer {
+            model.detail.suspendEnrichment()
             window.isHidden = true
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
         try await Task.sleep(for: .milliseconds(300))
-        DetailTransitionNavigation.prepare(for: provider.show, in: window, source: nil)
+        DetailTransitionNavigation.prepare(
+            for: episodeContext ? provider.episode : provider.show, in: window, source: nil
+        )
         let cover = try XCTUnwrap(window.subviews.compactMap { $0 as? DetailTransitionOverlay }.first)
         model.path.append(1)
         try await waitUntil {
             model.detail.state.value?.childrenLoaded == true && self.verticalScroll(in: host.view) != nil
         }
-        try await Task.sleep(for: .milliseconds(700))
+        try await waitUntil { cover.destination.image != nil }
         XCTAssertNotNil(cover.destination.image, "Use the actual backdrop resolved by the production hero.")
         let scroll = try XCTUnwrap(verticalScroll(in: host.view))
         XCTAssertEqual(scroll.contentOffset.y + scroll.adjustedContentInset.top, 0, accuracy: 2,
                        "The artwork pause must not move into the episode browser.")
-        try await Task.sleep(for: .milliseconds(1400))
+        try await waitUntil { cover.superview == nil }
+        try await Task.sleep(for: .seconds(2))
         XCTAssertEqual(scroll.contentOffset.y + scroll.adjustedContentInset.top, 0, accuracy: 2,
-                       "A whole-show open must stay on its hero when controls finish appearing.")
+                       "Show and episode-context opens must stay on the hero when controls finish appearing.")
+        let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+        let focused = try XCTUnwrap(system.focusedItem)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        let image = renderedKeylineSnapshot(in: window)
+        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        let actionTitle = String(localized: model.detail.playButtonTitle(for: provider.episode))
+        let playText = try XCTUnwrap(request.results?.first {
+            $0.topCandidates(1).first?.string.localizedCaseInsensitiveContains(actionTitle) == true
+        }).boundingBox
+        let playCenter = CGPoint(x: playText.midX * image.size.width, y: (1 - playText.midY) * image.size.height)
+        XCTAssertTrue(try XCTUnwrap(focusFrame(focused, in: window)).contains(playCenter),
+                      "Actual native focus must enclose the rendered Play label, not an episode or tab: \(focused)")
         let shot = XCTAttachment(image: DetailTransitionSnapshot.image(of: window))
-        shot.name = "production-series-entrance"
+        shot.name = "production-series-entrance-episode-\(episodeContext)"
         shot.lifetime = .keepAlways
         add(shot)
     }
@@ -495,7 +522,9 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             while ContinuousClock.now < deadline {
                 if !browsedDuringReveal, offsets.count >= 3,
                    let next = episodeFocusTargets(in: page).first(where: {
-                       ObjectIdentifier($0) != system.focusedItem.map(ObjectIdentifier.init)
+                       guard ObjectIdentifier($0) != system.focusedItem.map(ObjectIdentifier.init),
+                             let frame = focusFrame($0, in: window) else { return false }
+                       return frame.minX > 500 && frame.maxX < window.bounds.maxX - 80
                    }) {
                     host.target = next
                     system.requestFocusUpdate(to: host)
@@ -550,6 +579,7 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             let season = try XCTUnwrap(focusTargets(in: page).first {
                 (100...250).contains($0.frame.width) && (40...90).contains($0.frame.height)
             })
+            let browseOffset = episodeRail.contentOffset.x
             host.target = season
             system.requestFocusUpdate(to: host)
             system.updateFocusIfNeeded()
@@ -558,9 +588,11 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                     && host.settledFocusItemID == ObjectIdentifier(season)
             }
             host.target = nil
-            // Let the row align its remembered entry target; forcing offset zero can hide that target.
+            // Re-entry keeps the remembered card at its existing visible position.
             window.layoutIfNeeded()
             let restingSnapshot = try await restingEpisodeSnapshot(in: window)
+            XCTAssertEqual(episodeRail.contentOffset.x, browseOffset, accuracy: 1,
+                           "Returning to Seasons must not move the browsed episode to the leading edge.")
             assertEpisodeArtworkSpacing(in: restingSnapshot, y: 510)
             let episodeEdge = try XCTUnwrap(episodeArtworkSpan(in: restingSnapshot)).lowerBound
             let aboutEdge = try leadingPixel(
@@ -574,6 +606,28 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
             aligned.name = "production-series-keylines-\(scenario)"
             aligned.lifetime = .keepAlways
             add(aligned)
+
+            for _ in 0..<3 {
+                try await focusLowestDetailControl(in: window, host: host)
+                host.target = nil
+                XCTAssertGreaterThan(page.contentOffset.y + page.adjustedContentInset.top, 1,
+                                     "Exercise a real scroll into the lower information sections.")
+                host.target = season
+                system.requestFocusUpdate(to: host)
+                system.updateFocusIfNeeded()
+                try await waitUntil {
+                    system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(season)
+                }
+                host.target = nil
+                try await Task.sleep(for: .milliseconds(1200))
+                XCTAssertEqual(episodeRail.contentOffset.x, browseOffset, accuracy: 1,
+                               "Details round trips must retain the episode row's horizontal position.")
+                XCTAssertEqual(page.contentOffset.y + page.adjustedContentInset.top, 0, accuracy: 1,
+                               "Returning from Details must restore the browser's full stage.")
+                XCTAssertTrue(page.isScrollEnabled, "No completed return may leave scrolling disabled.")
+                XCTAssertEqual(system.focusedItem.map(ObjectIdentifier.init), ObjectIdentifier(season),
+                               "Returning focus must settle without bouncing between the hero and browser.")
+            }
         }
     }
 
@@ -625,6 +679,19 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         episodeFocusTargets(in: view).first
     }
 
+    private func focusFrame(_ item: any UIFocusItem, in view: UIView) -> CGRect? {
+        if let item = item as? UIView { return item.convert(item.bounds, to: view) }
+        var parent = item.parentFocusEnvironment
+        while let environment = parent {
+            if let container = environment.focusItemContainer {
+                let coordinates: any UICoordinateSpace = view
+                return coordinates.convert(item.frame, from: container.coordinateSpace)
+            }
+            parent = environment.parentFocusEnvironment
+        }
+        return nil
+    }
+
     private func episodeFocusTargets(in view: UIView) -> [any UIFocusItem] {
         focusTargets(in: view).filter {
             (300...700).contains($0.frame.width) && (200...600).contains($0.frame.height)
@@ -660,23 +727,26 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
 
     private func restingEpisodeSnapshot(in window: UIWindow) async throws -> UIImage {
         let deadline = ContinuousClock.now + .seconds(3)
-        var previous: ClosedRange<CGFloat>?
+        var previous: [ClosedRange<CGFloat>]?
         var stableSamples = 0
         while ContinuousClock.now < deadline {
             let snapshot = renderedKeylineSnapshot(in: window)
-            let range = try episodeArtworkSpan(in: snapshot)
+            let spans = try horizontalPixelSpans(
+                in: snapshot, region: CGRect(x: 0, y: 510, width: 1920, height: 2)
+            ) { r, g, b in b > 150 && r < 50 && g < 80 }
+                .filter { $0.lowerBound > 0 && $0.upperBound < 1919 }
             // Native/custom focus paint outlives the focus callback. Check its
             // resting width, not its x-position, so a misaligned card still fails.
             let restingWidth = EpisodeColumnCard.artworkSize.width
-            if let range,
-               (restingWidth - 2...restingWidth).contains(range.upperBound - range.lowerBound + 1),
-               range == previous {
+            if spans.count >= 3,
+               spans.allSatisfy({ abs($0.upperBound - $0.lowerBound + 1 - restingWidth) <= 2 }),
+               spans == previous {
                 stableSamples += 1
                 if stableSamples == 2 { return snapshot }
             } else {
                 stableSamples = 0
             }
-            previous = range
+            previous = spans
             try await Task.sleep(for: .milliseconds(25))
         }
         let attachment = XCTAttachment(image: renderedKeylineSnapshot(in: window))
@@ -1221,10 +1291,11 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         scroll.setContentOffset(CGPoint(x: 0, y: bottom), animated: false)
         try await Task.sleep(for: .milliseconds(300))
         let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
-        let target = try XCTUnwrap(focusTargets(in: scroll).compactMap { $0 as? UIView }.filter {
-            window.bounds.intersects($0.convert($0.bounds, to: window))
+        let target = try XCTUnwrap(focusTargets(in: scroll).filter {
+            guard let frame = focusFrame($0, in: window) else { return false }
+            return window.bounds.intersects(frame)
         }.max {
-            $0.convert($0.bounds, to: window).minY < $1.convert($1.bounds, to: window).minY
+            (focusFrame($0, in: window)?.minY ?? 0) < (focusFrame($1, in: window)?.minY ?? 0)
         })
         host.target = target
         system.requestFocusUpdate(to: host)
