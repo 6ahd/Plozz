@@ -6,6 +6,102 @@ import XCTest
 
 @MainActor
 final class IPTVLiveTVImportTests: XCTestCase {
+    func testMissingWholeGuideIsFetchedOncePerRefreshWithoutLosingSavedRowsOrOtherSources() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            IPTVFixture.state.reset()
+            try? FileManager.default.removeItem(at: root)
+        }
+        let count = 4_001
+        let firstPlaylist = "#EXTM3U tvg-url=\"https://provider.test/first.xml\"\n"
+            + (0..<count).map {
+                "#EXTINF:-1 tvg-id=\"station-\($0)\",Channel \($0)\nhttps://provider.test/live/\($0).ts\n"
+            }.joined()
+        let secondPlaylist = """
+        #EXTM3U tvg-url="https://provider.test/second.xml"
+        #EXTINF:-1,Other source
+        https://provider.test/other.ts
+
+        """
+        func configureResponses(failing: Bool) {
+            IPTVFixture.state.handler = { request in
+                switch request.url?.path {
+                case "/first": return (200, [:], Data(firstPlaylist.utf8))
+                case "/second": return (200, [:], Data(secondPlaylist.utf8))
+                case "/first.xml" where failing: return (404, ["Content-Type": "text/html"], Data())
+                case "/first.xml", "/second.xml":
+                    return (200, ["Cache-Control": "no-store"], Data("<tv/>".utf8))
+                default:
+                    XCTFail("Guide refresh must not open playback")
+                    throw URLError(.badURL)
+                }
+            }
+        }
+        configureResponses(failing: false)
+        var contexts: [String: LiveTVAuthorizedServerProvider] = [:]
+        for id in ["first", "second"] {
+            let credential = try IPTVCredential(
+                mode: .playlist, address: XCTUnwrap(URL(string: "https://provider.test/\(id)"))
+            )
+            let session = try await IPTVProvider.signIn(
+                credential: credential, name: id, deviceID: "fixture",
+                cacheDirectory: root, configuration: IPTVFixture.configuration()
+            )
+            let provider = try IPTVProvider(
+                context: .init(session: session, accountID: id, credentialRevision: .init(),
+                               localMediaContext: .init(accountID: id, profileID: "fixture", profileNamespace: nil)),
+                cacheDirectory: root, configuration: IPTVFixture.configuration(),
+                guideLoader: { _, _, channels, from, to in
+                    channels.map {
+                        .init(id: $0.id, channelID: $0.id, title: "Saved listing", startDate: from, endDate: to)
+                    }
+                }
+            )
+            addTeardownBlock { await provider.teardown() }
+            contexts[id] = .init(accountID: id, authorizationID: id, kind: .iptv, provider: provider)
+        }
+        let authorized = contexts
+        let imports = LiveTVPrototypeImportModel(
+            configuration: .init(servers: [
+                .init(id: "first", name: "First", accountID: "first"),
+                .init(id: "second", name: "Second", accountID: "second")
+            ]),
+            serverProviderResolver: { authorized[$0] }
+        )
+        let now = Date(timeIntervalSince1970: 100)
+        let model = LiveTVPrototypeModel(now: now, channels: [])
+        await imports.reload(into: model, forceServerRefresh: false)
+        XCTAssertEqual(model.channels.count, count + 1)
+        XCTAssertEqual(imports.programCount, count + 1)
+        for expectedRequests in 1...2 {
+            if expectedRequests == 1 {
+                IPTVFixture.state.reset()
+                configureResponses(failing: true)
+            }
+            await imports.reloadServerGuides(
+                channelIDs: model.channels.map(\.id), from: now, to: now.addingTimeInterval(3_600),
+                into: model, force: true
+            )
+            XCTAssertEqual(IPTVFixture.state.requests.filter { $0.url?.path == "/first.xml" }.count, expectedRequests)
+            XCTAssertEqual(IPTVFixture.state.requests.filter { $0.url?.path == "/second.xml" }.count, expectedRequests)
+            XCTAssertEqual(imports.serverSources.first { $0.id == "first" }?.guideFailure, .guideUnavailable)
+            XCTAssertEqual(imports.serverSources.first { $0.id == "second" }?.guidePhase, .loaded)
+            XCTAssertEqual(imports.serverGuideWindows.filter { $0.sourceID == "first" && $0.phase == .failed }.count, 3)
+            XCTAssertEqual(imports.programCount, count + 1, "Ordinary guide failure must preserve last-good listings")
+            XCTAssertEqual(model.channels.count, count + 1)
+        }
+        configureResponses(failing: false)
+        await imports.reloadServerGuides(
+            channelIDs: model.channels.map(\.id), from: now, to: now.addingTimeInterval(3_600),
+            into: model, force: true
+        )
+        XCTAssertEqual(IPTVFixture.state.requests.filter { $0.url?.path == "/first.xml" }.count, 5)
+        XCTAssertTrue(imports.serverSources.allSatisfy { $0.guidePhase == .loaded && $0.guideFailure == nil })
+        for context in contexts.values {
+            if let provider = context.provider as? IPTVProvider { await provider.teardown() }
+        }
+    }
+
     func testExpiredPlaylistPublishesSavedChannelsWithoutWaitingForRefresh() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer {

@@ -279,7 +279,12 @@ need reimporting to recover previously discarded metadata.
 Explicit XMLTV guides are ordered, with separate first-guide-origin headers;
 Xtream otherwise uses its native guide API, falling back to its `xmltv.php`
 for channels with empty, malformed or unsupported API listings. Successful
-native listings are retained. Explicit guides bypass that fallback selection.
+native listings are retained. Working explicit guides remain preferred. If an
+explicit Xtream guide returns HTTP 404, other configured guides are tried in
+order before one attempt at the account's standard `xmltv.php` for uncovered
+channels. A default URL already in the configured list is not requested again.
+This recovery does not fan out into per-channel native API requests, does not
+apply to playlist/file accounts, and does not replace a working but empty guide.
 An unavailable endpoint is not retried once per remaining channel in the batch.
 Authentication failures, rate limits, transport failures and ordinary server
 errors remain visible rather than triggering another request path; a failed
@@ -289,6 +294,16 @@ Each guide is requested at its declared address without copying the playlist's
 query credentials. Account headers stay scoped to their configured origin;
 the standalone source loader does not share cookies or stored HTTP credentials.
 Guide redirects retain their existing transport safeguards.
+Confirmed XMLTV 404s are reused only within the current provider's refresh,
+across its channel/window batches. Every new refresh can retry immediately;
+neither another account nor a later refresh inherits those failures. Diagnostics
+distinguish a reused failure from a new HTTP request. Successful document caching
+retains its existing 16 MiB/60-second limits and HTTP cache directives.
+XMLTV accepts compact and colon-separated numeric timezone offsets, with strict
+date/offset validation. Programme-only feeds can supply exact channel IDs without
+invented display names or relaxed station matching. Referenced IDs and declared
+channels share the channel/text budgets; later declarations still provide names
+and conflicting duplicate declarations remain invalid.
 Playlist and imported-file accounts without an explicit or enabled playlist-declared
 guide immediately report no guide capability. Both platforms show "No program
 guide available" and skip guide warmup and browsing requests instead of showing

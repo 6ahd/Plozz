@@ -174,6 +174,55 @@ The pinned engine revision is owned by [Package.swift](../Package.swift).
 Inspect its actual contract before changing the adapter or proposing an upgrade;
 do not assume upstream lacks recovery because a host-level test uses a spy.
 
+## Guide compatibility hardening
+
+The guide reports associated with [#107](https://github.com/brandomoore/Plozz/issues/107)
+and [#116](https://github.com/brandomoore/Plozz/issues/116) established an explicit
+XMLTV download returning HTTP 404 before parsing, repeatedly across channel
+batches. They do not establish why that configured address was wrong or whether
+the account's standard guide endpoint works. These changes are not confirmation
+that the reporter's service is fixed.
+
+The follow-up comparison used Rivulet
+[`9f574c5`](https://github.com/l984-451/Rivulet/tree/9f574c5d449f1bfc3df4b59663e5b35d0b5fd433).
+Its guide parser and loading behavior informed independently written compatibility
+changes; no upstream implementation was copied. Rivulet does not supply a native
+Xtream recovery API that automatically solves the reported 404.
+
+- A configured Xtream guide's HTTP 404 permits one standard account `xmltv.php`
+  fallback, after other configured guides have had priority. Recovered rows only
+  fill uncovered channels. The same configured default is not requested twice.
+  Whole-guide recovery avoids tens of thousands of new per-channel requests.
+  Authentication, rate-limit, transport, malformed-document, and other HTTP
+  failures are not fallback triggers. Failure of the fallback remains an error.
+- A refresh-local scope lets the provider reuse confirmed XMLTV 404s across its
+  2,000-channel/window batches. It does not cache errors across refreshes or
+  clients, suppress cancellation, or disable the source. Last-good guide windows,
+  independent sources, and authorization checks retain their existing behavior.
+  Successful-document caching and parsing limits are unchanged: this is not an
+  hour-long full-guide cache, and large/noncacheable successful documents may
+  still be fetched or parsed in multiple batches.
+- Playlist discovery accepts `tvg-url` in addition to `url-tvg` and `x-tvg-url`,
+  preserving URL validation, relative resolution, order, and deduplication.
+- XMLTV numeric timezone offsets accept `+HH:MM` and `-HH:MM` as well as compact
+  offsets. Invalid dates/offsets are still rejected rather than guessed as UTC.
+- Programme channel IDs can be matched without `<channel>` declarations.
+  No display names are invented; existing exact-identity, duplicate-stream,
+  provider, region, and manual-override rules remain in force. Channel IDs count
+  toward the same channel/text budgets, including when declarations arrive later.
+
+Regression coverage includes the real account guide-loader adapter, plain/gzip
+programme-only feeds, malformed timestamps, parser bounds, cross-origin header
+isolation, fallback request counts, refresh/client isolation, cancellation, and
+a 4,001-channel multi-batch import retaining old listings while another source
+continues working. Existing native Xtream behavior, partial-success publication,
+playback recovery budgets, and permissive name/case matching are unchanged.
+
+Owners: [XMLTV parser](../Sources/FeatureLiveTVCore/LiveTVXMLTVParser.swift),
+[guide importer](../Sources/FeatureLiveTVCore/LiveTVServerGuideImport.swift),
+[IPTV client](../Sources/ProviderIPTV/IPTVClient.swift), and
+[provider](../Sources/ProviderIPTV/IPTVProvider.swift).
+
 ## Controlled playback results
 
 Final hosted runs on 2026-10-20 used tvOS 26.2 (Apple TV 4K simulator), iOS 26.2

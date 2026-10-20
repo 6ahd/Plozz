@@ -5,6 +5,23 @@ import ProviderIPTV
 import XCTest
 
 final class IPTVGuideIntegrationTests: XCTestCase {
+    func testAccountGuideAcceptsProgrammeOnlyXMLTVAndColonOffsets() async throws {
+        let programmes = try await ManagedProviderRegistry.iptvGuideLoader(
+            Data("""
+            <tv><programme channel="news" start="19700101080140 +08:00" stop="19700101080820 +08:00">
+              <title>Bulletin</title>
+            </programme></tv>
+            """.utf8),
+            XCTUnwrap(URL(string: "https://provider.test/guide.xml")),
+            [.init(id: "account-channel", name: "News", guideID: "news")],
+            Date(timeIntervalSince1970: 100), Date(timeIntervalSince1970: 500)
+        )
+        XCTAssertEqual(programmes.map(\.channelID), ["account-channel"])
+        XCTAssertEqual(programmes.map(\.title), ["Bulletin"])
+        XCTAssertEqual(programmes.first?.startDate, Date(timeIntervalSince1970: 100))
+        XCTAssertEqual(programmes.first?.endDate, Date(timeIntervalSince1970: 500))
+    }
+
     func testAccountGuideUsesThePlaylistGuideNameWithoutWeakeningIdentityChecks() async throws {
         let data = Data("""
         <tv>

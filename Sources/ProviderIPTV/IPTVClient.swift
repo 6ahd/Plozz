@@ -17,6 +17,13 @@ actor IPTVClient {
     private var authenticatedAt: Date?
     private var liveExtension = "ts"
     private var cachedGuide: (url: URL, data: Data, expires: Date)?
+    private final class GuideRefreshState {
+        weak var scope: ServerLiveTVGuideRefreshScope?
+        var missingURLs = Set<URL>()
+
+        init(scope: ServerLiveTVGuideRefreshScope) { self.scope = scope }
+    }
+    private var guideRefreshes: [ObjectIdentifier: GuideRefreshState] = [:]
     private let progress: @Sendable (IPTVImportProgress) -> Void
     var pendingCatalogRequestCount: Int { refreshWaiters.count }
     private var didReclaimJournal = false
@@ -598,7 +605,7 @@ actor IPTVClient {
 
     func guideURLs() async throws -> [URL] {
         if !credential.explicitGuideURLs.isEmpty { return credential.explicitGuideURLs }
-        if credential.mode == .xtream { return [try endpoint(file: "xmltv.php")] }
+        if let url = try xtreamGuideURL() { return [url] }
         try await ensureCatalog("live")
         let guides = try catalog.records(where: "kind = ?", values: [MediaItemKind.unknown.rawValue], order: "id", limit: 32)
             .compactMap(\.streamURL)
@@ -606,6 +613,10 @@ actor IPTVClient {
             throw LiveTVSourceImportError.invalidGuide
         }
         return guides
+    }
+
+    func xtreamGuideURL() throws -> URL? {
+        credential.mode == .xtream ? try endpoint(file: "xmltv.php") : nil
     }
 
     func hasGuideSource() async throws -> Bool {
@@ -631,6 +642,31 @@ actor IPTVClient {
     }
 
     func guideData(from url: URL) async throws -> Data {
+        try Task.checkCancellation()
+        guideRefreshes = guideRefreshes.filter { $0.value.scope != nil }
+        let refresh: GuideRefreshState?
+        if let scope = ServerLiveTVGuideRefreshScope.current {
+            let key = ObjectIdentifier(scope)
+            let state = guideRefreshes[key] ?? GuideRefreshState(scope: scope)
+            guideRefreshes[key] = state
+            refresh = state
+        } else {
+            refresh = nil
+        }
+        if refresh?.missingURLs.contains(url) == true {
+            IPTVGuideDiagnostics.request?.reuseMissingGuide()
+            throw AppError.notFound
+        }
+        do {
+            return try await downloadGuideData(from: url)
+        } catch AppError.notFound {
+            try Task.checkCancellation()
+            refresh?.missingURLs.insert(url)
+            throw AppError.notFound
+        }
+    }
+
+    private func downloadGuideData(from url: URL) async throws -> Data {
         if let cachedGuide, cachedGuide.url == url, cachedGuide.expires > Date() {
             IPTVGuideDiagnostics.request?.cacheHit(bytes: cachedGuide.data.count)
             return cachedGuide.data
@@ -664,6 +700,7 @@ actor IPTVClient {
     func cancel() {
         refresh?.cancel()
         cachedGuide = nil
+        guideRefreshes.removeAll()
         http.cancel()
     }
 

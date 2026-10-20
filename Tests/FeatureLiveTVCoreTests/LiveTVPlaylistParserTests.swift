@@ -413,18 +413,35 @@ final class LiveTVPlaylistParserTests: XCTestCase {
         XCTAssertEqual(parsed.declaredGuideURLs.map(\.absoluteString), guides)
     }
 
-    func testDiscoversBothHeaderConventionsAndPreservesCountryAndLanguages() throws {
+    func testDiscoversAllHeaderConventionsAndPreservesCountryAndLanguages() throws {
         let input = """
-        #EXTM3U url-tvg="../guide.xml.gz, https://other.test/extra.xml" x-tvg-url="../guide.xml.gz"
+        #EXTM3U url-tvg="../guide.xml.gz, https://other.test/extra.xml" x-tvg-url="../guide.xml.gz" tvg-url="../third.xml"
         #EXTINF:-1 tvg-id="station" tvg-language="English;Spanish" tvg-country="US,CA",Station
         https://example.test/live.m3u8
         """
         let parsed = try LiveTVPlaylistParser(baseURL: URL(string: "https://example.test/lists/catalog.m3u")).parse(input)
         XCTAssertEqual(parsed.declaredGuideURLs.map(\.absoluteString), [
-            "https://example.test/guide.xml.gz", "https://other.test/extra.xml"
+            "https://example.test/guide.xml.gz", "https://other.test/extra.xml", "https://example.test/third.xml"
         ])
         XCTAssertEqual(parsed.channels.first?.languages, ["English", "Spanish"])
         XCTAssertEqual(parsed.channels.first?.countries, ["US", "CA"])
+    }
+
+    func testTVGURLAliasRetainsURLValidationDeduplicationAndIncrementalParsing() throws {
+        let input = """
+        #EXTM3U TVG-URL="../Guide.XML, ../Guide.XML, ftp://example.test/guide.xml, javascript:bad"
+        #EXTINF:-1 tvg-id="stable",Station
+        https://example.test/live.m3u8
+
+        """
+        let parser = LiveTVPlaylistParser(baseURL: URL(string: "https://example.test/lists/catalog.m3u"))
+        let whole = try parser.parse(input)
+        var stream = parser.makeStream()
+        for byte in input.utf8 { try stream.append(Data([byte])) }
+        let incremental = try stream.finish()
+        XCTAssertEqual(whole.declaredGuideURLs.map(\.absoluteString), ["https://example.test/Guide.XML"])
+        XCTAssertEqual(incremental.declaredGuideURLs, whole.declaredGuideURLs)
+        XCTAssertEqual(incremental.channels.map(\.id), whole.channels.map(\.id))
     }
 
     func testSourceRedirectOriginPolicyRejectsCrossOriginCredentialsAndDowngrades() throws {

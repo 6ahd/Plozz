@@ -28,6 +28,14 @@ public extension ServerLiveTVProviding {
     }
 }
 
+/// Identifies one refresh across channel/window batches without sharing failures
+/// with another refresh, account, or authorization. Providers own any scoped state.
+public final class ServerLiveTVGuideRefreshScope: Sendable {
+    @TaskLocal public static var current: ServerLiveTVGuideRefreshScope?
+
+    public init() {}
+}
+
 public struct ServerLiveTVCatalogSnapshot: Sendable {
     public let channels: [ServerLiveTVChannel]
     public let supportsGuide: Bool
