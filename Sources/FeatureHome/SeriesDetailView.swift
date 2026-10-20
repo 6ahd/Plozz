@@ -538,6 +538,9 @@ struct SeriesDetailView: View {
                         }
                     )
                     .detailEntranceStage(.episodes)
+                    #if os(tvOS)
+                    .background(SeriesBrowserRevealScrollGuard(isActive: browserRevealInFlight))
+                    #endif
 
                     if showsLowerDetailContent {
                     DetailExtrasView(
@@ -620,9 +623,6 @@ struct SeriesDetailView: View {
                 // column past the viewport, which is what let tvOS pan the page
                 // sideways and shove focus off the left edge.
                 .frame(maxWidth: .infinity, alignment: .leading)
-                #if os(tvOS)
-                .background(SeriesBrowserRevealScrollGuard(isActive: browserRevealInFlight))
-                #endif
             }
             // The scroll view can focus a synthetic filler even while its real
             // controls are gated. Do not let early Down scroll through that gap.

@@ -372,6 +372,7 @@ struct SeriesRecedeReveal<Content: View>: View {
 /// While the browser moves into place, native focus must not reveal its moving
 /// cards by scrolling the page as well. Only the outer scroll view is gated;
 /// horizontal episode navigation and the page's explicit scrollTo remain live.
+/// Attach to the browser itself so returns from lower rows restore its stage.
 struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
     let isActive: Bool
 
@@ -387,7 +388,7 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ view: GuardView, coordinator: ()) {
-        view.restore()
+        view.stop()
     }
 
     final class GuardView: UIView {
@@ -397,6 +398,13 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
+            NotificationCenter.default.removeObserver(self)
+            if window != nil {
+                NotificationCenter.default.addObserver(
+                    self, selector: #selector(focusDidUpdate(_:)),
+                    name: UIFocusSystem.didUpdateNotification, object: nil
+                )
+            }
             apply()
         }
 
@@ -410,18 +418,44 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
                 restore()
                 return
             }
+            if let scroll = enclosingScrollView {
+                if scrollView !== scroll {
+                    restore()
+                    scrollView = scroll
+                    wasScrollEnabled = scroll.isScrollEnabled
+                }
+                scroll.isScrollEnabled = false
+            }
+        }
+
+        private var enclosingScrollView: UIScrollView? {
             var ancestor = superview
             while let view = ancestor {
-                if let scroll = view as? UIScrollView {
-                    if scrollView !== scroll {
-                        restore()
-                        scrollView = scroll
-                        wasScrollEnabled = scroll.isScrollEnabled
-                    }
-                    scroll.isScrollEnabled = false
-                    return
-                }
+                if let scroll = view as? UIScrollView { return scroll }
                 ancestor = view.superview
+            }
+            return nil
+        }
+
+        @objc private func focusDidUpdate(_ notification: Notification) {
+            guard let context = notification.userInfo?[UIFocusSystem.focusUpdateContextUserInfoKey]
+                    as? UIFocusUpdateContext,
+                  NativeFocusRegion.contains(context.nextFocusedItem, in: self),
+                  !NativeFocusRegion.contains(context.previouslyFocusedItem, in: self),
+                  let coordinator = notification.userInfo?[UIFocusSystem.animationCoordinatorUserInfoKey]
+                    as? UIFocusAnimationCoordinator,
+                  let scroll = enclosingScrollView else { return }
+            // Native cards schedule their reveal after the focus-entry callback.
+            // Set the browser's full stage inside that same UIKit animation.
+            coordinator.addCoordinatedAnimations { [weak self, weak scroll] in
+                guard let self, window != nil, let scroll,
+                      NativeFocusRegion.contains(
+                        UIFocusSystem.focusSystem(for: self)?.focusedItem, in: self
+                      ) else { return }
+                scroll.setContentOffset(
+                    CGPoint(x: scroll.contentOffset.x, y: -scroll.adjustedContentInset.top),
+                    animated: false
+                )
             }
         }
 
@@ -429,6 +463,11 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
             if let wasScrollEnabled { scrollView?.isScrollEnabled = wasScrollEnabled }
             scrollView = nil
             wasScrollEnabled = nil
+        }
+
+        func stop() {
+            NotificationCenter.default.removeObserver(self)
+            restore()
         }
     }
 }

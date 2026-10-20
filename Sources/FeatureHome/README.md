@@ -320,6 +320,9 @@ and omitted from the current picker rather than blocking a confirmed primary.
   the leading edge when focus moves to Seasons, the hero, or lower details.
   Ratings and Details count as leaving the browser, so returning restores its
   full vertical stage without replacing the browsed card with a loading slot.
+  Direct returns from Related to an episode restore that stage inside UIKit's
+  coordinated focus animation. A SwiftUI focus-entry scroll alone can be
+  overwritten by the native card's reveal, leaving actual focus offscreen.
   The compact logo above Seasons fits wholly inside its 200pt slot, including
   tall wordmarks; it does not use the full hero's flexible height allowance.
   This changes only artwork sizing, not season/episode focus geometry.

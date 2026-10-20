@@ -631,6 +631,108 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         }
     }
 
+    func testRelatedReturnsDirectlyToVisibleEpisodeWithoutSeasonFocus() async throws {
+        let settingsStore = MetadataProviderSettingsStore()
+        let original = settingsStore.load()
+        var settings = original
+        settings.preferOnlineArtwork = false
+        settingsStore.save(settings)
+        defer { settingsStore.save(original) }
+        let scene = try await activeScene()
+        let artwork = try await seedArtwork()
+        for style in CardFocusStyle.allCases {
+            let provider = TransitionShowProvider(artwork: artwork, episodeCount: 12)
+            let related = ["Family Guy", "South Park", "BoJack Horseman"].enumerated().map { index, title in
+                MediaItem(id: "related-\(index)", title: title, kind: .series,
+                          posterURL: artwork, providerIDs: ["Tmdb": "\(100 + index)"])
+            }
+            let store = RelatedTitlesStore(directory: nil)
+            await store.store(RelatedTitlesRecord(
+                seedKey: MetadataQuery(provider.show).seriesScoped.enrichmentCacheKey,
+                titles: related.map {
+                    RelatedTitle(title: $0.title, year: nil, kind: .series,
+                                 providerIDs: $0.providerIDs, posterURL: artwork, source: .tmdb)
+                },
+                refreshedAt: Date()
+            ))
+            let loader = RelatedTitlesLoader(
+                resolver: RelatedTitlesResolver(providers: []), store: store,
+                search: { _, _ in related }
+            )
+            let model = TransitionShowModel(provider: provider, relatedTitlesLoader: loader)
+            let host = TransitionShowController(rootView: TransitionShowRoot(model: model, focusStyle: style))
+            let previous = scene.windows.first(where: \.isKeyWindow)
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            defer {
+                model.detail.suspendEnrichment()
+                window.isHidden = true
+                window.rootViewController = nil
+                previous?.makeKeyAndVisible()
+            }
+            host.view.layoutIfNeeded()
+            DetailTransitionNavigation.prepare(for: provider.show, in: window, source: nil)
+            model.path.append(1)
+            try await waitUntil {
+                model.detail.seasonEpisodes["season"]?.count == 12 && loader.entries.count == 3
+                    && self.episodeScroll(in: host.view) != nil
+            }
+            try await Task.sleep(for: .seconds(3))
+            let page = try XCTUnwrap(verticalScroll(in: host.view))
+            let rail = try XCTUnwrap(episodeScroll(in: page))
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            let episode = try XCTUnwrap(episodeFocusTarget(in: page))
+            host.target = episode
+            system.requestFocusUpdate(to: host)
+            system.updateFocusIfNeeded()
+            try await waitUntil { system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(episode) }
+            host.target = nil
+            try await Task.sleep(for: .milliseconds(1200))
+            let horizontalOffset = rail.contentOffset.x
+
+            for roundTrip in 0..<3 {
+                let bottom = page.contentSize.height - page.bounds.height + page.adjustedContentInset.bottom
+                page.setContentOffset(CGPoint(x: 0, y: min(900, bottom)), animated: false)
+                try await Task.sleep(for: .milliseconds(300))
+                let posters = focusTargets(in: page).filter {
+                    (180...300).contains($0.frame.width) && (300...550).contains($0.frame.height)
+                }.sorted { $0.frame.minX < $1.frame.minX }
+                XCTAssertGreaterThanOrEqual(posters.count, 2)
+                let southPark = try XCTUnwrap(posters.dropFirst().first)
+                host.target = southPark
+                system.requestFocusUpdate(to: host)
+                system.updateFocusIfNeeded()
+                try await waitUntil {
+                    system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(southPark)
+                        && host.settledFocusItemID == ObjectIdentifier(southPark)
+                }
+                host.target = nil
+                XCTAssertGreaterThan(page.contentOffset.y + page.adjustedContentInset.top, 100)
+                host.target = episode
+                system.requestFocusUpdate(to: host)
+                system.updateFocusIfNeeded()
+                try await waitUntil {
+                    system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(episode)
+                }
+                host.target = nil
+                try await Task.sleep(for: .milliseconds(1200))
+                let screenshot = XCTAttachment(image: renderedKeylineSnapshot(in: window))
+                screenshot.name = "related-episode-return-\(style)-\(roundTrip)"
+                screenshot.lifetime = .keepAlways
+                add(screenshot)
+                XCTAssertEqual(page.contentOffset.y + page.adjustedContentInset.top, 0, accuracy: 1,
+                               "\(style): a direct return from Related must reveal the browser without visiting Seasons.")
+                XCTAssertEqual(rail.contentOffset.x, horizontalOffset, accuracy: 1)
+                XCTAssertTrue(window.bounds.contains(try XCTUnwrap(focusFrame(episode, in: window))),
+                              "The actual focused episode must be fully onscreen.")
+                XCTAssertTrue(page.isScrollEnabled)
+                XCTAssertEqual(system.focusedItem.map(ObjectIdentifier.init), ObjectIdentifier(episode))
+            }
+        }
+    }
+
     func testBrowserScrollGuardRestoresItsOwnerWithoutDisablingNestedRails() async throws {
         let scene = try await activeScene()
         let previous = scene.windows.first(where: \.isKeyWindow)
@@ -1478,7 +1580,7 @@ private final class TransitionShowModel {
     ))
     var path: [Int] = []
 
-    init(provider: TransitionShowProvider) {
+    init(provider: TransitionShowProvider, relatedTitlesLoader: RelatedTitlesLoader? = nil) {
         self.provider = provider
         detail = ItemDetailViewModel(
             provider: provider, itemID: provider.show.id,
@@ -1490,7 +1592,8 @@ private final class TransitionShowModel {
             sourceAccountID: "transition-fixture",
             onlineTrailerResolver: { _ in [] },
             playableVideoIDResolver: { _ in nil },
-            trailerCache: TrailerResolutionCache()
+            trailerCache: TrailerResolutionCache(),
+            relatedTitlesLoader: relatedTitlesLoader
         )
     }
 }

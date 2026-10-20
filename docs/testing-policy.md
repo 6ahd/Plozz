@@ -924,6 +924,12 @@ the horizontal episode offset, restore the page to the browser's vertical stage,
 and settle native focus without leaving scrolling disabled. The isolated
 episode-row regression repeats re-entry across all card focus styles and retains
 the browsed card while its entry geometry remounts.
+`testRelatedReturnsDirectlyToVisibleEpisodeWithoutSeasonFocus` separately returns
+from the second Related poster straight to the episode, without a season-chip
+handoff. Across every focus style and three round trips, actual native focus must
+remain on the episode, its full frame must be onscreen, the page must return to
+zero, and the horizontal row offset must remain unchanged. Screenshots retain
+the rendered result; testing only the focused item misses an offscreen selection.
 The same production test samples the rail's presented position after completion:
 it must stay within one point of its final position. Checking page offset alone
 misses the spring's measured 7–8.5pt post-completion movement of the whole browser.
