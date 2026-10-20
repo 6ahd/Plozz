@@ -310,6 +310,32 @@ and omitted from the current picker rather than blocking a confirmed primary.
 - **Series** — `SeriesDetailView` + `SeriesResume` provide one stable
   series backdrop with focus-driven season tabs and an episode rail; the
   hero text updates as focus moves without distracting backdrop swaps.
+  On tvOS, opening an individual episode from Home or Search starts at the hero
+  with Play focused, just like opening the show. The episode's source, season,
+  and prepared rail target are retained; the rail does not claim initial focus
+  or bypass the cinematic entrance. Returning from a child page retains the
+  existing focus-restoration behavior rather than claiming Play again.
+  Episode-rail re-entry measures the remembered card before revealing it.
+  An already-visible card keeps its horizontal position instead of snapping to
+  the leading edge when focus moves to Seasons, the hero, or lower details.
+  Ratings and Details count as leaving the browser, so returning restores its
+  full vertical stage without replacing the browsed card with a loading slot.
+  Direct returns from Related to an episode restore that stage inside UIKit's
+  coordinated focus animation. A SwiftUI focus-entry scroll alone can be
+  overwritten by the native card's reveal, leaving actual focus offscreen.
+  The page return overrides the short native focus-effect timing with a
+  0.6-second ease-in/ease-out animation, paced against the native downward
+  reveal. It remains interruptible and applies its destination immediately
+  with Reduce Motion. Leaving the browser releases its scroll guard during the
+  native focus handoff, before UIKit reveals the next row; stale SwiftUI reveal
+  state cannot relock the page during rapid Up/Down reversals.
+  A populated Related rail owns a full-width native focus section, so Down from
+  a horizontally distant episode reaches even a single Related card before
+  Cast. Empty and loading Related rows add no focus stop.
+  Leaving for lower details also re-arms the episode entry gate. Returning
+  through a different Related column, even while rapidly passing through to
+  the hero, preserves the last browsed episode instead of remembering a
+  geometrically closer card encountered in transit.
   The compact logo above Seasons fits wholly inside its 200pt slot, including
   tall wordmarks; it does not use the full hero's flexible height allowance.
   This changes only artwork sizing, not season/episode focus geometry.
