@@ -197,12 +197,13 @@ struct HomeSectionSettingsView: View {
             }
             Button("Remove section", role: .destructive) {
                 do {
-                    try visibility.setHomeSectionVisible(false, id: choice.id, catalog: inventory.catalog)
+                    try visibility.setHomeSectionVisible(false, id: choice.id, catalog: inventory.currentCatalog(
+                        libraries: libraries, accounts: accounts, visibility: visibility
+                    ))
                     dismiss()
                 } catch { failed = true }
             }
             .plozzActionButton(role: .secondary)
-            .disabled(inventory.isLoading)
             .accessibilityIdentifier("home-section-remove")
             if failed { InlineErrorMessage(Text("Couldn't update this section. Try again.")) }
             if inventory.isLoading { ProgressView("Loading available sections…") }
@@ -271,7 +272,7 @@ struct HomeAddSectionView: View {
 
     var body: some View {
         HomeEditorPage(title: Text("Add section"), showsHeader: true) {
-            let catalog = inventory.catalog
+            let catalog = inventory.currentCatalog(libraries: libraries, accounts: accounts, visibility: visibility)
             let disabled = Set(catalog.sections(in: visibility.visibility).disabled)
             let choices = catalog.editableChoices(in: visibility.visibility).filter { disabled.contains($0.id) }
             if choices.isEmpty && !inventory.isLoading {
@@ -280,14 +281,13 @@ struct HomeAddSectionView: View {
             ForEach(choices) { choice in
                 Button {
                     do {
-                        try visibility.setHomeSectionVisible(true, id: choice.id, catalog: inventory.catalog)
+                        try visibility.setHomeSectionVisible(true, id: choice.id, catalog: catalog)
                         dismiss()
                     } catch { failed = true }
                 } label: {
                     HomeSectionChoiceLabel(choice: choice, accessory: "plus")
                 }
                 .buttonStyle(SettingsFormButtonStyle())
-                .disabled(inventory.isLoading)
                 .accessibilityIdentifier("home-add-\(choice.id.presentationID)")
             }
             if inventory.isLoading { ProgressView("Loading available sections…") }

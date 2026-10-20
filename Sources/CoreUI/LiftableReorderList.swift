@@ -9,10 +9,10 @@ import CoreModels
 /// navigation libraries, …) is the same control with the same muscle memory.
 ///
 /// **tvOS interaction** — the whole row is the focus target (no per-row buttons):
-/// click to *lift* it, then d-pad Up/Down moves it one step as focus follows
+/// click to *lift* it, then d-pad Up/Down moves it while keeping native focus
 /// (crossing the divider enables/disables), and click again to drop it. Neighbours
 /// dim while a row is lifted, which is the tvOS Home-screen rearrange idiom.
-/// Press and hold for direct Hide/Show and Move Up/Down actions.
+/// Hold a direction to repeat; press and hold Select for direct row actions.
 ///
 /// **iOS/iPadOS interaction** — the native always-editing `List` drag handle over
 /// the same flattened model, with the divider immovable.
@@ -62,15 +62,16 @@ public struct LiftableReorderList<Element: Hashable>: View {
     /// other controls while a reorder is in progress.
     @Binding private var isLifting: Bool
     private let onChange: (OrderedVisibilityList.Sections<Element>) -> Void
+    private let onRemove: ((Element) -> Void)?
 
     /// The element currently "lifted" for reordering (nil = none lifted).
     @State private var liftedElement: Element?
-    @State private var isRestoringLiftedFocus = false
+    @State private var liftedSections: OrderedVisibilityList.Sections<Element>?
     @State private var pinnedFocusTarget: Element?
     @State private var focusRestoreTarget: Element?
     @State private var focusRestoreRevision = 0
     @FocusState private var focusedElement: Element?
-    @FocusState private var isDisabledPlaceholderFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(
         sections: OrderedVisibilityList.Sections<Element>,
@@ -79,6 +80,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
         isLifting: Binding<Bool>,
         requiredEnabled: Set<Element> = [],
         allowsHiding: Bool = true,
+        onRemove: ((Element) -> Void)? = nil,
         row: @escaping (Element) -> Row,
         onChange: @escaping (OrderedVisibilityList.Sections<Element>) -> Void
     ) {
@@ -90,42 +92,18 @@ public struct LiftableReorderList<Element: Hashable>: View {
         self.allowsHiding = allowsHiding
         self.row = row
         self.onChange = onChange
+        self.onRemove = onRemove
     }
 
     #if os(tvOS)
     public var body: some View {
-        VStack(spacing: SettingsRowMetrics.formRowSpacing) {
-            ForEach(Array(sections.enabled.enumerated()), id: \.element) { index, element in
-                rowView(element, isEnabled: true, rank: index + 1)
-            }
-
-            if allowsHiding {
-                ReorderDisabledDivider(
-                    title: disabledSectionTitle,
-                    isDropTarget: liftedElement != nil
-                )
-
-                if sections.disabled.isEmpty {
-                    ReorderDisabledPlaceholder(
-                        message: disabledPlaceholder,
-                        isReordering: liftedElement != nil
-                    )
-                    .disabled(pinnedFocusTarget != nil)
-                    .focused($isDisabledPlaceholderFocused)
-                    .onChange(of: isDisabledPlaceholderFocused) { _, isFocused in
-                        handleEmptyDisabledDropTargetFocus(isFocused)
-                    }
-                } else {
-                    ForEach(sections.disabled, id: \.self) { element in
-                        rowView(element, isEnabled: false, rank: nil)
-                    }
-                }
-            }
-        }
-        // Reorder rides the native focus move: while a row is lifted, moving focus
-        // to a neighbour becomes a one-step move.
-        .onChange(of: focusedElement) { _, newValue in
-            handleFocusMoveWhileLifted(to: newValue)
+        SettingsAdjustmentFocusScope(
+            content: rows,
+            screen: liftedElement,
+            adjustableRow: { liftedElement == nil ? nil : 0 },
+            axis: .vertical
+        ) { direction, _ in
+            stepLiftedRow(up: direction == .up)
         }
         .onChange(of: liftedElement != nil || pinnedFocusTarget != nil) { _, active in
             isLifting = active
@@ -134,11 +112,12 @@ public struct LiftableReorderList<Element: Hashable>: View {
             guard let target = focusRestoreTarget else { return }
             await Task.yield()
             guard !Task.isCancelled else { return }
-            isDisabledPlaceholderFocused = false
             focusedElement = target
-            isRestoringLiftedFocus = false
         }
-        .onChange(of: sections.combined) { _, elements in
+        .onChange(of: sections) { _, sections in
+            let elements = sections.combined
+            if liftedElement != nil { liftedSections = sections }
+            if let liftedElement, !elements.contains(liftedElement) { self.liftedElement = nil }
             if let target = pinnedFocusTarget, !elements.contains(target) {
                 pinnedFocusTarget = elements.first
                 if let replacement = elements.first { restoreFocusAfterLayout(to: replacement) }
@@ -146,10 +125,35 @@ public struct LiftableReorderList<Element: Hashable>: View {
         }
         .onDisappear {
             liftedElement = nil
+            liftedSections = nil
             pinnedFocusTarget = nil
             focusRestoreTarget = nil
-            isRestoringLiftedFocus = false
             isLifting = false
+        }
+    }
+
+    private var rows: some View {
+        let items = allowsHiding
+            ? OrderedVisibilityList.listItems(for: sections)
+            : sections.enabled.map(OrderedVisibilityList.ListItem.element)
+        return VStack(spacing: SettingsRowMetrics.formRowSpacing) {
+            ForEach(items, id: \.self) { item in
+                switch item {
+                case let .element(element):
+                    rowView(
+                        element, isEnabled: sections.enabled.contains(element),
+                        rank: sections.enabled.firstIndex(of: element).map { $0 + 1 }
+                    )
+                case .divider:
+                    ReorderDisabledDivider(title: disabledSectionTitle, isDropTarget: liftedElement != nil)
+                case .disabledPlaceholder:
+                    ReorderDisabledPlaceholder(
+                        message: disabledPlaceholder,
+                        isReordering: liftedElement != nil
+                    )
+                    .disabled(pinnedFocusTarget != nil)
+                }
+            }
         }
     }
 
@@ -181,63 +185,28 @@ public struct LiftableReorderList<Element: Hashable>: View {
 
     /// Click handler: lift the focused row, or drop it if it's already lifted.
     private func toggleLift(_ element: Element) {
-        withAnimation(.snappy(duration: 0.16)) {
+        liftedSections = liftedElement == element ? nil : sections
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.16)) {
             liftedElement = (liftedElement == element) ? nil : element
         }
     }
 
-    /// When a row is lifted and focus moves to a different row (a d-pad press),
-    /// reorder the lifted row one step toward that row. Focus is restored on the
-    /// next layout pass: restoring it synchronously targets the row's old frame and
-    /// can make a subsequent Down press appear to move upward.
-    private func handleFocusMoveWhileLifted(to newValue: Element?) {
-        guard !isRestoringLiftedFocus,
-              let lifted = liftedElement,
-              let target = newValue,
-              target != lifted else { return }
-        let combined = sections.combined
-        guard let from = combined.firstIndex(of: lifted),
-              let to = combined.firstIndex(of: target) else { return }
-        let up = to < from
+    private func stepLiftedRow(up: Bool) {
+        guard let lifted = liftedElement else { return }
+        let current = liftedSections ?? sections
         let next = OrderedVisibilityList.stepped(
-            lifted, up: up, in: sections, keepingEnabled: requiredEnabled
+            lifted, up: up, in: current, keepingEnabled: requiredEnabled
         )
-        guard next != sections else {
-            restoreFocusAfterLayout(to: lifted)
-            return
-        }
-        isRestoringLiftedFocus = true
-        withAnimation(.easeOut(duration: 0.10)) {
+        guard next != current else { return }
+        liftedSections = next
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.10)) {
             onChange(next)
         }
-        restoreFocusAfterLayout(to: lifted)
-    }
-
-    /// The dashed empty-disabled row is a real focus target. Landing on it while a
-    /// row is lifted means "move across the divider": disable the element, then keep
-    /// focus on that same element in its new disabled position.
-    private func handleEmptyDisabledDropTargetFocus(_ isFocused: Bool) {
-        guard isFocused,
-              !isRestoringLiftedFocus,
-              let lifted = liftedElement else { return }
-        let next = OrderedVisibilityList.stepped(
-            lifted, up: false, in: sections, keepingEnabled: requiredEnabled
-        )
-        guard next != sections else {
-            restoreFocusAfterLayout(to: lifted)
-            return
-        }
-        isRestoringLiftedFocus = true
-        withAnimation(.easeOut(duration: 0.10)) {
-            onChange(next)
-        }
-        restoreFocusAfterLayout(to: lifted)
     }
 
     /// Wait one run-loop turn for the reordered `ForEach` frames to settle before
     /// asking the focus engine to follow the lifted row to its new slot.
     private func restoreFocusAfterLayout(to element: Element) {
-        isRestoringLiftedFocus = true
         focusRestoreTarget = element
         focusRestoreRevision &+= 1
     }
@@ -367,6 +336,26 @@ public struct LiftableReorderList<Element: Hashable>: View {
             .disabled(edit(.moveUp, for: element) == nil)
         Button("Move Down", systemImage: "arrow.down") { perform(.moveDown, on: element) }
             .disabled(edit(.moveDown, for: element) == nil)
+        Button("Move to top", systemImage: "arrow.up.to.line") { perform(.moveToTop, on: element) }
+            .disabled(edit(.moveToTop, for: element) == nil)
+        Button("Move to bottom", systemImage: "arrow.down.to.line") { perform(.moveToBottom, on: element) }
+            .disabled(edit(.moveToBottom, for: element) == nil)
+        if let onRemove {
+            Button("Remove section", systemImage: "minus.circle", role: .destructive) {
+                #if os(tvOS)
+                liftedElement = nil
+                let index = sections.enabled.firstIndex(of: element) ?? 0
+                let remaining = sections.enabled.filter { $0 != element }
+                pinnedFocusTarget = remaining.isEmpty ? nil : remaining[min(index, remaining.count - 1)]
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) { onRemove(element) }
+                if let pinnedFocusTarget { restoreFocusAfterLayout(to: pinnedFocusTarget) }
+                #else
+                onRemove(element)
+                #endif
+            }
+        }
     }
 
     private func edit(_ action: OrderedVisibilityList.Action, for element: Element) -> OrderedVisibilityList.Edit<Element>? {
@@ -388,7 +377,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
         restoreFocusAfterLayout(to: edit.focusTarget)
         #else
         onChange(edit.sections)
-        if action == .moveUp || action == .moveDown {
+        if action == .moveUp || action == .moveDown || action == .moveToTop || action == .moveToBottom {
             TouchFeedback.shared.emit(.selection)
         }
         #endif
@@ -520,9 +509,7 @@ private struct ReorderRank: View {
 private struct LiftableRowButtonStyle: ButtonStyle {
     let isEnabled: Bool
     let isLifted: Bool
-    /// During reordering, native focus briefly visits the adjacent row to
-    /// communicate direction. Hide that row's focus card so only the lifted row
-    /// ever highlights.
+    /// Only the lifted row highlights while the list owns directional input.
     let suppressFocusAppearance: Bool
     let onFocus: () -> Void
     @Environment(\.isFocused) private var isFocused
@@ -543,8 +530,7 @@ private struct LiftableRowButtonStyle: ButtonStyle {
             .foregroundStyle(foreground)
             // ProviderBrandMark and other settings-row descendants use these
             // values to choose focus-safe contrast. `inverted` includes a lifted
-            // row, which uses the same inverted card even when native focus is
-            // briefly visiting its neighbour during a reorder.
+            // row, which retains the same inverted card while its menu is open.
             .environment(\.settingsRowIsFocused, inverted)
             .environment(\.settingsRowFocusForeground, invertedText)
             .onChange(of: isFocused, initial: true) { _, focused in

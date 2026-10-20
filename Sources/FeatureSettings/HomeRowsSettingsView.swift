@@ -41,13 +41,7 @@ public struct HomeRowsSettingsView: View {
     private var isReordering: Bool { reorderSession != nil }
 
     private var currentCatalog: HomeSectionCatalog {
-        if inventory.requestID == requestID { return inventory.catalog }
-        let accountIDs = Set(accounts.map(\.account.id))
-        return HomeSectionCatalog(
-            libraries: libraries.filter { accountIDs.contains($0.accountID) && visibility.isEnabled($0.key) },
-            serverRows: (visibility.visibility.rowCustomization?.availableServerRows ?? [])
-                .filter { accountIDs.contains($0.accountID) }
-        )
+        inventory.currentCatalog(libraries: libraries, accounts: accounts, visibility: visibility)
     }
 
     public var body: some View {
@@ -89,6 +83,12 @@ public struct HomeRowsSettingsView: View {
                     sections: .init(enabled: sections.enabled, disabled: []),
                     disabledSectionTitle: "Hidden", disabledPlaceholder: "No hidden rows",
                     isLifting: $isLifting, allowsHiding: false,
+                    onRemove: { id in
+                        do {
+                            try reorderSession?.remove(id, savingTo: visibility)
+                            editError = nil
+                        } catch { editError = (error as? AppError) ?? .invalidResponse }
+                    },
                     row: { id in
                         let choice = byID[id]
                         return .init(
@@ -121,6 +121,14 @@ public struct HomeRowsSettingsView: View {
                             HomeSectionChoiceLabel(choice: choice)
                         }
                         .accessibilityIdentifier("home-section-\(id.presentationID)")
+                        .contextMenu {
+                            Button("Remove section", systemImage: "minus.circle", role: .destructive) {
+                                do {
+                                    try visibility.setHomeSectionVisible(false, id: id, catalog: currentCatalog)
+                                    editError = nil
+                                } catch { editError = (error as? AppError) ?? .invalidResponse }
+                            }
+                        }
                     }
                 }
             }
@@ -252,6 +260,15 @@ struct HomeSectionReorderSession {
 
     mutating func move(_ order: [HomeRowID], savingTo model: HomeLibraryVisibilityModel) throws {
         let updated = try catalog.reordering(order, in: visibility)
+        save(updated, to: model)
+    }
+
+    mutating func remove(_ id: HomeRowID, savingTo model: HomeLibraryVisibilityModel) throws {
+        let updated = try catalog.settingVisible(false, id: id, in: visibility)
+        save(updated, to: model)
+    }
+
+    private mutating func save(_ updated: HomeLibraryVisibility, to model: HomeLibraryVisibilityModel) {
         guard updated != visibility else { return }
         model.applyRows(catalog.sections(in: updated), choices: catalog.availableChoices(in: updated))
         visibility = model.visibility

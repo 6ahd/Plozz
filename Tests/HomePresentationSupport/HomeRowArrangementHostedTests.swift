@@ -14,6 +14,27 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testReorderRemovalPreservesOtherSettingsAndRemainsAvailableToAdd() throws {
+        let suite = "HomeReorderRemoval.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        let visibility = HomeLibraryVisibilityModel(store: store)
+        visibility.useRowDefaults(.combined)
+        let catalog = HomeSectionCatalog(libraries: [])
+        var session = HomeSectionReorderSession(catalog: catalog, visibility: visibility.visibility)
+        let original = catalog.sections(in: session.visibility).enabled
+        visibility.setContinueWatchingShowsSeriesArtwork(false)
+        try session.remove(.global(.continueWatching), savingTo: visibility)
+        XCTAssertEqual(catalog.sections(in: session.visibility).enabled, original.filter { $0 != .global(.continueWatching) })
+        XCTAssertTrue(catalog.sections(in: store.load()).disabled.contains(.global(.continueWatching)))
+        XCTAssertFalse(store.load().continueWatchingShowsSeriesArtwork)
+        XCTAssertThrowsError(try session.remove(.server(accountID: "missing", section: "missing"), savingTo: visibility))
+        try visibility.setHomeSectionVisible(true, id: .global(.continueWatching), catalog: catalog)
+        XCTAssertEqual(catalog.sections(in: store.load()).enabled.last, .global(.continueWatching))
+        XCTAssertFalse(store.load().continueWatchingShowsSeriesArtwork)
+    }
+
     func testReorderSnapshotSavesKnownRowsBeforeOrAfterDiscoveryWithoutLosingPreferences() async throws {
         for completesBeforeMove in [false, true] {
             let suite = "HomeReorderSnapshot.\(UUID())"
@@ -66,6 +87,52 @@ final class HomeRowArrangementHostedTests: XCTestCase {
     }
 
     #if os(tvOS)
+    func testAddSectionIsFocusableBeforeDiscoveryFinishes() async throws {
+        let suite = "HomeAddImmediateFocus.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        visibility.setGlobalRowEnabled(false, for: .recentlyAdded)
+        let requested = expectation(description: "Discovery remains pending while adding a known section")
+        let provider = HomeSettingsLibraryProvider(
+            name: "Slow server", holdsHome: true, onFirstHomeRequest: { requested.fulfill() }
+        )
+        defer { Task { await provider.resumeHome() } }
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let inventory = HomeSectionCatalogModel()
+        try await withWindow {
+            HomeAddSectionView(inventory: inventory, visibility: visibility, libraries: [], accounts: [account])
+                .frame(width: SettingsFormMetrics.pageWidth)
+        } inspect: { window in
+            await self.fulfillment(of: [requested], timeout: 5)
+            XCTAssertTrue(inventory.isLoading)
+            let lines = try await self.capture(window, name: "Add section during pending discovery")
+            let label = try XCTUnwrap(lines.first { $0.0.contains("Recently Added") }).1
+            let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+            let item = try XCTUnwrap(self.focusableItem(at: point, in: window),
+                                    "Known sections must remain enabled while optional discovery runs.")
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            system.requestFocusUpdate(to: item)
+            system.updateFocusIfNeeded()
+            let focused = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in system.focusedItem === item }, object: nil
+            )
+            await self.fulfillment(of: [focused], timeout: 2)
+            XCTAssertTrue(inventory.isLoading, "Focus must not depend on the held provider finishing.")
+            try visibility.setHomeSectionVisible(true, id: .global(.recentlyAdded), catalog: inventory.currentCatalog(
+                libraries: [], accounts: [account], visibility: visibility
+            ))
+            await provider.resumeHome()
+            let finished = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in !inventory.isLoading }, object: nil
+            )
+            await self.fulfillment(of: [finished], timeout: 5)
+            XCTAssertTrue(inventory.catalog.sections(in: visibility.visibility).enabled.contains(.global(.recentlyAdded)))
+        }
+        await provider.resumeHome()
+    }
+
     func testReorderRemainsFocusableDuringSlowDiscoveryAndFailure() async throws {
         let suite = "HomeReorderDiscovery.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -105,9 +172,13 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         let lines = try await capture(window, name: name)
         let label = try XCTUnwrap(lines.first { $0.0.contains("Reorder") }).1
         let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+        XCTAssertNotNil(focusableItem(at: point, in: window),
+                        "Known sections must be reorderable without waiting for server discovery.")
+    }
+
+    private func focusableItem(at point: CGPoint, in window: UIWindow) -> (any UIFocusItem)? {
         var containers: [any UIFocusItemContainer] = [window]
         var seen = Set<ObjectIdentifier>()
-        var canFocus = false
         while let container = containers.popLast() {
             guard seen.insert(ObjectIdentifier(container)).inserted else { continue }
             let bounds = container.coordinateSpace.convert(window.bounds, from: window)
@@ -115,10 +186,10 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 if let child = item.focusItemContainer { containers.append(child) }
                 if let view = item as? UIView { containers.append(view) }
                 let frame = container.coordinateSpace.convert(item.frame, to: window)
-                if !(item is UIScrollView), item.canBecomeFocused, frame.contains(point) { canFocus = true }
+                if !(item is UIScrollView), item.canBecomeFocused, frame.contains(point) { return item }
             }
         }
-        XCTAssertTrue(canFocus, "Known sections must be reorderable without waiting for server discovery.")
+        return nil
     }
     #endif
 

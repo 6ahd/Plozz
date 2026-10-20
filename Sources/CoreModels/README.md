@@ -100,6 +100,9 @@ profile model fence publications. Same-scope failures retain known choices
 and expose typed errors; cancellation and stale tasks cannot publish into a
 newer catalog. There is no timer, full-feed loader, playback resolution or
 new provider-specific API in the editor.
+`currentCatalog` supplies authorized local choices before discovery and rejects
+retained results from another identity. Known sections remain editable during a
+refresh; discovering additional choices does not gate all existing controls.
 
 The root (including its inline preset selector), section and Add section pages
 participate in the same identity- and preset-keyed load. Concurrent pages share its work; leaving the

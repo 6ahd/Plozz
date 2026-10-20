@@ -40,6 +40,10 @@ watch history and planning-list behavior are documented in
   Mobile uses the shared page inset without extra gutters.
   Add section offers available existing rows not already shown. Removing a
   section hides it without erasing its configuration or disabling its libraries.
+  Section context menus also offer removal. Reorder menus include Move to top
+  and Move to bottom within the movable sections, never above Home layout.
+  On TV, picked-up rows retain native focus during rapid directional presses
+  and held Up/Down; reaching an edge does not move focus out of the list.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
   Continue Watching offers three native preview choices: Artwork + logo,
@@ -87,7 +91,9 @@ watch history and planning-list behavior are documented in
   server discovery or failures. An editing session snapshots its known rows so
   late discovery cannot move or disable a lifted row; the first actual move
   saves that arrangement, retaining unavailable saved identities. Newly discovered
-  sections remain available through Add section. Add/remove still wait for discovery.
+  sections remain available through Add section. Known, identity-scoped sections
+  remain focusable and editable while optional discovery runs; loading only
+  delays choices that have not been discovered yet.
   Mobile library discovery publishes one identity-scoped snapshot, never pairing
   a previous viewer's library metadata with the newly active credentials.
   Continue Watching artwork previews remain inside equal native choices rather

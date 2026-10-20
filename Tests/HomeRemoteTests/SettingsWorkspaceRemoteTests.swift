@@ -761,6 +761,138 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testHomeReorderAcceptsHeldAndRapidDirectionalInput() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-customize-home"], in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["home-section-home-continueWatching"].waitForExistence(timeout: 5))
+        let controls: Set<String> = [
+            "home-section-hero", "home-section-reorder", "home-section-add", "home-section-add-bottom"
+        ]
+        let count = app.buttons.allElementsBoundByIndex.filter {
+            $0.identifier.hasPrefix("home-section-") && !controls.contains($0.identifier)
+        }.count
+        XCTAssertGreaterThan(count, 2)
+        let reorder = app.buttons["home-section-reorder"]
+        try focus(reorder, in: app)
+        XCUIRemote.shared.press(.select)
+        let watching = app.buttons.containing(.staticText, identifier: "Continue Watching").firstMatch
+        try focus(watching, in: app)
+        XCUIRemote.shared.press(.select)
+        XCUIRemote.shared.press(.down, forDuration: 3)
+        capture("home-reorder-held-down", in: app)
+        XCTAssertTrue(watching.staticTexts[String(count)].exists,
+                      "Holding Down must move the lifted row all the way to the bottom. \(app.debugDescription)")
+        XCTAssertTrue(hasFocus(watching))
+        XCUIRemote.shared.press(.up, forDuration: 3)
+        capture("home-reorder-held-up", in: app)
+        XCTAssertTrue(watching.staticTexts["1"].exists,
+                      "Holding Up must reach the top without reversing direction. \(app.debugDescription)")
+        XCTAssertTrue(hasFocus(watching))
+        let moves = min(3, count - 1)
+        for _ in 0..<moves { XCUIRemote.shared.press(.down) }
+        XCTAssertTrue(watching.staticTexts[String(moves + 1)].exists, app.debugDescription)
+        for _ in 0..<moves { XCUIRemote.shared.press(.up) }
+        XCTAssertTrue(watching.staticTexts["1"].exists, app.debugDescription)
+        XCTAssertTrue(hasFocus(watching))
+        XCUIRemote.shared.press(.select)
+        waitForEnabled(reorder)
+        func menuAction(_ title: String) throws {
+            XCUIRemote.shared.press(.select, forDuration: 1)
+            let action = app.cells.containing(.other, identifier: title).firstMatch
+            XCTAssertTrue(action.waitForExistence(timeout: 3), app.debugDescription)
+            try focus(action, in: app)
+            XCUIRemote.shared.press(.select)
+        }
+        for (title, rank) in [("Move to bottom", count), ("Move to top", 1)] {
+            try menuAction(title)
+            let followed = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in watching.staticTexts[String(rank)].exists && self.hasFocus(watching) },
+                object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [followed], timeout: 3), .completed, app.debugDescription)
+        }
+        try menuAction("Remove section")
+        XCTAssertTrue(watching.waitForNonExistence(timeout: 3), app.debugDescription)
+        XCTAssertFalse(app.staticTexts["HIDDEN"].exists)
+        waitForEnabled(reorder)
+        try focus(reorder, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertFalse(app.buttons["home-section-home-continueWatching"].exists)
+        try focus(app.buttons["home-section-add"], in: app)
+        XCUIRemote.shared.press(.select)
+        let addWatching = app.buttons["home-add-home-continueWatching"]
+        XCTAssertTrue(addWatching.waitForExistence(timeout: 3), app.debugDescription)
+        try focus(addWatching, in: app)
+        XCUIRemote.shared.press(.select)
+        let restored = app.buttons["home-section-home-continueWatching"]
+        XCTAssertTrue(restored.waitForExistence(timeout: 3), app.debugDescription)
+        try focus(restored, in: app)
+        try menuAction("Remove section")
+        XCTAssertTrue(restored.waitForNonExistence(timeout: 3))
+        try focus(app.buttons["home-section-add"], in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(addWatching, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(restored.waitForExistence(timeout: 3), app.debugDescription)
+        #else
+        throw XCTSkip("Simulator-only Home reorder input regression.")
+        #endif
+    }
+
+    func testHeldReorderScrollsLongListsAndCrossesVisibilityDivider() throws {
+        #if targetEnvironment(simulator)
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["PLOZZ_SETTINGS_REVIEW"] == "1")
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        defer { app.terminate() }
+        for allowsHiding in [false, true] {
+            app.launchArguments = ["--reorder-input-fixture"] + (allowsHiding ? ["--with-hidden-rows"] : [])
+            app.launch()
+            let row = app.buttons.containing(.staticText, identifier: "Row 0").firstMatch
+            try focus(row, in: app)
+            XCUIRemote.shared.press(.select)
+            XCUIRemote.shared.press(.down, forDuration: 4)
+            let position = app.staticTexts["reorder-fixture-position"]
+            XCTAssertEqual(position.label, "Position \(allowsHiding ? 25 : 23); hidden \(allowsHiding)")
+            func positions() throws -> [Int] {
+                let value = try XCTUnwrap(position.value as? String)
+                return try value.split(separator: ",").map { try XCTUnwrap(Int($0)) }
+            }
+            let downward = try positions()
+            XCTAssertEqual(downward, Array(1...23) + (allowsHiding ? [23, 24, 25] : []),
+                           "Every delivered move must advance, never bounce or skip a row.")
+            XCTAssertTrue(hasFocus(row), app.debugDescription)
+            XCTAssertTrue(row.isHittable)
+            XCTAssertGreaterThan(row.frame.minY, 0)
+            XCTAssertLessThan(row.frame.maxY, app.frame.maxY)
+            capture("long-reorder-bottom-hidden-\(allowsHiding)", in: app)
+            XCUIRemote.shared.press(.up, forDuration: 4)
+            XCTAssertEqual(position.label, "Position 0; hidden false")
+            let upward = Array(try positions().dropFirst(downward.count))
+            XCTAssertEqual(upward, (allowsHiding ? [24, 23] : []) + Array((0...23).reversed().dropFirst(allowsHiding ? 0 : 1)))
+            XCTAssertTrue(hasFocus(row), app.debugDescription)
+            XCTAssertTrue(row.isHittable)
+            capture("long-reorder-top-hidden-\(allowsHiding)", in: app)
+            XCUIRemote.shared.press(.down, forDuration: 0.7)
+            let releasedPosition = position.label
+            RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+            XCTAssertEqual(position.label, releasedPosition, "Repetition must stop when the button is released.")
+            XCUIRemote.shared.press(.up, forDuration: 4)
+            XCUIRemote.shared.press(.select)
+            XCUIRemote.shared.press(.down)
+            XCTAssertTrue(hasFocus(app.buttons.containing(.staticText, identifier: "Row 1").firstMatch))
+            app.terminate()
+        }
+        #else
+        throw XCTSkip("Task-owned simulator input fixture.")
+        #endif
+    }
+
     func testHeroRandomAndDiscoverySourcesKeepSettingsResponsive() throws {
         #if targetEnvironment(simulator)
         func openSources(in app: XCUIApplication) throws {
