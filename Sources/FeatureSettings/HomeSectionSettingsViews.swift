@@ -154,8 +154,9 @@ struct HomeSectionSettingsView: View {
                         }
                         visibility.setContinueWatchingLayout(option.layout)
                     }
-                ))
+                ), portraitDetails: visibility.continueWatchingPortraitDetails)
                 if visibility.continueWatchingLayout == .portrait {
+                    ContinueWatchingPortraitDetailsControl(visibility: visibility)
                     CardCaptionViewChoices(
                         view: .continueWatchingPortrait,
                         settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
@@ -187,6 +188,44 @@ struct HomeSectionSettingsView: View {
         )) {
             await inventory.load(libraries: libraries, accounts: accounts, visibility: visibility)
         }
+    }
+}
+
+private struct ContinueWatchingPortraitDetailsControl: View {
+    let visibility: HomeLibraryVisibilityModel
+
+    var body: some View {
+        let selection = visibility.continueWatchingPortraitDetails
+        Group {
+            #if os(iOS)
+            ViewCustomizationMenu(
+                id: "continue-watching-portrait-details", title: "Playback details",
+                value: selection.displayName, detail: selection.detail,
+                selection: Binding(
+                    get: { visibility.continueWatchingPortraitDetails },
+                    set: { visibility.setContinueWatchingPortraitDetails($0) }
+                )
+            ) {
+                ForEach(ContinueWatchingPortraitDetails.allCases, id: \.self) { details in
+                    Text(details.displayName).tag(details)
+                }
+            }
+            #else
+            ViewCustomizationRow(
+                id: "continue-watching-portrait-details", title: "Playback details",
+                value: selection.displayName, detail: selection.detail
+            ) {
+                visibility.setContinueWatchingPortraitDetails(selection == .detailed ? .progressOnly : .detailed)
+            }
+            #endif
+        }
+        #if os(iOS)
+        .padding(.horizontal, 14)
+        .settingsGroupSurface(cornerRadius: 12)
+        #else
+        .padding(SettingsFormMetrics.groupInset)
+        .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+        #endif
     }
 }
 

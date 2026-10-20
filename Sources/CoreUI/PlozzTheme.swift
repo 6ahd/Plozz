@@ -80,7 +80,7 @@ public enum PlozzTheme {
         /// starts being a feature of its own that the chip then sits on top of.
         public static let continueWatchingReflectionShare: CGFloat = 0.135
         /// Narrow portrait slots need a deeper band to keep the resume chip below the full poster.
-        public static let continueWatchingPortraitReflectionShare: CGFloat = 0.20
+        public static let continueWatchingPortraitReflectionShare: CGFloat = 0.10
         /// Fraction of the artwork's width trimmed from **each** side of a
         /// Continue Watching card.
         ///

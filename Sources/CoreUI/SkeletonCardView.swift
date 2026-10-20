@@ -30,6 +30,7 @@ public struct SkeletonCardView: View {
     @Environment(\.plozzCardCaptionsHidden) private var captionsHidden
     @Environment(\.plozzCardCaptionsHiddenWithArtworkTitle) private var artworkTitleCaptionsHidden
     @Environment(\.plozzContinueWatchingPortraitCaptionsHidden) private var portraitCaptionsHidden
+    @Environment(\.plozzContinueWatchingPortraitDetails) private var portraitDetails
     private var showsCaption: Bool {
         captionOverride ?? !(showsSeriesArtwork
             ? (style == .poster ? portraitCaptionsHidden : artworkTitleCaptionsHidden)
@@ -314,7 +315,7 @@ public struct SkeletonCardView: View {
     /// Aspect ratio for the borderless full-bleed image (matches `PosterCardView`).
     private var borderlessAspectRatio: CGFloat {
         switch style {
-        case .poster: return showsSeriesArtwork ? ContinueWatchingCardShape.portraitAspectRatio : 2.0 / 3.0
+        case .poster: return showsSeriesArtwork ? portraitDetails.cardAspectRatio : 2.0 / 3.0
         case .landscape: return showsSeriesArtwork
             ? ContinueWatchingCardShape.aspectRatio
             : 16.0 / 9.0

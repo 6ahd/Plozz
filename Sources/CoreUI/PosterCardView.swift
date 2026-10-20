@@ -76,6 +76,11 @@ public struct PosterCardView: View {
     /// focused through movement and light instead — see `plozzCardFocusLift`.
     @Environment(\.plozzCardFocusStyle) private var focusStyle
     @Environment(\.plozzArtworkPolicy) private var inheritedArtworkPolicy
+    @Environment(\.plozzContinueWatchingPortraitDetails) private var portraitDetails
+
+    private var usesProgressOnlyPortrait: Bool {
+        showsSeriesArtwork && style == .poster && portraitDetails == .progressOnly
+    }
 
     private var presentationArtworkPolicy: ArtworkPresentationPolicy {
         showsSeriesArtwork ? inheritedArtworkPolicy.forArea(.continueWatching) : inheritedArtworkPolicy
@@ -165,7 +170,8 @@ public struct PosterCardView: View {
     }
 
     private var cardAccessibilityValue: String? {
-        let subtitle = showsSeriesArtwork ? nil : subtitleText
+        let subtitle = usesProgressOnlyPortrait ? item.posterCaptionSubtitle(showsRuntime: true)
+            : (showsSeriesArtwork ? nil : subtitleText)
         guard var count = MediaPlaybackIndicatorState(item).episodeCountAccessibilityLabel(
             enabled: showsUnwatchedEpisodeCount, hidesStatus: hidesPlaybackStatus
         ) else { return subtitle }
@@ -192,7 +198,7 @@ public struct PosterCardView: View {
             return CGSize(
                 width: metrics.posterWidth,
                 height: showsSeriesArtwork
-                    ? metrics.posterWidth / ContinueWatchingCardShape.portraitAspectRatio : metrics.posterHeight
+                    ? metrics.posterWidth / portraitDetails.cardAspectRatio : metrics.posterHeight
             )
         case .landscape:
             // A series-artwork card stands taller than the 16:9 art it carries so
@@ -281,7 +287,10 @@ public struct PosterCardView: View {
     }
 
     private var nativePosterTreatment: NativePosterImageTreatment {
-        if showsSeriesArtwork { return style == .poster ? .extendedPortrait : .extended }
+        if usesProgressOnlyPortrait { return .original }
+        if showsSeriesArtwork {
+            return style == .poster ? .extendedPortrait(blurredReflection: !reduceTransparency) : .extended
+        }
         if PosterCardPresentation.preservesContainerArtwork(for: item.kind) { return .fitted }
         return hideThumbnail && !nativeUsesProtectedArtwork ? .blurred : .original
     }
@@ -748,7 +757,7 @@ public struct PosterCardView: View {
     /// Aspect ratio for the borderless full-bleed image.
     private var borderlessAspectRatio: CGFloat {
         switch style {
-        case .poster: return showsSeriesArtwork ? ContinueWatchingCardShape.portraitAspectRatio : 2.0 / 3.0
+        case .poster: return showsSeriesArtwork ? portraitDetails.cardAspectRatio : 2.0 / 3.0
         // Matches `size`: series-artwork cards are taller than their picture.
         case .landscape: return showsSeriesArtwork
             ? ContinueWatchingCardShape.aspectRatio
@@ -819,6 +828,7 @@ public struct PosterCardView: View {
 
     private var showsResumeChip: Bool {
         (playsOnSelect || showsResumeChipOverride)
+            && !usesProgressOnlyPortrait
             && !hideThumbnail
             // Resume progress qualifies on its own. Gating solely on runtime text
             // meant an item whose provider didn't supply a runtime dropped to the
@@ -1197,7 +1207,10 @@ public struct PosterCardView: View {
             // its whole lower half.
             content: { image in
                 if style == .poster {
-                    ExtendedArtworkFill(image: image, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0)
+                    ExtendedArtworkFill(
+                        image: image, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                        progressivelyBlursReflection: !reduceTransparency && !usesProgressOnlyPortrait
+                    )
                 } else {
                     ExtendedArtworkFill(image: image)
                 }

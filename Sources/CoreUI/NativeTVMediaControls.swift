@@ -288,7 +288,8 @@ private struct NativeCardBackground: View {
 }
 
 enum NativePosterImageTreatment: Equatable {
-    case original, blurred, extended, extendedPortrait, fitted
+    case original, blurred, extended, fitted
+    case extendedPortrait(blurredReflection: Bool)
     case upcoming(Color)
 }
 
@@ -645,11 +646,18 @@ struct NativeTVPoster<Overlay: View>: UIViewRepresentable {
                 prepared = NativePosterArtworkBitmap.image(source: image, size: size, scale: scale)
                 return prepared
             }
-            if treatment == .extended || treatment == .extendedPortrait {
+            let portraitBlur: Bool?
+            if case .extendedPortrait(let blurredReflection) = treatment {
+                portraitBlur = blurredReflection
+            } else {
+                portraitBlur = nil
+            }
+            if treatment == .extended || portraitBlur != nil {
                 prepared = ExtendedArtworkBitmap.render(
                     image: image, size: size, scale: scale,
-                    artworkAspectRatio: treatment == .extendedPortrait ? 2.0 / 3.0 : 16.0 / 9.0,
-                    sideCrop: treatment == .extendedPortrait ? 0 : PlozzTheme.Metrics.continueWatchingArtworkSideCrop
+                    artworkAspectRatio: portraitBlur != nil ? 2.0 / 3.0 : 16.0 / 9.0,
+                    sideCrop: portraitBlur != nil ? 0 : PlozzTheme.Metrics.continueWatchingArtworkSideCrop,
+                    progressivelyBlursReflection: portraitBlur ?? false
                 )
                 if prepared == nil { original = nil }
                 return prepared

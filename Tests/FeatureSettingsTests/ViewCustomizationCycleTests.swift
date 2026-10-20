@@ -260,7 +260,21 @@ final class ViewCustomizationCycleTests: XCTestCase {
                     ))
                     settings.toggleCustomization(in: view)
                 }
+
             }
         }
+    }
+
+    func testProgressOnlyDiagramUsesNormalPosterHeight() {
+        let regions = ArtworkScopeDiagram.regions(
+            for: .continueWatching, continueWatchingLayout: .portrait,
+            continueWatchingPortraitDetails: .progressOnly
+        ).filter(\.highlighted)
+        XCTAssertEqual(regions.count, 6)
+        for region in regions {
+            XCTAssertEqual(region.frame.width / region.frame.height, 2.0 / 3.0, accuracy: 0.001)
+        }
+        XCTAssertEqual(String(localized: ContinueWatchingPortraitDetails.detailed.displayName), "Detailed")
+        XCTAssertEqual(String(localized: ContinueWatchingPortraitDetails.progressOnly.displayName), "Progress only")
     }
 }

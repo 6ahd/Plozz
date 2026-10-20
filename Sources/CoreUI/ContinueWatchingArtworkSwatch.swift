@@ -70,12 +70,19 @@ public struct ContinueWatchingArtworkSwatch: View {
     private let style: ContinueWatchingArtworkStyle
     private var layout: ContinueWatchingCardLayout { style.layout }
     private let cornerRadius: CGFloat
+    private let portraitDetails: ContinueWatchingPortraitDetails
+    @Environment(\.plozzReduceTransparency) private var reduceTransparency
+    @Environment(\.plozzMetrics) private var metrics
+
+    private var usesProgressOnlyPortrait: Bool { layout == .portrait && portraitDetails == .progressOnly }
 
     public init(
-        style: ContinueWatchingArtworkStyle, cornerRadius: CGFloat = 12
+        style: ContinueWatchingArtworkStyle, cornerRadius: CGFloat = 12,
+        portraitDetails: ContinueWatchingPortraitDetails = .default
     ) {
         self.style = style
         self.cornerRadius = cornerRadius
+        self.portraitDetails = portraitDetails
     }
 
     public var body: some View {
@@ -100,7 +107,7 @@ public struct ContinueWatchingArtworkSwatch: View {
             // not two zoom levels) and from what the TALLER of them can fit.
             let cardWidth = min(
                 width * 0.94,
-                available * (layout == .portrait ? ContinueWatchingCardShape.portraitAspectRatio : ContinueWatchingCardShape.aspectRatio)
+                available * (layout == .portrait ? portraitDetails.cardAspectRatio : ContinueWatchingCardShape.aspectRatio)
             )
             let cardHeight = cardWidth / cardAspectRatio
             VStack(spacing: gap) {
@@ -118,7 +125,7 @@ public struct ContinueWatchingArtworkSwatch: View {
         switch style {
         case .logoAndArtwork: return ContinueWatchingCardShape.aspectRatio
         case .thumbnail: return 16.0 / 9.0
-        case .portraitPosters: return ContinueWatchingCardShape.portraitAspectRatio
+        case .portraitPosters: return portraitDetails.cardAspectRatio
         }
     }
 
@@ -130,11 +137,20 @@ public struct ContinueWatchingArtworkSwatch: View {
                 wordmark(width: width)
                     // Centred on the PICTURE, matching the real card: the band
                     // beneath it belongs to the chrome.
-                    .offset(y: -height * (1 - (layout == .portrait
+                    .offset(y: usesProgressOnlyPortrait ? 0 : -height * (1 - (layout == .portrait
                         ? ContinueWatchingCardShape.portraitGeometry.reflectionStart
                         : ContinueWatchingCardShape.mirrorLine)) / 2)
             }
-            chip(width: width, height: height)
+            if usesProgressOnlyPortrait {
+                MediaCardPlaybackIndicators(
+                    item: MediaItem(id: "continue-watching-preview", title: "", kind: .movie, runtime: 100, resumePosition: 42),
+                    hidesStatus: true, badgeInset: 0,
+                    progressHeight: max(1, metrics.progressBarHeight * width / metrics.posterWidth),
+                    progressHorizontalInset: width * 0.06, progressBottomInset: width * 0.06
+                )
+            } else {
+                chip(width: width, height: height)
+            }
         }
         .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
@@ -171,9 +187,12 @@ public struct ContinueWatchingArtworkSwatch: View {
     private func artwork(width: CGFloat, height: CGFloat) -> some View {
         switch style {
         case .logoAndArtwork, .portraitPosters:
-            if layout == .portrait {
+            if usesProgressOnlyPortrait {
+                seriesPicture(width: width)
+            } else if layout == .portrait {
                 ExtendedArtworkFill(
-                    picture: seriesPicture(width: width), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+                    picture: seriesPicture(width: width), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                    progressivelyBlursReflection: !reduceTransparency
                 )
             } else {
                 ExtendedArtworkFill(picture: seriesPicture(width: width))

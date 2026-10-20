@@ -218,6 +218,19 @@ final class PlozzMetricsTests: XCTestCase {
         }
     }
 
+    func testPortraitPlaybackDetailsSurviveHostingWithoutChangingLabels() {
+        var source = EnvironmentValues()
+        XCTAssertEqual(source.plozzContinueWatchingPortraitDetails, .detailed)
+        source.plozzCardCaptionSettings.setOverride(.show, for: .continueWatchingPortrait)
+        var hosted = EnvironmentValues()
+        for details in ContinueWatchingPortraitDetails.allCases {
+            source.plozzContinueWatchingPortraitDetails = details
+            hosted.copyHostedPresentation(from: source)
+            XCTAssertEqual(hosted.plozzContinueWatchingPortraitDetails, details)
+            XCTAssertFalse(hosted.plozzContinueWatchingPortraitCaptionsHidden)
+        }
+    }
+
     func testShowcaseOnlyChangesInheritedLabelsAndDoesNotLeakIntoDestinations() {
         var environment = EnvironmentValues()
         environment.plozzCardCaptionView = .home

@@ -1071,6 +1071,10 @@ final class SettingsInteractionTests: XCTestCase {
         let labels = app.buttons["card-label-view-continueWatchingPortrait"]
         XCTAssertTrue(labels.waitForExistence(timeout: 3))
         XCTAssertEqual(labels.value as? String, "Follow Appearance")
+        let details = app.buttons["continue-watching-portrait-details"]
+        XCTAssertTrue(details.exists)
+        XCTAssertEqual(details.value as? String, "Detailed")
+        selectCustomization(details, expecting: "Progress only")
         selectCustomization(labels, expecting: "On")
         capture("continue-watching-portrait-labels")
         for title in ["Continue Watching", "Customize Home", "Screens & Navigation"] {
@@ -1101,10 +1105,13 @@ final class SettingsInteractionTests: XCTestCase {
         reveal(landscape, fullyVisible: true)
         landscape.tap()
         XCTAssertFalse(labels.exists)
+        XCTAssertFalse(details.exists)
         reveal(portrait, fullyVisible: true)
         portrait.tap()
         XCTAssertTrue(labels.waitForExistence(timeout: 3))
         XCTAssertEqual(labels.value as? String, "Off", "Changing artwork must preserve the label override.")
+        XCTAssertEqual(details.value as? String, "Progress only", "Artwork and caption changes must preserve playback details.")
+        selectCustomization(details, expecting: "Detailed")
         selectCustomization(labels, expecting: "Follow Appearance")
     }
 

@@ -82,6 +82,7 @@ final class HomeLibraryVisibilityTests: XCTestCase {
     func testContinueWatchingShowsSeriesArtworkDefaultsOn() {
         XCTAssertTrue(HomeLibraryVisibility.default.continueWatchingShowsSeriesArtwork)
         XCTAssertEqual(HomeLibraryVisibility.default.continueWatchingLayout, .landscape)
+        XCTAssertEqual(HomeLibraryVisibility.default.continueWatchingPortraitDetails, .detailed)
     }
 
     func testPortraitOverridesThumbnailsWithoutErasingTheLandscapeChoice() throws {
@@ -104,6 +105,21 @@ final class HomeLibraryVisibilityTests: XCTestCase {
         )
         XCTAssertEqual(decoded.continueWatchingLayout, .landscape)
         XCTAssertFalse(decoded.continueWatchingUsesSeriesArtwork)
+        XCTAssertEqual(decoded.continueWatchingPortraitDetails, .detailed)
+    }
+
+    func testPortraitPlaybackDetailsRoundTripWithoutChangingArtworkOrLayout() throws {
+        for details in ContinueWatchingPortraitDetails.allCases {
+            let original = HomeLibraryVisibility(
+                continueWatchingShowsSeriesArtwork: false, continueWatchingLayout: .portrait,
+                continueWatchingPortraitDetails: details
+            )
+            let decoded = try JSONDecoder().decode(
+                HomeLibraryVisibility.self, from: JSONEncoder().encode(original)
+            )
+            XCTAssertEqual(decoded, original)
+            XCTAssertTrue(decoded.continueWatchingUsesSeriesArtwork)
+        }
     }
 
     func testContinueWatchingArtworkChoiceSurvivesARoundTrip() throws {
@@ -247,13 +263,19 @@ final class HomeLibraryVisibilityStoreTests: XCTestCase {
         let model = HomeLibraryVisibilityModel(store: first)
         model.setContinueWatchingShowsSeriesArtwork(false)
         model.setContinueWatchingLayout(.portrait)
+        model.setContinueWatchingPortraitDetails(.progressOnly)
         let restored = HomeLibraryVisibilityModel(store: first)
         XCTAssertEqual(restored.continueWatchingLayout, .portrait)
         XCTAssertTrue(restored.continueWatchingUsesSeriesArtwork)
         XCTAssertEqual(HomeLibraryVisibilityModel(store: second).continueWatchingLayout, .landscape)
+        XCTAssertEqual(restored.continueWatchingPortraitDetails, .progressOnly)
+        XCTAssertEqual(HomeLibraryVisibilityModel(store: second).continueWatchingPortraitDetails, .detailed)
         restored.setContinueWatchingLayout(.landscape)
         XCTAssertFalse(restored.continueWatchingUsesSeriesArtwork)
         XCTAssertEqual(first.load().continueWatchingLayout, .landscape)
+        XCTAssertEqual(first.load().continueWatchingPortraitDetails, .progressOnly)
+        restored.setContinueWatchingLayout(.portrait)
+        XCTAssertEqual(restored.continueWatchingPortraitDetails, .progressOnly)
     }
 
     private func makeDefaults() -> UserDefaults {

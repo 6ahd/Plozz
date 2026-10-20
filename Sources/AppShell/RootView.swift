@@ -764,6 +764,10 @@ public struct RootView: View {
         )
         .environment(\.plozzCardStyle, appState.profileSettings.cardStyleModel.style)
         .environment(\.plozzCardCaptionSettings, appState.profileSettings.cardStyleModel.captions)
+        .environment(
+            \.plozzContinueWatchingPortraitDetails,
+            appState.profileSettings.homeLibraryVisibilityModel.continueWatchingPortraitDetails
+        )
         .environment(\.plozzArtworkSettings, appState.profileSettings.cardStyleModel.artwork)
         .environment(\.plozzArtworkProviders, appState.metadataProviderSettingsModel.settings)
         .environment(\.plozzCardFocusStyle, appState.profileSettings.cardStyleModel.focusStyle)

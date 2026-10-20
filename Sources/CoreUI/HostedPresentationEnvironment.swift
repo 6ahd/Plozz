@@ -19,6 +19,7 @@ public extension EnvironmentValues {
         plozzCardStyle = source.plozzCardStyle
         plozzCardFocusStyle = source.plozzCardFocusStyle
         copyCardCaptionPresentation(from: source)
+        plozzContinueWatchingPortraitDetails = source.plozzContinueWatchingPortraitDetails
         plozzArtworkSettings = source.plozzArtworkSettings
         plozzArtworkProviders = source.plozzArtworkProviders
         plozzArtworkArea = source.plozzArtworkArea

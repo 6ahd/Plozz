@@ -1,4 +1,5 @@
 #if canImport(UIKit)
+import CoreModels
 import SwiftUI
 import UIKit
 import XCTest
@@ -6,11 +7,37 @@ import XCTest
 
 @MainActor
 final class ExtendedArtworkBitmapTests: XCTestCase {
+    func testPortraitResumeChromeKeepsTheLandscapeBottomInset() throws {
+        let item = MediaItem(id: "resume", title: "Movie", kind: .movie, runtime: 3600, resumePosition: 900)
+        for metrics in [PlozzMetrics.standard, .touch(density: .standard)] {
+            var bottomInsets: [Int] = []
+            for portrait in [false, true] {
+                let height: CGFloat = portrait ? 660 : 300
+                let renderer = ImageRenderer(content:
+                    ResumeChipOverlay(item: item, compactHorizontalLayout: portrait)
+                        .environment(\.plozzMetrics, metrics)
+                        .frame(width: 400, height: height)
+                        .background(.black)
+                )
+                renderer.scale = 1
+                let image = try XCTUnwrap(renderer.uiImage)
+                let rgba = try pixels(image)
+                let lastBrightPixel = try XCTUnwrap(stride(from: 0, to: rgba.count, by: 4).filter {
+                    rgba[$0] > 150 && rgba[$0 + 1] > 150 && rgba[$0 + 2] > 150
+                }.last)
+                bottomInsets.append(Int(height) - 1 - lastBrightPixel / (400 * 4))
+            }
+            XCTAssertEqual(bottomInsets[0], bottomInsets[1],
+                           "Shortening the reflection must not move the playback controls relative to the bottom.")
+        }
+    }
+
     func testPortraitBitmapPreservesPosterPixelsAboveItsReflectedExtension() throws {
         let source = fixture(size: CGSize(width: 200, height: 300))
-        let size = CGSize(width: 200, height: 200 / ContinueWatchingCardShape.portraitAspectRatio)
+        let size = CGSize(width: 200, height: (200 / ContinueWatchingCardShape.portraitAspectRatio).rounded())
         let actual = try XCTUnwrap(ExtendedArtworkBitmap.render(
-            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+            progressivelyBlursReflection: true
         ))
         let original = try pixels(source)
         let rendered = try pixels(actual)
@@ -23,16 +50,54 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
         XCTAssertGreaterThan(rendered.count, original.count)
 
         let reference = ImageRenderer(content:
-            ExtendedArtworkFill(image: Image(uiImage: source), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0)
+            ExtendedArtworkFill(
+                image: Image(uiImage: source), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                progressivelyBlursReflection: true
+            )
                 .frame(width: size.width, height: size.height).clipped()
         )
         reference.scale = 1
         reference.isOpaque = true
         let referencePixels = try pixels(XCTUnwrap(reference.uiImage))
         XCTAssertEqual(rendered.count, referencePixels.count)
-        let maximumDifference = zip(rendered, referencePixels).map { abs(Int($0) - Int($1)) }.max()
-        XCTAssertLessThanOrEqual(try XCTUnwrap(maximumDifference), 1,
-                                "Native TV color normalization may round a channel by one byte, not change the picture.")
+        let differences = zip(rendered, referencePixels).map { abs(Int($0) - Int($1)) }
+        XCTAssertLessThanOrEqual(try XCTUnwrap(differences.prefix(pictureBytes).max()), 1,
+                                "The sharp poster must remain identical across renderers.")
+        let reflectionDifferences = differences.dropFirst(200 * 300 * 4)
+        let reflectionMean = Double(reflectionDifferences.reduce(0, +)) / Double(reflectionDifferences.count)
+        if reflectionMean > 0.8 {
+            for (name, image) in [("native-reflection", actual), ("swiftui-reflection", try XCTUnwrap(reference.uiImage))] {
+                let attachment = XCTAttachment(image: image)
+                attachment.name = name
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+        }
+        // Blurred pixels vary slightly between the CGContext and UIImage paths.
+        // Apply the existing bitmap mean-error budget to the reflection alone.
+        XCTAssertLessThanOrEqual(reflectionMean, 0.8)
+    }
+
+    func testReflectionLosesDetailGraduallyInsteadOfBlurringTheOriginalPoster() throws {
+        let source = fixture(size: CGSize(width: 200, height: 300))
+        let size = CGSize(width: 200, height: (200 / ContinueWatchingCardShape.portraitAspectRatio).rounded())
+        let sharp = try pixels(XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0
+        )))
+        let soft = try pixels(XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+            progressivelyBlursReflection: true
+        )))
+        XCTAssertEqual(Array(soft.prefix(200 * 296 * 4)), Array(sharp.prefix(200 * 296 * 4)))
+        func edge(_ data: [UInt8], row: Int) -> Double {
+            Double((50..<110).map { x in
+                abs(Int(data[(row * 200 + x + 1) * 4]) - Int(data[(row * 200 + x) * 4]))
+            }.max() ?? 0)
+        }
+        let ratios = [301, 312, 326].map { edge(soft, row: $0) / max(1, edge(sharp, row: $0)) }
+        XCTAssertGreaterThan(ratios[0], 0.8, "The join should start clear: \(ratios)")
+        XCTAssertLessThan(ratios[1], ratios[0] * 0.8, "The middle should be softer: \(ratios)")
+        XCTAssertLessThan(ratios[2], ratios[1] * 0.6, "The bottom should be softest: \(ratios)")
     }
 
     func testBitmapCacheSeparatesArtworkAspectAndCrop() throws {
@@ -53,6 +118,11 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
         XCTAssertTrue(portrait === repeated)
         XCTAssertFalse(portrait === differentAspect)
         XCTAssertFalse(portrait === differentCrop)
+        let blurred = try XCTUnwrap(ExtendedArtworkBitmap.render(
+            image: source, size: size, scale: 1, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+            progressivelyBlursReflection: true
+        ))
+        XCTAssertFalse(portrait === blurred, "Reduced-effects and blurred reflections must not share cached pixels.")
     }
 
     func testRecreatedCardsReuseThePreparedBitmap() throws {
