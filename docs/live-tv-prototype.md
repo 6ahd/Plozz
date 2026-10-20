@@ -15,6 +15,10 @@ For past failures, attempted repairs and related tests, see the short
 [IPTV troubleshooting history](iptv-history.md). It is historical context,
 not a specification.
 
+For the reliability-first hardening priorities and explicitly deferred feature
+gaps, see [Live TV reliability](live-tv-reliability.md). It separates inspected
+behavior from risks that still need reproduction.
+
 ## Diagnosing disappearing sources
 
 **Send to Developer** automatically includes a structured Live TV source journal
