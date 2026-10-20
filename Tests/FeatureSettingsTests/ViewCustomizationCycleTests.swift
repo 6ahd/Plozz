@@ -270,7 +270,7 @@ final class ViewCustomizationCycleTests: XCTestCase {
 
     func testContinueWatchingArtworkNamesAndPreviewCaptionChoices() {
         XCTAssertEqual(ContinueWatchingArtworkStyle.allCases.map { String(localized: $0.displayName) },
-                       ["Logo", "Thumbnail", "Portrait"])
+                       ["Artwork + logo", "Thumbnail", "Poster"])
         for parent in [CardCaptionView.home, .recommended] {
             for choice in CardCaptionView.continueWatching.customizationChoices {
                 var captions = CardCaptionSettings.default

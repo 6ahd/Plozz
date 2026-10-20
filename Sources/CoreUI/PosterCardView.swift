@@ -197,27 +197,7 @@ public struct PosterCardView: View {
     }
 
     private var size: CGSize {
-        switch style {
-        case .poster:
-            return CGSize(
-                width: metrics.posterWidth,
-                height: showsSeriesArtwork
-                    ? metrics.posterWidth / playbackDetails.cardAspectRatio : metrics.posterHeight
-            )
-        case .landscape:
-            // A series-artwork card stands taller than the 16:9 art it carries so
-            // its chrome has a band of its own beneath the picture, and is
-            // narrower to keep that extra height from enlarging the whole rail.
-            // See ``ExtendedArtworkFill``.
-            guard showsSeriesArtwork else {
-                return CGSize(width: metrics.landscapeWidth, height: metrics.landscapeHeight)
-            }
-            let width = metrics.continueWatchingWidth
-            return CGSize(
-                width: width,
-                height: (width / ContinueWatchingCardShape.aspectRatio).rounded()
-            )
-        }
+        metrics.artworkSize(for: style, showsSeriesArtwork: showsSeriesArtwork, playbackDetails: playbackDetails)
     }
 
     public var body: some View {

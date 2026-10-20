@@ -6,8 +6,8 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
 
 ## Responsibility
 
-Continue Watching's profile-scoped Playback details choice applies to Logo,
-Thumbnail, and Portrait, on Home and library rows.
+Continue Watching's profile-scoped Playback details choice applies to Artwork + logo,
+Thumbnail, and Poster, on Home and library rows.
 Detailed keeps the existing play/progress/text overlay; Progress only uses the
 shared white progress bar without that overlay. Other cards are unaffected.
 The previously stored portrait-only preference is retained.
@@ -32,7 +32,8 @@ Artwork-source preferences still apply.
 Native TV bitmaps, SwiftUI cards, previews, and loading placeholders share this
 selected shape. Detailed tightens only the shared chip's horizontal spacing,
 preserving episode/time details and the progress/download elements in its narrower
-slot. Its vertical inset from the bottom remains identical to landscape Continue Watching.
+slot. Its outer insets are even and match landscape Continue Watching; compact
+spacing between controls does not reduce the leading edge inset.
 All three artwork styles share the existing Continue Watching caption override,
 inheriting the row's Home or Recommended choice unless explicitly shown/hidden.
 Its original portrait preference is retained. Settings previews resolve this

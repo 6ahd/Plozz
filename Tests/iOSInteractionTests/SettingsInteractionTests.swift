@@ -1045,6 +1045,9 @@ final class SettingsInteractionTests: XCTestCase {
         openSettingsPage("Customize Home")
         app.buttons["home-section-home-continueWatching"].tap()
         XCTAssertTrue(app.navigationBars["Continue Watching"].waitForExistence(timeout: 3))
+        let merge = app.switches["home-merge-next-up"]
+        XCTAssertTrue(merge.label.contains("Merge Next Up rows"))
+        XCTAssertTrue(merge.label.contains("Include next episodes in this section."))
         let choices = ["logoAndArtwork", "thumbnail", "portraitPosters"].map {
             app.buttons["continue-watching-style-\($0)"]
         }
@@ -1056,7 +1059,7 @@ final class SettingsInteractionTests: XCTestCase {
                 XCTAssertTrue(option.exists)
                 XCTAssertEqual(option.isSelected, index == selected)
             }
-            XCTAssertEqual(choice.label, ["Logo", "Thumbnail", "Portrait"][selected])
+            XCTAssertEqual(choice.label, ["Artwork + logo", "Thumbnail", "Poster"][selected])
             let labels = app.buttons["card-label-view-continueWatchingPortrait"]
             XCTAssertTrue(labels.exists)
             selectCustomization(labels, expecting: "On")

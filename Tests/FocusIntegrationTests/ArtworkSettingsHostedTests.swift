@@ -10,6 +10,71 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
+    func testContinueWatchingPreviewDetailsStayReadableInTheTVSettingsColumn() async throws {
+        for showsCaptions in [false, true] {
+            var captions = CardCaptionSettings.default
+            captions.setOverride(showsCaptions ? .show : .hide, for: .continueWatching)
+            try await withScreen(content:
+                HomeEditorPage(title: Text("Continue Watching"), showsHeader: true) {
+                    Text("All libraries").font(.subheadline)
+                    Toggle("Merge Next Up rows", isOn: .constant(true))
+                    ContinueWatchingArtworkPicker(
+                        style: .constant(.portraitPosters), playbackDetails: .detailed, captions: captions
+                    )
+                }
+                .frame(width: SettingsFormMetrics.pageWidth, height: 1000)
+                .environment(\.settingsPageBackButton, AnyView(SettingsBackButton {}))
+            ) { window in
+                let image = self.renderWindow(window)
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "tv-continue-watching-details-labels-\(showsCaptions ? "on" : "off")"
+                attachment.lifetime = .keepAlways
+                self.add(attachment)
+                let bitmap = try XCTUnwrap(image.cgImage)
+                let left = (window.bounds.width - SettingsFormMetrics.pageWidth) / 2
+                let columnWidth = SettingsFormMetrics.pageWidth / 3
+                var heights: [CGFloat] = []
+                for column in 0..<3 {
+                    let crop = try XCTUnwrap(bitmap.cropping(to: CGRect(
+                        x: left + CGFloat(column) * columnWidth, y: 0,
+                        width: columnWidth, height: window.bounds.height
+                    )))
+                    let request = VNRecognizeTextRequest()
+                    request.recognitionLevel = .accurate
+                    request.recognitionLanguages = ["en-US"]
+                    request.usesLanguageCorrection = false
+                    request.minimumTextHeight = 0.005
+                    try VNImageRequestHandler(cgImage: crop).perform([request])
+                    let runtime = try (request.results ?? []).compactMap { observation -> CGRect? in
+                        guard let text = observation.topCandidates(1).first,
+                              let range = text.string.range(of: "30m") ?? text.string.range(of: "30 m")
+                        else { return nil }
+                        return try text.boundingBox(for: range)?.boundingBox
+                    }
+                    XCTAssertEqual(runtime.count, 1, "Each TV choice must retain its complete playback detail.")
+                    let bounds = try XCTUnwrap(runtime.first)
+                    let frame = CGRect(
+                        x: left + CGFloat(column) * columnWidth + bounds.minX * CGFloat(crop.width),
+                        y: (1 - bounds.maxY) * CGFloat(crop.height),
+                        width: bounds.width * CGFloat(crop.width), height: bounds.height * CGFloat(crop.height)
+                    )
+                    let detailImage = try XCTUnwrap(bitmap.cropping(to: frame.insetBy(dx: -4, dy: -4).integral))
+                    let detailAttachment = XCTAttachment(image: UIImage(cgImage: detailImage))
+                    detailAttachment.name = "tv-runtime-\(showsCaptions)-\(column)"
+                    detailAttachment.lifetime = .keepAlways
+                    self.add(detailAttachment)
+                    let height = try self.textInkBounds(in: image, frame: frame, lightForegroundThreshold: 180).height
+                    heights.append(height)
+                    XCTAssertGreaterThanOrEqual(height, 10, "TV preview details must retain the approved mobile-like proportions.")
+                }
+                for height in heights.dropFirst() {
+                    XCTAssertEqual(height, try XCTUnwrap(heights.first), accuracy: 1,
+                                   "All three TV previews must use matching playback detail sizes.")
+                }
+            }
+        }
+    }
+
     func testGroupedSettingsAlignHeadingsCompactLabelsHelpersAndSteppers() async throws {
         try await withScreen(content:
             SettingsFormGroup(title: Text("Shared heading"), description: Text("Shared footer")) {
@@ -975,7 +1040,9 @@ final class ArtworkSettingsHostedTests: XCTestCase {
     }
 
     /// OCR locates the label; actual ink avoids contrast-dependent OCR box padding.
-    private func textInkBounds(in image: UIImage, frame: CGRect) throws -> CGRect {
+    private func textInkBounds(
+        in image: UIImage, frame: CGRect, lightForegroundThreshold: UInt8? = nil
+    ) throws -> CGRect {
         let bounds = frame.insetBy(dx: -4, dy: -4).integral
         let crop = try XCTUnwrap(image.cgImage?.cropping(to: bounds))
         var pixels = [UInt8](repeating: 0, count: crop.width * crop.height)
@@ -987,8 +1054,15 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             ))
             context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
         }
-        let threshold = try UInt8((Int(XCTUnwrap(pixels.min())) + Int(XCTUnwrap(pixels.max()))) / 2)
-        let darkText = try XCTUnwrap(pixels.first) > threshold
+        let threshold: UInt8
+        let darkText: Bool
+        if let lightForegroundThreshold {
+            threshold = lightForegroundThreshold
+            darkText = false
+        } else {
+            threshold = try UInt8((Int(XCTUnwrap(pixels.min())) + Int(XCTUnwrap(pixels.max()))) / 2)
+            darkText = try XCTUnwrap(pixels.first) > threshold
+        }
         let foreground = pixels.indices.filter {
             darkText ? pixels[$0] < threshold : pixels[$0] > threshold
         }

@@ -25,7 +25,7 @@ public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
         case .logoAndArtwork:
             return LocalizedStringResource(
                 "continueWatchingArtwork.logo",
-                defaultValue: "Logo",
+                defaultValue: "Artwork + logo",
                 comment: "Continue Watching card style option in Settings: artwork with the title laid over it as a logo."
             )
         case .thumbnail:
@@ -35,7 +35,7 @@ public enum ContinueWatchingArtworkStyle: String, CaseIterable, Sendable {
                 comment: "Continue Watching artwork option in Settings: episode thumbnails or movie artwork."
             )
         case .portraitPosters:
-            return "Portrait"
+            return "Poster"
         }
     }
 
@@ -88,61 +88,65 @@ public struct ContinueWatchingArtworkSwatch: View {
         GeometryReader { geo in
             let width = geo.size.width
             let height = geo.size.height
-            // Reserve caption space even when hidden so toggling labels cannot resize the artwork.
             let barHeight = max(3, height * 0.03)
             let captionHeight = barHeight * 2 + height * 0.025
-            let gap = height * 0.09
-            // A little air under the caption so the last bar isn't flush with the
-            // slot's edge.
-            let bottomInset = height * 0.04
-            let available = height - captionHeight - gap - bottomInset
-            let cardWidth = min(
-                width * 0.94,
-                available * (layout == .portrait ? playbackDetails.cardAspectRatio : ContinueWatchingCardShape.aspectRatio)
+            let gap = min(8, width * 0.05)
+            let available = height - (showsCaptions ? captionHeight + gap : 0)
+            let size = metrics.artworkSize(
+                for: style.layout.cardStyle, showsSeriesArtwork: style.showsSeriesArtwork, playbackDetails: playbackDetails
             )
-            let cardHeight = cardWidth / cardAspectRatio
+            let scale = ContinueWatchingArtworkStyle.allCases.reduce(CGFloat.infinity) { scale, option in
+                let artwork = metrics.artworkSize(
+                    for: option.layout.cardStyle, showsSeriesArtwork: option.showsSeriesArtwork,
+                    playbackDetails: playbackDetails
+                )
+                return min(scale, min(width / artwork.width, available / artwork.height))
+            }
+            let cardWidth = size.width * scale
+            let cardHeight = size.height * scale
             VStack(spacing: gap) {
-                card(width: cardWidth, height: cardHeight)
-                caption(width: cardWidth, barHeight: barHeight, spacing: height * 0.025)
-                    .opacity(showsCaptions ? 1 : 0)
+                card(width: cardWidth, height: cardHeight, chromeScale: scale)
+                if showsCaptions {
+                    caption(width: cardWidth, barHeight: barHeight, spacing: height * 0.025)
+                }
             }
             .frame(width: width, height: height, alignment: .center)
         }
     }
 
-    /// The logo option stands taller than its 16:9 picture; the thumbnail option
-    /// is the picture and nothing else.
-    private var cardAspectRatio: CGFloat {
-        switch style {
-        case .logoAndArtwork: return ContinueWatchingCardShape.aspectRatio
-        case .thumbnail: return 16.0 / 9.0
-        case .portraitPosters: return playbackDetails.cardAspectRatio
-        }
-    }
-
-    private func card(width: CGFloat, height: CGFloat) -> some View {
+    private func card(width: CGFloat, height: CGFloat, chromeScale: CGFloat) -> some View {
         let radius = min(cornerRadius, width * 0.06)
+        #if os(tvOS)
+        // Keep miniature playback details legible at TV viewing distance.
+        let chromeScale = chromeScale * 1.4
+        #endif
         return ZStack {
             artwork(width: width, height: height)
-            if style.showsSeriesArtwork {
+                .frame(width: width, height: height)
+            if style == .logoAndArtwork {
                 wordmark(width: width)
-                    // Centred on the PICTURE, matching the real card: the band
-                    // beneath it belongs to the chrome.
-                    .offset(y: usesProgressOnlyPortrait ? 0 : -height * (1 - (layout == .portrait
-                        ? ContinueWatchingCardShape.portraitGeometry.reflectionStart
-                        : ContinueWatchingCardShape.mirrorLine)) / 2)
+                    .offset(y: -height * (1 - ContinueWatchingCardShape.mirrorLine) / 2)
             }
             if playbackDetails == .progressOnly {
                 MediaCardPlaybackIndicators(
                     item: MediaItem(id: "continue-watching-preview", title: "", kind: .movie, runtime: 100, resumePosition: 42),
                     hidesStatus: true, badgeInset: 0,
-                    progressHeight: max(1, metrics.progressBarHeight * width / metrics.posterWidth),
-                    progressHorizontalInset: width * 0.06, progressBottomInset: width * 0.06
+                    progressHeight: max(1, metrics.progressBarHeight * chromeScale),
+                    progressHorizontalInset: metrics.resumeChipInset * chromeScale,
+                    progressBottomInset: metrics.resumeChipInset * chromeScale
                 )
             } else {
-                chip(width: width, height: height)
+                ResumeChipOverlay(
+                    item: MediaItem(id: "continue-watching-preview", title: "", kind: .movie, runtime: 3600, resumePosition: 1800),
+                    bottomScrimStart: style.showsSeriesArtwork ? ContinueWatchingCardShape.scrimStart : 0.60,
+                    bottomScrimDepth: style.showsSeriesArtwork ? ContinueWatchingCardShape.scrimDepth : 0.60
+                )
+                .frame(width: width / chromeScale, height: height / chromeScale)
+                .scaleEffect(chromeScale)
+                .frame(width: width, height: height)
             }
         }
+        .plozzChromeFocused(true)
         .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .overlay(
@@ -172,58 +176,68 @@ public struct ContinueWatchingArtworkSwatch: View {
             .padding(.horizontal, width * 0.08)
     }
 
-    /// Two pictures that read as different *kinds* of image: flat branded fan-art
-    /// with the title set into it, versus a photograph of a moment.
     @ViewBuilder
     private func artwork(width: CGFloat, height: CGFloat) -> some View {
         switch style {
-        case .logoAndArtwork, .portraitPosters:
+        case .logoAndArtwork:
+            ExtendedArtworkFill(picture: seriesPicture(width: width))
+        case .portraitPosters:
             if usesProgressOnlyPortrait {
-                seriesPicture(width: width)
-            } else if layout == .portrait {
+                posterPicture(width: width)
+            } else {
                 ExtendedArtworkFill(
-                    picture: seriesPicture(width: width), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                    picture: posterPicture(width: width), artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
                     progressivelyBlursReflection: !reduceTransparency
                 )
-            } else {
-                ExtendedArtworkFill(picture: seriesPicture(width: width))
             }
         case .thumbnail:
             ZStack {
-                // A dusk horizon. A landscape reads as a *photograph of
-                // somewhere* at any size, which is the whole point of this
-                // option — a frame out of what you're watching, not branding. A figure
-                // silhouette was tried first and turned into a restroom
-                // pictogram once it got this small.
                 LinearGradient(
                     colors: [
-                        Color(red: 0.13, green: 0.17, blue: 0.38),
-                        Color(red: 0.52, green: 0.32, blue: 0.42),
-                        Color(red: 0.96, green: 0.60, blue: 0.28)
+                        Color(red: 0.86, green: 0.44, blue: 0.22),
+                        Color(red: 0.52, green: 0.18, blue: 0.42)
                     ],
-                    startPoint: .top,
-                    endPoint: .bottom
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Rectangle()
+                    .fill(Color(red: 0.99, green: 0.82, blue: 0.60).opacity(0.65))
+                    .frame(width: width * 0.23, height: height * 0.76)
+                    .offset(x: -width * 0.26, y: -height * 0.12)
+                PreviewPortraitSilhouette()
+                    .fill(Color(red: 0.26, green: 0.16, blue: 0.30))
+                    .frame(width: width * 0.38, height: height * 0.86)
+                    .offset(x: -width * 0.08, y: height * 0.20)
+                PreviewPortraitSilhouette()
+                    .fill(Color(red: 0.12, green: 0.10, blue: 0.20))
+                    .frame(width: width * 0.52, height: height * 1.18)
+                    .offset(x: width * 0.35, y: height * 0.23)
+            }
+        }
+    }
+
+    private func posterPicture(width: CGFloat) -> some View {
+        GeometryReader { geometry in
+            let height = geometry.size.height
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.24, green: 0.52, blue: 0.62),
+                        Color(red: 0.14, green: 0.28, blue: 0.44)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
                 Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color(red: 1.0, green: 0.97, blue: 0.82), Color(red: 1.0, green: 0.80, blue: 0.42)],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: width * 0.06
-                        )
-                    )
-                    .frame(width: width * 0.11, height: width * 0.11)
-                    .offset(x: -width * 0.14, y: -height * 0.02)
-                Ellipse()
-                    .fill(Color(red: 0.16, green: 0.10, blue: 0.20))
-                    .frame(width: width * 0.95, height: height * 0.55)
-                    .offset(x: -width * 0.28, y: height * 0.42)
-                Ellipse()
-                    .fill(Color(red: 0.08, green: 0.05, blue: 0.12))
-                    .frame(width: width * 1.0, height: height * 0.48)
-                    .offset(x: width * 0.34, y: height * 0.50)
+                    .fill(Color(red: 0.87, green: 0.91, blue: 0.81).opacity(0.85))
+                    .frame(width: width * 0.62, height: width * 0.62)
+                    .offset(y: -height * 0.17)
+                PreviewPortraitSilhouette()
+                    .fill(Color(red: 0.10, green: 0.22, blue: 0.32))
+                    .frame(width: width * 0.78, height: height * 0.56)
+                    .offset(y: height * 0.03)
             }
+            .frame(width: width, height: height)
         }
     }
 
@@ -243,46 +257,41 @@ public struct ContinueWatchingArtworkSwatch: View {
                 startRadius: 0,
                 endRadius: width * 0.62
             )
+            Canvas { context, size in
+                var ridge = Path()
+                ridge.move(to: CGPoint(x: 0, y: size.height * 0.76))
+                ridge.addLine(to: CGPoint(x: size.width * 0.22, y: size.height * 0.46))
+                ridge.addLine(to: CGPoint(x: size.width * 0.46, y: size.height * 0.82))
+                ridge.addLine(to: CGPoint(x: size.width * 0.74, y: size.height * 0.56))
+                ridge.addLine(to: CGPoint(x: size.width, y: size.height * 0.80))
+                ridge.addLine(to: CGPoint(x: size.width, y: size.height))
+                ridge.addLine(to: CGPoint(x: 0, y: size.height))
+                ridge.closeSubpath()
+                context.fill(ridge, with: .color(Color(red: 0.10, green: 0.14, blue: 0.30).opacity(0.55)))
+            }
         }
     }
 
-    /// The resume chip along the bottom — present in both, since it isn't what
-    /// the choice is about. The logo card's scrim runs from high in the picture
-    /// and finishes lighter, matching the real card.
-    private func chip(width: CGFloat, height: CGFloat) -> some View {
-        let isExtended = style.showsSeriesArtwork
-        let barHeight = max(1, metrics.resumeChipBarHeight * width / metrics.posterWidth)
-        let scrimHeight = isExtended
-            ? height * (1 - ContinueWatchingCardShape.scrimStart)
-            : height * 0.40
-        return VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            LinearGradient(
-                colors: [.clear, .black.opacity(isExtended ? ContinueWatchingCardShape.scrimDepth : 0.6)],
-                startPoint: .top,
-                endPoint: .bottom
+    struct PreviewPortraitSilhouette: Shape {
+        func path(in rect: CGRect) -> Path {
+            let height = min(rect.height, rect.width * 14 / 13)
+            let width = height * 13 / 14
+            var path = Path()
+            path.addEllipse(in: CGRect(x: width * 0.34, y: 0, width: width * 0.32, height: height * 0.38))
+            path.move(to: CGPoint(x: 0, y: height))
+            path.addCurve(
+                to: CGPoint(x: width * 0.40, y: height * 0.38),
+                control1: CGPoint(x: 0, y: height * 0.52),
+                control2: CGPoint(x: width * 0.36, y: height * 0.55)
             )
-            .frame(height: scrimHeight)
-            .overlay(alignment: .bottomLeading) {
-                HStack(spacing: width * 0.022) {
-                    PlayGlyph()
-                        .fill(.white)
-                        .frame(width: width * 0.056, height: width * 0.067)
-                    Capsule()
-                        .fill(.white.opacity(0.45))
-                        .frame(width: width * 0.19, height: barHeight)
-                        .overlay(alignment: .leading) {
-                            Capsule()
-                                .fill(.white)
-                                .frame(width: width * 0.19 * 0.42, height: barHeight)
-                        }
-                    Capsule()
-                        .fill(.white.opacity(0.9))
-                        .frame(width: width * 0.20, height: width * 0.028)
-                }
-                .padding(.leading, width * 0.05)
-                .padding(.bottom, width * 0.042)
-            }
+            path.addLine(to: CGPoint(x: width * 0.60, y: height * 0.38))
+            path.addCurve(
+                to: CGPoint(x: width, y: height),
+                control1: CGPoint(x: width * 0.64, y: height * 0.55),
+                control2: CGPoint(x: width, y: height * 0.52)
+            )
+            path.closeSubpath()
+            return path.offsetBy(dx: rect.midX - width / 2, dy: rect.midY - height / 2)
         }
     }
 
@@ -298,16 +307,4 @@ public struct ContinueWatchingArtworkSwatch: View {
     }
 }
 
-/// A right-pointing play glyph, drawn rather than set in SF Symbols so it keeps
-/// its proportions at swatch scale.
-private struct PlayGlyph: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
-    }
-}
 #endif

@@ -210,6 +210,29 @@ public struct PlozzMetrics: Equatable, Sendable {
         return (focusCaptionPush * PlozzTheme.Metrics.highlightCaptionPushRatio).rounded()
     }
 
+    /// Artwork dimensions shared by real cards and their Settings illustrations.
+    public func artworkSize(
+        for style: PosterCardView.Style,
+        showsSeriesArtwork: Bool = false,
+        playbackDetails: ContinueWatchingPlaybackDetails = .default
+    ) -> CGSize {
+        switch style {
+        case .poster:
+            return CGSize(
+                width: posterWidth,
+                height: showsSeriesArtwork ? posterWidth / playbackDetails.cardAspectRatio : posterHeight
+            )
+        case .landscape:
+            if showsSeriesArtwork {
+                return CGSize(
+                    width: continueWatchingWidth,
+                    height: (continueWatchingWidth / ContinueWatchingCardShape.aspectRatio).rounded()
+                )
+            }
+            return CGSize(width: landscapeWidth, height: landscapeHeight)
+        }
+    }
+
     /// Exact rail footprint for a shared media card. Home uses this instead of a
     /// separate iOS width table so the slot can never be wider than the rendered
     /// surface and create invisible inter-card spacing.
@@ -218,10 +241,7 @@ public struct PlozzMetrics: Equatable, Sendable {
         cardStyle: CardStyle,
         showsSeriesArtwork: Bool = false
     ) -> CGFloat {
-        let artworkWidth = switch style {
-        case .poster: posterWidth
-        case .landscape: showsSeriesArtwork ? continueWatchingWidth : landscapeWidth
-        }
+        let artworkWidth = artworkSize(for: style, showsSeriesArtwork: showsSeriesArtwork).width
         let sideInset = switch cardStyle {
         case .framed: cardInset
         case .borderless: borderlessCardSideMargin

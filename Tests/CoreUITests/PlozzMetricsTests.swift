@@ -85,6 +85,27 @@ final class PlozzMetricsTests: XCTestCase {
         )
     }
 
+    func testArtworkSizePreservesCardDimensionsAcrossDensityAndDynamicType() {
+        for density in UIDensity.allCases {
+            for type in [DynamicTypeSize.large, .accessibility3] {
+                for metrics in [PlozzMetrics(density: density, dynamicTypeSize: type),
+                                .touch(density: density, dynamicTypeSize: type)] {
+                    XCTAssertEqual(metrics.artworkSize(for: .poster),
+                                   CGSize(width: metrics.posterWidth, height: metrics.posterHeight))
+                    XCTAssertEqual(metrics.artworkSize(for: .landscape),
+                                   CGSize(width: metrics.landscapeWidth, height: metrics.landscapeHeight))
+                    for details in ContinueWatchingPlaybackDetails.allCases {
+                        XCTAssertEqual(metrics.artworkSize(for: .poster, showsSeriesArtwork: true, playbackDetails: details),
+                                       CGSize(width: metrics.posterWidth, height: metrics.posterWidth / details.cardAspectRatio))
+                        XCTAssertEqual(metrics.artworkSize(for: .landscape, showsSeriesArtwork: true, playbackDetails: details),
+                                       CGSize(width: metrics.continueWatchingWidth,
+                                              height: (metrics.continueWatchingWidth / ContinueWatchingCardShape.aspectRatio).rounded()))
+                    }
+                }
+            }
+        }
+    }
+
     func testAllCardProgressBarsMatchDetailedAcrossDensityAndDynamicType() {
         for density in UIDensity.allCases {
             for type in DynamicTypeSize.allCases {

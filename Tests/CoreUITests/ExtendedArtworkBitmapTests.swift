@@ -2,17 +2,18 @@
 import CoreModels
 import SwiftUI
 import UIKit
+import Vision
 import XCTest
 @testable import CoreUI
 
 @MainActor
 final class ExtendedArtworkBitmapTests: XCTestCase {
-    func testContinueWatchingPreviewsToggleOnlyTheirCaptionPixels() throws {
+    func testContinueWatchingPreviewsCenterArtworkAndOptionalCaptions() throws {
         for style in ContinueWatchingArtworkStyle.allCases {
             for details in ContinueWatchingPlaybackDetails.allCases {
                 for scheme in [ColorScheme.light, .dark] {
-                    for size in [CGSize(width: 96, height: 112), CGSize(width: 240, height: 200)] {
-                        let images = try [false, true].map { captions in
+                    for size in [CGSize(width: 120, height: 128), CGSize(width: 240, height: 200)] {
+                        for captions in [false, true] {
                             let renderer = ImageRenderer(content:
                                 ContinueWatchingArtworkSwatch(
                                     style: style, playbackDetails: details, showsCaptions: captions
@@ -22,22 +23,141 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
                                 .background(scheme == .dark ? Color.black : .white)
                             )
                             renderer.scale = 1
-                            return try pixels(XCTUnwrap(renderer.uiImage))
-                        }
-                        let changed = stride(from: 0, to: images[0].count, by: 4).filter {
-                            images[0][$0..<($0 + 3)] != images[1][$0..<($0 + 3)]
-                        }
-                        XCTAssertGreaterThan(changed.count, 30, "\(style) / \(details) must show caption lines.")
-                        XCTAssertTrue(changed.allSatisfy { index in
-                            images.allSatisfy { image in
-                                abs(Int(image[index]) - Int(image[index + 1])) <= 1
-                                    && abs(Int(image[index]) - Int(image[index + 2])) <= 1
+                            let image = try XCTUnwrap(renderer.uiImage)
+                            if captions, scheme == .dark {
+                                let attachment = XCTAttachment(image: image)
+                                attachment.name = "Artwork preview \(style) \(details) \(Int(size.width))"
+                                attachment.lifetime = .keepAlways
+                                add(attachment)
                             }
-                        }, "Only neutral caption pixels may change; the colored artwork must stay in place.")
+                            let rgba = try pixels(image)
+                            let visible = stride(from: 0, to: rgba.count, by: 4).filter { index in
+                                rgba[index..<(index + 3)].contains {
+                                    scheme == .dark ? $0 > 8 : $0 < 247
+                                }
+                            }
+                            let bounds = try pixelBounds(visible, width: Int(size.width))
+                            XCTAssertEqual(bounds.midX, size.width / 2, accuracy: 1)
+                            XCTAssertEqual(bounds.midY, size.height / 2, accuracy: 1,
+                                           "Only visible content should determine the preview's vertical center.")
+                            let rows = Set(visible.map { $0 / (4 * Int(size.width)) }).sorted()
+                            let separateRegions = 1 + zip(rows, rows.dropFirst()).filter { $1 - $0 > 1 }.count
+                            XCTAssertEqual(separateRegions, captions ? 3 : 1,
+                                           "\(style) / \(details) must show the artwork and only the enabled caption lines.")
+                        }
                     }
                 }
             }
         }
+    }
+
+    func testContinueWatchingPreviewAddsTextOnlyForTheOverlaidLogo() throws {
+        for style in ContinueWatchingArtworkStyle.allCases {
+            let renderer = ImageRenderer(content:
+                ContinueWatchingArtworkSwatch(style: style, playbackDetails: .progressOnly, showsCaptions: false)
+                    .frame(width: 320, height: 360)
+                    .environment(\.colorScheme, .dark)
+                    .background(.black)
+            )
+            renderer.scale = 2
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = false
+            let image = try XCTUnwrap(renderer.uiImage?.cgImage)
+            try VNImageRequestHandler(cgImage: image).perform([request])
+            let words = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+            XCTAssertEqual(words, style == .logoAndArtwork ? ["LOGO"] : [], "\(style)")
+        }
+    }
+
+    func testPreviewFiguresKeepThePosterProportionsInAnyFrame() {
+        let silhouette = ContinueWatchingArtworkSwatch.PreviewPortraitSilhouette()
+        for frame in [
+            CGRect(x: 0, y: 0, width: 78, height: 84),
+            CGRect(x: 0, y: 0, width: 180, height: 80),
+            CGRect(x: 20, y: 30, width: 40, height: 180)
+        ] {
+            let bounds = silhouette.path(in: frame).boundingRect
+            XCTAssertEqual(bounds.width / bounds.height, 13.0 / 14.0, accuracy: 0.0001)
+            XCTAssertEqual(bounds.midX, frame.midX, accuracy: 0.0001)
+            XCTAssertEqual(bounds.midY, frame.midY, accuracy: 0.0001)
+        }
+    }
+
+    func testArtworkPreviewsUseTheLargestSharedScaleAndMatchingChrome() throws {
+        for size in [CGSize(width: 120, height: 128), CGSize(width: 240, height: 200)] {
+            for details in ContinueWatchingPlaybackDetails.allCases {
+                var measurements: [(width: CGFloat, height: CGFloat, leading: CGFloat, bottom: CGFloat)] = []
+                for style in ContinueWatchingArtworkStyle.allCases {
+                    let renderer = ImageRenderer(content:
+                        ContinueWatchingArtworkSwatch(style: style, playbackDetails: details, showsCaptions: false)
+                            .frame(width: size.width, height: size.height)
+                            .environment(\.colorScheme, .dark)
+                            .background(.black)
+                    )
+                    renderer.scale = 2
+                    let image = try XCTUnwrap(renderer.uiImage)
+                    let rgba = try pixels(image)
+                    let pixelWidth = Int(size.width * 2)
+                    let offsets = stride(from: 0, to: rgba.count, by: 4)
+                    let artwork = try pixelBounds(offsets.filter {
+                        rgba[$0..<($0 + 3)].contains { $0 > 8 }
+                    }, width: pixelWidth)
+                    let chromeOffsets = offsets.filter { index in
+                        let channels = rgba[index..<(index + 3)]
+                        return index / (pixelWidth * 4) > Int(size.height)
+                            && channels.allSatisfy { $0 > 200 }
+                            && Int(channels.max()!) - Int(channels.min()!) < 10
+                    }
+                    if chromeOffsets.isEmpty {
+                        let attachment = XCTAttachment(image: image)
+                        attachment.name = "Missing chrome \(style) \(details) \(Int(size.width))"
+                        attachment.lifetime = .keepAlways
+                        add(attachment)
+                        XCTFail("No white playback chrome found for \(style) / \(details) at \(size).")
+                    }
+                    let chrome = try pixelBounds(chromeOffsets, width: pixelWidth)
+                    let actualSize = PlozzMetrics.standard.artworkSize(
+                        for: style.layout.cardStyle, showsSeriesArtwork: style.showsSeriesArtwork, playbackDetails: details
+                    )
+                    let artworkScale = ContinueWatchingArtworkStyle.allCases.reduce(CGFloat.infinity) { scale, option in
+                        let reference = PlozzMetrics.standard.artworkSize(
+                            for: option.layout.cardStyle, showsSeriesArtwork: option.showsSeriesArtwork,
+                            playbackDetails: details
+                        )
+                        return min(scale, min(size.width / reference.width, size.height / reference.height))
+                    }
+                    XCTAssertEqual(artwork.width / 2, actualSize.width * artworkScale, accuracy: 1,
+                                   "\(style) must use the largest shared scale without changing the card's proportions.")
+                    XCTAssertEqual(artwork.height / 2, actualSize.height * artworkScale, accuracy: 1)
+                    XCTAssertEqual(artwork.midX / 2, size.width / 2, accuracy: 1)
+                    XCTAssertEqual(artwork.midY / 2, size.height / 2, accuracy: 1)
+                    measurements.append((
+                        chrome.width / 2, chrome.height / 2,
+                        (chrome.minX - artwork.minX) / 2, (artwork.maxY - chrome.maxY) / 2
+                    ))
+                }
+                let reference = try XCTUnwrap(measurements.first)
+                for measurement in measurements.dropFirst() {
+                    if details == .detailed {
+                        XCTAssertEqual(measurement.width, reference.width, accuracy: 1)
+                    }
+                    XCTAssertEqual(measurement.height, reference.height, accuracy: 1)
+                    XCTAssertEqual(measurement.leading, reference.leading, accuracy: 1)
+                    XCTAssertEqual(measurement.bottom, reference.bottom, accuracy: 1)
+                }
+            }
+        }
+    }
+
+    private func pixelBounds(_ offsets: [Int], width: Int) throws -> CGRect {
+        let columns = offsets.map { ($0 / 4) % width }
+        let rows = offsets.map { $0 / (4 * width) }
+        let minX = try XCTUnwrap(columns.min())
+        let minY = try XCTUnwrap(rows.min())
+        let maxX = try XCTUnwrap(columns.max())
+        let maxY = try XCTUnwrap(rows.max())
+        return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
     }
 
     func testSharedCardProgressRendersAtTheUnchangedDetailedHeight() throws {
@@ -62,28 +182,37 @@ final class ExtendedArtworkBitmapTests: XCTestCase {
         }
     }
 
-    func testPortraitResumeChromeKeepsTheLandscapeBottomInset() throws {
+    func testPortraitResumeChromeKeepsEvenLandscapeOuterInsets() throws {
         let item = MediaItem(id: "resume", title: "Movie", kind: .movie, runtime: 3600, resumePosition: 900)
         for metrics in [PlozzMetrics.standard, .touch(density: .standard)] {
-            var bottomInsets: [Int] = []
-            for portrait in [false, true] {
-                let height: CGFloat = portrait ? 660 : 300
-                let renderer = ImageRenderer(content:
-                    ResumeChipOverlay(item: item, compactHorizontalLayout: portrait)
-                        .environment(\.plozzMetrics, metrics)
-                        .frame(width: 400, height: height)
-                        .background(.black)
-                )
-                renderer.scale = 1
-                let image = try XCTUnwrap(renderer.uiImage)
-                let rgba = try pixels(image)
-                let lastBrightPixel = try XCTUnwrap(stride(from: 0, to: rgba.count, by: 4).filter {
-                    rgba[$0] > 150 && rgba[$0 + 1] > 150 && rgba[$0 + 2] > 150
-                }.last)
-                bottomInsets.append(Int(height) - 1 - lastBrightPixel / (400 * 4))
+            for width in [132, 300] {
+                var bottomInsets: [Int] = []
+                var leadingInsets: [Int] = []
+                for portrait in [false, true] {
+                    let height: CGFloat = portrait ? 660 : 300
+                    let renderer = ImageRenderer(content:
+                        ResumeChipOverlay(item: item, compactHorizontalLayout: portrait)
+                            .environment(\.plozzMetrics, metrics)
+                            .frame(width: CGFloat(width), height: height)
+                            .background(.black)
+                    )
+                    renderer.scale = 1
+                    let image = try XCTUnwrap(renderer.uiImage)
+                    let rgba = try pixels(image)
+                    let brightPixels = stride(from: 0, to: rgba.count, by: 4).filter {
+                        rgba[$0] > 150 && rgba[$0 + 1] > 150 && rgba[$0 + 2] > 150
+                    }
+                    let lastBrightPixel = try XCTUnwrap(brightPixels.last)
+                    bottomInsets.append(Int(height) - 1 - lastBrightPixel / (width * 4))
+                    leadingInsets.append(try XCTUnwrap(brightPixels.map { ($0 / 4) % width }.min()))
+                }
+                XCTAssertEqual(bottomInsets[0], bottomInsets[1],
+                               "The portrait controls must retain their existing bottom position.")
+                XCTAssertEqual(leadingInsets[0], leadingInsets[1],
+                               "Compact spacing must not pull the portrait play icon toward the edge.")
+                XCTAssertGreaterThanOrEqual(leadingInsets[1], Int(metrics.resumeChipInset),
+                                            "The symbol's internal bearings are additional to the outer inset.")
             }
-            XCTAssertEqual(bottomInsets[0], bottomInsets[1],
-                           "Shortening the reflection must not move the playback controls relative to the bottom.")
         }
     }
 

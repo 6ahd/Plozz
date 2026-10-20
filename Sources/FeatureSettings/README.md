@@ -32,8 +32,16 @@ watch history and planning-list behavior are documented in
   section hides it without erasing its configuration or disabling its libraries.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
-  Continue Watching offers three native preview choices: Logo,
-  Thumbnail, and Portrait. They share equal card sizes on TV and
+  Continue Watching offers three native preview choices: Artwork + logo,
+  Thumbnail, and Poster. Simple fabricated illustrations distinguish a backdrop
+  with an overlaid logo, an unbranded scene, and portrait poster artwork without
+  implying a fixed title position. Figures preserve their proportions; artwork
+  and playback controls use a shared scale that preserves the cards' relative
+  sizes, with larger compact previews and tighter padding. Visible artwork and
+  optional labels are centered together, with no empty caption space when labels are off.
+  TV examples use a taller preview area and larger playback details for viewing-distance
+  legibility; this illustration-only adjustment does not change real cards or mobile previews.
+  They share equal choice sizes on TV and
   wide layouts, becoming preview-led rows on compact mobile layouts. The native
   Playback details control applies to all three choices: Detailed retains the
   play/progress/text overlay; Progress only uses the existing shared white bar
@@ -50,6 +58,8 @@ watch history and planning-list behavior are documented in
   Caption presets/reset clear this override, and
   switching artwork presentation preserves it. Playback details is independently
   profile-scoped, survives layout changes, and does not change the Labels override.
+  The Merge Next Up explanation belongs to the native toggle's label, not a
+  separate helper-text row.
   Preset retains the confirmed Match server and Combined rows choices and shows
   Custom for edited arrangements. Selecting a new preset still requires
   confirmation.

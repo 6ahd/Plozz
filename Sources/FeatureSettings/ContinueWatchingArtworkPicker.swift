@@ -20,6 +20,14 @@ struct ContinueWatchingArtworkPicker: View {
         #endif
     }
 
+    private var widePreviewHeight: CGFloat {
+        #if os(tvOS)
+        240
+        #else
+        200
+        #endif
+    }
+
     var body: some View {
         let layout = usesRows
             ? AnyLayout(VStackLayout(spacing: 12))
@@ -28,7 +36,7 @@ struct ContinueWatchingArtworkPicker: View {
             ForEach(ContinueWatchingArtworkStyle.allCases, id: \.self) { option in
                 Button { style = option } label: {
                     optionLabel(option)
-                        .padding(12)
+                        .padding(usesRows ? 8 : 12)
                 }
                 .plozzActionButton(role: .secondary)
                 .buttonBorderShape(.roundedRectangle(radius: PlozzTheme.Metrics.Radius.panel))
@@ -44,8 +52,8 @@ struct ContinueWatchingArtworkPicker: View {
     @ViewBuilder
     private func optionLabel(_ option: ContinueWatchingArtworkStyle) -> some View {
         if usesRows {
-            HStack(spacing: 16) {
-                swatch(option).frame(width: 96, height: 112)
+            HStack(spacing: 12) {
+                swatch(option).frame(width: 120, height: 128)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(option.displayName).font(.headline)
                     Text(option.detail).font(.footnote).foregroundStyle(.secondary)
@@ -57,7 +65,7 @@ struct ContinueWatchingArtworkPicker: View {
             .multilineTextAlignment(.leading)
         } else {
             VStack(spacing: 12) {
-                swatch(option).frame(height: 200)
+                swatch(option).frame(height: widePreviewHeight)
                 HStack(spacing: 8) {
                     ZStack {
                         ForEach(ContinueWatchingArtworkStyle.allCases, id: \.self) { candidate in

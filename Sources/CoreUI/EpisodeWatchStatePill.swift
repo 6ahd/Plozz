@@ -279,13 +279,13 @@ public struct ResumeChipOverlay: View {
                 // was tried instead and gave a gauge that ran most of the way
                 // across a wide tvOS card.
                 GeometryReader { geometry in
-                    let horizontalInset = compactHorizontalLayout
+                    let spacingInset = compactHorizontalLayout
                         ? min(metrics.resumeChipInset, geometry.size.width * 0.05) : metrics.resumeChipInset
                     let barWidth = min(
                         metrics.resumeChipBarWidth,
                         max(20, geometry.size.width * 0.42)
                     )
-                    HStack(alignment: .center, spacing: horizontalInset * 0.5) {
+                    HStack(alignment: .center, spacing: spacingInset * 0.5) {
                         if item.cardRuntimeText != nil
                             || item.resumeProgressFraction != nil
                             || (showsPlayGlyphWhenIdle && detailText?.isEmpty == false) {
@@ -298,7 +298,7 @@ public struct ResumeChipOverlay: View {
                                 barHeight: metrics.resumeChipBarHeight,
                                 detailText: detailText,
                                 showsPlayGlyphWhenIdle: showsPlayGlyphWhenIdle,
-                                spacing: compactHorizontalLayout ? horizontalInset * 0.5 : 8
+                                spacing: compactHorizontalLayout ? spacingInset * 0.5 : 8
                             )
                             .font(.system(size: metrics.resumeChipFontSize, weight: .semibold))
                             // The card grows with Dynamic Type to keep this label
@@ -312,7 +312,7 @@ public struct ResumeChipOverlay: View {
                         }
                         // Keeps the download badge pinned trailing whether or not
                         // the pill is present, so it never drifts to the leading edge.
-                        Spacer(minLength: horizontalInset * 0.5)
+                        Spacer(minLength: spacingInset * 0.5)
                         if let downloadState {
                             MediaDownloadBadge(
                                 state: downloadState,
@@ -320,8 +320,7 @@ public struct ResumeChipOverlay: View {
                             )
                         }
                     }
-                    .padding(.horizontal, horizontalInset)
-                    .padding(.vertical, metrics.resumeChipInset)
+                    .padding(metrics.resumeChipInset)
                     .frame(
                         width: geometry.size.width,
                         height: geometry.size.height,
