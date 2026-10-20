@@ -52,6 +52,12 @@ The owning series provides its separate TVDB ID and order during playback.
 
 ## Library recommendations
 
+Jellyfin's Home layout and Emby's legacy fallback read `CustomPrefs` from
+`/DisplayPreferences/usersettings` as nullable strings. An unset unrelated
+preference such as `tvhome` must not reject the whole layout. Null Home slots
+use the same defaults as missing or empty slots; explicit `none` stays hidden.
+Non-string values and HTTP, transport, or decoding failures still propagate.
+
 Emby's native Home section endpoint owns each section's media selection. Requests
 to `/Users/{userID}/Sections/{sectionID}/Items` must not override `IncludeItemTypes`
 or `MediaTypes`: doing so can replace an audio section's contents with videos.
