@@ -87,7 +87,8 @@ enum SeriesHeroRevealTransition {
     /// desyncs that part from the rest.
     // A spring's logical completion leaves a visible tail on this 588pt travel.
     // Slow earlier for a gentle landing, while still ending at the declared time.
-    static var ambient: Animation { .timingCurve(0.4, 0, 0.2, 1, duration: 0.9) }
+    static let duration: TimeInterval = 0.9
+    static var ambient: Animation { .timingCurve(0.4, 0, 0.2, 1, duration: duration) }
 
     /// The one deliberate exception: the receded logo leaves faster than it
     /// arrives, so it is out of the way before the hero lands rather than
@@ -375,6 +376,7 @@ struct SeriesRecedeReveal<Content: View>: View {
 /// Attach to the browser itself so returns from lower rows restore its stage.
 struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
     let isActive: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeUIView(context: Context) -> GuardView {
         let view = GuardView()
@@ -384,6 +386,7 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
 
     func updateUIView(_ view: GuardView, context: Context) {
         view.isActive = isActive
+        view.reduceMotion = reduceMotion
         view.apply()
     }
 
@@ -393,6 +396,7 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
 
     final class GuardView: UIView {
         var isActive = false
+        var reduceMotion = false
         private weak var scrollView: UIScrollView?
         private var wasScrollEnabled: Bool?
 
@@ -452,10 +456,24 @@ struct SeriesBrowserRevealScrollGuard: UIViewRepresentable {
                       NativeFocusRegion.contains(
                         UIFocusSystem.focusSystem(for: self)?.focusedItem, in: self
                       ) else { return }
-                scroll.setContentOffset(
-                    CGPoint(x: scroll.contentOffset.x, y: -scroll.adjustedContentInset.top),
-                    animated: false
-                )
+                let reveal = {
+                    scroll.setContentOffset(
+                        CGPoint(x: scroll.contentOffset.x, y: -scroll.adjustedContentInset.top),
+                        animated: false
+                    )
+                }
+                if reduceMotion {
+                    UIView.performWithoutAnimation(reveal)
+                } else {
+                    // Focus-effect timing is too short for a full-page return.
+                    UIView.animate(
+                        withDuration: SeriesHeroRevealTransition.duration,
+                        delay: 0,
+                        options: [.beginFromCurrentState, .allowUserInteraction,
+                                  .overrideInheritedDuration, .overrideInheritedCurve, .curveEaseInOut],
+                        animations: reveal
+                    )
+                }
             }
         }
 

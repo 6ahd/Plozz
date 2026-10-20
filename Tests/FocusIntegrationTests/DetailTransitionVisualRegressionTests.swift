@@ -640,7 +640,9 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
         defer { settingsStore.save(original) }
         let scene = try await activeScene()
         let artwork = try await seedArtwork()
+        let reduceMotion = UIAccessibility.isReduceMotionEnabled
         for style in CardFocusStyle.allCases {
+            let scenario = "\(style)-reduce-motion-\(reduceMotion)"
             let provider = TransitionShowProvider(artwork: artwork, episodeCount: 12)
             let related = ["Family Guy", "South Park", "BoJack Horseman"].enumerated().map { index, title in
                 MediaItem(id: "related-\(index)", title: title, kind: .series,
@@ -710,6 +712,9 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 }
                 host.target = nil
                 XCTAssertGreaterThan(page.contentOffset.y + page.adjustedContentInset.top, 100)
+                let departure = (page.layer.presentation() ?? page.layer).bounds.minY
+                let started = CACurrentMediaTime()
+                var motion: [(time: TimeInterval, y: CGFloat)] = [(0, departure)]
                 host.target = episode
                 system.requestFocusUpdate(to: host)
                 system.updateFocusIfNeeded()
@@ -717,9 +722,31 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                     system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(episode)
                 }
                 host.target = nil
-                try await Task.sleep(for: .milliseconds(1200))
+                while CACurrentMediaTime() - started < 1.2 {
+                    motion.append((CACurrentMediaTime() - started,
+                                   (page.layer.presentation() ?? page.layer).bounds.minY))
+                    try await Task.sleep(for: .milliseconds(16))
+                }
+                let trace = XCTAttachment(string: motion.map { "t=\($0.time), y=\($0.y)" }.joined(separator: "\n"))
+                trace.name = "related-episode-motion-\(scenario)-\(roundTrip)"
+                trace.lifetime = .keepAlways
+                add(trace)
+                let top = -page.adjustedContentInset.top
+                let distance = departure - top
+                let moving = motion.filter { $0.y > top + distance * 0.05 && $0.y < departure - distance * 0.05 }
+                if reduceMotion {
+                    XCTAssertTrue(motion.filter { $0.time >= 0.15 }.allSatisfy { abs($0.y - top) <= 1 },
+                                  "Reduce Motion must not animate the full-page return.")
+                } else {
+                    XCTAssertGreaterThanOrEqual(moving.count, 8,
+                                                "\(style): the return must render intermediate positions, not jump.")
+                    if let first = moving.first, let last = moving.last {
+                        XCTAssertGreaterThanOrEqual(last.time - first.time, 0.35,
+                                                    "\(style): the visible return must not inherit the short focus-effect timing.")
+                    }
+                }
                 let screenshot = XCTAttachment(image: renderedKeylineSnapshot(in: window))
-                screenshot.name = "related-episode-return-\(style)-\(roundTrip)"
+                screenshot.name = "related-episode-return-\(scenario)-\(roundTrip)"
                 screenshot.lifetime = .keepAlways
                 add(screenshot)
                 XCTAssertEqual(page.contentOffset.y + page.adjustedContentInset.top, 0, accuracy: 1,
@@ -729,6 +756,32 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                               "The actual focused episode must be fully onscreen.")
                 XCTAssertTrue(page.isScrollEnabled)
                 XCTAssertEqual(system.focusedItem.map(ObjectIdentifier.init), ObjectIdentifier(episode))
+
+                if roundTrip == 2, !reduceMotion {
+                    host.target = southPark
+                    system.requestFocusUpdate(to: host)
+                    system.updateFocusIfNeeded()
+                    try await waitUntil {
+                        system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(southPark)
+                            && host.settledFocusItemID == ObjectIdentifier(southPark)
+                    }
+                    host.target = episode
+                    system.requestFocusUpdate(to: host)
+                    system.updateFocusIfNeeded()
+                    try await Task.sleep(for: .milliseconds(150))
+                    host.target = southPark
+                    system.requestFocusUpdate(to: host)
+                    system.updateFocusIfNeeded()
+                    try await waitUntil {
+                        system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(southPark)
+                    }
+                    host.target = nil
+                    try await Task.sleep(for: .milliseconds(1200))
+                    XCTAssertGreaterThan(page.contentOffset.y + page.adjustedContentInset.top, 100,
+                                         "Returning to Related must interrupt an in-flight upward reveal.")
+                    XCTAssertTrue(window.bounds.contains(try XCTUnwrap(focusFrame(southPark, in: window))))
+                    XCTAssertEqual(system.focusedItem.map(ObjectIdentifier.init), ObjectIdentifier(southPark))
+                }
             }
         }
     }

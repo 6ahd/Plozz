@@ -323,6 +323,9 @@ and omitted from the current picker rather than blocking a confirmed primary.
   Direct returns from Related to an episode restore that stage inside UIKit's
   coordinated focus animation. A SwiftUI focus-entry scroll alone can be
   overwritten by the native card's reveal, leaving actual focus offscreen.
+  The page return overrides the short native focus-effect timing with a
+  0.9-second ease-in/ease-out animation. It remains interruptible and applies
+  its destination immediately with Reduce Motion.
   The compact logo above Seasons fits wholly inside its 200pt slot, including
   tall wordmarks; it does not use the full hero's flexible height allowance.
   This changes only artwork sizing, not season/episode focus geometry.

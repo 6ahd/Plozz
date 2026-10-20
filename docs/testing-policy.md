@@ -930,6 +930,11 @@ handoff. Across every focus style and three round trips, actual native focus mus
 remain on the episode, its full frame must be onscreen, the page must return to
 zero, and the horizontal row offset must remain unchanged. Screenshots retain
 the rendered result; testing only the focused item misses an offscreen selection.
+Presentation-layer samples also require at least eight intermediate positions
+and at least 350ms between 5% and 95% of the normal-motion return. The 0.9-second
+page animation must not inherit the much shorter focus-effect duration. A rapid
+reversal must leave Related focused and visible, and system Reduce Motion must
+reach the same destination without the full-page animation.
 The same production test samples the rail's presented position after completion:
 it must stay within one point of its final position. Checking page offset alone
 misses the spring's measured 7–8.5pt post-completion movement of the whole browser.
