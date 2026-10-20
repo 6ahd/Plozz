@@ -2633,13 +2633,13 @@ struct PlozziOSHomeMediaRail: View {
             )
             if style == .poster,
                let preview = candidates.first,
-               ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
-                   from: variant,
-                   for: preview
-               ),
-               prefetchedPreviewIDs.insert(
-                   candidate.stablePresentationID
-               ).inserted {
+               MediaArtworkPrefetchPolicy.claimPreview(
+                   for: candidate.stablePresentationID,
+                   prefetchedIDs: &prefetchedPreviewIDs,
+                   isDistinct: ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
+                       from: variant, for: preview
+                   )
+               ) {
                 trackPrefetch(preview, variant: .posterPreview)
             }
             if prefetchedIDs.insert(candidate.stablePresentationID).inserted {
@@ -2664,13 +2664,13 @@ struct PlozziOSHomeMediaRail: View {
                       spoilerSettings: appModel.settings.spoilers.settings,
                       showsSeriesArtwork: showsSeriesArtwork
                   ).first,
-                  ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
-                      from: .posterCard,
-                      for: preview
-                  ),
-                  prefetchedPreviewIDs.insert(
-                      candidate.stablePresentationID
-                  ).inserted
+                  MediaArtworkPrefetchPolicy.claimPreview(
+                      for: candidate.stablePresentationID,
+                      prefetchedIDs: &prefetchedPreviewIDs,
+                      isDistinct: ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
+                          from: .posterCard, for: preview
+                      )
+                  )
             else { continue }
             trackPrefetch(preview, variant: .posterPreview)
         }

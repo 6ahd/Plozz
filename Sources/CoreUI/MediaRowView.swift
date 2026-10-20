@@ -1131,13 +1131,13 @@ public struct MediaRowView: View {
             // the full two-candidate ladder below still handles the fallback.
             if presentation == .poster,
                let preview = candidates.first,
-               ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
-                   from: variant,
-                   for: preview
-               ),
-               activity.prefetchedPreviewIDs.insert(
-                   candidate.stablePresentationID
-               ).inserted {
+               MediaArtworkPrefetchPolicy.claimPreview(
+                   for: candidate.stablePresentationID,
+                   prefetchedIDs: &activity.prefetchedPreviewIDs,
+                   isDistinct: ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
+                       from: variant, for: preview
+                   )
+               ) {
                 trackPrefetch(preview, variant: .posterPreview)
             }
             if activity.prefetchedIDs.insert(candidate.stablePresentationID).inserted {
@@ -1162,13 +1162,13 @@ public struct MediaRowView: View {
                           showsSeriesArtwork: showsSeriesArtwork,
                           artworkPolicy: artworkPolicy
                       ).first,
-                      ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
-                          from: .posterCard,
-                          for: preview
-                      ),
-                      activity.prefetchedPreviewIDs.insert(
-                          candidate.stablePresentationID
-                      ).inserted
+                      MediaArtworkPrefetchPolicy.claimPreview(
+                          for: candidate.stablePresentationID,
+                          prefetchedIDs: &activity.prefetchedPreviewIDs,
+                          isDistinct: ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
+                              from: .posterCard, for: preview
+                          )
+                      )
                 else { continue }
                 trackPrefetch(preview, variant: .posterPreview)
             }
@@ -1536,6 +1536,14 @@ enum MediaRowFocusPolicy {
 }
 
 public enum MediaArtworkPrefetchPolicy {
+    public static func claimPreview(
+        for id: String,
+        prefetchedIDs: inout Set<String>,
+        isDistinct: @autoclosure () -> Bool
+    ) -> Bool {
+        !prefetchedIDs.contains(id) && isDistinct() && prefetchedIDs.insert(id).inserted
+    }
+
     public static func candidates(
         for item: MediaItem,
         style: PosterCardView.Style,

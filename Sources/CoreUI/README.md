@@ -392,6 +392,12 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   bookkeeping must not invalidate the row that constructs all card inputs.
   Entry-gate state remains observable for episode rows; ordinary Home rows
   retain native column-aligned entry and cover/return behavior.
+- **Poster preview prefetch** — shared media rows and mobile Home use
+  `MediaArtworkPrefetchPolicy.claimPreview` to reject already-queued item IDs
+  before parsing/resizing their URLs. Eligibility remains lazy; rejected
+  previews are not recorded, so later usable artwork can still be queued.
+  Existing row resets and direction changes rearm the same ID sets. This
+  changes neither the nearest-first queue nor the full-image fallback ladder.
 - **Grouped settings interactions** — `SettingsSectionGroup` uses explicit
   native switch toggles and menu pickers on iOS/iPadOS. Standalone mobile
   settings/Live TV controls and the shared `SettingsSwitchToggleStyle` also
