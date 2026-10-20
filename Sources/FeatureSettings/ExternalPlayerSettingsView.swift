@@ -4,20 +4,27 @@ import SwiftUI
 import UIKit
 
 public struct PlaybackAdvancedSettingsView: View {
+    @Bindable var playback: PlaybackSettingsModel
     @Bindable var model: ExternalPlayerSettingsModel
     @State private var showsExternalPlayer = false
 
-    public init(model: ExternalPlayerSettingsModel = .shared) { self.model = model }
+    public init(playback: PlaybackSettingsModel, model: ExternalPlayerSettingsModel = .shared) {
+        self.playback = playback
+        self.model = model
+    }
 
     public var body: some View {
         #if os(tvOS)
-        SettingsSplitLayout(title: "Advanced", rows: ExternalPlayerSettingsRows.advanced(model: model))
+        SettingsSplitLayout(title: "Advanced", rows: Self.rows(playback: playback, model: model))
         #else
         List {
             SettingsSectionGroup {
                 Button { showsExternalPlayer = true } label: {
                     SettingsDisclosureLabel { Text("External player") }
                 }
+            }
+            SettingsSectionGroup {
+                DolbyVisionFELControl(isOn: $playback.settings.dolbyVisionFELEnabled)
             }
         }
         .settingsPageSurface()
@@ -26,6 +33,33 @@ public struct PlaybackAdvancedSettingsView: View {
             ExternalPlayerSettingsView(model: model)
         }
         #endif
+    }
+
+    static func rows(
+        playback: PlaybackSettingsModel, model: ExternalPlayerSettingsModel = .shared
+    ) -> [SettingsSplitRow] {
+        ExternalPlayerSettingsRows.advanced(model: model) + [
+            SettingsSplitRow(id: "dolby-vision-fel", title: "Video") {
+                DolbyVisionFELControl(isOn: Binding(
+                    get: { playback.settings.dolbyVisionFELEnabled },
+                    set: { playback.settings.dolbyVisionFELEnabled = $0 }
+                ))
+            }
+        ]
+    }
+}
+
+private struct DolbyVisionFELControl: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        SettingsControlRows {
+            Toggle("Dolby Vision FEL (experimental)", isOn: $isOn)
+                .accessibilityIdentifier("playback-dolby-vision-fel")
+            Text("Decode the full enhancement layer in supported Dolby Vision Profile 7 videos. Uses more GPU and memory and may stutter. FEL playback loses Dolby Atmos objects and DTS:X height audio.")
+                .settingsHelperText()
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

@@ -126,6 +126,10 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// Keep the original property/key so existing profile preferences and transfers survive.
     public var trueHDAtmosEnabled: Bool
 
+    /// Experimental Profile 7 FEL reconstruction. Off by default; applies to new
+    /// on-demand sessions and trades Atmos/height audio for the enhancement layer.
+    public var dolbyVisionFELEnabled: Bool
+
     /// Remember the chosen **audio language** per series: switching audio on any
     /// episode makes that language stick for every other episode of that series
     /// (per profile). Stored by language, re-resolved to a concrete track per
@@ -167,6 +171,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         upNextLeadSeconds: Int = 30,
         audioLanguagePreference: AudioLanguagePreference = .original,
         trueHDAtmosEnabled: Bool = true,
+        dolbyVisionFELEnabled: Bool = false,
         rememberAudioTrackPerSeries: Bool = true,
         rememberSubtitleTrackPerSeries: Bool = true,
         fadeOnDynamicRangeChange: Bool = true,
@@ -193,6 +198,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         self.upNextLeadSeconds = upNextLeadSeconds
         self.audioLanguagePreference = audioLanguagePreference
         self.trueHDAtmosEnabled = trueHDAtmosEnabled
+        self.dolbyVisionFELEnabled = dolbyVisionFELEnabled
         self.rememberAudioTrackPerSeries = rememberAudioTrackPerSeries
         self.rememberSubtitleTrackPerSeries = rememberSubtitleTrackPerSeries
         self.fadeOnDynamicRangeChange = fadeOnDynamicRangeChange
@@ -244,6 +250,7 @@ public extension PlaybackSettings {
         case upNextLeadSeconds
         case audioLanguagePreference
         case trueHDAtmosEnabled
+        case dolbyVisionFELEnabled
         /// Legacy boolean predecessor of `audioLanguagePreference`, still read for
         /// migration (`true` → `.original`, `false` → `.device`).
         case preferOriginalLanguageAudio
@@ -342,6 +349,9 @@ public extension PlaybackSettings {
         self.trueHDAtmosEnabled =
             (try? container.decodeIfPresent(Bool.self, forKey: .trueHDAtmosEnabled))
             .flatMap { $0 } ?? defaults.trueHDAtmosEnabled
+        self.dolbyVisionFELEnabled =
+            (try? container.decodeIfPresent(Bool.self, forKey: .dolbyVisionFELEnabled))
+            .flatMap { $0 } ?? defaults.dolbyVisionFELEnabled
         self.rememberAudioTrackPerSeries =
             (try? container.decodeIfPresent(Bool.self, forKey: .rememberAudioTrackPerSeries))
             .flatMap { $0 } ?? defaults.rememberAudioTrackPerSeries
@@ -387,6 +397,7 @@ public extension PlaybackSettings {
         try container.encode(upNextLeadSeconds, forKey: .upNextLeadSeconds)
         try container.encode(audioLanguagePreference, forKey: .audioLanguagePreference)
         try container.encode(trueHDAtmosEnabled, forKey: .trueHDAtmosEnabled)
+        try container.encode(dolbyVisionFELEnabled, forKey: .dolbyVisionFELEnabled)
         try container.encode(rememberAudioTrackPerSeries, forKey: .rememberAudioTrackPerSeries)
         try container.encode(rememberSubtitleTrackPerSeries, forKey: .rememberSubtitleTrackPerSeries)
         try container.encode(fadeOnDynamicRangeChange, forKey: .fadeOnDynamicRangeChange)

@@ -379,6 +379,7 @@ public struct PlaybackRequest: Hashable, Sendable {
     /// TrueHD Atmos/DTS:X profile preference, not inferred from provider metadata.
     /// Unsupported platforms and playback paths ignore this request.
     public var trueHDAtmosEnabled: Bool = PlaybackSettings.default.trueHDAtmosEnabled
+    public var dolbyVisionFELEnabled: Bool = PlaybackSettings.default.dolbyVisionFELEnabled
     /// Explicit provider/container stream index used only when a resolved
     /// language cannot match because every audio track is untagged. Language
     /// matching remains authoritative whenever tags exist; this deterministic

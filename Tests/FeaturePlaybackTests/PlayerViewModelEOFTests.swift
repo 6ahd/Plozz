@@ -1013,6 +1013,22 @@ final class PlayerViewModelEOFTests: XCTestCase {
         }
     }
 
+    func testFELPreferenceReachesInitialAndHandoffLoads() async throws {
+        for enabled in [false, true] {
+            let (viewModel, engine, _) = makeViewModel(
+                playbackSettings: .init(dolbyVisionFELEnabled: enabled)
+            )
+            await viewModel.load()
+            XCTAssertEqual(engine.lastLoadedRequest?.dolbyVisionFELEnabled, enabled)
+            var handoff = try XCTUnwrap(engine.lastLoadedRequest)
+            handoff.dolbyVisionFELEnabled = !enabled
+            await viewModel.handoffPlayResolved(handoff, engineKind: .native, startPosition: 10)
+            XCTAssertEqual(engine.loadCount, 2)
+            XCTAssertEqual(engine.lastLoadedRequest?.dolbyVisionFELEnabled, enabled)
+            await viewModel.stop()
+        }
+    }
+
     func testBackgroundAudioPreferenceReachesEngineAndPreservesPlatformDefault() async {
         let publisher = VideoNowPlayingPublisherSpy()
         let (viewModel, engine, _) = makeViewModel(

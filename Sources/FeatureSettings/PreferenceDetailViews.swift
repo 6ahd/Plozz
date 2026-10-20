@@ -630,7 +630,7 @@ struct PlaybackDetailView: View {
 
     private var advancedRows: [SettingsSplitRow] {
         [.page(id: "playback-advanced", title: "Advanced") {
-            ExternalPlayerSettingsRows.advanced()
+            PlaybackAdvancedSettingsView.rows(playback: playback)
         }]
     }
 
