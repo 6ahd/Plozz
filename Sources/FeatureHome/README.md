@@ -329,6 +329,9 @@ and omitted from the current picker rather than blocking a confirmed primary.
   with Reduce Motion. Leaving the browser releases its scroll guard during the
   native focus handoff, before UIKit reveals the next row; stale SwiftUI reveal
   state cannot relock the page during rapid Up/Down reversals.
+  A populated Related rail owns a full-width native focus section, so Down from
+  a horizontally distant episode reaches even a single Related card before
+  Cast. Empty and loading Related rows add no focus stop.
   The compact logo above Seasons fits wholly inside its 200pt slot, including
   tall wordmarks; it does not use the full hero's flexible height allowance.
   This changes only artwork sizing, not season/episode focus geometry.

@@ -941,6 +941,11 @@ exercise animation races, not directional candidate selection.
 `DetailReturnFocusRemoteTests.testEpisodeRelatedDirectionsRevealTheFocusedRow`
 separately uses actual remote Up/Down on the production series detail. Remote
 calls may wait for idle; the hosted burst matrix supplies the rapid timing.
+Its sparse-row cases use real remote directions from left, middle, right, and
+horizontally scrolled episode positions with one or three Related cards and a
+competing Cast row. Every populated Related row must receive focus before Cast;
+an empty Related row must allow direct Cast entry. Both directions and all card
+focus styles are covered.
 System Reduce Motion must reach the same destination without the full-page animation.
 The same production test samples the rail's presented position after completion:
 it must stay within one point of its final position. Checking page offset alone

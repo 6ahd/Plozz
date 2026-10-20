@@ -2,6 +2,63 @@ import XCTest
 
 @MainActor
 final class DetailReturnFocusRemoteTests: XCTestCase {
+    func testSingleRelatedItemCannotBeSkippedForCast() throws {
+        try checkRelatedEntry(arguments: ["--related-single"], hasRelated: true)
+    }
+
+    func testEmptyRelatedRowDoesNotBlockCastEntry() throws {
+        try checkRelatedEntry(arguments: ["--related-empty"], hasRelated: false)
+    }
+
+    func testShortRelatedRowCannotBeSkippedForCast() throws {
+        try checkRelatedEntry(arguments: [], hasRelated: true)
+    }
+
+    private func checkRelatedEntry(arguments: [String], hasRelated: Bool) throws {
+        continueAfterFailure = false
+        for style in ["system", "highlight", "outlined"] {
+            let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+            app.launchArguments = ["--episode-breadcrumb-fixture", "--series-navigation", "--\(style)"] + arguments
+            app.launch()
+            defer { app.terminate() }
+            let play = app.buttons["detail-hero-play"]
+            XCTAssertTrue(play.waitForExistence(timeout: 20))
+            // Row navigation starts after the separately covered cinematic entrance.
+            Thread.sleep(forTimeInterval: 2)
+            let focus = NSPredicate(format: "hasFocus == true")
+            XCTAssertEqual(XCTWaiter.wait(
+                for: [XCTNSPredicateExpectation(predicate: focus, object: play)], timeout: 10
+            ), .completed)
+            XCUIRemote.shared.press(.down)
+            if app.buttons["Season 2"].hasFocus { XCUIRemote.shared.press(.down) }
+            assertSeriesRowFocused("Fixture Episode", in: app)
+            let nextRow = hasRelated ? "Related Show" : "Character"
+            XCTAssertTrue(app.descendants(matching: .any).matching(
+                NSPredicate(format: "label CONTAINS %@", nextRow)
+            ).firstMatch.waitForExistence(timeout: 10))
+            let focused = app.descendants(matching: .any).matching(focus).firstMatch
+            for horizontalMoves in [0, 2, 1, 5] {
+                for _ in 0..<horizontalMoves { XCUIRemote.shared.press(.right) }
+                assertSeriesRowFocused("Fixture Episode", in: app)
+                XCUIRemote.shared.press(.down)
+                assertSeriesRowFocused(nextRow, in: app)
+                assertSeriesFocusVisible(focused, in: app)
+                XCUIRemote.shared.press(.up)
+                assertSeriesRowFocused("Fixture Episode", in: app)
+                assertSeriesFocusVisible(focused, in: app)
+            }
+            if hasRelated {
+                XCUIRemote.shared.press(.down)
+                assertSeriesRowFocused("Related Show", in: app)
+                XCUIRemote.shared.press(.down)
+                assertSeriesRowFocused("Character", in: app)
+                XCUIRemote.shared.press(.up)
+                assertSeriesRowFocused("Related Show", in: app)
+                assertSeriesFocusVisible(focused, in: app)
+            }
+        }
+    }
+
     func testEpisodeRelatedDirectionsRevealTheFocusedRow() throws {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
@@ -10,6 +67,7 @@ final class DetailReturnFocusRemoteTests: XCTestCase {
         defer { app.terminate() }
         let play = app.buttons["detail-hero-play"]
         XCTAssertTrue(play.waitForExistence(timeout: 20))
+        Thread.sleep(forTimeInterval: 2)
         let focus = NSPredicate(format: "hasFocus == true")
         XCTAssertEqual(XCTWaiter.wait(
             for: [XCTNSPredicateExpectation(predicate: focus, object: play)], timeout: 10
