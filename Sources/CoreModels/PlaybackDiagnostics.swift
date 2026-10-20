@@ -28,9 +28,8 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
 
         public var displayName: LocalizedStringResource {
             switch self {
-            case .directPlay: return "Direct Play"
+            case .directPlay, .plozzigen: return "Direct Play"
             case .remux: return "Remux (server, lossless)"
-            case .plozzigen: return "Direct Play (Plozzigen)"
             case .transcode: return "Transcode (server)"
             case .unknown: return "Unknown"
             }
@@ -520,9 +519,9 @@ public extension PlaybackDiagnostics {
         case "truehd", "mlp":
             return isAtmos ? "TrueHD Atmos is not AVPlayer-compatible" : "TrueHD is not AVPlayer-compatible"
         case "dts", "dca":
-            return capabilities.supportsDTSPassthrough ? "DTS passthrough" : "DTS requires Plozzigen decode or a passthrough route"
+            return capabilities.supportsDTSPassthrough ? "DTS passthrough" : "DTS requires AetherEngine decode or a passthrough route"
         case "dts-hd", "dtshd", "dca-ma":
-            return capabilities.supportsDTSPassthrough ? "DTS-HD passthrough" : "DTS-HD requires Plozzigen decode or a passthrough route"
+            return capabilities.supportsDTSPassthrough ? "DTS-HD passthrough" : "DTS-HD requires AetherEngine decode or a passthrough route"
         case "aac", "mp4a", "alac", "mp3", "flac", "pcm", "lpcm":
             return "Decoded by Apple TV"
         default:

@@ -523,6 +523,71 @@ final class MediaRowEpisodeEntryHostedTests: XCTestCase {
         try await assertEpisodeHandoff(focusStyle: .system)
     }
 
+    func testReenteringEpisodesKeepsTheBrowsedCardInPlace() async throws {
+        let image = try await seedImage()
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        defer { previous?.makeKeyAndVisible() }
+        for style in CardFocusStyle.allCases {
+            let model = EpisodeEntryFixture()
+            model.focusStyle = style
+            model.resumeTarget = "episode-0"
+            model.items = (0..<20).map {
+                MediaItem(id: "episode-\($0)", title: "Episode \($0)", kind: .episode,
+                          episodeNumber: $0 + 1, posterURL: image)
+            }
+            model.phase = .ready
+            let host = EpisodeEntryHost(model: model)
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+            }
+            host.view.layoutIfNeeded()
+            await waitUntil { model.appeared && host.heroIsFocused }
+            let system = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+            host.prefersRow = true
+            system.requestFocusUpdate(to: host)
+            system.updateFocusIfNeeded()
+            await waitUntil { model.events.last == "episode-0" }
+            let scroll = try XCTUnwrap(horizontalScroll(in: host.row.view))
+            await waitUntil { self.neighbor(of: system.focusedItem, in: host.row.view, toLeft: false) != nil }
+            let next = try XCTUnwrap(neighbor(of: system.focusedItem, in: host.row.view, toLeft: false))
+            host.preferredItem = next
+            system.requestFocusUpdate(to: host)
+            system.updateFocusIfNeeded()
+            await waitUntil { system.focusedItem.map(ObjectIdentifier.init) == ObjectIdentifier(next) }
+            await waitUntil { model.events.last?.hasPrefix("episode-") == true && model.events.last != "episode-0" }
+            let browsedID = try XCTUnwrap(model.events.last)
+            try await waitForScrollToSettle(scroll)
+            let originalOffset = scroll.contentOffset.x
+
+            for _ in 0..<3 {
+                host.preferredItem = nil
+                host.prefersRow = false
+                system.requestFocusUpdate(to: host)
+                system.updateFocusIfNeeded()
+                await waitUntil { host.heroIsFocused }
+                model.active = true
+                model.resetToken += 1
+                try await Task.sleep(for: .milliseconds(400))
+                XCTAssertEqual(scroll.contentOffset.x, originalOffset, accuracy: 1,
+                               "\(style): leaving a row must not leading-align an already-visible episode.")
+                let reports = model.events.count
+                host.prefersRow = true
+                system.requestFocusUpdate(to: host)
+                system.updateFocusIfNeeded()
+                await waitUntil { model.events.count > reports && model.events.last == browsedID }
+                XCTAssertEqual(scroll.contentOffset.x, originalOffset, accuracy: 1)
+            }
+            capture(window, system: system, name: "episode-reentry-position-\(style)")
+        }
+    }
+
     private func assertEpisodeHandoff(focusStyle: CardFocusStyle) async throws {
         let settingsStore = MetadataProviderSettingsStore()
         let original = settingsStore.load()
@@ -574,8 +639,8 @@ final class MediaRowEpisodeEntryHostedTests: XCTestCase {
 
         // Browse a different real card, return to the hero, and change the server's
         // resume target. Re-entry must preserve the viewer's browse position.
-        await waitUntil { self.leftNeighbor(of: system.focusedItem, in: host.row.view) != nil }
-        let browsed = try XCTUnwrap(leftNeighbor(of: system.focusedItem, in: host.row.view))
+        await waitUntil { self.neighbor(of: system.focusedItem, in: host.row.view, toLeft: true) != nil }
+        let browsed = try XCTUnwrap(neighbor(of: system.focusedItem, in: host.row.view, toLeft: true))
         let beforeBrowsing = model.events.count
         host.preferredItem = browsed
         system.requestFocusUpdate(to: host)
@@ -603,7 +668,9 @@ final class MediaRowEpisodeEntryHostedTests: XCTestCase {
         capture(window, system: system, name: "episode-entry-remembered")
     }
 
-    private func leftNeighbor(of focused: (any UIFocusItem)?, in root: UIView) -> (any UIFocusItem)? {
+    private func neighbor(
+        of focused: (any UIFocusItem)?, in root: UIView, toLeft: Bool
+    ) -> (any UIFocusItem)? {
         guard let focused, let current = frame(focused, in: root) else { return nil }
         var seen = Set<ObjectIdentifier>()
         func items(_ view: UIView) -> [any UIFocusItem] {
@@ -614,9 +681,23 @@ final class MediaRowEpisodeEntryHostedTests: XCTestCase {
             guard seen.insert(ObjectIdentifier(item)).inserted,
                   item.canBecomeFocused, let rect = frame(item, in: root),
                   rect.width > 300, rect.width < 800,
-                  rect.midX < current.midX - 20 else { return nil }
+                  toLeft ? rect.midX < current.midX - 20 : rect.midX > current.midX + 20 else { return nil }
             return (item, rect)
-        }.max { $0.1.midX < $1.1.midX }?.0
+        }.min { abs($0.1.midX - current.midX) < abs($1.1.midX - current.midX) }?.0
+    }
+
+    private func waitForScrollToSettle(_ scroll: UIScrollView) async throws {
+        let deadline = ContinuousClock.now + .seconds(4)
+        var previous = scroll.contentOffset
+        var stableSamples = 0
+        while stableSamples < 10, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(25))
+            let current = scroll.contentOffset
+            stableSamples = abs(current.x - previous.x) < 0.1 && abs(current.y - previous.y) < 0.1
+                ? stableSamples + 1 : 0
+            previous = current
+        }
+        XCTAssertEqual(stableSamples, 10, "The native scroll must settle before measuring re-entry.")
     }
 
     private func frame(_ item: any UIFocusItem, in root: UIView) -> CGRect? {
@@ -713,6 +794,7 @@ private final class EpisodeEntryFixture {
     var items: [MediaItem] = []
     var phase = MediaRowEpisodeEntry.Phase.loading
     var active = true
+    var resetToken = 0
     var entryEnabled = true
     var resumeTarget = "episode-998"
     var focusStyle = CardFocusStyle.highlight
@@ -728,6 +810,7 @@ private struct EpisodeEntryFixtureView: View {
         MediaRowView(
             title: nil, items: model.items, presentation: .episodeColumn,
             initialScrollID: model.resumeTarget, defaultFocusID: model.resumeTarget,
+            focusResetToken: model.resetToken,
             onFocusEntered: { model.active = false },
             onFocusChange: { if let item = $0 { model.events.append(item.id) } },
             episodeEntry: MediaRowEpisodeEntry(

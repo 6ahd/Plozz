@@ -450,7 +450,8 @@ final class JellyfinHomeLayoutTests: XCTestCase {
                 XCTAssertEqual(items.map(\.id), ["old-\(index)"])
                 XCTAssertEqual(items.first?.libraryID, "shows")
             }
-            XCTAssertEqual(stub.sentPaths, ["/Users/selected-user/Views"] + paths)
+            let discovery = kind == .jellyfin ? ["/System/Info/Public"] : []
+            XCTAssertEqual(stub.sentPaths, discovery + ["/Users/selected-user/Views"] + paths)
 
             let second = await provider.serverHomeItems(
                 sections: sections, limit: 8, excludingLibraryIDs: ["movies"]
@@ -464,7 +465,7 @@ final class JellyfinHomeLayoutTests: XCTestCase {
                 XCTAssertTrue(query.contains(.init(name: "Limit", value: "8")))
             }
             let expectedBatchPaths = ["/Users/selected-user/Views"] + paths
-            XCTAssertEqual(stub.sentPaths, expectedBatchPaths + expectedBatchPaths)
+            XCTAssertEqual(stub.sentPaths, discovery + expectedBatchPaths + expectedBatchPaths)
         }
     }
 
@@ -503,7 +504,8 @@ final class JellyfinHomeLayoutTests: XCTestCase {
             let scoped = try XCTUnwrap(results[sections[2].id]).get()
             XCTAssertEqual(scoped.map(\.id), ["scoped"])
             XCTAssertEqual(scoped.first?.libraryID, "shows")
-            XCTAssertEqual(stub.sentPaths, ["/Users/selected-user/Views", scopedPath])
+            let discovery = kind == .jellyfin ? ["/System/Info/Public"] : []
+            XCTAssertEqual(stub.sentPaths, discovery + ["/Users/selected-user/Views", scopedPath])
         }
     }
 
@@ -525,7 +527,8 @@ final class JellyfinHomeLayoutTests: XCTestCase {
         }
         XCTAssertEqual(try XCTUnwrap(results[sections[1].id]).get().map(\.id), ["next"])
         XCTAssertEqual(stub.sentPaths, [
-            "/Users/selected-user/Views", "/Users/selected-user/Items/Resume", "/Shows/NextUp"
+            "/System/Info/Public", "/Users/selected-user/Views",
+            "/Users/selected-user/Items/Resume", "/Shows/NextUp"
         ])
     }
 

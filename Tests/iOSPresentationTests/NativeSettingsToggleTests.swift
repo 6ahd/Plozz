@@ -34,6 +34,56 @@ final class NativeSettingsToggleTests: XCTestCase {
         try await verifyNativeSwitch(grouped: false)
     }
 
+    func testAdvancedPlaybackFELUsesNativeSwitchAndPersistsOnlyTheActiveProfile() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let suite = "FELSettingsHosted-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+            defaults.removePersistentDomain(forName: suite)
+        }
+        let playback = PlaybackSettingsModel(store: PlaybackSettingsStore(defaults: defaults, namespace: "guest"))
+        let external = ExternalPlayerSettingsModel(defaults: defaults)
+        for width: CGFloat in [390, 834] {
+            for scheme: ColorScheme in [.light, .dark] {
+                playback.settings.dolbyVisionFELEnabled = false
+                window.frame = CGRect(x: 0, y: 0, width: width, height: 900)
+                window.overrideUserInterfaceStyle = scheme == .dark ? .dark : .light
+                window.rootViewController = UIHostingController(rootView: NavigationStack {
+                    PlaybackAdvancedSettingsView(playback: playback, model: external)
+                }
+                .environment(\.colorScheme, scheme)
+                .environment(\.themePalette, scheme == .dark ? .dark : .light)
+                .environment(\.locale, Locale(identifier: "en_US")))
+                window.makeKeyAndVisible()
+                try await settle(window)
+                let switches = listedSwitches(in: window)
+                XCTAssertEqual(switches.count, 1)
+                let control = try XCTUnwrap(switches.first)
+                XCTAssertFalse(control.isOn)
+                let text = try captureText(
+                    window, name: "fel-settings-\(Int(width))-\(scheme)", technicalWords: ["DTS:X"]
+                )
+                for label in ["FEL", "experimental", "GPU", "memory", "Dolby Atmos", "DTS:X"] {
+                    XCTAssertTrue(text.contains(label), "The setting and tradeoff must be visible: \(text)")
+                }
+                control.setOn(true, animated: false)
+                control.sendActions(for: .valueChanged)
+                try await settle(window)
+                XCTAssertTrue(playback.settings.dolbyVisionFELEnabled)
+                XCTAssertTrue(PlaybackSettingsStore(defaults: defaults, namespace: "guest").load().dolbyVisionFELEnabled)
+                XCTAssertFalse(PlaybackSettingsStore(defaults: defaults).load().dolbyVisionFELEnabled)
+                XCTAssertEqual(external.settings.player, .builtIn)
+                try assertGreenOnState(control, in: window)
+            }
+        }
+    }
+
     func testSubtitleDestinationsKeepNativeGreenSwitchesAndLiveBindings() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
@@ -538,7 +588,7 @@ final class NativeSettingsToggleTests: XCTestCase {
         return view.subviews.flatMap { listedSwitches(in: $0) }
     }
 
-    private func captureText(_ window: UIWindow, name: String) throws -> String {
+    private func captureText(_ window: UIWindow, name: String, technicalWords: [String] = []) throws -> String {
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
@@ -549,6 +599,7 @@ final class NativeSettingsToggleTests: XCTestCase {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
+        request.customWords = technicalWords
         try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
     }

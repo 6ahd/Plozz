@@ -412,9 +412,8 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
                 try VNImageRequestHandler(cgImage: recognitionImage).perform([request])
                 let observations = request.results ?? []
                 result += " " + observations.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-                #if os(tvOS)
-                // TV's tiny badge lettering needs a cropped pass; scaling a whole screen is downsampled by Vision.
-                for observation in observations where observation.boundingBox.height * CGFloat(cgImage.height) < 24 {
+                // Tiny badge lettering needs a cropped pass on both platforms, not a downsampled whole screen.
+                for observation in observations where observation.boundingBox.height * image.size.height < 24 {
                     let box = observation.boundingBox
                     let rect = CGRect(
                         x: box.minX * CGFloat(cgImage.width),
@@ -424,15 +423,28 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
                     ).insetBy(dx: -8, dy: -8).intersection(
                         CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height)
                     )
-                    let crop = try XCTUnwrap(recognitionImage.cropping(to: rect))
-                    let enlarged = CIImage(cgImage: crop).applyingFilter(
-                        "CILanczosScaleTransform", parameters: [kCIInputScaleKey: 4]
-                    )
-                    let enlargedImage = try XCTUnwrap(CIContext().createCGImage(enlarged, from: enlarged.extent))
-                    try VNImageRequestHandler(cgImage: enlargedImage).perform([request])
-                    result += " " + (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                    var regions = [rect]
+                    #if os(iOS)
+                    // The isolated resolution pill may be omitted entirely. Include its actual badge row.
+                    if observation.topCandidates(1).first?.string.contains("HEVC") == true {
+                        for x in stride(from: CGFloat(0), to: CGFloat(cgImage.width), by: 160 * image.scale) {
+                            regions.append(CGRect(
+                                x: x, y: rect.minY, width: min(192 * image.scale, CGFloat(cgImage.width) - x),
+                                height: rect.height
+                            ))
+                        }
+                    }
+                    #endif
+                    for region in regions {
+                        let crop = try XCTUnwrap(recognitionImage.cropping(to: region))
+                        let enlarged = CIImage(cgImage: crop).applyingFilter(
+                            "CILanczosScaleTransform", parameters: [kCIInputScaleKey: 4]
+                        )
+                        let enlargedImage = try XCTUnwrap(CIContext().createCGImage(enlarged, from: enlarged.extent))
+                        try VNImageRequestHandler(cgImage: enlargedImage).perform([request])
+                        result += " " + (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                    }
                 }
-                #endif
             }
         }
         return result

@@ -1668,27 +1668,21 @@ public final class AppState {
     @discardableResult
     public func didAuthenticate(_ session: UserSession, activateIPTVAccount: Bool = false) -> Bool {
         let isFirstRun = accountsProviders.accounts.isEmpty && !profilesModel.firstRunProfileSetupComplete
-        // Every provider now gets a STABLE, deterministic id derived from its
-        // (provider + server + user) identity — so re-adding the same server (e.g. to
-        // fix a password) updates the existing account in place instead of forking a
-        // duplicate, and the SAME server+user resolves to the SAME id on every device
-        // (so sync/pairing can't create cross-device duplicates). Media shares keep
-        // their existing deterministic id via the same helper.
-        let account = Account(id: Account.stableID(for: session), from: session)
-        let previousAccount = accountsProviders.accounts.first { $0.id == account.id }
+        let registration: AccountRegistration
         do {
-            try accountsProviders.accountStore.add(account, token: session.accessToken)
-            if previousAccount == nil || activateIPTVAccount {
-                try accountsProviders.includeIPTVAccountInActiveProfile(account)
+            registration = try accountsProviders.accountStore.registerAuthenticatedSession(session)
+            if registration.previousAccount == nil || activateIPTVAccount {
+                try accountsProviders.includeIPTVAccountInActiveProfile(registration.account)
             }
         } catch {
+            PlozzLog.auth.error("Unable to save authenticated account")
             apply(.authenticationFailed(.unknown("")))
             return false
         }
         finalizeAddedAccount(
             session: session,
-            account: account,
-            previousAccount: previousAccount,
+            account: registration.account,
+            previousAccount: registration.previousAccount,
             isFirstRun: isFirstRun
         )
         return true
@@ -1775,19 +1769,22 @@ public final class AppState {
 
         let isFirstRun = accountsProviders.accounts.isEmpty && !profilesModel.firstRunProfileSetupComplete
         var addedIDs: [String] = []
-        for session in sessions {
-            let account = Account(id: Account.stableID(for: session), from: session)
-            let previousAccount = accountsProviders.accounts.first { $0.id == account.id }
-            do {
-                try accountsProviders.accountStore.add(account, token: session.accessToken)
-                if let previousAccount,
-                   previousAccount.credentialRevision != account.credentialRevision {
+        do {
+            for session in sessions {
+                let registration = try accountsProviders.accountStore.registerAuthenticatedSession(session)
+                if let previousAccount = registration.previousAccount,
+                   previousAccount.credentialRevision != registration.account.credentialRevision {
                     mediaShare.accountService.retireCredential(for: previousAccount)
                 }
-                addedIDs.append(account.id)
-            } catch {
-                continue // Skip a failed add; keep the rest of the batch.
+                if !addedIDs.contains(registration.account.id) {
+                    addedIDs.append(registration.account.id)
+                }
             }
+        } catch {
+            PlozzLog.auth.error("Unable to save authenticated Plex accounts")
+            accountsProviders.reloadAccounts()
+            apply(.authenticationFailed(.unknown("")))
+            return
         }
         accountsProviders.reloadAccounts()
         addedIDs.forEach(clearRemovalTombstone)   // (re)add clears removal tombstones

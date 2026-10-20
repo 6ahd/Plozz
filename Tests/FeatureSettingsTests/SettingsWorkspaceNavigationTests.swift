@@ -6,6 +6,23 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceNavigationTests: XCTestCase {
+    func testAdvancedPlaybackIncludesProfileScopedFELWithoutChangingExternalPlayerScope() throws {
+        let suite = "AdvancedPlaybackSettingsTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let playback = PlaybackSettingsModel(store: PlaybackSettingsStore(defaults: defaults, namespace: "guest"))
+        let external = ExternalPlayerSettingsModel(defaults: defaults)
+        let rows = PlaybackAdvancedSettingsView.rows(playback: playback, model: external)
+        XCTAssertEqual(rows.map(\.id), ["external-player", "dolby-vision-fel"])
+        XCTAssertEqual(rows.first?.presentation, .page)
+        XCTAssertNil(rows.last?.childRows)
+        XCTAssertFalse(playback.settings.dolbyVisionFELEnabled)
+        playback.settings.dolbyVisionFELEnabled = true
+        XCTAssertTrue(PlaybackSettingsStore(defaults: defaults, namespace: "guest").load().dolbyVisionFELEnabled)
+        XCTAssertFalse(PlaybackSettingsStore(defaults: defaults).load().dolbyVisionFELEnabled)
+        XCTAssertEqual(external.settings.player, .builtIn)
+    }
+
     func testExternalPlayerKeepsAboutAndCustomDetailsBehindNestedPages() throws {
         let suite = "ExternalPlayerSettingsTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

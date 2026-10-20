@@ -318,7 +318,8 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
 
     func testRejectedArtworkAndSpoilerPlaceholdersKeepSafeNames() async throws {
         let rejected = try await posterArtwork(size: CGSize(width: 450, height: 100))
-        let folder = MediaItem(id: "rejected-folder", title: "Family", kind: .folder, posterURL: rejected)
+        // Wide container artwork is valid; only media posters reject this aspect ratio.
+        let folder = MediaItem(id: "missing-folder", title: "Family", kind: .folder)
         let movie = MediaItem(id: "rejected-movie", title: "Films", kind: .movie, posterURL: rejected)
         let episode = MediaItem(id: "hidden-episode", title: "Secret Ending", kind: .episode, episodeNumber: 5)
         try await withWindow { window, host in
@@ -850,25 +851,29 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
                     )
                     let cg = try XCTUnwrap(image.cgImage)
                     let pixels = try rgbaPixels(image)
-                    var blueMinX = cg.width
-                    var blueMaxX = -1
-                    // Isolate the first card's top-right blue check badge.
+                    var badgeMinX = cg.width
+                    var badgeMaxX = -1
+                    // Isolate the white check badge below the heading, inside the first poster.
+                    let inset: CGFloat = width < 600 ? 22 : 36
                     let metrics = PlozziOSHomeRailLayout<EmptyView>.posterMetrics(
-                        in: width, inset: width < 600 ? 22 : 36,
+                        in: width, inset: inset,
                         metrics: .touch(density: .standard), cardStyle: .borderless
                     )
-                    let endX = Int(((width < 600 ? 22 : 36) + metrics.posterWidth) * image.scale)
-                    for y in 0..<min(cg.height, Int(130 * image.scale)) {
-                        for x in 0..<min(endX, cg.width) {
+                    let poster = try XCTUnwrap(posterRuns(image, axis: .vertical, at: inset + 40).first)
+                    let startX = Int(inset * image.scale)
+                    let endX = Int((inset + metrics.posterWidth) * image.scale)
+                    let startY = Int(CGFloat(poster.lowerBound) * image.scale)
+                    let endY = Int(CGFloat(poster.lowerBound + 50) * image.scale)
+                    for y in startY..<min(cg.height, endY) {
+                        for x in startX..<min(endX, cg.width) {
                             let index = (y * cg.width + x) * 4
-                            if pixels[index + 2] > 160 && pixels[index + 1] > 60
-                                && Int(pixels[index + 2]) > Int(pixels[index]) + 80 {
-                                blueMinX = min(blueMinX, x)
-                                blueMaxX = max(blueMaxX, x)
+                            if pixels[index] > 220 && pixels[index + 1] > 220 && pixels[index + 2] > 220 {
+                                badgeMinX = min(badgeMinX, x)
+                                badgeMaxX = max(badgeMaxX, x)
                             }
                         }
                     }
-                    XCTAssertEqual(CGFloat(blueMaxX - blueMinX + 1) / image.scale, 21, accuracy: 2)
+                    XCTAssertEqual(CGFloat(badgeMaxX - badgeMinX + 1) / image.scale, 21, accuracy: 2)
                 }
             }
         }
@@ -1110,6 +1115,7 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
                                 .environment(\.dynamicTypeSize, dynamicSize)
                                 .environment(\.plozzCardStyle, cardStyle)
                                 .environment(\.plozzCardCaptionSettings, app.settings.cardStyle.captions)
+                                .environment(\.plozzWatchStatusIndicator, .watched)
                                 .environment(\.plozzMetrics, metrics)
                                 .environment(\.themePalette, .dark)
                             )
@@ -1158,7 +1164,7 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
         let app = PlozziOSAppModel()
         let original = app.settings.cardStyle.captions
         defer { app.settings.cardStyle.captions = original }
-        app.settings.cardStyle.captions = .default
+        app.settings.cardStyle.captions = CardCaptionSettings(showsLabels: false)
         let artwork = try await posterArtwork()
         let items = (0..<8).map { MediaItem(id: "rhythm-\($0)", title: "Title", kind: .movie, posterURL: artwork) }
         let sizes: [(DynamicTypeSize, UIContentSizeCategory)] = [(.large, .large), (.accessibility2, .accessibilityLarge)]
@@ -1179,6 +1185,8 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
                             .environment(\.horizontalSizeClass, sizeClass)
                             .environment(\.dynamicTypeSize, dynamicSize)
                             .environment(\.plozzCardStyle, cardStyle)
+                            .environment(\.plozzCardCaptionSettings, app.settings.cardStyle.captions)
+                            .environment(\.plozzWatchStatusIndicator, .watched)
                             .environment(\.plozzMetrics, metrics)
                             .environment(\.themePalette, .dark)
                         )
@@ -1377,10 +1385,10 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
     }
 
     private func text(_ image: UIImage, maximumCandidates: Int = 5) throws -> [RecognizedLabel] {
-        // Wide iPad snapshots downsample small dock captions during full-image OCR.
-        // Also recognize the native-resolution dock crop, retaining screen coordinates.
+        // Vision downsamples wide snapshots. Preserve native pixels for card and dock captions.
         let regions = [
             CGRect(origin: .zero, size: image.size),
+            CGRect(x: 0, y: 0, width: min(640, image.size.width), height: min(420, image.size.height)),
             CGRect(x: max(0, (image.size.width - 640) / 2), y: max(0, image.size.height - 260),
                    width: min(640, image.size.width), height: min(260, image.size.height))
         ]

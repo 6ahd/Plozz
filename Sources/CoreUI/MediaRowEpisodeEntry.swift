@@ -58,9 +58,10 @@ enum MediaRowEpisodeEntryPolicy {
     }
 
     static func showsPlaceholder(
-        phase: MediaRowEpisodeEntry.Phase, targetReady: Bool, focusEngaged: Bool
+        phase: MediaRowEpisodeEntry.Phase, targetReady: Bool, focusEngaged: Bool,
+        hasBrowsedTarget: Bool = false
     ) -> Bool {
-        phase != .ready || (!focusEngaged && !targetReady)
+        phase != .ready || (!focusEngaged && !targetReady && !hasBrowsedTarget)
     }
 
     static func target(

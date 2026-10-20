@@ -230147,6 +230147,226 @@
         }
       }
     },
+    "Couldn't change audio setting" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذر تغيير إعداد الصوت"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Настройката за звука не можа да бъде променена"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No s’ha pogut canviar l’ajust d’àudio"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Změna nastavení zvuku se nezdařila"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunne ikke ændre lydindstillingen"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audioeinstellung konnte nicht geändert werden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν ήταν δυνατή η αλλαγή της ρύθμισης ήχου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se pudo cambiar el ajuste de audio"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تغییر تنظیم صدا امکان‌پذیر نبود"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ääniasetusta ei voitu muuttaa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible de modifier le réglage audio"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן היה לשנות את הגדרת השמע"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ऑडियो सेटिंग बदली नहीं जा सकी"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije moguće promijeniti postavku zvuka"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nem sikerült módosítani a hangbeállítást"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pengaturan audio tidak dapat diubah"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossibile modificare l’impostazione audio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "オーディオ設定を変更できませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "오디오 설정을 변경할 수 없습니다"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seting audio tidak dapat diubah"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunne ikke endre lydinnstillingen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De audio-instelling kon niet worden gewijzigd"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie udało się zmienić ustawienia dźwięku"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível alterar o ajuste de áudio"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Configurarea audio nu a putut fi modificată"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось изменить настройку аудио"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nastavenie zvuku sa nepodarilo zmeniť"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nastavitve zvoka ni bilo mogoče spremeniti"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije moguće promeniti podešavanje zvuka"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Det gick inte att ändra ljudinställningen"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่สามารถเปลี่ยนการตั้งค่าเสียงได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ses ayarı değiştirilemedi"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не вдалося змінити параметр аудіо"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không thể thay đổi cài đặt âm thanh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法更改音频设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法更改音訊設定"
+          }
+        }
+      }
+    },
     "Couldn't connect" : {
       "comment" : "Error status in integration settings when Plozz fails to connect to a tracker or service.",
       "localizations" : {
@@ -253950,7 +254170,228 @@
         }
       }
     },
+    "DTS requires AetherEngine decode or a passthrough route" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يتطلب DTS فك الترميز عبر AetherEngine أو مسارًا لتمرير الصوت مباشرةً"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS изисква декодиране с AetherEngine или път за директно предаване на аудио"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS requereix descodificació amb AetherEngine o una via de pas directe de l’àudio"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS vyžaduje dekódování pomocí AetherEngine nebo cestu pro přímé předávání zvuku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS kræver afkodning med AetherEngine eller en lydsti med passthrough"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS erfordert die Dekodierung mit AetherEngine oder einen Audiopfad mit Passthrough"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το DTS απαιτεί αποκωδικοποίηση από το AetherEngine ή διαδρομή απευθείας διέλευσης ήχου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS requiere decodificación con AetherEngine o una ruta de paso directo de audio"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS به رمزگشایی با AetherEngine یا مسیر عبور مستقیم صدا نیاز دارد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS vaatii AetherEngine-dekoodauksen tai äänen läpivientireitin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS nécessite un décodage par AetherEngine ou une sortie audio en transmission directe"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS מחייב פענוח באמצעות AetherEngine או נתיב להעברת שמע ישירה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS के लिए AetherEngine से डिकोडिंग या पासथ्रू ऑडियो आउटपुट ज़रूरी है"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS zahtijeva dekodiranje mehanizmom AetherEngine ili izlaz za prosljeđivanje zvuka"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A DTS-hez AetherEngine-dekódolás vagy közvetlen hangtovábbítási útvonal szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS memerlukan pendekodean dengan AetherEngine atau jalur passthrough audio"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS richiede la decodifica con AetherEngine o un percorso audio passthrough"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTSにはAetherEngineによるデコードまたは音声パススルー経路が必要です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS에는 AetherEngine 디코딩 또는 오디오 패스스루 경로가 필요합니다"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS memerlukan penyahkodan oleh AetherEngine atau laluan passthrough audio"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS krever dekoding med AetherEngine eller en lydsignalvei med passthrough"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS vereist decodering met AetherEngine of een audiopad met passthrough"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS wymaga dekodowania przez AetherEngine lub toru audio obsługującego passthrough"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS requer decodificação pelo AetherEngine ou uma rota de áudio com passthrough"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS necesită decodificare cu AetherEngine sau o cale de transmitere directă a sunetului (passthrough)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для DTS требуется декодирование с помощью AetherEngine или сквозная передача звука (passthrough)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS vyžaduje dekódovanie pomocou AetherEngine alebo priamy prenos zvuku (passthrough)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS zahteva dekodiranje s pogonom AetherEngine ali neposredni prenos zvoka (passthrough)"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS zahteva dekodiranje pomoću mehanizma AetherEngine ili direktan prenos zvuka (passthrough)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS kräver avkodning med AetherEngine eller en ljudväg med passthrough"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS ต้องใช้การถอดรหัสด้วย AetherEngine หรือเส้นทางส่งผ่านสัญญาณเสียง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS, AetherEngine ile kod çözme veya doğrudan ses aktarımı yolu gerektirir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для DTS потрібне декодування в AetherEngine або тракт наскрізного передавання аудіо"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS cần giải mã bằng AetherEngine hoặc một đường xuất âm thanh truyền thẳng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS 需要由 AetherEngine 解码或通过音频直通路径输出"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS 需要由 AetherEngine 解碼或透過音訊直通路徑輸出"
+          }
+        }
+      }
+    },
     "DTS requires Plozzigen decode or a passthrough route" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -254391,7 +254832,228 @@
         }
       }
     },
+    "DTS-HD requires AetherEngine decode or a passthrough route" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يتطلب DTS-HD فك الترميز عبر AetherEngine أو مسارًا لتمرير الصوت مباشرةً"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD изисква декодиране с AetherEngine или път за директно предаване на аудио"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD requereix descodificació amb AetherEngine o una via de pas directe de l’àudio"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD vyžaduje dekódování pomocí AetherEngine nebo cestu pro přímé předávání zvuku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD kræver afkodning med AetherEngine eller en lydsti med passthrough"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD erfordert die Dekodierung mit AetherEngine oder einen Audiopfad mit Passthrough"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το DTS-HD απαιτεί αποκωδικοποίηση από το AetherEngine ή διαδρομή απευθείας διέλευσης ήχου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD requiere decodificación con AetherEngine o una ruta de paso directo de audio"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD به رمزگشایی با AetherEngine یا مسیر عبور مستقیم صدا نیاز دارد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD vaatii AetherEngine-dekoodauksen tai äänen läpivientireitin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD nécessite un décodage par AetherEngine ou une sortie audio en transmission directe"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD מחייב פענוח באמצעות AetherEngine או נתיב להעברת שמע ישירה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD के लिए AetherEngine से डिकोडिंग या पासथ्रू ऑडियो आउटपुट ज़रूरी है"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD zahtijeva dekodiranje mehanizmom AetherEngine ili izlaz za prosljeđivanje zvuka"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A DTS-HD-hez AetherEngine-dekódolás vagy közvetlen hangtovábbítási útvonal szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD memerlukan pendekodean dengan AetherEngine atau jalur passthrough audio"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD richiede la decodifica con AetherEngine o un percorso audio passthrough"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HDにはAetherEngineによるデコードまたは音声パススルー経路が必要です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD에는 AetherEngine 디코딩 또는 오디오 패스스루 경로가 필요합니다"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD memerlukan penyahkodan oleh AetherEngine atau laluan passthrough audio"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD krever dekoding med AetherEngine eller en lydsignalvei med passthrough"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD vereist decodering met AetherEngine of een audiopad met passthrough"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD wymaga dekodowania przez AetherEngine lub toru audio obsługującego passthrough"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD requer decodificação pelo AetherEngine ou uma rota de áudio com passthrough"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD necesită decodificare cu AetherEngine sau o cale de transmitere directă a sunetului (passthrough)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для DTS-HD требуется декодирование с помощью AetherEngine или сквозная передача звука (passthrough)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD vyžaduje dekódovanie pomocou AetherEngine alebo priamy prenos zvuku (passthrough)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD zahteva dekodiranje s pogonom AetherEngine ali neposredni prenos zvoka (passthrough)"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD zahteva dekodiranje pomoću mehanizma AetherEngine ili direktan prenos zvuka (passthrough)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD kräver avkodning med AetherEngine eller en ljudväg med passthrough"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD ต้องใช้การถอดรหัสด้วย AetherEngine หรือเส้นทางส่งผ่านสัญญาณเสียง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD, AetherEngine ile kod çözme veya doğrudan ses aktarımı yolu gerektirir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для DTS-HD потрібне декодування в AetherEngine або тракт наскрізного передавання аудіо"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD cần giải mã bằng AetherEngine hoặc một đường xuất âm thanh truyền thẳng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD 需要由 AetherEngine 解码或通过音频直通路径输出"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD 需要由 AetherEngine 解碼或透過音訊直通路徑輸出"
+          }
+        }
+      }
+    },
     "DTS-HD requires Plozzigen decode or a passthrough route" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -255269,6 +255931,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "宣告的串流位元率"
+          }
+        }
+      }
+    },
+    "Decode the full enhancement layer in supported Dolby Vision Profile 7 videos. Uses more GPU and memory and may stutter. FEL playback loses Dolby Atmos objects and DTS:X height audio." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فك ترميز طبقة التحسين الكاملة في فيديوهات Dolby Vision Profile 7 المدعومة. يستخدم المزيد من موارد معالج الرسومات والذاكرة وقد يسبب تقطعًا. أثناء تشغيل FEL، تُفقد الكائنات الصوتية في Dolby Atmos وصوت قنوات الارتفاع في DTS:X."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Декодиране на пълния слой за подобрение в поддържаните видеоклипове с Dolby Vision Profile 7. Използва повече ресурси на графичния процесор и повече памет и може да причини насичане. При възпроизвеждане с FEL се губят звуковите обекти на Dolby Atmos и звукът от височинните канали на DTS:X."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Descodifica la capa de millora completa dels vídeos compatibles amb Dolby Vision Profile 7. Utilitza més recursos de la GPU i més memòria i pot provocar salts en la reproducció. Durant la reproducció amb FEL es perden els objectes d’àudio de Dolby Atmos i l’àudio en alçada de DTS:X."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekóduje plnou rozšiřující vrstvu v podporovaných videích Dolby Vision Profile 7. Zvyšuje využití GPU a paměti a může způsobovat trhání obrazu. Při přehrávání s FEL dochází ke ztrátě zvukových objektů Dolby Atmos a zvuku z výškových kanálů DTS:X."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afkod det fulde forbedringslag i understøttede Dolby Vision Profile 7-videoer. Bruger flere GPU-ressourcer og mere hukommelse og kan medføre hakken. Ved FEL-afspilning går Dolby Atmos-lydobjekter og lyd fra DTS:X-højdekanaler tabt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekodiert die vollständige Erweiterungsschicht in unterstützten Dolby Vision Profile 7-Videos. Benötigt mehr GPU-Leistung und Arbeitsspeicher und kann zu Rucklern führen. Bei der FEL-Wiedergabe gehen Dolby Atmos-Audioobjekte und der Ton der DTS:X-Höhenkanäle verloren."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αποκωδικοποιεί το πλήρες επίπεδο βελτίωσης σε υποστηριζόμενα βίντεο Dolby Vision Profile 7. Χρησιμοποιεί περισσότερους πόρους GPU και περισσότερη μνήμη και ενδέχεται να προκαλεί κομπιάσματα. Κατά την αναπαραγωγή FEL χάνονται τα ηχητικά αντικείμενα Dolby Atmos και ο ήχος των καναλιών ύψους DTS:X."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodifica la capa de mejora completa en vídeos Dolby Vision Profile 7 compatibles. Usa más recursos de GPU y memoria y puede causar tirones. Durante la reproducción FEL se pierden los objetos de audio de Dolby Atmos y el audio de altura de DTS:X."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لایهٔ بهبود کامل را در ویدیوهای پشتیبانی‌شدهٔ Dolby Vision Profile 7 رمزگشایی می‌کند. از توان پردازشی GPU و حافظهٔ بیشتری استفاده می‌کند و ممکن است باعث مکث‌های کوتاه در پخش شود. هنگام پخش FEL، اشیای صوتی Dolby Atmos و صدای کانال‌های ارتفاعی DTS:X از دست می‌روند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekoodaa koko parannuskerroksen tuetuissa Dolby Vision Profile 7 -videoissa. Käyttää enemmän GPU-resursseja ja muistia ja saattaa aiheuttaa nykimistä. FEL-toistossa menetetään Dolby Atmos -ääniobjektit ja DTS:X-korkeuskanavien ääni."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Décode la couche d’amélioration complète des vidéos Dolby Vision Profile 7 prises en charge. Utilise davantage de ressources GPU et de mémoire et peut entraîner des saccades. La lecture FEL entraîne la perte des objets audio Dolby Atmos et du son des canaux de hauteur DTS:X."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מפענח את שכבת השיפור המלאה בסרטוני Dolby Vision Profile 7 נתמכים. צורך יותר משאבי GPU וזיכרון ועלול לגרום לקרטועים. במהלך ניגון FEL אובייקטי השמע של Dolby Atmos והשמע מערוצי הגובה של DTS:X אובדים."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समर्थित Dolby Vision Profile 7 वीडियो की पूरी एन्हांसमेंट लेयर डिकोड करें। इससे GPU और मेमोरी का इस्तेमाल बढ़ता है और प्लेबैक अटक सकता है। FEL प्लेबैक के दौरान Dolby Atmos के ऑडियो ऑब्जेक्ट और DTS:X का हाइट ऑडियो उपलब्ध नहीं रहते।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekodirajte puni sloj poboljšanja u podržanim videozapisima Dolby Vision Profile 7. Koristi više resursa GPU-a i memorije te može uzrokovati zastajkivanje. Pri reprodukciji FEL sadržaja gube se zvučni objekti Dolby Atmos i visinski zvuk DTS:X."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A teljes javítóréteg dekódolása a támogatott Dolby Vision Profile 7-videókban. Több GPU-erőforrást és memóriát használ, és akadozást okozhat. FEL-lejátszáskor elvesznek a Dolby Atmos hangobjektumai és a DTS:X magassági hangjai."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekode seluruh lapisan peningkatan pada video Dolby Vision Profile 7 yang didukung. Menggunakan lebih banyak sumber daya GPU dan memori, serta dapat menyebabkan pemutaran tersendat. Saat pemutaran FEL, objek audio Dolby Atmos dan audio ketinggian DTS:X hilang."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodifica l'intero livello di miglioramento nei video Dolby Vision Profile 7 supportati. Utilizza più risorse della GPU e memoria e può causare scatti. Durante la riproduzione FEL si perdono gli oggetti audio Dolby Atmos e l'audio in altezza DTS:X."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対応するDolby Vision Profile 7動画の拡張レイヤー全体をデコードします。GPUとメモリの使用量が増え、再生がカクつく場合があります。FEL再生中はDolby Atmosの音声オブジェクトとDTS:Xのハイト音声が失われます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "지원되는 Dolby Vision Profile 7 동영상의 전체 향상 레이어를 디코딩합니다. GPU와 메모리를 더 많이 사용하며 재생이 끊길 수 있습니다. FEL 재생 시 Dolby Atmos 오브젝트와 DTS:X 높이 채널 오디오가 손실됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nyahkod keseluruhan lapisan peningkatan dalam video Dolby Vision Profile 7 yang disokong. Menggunakan lebih banyak sumber GPU dan memori serta mungkin menyebabkan main balik tersekat-sekat. Semasa main balik FEL, objek Dolby Atmos dan audio saluran ketinggian DTS:X hilang."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekoder hele forbedringslaget i støttede Dolby Vision Profile 7-videoer. Bruker mer GPU-kapasitet og minne og kan gi hakking. Under FEL-avspilling går Dolby Atmos-objekter og DTS:X-høydelyd tapt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodeer de volledige verbeteringslaag in ondersteunde Dolby Vision Profile 7-video's. Gebruikt meer GPU-capaciteit en geheugen en kan haperingen veroorzaken. Bij FEL-weergave gaan Dolby Atmos-objecten en DTS:X-hoogteaudio verloren."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekoduj pełną warstwę rozszerzającą w obsługiwanych filmach Dolby Vision Profile 7. Wykorzystuje więcej zasobów GPU i pamięci oraz może powodować zacinanie się odtwarzania. Podczas odtwarzania FEL tracone są obiekty Dolby Atmos i dźwięk z kanałów wysokościowych DTS:X."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodifica a camada de aprimoramento completa em vídeos Dolby Vision Profile 7 compatíveis. Usa mais recursos de GPU e memória e pode causar engasgos na reprodução. Na reprodução FEL, os objetos Dolby Atmos e o áudio de altura DTS:X são perdidos."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodifică întregul strat de îmbunătățire din videoclipurile Dolby Vision Profile 7 compatibile. Folosește mai multe resurse GPU și mai multă memorie și poate cauza sacadări. La redarea FEL se pierd obiectele audio Dolby Atmos și sunetul canalelor de înălțime DTS:X."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Декодировать полный слой улучшения в поддерживаемых видео Dolby Vision Profile 7. Требует больше ресурсов GPU и памяти и может вызывать рывки при воспроизведении. При воспроизведении FEL теряются аудиообъекты Dolby Atmos и звук высотных каналов DTS:X."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekódovať celú vylepšujúcu vrstvu v podporovaných videách Dolby Vision Profile 7. Využíva viac výkonu GPU a viac pamäte a môže spôsobovať trhanie obrazu. Pri prehrávaní FEL sa strácajú zvukové objekty Dolby Atmos a zvuk výškových kanálov DTS:X."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekodira celotno izboljševalno plast v podprtih videoposnetkih Dolby Vision Profile 7. Porabi več virov GPU in pomnilnika ter lahko povzroči zatikanje. Pri predvajanju FEL se izgubijo zvočni objekti Dolby Atmos in zvok višinskih kanalov DTS:X."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekodira ceo sloj poboljšanja u podržanim Dolby Vision Profile 7 video-snimcima. Koristi više resursa GPU-a i memorije i može izazvati zastajkivanje. Pri FEL reprodukciji gube se Dolby Atmos zvučni objekti i zvuk visinskih kanala DTS:X."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avkoda hela förbättringslagret i Dolby Vision Profile 7-videor som stöds. Använder fler GPU-resurser och mer minne och kan orsaka hackig uppspelning. Vid FEL-uppspelning går Dolby Atmos-ljudobjekt och ljudet i DTS:X-höjdkanalerna förlorade."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ถอดรหัสเลเยอร์เสริมแบบเต็มในวิดีโอ Dolby Vision Profile 7 ที่รองรับ ใช้ทรัพยากร GPU และหน่วยความจำมากขึ้น และอาจมีอาการกระตุก ขณะเล่น FEL จะสูญเสียออบเจ็กต์เสียง Dolby Atmos และเสียงมิติความสูงของ DTS:X"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desteklenen Dolby Vision Profile 7 videolarında tam iyileştirme katmanının kodunu çözer. Daha fazla GPU kaynağı ve bellek kullanır ve takılmalara neden olabilir. FEL oynatımı sırasında Dolby Atmos ses nesneleri ve DTS:X yükseklik kanallarındaki sesler kaybolur."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Декодувати повний шар покращення в підтримуваних відео Dolby Vision Profile 7. Використовує більше ресурсів GPU та пам’яті й може спричиняти ривки під час відтворення. Під час відтворення FEL втрачаються звукові об’єкти Dolby Atmos і звук висотних каналів DTS:X."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Giải mã toàn bộ lớp tăng cường trong các video Dolby Vision Profile 7 được hỗ trợ. Dùng nhiều tài nguyên GPU và bộ nhớ hơn, có thể gây giật hình. Khi phát FEL, các đối tượng âm thanh Dolby Atmos và âm thanh từ các kênh trên cao của DTS:X sẽ bị mất."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "解码受支持的 Dolby Vision Profile 7 视频中的完整增强层。会使用更多 GPU 资源和内存，并可能出现卡顿。FEL 播放会丢失 Dolby Atmos 音频对象和 DTS:X 高度声道音频。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "解碼支援的 Dolby Vision Profile 7 影片中的完整增強層。會使用更多 GPU 資源和記憶體，並可能出現卡頓。FEL 播放會遺失 Dolby Atmos 音訊物件和 DTS:X 高度聲道音訊。"
           }
         }
       }
@@ -266087,6 +266969,7 @@
       }
     },
     "Direct Play (Plozzigen)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -273590,6 +274473,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Dolby Audio"
+          }
+        }
+      }
+    },
+    "Dolby Vision FEL (experimental)" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (تجريبي)"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (експериментално)"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimental)"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimentální)"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimentel)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimentell)"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (πειραματικό)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimental)"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (آزمایشی)"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (kokeellinen)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (expérimental)"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (ניסיוני)"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (प्रायोगिक)"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimentalno)"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (kísérleti)"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimental)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (sperimentale)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL（試験的）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (실험적 기능)"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimen)"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimentell)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimenteel)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperymentalne)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimental)"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimental)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (экспериментально)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimentálne)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (poskusno)"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimentalno)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimentellt)"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (ทดลอง)"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (deneysel)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (експериментальна функція)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (thử nghiệm)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL（实验性）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL（實驗性）"
           }
         }
       }
@@ -298387,6 +299490,666 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "播放引擎緩衝"
+          }
+        }
+      }
+    },
+    "Enhance" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تحسين"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подобряване"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Millora"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýraznit"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fremhæv"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verbessern"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Βελτίωση"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mejorar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تقویت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Korostettu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Améliorer"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שיפור"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "बढ़ाएँ"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poboljšaj"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kiemelés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tingkatkan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Migliora"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "強調"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "강조"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tingkatkan"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Framhev"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verbeter"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Korekcja"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aprimorar"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Amplificare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Улучшить"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vylepšiť"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izboljšano"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poboljšaj"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Framhäv"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ปรับเสียง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "İyileştir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Виокремлення"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cải thiện"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "突显"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "突顯"
+          }
+        }
+      }
+    },
+    "Enhance Dialogue" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تحسين الحوار"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подобряване на диалога"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Millora dels diàlegs"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýraznit dialogy"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dialogforbedring"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dialoge verbessern"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ενίσχυση διαλόγων"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mejorar diálogos"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تقویت گفت‌وگو"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dialogin korostus"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Améliorer les dialogues"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שיפור הדיבור"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "संवाद की स्पष्टता बढ़ाएँ"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poboljšaj dijalog"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beszéd kiemelése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tingkatkan Dialog"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Migliora dialoghi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対話を強調"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "대화 강조"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tingkatkan Dialog"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Framhev dialog"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verbeter dialogen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wzmacnianie dialogów"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aprimorar Diálogo"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Amplificare dialog"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Улучшение диалогов"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýrazniť dialógy"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izboljšaj dialog"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poboljšaj dijalog"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Framhäv dialog"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ปรับเสียงสนทนา"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diyalogları İyileştir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Виокремлення діалогів"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cải thiện hội thoại"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "突显对话"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "突顯對白"
+          }
+        }
+      }
+    },
+    "Enhance More" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مزيد من التحسين"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Повече подобряване"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Millora-ho més"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýraznit víc"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fremhæv mere"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stärker verbessern"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Περαιτέρω βελτίωση"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mejorar más"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تقویت بیشتر"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Korosta enemmän"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Améliorer davantage"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שיפור נוסף"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "और बढ़ाएँ"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dodatno poboljšaj"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Erősebb kiemelés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tingkatkan Lagi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Migliora di più"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "より強調"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "더 강조"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tingkatkan Lagi"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Framhev mer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verbeter meer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wzmacniaj bardziej"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aprimorar Mais"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Amplificare suplimentară"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Усилить улучшение"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ešte viac zvýrazniť"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dodatno izboljšano"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dodatno poboljšaj"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Framhäv mer"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ปรับเสียงเพิ่มเติม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Daha Fazla İyileştir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Виокремити сильніше"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cải thiện thêm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "进阶突显"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "加強突顯"
           }
         }
       }
@@ -378562,6 +380325,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "代碼無效或已過期 — 請再試一次"
+          }
+        }
+      }
+    },
+    "Isolate" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "عزل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изолиране"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aïllament"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izolovat"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isoler"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isolieren"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Απομόνωση"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aislar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جداسازی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eristä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isoler"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "בידוד"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "अलग करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izdvoji"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elkülönítés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isolasi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isolamento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "分離"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "분리"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Asingkan"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isoler"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isoleer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izoluj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isolar"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izolare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изолирование"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izolácia"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Razločitev"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izdvoji"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isolera"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แยกเสียง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "İzole Et"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Виділення"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tách biệt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "分离人声"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "隔離"
           }
         }
       }
@@ -462381,6 +464364,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "沒有其他音軌"
+          }
+        }
+      }
+    },
+    "No audio controls available" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لا تتوفر عناصر تحكم في الصوت"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Няма налични контроли за звука"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hi ha controls d’àudio disponibles"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nejsou dostupné žádné ovládací prvky zvuku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingen lydindstillinger tilgængelige"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keine Audiosteuerung verfügbar"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δεν υπάρχουν διαθέσιμα χειριστήρια ήχου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hay controles de audio disponibles"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هیچ کنترلی برای صدا در دسترس نیست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Äänisäätimiä ei ole käytettävissä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aucune commande audio disponible"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אין פקדי שמע זמינים"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कोई ऑडियो नियंत्रण उपलब्ध नहीं है"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nema dostupnih kontrola zvuka"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nincsenek elérhető hangvezérlők"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kontrol audio tidak tersedia"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nessun controllo audio disponibile"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "利用可能なオーディオコントロールはありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "사용 가능한 오디오 제어 기능이 없습니다"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tiada kawalan audio tersedia"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ingen lydkontroller er tilgjengelige"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Geen audioregelaars beschikbaar"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brak dostępnych elementów sterujących dźwiękiem"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nenhum controle de áudio disponível"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nu sunt disponibile comenzi audio"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Элементы управления аудио недоступны"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie sú dostupné žiadne ovládacie prvky zvuku"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kontrolniki za zvok niso na voljo"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nema dostupnih kontrola zvuka"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Inga ljudreglage är tillgängliga"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่มีตัวควบคุมเสียงที่ใช้งานได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kullanılabilir ses denetimi yok"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Елементи керування аудіо недоступні"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không có tùy chọn điều khiển âm thanh khả dụng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "没有可用的音频控制"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "沒有可用的音訊控制項目"
           }
         }
       }
@@ -582565,6 +584768,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "送出代碼"
+          }
+        }
+      }
+    },
+    "Reduce Loud Sounds" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "خفض الأصوات المرتفعة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Намаляване на силните звуци"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reducció de sons alts"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tlumit hlasité zvuky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Formindsk høje lyde"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Laute Töne reduzieren"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μείωση δυνατών ήχων"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reducir sonidos fuertes"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "کاهش صداهای بلند"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kovien äänten hiljennys"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diminuer les sons forts"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "צמצום רעשים חזקים"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "तेज़ आवाज़ें कम करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Smanji glasne zvukove"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hangos hangok csökkentése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kurangi Bunyi Keras"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Riduci suoni intensi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "大きな音を抑える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "큰 소리 줄이기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kurangkan Bunyi Kuat"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Demp høye lyder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verminder harde geluiden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Redukowanie głośnych dźwięków"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reduzir Sons Altos"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reducerea sunetelor puternice"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Приглушение громких звуков"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stíšenie hlasných zvukov"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zmanjšaj glasne zvoke"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Smanji glasne zvukove"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dämpa starka ljud"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ลดเสียงดัง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yüksek Sesleri Azalt"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Приглушити гучні звуки"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Giảm âm thanh lớn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "降低高音量"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "降低高音量"
           }
         }
       }
@@ -847681,6 +850104,226 @@
         }
       }
     },
+    "Try changing this setting in Apple TV Settings." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جرّب تغيير هذا الإعداد في إعدادات Apple TV."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Опитайте да промените тази настройка в „Настройки“ на Apple TV."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prova de canviar aquest ajust a l’app Configuració de l’Apple TV."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zkuste toto nastavení změnit v Nastavení na Apple TV."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prøv at ændre denne indstilling i Indstillinger på Apple TV."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Versuche, diese Einstellung in den Einstellungen auf dem Apple TV zu ändern."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Δοκιμάστε να αλλάξετε αυτήν τη ρύθμιση στις Ρυθμίσεις του Apple TV."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prueba a cambiar este ajuste en Ajustes del Apple TV."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سعی کنید این گزینه را در تنظیمات Apple TV تغییر دهید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kokeile muuttaa tätä asetusta Apple TV:n Asetuksissa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Essayez de modifier ce réglage dans Réglages sur l’Apple TV."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אפשר לנסות לשנות הגדרה זו בהגדרות של Apple TV."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apple TV की सेटिंग में यह सेटिंग बदलकर देखें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pokušajte promijeniti ovu postavku u postavkama Apple TV-a."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Próbálja meg módosítani ezt a beállítást az Apple TV Beállítások alkalmazásában."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Coba ubah pengaturan ini di Pengaturan Apple TV."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prova a modificare questa opzione nelle Impostazioni di Apple TV."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apple TVの「設定」でこの設定を変更してみてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apple TV의 설정에서 이 설정을 변경해 보십시오."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cuba ubah seting ini dalam Seting pada Apple TV."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prøv å endre denne innstillingen i Innstillinger på Apple TV."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Probeer deze instelling te wijzigen in Instellingen op de Apple TV."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Spróbuj zmienić to ustawienie w Ustawieniach na Apple TV."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tente alterar este ajuste nos Ajustes da Apple TV."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Încercați să modificați această configurare în aplicația Configurări de pe Apple TV."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Попробуйте изменить эту настройку в приложении «Настройки» на Apple TV."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skúste toto nastavenie zmeniť v Nastaveniach na Apple TV."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskusite spremeniti to nastavitev v Nastavitvah na Apple TV."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pokušajte da promenite ovo podešavanje u Podešavanjima na Apple TV-u."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Försök ändra den här inställningen i Inställningar på Apple TV."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ลองเปลี่ยนการตั้งค่านี้ในแอปการตั้งค่าบน Apple TV"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu ayarı Apple TV’deki Ayarlar uygulamasından değiştirmeyi deneyin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Спробуйте змінити цей параметр у програмі «Параметри» на Apple TV."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hãy thử thay đổi cài đặt này trong Cài đặt trên Apple TV."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "请尝试在 Apple TV 的“设置”中更改此设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "請嘗試在 Apple TV 的「設定」中更改此設定。"
+          }
+        }
+      }
+    },
     "Trying H.264…" : {
       "localizations" : {
         "ar" : {
@@ -862115,6 +864758,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "於 %@ 更新"
+          }
+        }
+      }
+    },
+    "Updating" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جارٍ التحديث"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Настройката се актуализира"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "S’està actualitzant"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktualizuje se nastavení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Opdaterer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wird aktualisiert"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Γίνεται ενημέρωση της ρύθμισης"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Actualizando"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "در حال به‌روزرسانی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Päivitetään"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Actualisation en cours"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מעדכן"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सेटिंग अपडेट हो रही है"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ažuriranje postavke u tijeku"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beállítás frissítése folyamatban"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memperbarui"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aggiornamento dell’impostazione in corso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "更新中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "업데이트 중"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mengemas kini"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oppdaterer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bezig met bijwerken"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktualizowanie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Atualizando"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se actualizează"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Обновление"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktualizuje sa"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posodabljanje"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ažuriranje"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uppdaterar"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "กำลังอัปเดต"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Güncelleniyor"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Оновлення"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Đang cập nhật"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "正在更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "更新中"
           }
         }
       }

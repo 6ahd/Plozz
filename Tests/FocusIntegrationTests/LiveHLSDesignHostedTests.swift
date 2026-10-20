@@ -93,7 +93,7 @@ private struct LiveHLSDesignFixture: View {
     private var diagnostics: PlaybackDiagnostics {
         var result = PlaybackDiagnostics()
         result.mode = .directPlay
-        result.engineName = "Plozzigen"
+        result.engineName = "AetherEngine v7.44.0"
         result.sourceProvider = .iptv
         result.serverName = "Sample IPTV"
         result.resolution = .init(width: 1920, height: 1080)
