@@ -147,22 +147,26 @@ Owners: [IPTVProvider](../Sources/ProviderIPTV/IPTVProvider.swift),
 
 ### 5. Verify long-session recovery budgets and lifecycle boundaries
 
-**Observed policy:** startup times out after 30 seconds; continuous buffering
-after a presented frame times out after 60 seconds. Source-reset retunes allow
-three attempts per channel session, spaced by at least 20 seconds after the
-first. Sustained healthy playback does not replenish that retune budget.
-Terminal engine failure and end-of-stream are not automatically treated as
-source-reset requests.
+**Reproduced and hardened:** the fourth app-level source reset previously failed
+even after five minutes of healthy viewing between interruptions. The three
+automatic attempts now replenish only after 300 seconds of observed, advancing
+playback with a presented frame. Merely waiting five minutes does not renew
+them. Frozen playheads, more than five seconds without observed progress,
+backward/nonfinite clocks, pause, inactivity, buffering, seeking and new loads
+discard the accumulated healthy interval. Normal coarse clock publications
+within that five-second tolerance remain supported.
 
-**Unchanged:** the bounded disconnect, delayed-segment, and expired-session cases
-recovered with the pinned engine and current budgets. They do not demonstrate a
-need to increase retries or upgrade the engine.
+**Unchanged:** automatic attempts remain at least 20 seconds apart, duplicate
+signals coalesce, and only one retune may run. Manual retry does not itself
+replenish the automatic allowance. Startup still times out after 30 seconds and
+continuous buffering after 60 seconds. Terminal engine failure and EOF do not
+become automatic source-reset requests. No new timer, periodic restart,
+engine upgrade, or extra upstream connection was introduced.
 
-These bounds prevent loops. Do not simply lengthen/remove them, reset budgets
-on every frame, or turn all end-of-stream signals into retries. Reproduce
-separated disruptions in one long session and distinguish upstream engine
-reconnection from host retunes. Determine whether legitimate recovery is cut
-short before choosing a narrowly scoped change.
+The exact threshold and negative paths use injected monotonic clocks in the
+budget/model regressions. That deterministic evidence is not an hours-long
+real-server or audible-playback observation. The existing rendered rolling-HLS
+checks remain separate from the host policy's simulated elapsed time.
 
 Combine the real playback path with preview/fullscreen transitions, Multiview
 promotion, guide/catalogue refresh, temporary inactivity, and background/return.
@@ -173,6 +177,34 @@ Intentional background behavior must not be mislabeled as a continuity defect.
 The pinned engine revision is owned by [Package.swift](../Package.swift).
 Inspect its actual contract before changing the adapter or proposing an upgrade;
 do not assume upstream lacks recovery because a host-level test uses a spy.
+
+### 6. Identify non-video successful stream responses
+
+**Reproduced and hardened:** a live root GET could return HTTP 200 with HTML,
+JSON, XML or no bytes and be forwarded to the decoder as successful media.
+The authenticated IPTV relay now recognizes conservative document signatures
+in the same 16-byte prefix it already reads. It rejects a recognized non-video
+root with a loopback 502 while retaining the real upstream status and closed
+body classification. Repeated engine attempts on that lease do not reopen the
+origin; an explicit retry still obtains a fresh lease.
+
+The retained failure and visible message distinguish a web page, data document,
+or empty response without guessing expired credentials or copying provider
+text. Engine failure combination keeps that classification even if a previous
+successful HLS root remains in delivery history. No additional probe, network
+read budget, body storage, response-text logging, or automatic telemetry is added.
+
+Unknown/truncated prefixes still belong to the media decoder. This is not a
+general XML/JSON validator. HEAD, byte-range responses, HLS child resources
+(including arbitrary AES keys/encrypted segments), and on-demand delivery retain
+their existing behavior. Actual HLS wins over a misleading HTML content type.
+The change is scoped to authenticated IPTV relay playback, not a new sniffing
+request for older standalone direct streams.
+
+Owners and regressions: [IPTVPlaybackProxy](../Sources/ProviderIPTV/IPTVPlaybackProxy.swift),
+[proxy diagnostics](../Tests/ProviderIPTVTests/IPTVPlaybackDiagnosticsTests.swift),
+[engine failure combination](../Tests/EnginePlozzigenTests/PlozzigenLiveFailureTests.swift),
+and [real-player continuity](../Tests/SubtitlePresentationSupport/IPTVContinuityHostedTests.swift).
 
 ## Guide compatibility hardening
 
@@ -225,7 +257,8 @@ Owners: [XMLTV parser](../Sources/FeatureLiveTVCore/LiveTVXMLTVParser.swift),
 
 ## Controlled playback results
 
-Final hosted runs on 2026-10-20 used tvOS 26.2 (Apple TV 4K simulator), iOS 26.2
+Initial continuity/capacity hosted runs on 2026-10-20 used tvOS 26.2
+(Apple TV 4K simulator), iOS 26.2
 (iPhone 17 Pro simulator), and engine revision
 `deb90eb3f740fe1ddda74301a64e3937e480877d`. Each platform completed 20 tests,
 with zero failures and one explicitly opt-in real-relay test skipped. All seven
@@ -250,7 +283,7 @@ these results prove bounded recovery in this workload, not seamless recovery
 from every provider failure. Audio was muted, so audible audio continuity was
 not established. Sixty seconds is not an hours-long soak.
 
-The final targeted package run completed 1,229 passing tests, nine skips, and
+That pass's targeted package run completed 1,229 passing tests, nine skips, and
 one failure in the unchanged
 `PlayerSkipMarkerTrackTests.testFlatPerformanceTrackPairsItsSurfaceWithTheAppAppearance`
 pixel-equality assertion. All 126 IPTV tests passed (six additional skips).
@@ -258,6 +291,25 @@ The unrelated rendering failure was reproduced on a second run and left outside
 this work; the package run is not a full green result. The earlier six-module
 run additionally exercised CoreModels, FeatureLiveTVCore, EnginePlozzigen, and
 MediaTransportHTTP; its new refusal-body timing fixture was corrected and rerun.
+
+### Recovery-credit and response-classification follow-up
+
+The subsequent tvOS and iOS hosted runs each completed 21 passing tests, zero
+failures and the same one opt-in real-relay skip. The new HTTP-200 HTML, JSON,
+XML and empty-body cases reached the real player as typed failures with factual
+messages and exactly one origin request per case. The rolling media, guide
+failure, redirected-session and disconnect cases also continued to pass.
+Healthy fMP4 again presented 899 changing images over 60 seconds on both
+platforms; raw-disconnect recovery's longest image gap was 5.14 / 2.98 seconds.
+These remain bounded simulator observations with muted audio, not uninterrupted
+hours-long playback claims.
+
+Both new policy defects were reproduced before their fixes. The final
+player/provider package rerun completed 1,248 passes, nine skips and only the
+same pre-existing rendering assertion failure above. CoreModels and
+EnginePlozzigen passed in the preceding candidate run. Five-minute credit uses
+injected monotonic time and explicit progress/interruption cases; it is not
+substituted for a real-provider soak. No engine or dependency revision changed.
 
 ### Fixture provenance and reproduction
 
@@ -295,6 +347,112 @@ reproduction, source/platform/engine identity, request and cleanup counts, and
 the observed recovery interval. Specify fault duration and acceptable recovery
 bound before interpreting the result. Test resources must be owned and bounded.
 Simulator evidence does not establish real-provider or physical-device behavior.
+
+## Comparative reliability audit
+
+The additional references below were inspected at pinned revisions, against
+Plozz's corresponding implementation and existing regression coverage. This is
+source-level comparison, not an independent runtime qualification of those apps.
+Stars indicate visibility and interest, not correctness: evaluate the specific
+behavior, failure cases, tests, maintenance and fit with Plozz instead.
+
+### Lume
+
+[Lume](https://github.com/bilipp/Lume) was inspected at
+`a1edf063efafddbc39f6588ab1403b683a807b17`. Its
+[retry controller][lume-retry] coalesces duplicate failures and uses bounded
+backoff, with a slower schedule for overloaded sources. Its LumeEngine host
+[resets that budget on a playing-state recovery][lume-recovered].
+Plozz keeps its existing refusal/Retry-After handling and requires five minutes
+of sustained observed progress before replenishing automatic retunes; a brief
+return to playing is not enough.
+
+Lume's [startup watchdog][lume-failures] extends its initial deadline when
+downloaded bytes advance, while retaining a hard cap. This is a candidate for
+future measured slow-source work, not a reason to increase Plozz's startup
+timeout without a reproduction. The same file permits a new session to open
+after a two-second shutdown grace even if the old one has not closed.
+Do not copy that tradeoff into Plozz's single-connection IPTV lease handling.
+
+Its [session-health tracker][lume-health] distinguishes unmeasured/short sessions
+from healthy ones; it gates review prompts rather than controlling playback.
+The useful lesson is evidence quality, not adding another playback watchdog.
+These comparisons add no engine, protocol, dependency or telemetry. Lume uses
+[AGPL-3.0][lume-license]; the Plozz changes are independently implemented, not
+transplanted source.
+
+### AerioTV
+
+[AerioTV](https://github.com/jonzey231/AerioTV) was inspected at
+`c3a5334830a8e49d3d4adf1e1dff11f5c21a078b` (GPL-3.0).
+Its [player refusal handling][aerio-refusals] latches a provider stop until
+manual Retry and retires scheduled reconnects on a new tune. Those principles
+already match Plozz's terminal lease failures and recovery-generation guards;
+do not add a parallel retry controller.
+
+Its handling of a player-reported unknown format confirms the value of
+distinguishing provider documents from bad media. However, its diagnostic
+probe makes another ranged GET and can record response text. Plozz instead
+classifies the existing response's bounded prefix, preserves the actual
+status, and records only fixed classifications. Keep that safer connection and
+privacy boundary rather than copying the probe.
+
+AerioTV's [playlist/guide loading][aerio-guides] downloads to files and parses
+incrementally, including gzip feeds. Plozz already incrementally imports M3U,
+streams bounded XML/gzip parsing, limits retained guide data, and rejects
+malformed documents rather than publishing a parser's partial result
+(`LiveTVXMLTVParser.parseXML`). The authenticated provider guide download still
+materializes a bounded `Data` and may repeat parsing across batches
+(`IPTVClient.downloadGuideData`). File-backed download and refresh-scoped
+successful parse reuse remain measurement candidates, not a reason to relax
+size limits or change partial-guide publication.
+
+### OrivioTV Apple TV
+
+[OrivioTVAppleTV](https://github.com/prehakanson-art/OrivioTVAppleTV) was inspected
+at `5e4c904f165238fff3181f87cdc48bf426007552` (GPL-3.0). Its Stremio-addon and
+multi-engine architecture makes it an adjacent playback reference, not proof
+of parity with Plozz's authenticated IPTV providers.
+
+Its [stall handling][orivio-stalls] avoids rearming on identical buffering
+notifications and rechecks pause/exit/loading conditions when a watchdog fires.
+Its [progress handling][orivio-progress] also distinguishes a timer firing from
+a playhead advancing. These are useful failure cases, not missing Plozz
+features: `LiveChannelPlayerModel` retains the buffering start until activity
+ends, checks current pause/suspension/generation before retuning, and keeps
+startup bounded until the engine reports a first frame. The new recovery credit
+additionally requires observed progress. Preserve the engine's authoritative
+typed phase instead of importing another clock-derived playback state machine.
+YouTube page extraction and extra playback engines remain outside this work.
+
+### IPTVnator
+
+[IPTVnator](https://github.com/4gray/iptvnator) was inspected at
+`9c5bbf628d070a8fe16b0d624a04e94e9782116f` (MIT). Its TypeScript/Electron stack
+does not prevent useful comparison of retry policies and data ownership; its
+platform/decoder mechanics are not drop-in Apple-platform implementations.
+
+The [embedded MPV reconnect policy][iptvnator-reconnect] and
+[regression tests][iptvnator-reconnect-tests] preserve spent attempts through
+brief recoveries, replenish after a stable playing interval, and cancel/disarm
+on explicit pause. This independently supports the current hardening direction.
+Its six attempts and 30-second playing-state threshold are not adopted: Plozz
+keeps three spaced retunes and requires five minutes of observed advancing
+playback, with interruptions and sample gaps invalidating credit.
+
+Its [guide source generations][iptvnator-generations] and
+[worker lifecycle][iptvnator-fetch] retire obsolete imports, reject late
+messages, and wait for worker termination on timeout before advancing the queue.
+Plozz already checks source revision, account authorization and cancellation
+after provider work before publishing (`LiveTVServerGuideImport`), and its
+indexed-cache regression verifies a malformed replacement preserves the prior
+guide generation. Keep those boundaries; cancellation must not become success,
+and a source removed during refresh must not reappear.
+
+The next justified investigation remains large-guide download/parse cost and
+longer fault-injected playback/lifecycle coverage, not more retries or a new
+engine. Source inspection alone does not demonstrate that either requires a
+production behavior change.
 
 ## Existing reports, not new diagnoses
 
@@ -336,3 +494,16 @@ transplanting its code as part of reliability work.
 [rivulet-suggestions]: https://github.com/l984-451/Rivulet/blob/5a0f34b905ab5063ab665c8d1dbb16b5cd9e51de/RivuletCore/LiveTV/LiveSuggestions.swift
 [rivulet-games]: https://github.com/l984-451/Rivulet/blob/5a0f34b905ab5063ab665c8d1dbb16b5cd9e51de/RivuletCore/Scores/GameMatcher.swift
 [rivulet-license]: https://github.com/l984-451/Rivulet/blob/5a0f34b905ab5063ab665c8d1dbb16b5cd9e51de/LICENSE
+[lume-retry]: https://github.com/bilipp/Lume/blob/a1edf063efafddbc39f6588ab1403b683a807b17/Lume/Views/Player/PlaybackRetryController.swift
+[lume-recovered]: https://github.com/bilipp/Lume/blob/a1edf063efafddbc39f6588ab1403b683a807b17/Lume/Views/Player/LumeEngineCoordinator.swift#L426-L435
+[lume-failures]: https://github.com/bilipp/Lume/blob/a1edf063efafddbc39f6588ab1403b683a807b17/Lume/Views/Player/LumeEngineCoordinator+Failures.swift
+[lume-health]: https://github.com/bilipp/Lume/blob/a1edf063efafddbc39f6588ab1403b683a807b17/Lume/Services/Diagnostics/PlaybackHealthTracker.swift
+[lume-license]: https://github.com/bilipp/Lume/blob/a1edf063efafddbc39f6588ab1403b683a807b17/LICENSE
+[aerio-refusals]: https://github.com/jonzey231/AerioTV/blob/c3a5334830a8e49d3d4adf1e1dff11f5c21a078b/App/MPVPlayerView.swift#L2231-L2355
+[aerio-guides]: https://github.com/jonzey231/AerioTV/blob/c3a5334830a8e49d3d4adf1e1dff11f5c21a078b/Networking/PlaylistParsers.swift
+[orivio-stalls]: https://github.com/prehakanson-art/OrivioTVAppleTV/blob/5e4c904f165238fff3181f87cdc48bf426007552/OrivioTV/Player/PlayerViewModel.swift#L937-L1029
+[orivio-progress]: https://github.com/prehakanson-art/OrivioTVAppleTV/blob/5e4c904f165238fff3181f87cdc48bf426007552/OrivioTV/Player/PlayerViewModel.swift#L2062-L2114
+[iptvnator-reconnect]: https://github.com/4gray/iptvnator/blob/9c5bbf628d070a8fe16b0d624a04e94e9782116f/apps/electron-backend/src/app/services/embedded-mpv-reconnect.ts#L274-L327
+[iptvnator-reconnect-tests]: https://github.com/4gray/iptvnator/blob/9c5bbf628d070a8fe16b0d624a04e94e9782116f/apps/electron-backend/src/app/services/embedded-mpv-reconnect.spec.ts#L157-L180
+[iptvnator-generations]: https://github.com/4gray/iptvnator/blob/9c5bbf628d070a8fe16b0d624a04e94e9782116f/apps/electron-backend/src/app/events/epg-source-generation.ts
+[iptvnator-fetch]: https://github.com/4gray/iptvnator/blob/9c5bbf628d070a8fe16b0d624a04e94e9782116f/apps/electron-backend/src/app/events/epg-fetch-operation.ts#L84-L153

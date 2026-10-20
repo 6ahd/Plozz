@@ -1708,6 +1708,13 @@ They are observations, not a playlist validator or a new retry policy. A child
 404 remains available even if AVFoundation replaces it with a generic failure;
 an earlier recovered request does not become the terminal error.
 
+For live root GETs, the relay also recognizes HTML/JSON/XML document signatures
+or an empty body from its existing 16-byte prefix. A recognized non-video
+response fails without opening a second origin request, preserving the actual
+HTTP status and a fixed body classification in the error shown to the user.
+It does not infer authorization failure. Unknown prefixes, HEAD, byte ranges,
+opaque HLS children and on-demand delivery keep their existing behavior.
+
 These reports never include URLs, hosts, IPs, channel names, response bodies,
 raw headers, native descriptions, or native error-log comments. Local copying
 does not enable telemetry; the existing consent-generation, report-count, and
@@ -1744,7 +1751,13 @@ timeshift controls disable rather than promising unavailable rewind.
 
 The host subscribes to `liveSourceReset` before loading. A fixed public channel
 reopens the same URL, with one automatic retune in flight, at least 20 seconds
-between automatic attempts and at most three per channel-viewing session.
+between automatic attempts and at most three before recovery is exhausted.
+Five minutes of continuously observed playing state with a presented frame and
+an advancing playhead replenishes that allowance. Pause, inactivity, buffering,
+seeking, a new load, backward/nonfinite clocks or more than five seconds without
+observed progress discard the healthy interval; elapsed wall time alone does
+not count. This clock observation only qualifies recovery credit, never changes
+the engine's published playback phase or starts a periodic retune.
 Duplicate signals coalesce, pause/inactivity defers recovery, and exhaustion is
 visible. Two manual retries remain available; they do not replenish automatic
 recovery's budget. Startup is bounded at 30 seconds and sustained activity/stall

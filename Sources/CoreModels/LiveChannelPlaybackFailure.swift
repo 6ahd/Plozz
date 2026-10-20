@@ -86,7 +86,13 @@ public struct LiveChannelFailureReport: Equatable, Sendable {
     }
 
     public var message: LocalizedStringResource {
-        switch failure {
+        if case .engine(.invalidResponse) = failure,
+           let diagnostic, diagnostic.reason == .invalidResponse,
+           diagnostic.httpStatus.map({ (200...299).contains($0) }) == true,
+           let message = diagnostic.format.nonVideoMessage {
+            return message
+        }
+        return switch failure {
         case .engine(.conflict): failure.message
         case .engine:
             PlaybackDiagnosticReport.providerMessage(

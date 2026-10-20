@@ -230,6 +230,7 @@ actor IPTVPlaybackProxy {
         defer { deadline.cancel() }
         var sentResponse = false
         var diagnosticStage: PlaybackFailureDiagnostic.Stage?
+        var rejectedBody = false
         let responseEvidence = IPTVPlaybackResponseEvidence()
         var receivedBytes = 0
         do {
@@ -293,13 +294,21 @@ actor IPTVPlaybackProxy {
                     receivedBytes += 1
                 }
                 responseEvidence.received(receivedBytes)
+                // Keys, encrypted segments and byte ranges are opaque bytes, not documents.
+                if isLive, url == origin, !outgoing.keys.contains(where: { $0.lowercased() == "range" }),
+                   response.statusCode != 206, response.value(forHTTPHeaderField: "Content-Range") == nil,
+                   let format = Self.nonVideoBodyFormat(prefix) {
+                    responseEvidence.detect(format)
+                    rejectedBody = true
+                    throw AppError.invalidResponse
+                }
                 let contentType = response.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
                 let prefixText = String(decoding: prefix, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
                 let hasManifestHeader = prefixText.hasPrefix("#EXTM3U")
                     || prefixText.hasPrefix("\u{FEFF}#EXTM3U")
                 let manifest = contentType.contains("mpegurl") || hasManifestHeader
                 if manifest {
-                    responseEvidence.detectHLS()
+                    responseEvidence.detect(.hls)
                     var body = prefix
                     while let byte = try await iterator.next() {
                         guard body.count < 8 * 1_024 * 1_024 else { throw IPTVError.oversizedRecord }
@@ -369,7 +378,13 @@ actor IPTVPlaybackProxy {
                     httpStatus: evidence.status, format: evidence.format,
                     evidence: .init(delivery: deliveryFailure?.evidence)
                 )
-                if let status = evidence.status,
+                if rejectedBody {
+                    deliveryFailure?.clearRateLimit()
+                    deliveryFailure?.record(.invalidResponse, diagnostic: failureDiagnostic)
+                    if refusal == nil || refusal.map({ [429, 509].contains($0.status) }) == true {
+                        refusal = (502, nil)
+                    }
+                } else if let status = evidence.status,
                    [401, 403, 429, 451, 509].contains(status) || error as? AppError == .conflict {
                     let retryAfter: TimeInterval?
                     if case AppError.rateLimited(let delay) = error { retryAfter = delay }
@@ -515,11 +530,34 @@ actor IPTVPlaybackProxy {
                 $0.networkCode = networkCode
             }
         }
-        func detectHLS() {
-            lock.withLock { format = .hls }
-            update { $0.format = .hls }
+        func detect(_ detected: PlaybackFailureDiagnostic.Format) {
+            lock.withLock { format = detected }
+            update { $0.format = detected }
         }
         func reset() { lock.withLock { status = nil; format = .unknown } }
+    }
+
+    nonisolated static func nonVideoBodyFormat(_ prefix: Data) -> PlaybackFailureDiagnostic.Format? {
+        guard !prefix.isEmpty else { return .empty }
+        let text = String(decoding: prefix.prefix(16), as: UTF8.self)
+            .drop(while: { $0.isWhitespace || $0 == "\u{FEFF}" })
+        let lower = text.lowercased()
+        func tag(_ name: String) -> Bool {
+            guard lower.hasPrefix(name), let next = lower.dropFirst(name.count).first else { return false }
+            return next == ">" || next == "/" || next.isWhitespace
+        }
+        if tag("<!doctype html") || tag("<html") { return .html }
+        if tag("<?xml") || tag("<mediacontainer") { return .xml }
+        guard text.utf8.allSatisfy({ (32...126).contains($0) || [9, 10, 13].contains($0) }),
+              let first = text.first else { return nil }
+        let tail = text.dropFirst().drop(while: \.isWhitespace)
+        if first == "{", tail.first == "\"" || tail.first == "}" { return .json }
+        if first == "[", let next = tail.first,
+           "\"{[]-".contains(next) || next.isNumber
+            || ["true", "false", "null"].contains(where: { tail.hasPrefix($0) }) {
+            return .json
+        }
+        return nil
     }
 
     nonisolated static func rangeEvidence(_ value: String?) -> PlaybackDeliveryEvidence.RangeResponse {

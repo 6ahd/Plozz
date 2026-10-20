@@ -63,6 +63,16 @@ bounded language-match/accessibility flags without track titles or URLs.
   buffering; pause, failure, EOF, backgrounding, and dismissal release it.
   tvOS continues to follow actual engine playback.
 
+## Live channel recovery
+
+Live source-reset recovery retains its three-attempt cap and 20-second minimum
+spacing. `LiveChannelRetuneBudget` replenishes attempts only after five minutes
+of observed playing state, a presented frame and advancing playback position.
+Pause, suspension, buffering, seeking, new loads and missing/stale clock samples
+discard healthy credit. The existing monitor samples this policy; no additional
+watchdog, periodic reload or engine-phase inference is added. See
+[Live TV reliability](../../docs/live-tv-reliability.md).
+
 ## Player appearance
 
 Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,

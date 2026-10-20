@@ -35,10 +35,28 @@ final class IPTVContinuityHostedTests: XCTestCase {
     }
 
     func testConnectionLimitReachesThePlayerWithoutExtraUpstreamRequests() async throws {
+        try await assertProviderFailure(
+            body: #"{"error":"All active M3U profiles have reached maximum connection limits"}"#,
+            status: 503, expected: .conflict
+        )
+    }
+
+    func testNonVideoSuccessReachesThePlayerWithoutExtraUpstreamRequests() async throws {
+        for (body, format) in [
+            ("<!DOCTYPE html><html>private</html>", PlaybackFailureDiagnostic.Format.html),
+            (#"{"error":"private"}"#, .json), ("<?xml version=\"1.0\"?><error/>", .xml), ("", .empty)
+        ] {
+            try await assertProviderFailure(body: body, status: 200, expected: .invalidResponse, format: format)
+        }
+    }
+
+    private func assertProviderFailure(
+        body: String, status: Int, expected: AppError, format: PlaybackFailureDiagnostic.Format? = nil
+    ) async throws {
         let server = try IPTVTestHTTPServer { _ in
             .init(
-                data: Data(#"{"error":"All active M3U profiles have reached maximum connection limits"}"#.utf8),
-                status: 503, headers: ["Content-Type": "application/json"]
+                data: Data(body.utf8), status: status,
+                headers: ["Content-Type": status == 503 ? "application/json" : "video/mp2t"]
             )
         }
         addTeardownBlock { await server.stop() }
@@ -55,11 +73,15 @@ final class IPTVContinuityHostedTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(25))
         }
         let report = try XCTUnwrap(model.failureReport)
-        XCTAssertEqual(report.failure, .engine(.conflict))
-        XCTAssertEqual(report.message, LiveChannelPlaybackFailure.engineMessage(.conflict))
-        XCTAssertEqual(report.diagnostic?.httpStatus, 503)
+        XCTAssertEqual(report.failure, .engine(expected))
+        XCTAssertEqual(report.message, format?.nonVideoMessage ?? LiveChannelPlaybackFailure.engineMessage(expected))
+        XCTAssertEqual(report.diagnostic?.httpStatus, status)
+        if let format { XCTAssertEqual(report.diagnostic?.format, format) }
         let requests = await server.requestCount
         XCTAssertEqual(requests, 1)
+        model.stop()
+        await proxy.stop()
+        await server.stop()
     }
 
     private func exercise(

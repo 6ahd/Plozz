@@ -3,6 +3,30 @@ import Foundation
 import XCTest
 
 final class PlaybackDiagnosticReportTests: XCTestCase {
+    func testNonVideoResponsesExplainOnlyObservedContentWithoutGuessingAuthorization() throws {
+        for (format, expected) in [
+            (PlaybackFailureDiagnostic.Format.html, "web page"),
+            (.json, "data document"), (.xml, "data document"), (.empty, "empty video")
+        ] {
+            let attempt = try XCTUnwrap(PlaybackFailureDiagnostics().begin(
+                layer: .iptvProxy, content: .live, captureForPresentation: true
+            ))
+            let diagnostic = attempt.fail(stage: .body, reason: .invalidResponse, httpStatus: 200, format: format)
+            let report = LiveChannelFailureReport(failure: .engine(.invalidResponse), diagnostic: diagnostic)
+            let message = String(localized: report.message)
+            XCTAssertTrue(message.contains(expected))
+            XCTAssertFalse(message.contains("sign in"))
+            XCTAssertFalse(message.contains("expired"))
+            XCTAssertTrue(PlaybackDiagnosticReport.playback(report).supportText.contains("stream_format=\(format.rawValue)"))
+            let unauthorized = LiveChannelFailureReport(failure: .engine(.unauthorized), diagnostic: diagnostic)
+            XCTAssertEqual(unauthorized.message, LiveChannelPlaybackFailure.engineMessage(.unauthorized))
+            let decoded = try JSONDecoder().decode(
+                PlaybackFailureDiagnostic.self, from: JSONEncoder().encode(XCTUnwrap(diagnostic))
+            )
+            XCTAssertEqual(decoded.format, format)
+        }
+    }
+
     func testRecognizedConnectionLimitIsNotReplacedByGenericServerErrorCopy() throws {
         let attempt = try XCTUnwrap(PlaybackFailureDiagnostics().begin(
             layer: .iptvProxy, content: .live, captureForPresentation: true

@@ -50,7 +50,9 @@ final class IPTVPlaybackRecoveryTests: XCTestCase {
         for header in ["Sun, 06 Nov 1994 08:49:37 GMT", "invalid", "-1", "nan"] {
             IPTVFixture.state.reset()
             IPTVFixture.state.handler = { _ in
-                IPTVFixture.state.requests.count == 1 ? (429, ["Retry-After": header], Data()) : (200, [:], Data())
+                IPTVFixture.state.requests.count == 1
+                    ? (429, ["Retry-After": header], Data())
+                    : (200, [:], Data(repeating: 0x47, count: 188))
             }
             let proxy = try IPTVPlaybackProxy(
                 origin: XCTUnwrap(URL(string: "https://provider.test/live.ts")),
@@ -142,7 +144,7 @@ final class IPTVPlaybackRecoveryTests: XCTestCase {
             switch IPTVFixture.state.requests.count {
             case 1: (429, ["Retry-After": "10"], Data())
             case 2: (429, ["Retry-After": "5"], Data())
-            default: (200, [:], Data())
+            default: (200, [:], Data(repeating: 0x47, count: 188))
             }
         }
         let proxy = try IPTVPlaybackProxy(
