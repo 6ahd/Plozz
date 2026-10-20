@@ -95,7 +95,8 @@ public struct HomeRowsSettingsView: View {
                             symbolName: "rectangle.grid.1x2",
                             providerKind: choice?.library?.providerKind ?? choice?.serverRow?.providerKind,
                             mediaShareTransport: choice?.library?.transportKind,
-                            subtitle: choice?.homeEditorSource
+                            subtitle: choice?.homeEditorSource,
+                            providerMarkInSubtitle: true
                         )
                     },
                     onChange: { order in

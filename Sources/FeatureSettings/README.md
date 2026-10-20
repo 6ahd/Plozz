@@ -20,7 +20,9 @@ watch history and planning-list behavior are documented in
   libraries for those controls must not restore a separate management list.
 - **Customize Home** is one shared section editor on TV, iPhone and iPad.
   Normal rows open their own settings. Source-specific rows and their settings
-  use the shared provider brand mark, including the transport badge for shares;
+  use the shared provider brand mark, including the transport badge for shares.
+  In the editor, Add section, and reorder rows, the mark sits beside the
+  library/server name on the second line rather than before the section title;
   generic row glyphs appear only during reordering.
   An inline Preset selector sits below the title, with up/down chevrons beside
   its current value to expose the native menu; mobile uses a secondary heading

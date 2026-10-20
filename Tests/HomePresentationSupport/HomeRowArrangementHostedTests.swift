@@ -647,7 +647,10 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                         disabledSectionTitle: "Hidden", disabledPlaceholder: "No hidden rows",
                         isLifting: .constant(false),
                         row: {
-                            .init(title: Text(verbatim: $0), subtitle: Text("Movies"))
+                            .init(
+                                title: Text(verbatim: $0), providerKind: .jellyfin,
+                                subtitle: Text("Movies"), providerMarkInSubtitle: true
+                            )
                         }, onChange: { _ in }
                     )
                     .padding(30)
@@ -768,17 +771,22 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     ForEach(choices.indices, id: \.self) { index in
                         Group {
                             if reference {
-                                HStack(spacing: 12) {
-                                    ProviderBrandMark(
-                                        provider: sources[index].0, size: 32, showsBackground: false,
-                                        mediaShareTransport: sources[index].1
-                                    )
-                                    .frame(width: 36)
-                                    HomeEditorRowLabel(
-                                        title: choices[index].homeEditorTitle,
-                                        subtitle: choices[index].homeEditorSource
-                                    )
+                                HStack(spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        choices[index].homeEditorTitle.font(.body.weight(.medium))
+                                        HStack(spacing: 6) {
+                                            ProviderBrandMark(
+                                                provider: sources[index].0, size: 20, showsBackground: false,
+                                                mediaShareTransport: sources[index].1
+                                            )
+                                            choices[index].homeEditorSource.font(.footnote).settingsRowSecondary()
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    Image(systemName: "chevron.forward").font(.footnote).settingsRowSecondary()
                                 }
+                                .multilineTextAlignment(.leading)
+                                .frame(minHeight: 44)
                             } else {
                                 HomeSectionChoiceLabel(choice: choices[index])
                             }
@@ -807,16 +815,98 @@ final class HomeRowArrangementHostedTests: XCTestCase {
             return bytes
         }
         for index in choices.indices {
-            let rect = CGRect(x: 26, y: 44 + index * 80, width: 32, height: 32)
+            let rect = CGRect(x: 24, y: 24 + index * 80, width: 24, height: 72)
             let actual = try XCTUnwrap(screenshots[0].cropping(to: rect))
             let reference = try XCTUnwrap(screenshots[1].cropping(to: rect))
             let actualPixels = try pixels(actual)
             let referencePixels = try pixels(reference)
             XCTAssertTrue(stride(from: 0, to: referencePixels.count, by: 4).contains {
-                referencePixels[$0..<$0 + 3].contains { $0 > 30 }
+                let channels = referencePixels[$0..<$0 + 3]
+                return (channels.max() ?? 0) - (channels.min() ?? 0) > 30
             }, "The shared reference must contain visible artwork.")
-            XCTAssertTrue(actualPixels == referencePixels, "Source \(sources[index]) must render the shared mark.")
+            XCTAssertTrue(actualPixels == referencePixels,
+                          "Source \(sources[index]) must render the shared mark below the title beside the source.")
         }
+    }
+
+    func testReorderProviderMarkCanMoveBesideTheSubtitleWithoutChangingDefaultPlacement() async throws {
+        for secondary in [false, true] {
+            try await withWindow(size: CGSize(width: 900, height: 300)) {
+                LiftableReorderList(
+                    sections: .init(enabled: ["row"], disabled: []),
+                    disabledSectionTitle: "Hidden", disabledPlaceholder: "No hidden rows",
+                    isLifting: .constant(false), allowsHiding: false,
+                    row: { _ in
+                        .init(
+                            title: Text("Recently Added"), symbolName: "rectangle.grid.1x2",
+                            providerKind: .jellyfin, subtitle: Text("Movies"),
+                            providerMarkInSubtitle: secondary
+                        )
+                    },
+                    onChange: { _ in }
+                )
+                .padding(24)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } inspect: { window in
+                let image = try await self.snapshot(window, name: "Reorder secondary provider \(secondary)")
+                let cgImage = try XCTUnwrap(image.cgImage)
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.recognitionLanguages = ["en-US"]
+                try VNImageRequestHandler(cgImage: cgImage).perform([request])
+                func textFrame(_ text: String) throws -> CGRect {
+                    let result = try XCTUnwrap(request.results?.first {
+                        $0.topCandidates(1).first?.string.contains(text) == true
+                    })
+                    let candidate = try XCTUnwrap(result.topCandidates(1).first)
+                    let range = try XCTUnwrap(candidate.string.range(of: text))
+                    let rect = try XCTUnwrap(candidate.boundingBox(for: range)).boundingBox
+                    return CGRect(
+                        x: rect.minX * image.size.width, y: (1 - rect.maxY) * image.size.height,
+                        width: rect.width * image.size.width, height: rect.height * image.size.height
+                    )
+                }
+                let title = try textFrame("Recently Added")
+                let source = try textFrame("Movies")
+                let mark = try self.coloredArtworkBounds(in: cgImage)
+                if secondary {
+                    XCTAssertGreaterThan(mark.minY, title.maxY)
+                    XCTAssertEqual(mark.midY, source.midY, accuracy: 5)
+                    XCTAssertLessThanOrEqual(mark.maxX, source.minX)
+                    XCTAssertGreaterThan(mark.midX, title.minX)
+                } else {
+                    XCTAssertLessThan(mark.maxX, title.minX,
+                                      "Other reorder consumers must keep their leading provider mark.")
+                }
+            }
+        }
+    }
+
+    private func coloredArtworkBounds(in image: CGImage) throws -> CGRect {
+        let width = image.width
+        let height = image.height
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        try bytes.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(
+                data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        var bounds = CGRect.null
+        for y in 0..<height {
+            for x in 0..<width {
+                let offset = (y * width + x) * 4
+                let channels = bytes[offset..<(offset + 3)]
+                if bytes[offset + 3] > 150,
+                   (channels.max() ?? 0) - (channels.min() ?? 0) > 40 {
+                    bounds = bounds.union(CGRect(x: x, y: y, width: 1, height: 1))
+                }
+            }
+        }
+        XCTAssertFalse(bounds.isNull, "The provider mark must contain visible colored artwork.")
+        return bounds
     }
 
     #if os(tvOS)

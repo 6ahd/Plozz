@@ -73,6 +73,9 @@ struct HomeEditorRowLabel: View {
     let subtitle: Text?
     var accessory = "chevron.forward"
     var titleSymbol: String? = nil
+    var subtitleProvider: ProviderKind? = nil
+    var mediaShareTransport: MediaShareTransportKind? = nil
+    @ScaledMetric(relativeTo: .footnote) private var sourceMarkSize: CGFloat = 20
 
     var body: some View {
         HStack(spacing: 16) {
@@ -86,7 +89,18 @@ struct HomeEditorRowLabel: View {
                             .accessibilityHidden(true)
                     }
                 }
-                subtitle?.font(.footnote).settingsRowSecondary()
+                if let subtitle {
+                    HStack(spacing: 6) {
+                        if let subtitleProvider {
+                            ProviderBrandMark(
+                                provider: subtitleProvider, size: sourceMarkSize, showsBackground: false,
+                                mediaShareTransport: mediaShareTransport
+                            )
+                            .accessibilityHidden(true)
+                        }
+                        subtitle.font(.footnote).settingsRowSecondary()
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: accessory).font(.footnote).settingsRowSecondary().accessibilityHidden(true)
@@ -124,13 +138,12 @@ struct HomeSectionChoiceLabel: View {
     var accessory = "chevron.forward"
 
     var body: some View {
-        HStack(spacing: 12) {
-            choice.homeEditorProviderMark
-            HomeEditorRowLabel(
-                title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
-                accessory: accessory
-            )
-        }
+        HomeEditorRowLabel(
+            title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
+            accessory: accessory,
+            subtitleProvider: choice.library?.providerKind ?? choice.serverRow?.providerKind,
+            mediaShareTransport: choice.library?.transportKind
+        )
     }
 }
 
