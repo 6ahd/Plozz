@@ -2,6 +2,33 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/059.2",
+      "version": "2026.10.20",
+      "marketingVersion": "2026.9.25",
+      "build": "59.2",
+      "releasedAt": "2026-10-20",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            {
+              "text": "Adjust Reduce Loud Sounds and Enhance Dialogue, including Enhance More, from the Audio menu during videos and Live TV on supported Apple TV audio outputs.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            {
+              "text": "Long audio-track names scroll when focused.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/059.1",
       "version": "2026.10.20",
       "marketingVersion": "2026.9.25",
