@@ -3,6 +3,93 @@ import XCTest
 
 @MainActor
 final class PlayerLayoutInteractionTests: XCTestCase {
+    func testLiveHeaderKeepsIdentityAndTimelineStableAcrossPlaybackStates() {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        for orientation in [UIDeviceOrientation.landscapeLeft, .portrait] {
+            XCUIDevice.shared.orientation = orientation
+            for (hasProgram, scheduled) in [(true, false), (false, false), (false, true)] {
+                app.launchArguments = ["--player-layout-fixture", "--live-player", "--cycle-live-phase", "--light"]
+                if !hasProgram { app.launchArguments.append("--no-guide-program") }
+                if scheduled { app.launchArguments.append("--scheduled-channel") }
+                app.launch()
+                let title = app.staticTexts["live-channel-program-title"]
+                XCTAssertTrue(title.waitForExistence(timeout: 10))
+                wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    (app.frame.width > app.frame.height) == orientation.isLandscape
+                }, object: nil)], timeout: 10)
+                let channel = app.staticTexts["live-channel-name"]
+                XCTAssertEqual(channel.exists, hasProgram)
+                XCTAssertEqual(title.label, hasProgram ? "Evening News" : "Sample Channel")
+                let originalTitle = title.frame
+                let originalChannel = hasProgram ? channel.frame : originalTitle
+                let scrubber = app.descendants(matching: .any)["live-channel-timeline-scrubber"].firstMatch
+                let originalTimeline = scrubber.frame
+                let header = app.descendants(matching: .any)["live-channel-title-block"].firstMatch
+                XCTAssertEqual(header.images.count, 0, "Artwork belongs in the panels, not the compact header.")
+                XCTAssertEqual(originalTitle.minX, app.buttons["live-channel-info"].frame.minX, accuracy: 1)
+                XCTAssertEqual(originalChannel.minX, originalTitle.minX, accuracy: 1)
+                if hasProgram {
+                    XCTAssertGreaterThanOrEqual(originalTitle.minY - originalChannel.maxY, 3)
+                }
+                let next = app.buttons["fixture-next-live-phase"]
+                for index in 0...10 {
+                    if index > 0 {
+                        next.tap()
+                        wait(for: [XCTNSPredicateExpectation(
+                            predicate: NSPredicate(format: "value == %@", "\(index)"), object: next
+                        )], timeout: 5)
+                    }
+                    let position = app.staticTexts["live-channel-position"]
+                    let visible = index == 0 || index >= 8
+                    XCTAssertEqual(position.exists, visible, "Position badge at playback phase \(index).")
+                    if visible {
+                        let delayed = index == 8 || index == 9
+                        XCTAssertEqual(position.label, scheduled
+                            ? (delayed ? "DELAYED" : "ON NOW")
+                            : (delayed ? "BEHIND LIVE" : "LIVE"))
+                        XCTAssertGreaterThan(position.frame.minX, (hasProgram ? channel : title).frame.maxX)
+                    }
+                    XCTAssertEqual(title.frame, originalTitle)
+                    if hasProgram { XCTAssertEqual(channel.frame, originalChannel) }
+                    XCTAssertEqual(scrubber.frame, originalTimeline)
+                    for text in ["CONNECTING", "BUFFERING", "SEEKING", "RECONNECTING", "PAUSED", "PLAYBACK ERROR", "PLAYBACK ENDED"] {
+                        XCTAssertFalse(header.staticTexts[text].exists)
+                    }
+                    if index == 0 || index == 1 || index == 8 {
+                        capture(app, name: "Live header \(orientation) guide-\(hasProgram) scheduled-\(scheduled) phase-\(index)")
+                    }
+                }
+                app.terminate()
+            }
+        }
+    }
+
+    func testLivePanelsKeepTabSeparationInPortrait() {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        XCUIDevice.shared.orientation = .portrait
+        app.launchArguments = ["--player-layout-fixture", "--live-player", "--light"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.buttons["live-channel-info"].waitForExistence(timeout: 10))
+        for (tab, panel) in [
+            ("live-channel-info", "live-channel-info-panel"),
+            ("live-channel-on-now", "live-channel-on-now-other"),
+            ("live-channel-guide", "live-channel-guide-panel")
+        ] {
+            let button = app.buttons[tab]
+            button.tap()
+            let card = app.descendants(matching: .any)[panel].firstMatch
+            XCTAssertTrue(card.waitForExistence(timeout: 5))
+            XCTAssertGreaterThanOrEqual(card.frame.minY - button.frame.maxY, 11.5)
+            XCTAssertGreaterThan(button.frame.minY, app.buttons["live-channel-close"].frame.maxY)
+            capture(app, name: "Live portrait \(tab) separation")
+        }
+    }
+
     func testLiveAndVODUseMatchingNativeControlsAndEdgeSpacingAfterRotation() throws {
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
         defer {
@@ -131,7 +218,7 @@ final class PlayerLayoutInteractionTests: XCTestCase {
         }
     }
 
-    func testLiveInfoAndOnNowUseNativeMediaGlassInBothAppearances() throws {
+    func testLivePanelsUseNativeMediaGlassInBothAppearances() throws {
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
         XCUIDevice.shared.orientation = .landscapeLeft
         defer {
@@ -146,12 +233,17 @@ final class PlayerLayoutInteractionTests: XCTestCase {
                 XCTAssertTrue(app.buttons["live-channel-info"].waitForExistence(timeout: 10))
                 for (tab, panel) in [
                     ("live-channel-info", "live-channel-info-panel"),
-                    ("live-channel-on-now", empty ? "live-channel-on-now-empty" : "live-channel-on-now-other")
+                    ("live-channel-on-now", empty ? "live-channel-on-now-empty" : "live-channel-on-now-other"),
+                    ("live-channel-guide", "live-channel-guide-panel")
                 ] {
                     app.buttons[tab].tap()
                     let card = app.descendants(matching: .any)[panel].firstMatch
                     XCTAssertTrue(card.waitForExistence(timeout: 5))
+                    XCTAssertGreaterThanOrEqual(card.frame.minY - app.buttons[tab].frame.maxY, 11.5)
                     capture(app, name: "Live \(tab) \(appearance) \(empty ? "empty" : "populated")")
+                    attachMeasurements(["\(tab): \(card.frame), window: \(app.frame)"])
+                    XCTAssertLessThanOrEqual(card.frame.maxX, app.frame.maxX)
+                    XCTAssertLessThanOrEqual(card.frame.maxY, app.frame.maxY)
                     let padding = CGRect(x: card.frame.maxX - 16, y: card.frame.midY - 10, width: 8, height: 20)
                     XCTAssertLessThan(
                         try brightness(XCUIScreen.main.screenshot().image, in: padding, screen: app.frame), 0.4,
@@ -165,6 +257,22 @@ final class PlayerLayoutInteractionTests: XCTestCase {
                             in: action.frame.insetBy(dx: 8, dy: 8), screen: app.frame, threshold: 200
                         )
                         XCTAssertGreaterThan(ink.width, 8, "Secondary actions need the main player's light foreground.")
+                        XCTAssertGreaterThan(ink.height, 8)
+                    } else if tab == "live-channel-guide" {
+                        XCTAssertFalse(card.staticTexts["Evening News"].exists)
+                        let heading = card.staticTexts["Channels"].firstMatch
+                        XCTAssertTrue(heading.exists)
+                        XCTAssertLessThan(heading.frame.minX - card.frame.minX, card.frame.width * 0.2)
+                        let station = card.buttons.matching(
+                            NSPredicate(format: "identifier BEGINSWITH %@", "live-tv-channel-channels-")
+                        ).firstMatch
+                        XCTAssertTrue(station.exists)
+                        XCTAssertLessThanOrEqual(station.frame.height, 65, "Full-width phone guides keep compact rows.")
+                        let ink = try visibleBounds(
+                            uprightImage(XCUIScreen.main.screenshot().image, screen: app.frame),
+                            in: heading.frame, screen: app.frame, threshold: 128
+                        )
+                        XCTAssertGreaterThan(ink.width, 30, "Guide headings need light ink over media glass.")
                         XCTAssertGreaterThan(ink.height, 8)
                     }
                 }

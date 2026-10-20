@@ -275,7 +275,13 @@ struct PrototypeBrowser: View {
         .padding(.top, PrototypeLayout.guideInset)
         #endif
         .padding(.trailing, PrototypeLayout.guideTrailingInset)
-        .background { PrototypeGuideSurface() }
+        .background {
+            #if os(iOS)
+            if !isEmbeddedInPlayer { PrototypeGuideSurface() }
+            #else
+            PrototypeGuideSurface()
+            #endif
+        }
         .clipShape(PrototypeLayout.guideShape)
         #if os(tvOS)
         .focusSection()

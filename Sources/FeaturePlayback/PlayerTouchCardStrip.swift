@@ -76,7 +76,7 @@ public struct PlayerTouchCardStrip: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: PlayerTouchLayout.cardSpacing) {
             tabRow
             if let openPanel {
                 card(for: openPanel)

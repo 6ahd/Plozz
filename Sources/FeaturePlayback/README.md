@@ -69,7 +69,7 @@ Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
 without tint or a colored backing. Like AVKit video chrome, their symbols and
 progress remain white in both appearances. The controls scrim dims the video
 beneath the transport as well as the edge chrome, so white scenes remain legible
-without coloring the glass itself. Mobile Info, Cast, and Live TV Info/On Now
+without coloring the glass itself. Mobile Info, Cast, and Live TV Info/On Now/Guide
 cards use that same native media (`clear`) material, without a colored backing or an added border;
 their labels and badges retain light ink over the dimmed video, and their
 actions use native secondary bordered buttons rather than nesting glass surfaces.
@@ -109,7 +109,15 @@ landscape windows use the compact transport so it stays clear of the bottom
 controls. VOD and Live use the same full-viewport sizing calculation, not the
 Live menu layer's already-inset bounds. Very short windows keep a single
 headline instead of stacking metadata into the center controls; Live retains
-its status beside that headline. VOD and Live chrome use the larger of the
+its position badge beside that headline. Mobile Live headers are text-only:
+channel name and position share a baseline above the programme title, or a
+single headline when guide data is absent. Artwork remains in the panels.
+Position badges show LIVE/BEHIND LIVE (ON NOW/DELAYED for scheduled channels),
+not transient connection, seeking, or error messages. Those keep their existing
+activity/error presentation; pausing remains visible in the transport. Hide the
+badge during transient phases and while paused at the edge, retaining its
+localized layout space so the header and timeline do not shift.
+VOD and Live chrome use the larger of the
 window safe area and native edge margins (21 horizontal, 24 vertical), rather
 than adding the two. Adjacent
 routing and playback-option controls share one untinted glass capsule while
@@ -118,7 +126,14 @@ backgrounds or circular clipping, including UIKit menu buttons; Close and the
 main transport remain separate. Timeline-only skip feedback preserves the
 track-control group's space but hides its native hit and accessibility targets.
 Mobile card tabs use native glass buttons with player-sized labels, 8-point gaps,
-and a 44-point minimum touch target instead of TV padding. The timeline occupies
+and a 44-point minimum touch target instead of TV padding. Open cards sit 12
+points below their tabs. The mobile Guide fills the card's width in both
+orientations; current-channel details belong in Info, not a repeated sidebar.
+Phone rows stay compact, with extra width available for programme time.
+The Guide uses one media-glass underlay, with no standalone guide gradient on top. Its grid
+uses media-contrast text/cell colors on native glass and the selected theme on
+the reduced-glass fallback; the standalone guide and tvOS remain unchanged.
+The timeline occupies
 a 38-point layout row while VOD and Live scrubbing retain a 44-point touch target.
 Live uses the same inline timestamp layout, with the picture/seek-target clock
 on the left and programme end on the right (`--:--` without guide data).

@@ -1074,7 +1074,12 @@ struct LiveChannelOverlay: View {
             .clipShape(RoundedRectangle(
                 cornerRadius: max(0, metrics.panelCornerRadius - metrics.contentPadding), style: .continuous
             ))
-            .modifier(PanelGlassBackground(cornerRadius: metrics.panelCornerRadius))
+            .modifier(PanelGlassBackground(cornerRadius: metrics.panelCornerRadius, mediaGlass: true))
+            #if os(iOS)
+            .contentShape(Rectangle())
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("live-channel-guide-panel")
+            #endif
     }
 
     @ViewBuilder
@@ -1090,20 +1095,7 @@ struct LiveChannelOverlay: View {
         // A fresh grid when the Guide button asks for focus.
         .id(guideGrabsFocus)
         #if os(iOS)
-        if isTouchPortrait {
-            grid
-        } else {
-            // Across a wide screen the grid alone draws its roomy layout at a
-            // height that shows barely a row; beside an info column it keeps
-            // the phone's compact shape, which scrolls comfortably.
-            HStack(alignment: .top, spacing: 12) {
-                LiveChannelGuideInfoColumn(
-                    title: title, logoURL: logoURL, plozzChannelID: plozzChannelID, program: program
-                )
-                .frame(width: (availableSize.width * 0.36).rounded())
-                grid
-            }
-        }
+        grid
         #else
         // The grid runs on below the card; fade it out rather than cut it off.
         grid.mask {
@@ -1460,6 +1452,7 @@ extension LiveChannelOverlay {
             if cardOpen {
                 card
                     .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .card)
+                    .padding(.top, PlayerTouchLayout.cardSpacing)
                     // Grows upward out of the tabs, as VOD's touch card does.
                     .transition(.scale(scale: 0.94, anchor: .bottom).combined(with: .opacity))
             }
@@ -1469,39 +1462,33 @@ extension LiveChannelOverlay {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// VOD's touch title block with the channel in front: logo, then the
-    /// status pill and channel over the programme.
     private var touchTitleBlock: some View {
-        HStack(spacing: 12) {
-            if !PlayerTouchLayout.usesCompactTitle(in: touchViewportSize) {
-                ChannelLogoArtwork(
-                    name: title, logoURL: logoURL, size: CGSize(width: 56, height: 34),
-                    cornerRadius: 6, plozzChannelID: plozzChannelID
-                )
-            }
-            VStack(alignment: .leading, spacing: 1) {
-                if !PlayerTouchLayout.usesCompactTitle(in: touchViewportSize) {
-                    HStack(spacing: 8) {
-                        touchStatus
-                        if program != nil {
-                            Text(title)
-                                .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.85))
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                HStack(spacing: 8) {
-                    if PlayerTouchLayout.usesCompactTitle(in: touchViewportSize) { touchStatus }
-                    Text(program?.title ?? title)
-                        .font(PlayerTouchLayout.usesCompactTitle(in: touchViewportSize) ? .headline : .title3.weight(.semibold))
-                        .foregroundStyle(.white)
+        let compact = PlayerTouchLayout.usesCompactTitle(in: touchViewportSize)
+        return VStack(alignment: .leading, spacing: 4) {
+            if program != nil, !compact {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.85))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .accessibilityIdentifier("live-channel-program-title")
+                        .accessibilityIdentifier("live-channel-name")
+                    touchPositionBadge
+                }
+            }
+            HStack(spacing: 8) {
+                Text(program?.title ?? title)
+                    .font(compact ? .headline : .title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .accessibilityIdentifier("live-channel-program-title")
+                if program == nil || compact {
+                    touchPositionBadge
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("live-channel-title-block")
         .reportSubtitleControlsFrame(
             in: tracks.subtitles.controlsLayout, region: .title,
             isVisible: !cardOpen && !touchChromeHidden
@@ -1513,8 +1500,27 @@ extension LiveChannelOverlay {
         .animation(.easeInOut(duration: 0.28), value: openMenu == nil)
     }
 
-    private var touchStatus: some View {
-        LiveChannelStatusPill(status: status, isLive: isAtLiveEdge && phase == .playing, compact: true)
+    private var touchPositionBadge: some View {
+        let playing = LiveChannelPlaybackPhase.playing
+        let scheduled = plozzChannelID != nil
+        let showsPosition = phase == .playing || (phase == .paused && !isAtLiveEdge)
+        return ZStack(alignment: .leading) {
+            // Reserve both localized widths so changing position or hiding the badge cannot move the header.
+            ForEach([true, false], id: \.self) { atLiveEdge in
+                LiveChannelStatusPill(
+                    status: playing.statusLabel(isAtLiveEdge: atLiveEdge, isScheduledChannel: scheduled),
+                    isLive: false, compact: true
+                )
+                .hidden()
+            }
+            LiveChannelStatusPill(
+                status: playing.statusLabel(isAtLiveEdge: isAtLiveEdge, isScheduledChannel: scheduled),
+                isLive: isAtLiveEdge, compact: true
+            )
+            .accessibilityIdentifier("live-channel-position")
+            .playerTouchChromeHidden(!showsPosition)
+        }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     /// The same actions as the tvOS badges, as VOD's touch glass circles.
@@ -1893,68 +1899,6 @@ private struct LiveChannelProgramTiming: View {
         )
     }
 }
-
-#if os(iOS)
-/// The Guide card's left column on a wide touch screen: what is playing, so
-/// the grid beside it can take the phone's compact shape and stay navigable.
-struct LiveChannelGuideInfoColumn: View {
-    let title: String // l10n:content — provider-supplied channel name
-    let logoURL: URL?
-    let plozzChannelID: String?
-    let program: LiveChannelProgramInfo?
-
-    @Environment(\.playerCardMetrics) private var metrics
-
-    var body: some View {
-        GeometryReader { geometry in
-            let width = max(1, geometry.size.width - metrics.contentPadding * 2)
-            let artHeight = min(width * 9 / 16, geometry.size.height * 0.42).rounded()
-            VStack(alignment: .leading, spacing: 6) {
-                LiveChannelProgramArtwork(
-                    artworkURL: program?.artworkURL, channelName: title, logoURL: logoURL,
-                    plozzChannelID: plozzChannelID,
-                    size: CGSize(width: (artHeight * 16 / 9).rounded(), height: artHeight),
-                    cornerRadius: PlozzTheme.Metrics.mediumMediaCornerRadius
-                )
-                .padding(.bottom, 4)
-                Text(program?.title ?? title)
-                    .font(metrics.titleFont)
-                    .lineLimit(2)
-                if program != nil {
-                    Text(title)
-                        .font(metrics.captionFont)
-                        .foregroundStyle(Color.primary.opacity(0.75))
-                        .lineLimit(1)
-                }
-                if let program {
-                    LiveChannelProgramTiming(program: program)
-                        .font(metrics.captionFont)
-                        .foregroundStyle(Color.primary.opacity(0.6))
-                        .lineLimit(2)
-                    if let description = program.description {
-                        Text(description)
-                            .font(metrics.bodyFont)
-                            .foregroundStyle(Color.primary.opacity(0.85))
-                            // Whatever height is left, truncated rather than clipped.
-                            .frame(maxHeight: .infinity, alignment: .top)
-                    }
-                } else {
-                    Text("No guide information for this channel.")
-                        .font(metrics.bodyFont)
-                        .foregroundStyle(Color.primary.opacity(0.6))
-                }
-            }
-            .foregroundStyle(Color.primary)
-            .padding(metrics.contentPadding)
-            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-        }
-        .clipped()
-        .plozzSurface(
-            .raised, cornerRadius: max(0, metrics.panelCornerRadius - metrics.contentPadding)
-        )
-    }
-}
-#endif
 
 // MARK: - Timeline
 

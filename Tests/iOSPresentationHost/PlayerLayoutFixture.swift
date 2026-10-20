@@ -2,8 +2,10 @@ import AVKit
 import CoreModels
 import CoreUI
 import EnginePlozzigen
+import FeatureLiveTVCore
 import SwiftUI
 @testable import AppShelliOS
+@testable import FeatureLiveTV
 @testable import FeaturePlayback
 
 struct PlayerLayoutFixture: View {
@@ -116,9 +118,21 @@ struct PlayerLayoutFixture: View {
         @State private var behind: TimeInterval = 0
         @State private var channel = 0
         @State private var scrubStarts = 0
+        @State private var phaseIndex = 0
+        @State private var guide = LiveTVPrototypeModel(
+            now: Date(), channels: Array(LiveTVPrototypeModel().channels.prefix(4))
+        )
+        @State private var guideImports = LiveTVPrototypeImportModel(configuration: .init())
         @FocusState private var focus: LiveChannelControl?
         private let input: LiveChannelInput
         private let now = Date()
+        private let cyclesPhase = ProcessInfo.processInfo.arguments.contains("--cycle-live-phase")
+        private let hasProgram = !ProcessInfo.processInfo.arguments.contains("--no-guide-program")
+        private let scheduled = ProcessInfo.processInfo.arguments.contains("--scheduled-channel")
+        private let phases: [LiveChannelPlaybackPhase] = [
+            .playing, .loading, .buffering, .seeking, .reconnecting, .paused,
+            .failed(.startupTimedOut), .ended, .playing, .paused, .playing
+        ]
 
         init() {
             input = .stream(url: URL(string: "https://fixture.invalid/live.m3u8")!, httpHeaders: [:])
@@ -131,16 +145,24 @@ struct PlayerLayoutFixture: View {
 
         var body: some View {
             LiveChannelOverlay(
-                title: "Sample Channel", logoURL: nil, plozzChannelID: nil, channelID: "sample", input: input,
-                program: .init(
+                title: "Sample Channel", logoURL: nil, plozzChannelID: scheduled ? "fixture" : nil,
+                channelID: "sample", input: input,
+                program: hasProgram ? .init(
                     title: "Evening News", start: now.addingTimeInterval(-900), end: now.addingTimeInterval(900)
-                ),
-                earlierPrograms: [], libraryItem: nil, openLibraryItem: nil, phase: paused ? .paused : .playing,
+                ) : nil,
+                earlierPrograms: [], libraryItem: nil, openLibraryItem: nil,
+                phase: cyclesPhase ? phases[phaseIndex] : (paused ? .paused : .playing),
                 isAtLiveEdge: behind == 0, behindLiveSeconds: behind, canPause: true, canGoLive: true,
                 seekWindowSeconds: 3600, onSeekBy: { behind = max(0, behind - $0) },
                 onSeekBehindLive: { behind = $0 }, focus: $focus, onClose: {},
                 onPrevious: { channel -= 1 }, onPlayPause: { paused.toggle() }, onGoLive: { behind = 0 },
-                onNext: { channel += 1 }, onMultiview: nil, guideContent: nil,
+                onNext: { channel += 1 }, onMultiview: nil,
+                guideContent: { embedding in
+                    AnyView(LiveTVPlayerGuideOverlay(
+                        model: guide, imports: guideImports, playingChannelID: guide.channels.first?.id ?? "",
+                        libraryCatalog: nil, loadLibraryGuide: nil, embedding: embedding, tune: { _ in channel += 1 }
+                    ))
+                },
                 pendingGuideOpen: false, consumeGuideOpen: {}, onGuideCardChange: { _ in },
                 loadOnNow: {
                     ProcessInfo.processInfo.arguments.contains("--empty-on-now") ? [] : [
@@ -156,7 +178,21 @@ struct PlayerLayoutFixture: View {
             .ignoresSafeArea()
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("live-player-layout-fixture")
-            .accessibilityValue(Text(verbatim: "channel:\(channel),behind:\(Int(behind)),scrubs:\(scrubStarts)"))
+            .accessibilityValue(Text(
+                verbatim: "channel:\(channel),behind:\(Int(behind)),phase:\(phaseIndex),scrubs:\(scrubStarts)"
+            ))
+            .overlay(alignment: .topTrailing) {
+                if cyclesPhase {
+                    Button("Advance state") {
+                        phaseIndex = min(phaseIndex + 1, phases.count - 1)
+                        behind = (8...9).contains(phaseIndex) ? 1800 : 0
+                    }
+                    .accessibilityIdentifier("fixture-next-live-phase")
+                    .accessibilityValue(Text(verbatim: "\(phaseIndex)"))
+                    .padding(.top, 110)
+                    .padding(.trailing, 21)
+                }
+            }
             .onDisappear { tracks.stop() }
         }
     }

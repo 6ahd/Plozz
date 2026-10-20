@@ -32,11 +32,14 @@ final class PlayerTransportPositionTests: XCTestCase {
         )
         let tracks = LiveChannelPlayerModel(engine: try PlozzigenVideoEngine(), input: input)
         defer { tracks.stop() }
-        try await assertCaptionAvoidance(
-            model: tracks.subtitles, layout: tracks.subtitles.controlsLayout, label: "Live", supportsDual: false,
-            captions: LiveChannelSubtitleSurface(model: tracks),
-            chrome: LiveLayoutFixture(input: input, tracks: tracks)
-        )
+        for hasProgram in [true, false] {
+            try await assertCaptionAvoidance(
+                model: tracks.subtitles, layout: tracks.subtitles.controlsLayout,
+                label: hasProgram ? "Live" : "Channel only", supportsDual: false,
+                captions: LiveChannelSubtitleSurface(model: tracks),
+                chrome: LiveLayoutFixture(input: input, tracks: tracks, hasProgram: hasProgram)
+            )
+        }
     }
 
     private func assertCaptionAvoidance(
@@ -266,8 +269,23 @@ final class PlayerTransportPositionTests: XCTestCase {
         )
     }
 
+    func testChannelOnlyLiveHeaderClearsTransportInCompactAndTabletWindows() async throws {
+        let input = LiveChannelInput.stream(
+            url: try XCTUnwrap(URL(string: "https://fixture.invalid/live.m3u8")), httpHeaders: [:]
+        )
+        let tracks = LiveChannelPlayerModel(engine: try PlozzigenVideoEngine(), input: input)
+        defer { tracks.stop() }
+        for phase in [LiveChannelPlaybackPhase.playing, .reconnecting] {
+            try await assertCentered(
+                LiveLayoutFixture(input: input, tracks: tracks, hasProgram: false, phase: phase),
+                label: "Channel only \(phase)", hasActivityIndicator: phase == .reconnecting,
+                bottomFrame: { tracks.subtitles.controlsLayout.frame(for: .title) }
+            )
+        }
+    }
+
     private func assertCentered(
-        _ content: some View, label: String, bottomFrame: () -> CGRect?
+        _ content: some View, label: String, hasActivityIndicator: Bool = false, bottomFrame: () -> CGRect?
     ) async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
@@ -290,6 +308,7 @@ final class PlayerTransportPositionTests: XCTestCase {
         for size in [
             CGSize(width: 956, height: 440), CGSize(width: 440, height: 956),
             CGSize(width: 852, height: 393), CGSize(width: 393, height: 852),
+            CGSize(width: 320, height: 568),
             CGSize(width: 1024, height: 768), CGSize(width: 768, height: 1024)
         ] {
             window.frame = CGRect(origin: .zero, size: size)
@@ -322,7 +341,7 @@ final class PlayerTransportPositionTests: XCTestCase {
             let offset = compact ? 64 : Int(78 + PlayerTouchLayout.transportSpacing(
                 availableWidth: size.width - 42, portrait: size.height > size.width
             ))
-            for offset in [-offset, 0, offset] {
+            for offset in hasActivityIndicator ? [-offset, offset] : [-offset, 0, offset] {
                 let x = Int(size.width / 2) + offset
                 let y = Int(centerY)
                 let darkPixels = ((y - 15)..<(y + 15)).reduce(0) { total, row in
@@ -330,7 +349,7 @@ final class PlayerTransportPositionTests: XCTestCase {
                         bitmap[(row * Int(size.width) + column) * 4] < 60
                     }.count
                 }
-                XCTAssertGreaterThan(darkPixels, 50, "\(label): all three icons need dark ink on light fallback.")
+                XCTAssertGreaterThan(darkPixels, 50, "\(label): transport icons need dark ink on light fallback.")
             }
         }
     }
@@ -368,14 +387,18 @@ final class PlayerTransportPositionTests: XCTestCase {
     private struct LiveLayoutFixture: View {
         let input: LiveChannelInput
         let tracks: LiveChannelPlayerModel
+        var hasProgram = true
+        var phase = LiveChannelPlaybackPhase.playing
         @FocusState private var focus: LiveChannelControl?
         private let now = Date()
 
         var body: some View {
             LiveChannelOverlay(
                 title: "Sample Channel", logoURL: nil, plozzChannelID: nil, channelID: "sample", input: input,
-                program: .init(title: "Evening News", start: now.addingTimeInterval(-900), end: now.addingTimeInterval(900)),
-                earlierPrograms: [], libraryItem: nil, openLibraryItem: nil, phase: .playing,
+                program: hasProgram
+                    ? .init(title: "Evening News", start: now.addingTimeInterval(-900), end: now.addingTimeInterval(900))
+                    : nil,
+                earlierPrograms: [], libraryItem: nil, openLibraryItem: nil, phase: phase,
                 isAtLiveEdge: true, behindLiveSeconds: 0, canPause: true, canGoLive: true,
                 seekWindowSeconds: 3600, onSeekBy: { _ in }, onSeekBehindLive: { _ in },
                 focus: $focus, onClose: {}, onPrevious: {}, onPlayPause: {}, onGoLive: {}, onNext: {},

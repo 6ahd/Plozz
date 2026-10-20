@@ -8,6 +8,7 @@ public enum PlayerTouchLayout {
     public static let playDiameter: CGFloat = 92
     public static let skipDiameter: CGFloat = 64
     public static let timelineRowHeight: CGFloat = 38
+    public static let cardSpacing: CGFloat = 12
 
     public static func usesCompactTransport(contentHeight: CGFloat) -> Bool {
         contentHeight > 0 && contentHeight < 352
