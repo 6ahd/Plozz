@@ -14,16 +14,7 @@
             "Poster, progress-only and label options for Continue Watching.",
             "Merge Next Up into Continue Watching, on by default in Home settings.",
             "Connect WeTrakr to sync watch history and your Watchlist.",
-            {
-              "text": "Play Jellyfin, Emby and Plex direct-play videos in installed Infuse 8.4.7+, VLC or custom apps (Playback > Advanced).",
-              "platforms": ["iOS"]
-            },
-            {
-              "text": "Play Jellyfin, Emby and Plex direct-play videos in installed Native Player, Infuse 8.4.7+, VLC or custom apps (Playback > Advanced).",
-              "platforms": ["tvOS"]
-            },
-            "External-player choice is device-only and off by default; unsupported sources stay in Plozz.",
-            "Infuse can resume and return progress, like Native Player on Apple TV; VLC/custom apps cannot."
+            "Play Jellyfin, Emby and Plex direct-play videos in an installed external player."
           ]
         },
         {
