@@ -104311,6 +104311,226 @@
         }
       }
     },
+    "A progress bar without playback text." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "شريط تقدّم بدون معلومات نصية عن التشغيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Лента за напредъка без текст за възпроизвеждането."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Una barra de progrés sense text de reproducció."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ukazatel průběhu bez textových informací o přehrávání."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "En fremdriftslinje uden afspilningstekst."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ein Fortschrittsbalken ohne Text zur Wiedergabe."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μια γραμμή προόδου χωρίς κείμενο αναπαραγωγής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Una barra de progreso sin texto de reproducción."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نوار پیشرفت بدون متن پخش."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Edistymispalkki ilman toistotekstejä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Une barre de progression sans texte de lecture."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פס התקדמות ללא טקסט על ההשמעה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्लेबैक टेक्स्ट के बिना प्रगति पट्टी."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Traka napretka bez teksta o reprodukciji."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folyamatjelző sáv a lejátszás szöveges adatai nélkül."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bilah progres tanpa teks pemutaran."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Barra di avanzamento senza informazioni testuali sulla riproduzione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "再生情報のテキストなしで進捗バーを表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "재생 관련 텍스트 없이 진행 막대만 표시합니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bar kemajuan tanpa teks maklumat main balik."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "En fremdriftslinje uten tekst om avspillingen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Een voortgangsbalk zonder tekst over het afspelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pasek postępu bez tekstowych informacji o odtwarzaniu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uma barra de progresso sem informações de reprodução em texto."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O bară de progres fără text despre redare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Полоса прогресса без текстовой информации о воспроизведении."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ukazovateľ priebehu sledovania bez textových informácií o prehrávaní."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vrstica napredka brez besedila o predvajanju."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Traka napretka bez teksta o reprodukciji."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "En förloppsindikator utan text om uppspelningen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แถบความคืบหน้าโดยไม่มีข้อความเกี่ยวกับการเล่น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oynatma metni içermeyen bir ilerleme çubuğu."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Смуга прогресу без текстової інформації про відтворення."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Thanh tiến độ không kèm thông tin phát lại dạng văn bản."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "仅显示进度条，不显示播放信息文字。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "僅顯示進度列，不顯示播放資訊文字。"
+          }
+        }
+      }
+    },
     "A request for the playback stream timed out." : {
       "localizations" : {
         "ar" : {
@@ -259029,6 +259249,226 @@
         }
       }
     },
+    "Detailed" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مفصّل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подробно"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detallat"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podrobné"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detaljeret"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detailliert"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αναλυτική προβολή"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detallado"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "با جزئیات"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yksityiskohtainen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Détaillé"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "תצוגה מפורטת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "विस्तृत"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detaljno"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Részletes"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terperinci"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Con dettagli"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "詳細"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "상세"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terperinci"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detaljert"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gedetailleerd"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Szczegółowy"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detalhado"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detaliat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подробно"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podrobné"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podrobno"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detaljno"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detaljerat"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แบบละเอียด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ayrıntılı"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Докладно"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chi tiết"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "详细"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "詳細"
+          }
+        }
+      }
+    },
     "Detailed guidance is not available for this title." : {
       "localizations" : {
         "ar" : {
@@ -304120,6 +304560,226 @@
         }
       }
     },
+    "Episode thumbnails and movie artwork." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صور مصغّرة للحلقات وصور توضيحية للأفلام."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Миниатюри на епизоди и обложки на филми."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatures dels episodis i il·lustracions de les pel·lícules."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatury epizod a filmová grafika."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniaturer af afsnit og coverbilleder til film."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Episoden-Vorschaubilder und Filmbilder."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μικρογραφίες επεισοδίων και εικόνες ταινιών."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniaturas de episodios e imágenes de películas."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تصاویر بندانگشتی قسمت‌ها و تصاویر فیلم‌ها."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jaksojen pikkukuvat ja elokuvien kuvitus."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatures d’épisodes et visuels de films."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "תמונות ממוזערות של פרקים ותמונות של סרטים."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "एपिसोड के थंबनेल और फ़िल्मों का आर्टवर्क."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sličice epizoda i grafika filmova."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Epizódok bélyegképei és filmek borítóképei."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gambar mini episode dan gambar film."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniature degli episodi e copertine dei film."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "エピソードのサムネイルと映画のアートワーク。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "에피소드 썸네일과 영화 아트워크."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imej kecil episod dan karya seni filem."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatyrbilder av episoder og filmbilder."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniaturen van afleveringen en filmafbeeldingen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatury odcinków i grafiki filmów."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniaturas de episódios e arte de filmes."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniaturi ale episoadelor și ilustrații pentru filme."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Миниатюры эпизодов и изображения фильмов."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatúry dielov a filmová grafika."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sličice epizod in grafika filmov."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sličice epizoda i slike filmova."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avsnittsminiatyrer och filmbilder."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ภาพขนาดย่อของตอนและภาพปกภาพยนตร์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bölüm küçük resimleri ve film kapak görselleri."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Мініатюри епізодів і зображення фільмів."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ảnh thu nhỏ của tập và hình ảnh phim."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "单集缩略图和电影封面图。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "單集縮圖與電影封面圖片。"
+          }
+        }
+      }
+    },
     "Episode thumbnails in a show's detail page, rather than the video player." : {
       "localizations" : {
         "ar" : {
@@ -327050,6 +327710,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "資料夾"
+          }
+        }
+      }
+    },
+    "Follow Appearance" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "حسب إعدادات المظهر"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Според настройките в „Изглед“"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Segons la configuració d'Aparença"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podle nastavení vzhledu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Følg indstillingerne for Udseende"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Darstellungseinstellungen übernehmen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Σύμφωνα με την «Εμφάνιση»"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Según «Apariencia»"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پیروی از تنظیمات «ظاهر»"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "”Ulkoasu”-asetusten mukaan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selon « Apparence »"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לפי הגדרות ״מראה״"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“दिखावट” के अनुसार"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prati „Izgled”"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A „Megjelenés” szerint"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikuti Tampilan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Segui «Aspetto»"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「外観」に合わせる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "모양새 설정 따르기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikut Rupa Bentuk"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Følg Utseende"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Weergave volgen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zgodnie z ustawieniami wyglądu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seguir Aparência"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Conform setărilor din „Aspect”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Как в настройках «Внешний вид»"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podľa nastavení v časti „Vzhľad“"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Po nastavitvah v razdelku »Videz«"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prema podešavanjima u odeljku „Izgled“"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Följ inställningarna i ”Utseende”"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ตามการตั้งค่ารูปลักษณ์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Görünüm ayarını kullan"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "За налаштуванням «Зовнішній вигляд»"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Theo cài đặt Giao diện"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "沿用外观设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "沿用外觀設定"
           }
         }
       }
@@ -385734,6 +386614,226 @@
         }
       }
     },
+    "Labels are hidden below Continue Watching artwork." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لا تظهر التسميات أسفل صور «متابعة المشاهدة»."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Надписите под обложките в „Продължете да гледате“ са скрити."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Els textos sota les imatges de «Continua mirant» estan ocults."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Popisky pod obrázky v řádku „Pokračovat ve sledování“ jsou skryté."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teksterne under billederne i »Se videre« er skjult."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beschriftungen unter den Bildern in „Weiterschauen“ sind ausgeblendet."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Οι λεζάντες δεν εμφανίζονται κάτω από τις εικόνες στη «Συνέχεια παρακολούθησης»."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los rótulos no se muestran debajo de las imágenes de «Seguir viendo»."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نوشته‌ها زیر تصاویر «ادامهٔ تماشا» نمایش داده نمی‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tekstejä ei näytetä ”Jatka katsomista” -kuvien alla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les libellés sont masqués sous les visuels de « Reprendre la lecture »."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הכיתובים אינם מוצגים מתחת לתמונות של ״המשך צפייה״."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“देखना जारी रखें” के आर्टवर्क के नीचे लेबल छिपे रहते हैं."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oznake su skrivene ispod grafike u retku „Nastavi gledati”."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A címkék nem jelennek meg a „Megtekintés folytatása” sor borítóképei alatt."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Label di bawah gambar Lanjutkan Menonton tidak ditampilkan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le etichette sono nascoste sotto le copertine di «Continua a guardare»."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「続きを観る」のアートワークの下にラベルを表示しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "시청 중인 콘텐츠 아트워크 아래의 레이블이 숨겨집니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Label di bawah karya seni Teruskan Menonton disembunyikan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Etikettene under bildene i Se videre er skjult."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De labels onder de afbeeldingen in Verder kijken zijn verborgen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podpisy pod grafiką w sekcji Oglądaj dalej są ukryte."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Os rótulos ficam ocultos abaixo da arte em Continuar assistindo."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Textele de sub imaginile din „Continuă vizionarea” sunt ascunse."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подписи под изображениями в разделе «Продолжить просмотр» скрыты."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Popisy pod grafikou v riadku „Pokračovať v sledovaní“ sú skryté."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Napisi pod slikami v vrstici »Nadaljuj z gledanjem« so skriti."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Natpisi ispod slika u redu „Nastavi gledanje“ su skriveni."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bildtexterna under bilderna i ”Fortsätt titta” är dolda."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ซ่อนคำบรรยายภาพใต้ภาพในแถว “ดูต่อ”"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“İzlemeye devam et” satırında görsel altı yazıları gizlenir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Підписи під зображеннями в рядку «Продовжити перегляд» приховані."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ẩn chú thích ảnh bên dưới hình ảnh trong hàng “Xem tiếp”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "隐藏“继续观看”封面图下方的图片说明。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "隱藏「繼續觀看」封面圖片下方的圖片說明。"
+          }
+        }
+      }
+    },
     "Labels are hidden in Showcase and on series artwork." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -386396,6 +387496,226 @@
         }
       }
     },
+    "Labels are visible below Continue Watching artwork." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تظهر التسميات أسفل صور «متابعة المشاهدة»."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Надписите под обложките в „Продължете да гледате“ са видими."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Els textos sota les imatges de «Continua mirant» són visibles."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Popisky pod obrázky v řádku „Pokračovat ve sledování“ jsou viditelné."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teksterne under billederne i »Se videre« er synlige."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beschriftungen unter den Bildern in „Weiterschauen“ sind sichtbar."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Οι λεζάντες εμφανίζονται κάτω από τις εικόνες στη «Συνέχεια παρακολούθησης»."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los rótulos se muestran debajo de las imágenes de «Seguir viendo»."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نوشته‌ها زیر تصاویر «ادامهٔ تماشا» نمایش داده می‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tekstit näkyvät ”Jatka katsomista” -kuvien alla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les libellés sont visibles sous les visuels de « Reprendre la lecture »."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הכיתובים מוצגים מתחת לתמונות של ״המשך צפייה״."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“देखना जारी रखें” के आर्टवर्क के नीचे लेबल दिखाई देते हैं."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oznake su vidljive ispod grafike u retku „Nastavi gledati”."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A címkék megjelennek a „Megtekintés folytatása” sor borítóképei alatt."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Label ditampilkan di bawah gambar Lanjutkan Menonton."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le etichette sono visibili sotto le copertine di «Continua a guardare»."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「続きを観る」のアートワークの下にラベルを表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "시청 중인 콘텐츠 아트워크 아래의 레이블이 표시됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Label dipaparkan di bawah karya seni Teruskan Menonton."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Etiketter vises under bildene i Se videre."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Labels zijn zichtbaar onder de afbeeldingen in Verder kijken."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podpisy pod grafiką w sekcji Oglądaj dalej są widoczne."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Os rótulos ficam visíveis abaixo da arte em Continuar assistindo."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Textele de sub imaginile din „Continuă vizionarea” sunt vizibile."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подписи под изображениями в разделе «Продолжить просмотр» отображаются."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Popisy pod grafikou v riadku „Pokračovať v sledovaní“ sú viditeľné."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Napisi pod slikami v vrstici »Nadaljuj z gledanjem« so vidni."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Natpisi ispod slika u redu „Nastavi gledanje“ su vidljivi."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bildtexterna under bilderna i ”Fortsätt titta” visas."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แสดงคำบรรยายภาพใต้ภาพในแถว “ดูต่อ”"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“İzlemeye devam et” satırında görsel altı yazıları gösterilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Підписи під зображеннями в рядку «Продовжити перегляд» відображаються."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hiện chú thích ảnh bên dưới hình ảnh trong hàng “Xem tiếp”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "显示“继续观看”封面图下方的图片说明。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "顯示「繼續觀看」封面圖片下方的圖片說明。"
+          }
+        }
+      }
+    },
     "Labels are visible except in Showcase and on series artwork." : {
       "localizations" : {
         "ar" : {
@@ -387052,6 +388372,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "各檢視的圖片說明"
+          }
+        }
+      }
+    },
+    "Landscape artwork with a logo." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صورة أفقية مع شعار."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Хоризонтално изображение с лого."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imatges horitzontals amb un logotip."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Obrázky na šířku s logem."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Liggende billeder med et logo."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bilder im Querformat mit Logo."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Οριζόντια εικόνα με λογότυπο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imagen horizontal con un logotipo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تصویر افقی همراه با لوگو."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vaakasuuntainen kuva, jossa on logo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Visuel au format paysage avec un logo."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "תמונה לרוחב עם לוגו."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "लोगो के साथ क्षैतिज आर्टवर्क."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vodoravna grafika s logotipom."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fekvő tájolású borítókép logóval."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gambar horizontal dengan logo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copertina orizzontale con logo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ロゴ付きの横長アートワーク。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "로고가 포함된 가로형 아트워크."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Karya seni melintang dengan logo."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bilder i liggende format med logo."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afbeeldingen in liggend formaat met een logo."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pozioma grafika z logo."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Arte horizontal com um logo."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ilustrații în format peisaj cu un logo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Горизонтальные изображения с логотипом."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grafika na šírku s logom."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ležeča grafika z logotipom."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slike u vodoravnom formatu sa logotipom."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Liggande bilder med en logotyp."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ภาพแนวนอนพร้อมโลโก้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Logo içeren yatay görsel."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Горизонтальне зображення з логотипом."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hình ảnh nằm ngang kèm logo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "带有标志的横向封面图。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "含有標誌的橫向封面圖片。"
           }
         }
       }
@@ -439011,6 +440551,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "電影和影集的背景、標誌，以及相關作品的海報。"
+          }
+        }
+      }
+    },
+    "Movie and show posters." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ملصقات الأفلام والمسلسلات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постери на филми и сериали."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pòsters de pel·lícules i sèries."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakáty filmů a seriálů."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakater til film og serier."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Film- und Serienposter."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αφίσες ταινιών και σειρών."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pósteres de películas y series."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پوسترهای فیلم‌ها و سریال‌ها."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elokuvien ja sarjojen julisteet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Affiches de films et de séries."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פוסטרים של סרטים וסדרות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "फ़िल्मों और शो के पोस्टर."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakati za filmove i serije."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Filmek és sorozatok poszterei."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster film dan serial."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster di film e serie TV."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "映画や番組のポスター。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "영화 및 시리즈 포스터."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster filem dan siri."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakater for filmer og serier."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posters van films en series."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakaty filmów i seriali."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pôsteres de filmes e séries."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afișe de filme și seriale."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постеры фильмов и сериалов."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plagáty filmov a seriálov."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakati filmov in serij."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posteri filmova i serija."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Film- och serieaffischer."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "โปสเตอร์ภาพยนตร์และรายการ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Film ve dizi posterleri."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постери фільмів і серіалів."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Áp phích phim và chương trình."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "电影和剧集海报。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "電影與影集海報。"
           }
         }
       }
@@ -519961,6 +521721,226 @@
         }
       }
     },
+    "Play icon, progress, and playback information." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أيقونة التشغيل وتقدّم المشاهدة ومعلومات التشغيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Икона за възпроизвеждане, напредък и информация за възпроизвеждането."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Icona de reproducció, progrés i informació de reproducció."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikona přehrávání, průběh a informace o přehrávání."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afspilningsikon, fremdrift og afspilningsinformation."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wiedergabesymbol, Fortschritt und Wiedergabeinformationen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Εικονίδιο αναπαραγωγής, πρόοδος παρακολούθησης και πληροφορίες αναπαραγωγής."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Icono de reproducción, progreso e información de reproducción."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نماد پخش، پیشرفت تماشا و اطلاعات پخش."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toistokuvake, katselun eteneminen ja toiston tiedot."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Icône de lecture, progression et informations de lecture."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "סמל הפעלה, התקדמות הצפייה ומידע על ההשמעה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्ले आइकन, प्रगति और प्लेबैक की जानकारी."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikona za reprodukciju, napredak i informacije o reprodukciji."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lejátszási ikon, előrehaladás és lejátszási információk."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikon putar, progres, dan informasi pemutaran."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Icona di riproduzione, avanzamento e informazioni sulla riproduzione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "再生アイコン、進捗、再生情報。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "재생 아이콘, 시청 진행률, 재생 정보."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikon main, kemajuan tontonan, dan maklumat main balik."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avspillingsikon, fremdrift og avspillingsinformasjon."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afspeelpictogram, kijkvoortgang en afspeelinformatie."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikona odtwarzania, postęp oglądania i informacje o odtwarzaniu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ícone de reprodução, progresso e informações de reprodução."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pictogramă de redare, progresul vizionării și informații despre redare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Значок воспроизведения, прогресс просмотра и информация о воспроизведении."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikona prehrávania, priebeh sledovania a informácie o prehrávaní."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikona za predvajanje, napredek ogleda in informacije o predvajanju."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ikona za reprodukciju, napredak gledanja i informacije o reprodukciji."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uppspelningsikon, uppspelningsförlopp och uppspelningsinformation."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไอคอนเล่น ความคืบหน้าการรับชม และข้อมูลการเล่น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oynat simgesi, izleme ilerlemesi ve oynatma bilgileri."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Значок відтворення, прогрес та інформація про відтворення."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Biểu tượng phát, tiến độ và thông tin phát lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "播放图标、进度和播放信息。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "播放圖示、進度與播放資訊。"
+          }
+        }
+      }
+    },
     "Play original quality" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -522826,6 +524806,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "播放無法追上頻道的即時進度。請重試或選擇其他頻道。"
+          }
+        }
+      }
+    },
+    "Playback details" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تفاصيل التشغيل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Подробности за възпроизвеждането"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detalls de reproducció"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podrobnosti o přehrávání"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afspilningsdetaljer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wiedergabedetails"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Λεπτομέρειες αναπαραγωγής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detalles de reproducción"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جزئیات پخش"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toiston tiedot"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Détails de lecture"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פרטי ההשמעה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्लेबैक विवरण"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pojedinosti reprodukcije"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lejátszási részletek"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detail pemutaran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dettagli di riproduzione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "再生の詳細"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "재생 세부 정보"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Butiran Main Balik"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avspillingsdetaljer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afspeeldetails"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Szczegóły odtwarzania"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detalhes da reprodução"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detalii despre redare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Сведения о воспроизведении"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podrobnosti o prehrávaní"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Podrobnosti predvajanja"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detalji reprodukcije"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uppspelningsdetaljer"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "รายละเอียดการเล่น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oynatma ayrıntıları"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Деталі відтворення"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chi tiết phát lại"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "播放详情"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "播放詳細資訊"
           }
         }
       }
@@ -540236,6 +542436,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "位置"
+          }
+        }
+      }
+    },
+    "Poster" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ملصق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постер"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pòster"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakát"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakat"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αφίσα"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Póster"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پوستر"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Juliste"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Affiche"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פוסטר"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "पोस्टर"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakat"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poszter"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ポスター"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "포스터"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakat"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pôster"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afiș"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постер"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plagát"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakat"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Affisch"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "โปสเตอร์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постер"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Áp phích"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "海报"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "海報"
           }
         }
       }
@@ -560313,6 +562733,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "觀看進度"
+          }
+        }
+      }
+    },
+    "Progress only" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تقدّم المشاهدة فقط"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Само напредък"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Només el progrés"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pouze průběh"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kun fremdrift"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nur Fortschritt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μόνο πρόοδος"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Solo progreso"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فقط پیشرفت تماشا"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vain katselun eteneminen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Progression uniquement"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "התקדמות הצפייה בלבד"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "केवल प्रगति"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Samo napredak"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Csak előrehaladás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hanya progres"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Solo avanzamento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "進捗のみ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "시청 진행률만"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kemajuan Tontonan Sahaja"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kun avspillingsfremdrift"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alleen kijkvoortgang"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tylko postęp oglądania"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Somente progresso"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Doar progresul vizionării"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Только прогресс просмотра"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Len priebeh sledovania"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Samo napredek ogleda"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Samo napredak gledanja"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Endast uppspelningsförlopp"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เฉพาะความคืบหน้า"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Yalnızca ilerleme"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Лише прогрес"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chỉ tiến độ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "仅显示进度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "僅顯示進度"
           }
         }
       }
@@ -866195,6 +868835,226 @@
         }
       }
     },
+    "Uses Home rows or Recommended, depending on where the row appears." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يستخدم إعدادات «صفوف الصفحة الرئيسية» أو «موصى به»، حسب موضع الصف."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Използва настройките на „Редове в Начало“ или „Препоръчани“ според мястото на реда."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilitza la configuració de «Files d'Inici» o de «Recomanats», segons on aparegui la fila."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použije nastavení „Řádky Domů“ nebo „Doporučené“ podle toho, kde se řádek zobrazuje."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruger indstillingerne for »Rækker på Hjem« eller »Anbefalet«, afhængigt af hvor rækken vises."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Verwendet die Einstellungen für „Reihen auf ‚Start‘“ oder „Empfohlen“, je nachdem, wo die Reihe angezeigt wird."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρησιμοποιεί τις ρυθμίσεις «Γραμμές Αρχικής» ή «Προτεινόμενα», ανάλογα με το πού εμφανίζεται η γραμμή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa los ajustes de «Filas de Inicio» o «Recomendados», según dónde aparezca la fila."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بسته به محل نمایش سطر، از تنظیمات «سطرهای خانه» یا «پیشنهادها» استفاده می‌کند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käyttää ”Kodin rivit” -asetusta tai ”Suositellut”-asetusta rivin sijainnin mukaan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilise les réglages « Rangées de l’accueil » ou « Recommandations », selon l’emplacement de la rangée."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שימוש בהגדרות ״שורות מסך הבית״ או ״מומלצים״, בהתאם למיקום השורה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "पंक्ति जहाँ दिखाई देती है, उसके अनुसार “होम पंक्तियाँ” या “सुझाव” की सेटिंग का उपयोग होता है."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi postavke „Redovi Početne” ili „Preporučeno”, ovisno o tome gdje se redak prikazuje."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A sor helyétől függően a „Kezdőlap sorok” vagy az „Ajánlott” beállításait használja."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Menggunakan pengaturan Baris Beranda atau Rekomendasi, tergantung tempat baris ditampilkan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa le impostazioni di «Righe di Home» o «Consigliati», in base a dove viene visualizzata la riga."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "行の表示場所に応じて、「ホームに表示する行」または「おすすめ」の設定を使います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "행이 표시되는 위치에 따라 홈 행 또는 추천 설정을 사용합니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Menggunakan tetapan Baris Laman Utama atau Disyorkan, bergantung pada tempat baris dipaparkan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruker innstillingen for Rader på Hjem eller Anbefalt ut fra hvor raden vises."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gebruikt de instelling voor Rijen op Start of Aanbevolen, afhankelijk van waar de rij staat."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Używa ustawień „Sekcje strony głównej” lub „Polecane”, zależnie od miejsca wyświetlania wiersza."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa o ajuste de Linhas do Início ou Recomendados, dependendo de onde a linha aparece."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folosește setările din „Rânduri din Acasă” sau „Recomandate”, în funcție de locul în care apare rândul."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Используются настройки «Строки на Главной» или «Рекомендуемое» в зависимости от расположения строки."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Použije nastavenia „Riadky obrazovky Domov“ alebo „Odporúčané“ podľa toho, kde sa riadok zobrazuje."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uporabi nastavitve »Vrstice na zaslonu Domov« ali »Priporočeno«, odvisno od tega, kje se vrstica prikaže."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi podešavanja „Redovi na Početnoj“ ili „Preporučeno“, u zavisnosti od toga gde se red prikazuje."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använder inställningarna för ”Rader på Hem” eller ”Rekommenderat”, beroende på var raden visas."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้การตั้งค่า “แถวหน้าแรก” หรือ “แนะนำ” ขึ้นอยู่กับตำแหน่งที่แถวนั้นปรากฏ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Satırın bulunduğu yere göre “Ana Sayfa satırları” veya “Önerilenler” ayarını kullanır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Використовує налаштування «Рядки Головної» або «Рекомендоване» залежно від розташування рядка."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sử dụng cài đặt “Hàng trên Trang chủ” hoặc “Đề xuất”, tùy nơi hàng xuất hiện."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "根据该栏所在的位置，沿用“首页内容栏”或“推荐”的设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "依該列顯示的位置，沿用「首頁分類列」或「推薦」的設定。"
+          }
+        }
+      }
+    },
     "Uses all libraries this profile is allowed to access. No public channels are added. IPTV playlists do not need a media server. Custom channels below are optional and keep their own schedules." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -920005,9 +922865,237 @@
         }
       }
     },
-    "continueWatchingArtwork.logoAndArtwork" : {
+    "continueWatchingArtwork.logo" : {
       "comment" : "Continue Watching card style option in Settings: artwork with the title laid over it as a logo.",
       "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Artwork + logo"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صورة توضيحية + شعار"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Обложка + лого"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il·lustracions + logotip"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grafika + logo"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cover + logo"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bildmaterial + Logo"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Εικόνα + λογότυπο"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imagen + logotipo"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تصویر + لوگو"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kuvitus + logo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Visuel + logo"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "תמונה + לוגו"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "आर्टवर्क + लोगो"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grafika + logotip"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Borítókép + logó"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gambar + logo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copertina + logo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "アートワーク + ロゴ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "아트워크 + 로고"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Karya Seni + Logo"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Omslag + logo"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afbeeldingen + logo"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grafika + logo"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Arte + logo"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ilustrații + logo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Изображения + логотип"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grafika + logo"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grafika + logotip"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Slike + logotip"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bilder + logotyp"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ภาพปก + โลโก้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kapak görseli + logo"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Зображення + логотип"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hình ảnh + logo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "封面图 + 标志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "封面圖片 + 標誌"
+          }
+        }
+      }
+    },
+    "continueWatchingArtwork.logoAndArtwork" : {
+      "comment" : "Continue Watching card style option in Settings: artwork with the title laid over it as a logo.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -920235,7 +923323,7 @@
     },
     "continueWatchingArtwork.logoAndArtwork.detail" : {
       "comment" : "One-line explanation of the Logo & Artwork option for Continue Watching cards.",
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -920689,9 +923777,237 @@
         }
       }
     },
+    "continueWatchingArtwork.thumbnail" : {
+      "comment" : "Continue Watching artwork option in Settings: episode thumbnails or movie artwork.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thumbnail"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صورة مصغّرة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Миниатюра"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatura"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatura"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniature"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vorschaubild"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μικρογραφία"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatura"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تصویر بندانگشتی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pikkukuva"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniature"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "תמונה ממוזערת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "थंबनेल"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sličica"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bélyegkép"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gambar mini"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatura"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サムネイル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "썸네일"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Imej Kecil"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatyrbilde"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatuur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatura"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatura"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatură"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Миниатюра"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatúra"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sličica"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sličica"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Miniatyrbild"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ภาพขนาดย่อ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Küçük resim"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Мініатюра"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ảnh thu nhỏ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "缩略图"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "縮圖"
+          }
+        }
+      }
+    },
     "continueWatchingArtwork.thumbnailAndTitle" : {
       "comment" : "Continue Watching card style option in Settings: plain artwork with the title written underneath.",
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -920919,7 +924235,7 @@
     },
     "continueWatchingArtwork.thumbnailAndTitle.detail" : {
       "comment" : "One-line explanation of the Thumbnail & Title option for Continue Watching cards.",
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
