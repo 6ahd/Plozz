@@ -7,18 +7,27 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
-Playback > Advanced > External player is a profile-scoped, default-off handoff.
-Choosing an installed player replaces normal Play for movies and episodes:
+Playback > Advanced > External player is a device-only, default-off preference
+shared by all profiles on that device. It stays inside Playback rather than
+adding an Everyone category. The picker has one short scope label; About external
+playback and custom configuration are separate drill-ins.
+Choosing an installed player redirects compatible movies and episodes:
 Native Player on tvOS, Infuse 8.4.7+ on both platforms, and VLC on both platforms.
 The further-nested custom player editor accepts one encoded `{url}` placeholder.
-Unavailable apps or unsupported sources offer **Play in Plozz** without changing
-the preference. Live TV, trailers, and music keep their existing runtimes.
+Unavailable apps, failed handoff preparation, and unsupported sources use Plozz
+automatically without a confirmation prompt or changing the preference.
+Cancellation and profile/authorization changes abort playback, not fall back.
+All IPTV content (including movies/episodes), NAS shares, and Silo bypass external
+negotiation altogether. Silo's session-bound grants need its built-in lifecycle;
+no speculative external session is opened. Live TV, trailers, and music keep
+their existing runtimes.
 
 External playback requires directly accessible HTTP(S) media: no app-local
 proxy, downloaded file, private share credentials, separate audio stream, or
 server conversion. Mobile quality limits are not bypassed. Links can contain
 server tokens, so the settings explain that the chosen app receives them.
-Native Player and Infuse receive resume positions and up to eight SRT sidecars;
+Jellyfin, Emby, and Plex direct-play sources remain eligible. Native Player and
+Infuse receive resume positions and up to eight SRT sidecars;
 VLC receives at most one sidecar and no resume/progress promise. Track selection,
 skip markers, Plozz controls, and Plozz autoplay are not available after handoff.
 
@@ -28,7 +37,13 @@ contains no media URLs or tokens. Only the authorized launching profile,
 account, server user, and credential revision can apply returned progress through
 the existing durable watch outbox. No callback means no inferred watch progress.
 Callbacks expire after 24 hours; a new playback intent supersedes older returns.
-VLC/custom app links do not update Plozz watch progress.
+VLC/custom app links do not update Plozz watch progress. Once another app has
+accepted a handoff, Plozz cannot detect arbitrary playback failures inside it;
+supported error callbacks show the existing error without fabricating progress.
+`ExternalPlayerSettingsModel` owns the unnamespaced device key, excluded from
+profile transfer. The active profile's old choice migrates once; later profile
+switches or sync never overwrite the device selection. `PlaybackSettings` reads
+the retired field only for migration and no longer encodes it.
 Protocol references: [Native Player](https://docs.google.com/document/d/e/2PACX-1vRfEYlU-LdWIAvIDXuHeoSs_d1ifydou7NBAhIUGsI5F663IlejVFQZ3UOaPPd9y9DhQcwKtM3VAKxz/pub),
 [Infuse](https://support.firecore.com/hc/en-us/articles/215090997-API-for-Third-Party-Apps-Services),
 and [VLC's Apple URL handler](https://github.com/videolan/vlc-ios/blob/749cf8be5f3abe0a044f1680a471999d714eb9e3/Sources/Helpers/Network/URLHandler.swift).

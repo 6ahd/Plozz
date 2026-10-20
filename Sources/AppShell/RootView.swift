@@ -912,6 +912,7 @@ public struct RootView: View {
         .onOpenURL { appState.handle(url: $0) }
         .externalPlayerSupport(
             context: { appState.externalPlaybackContext() },
+            legacySettings: { appState.profileSettings.playbackModel.settings.externalPlayer },
             onProgress: { try await appState.finishExternalPlayback($0) }
         )
         // Window-level HDR/DV exit veil: a black layer above Home that the player

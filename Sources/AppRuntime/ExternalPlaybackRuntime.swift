@@ -132,11 +132,40 @@ public final class ExternalPlaybackRuntime {
 
     public func launch(
         item: MediaItem, startPosition: TimeInterval?, settings: PlaybackSettings,
+        selection: ExternalPlayerSettings,
         streamingOptions: StreamingPlaybackOptions? = nil,
         context: @escaping @MainActor () -> ExternalPlaybackContext,
         isPresented: @escaping @MainActor () -> Bool
     ) async throws -> Bool {
-        let selection = settings.externalPlayer
+        let initial = context()
+        let generation = launchID
+        do {
+            return try await launchIfSupported(
+                item: item, startPosition: startPosition, settings: settings, selection: selection,
+                streamingOptions: streamingOptions, context: context, isPresented: isPresented
+            )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            try Task.checkCancellation()
+            guard initial.isAuthorized, isPresented(), generation == launchID,
+                  context().identity == initial.identity else { throw CancellationError() }
+            if let failure = error as? ExternalPlayerError,
+               failure == .unsupportedSource || failure == .unavailable {
+                PlozzLog.playback.info("External player unavailable for this source; using Plozz.")
+            } else {
+                PlozzLog.playback.error("External player preparation failed; retrying playback in Plozz.")
+            }
+            return false
+        }
+    }
+
+    private func launchIfSupported(
+        item: MediaItem, startPosition: TimeInterval?, settings: PlaybackSettings,
+        selection: ExternalPlayerSettings, streamingOptions: StreamingPlaybackOptions?,
+        context: @escaping @MainActor () -> ExternalPlaybackContext,
+        isPresented: @escaping @MainActor () -> Bool
+    ) async throws -> Bool {
         guard selection.player != .builtIn else { return false }
         // Trailer, live-channel and music sessions remain owned by their existing runtimes.
         guard item.kind == .movie || item.kind == .episode else { return false }
@@ -145,7 +174,7 @@ public final class ExternalPlaybackRuntime {
         guard initial.isAuthorized,
               let account = initial.accounts.first(where: { $0.account.id == item.sourceAccountID })
                 ?? (item.sourceAccountID == nil ? initial.accounts.first : nil)
-        else { throw AppError.unauthorized }
+        else { throw CancellationError() }
         func checkCurrent() throws {
             try Task.checkCancellation()
             guard isPresented(), generation == launchID, context().identity == initial.identity else {
@@ -153,6 +182,15 @@ public final class ExternalPlaybackRuntime {
             }
         }
         try checkCurrent()
+        switch account.provider.kind {
+        case .iptv, .mediaShare, .silo:
+            // These sources need Plozz's transport or session lifecycle. Do not
+            // negotiate an external stream or expose credentials speculatively.
+            PlozzLog.playback.info("Source requires Plozz playback; skipping external player.")
+            return false
+        case .jellyfin, .emby, .plex:
+            break
+        }
         guard selection.player == .custom || ExternalPlayer.supported.contains(selection.player) else {
             throw ExternalPlayerError.unavailable
         }
@@ -220,9 +258,15 @@ public final class ExternalPlaybackRuntime {
             PlozzLog.playback.info("Opened external player.")
             return true
         } catch {
-            if let streaming = provider as? any StreamingQualityProviding,
-               request.streamingSessionID != nil {
-                await streaming.releaseStreamingSession(request)
+            if let streaming = provider as? any StreamingQualityProviding {
+                var cleanupRequest = request
+                if cleanupRequest.streamingSessionID == nil,
+                   request.isTranscoding || request.deliveryMode != .directPlay {
+                    cleanupRequest.streamingSessionID = request.playSessionID
+                }
+                if cleanupRequest.streamingSessionID != nil {
+                    await streaming.releaseStreamingSession(cleanupRequest)
+                }
             }
             throw error
         }

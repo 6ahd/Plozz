@@ -376,6 +376,7 @@ public struct PlozziOSRootView: View {
         }
         .externalPlayerSupport(
             context: { appModel.externalPlaybackContext() },
+            legacySettings: { appModel.settings.playback.settings.externalPlayer },
             onProgress: { try await appModel.finishExternalPlayback($0) }
         )
         .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in

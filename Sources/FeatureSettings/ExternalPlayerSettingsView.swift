@@ -4,10 +4,10 @@ import SwiftUI
 import UIKit
 
 public struct PlaybackAdvancedSettingsView: View {
-    @Bindable var model: PlaybackSettingsModel
+    @Bindable var model: ExternalPlayerSettingsModel
     @State private var showsExternalPlayer = false
 
-    public init(model: PlaybackSettingsModel) { self.model = model }
+    public init(model: ExternalPlayerSettingsModel = .shared) { self.model = model }
 
     public var body: some View {
         #if os(tvOS)
@@ -30,7 +30,7 @@ public struct PlaybackAdvancedSettingsView: View {
 }
 
 struct ExternalPlayerSettingsRows {
-    static func advanced(model: PlaybackSettingsModel) -> [SettingsSplitRow] {
+    static func advanced(model: ExternalPlayerSettingsModel = .shared) -> [SettingsSplitRow] {
         [
             .page(id: "external-player", title: "External player") {
                 [
@@ -39,7 +39,7 @@ struct ExternalPlayerSettingsRows {
                     },
                     SettingsSplitRow(id: "external-player-help", title: "About external playback") {
                         ExternalPlayerHelp()
-                    },
+                    }.page(),
                     SettingsSplitRow(id: "custom-player", title: "Custom player") {
                         CustomExternalPlayerControls(model: model)
                     }.page()
@@ -51,7 +51,8 @@ struct ExternalPlayerSettingsRows {
 
 #if os(iOS)
 private struct ExternalPlayerSettingsView: View {
-    @Bindable var model: PlaybackSettingsModel
+    @Bindable var model: ExternalPlayerSettingsModel
+    @State private var showsAbout = false
     @State private var showsCustomPlayer = false
 
     var body: some View {
@@ -60,7 +61,9 @@ private struct ExternalPlayerSettingsView: View {
                 ExternalPlayerChoices(model: model)
             }
             SettingsSectionGroup {
-                ExternalPlayerHelp()
+                Button { showsAbout = true } label: {
+                    SettingsDisclosureLabel { Text("About external playback") }
+                }
             }
             SettingsSectionGroup {
                 Button { showsCustomPlayer = true } label: {
@@ -70,6 +73,13 @@ private struct ExternalPlayerSettingsView: View {
         }
         .settingsPageSurface()
         .navigationTitle("External player")
+        .navigationDestination(isPresented: $showsAbout) {
+            List {
+                SettingsSectionGroup { ExternalPlayerHelp() }
+            }
+            .settingsPageSurface()
+            .navigationTitle("About external playback")
+        }
         .navigationDestination(isPresented: $showsCustomPlayer) {
             List {
                 SettingsSectionGroup {
@@ -85,43 +95,46 @@ private struct ExternalPlayerSettingsView: View {
 
 private struct ExternalPlayerChoices: View {
     @Environment(\.scenePhase) private var scenePhase
-    @Bindable var model: PlaybackSettingsModel
+    @Bindable var model: ExternalPlayerSettingsModel
     @State private var installed: Set<ExternalPlayer> = [.builtIn]
 
     private var choices: [ExternalPlayer] {
         var result = ExternalPlayer.supported
-        if !model.settings.externalPlayer.customURLTemplate.isEmpty { result.append(.custom) }
-        if !result.contains(model.settings.externalPlayer.player) { result.append(model.settings.externalPlayer.player) }
+        if !model.settings.customURLTemplate.isEmpty { result.append(.custom) }
+        if !result.contains(model.settings.player) { result.append(model.settings.player) }
         return result
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            Text("Applies to everyone on this device.")
+                .settingsHelperText()
             #if os(tvOS)
             SettingsControlRows {
                 ForEach(choices, id: \.self) { player in
                     SettingsCheckableRow(
                         title: title(player),
-                        isChecked: model.settings.externalPlayer.player == player
+                        isChecked: model.settings.player == player
                     ) {
-                        model.settings.externalPlayer.player = player
+                        model.settings.player = player
                     }
                     .disabled(!isAvailable(player))
                     .accessibilityIdentifier("external-player-\(player.rawValue)")
                 }
             }
             #else
-            Picker("Default player", selection: $model.settings.externalPlayer.player) {
+            Picker("Default player", selection: $model.settings.player) {
                 ForEach(choices, id: \.self) { player in
                     title(player).tag(player).disabled(!isAvailable(player))
                 }
             }
             .accessibilityIdentifier("external-player-selection")
             #endif
-            if model.settings.externalPlayer.player == .vlc || model.settings.externalPlayer.player == .custom {
-                Text("This player doesn't report progress to Plozz. Resume, watched status, and external-player features depend on the selected app.")
+            if model.settings.player == .vlc || model.settings.player == .custom {
+                Text("This player doesn't return watch progress to Plozz.")
                     .settingsHelperText()
             }
+            if let error = model.error { Text(error.message).settingsHelperText() }
         }
         .task { refreshInstalledPlayers() }
         .onChange(of: scenePhase) { _, phase in
@@ -150,24 +163,24 @@ private struct ExternalPlayerChoices: View {
 private struct ExternalPlayerHelp: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Choosing another player makes it the default for movies and episodes in this profile. Plozz opens the installed app when you press Play.")
+            Text("Supported movies and episodes open in the selected app. Everything else plays in Plozz automatically.")
             Text("Playable links, including server access tokens when required, are shared with the selected app. Only choose an app you trust.")
-            Text("Infuse and Native Player can return progress when you close their player. Plozz's playback controls, skip markers, and autoplay aren't available in another app.")
-            Text("Live TV stays in Plozz. For downloads, private network-share files, and videos requiring server conversion, Plozz offers its built-in player instead. Infuse requires version 8.4.7 or later for this integration.")
+            Text("Native Player and Infuse 8.4.7 or later can return progress when their player closes. Plozz's controls, skip markers, and autoplay aren't available in another app.")
+            Text("This choice stays on this device. Watch progress still belongs to the active viewer.")
         }
         .settingsHelperText()
     }
 }
 
 private struct CustomExternalPlayerControls: View {
-    @Bindable var model: PlaybackSettingsModel
+    @Bindable var model: ExternalPlayerSettingsModel
     @State private var template = ""
     @State private var error: ExternalPlayerError?
     @State private var saved = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("For an installed player with a documented URL scheme. Plozz replaces {url} with the encoded video link. Custom players don't receive resume positions or return progress.")
+            Text("Use {url} for the encoded video link. Custom players don't receive resume positions or return progress.")
                 .settingsHelperText()
             TextField("myplayer://play?url={url}", text: $template)
                 .textInputAutocapitalization(.never)
@@ -181,7 +194,7 @@ private struct CustomExternalPlayerControls: View {
             Button("Save and use custom player") {
                 do {
                     try ExternalPlayerURL.validateCustomTemplate(template)
-                    model.settings.externalPlayer = .init(player: .custom, customURLTemplate: template)
+                    model.settings = .init(player: .custom, customURLTemplate: template)
                     error = nil
                     saved = true
                 } catch let failure as ExternalPlayerError {
@@ -192,7 +205,7 @@ private struct CustomExternalPlayerControls: View {
             }
             .accessibilityIdentifier("external-player-custom-save")
         }
-        .onAppear { template = model.settings.externalPlayer.customURLTemplate }
+        .onAppear { template = model.settings.customURLTemplate }
         .onChange(of: template) { _, _ in saved = false }
     }
 }

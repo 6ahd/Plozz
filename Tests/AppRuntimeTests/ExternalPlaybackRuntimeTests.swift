@@ -7,10 +7,10 @@ final class ExternalPlaybackRuntimeTests: XCTestCase {
     func testDefaultAndNonVideoPlaybackDoNotOpenAnotherApp() async throws {
         let fixture = ExternalPlaybackFixture()
         defer { fixture.cleanup() }
-        fixture.settings.externalPlayer.player = .builtIn
+        fixture.selection.player = .builtIn
         let builtIn = try await fixture.launch()
         XCTAssertFalse(builtIn)
-        fixture.settings.externalPlayer.player = .infuse
+        fixture.selection.player = .infuse
         fixture.item.kind = .video
         let live = try await fixture.launch()
         XCTAssertFalse(live)
@@ -33,22 +33,22 @@ final class ExternalPlaybackRuntimeTests: XCTestCase {
         XCTAssertNil(fixture.runtime.returnID)
     }
 
-    func testUnavailableAndOpenFailureNeverLeaveAReceipt() async {
+    func testUnavailableAndOpenFailureFallBackWithoutChangingTheSelection() async throws {
         for installed in [false, true] {
             let fixture = ExternalPlaybackFixture()
             defer { fixture.cleanup() }
             fixture.installed = installed
             fixture.openSucceeds = false
-            do {
-                _ = try await fixture.launch()
-                XCTFail("Expected an unavailable-player failure")
-            } catch { XCTAssertEqual(error as? ExternalPlayerError, .unavailable) }
+            let opened = try await fixture.launch()
+            XCTAssertFalse(opened)
+            XCTAssertEqual(fixture.selection.player, .infuse)
             XCTAssertNil(fixture.runtime.receipt)
+            XCTAssertNil(fixture.runtime.error)
         }
     }
 
-    func testSourceRestrictionsAndRejectedStreamingSessionCleanup() async {
-        for mode in 0..<5 {
+    func testSourceRestrictionsFallBackAndReleaseRejectedStreamingSessions() async throws {
+        for mode in 0..<6 {
             let fixture = ExternalPlaybackFixture()
             defer { fixture.cleanup() }
             switch mode {
@@ -56,16 +56,67 @@ final class ExternalPlaybackRuntimeTests: XCTestCase {
             case 1: fixture.request.streamURL = URL(string: "http://127.0.0.1/video")
             case 2: fixture.request.externalAudioURL = fixture.media
             case 3: fixture.request.isTranscoding = true
-            default:
+            case 4:
                 fixture.request.streamingSessionID = "converted-session"
                 fixture.request.deliveryMode = .transcode
+            default:
+                fixture.request.playSessionID = "ordinary-conversion"
+                fixture.request.deliveryMode = .remux
             }
-            do {
-                _ = try await fixture.launch()
-                XCTFail("Expected source rejection")
-            } catch { XCTAssertEqual(error as? ExternalPlayerError, .unsupportedSource) }
+            let opened = try await fixture.launch()
+            XCTAssertFalse(opened)
             XCTAssertTrue(fixture.opened.isEmpty)
-            XCTAssertEqual(fixture.releasedSessions, mode == 4 ? 1 : 0)
+            XCTAssertEqual(fixture.releasedSessions, mode >= 4 ? 1 : 0)
+            XCTAssertNil(fixture.runtime.error)
+        }
+    }
+
+    func testIPTVNASAndSiloNeverNegotiateOrLaunchExternalPlayback() async throws {
+        for kind in [ProviderKind.iptv, .mediaShare, .silo] {
+            for player in [ExternalPlayer.nativePlayer, .infuse, .vlc, .custom] {
+                for mediaKind in [MediaItemKind.movie, .episode, .video] {
+                    let fixture = ExternalPlaybackFixture()
+                    defer { fixture.cleanup() }
+                    fixture.kind = kind
+                    fixture.item.kind = mediaKind
+                    fixture.selection = .init(player: player, customURLTemplate: "customplayer://play?url={url}")
+                    let opened = try await fixture.launch()
+                    XCTAssertFalse(opened, "\(kind) \(player) \(mediaKind)")
+                    XCTAssertNil(fixture.selectedVersion)
+                    XCTAssertTrue(fixture.opened.isEmpty)
+                    XCTAssertEqual(fixture.installationChecks, 0)
+                    XCTAssertNil(fixture.runtime.receipt)
+                    XCTAssertNil(fixture.runtime.error)
+                }
+            }
+        }
+    }
+
+    func testJellyfinEmbyAndPlexStillHandOffSupportedMoviesAndEpisodes() async throws {
+        for kind in [ProviderKind.jellyfin, .emby, .plex] {
+            for mediaKind in [MediaItemKind.movie, .episode] {
+                let fixture = ExternalPlaybackFixture()
+                defer { fixture.cleanup() }
+                fixture.kind = kind
+                fixture.item.kind = mediaKind
+                let opened = try await fixture.launch()
+                XCTAssertTrue(opened)
+                XCTAssertEqual(fixture.opened.count, 1)
+            }
+        }
+    }
+
+    func testPreparationErrorFallsBackButCancellationDoesNotStartAnotherPlayer() async throws {
+        for cancelled in [false, true] {
+            let fixture = ExternalPlaybackFixture()
+            defer { fixture.cleanup() }
+            fixture.requestError = cancelled ? CancellationError() : AppError.notFound
+            do {
+                let opened = try await fixture.launch()
+                XCTAssertFalse(cancelled)
+                XCTAssertFalse(opened)
+            } catch { XCTAssertTrue(cancelled && error is CancellationError) }
+            XCTAssertTrue(fixture.opened.isEmpty)
         }
     }
 
@@ -81,33 +132,29 @@ final class ExternalPlaybackRuntimeTests: XCTestCase {
         XCTAssertNil(fixture.runtime.receipt)
     }
 
-    func testMobileConversionPolicyIsNotBypassed() async {
+    func testMobileConversionPolicyFallsBackBeforePreparingAStream() async throws {
         let fixture = ExternalPlaybackFixture()
         defer { fixture.cleanup() }
         for options in [
             StreamingPlaybackOptions(quality: .hd720),
             StreamingPlaybackOptions(quality: .original, forceTranscoding: true)
         ] {
-            do {
-                _ = try await fixture.runtime.launch(
-                    item: fixture.item, startPosition: 0, settings: fixture.settings,
-                    streamingOptions: options, context: { fixture.context }, isPresented: { true }
-                )
-                XCTFail("Constrained playback must stay internal")
-            } catch { XCTAssertEqual(error as? ExternalPlayerError, .unsupportedSource) }
+            let opened = try await fixture.runtime.launch(
+                item: fixture.item, startPosition: 0, settings: fixture.settings, selection: fixture.selection,
+                streamingOptions: options, context: { fixture.context }, isPresented: { true }
+            )
+            XCTAssertFalse(opened)
         }
         XCTAssertTrue(fixture.opened.isEmpty)
         XCTAssertNil(fixture.selectedVersion)
     }
 
-    func testDownloadedVideoDoesNotLeakAnAppPrivateFile() async {
+    func testDownloadedVideoFallsBackBeforeResolvingRemotePlayback() async throws {
         let fixture = ExternalPlaybackFixture()
         defer { fixture.cleanup() }
         fixture.offlineResolver = ExternalOfflineResolver()
-        do {
-            _ = try await fixture.launch()
-            XCTFail("Downloaded files must stay internal")
-        } catch { XCTAssertEqual(error as? ExternalPlayerError, .unsupportedSource) }
+        let opened = try await fixture.launch()
+        XCTAssertFalse(opened)
         XCTAssertTrue(fixture.opened.isEmpty)
         XCTAssertNil(fixture.selectedVersion)
     }
@@ -254,7 +301,7 @@ final class ExternalPlaybackRuntimeTests: XCTestCase {
     func testVLCLaunchDoesNotPromiseAProgressReceipt() async throws {
         let fixture = ExternalPlaybackFixture()
         defer { fixture.cleanup() }
-        fixture.settings.externalPlayer.player = .vlc
+        fixture.selection.player = .vlc
         _ = try await fixture.launch()
         XCTAssertNil(fixture.runtime.receipt)
     }
@@ -268,13 +315,16 @@ private final class ExternalPlaybackFixture {
     lazy var defaults = UserDefaults(suiteName: suite)!
     lazy var runtime = ExternalPlaybackRuntime(
         defaults: defaults, callbackScheme: callbackScheme,
-        canOpen: { [unowned self] _ in installed },
+        canOpen: { [unowned self] _ in installationChecks += 1; return installed },
         open: { [unowned self] url in opened.append(url); return openSucceeds }
     )
     var profileID = "profile"
     var userID = "user"
     var authorized = true
     var installed = true
+    var installationChecks = 0
+    var kind: ProviderKind = .jellyfin
+    var requestError: (any Error)?
     var openSucceeds = true
     var opened: [URL] = []
     var selectedVersion: String?
@@ -287,11 +337,12 @@ private final class ExternalPlaybackFixture {
         sourceAccountID: "account", selectedVersionID: "version-one"
     )
     lazy var request = PlaybackRequest(item: item, streamURL: media, startPosition: 120)
-    var settings = PlaybackSettings(externalPlayer: .init(player: .infuse))
+    var settings = PlaybackSettings.default
+    var selection = ExternalPlayerSettings(player: .infuse)
     lazy var account = Account(id: "account", from: session)
     var session: UserSession {
         UserSession(
-            server: MediaServer(id: "server", name: "Fixture", baseURL: URL(string: "https://server.test")!, provider: .jellyfin),
+            server: MediaServer(id: "server", name: "Fixture", baseURL: URL(string: "https://server.test")!, provider: kind),
             userID: userID, userName: "Fixture", deviceID: "fixture", accessToken: "synthetic-token"
         )
     }
@@ -306,7 +357,7 @@ private final class ExternalPlaybackFixture {
     func launch() async throws -> Bool {
         runtime.beginPlaybackIntent()
         return try await runtime.launch(
-            item: item, startPosition: 120, settings: settings,
+            item: item, startPosition: 120, settings: settings, selection: selection,
             context: { self.context }, isPresented: { true }
         )
     }
@@ -337,7 +388,7 @@ private struct ExternalOfflineResolver: OfflinePlaybackResolving {
 }
 
 private struct ExternalPlaybackProvider: StreamingQualityProviding {
-    let kind: ProviderKind = .jellyfin
+    var kind: ProviderKind { session.server.provider }
     let session: UserSession
     let fixture: ExternalPlaybackFixture
     func libraries() async throws -> [MediaLibrary] { [] }
@@ -354,9 +405,10 @@ private struct ExternalPlaybackProvider: StreamingQualityProviding {
     func search(query: String, limit: Int) async throws -> [MediaItem] { [] }
     func playbackInfo(for itemID: String) async throws -> PlaybackRequest { await fixture.request }
     func playbackInfo(for itemID: String, mediaSourceID: String?, forceTranscode: Bool) async throws -> PlaybackRequest {
-        await MainActor.run {
+        try await MainActor.run {
             fixture.selectedVersion = mediaSourceID
             fixture.beforeRequest?()
+            if let error = fixture.requestError { throw error }
             return fixture.request
         }
     }

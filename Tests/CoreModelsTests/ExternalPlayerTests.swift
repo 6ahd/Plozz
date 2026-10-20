@@ -93,19 +93,70 @@ final class ExternalPlayerTests: XCTestCase {
         }
     }
 
-    func testExternalSelectionRoundTripsAndTransfersOnlyWithItsProfile() throws {
+    @MainActor
+    func testDeviceSelectionMigratesOnceAndNeverTransfersWithProfiles() throws {
         let suite = "ExternalPlayerTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        var settings = PlaybackSettings.default
-        settings.externalPlayer = .init(player: .custom, customURLTemplate: "testplayer://play?url={url}")
-        let data = try JSONEncoder().encode(settings)
-        XCTAssertEqual(try JSONDecoder().decode(PlaybackSettings.self, from: data).externalPlayer, settings.externalPlayer)
+        let legacy = try JSONDecoder().decode(PlaybackSettings.self, from: Data(
+            #"{"externalPlayer":{"player":"nativePlayer","customURLTemplate":""},"autoPlayNextEpisode":false}"#.utf8
+        ))
+        let model = ExternalPlayerSettingsModel(defaults: defaults)
+        XCTAssertEqual(model.settings.player, .builtIn)
+        model.migrateIfNeeded(from: legacy.externalPlayer)
+        XCTAssertEqual(model.settings.player, .nativePlayer)
+        model.migrateIfNeeded(from: .init(player: .vlc))
+        XCTAssertEqual(model.settings.player, .nativePlayer)
+        model.settings = .init(player: .custom, customURLTemplate: "testplayer://play?url={url}")
+        let restoredModel = ExternalPlayerSettingsModel(defaults: defaults)
+        restoredModel.migrateIfNeeded(from: legacy.externalPlayer)
+        XCTAssertEqual(restoredModel.settings, model.settings)
+        let data = try JSONEncoder().encode(legacy)
+        let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertNil(encoded["externalPlayer"], "Retired profile selections must not be republished.")
         defaults.set(data, forKey: SettingsKey.scoped("com.plozz.playbackSettings", namespace: "one"))
         let captured = ProfileSettingsTransfer.capture(namespace: "one", defaults: defaults)
+        XCTAssertNil(captured[ExternalPlayerSettingsModel.storageKey])
+        XCTAssertNil(ProfileSettingsTransfer.capture(namespace: nil, defaults: defaults)[ExternalPlayerSettingsModel.storageKey])
         ProfileSettingsTransfer.apply(captured, namespace: "two", defaults: defaults)
         let restored = try XCTUnwrap(defaults.data(forKey: SettingsKey.scoped("com.plozz.playbackSettings", namespace: "two")))
-        XCTAssertEqual(try JSONDecoder().decode(PlaybackSettings.self, from: restored).externalPlayer, settings.externalPlayer)
+        XCTAssertEqual(try JSONDecoder().decode(PlaybackSettings.self, from: restored).externalPlayer.player, .builtIn)
+        XCTAssertFalse(try JSONDecoder().decode(PlaybackSettings.self, from: restored).autoPlayNextEpisode)
         XCTAssertNil(defaults.data(forKey: "com.plozz.playbackSettings"))
+        XCTAssertEqual(ExternalPlayerSettingsModel(defaults: defaults).settings, model.settings)
+    }
+
+    @MainActor
+    func testChoosingPlozzPreventsLaterLegacyProfilesFromEnablingExternalPlayback() throws {
+        let suite = "ExternalPlayerTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = ExternalPlayerSettingsModel(defaults: defaults)
+        model.migrateIfNeeded(from: .init())
+        model.migrateIfNeeded(from: .init(player: .infuse))
+        XCTAssertEqual(model.settings.player, .builtIn)
+        XCTAssertEqual(ExternalPlayerSettingsModel(defaults: defaults).settings.player, .builtIn)
+    }
+
+    func testLegacyProfileTransfersStripExternalPlayerWithoutLosingOtherFields() throws {
+        let suite = "ExternalPlayerTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let base = "com.plozz.playbackSettings"
+        let legacy = Data(#"{"externalPlayer":{"player":"infuse","customURLTemplate":""},"autoPlayNextEpisode":false,"futureSetting":42}"#.utf8)
+        defaults.set(legacy, forKey: SettingsKey.scoped(base, namespace: "one"))
+        let captured = ProfileSettingsTransfer.capture(namespace: "one", defaults: defaults)
+        ProfileSettingsTransfer.apply(captured, namespace: "two", defaults: defaults)
+        let oldSnapshot = try PropertyListSerialization.data(fromPropertyList: [legacy], format: .binary, options: 0)
+        ProfileSettingsTransfer.apply([base: oldSnapshot], namespace: "three", defaults: defaults)
+        ProfileSettingsTransfer.applyOne(baseKey: base, blob: oldSnapshot, namespace: "four", defaults: defaults)
+        for namespace in ["two", "three", "four"] {
+            let data = try XCTUnwrap(defaults.data(forKey: SettingsKey.scoped(base, namespace: namespace)))
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            XCTAssertNil(json["externalPlayer"])
+            XCTAssertEqual(json["autoPlayNextEpisode"] as? Bool, false)
+            XCTAssertEqual(json["futureSetting"] as? Int, 42)
+        }
+        XCTAssertEqual(defaults.data(forKey: SettingsKey.scoped(base, namespace: "one")), legacy)
     }
 }

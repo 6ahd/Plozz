@@ -41,6 +41,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// iPhone full-screen player preference. iPad follows system rotation.
     public var orientation: PlaybackOrientation
     public var streaming: StreamingQualitySettings
+    /// Legacy profile selection, decoded only for migration to device settings.
     public var externalPlayer: ExternalPlayerSettings
 
     /// Nil until the profile answers the first multi-version playback prompt
@@ -376,7 +377,6 @@ public extension PlaybackSettings {
         try container.encode(volumeBrightnessGestures, forKey: .volumeBrightnessGestures)
         try container.encode(orientation, forKey: .orientation)
         try container.encode(streaming, forKey: .streaming)
-        try container.encode(externalPlayer, forKey: .externalPlayer)
         try container.encodeIfPresent(versionSelectionMode, forKey: .versionSelectionMode)
         try container.encode(rememberVersionPerSeries, forKey: .rememberVersionPerSeries)
         try container.encode(syncWatchAcrossServers, forKey: .syncWatchAcrossServers)

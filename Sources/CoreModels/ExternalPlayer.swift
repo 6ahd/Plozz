@@ -45,7 +45,7 @@ public struct ExternalPlayerSettings: Codable, Equatable, Sendable {
 
 public enum ExternalPlayerError: Error, Equatable, Sendable {
     case unavailable, unsupportedSource, invalidTemplate, invalidCallback, expiredCallback, persistence, preparationFailed
-    case playbackFailed, progressSyncFailed
+    case playbackFailed, progressSyncFailed, settingsPersistence
 
     public var message: LocalizedStringResource {
         switch self {
@@ -61,6 +61,8 @@ public enum ExternalPlayerError: Error, Equatable, Sendable {
             "This external playback session has expired. Your saved progress hasn't been changed."
         case .persistence:
             "Plozz couldn't save the external playback session. Please try again."
+        case .settingsPersistence:
+            "Plozz couldn't load or save the player preference. Please select your player again."
         case .preparationFailed:
             "Plozz couldn't prepare this video for the selected app. You can try playing it in Plozz instead."
         case .playbackFailed:

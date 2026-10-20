@@ -61,7 +61,6 @@ struct PlayerPresentation: View {
     @State private var versionChoice = PlaybackVersionChoiceModel()
     @State private var versionChoiceFailed = false
     @State private var sourceUnavailable = false
-    @State private var externalFailure: ExternalPlayerError?
     @State private var versionChoiceFailureMessage: LocalizedStringResource = "Please try playing this video again."
 
     /// The currently-active play request; changes when auto-advancing episodes.
@@ -149,20 +148,6 @@ struct PlayerPresentation: View {
             viewModel?.controls.versions.onSelect = nil
         }
         .playbackVersionChoice(versionChoice)
-        .alert("External player unavailable", isPresented: Binding(
-            get: { externalFailure != nil },
-            set: { if !$0 { externalFailure = nil } }
-        )) {
-            Button("Play in Plozz") {
-                do {
-                    viewModel = try make(activeRequest, nil, nil)
-                    updateVersionMenu()
-                } catch { showVersionChoiceFailure(error) }
-            }
-            Button("Cancel", role: .cancel) { dismiss() }
-        } message: {
-            if let failure = externalFailure { Text(failure.message) }
-        }
         .environment(\.themePalette, themePalette)
         .onChange(of: versionChoice.prompt?.id) { _, id in
             if id != nil { viewModel?.setPaused(true) }
@@ -239,12 +224,15 @@ struct PlayerPresentation: View {
     }
 
     private func openExternalPlayer() async -> Bool {
-        guard playbackSettings.externalPlayer.player != .builtIn else { return false }
+        let deviceSettings = ExternalPlayerSettingsModel.shared
+        deviceSettings.migrateIfNeeded(from: playbackSettings.externalPlayer)
+        guard deviceSettings.settings.player != .builtIn else { return false }
         do {
             guard let externalContext else { throw ExternalPlayerError.unavailable }
             let opened = try await ExternalPlaybackRuntime.shared.launch(
                 item: activeRequest.item, startPosition: activeRequest.startPosition,
-                settings: playbackSettings, context: externalContext, isPresented: { isPresented }
+                settings: playbackSettings, selection: deviceSettings.settings,
+                context: externalContext, isPresented: { isPresented }
             )
             if opened { dismiss() }
             return opened
@@ -252,9 +240,8 @@ struct PlayerPresentation: View {
             if isPresented { dismiss() }
             return true
         } catch {
-            PlozzLog.playback.error("External player handoff failed.")
-            externalFailure = (error as? ExternalPlayerError) ?? .preparationFailed
-            return true
+            PlozzLog.playback.error("External player context unavailable; using Plozz.")
+            return false
         }
     }
 

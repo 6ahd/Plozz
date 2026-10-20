@@ -15,6 +15,7 @@ public extension EnvironmentValues {
 private struct ExternalPlayerSupport: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
     let context: @MainActor () -> ExternalPlaybackContext
+    let legacySettings: @MainActor () -> ExternalPlayerSettings
     let onProgress: @MainActor (ExternalPlaybackCompletion) async throws -> Void
     @State private var runtime = ExternalPlaybackRuntime.shared
 
@@ -23,6 +24,9 @@ private struct ExternalPlayerSupport: ViewModifier {
             .environment(\.externalPlaybackContext, context)
             .task(id: context().identity + (runtime.returnID?.uuidString ?? "") + String(describing: scenePhase)) {
                 guard scenePhase == .active else { return }
+                if context().isAuthorized {
+                    ExternalPlayerSettingsModel.shared.migrateIfNeeded(from: legacySettings())
+                }
                 await runtime.processReturn(context: context, onProgress: onProgress)
             }
             .alert("External playback", isPresented: Binding(
@@ -39,8 +43,9 @@ private struct ExternalPlayerSupport: ViewModifier {
 public extension View {
     func externalPlayerSupport(
         context: @escaping @MainActor () -> ExternalPlaybackContext,
+        legacySettings: @escaping @MainActor () -> ExternalPlayerSettings,
         onProgress: @escaping @MainActor (ExternalPlaybackCompletion) async throws -> Void
     ) -> some View {
-        modifier(ExternalPlayerSupport(context: context, onProgress: onProgress))
+        modifier(ExternalPlayerSupport(context: context, legacySettings: legacySettings, onProgress: onProgress))
     }
 }

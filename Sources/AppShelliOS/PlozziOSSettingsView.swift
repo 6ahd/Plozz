@@ -2299,7 +2299,7 @@ struct PlozziOSPlaybackSettingsView: View {
             PlozziOSAdvancedStreamingSettings(settings: $model.settings.streaming, support: streamingSupport)
         }
         .navigationDestination(isPresented: $showsAdvancedPlayback) {
-            PlaybackAdvancedSettingsView(model: model)
+            PlaybackAdvancedSettingsView()
         }
     }
 
