@@ -612,6 +612,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   grids, landscape/episode card widths and mobile sizing are unchanged.
   Native Browse uses the correction for both borderless and framed system-focus
   cells. Debug's `--original-library-posters` opts out of Browse only.
+  Browse rasterizes its SwiftUI overlay to concrete pixels on the main actor
+  before background composition, including fully transparent overlays. Passing
+  a deferred renderer image to the worker can retain the previous missing-art
+  placeholder's center glyph and wash over loaded posters. Missing artwork keeps
+  its placeholder; watch badges, episode counts and progress remain independent.
   The collection cell remains the focus and selection owner,
   with the same opaque artwork, native ancestor-focus adjustment, and immediate
   foreground alignment as row posters. Reuse clears both image layers.
