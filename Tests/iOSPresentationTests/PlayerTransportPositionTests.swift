@@ -4,12 +4,156 @@ import CoreModels
 import CoreUI
 import EnginePlozzigen
 @testable import FeaturePlayback
+import Observation
 import SwiftUI
 import UIKit
 import XCTest
 
 @MainActor
 final class PlayerTransportPositionTests: XCTestCase {
+    func testVODCaptionsClearTheActualCenterControlsOrRetainTheirOriginalPosition() async throws {
+        let model = PlayerViewModel(provider: LayoutProvider(), itemID: "fixture")
+        model.controls.duration = 1200
+        model.controls.intendsPause = true
+        model.controls.title = "A title"
+        try await assertCaptionAvoidance(
+            model: model.liveSubtitles, layout: model.controls.subtitleLayout, label: "VOD", supportsDual: true,
+            captions: LiveSubtitleOverlay(model: model.liveSubtitles, controls: model.controls),
+            chrome: PlozziOSPlayerControlsOverlay(
+                viewModel: model, keyboardActions: PlozziOSPlayerKeyboardActions(),
+                hasVersions: false, versionsPresented: false, onShowVersions: {}, onClose: {}
+            )
+        )
+    }
+
+    func testLiveCaptionsClearTheActualCenterControlsOrRetainTheirOriginalPosition() async throws {
+        let input = LiveChannelInput.stream(
+            url: try XCTUnwrap(URL(string: "https://fixture.invalid/live.m3u8")), httpHeaders: [:]
+        )
+        let tracks = LiveChannelPlayerModel(engine: try PlozzigenVideoEngine(), input: input)
+        defer { tracks.stop() }
+        try await assertCaptionAvoidance(
+            model: tracks.subtitles, layout: tracks.subtitles.controlsLayout, label: "Live", supportsDual: false,
+            captions: LiveChannelSubtitleSurface(model: tracks),
+            chrome: LiveLayoutFixture(input: input, tracks: tracks)
+        )
+    }
+
+    private func assertCaptionAvoidance(
+        model: LiveSubtitleModel, layout: SubtitleControlsLayout, label: String, supportsDual: Bool,
+        captions: some View, chrome: some View
+    ) async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let visibility = CaptionChromeVisibility()
+        let host = UIHostingController(rootView: CaptionAvoidanceFixture(
+            visibility: visibility, captions: captions, chrome: chrome
+        ))
+        host.safeAreaRegions = []
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        func captionFrames(in view: UIView) -> [CGRect] {
+            if let line = view as? SubtitleLineView { return [line.convert(line.bounds, to: window)] }
+            return view.subviews.flatMap { captionFrames(in: $0) }
+        }
+        func captionBounds() throws -> CGRect {
+            let frames = captionFrames(in: host.view)
+            XCTAssertFalse(frames.isEmpty)
+            return frames.reduce(CGRect.null) { $0.union($1) }
+        }
+        let sizes = [
+            CGSize(width: 956, height: 440), CGSize(width: 440, height: 956),
+            CGSize(width: 568, height: 320), CGSize(width: 320, height: 568),
+            CGSize(width: 1024, height: 768), CGSize(width: 768, height: 1024)
+        ]
+        for mode in supportsDual ? ["single", "dual", "no-room"] : ["single", "no-room"] {
+            model.style.followsSystemStyle = false
+            model.style.fontFamily = .system
+            model.style.fontScale = mode == "no-room" ? 4 : 1
+            model.style.verticalPosition = 0.06
+            model.style.secondary = mode == "dual" ? .init() : nil
+            let text = mode == "no-room" ? "Larger subtitle\nLarger subtitle" : "A visible subtitle."
+            model.loadPrimary(SubtitleCueParser.parse("WEBVTT\n\n00:00:00.000 --> 00:01:00.000\n\(text)\n", id: 1))
+            model.loadSecondary(mode == "dual"
+                ? SubtitleCueParser.parse("WEBVTT\n\n00:00:00.000 --> 00:01:00.000\nAnother subtitle.\n", id: 2)
+                : nil)
+            model.tick(1)
+            let originalStyle = model.style
+            for size in mode == "no-room" ? [sizes[0]] : sizes {
+                visibility.visible = false
+                window.frame = CGRect(origin: .zero, size: size)
+                host.view.frame = window.bounds
+                window.layoutIfNeeded()
+                try await Task.sleep(for: .milliseconds(300))
+                let original = try captionBounds()
+                XCTAssertEqual(captionFrames(in: host.view).count, mode == "dual" ? 2 : 1)
+                XCTAssertTrue(layout.frames.isEmpty)
+                visibility.visible = true
+                try await Task.sleep(for: .milliseconds(500))
+                window.layoutIfNeeded()
+                let center = try XCTUnwrap(layout.frame(for: .centerTransport))
+                let moved = try captionBounds()
+                let expectedHeight: CGFloat = PlayerTouchLayout.usesCompactTransport(in: size) ? 44 : 92
+                XCTAssertEqual(center.height, expectedHeight, accuracy: 1, "\(label) must use the shared transport geometry.")
+                for region in [SubtitleControlsLayout.Region.title, .timeline] {
+                    let frame = try XCTUnwrap(layout.frame(for: region))
+                    XCTAssertFalse(center.intersects(frame), "\(label) \(size): \(region) \(frame) overlaps \(center).")
+                }
+                XCTAssertLessThan(center.height, 100, "Report the actual row, never its full-screen centering container.")
+                if mode == "no-room" {
+                    XCTAssertGreaterThan(original.height, center.minY)
+                    XCTAssertEqual(moved, original, "Insufficient room must retain the original position, not a partial lift.")
+                } else {
+                    XCTAssertLessThanOrEqual(moved.maxY, center.minY - SubtitleOverlayGeometry.controlsClearance + 1)
+                    XCTAssertTrue(window.bounds.contains(moved))
+                    XCTAssertFalse(layout.frames.contains(where: { $0.intersects(moved) }))
+                    let pixel = 1 / window.screen.scale + 0.001
+                    XCTAssertEqual(moved.width, original.width, accuracy: pixel)
+                    XCTAssertEqual(moved.height, original.height, accuracy: pixel)
+                }
+                XCTAssertEqual(model.style, originalStyle)
+                let attachment = XCTAttachment(image: UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                    XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+                })
+                attachment.name = "\(label) \(mode) subtitles \(Int(size.width))x\(Int(size.height))"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+                visibility.visible = false
+                try await Task.sleep(for: .milliseconds(300))
+                XCTAssertTrue(layout.frames.isEmpty)
+                XCTAssertEqual(try captionBounds(), original)
+            }
+        }
+    }
+
+    @Observable final class CaptionChromeVisibility {
+        var visible = false
+    }
+
+    private struct CaptionAvoidanceFixture<Captions: View, Chrome: View>: View {
+        let visibility: CaptionChromeVisibility
+        let captions: Captions
+        let chrome: Chrome
+
+        var body: some View {
+            ZStack {
+                Color.black
+                captions
+                if visibility.visible { chrome }
+            }
+            .environment(\.themePalette, .light)
+            .environment(\.colorScheme, .light)
+            .ignoresSafeArea()
+        }
+    }
+
     func testScrubPreviewGrowsWithoutMovingTheTimelineInPhoneAndTabletWindows() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
@@ -206,7 +350,7 @@ final class PlayerTransportPositionTests: XCTestCase {
                         pictureInPictureAvailable: false, onTogglePictureInPicture: {},
                         onScrubChanged: { _ in }, onScrubEditingChanged: { _ in },
                         onSkipBackward: {}, onPlayPause: {}, onSkipForward: {}, onShowSpeed: {},
-                        supportsVideoZoom: false, onShowCustomZoom: {}, onShowSubtitles: {}, onShowSync: {},
+                        supportsVideoZoom: false, onShowCustomZoom: {}, onShowSubtitles: {},
                         onShowQuality: {}, hasVersions: false, onShowVersions: {},
                         onOptionsMenuPresentationChange: { _ in }, isCardOpen: .constant(false),
                         onInteraction: {}, availableSize: geometry.size

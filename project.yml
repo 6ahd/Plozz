@@ -539,6 +539,7 @@ targets:
     platform: iOS
     sources:
       - path: Tests/iOSPresentationTests
+      - path: Tests/FeaturePlaybackTests/SubtitleOverlayGeometryTests.swift
       - path: Tests/FocusIntegrationTests/LiveTVSourcesRuntimeHostedTests.swift
       - path: Tests/FocusIntegrationTests/PINRequirementPresentationTests.swift
       - path: Tests/HomePresentationSupport

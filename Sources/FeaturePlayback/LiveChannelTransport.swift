@@ -161,6 +161,7 @@ struct LiveChannelOverlay: View {
     @State private var timelineFocused = false
     #if os(iOS)
     @Environment(\.scenePhase) private var scenePhase
+    @State private var touchViewportSize: CGSize = .zero
     #endif
 
     /// Touch, stood up: the cards take their compact, shorter forms.
@@ -343,17 +344,27 @@ struct LiveChannelOverlay: View {
             .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
             .accessibilityIdentifier("live-channel-close")
             .focused($focus, equals: .close)
+            .reportSubtitleControlsFrame(
+                in: tracks.subtitles.controlsLayout, region: .topControls, isVisible: !touchChromeHidden
+            )
             #endif
             Spacer(minLength: 0)
             #if os(iOS)
             if isTouchPortrait {
                 // Opposite the host's PiP / AirPlay / Stop row, clear of the
                 // title; the library shortcut moves down beside the title.
-                touchTrackBadges
+                touchTrackBadges()
                     .opacity(cardOpen ? 0 : 1)
                     .allowsHitTesting(!cardOpen)
+                    .reportSubtitleControlsFrame(
+                        in: tracks.subtitles.controlsLayout, region: .topControls,
+                        isVisible: !cardOpen && !touchChromeHidden
+                    )
             } else {
                 libraryButton
+                    .reportSubtitleControlsFrame(
+                        in: tracks.subtitles.controlsLayout, region: .topControls, isVisible: !touchChromeHidden
+                    )
             }
             #else
             libraryButton
@@ -779,9 +790,17 @@ struct LiveChannelOverlay: View {
             scrubBehind: $scrubBehind,
             scrubThumbnail: scrubThumbnail,
             showsScrubThumbnail: tracks.offersScrubThumbnails,
-            previewAvailableSize: availableSize,
+            previewAvailableSize: timelinePreviewSize,
             seekToBehindLive: seekWindowSeconds == nil ? nil : onSeekBehindLive
         )
+    }
+
+    private var timelinePreviewSize: CGSize {
+        #if os(iOS)
+        touchViewportSize
+        #else
+        availableSize
+        #endif
     }
 
     #if os(tvOS)
@@ -1304,11 +1323,15 @@ extension LiveChannelOverlay {
             .modifier(PlayerTouchChromePadding())
             if !cardOpen, openMenu == nil {
                 centerTransport
+                    .reportSubtitleControlsFrame(
+                        in: tracks.subtitles.controlsLayout, region: .centerTransport, isVisible: !touchChromeHidden
+                    )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .playerTouchChromeHidden(touchChromeHidden)
                     .transition(.opacity)
             }
         }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { touchViewportSize = $0 }
         .environment(\.playerCardMetrics, touchMetrics)
         .onChange(of: touchBackgroundTapRevision) { _, _ in backgroundTapped() }
     }
@@ -1341,13 +1364,11 @@ extension LiveChannelOverlay {
 
     /// VOD's skip · play · skip, as channel down · play / pause · channel up.
     private var centerTransport: some View {
-        HStack(spacing: compactTransport ? 20 : PlayerTouchLayout.transportSpacing(
-            availableWidth: availableSize.width, portrait: isTouchPortrait
-        )) {
+        HStack(spacing: compactTransport ? 20 : PlayerTouchLayout.transportSpacing(in: touchViewportSize)) {
             Button(action: onPrevious) {
                 Label("Previous Channel", systemImage: "backward.end.fill")
                     .labelStyle(.iconOnly)
-                    .font(.system(size: 24))
+                    .font(.system(size: compactTransport ? 24 : 34))
             }
             .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compactTransport ? 44 : PlayerTouchLayout.skipDiameter))
             .accessibilityIdentifier("live-channel-previous")
@@ -1357,7 +1378,7 @@ extension LiveChannelOverlay {
             Button(action: onNext) {
                 Label("Next Channel", systemImage: "forward.end.fill")
                     .labelStyle(.iconOnly)
-                    .font(.system(size: 24))
+                    .font(.system(size: compactTransport ? 24 : 34))
             }
             .buttonStyle(PlayerGlassCircleButtonStyle(diameter: compactTransport ? 44 : PlayerTouchLayout.skipDiameter))
             .accessibilityIdentifier("live-channel-next")
@@ -1366,7 +1387,7 @@ extension LiveChannelOverlay {
     }
 
     private var compactTransport: Bool {
-        PlayerTouchLayout.usesCompactTransport(contentHeight: availableSize.height)
+        PlayerTouchLayout.usesCompactTransport(in: touchViewportSize)
     }
 
     /// Stands in for the host's activity panel while the controls are up, so
@@ -1417,11 +1438,6 @@ extension LiveChannelOverlay {
                             touchGoLiveBadge
                             libraryButton
                         }
-                    } else if isCompactWidth {
-                        VStack(alignment: .leading, spacing: 14) {
-                            touchTitleBlock
-                            touchBadges
-                        }
                     } else {
                         HStack(alignment: .bottom, spacing: 16) {
                             touchTitleBlock
@@ -1434,8 +1450,8 @@ extension LiveChannelOverlay {
                 .transition(.opacity)
                 timeline
                     .frame(height: PlayerTouchLayout.timelineRowHeight)
+                    .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("live-channel-timeline")
-                    .accessibilityElement(children: .combine)
                     .reportSubtitleControlsFrame(in: tracks.subtitles.controlsLayout, region: .timeline)
                     .transition(.opacity)
             }
@@ -1457,28 +1473,35 @@ extension LiveChannelOverlay {
     /// status pill and channel over the programme.
     private var touchTitleBlock: some View {
         HStack(spacing: 12) {
-            ChannelLogoArtwork(
-                name: title, logoURL: logoURL, size: CGSize(width: 56, height: 34),
-                cornerRadius: 6, plozzChannelID: plozzChannelID
-            )
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 8) {
-                    LiveChannelStatusPill(status: status, isLive: isAtLiveEdge && phase == .playing)
-                    if program != nil {
-                        Text(title)
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.85))
-                            .lineLimit(1)
+            if !PlayerTouchLayout.usesCompactTitle(in: touchViewportSize) {
+                ChannelLogoArtwork(
+                    name: title, logoURL: logoURL, size: CGSize(width: 56, height: 34),
+                    cornerRadius: 6, plozzChannelID: plozzChannelID
+                )
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                if !PlayerTouchLayout.usesCompactTitle(in: touchViewportSize) {
+                    HStack(spacing: 8) {
+                        touchStatus
+                        if program != nil {
+                            Text(title)
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.85))
+                                .lineLimit(1)
+                        }
                     }
                 }
-                Text(program?.title ?? title)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                HStack(spacing: 8) {
+                    if PlayerTouchLayout.usesCompactTitle(in: touchViewportSize) { touchStatus }
+                    Text(program?.title ?? title)
+                        .font(PlayerTouchLayout.usesCompactTitle(in: touchViewportSize) ? .headline : .title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .accessibilityIdentifier("live-channel-program-title")
+                }
             }
         }
-        .shadow(color: .black.opacity(0.4), radius: 4, y: 1)
         .reportSubtitleControlsFrame(
             in: tracks.subtitles.controlsLayout, region: .title,
             isVisible: !cardOpen && !touchChromeHidden
@@ -1490,12 +1513,13 @@ extension LiveChannelOverlay {
         .animation(.easeInOut(duration: 0.28), value: openMenu == nil)
     }
 
+    private var touchStatus: some View {
+        LiveChannelStatusPill(status: status, isLive: isAtLiveEdge && phase == .playing, compact: true)
+    }
+
     /// The same actions as the tvOS badges, as VOD's touch glass circles.
     private var touchBadges: some View {
-        HStack(spacing: 12) {
-            touchGoLiveBadge
-            touchTrackBadges
-        }
+        touchTrackBadges(includesGoLive: true)
         .reportSubtitleControlsFrame(
             in: tracks.subtitles.controlsLayout, region: .trackControls, isVisible: !touchChromeHidden
         )
@@ -1507,7 +1531,7 @@ extension LiveChannelOverlay {
             touchBadge(
                 LibraryChannelPlaybackCopy.returnToCurrentTitle(isScheduledChannel: plozzChannelID != nil),
                 systemImage: plozzChannelID != nil ? "clock.arrow.circlepath" : "dot.radiowaves.left.and.right",
-                prominent: true, action: onGoLive
+                action: onGoLive
             )
             .accessibilityIdentifier("live-channel-go-live")
             .reportSubtitleControlsFrame(
@@ -1518,8 +1542,9 @@ extension LiveChannelOverlay {
 
     /// Audio · Subtitles · Multiview: beside the title on its side, in the top
     /// bar stood up.
-    private var touchTrackBadges: some View {
+    private func touchTrackBadges(includesGoLive: Bool = false) -> some View {
         PlayerGlassControlGroup {
+            if includesGoLive { touchGoLiveBadge }
             if showsZoom {
                 PlayerOptionsMenuButton(
                     makeMenu: {
@@ -1535,14 +1560,14 @@ extension LiveChannelOverlay {
             if showsAudio {
                 touchBadge(
                     LiveChannelTrackMenuKind.audio.title, systemImage: LiveChannelTrackMenuKind.audio.icon,
-                    prominent: openMenu == .audio
+                    selected: openMenu == .audio
                 ) { toggleMenu(.audio) }
                     .accessibilityIdentifier("live-channel-audio")
             }
             if showsSubtitles {
                 touchBadge(
                     LiveChannelTrackMenuKind.subtitles.title, systemImage: LiveChannelTrackMenuKind.subtitles.icon,
-                    prominent: openMenu == .subtitles
+                    selected: openMenu == .subtitles
                 ) { toggleMenu(.subtitles) }
                     .accessibilityIdentifier("live-channel-subtitles")
             }
@@ -1561,7 +1586,7 @@ extension LiveChannelOverlay {
 
     private func touchBadge(
         _ title: LocalizedStringResource, systemImage: String,
-        prominent: Bool = false, action: @escaping () -> Void
+        selected: Bool = false, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Label { Text(title) } icon: { Image(systemName: systemImage) }
@@ -1569,12 +1594,7 @@ extension LiveChannelOverlay {
                 .font(.title3)
         }
         .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
-        .overlay {
-            if prominent {
-                Circle().strokeBorder(Color.primary.opacity(0.9), lineWidth: 2)
-                    .allowsHitTesting(false)
-            }
-        }
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     /// VOD's touch tab row: tapping a tab opens its card, tapping it again
@@ -1747,6 +1767,7 @@ private struct LiveChannelInfoCard: View {
     @FocusState.Binding var focus: LiveChannelControl?
 
     @Environment(\.playerCardMetrics) private var metrics
+    @Environment(\.playerControlForeground) private var foreground
 
     private var artHeight: CGFloat {
         (compact ? metrics.contentHeight * 0.8 : metrics.contentHeight).rounded()
@@ -1769,27 +1790,27 @@ private struct LiveChannelInfoCard: View {
                 if let subtitle = program?.subtitle {
                     Text(subtitle)
                         .font(metrics.captionFont)
-                        .foregroundStyle(Color.primary.opacity(0.75))
+                        .foregroundStyle(foreground.opacity(0.75))
                         .lineLimit(1)
                 }
                 if let program {
                     LiveChannelProgramTiming(program: program)
                         .font(metrics.captionFont)
-                        .foregroundStyle(Color.primary.opacity(0.6))
+                        .foregroundStyle(foreground.opacity(0.6))
                         .lineLimit(compact ? 2 : 1)
                     if !compact, let description = program.description {
                         Text(description)
                             .font(metrics.bodyFont)
-                            .foregroundStyle(Color.primary.opacity(0.85))
+                            .foregroundStyle(foreground.opacity(0.85))
                             .lineLimit(metrics.overviewLineLimit)
                     }
                 } else {
                     Text("No guide information for this channel.")
                         .font(metrics.bodyFont)
-                        .foregroundStyle(Color.primary.opacity(0.6))
+                        .foregroundStyle(foreground.opacity(0.6))
                 }
             }
-            .foregroundStyle(Color.primary)
+            .foregroundStyle(foreground)
             .frame(maxWidth: metrics.textColumnMaxWidth, maxHeight: .infinity, alignment: .topLeading)
             Spacer(minLength: 0)
         }
@@ -1806,7 +1827,9 @@ private struct LiveChannelInfoCard: View {
             .padding(metrics.contentPadding)
             .plozzFocusSection()
         }
-        .modifier(PanelGlassBackground(cornerRadius: metrics.panelCornerRadius))
+        .modifier(PanelGlassBackground(cornerRadius: metrics.panelCornerRadius, mediaGlass: true))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("live-channel-info-panel")
     }
 }
 
@@ -1826,12 +1849,18 @@ extension LiveChannelInfoCard {
             .lineLimit(1)
             .animation(.easeOut(duration: 0.2), value: isFocused)
         }
+        #if os(iOS)
+        .playerTouchPanelAction()
+        .accessibilityAddTraits(diagnosticsEnabled ? .isSelected : [])
+        #else
         .buttonStyle(InfoActionButtonStyle(
             focused: isFocused,
             prominent: diagnosticsEnabled,
             hPadding: metrics.actionHPadding,
             vPadding: metrics.actionVPadding
         ))
+        #endif
+        .accessibilityLabel("Playback Info")
         .focused($focus, equals: .playbackInfo)
         .accessibilityIdentifier("live-channel-playback-info")
     }
@@ -1979,6 +2008,30 @@ private struct LiveChannelTimeline: View {
             now: now, program: program, earlierPrograms: earlierPrograms,
             seekWindowSeconds: seekWindowSeconds, behindLiveSeconds: behind
         )
+        #if os(iOS)
+        let samples = PlayerClockTimes.clockWidthSamples(locale: locale)
+        return HStack(spacing: 4) {
+            touchTime(
+                clock(onScreen), samples: samples, alignment: .leading,
+                label: "Current time", identifier: "live-timeline-current-time"
+            )
+            bar(layout)
+                .frame(height: 44)
+                .contentShape(Rectangle())
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Playback position")
+                .accessibilityValue(Text(verbatim: clock(onScreen)))
+                .accessibilityIdentifier("live-channel-timeline-scrubber")
+                .modifier(LiveChannelTimelineDrag(
+                    layout: layout, now: now, windowSeconds: seekWindowSeconds,
+                    preview: $scrubBehind, seek: seekToBehindLive
+                ))
+            touchTime(
+                program == nil ? "--:--" : clock(layout.end), samples: samples, alignment: .trailing,
+                label: "Estimated end time", identifier: "live-timeline-end-time"
+            )
+        }
+        #else
         return VStack(spacing: Self.rowSpacing) {
             bar(layout)
                 .frame(height: Self.barRowHeight)
@@ -1991,7 +2044,33 @@ private struct LiveChannelTimeline: View {
             layout: layout, now: now, windowSeconds: seekWindowSeconds,
             preview: $scrubBehind, seek: seekToBehindLive
         ))
+        #endif
     }
+
+    #if os(iOS)
+    private func touchTime(
+        _ text: String, samples: [String], alignment: Alignment,
+        label: LocalizedStringResource, identifier: String
+    ) -> some View {
+        ZStack {
+            ForEach(samples, id: \.self) { Text(verbatim: $0).hidden() }
+        }
+        .overlay(alignment: alignment) {
+            Text(verbatim: text)
+                .foregroundStyle(.white.opacity(0.85))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .font(.caption.monospacedDigit())
+        .fixedSize()
+        .frame(minWidth: 44, minHeight: 44, alignment: alignment)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(label))
+        .accessibilityValue(Text(verbatim: text))
+        .accessibilityIdentifier(identifier)
+    }
+    #endif
 
     // Touch has no focused shape to make room for, and VOD's touch bar is a
     // slim line with small times, so the phone gets the compact row.
@@ -2346,14 +2425,15 @@ private struct FocusReporting<Content: View>: View {
 private struct LiveChannelStatusPill: View {
     let status: LocalizedStringResource
     let isLive: Bool
+    var compact = false
 
     var body: some View {
         Text(status)
             .font(.caption2.weight(.heavy))
             .tracking(0.6)
             .foregroundStyle(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.horizontal, compact ? 6 : 10)
+            .padding(.vertical, compact ? 2 : 4)
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(isLive ? Color(uiColor: .systemRed) : Color.gray.opacity(0.75))
@@ -2553,14 +2633,16 @@ struct LiveChannelOnNowPanel: View {
     let select: (LiveChannelOnNowItem) -> Void
 
     @Environment(\.playerCardMetrics) private var metrics
+    @Environment(\.playerControlForeground) private var foreground
 
     var body: some View {
         if items.isEmpty {
             Text("Nothing else is on right now.")
                 .font(metrics.bodyFont)
-                .foregroundStyle(Color.primary.opacity(0.7))
+                .foregroundStyle(foreground.opacity(0.7))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background { PlayerOverVideoSurface(cornerRadius: metrics.panelCornerRadius) }
+                .background { PlayerOverVideoSurface(cornerRadius: metrics.panelCornerRadius, mediaGlass: true) }
+                .accessibilityIdentifier("live-channel-on-now-empty")
         } else {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 row(now: context.date)
@@ -2614,7 +2696,7 @@ private struct LiveChannelCardButtonStyle: ButtonStyle {
         var body: some View {
             // The Cast cards' lift: small cards in a row barely register the
             // gentler default.
-            PlayerOverVideoCardStyle(focused: isFocused, cornerRadius: cornerRadius, focusScale: 1.10)
+            PlayerOverVideoCardStyle(focused: isFocused, cornerRadius: cornerRadius, focusScale: 1.10, mediaGlass: true)
                 .makeBody(configuration: configuration)
         }
     }
@@ -2628,6 +2710,7 @@ struct LiveChannelOnNowCard: View {
     let reservesDetailLine: Bool
 
     @Environment(\.playerCardMetrics) private var metrics
+    @Environment(\.playerControlForeground) private var foreground
     @Environment(\.isFocused) private var focused
 
     private static let spacing: CGFloat = 10
@@ -2684,11 +2767,11 @@ struct LiveChannelOnNowCard: View {
                 .overlay(alignment: .topLeading) { watchingBadge }
             VStack(alignment: .leading, spacing: 3) {
                 MarqueeText(text: headline, font: metrics.castNameFont, isFocused: focused)
-                    .foregroundStyle(Color.primary)
+                    .foregroundStyle(foreground)
                 if let detail = Self.detail(for: item, now: now) {
                     detail
                         .font(metrics.castRoleFont)
-                        .foregroundStyle(Color.primary.opacity(0.6))
+                        .foregroundStyle(foreground.opacity(0.6))
                         .lineLimit(1)
                 }
             }

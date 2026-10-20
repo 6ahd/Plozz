@@ -34,7 +34,12 @@ enum SubtitleOverlayGeometry {
         var total: CGFloat = 0
         for _ in visible {
             guard let top = visible.filter({ moved.intersects($0) }).map(\.minY).min() else { break }
+            #if os(iOS)
+            let lift = min(0, top - max(0, clearance) - moved.maxY)
+            guard moved.minY + lift >= bounds.minY else { return 0 }
+            #else
             let lift = min(0, max(top - max(0, clearance) - moved.maxY, bounds.minY - moved.minY))
+            #endif
             guard lift < 0 else { break }
             moved = moved.offsetBy(dx: 0, dy: lift)
             total += lift

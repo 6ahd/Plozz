@@ -174,16 +174,54 @@ final class SubtitleOverlayGeometryTests: XCTestCase {
         }
     }
 
-    func testOversizedCaptionsRemainInsideTheTopEdgeWhenThereIsTooLittleRoom() {
+    func testOversizedCaptionsUseThePlatformFallbackWhenThereIsTooLittleRoom() {
         let bounds = CGRect(x: 0, y: 0, width: 844, height: 390)
         let subtitle = CGRect(x: 40, y: 120, width: 760, height: 260)
         let lift = SubtitleOverlayGeometry.upwardOffset(
             for: subtitle, avoiding: CGRect(x: 20, y: 220, width: 800, height: 170),
             in: bounds, clearance: 12
         )
+        #if os(iOS)
+        XCTAssertEqual(lift, 0, "Do not partly lift a caption that still cannot clear the controls.")
+        #else
         XCTAssertEqual(lift, -120)
         XCTAssertEqual(subtitle.minY + lift, 0)
+        #endif
     }
+
+    #if os(iOS)
+    func testMobileAvoidanceRestoresTheOriginalPositionIfALaterObstructionCannotBeCleared() {
+        let bounds = CGRect(x: 0, y: 0, width: 956, height: 440)
+        let lower = CGRect(x: 21, y: 350, width: 914, height: 60)
+        let center = CGRect(x: 300, y: 174, width: 356, height: 92)
+        let subtitle = CGRect(x: 350, y: 240, width: 256, height: 170)
+        for controls in [[lower, center], [center, lower]] {
+            XCTAssertEqual(SubtitleOverlayGeometry.upwardOffset(
+                for: subtitle, avoiding: controls, in: bounds
+            ), 0)
+        }
+        let smaller = CGRect(x: 350, y: 310, width: 256, height: 100)
+        let top = CGRect(x: 300, y: 50, width: 356, height: 120)
+        XCTAssertEqual(SubtitleOverlayGeometry.upwardOffset(
+            for: smaller, avoiding: [lower, center, top], in: bounds
+        ), 0, "Fitting above the middle controls is not enough if another visible control occupies that space.")
+    }
+
+    @MainActor
+    func testMobileCenterTransportReservesTheGapBelowItOnlyWhileVisible() {
+        let layout = SubtitleControlsLayout()
+        let center = CGRect(x: 300, y: 174, width: 356, height: 92)
+        layout.setFrame(center, for: .centerTransport)
+        layout.setFrame(CGRect(x: 21, y: 350, width: 914, height: 38), for: .timeline)
+        let subtitle = CGRect(x: 350, y: 295, width: 256, height: 40)
+        let bounds = CGRect(x: 0, y: 0, width: 956, height: 440)
+        let lift = SubtitleOverlayGeometry.upwardOffset(for: subtitle, avoiding: layout.frames, in: bounds)
+        XCTAssertEqual(subtitle.maxY + lift, center.minY - SubtitleOverlayGeometry.controlsClearance)
+        XCTAssertEqual(layout.frame(for: .centerTransport), center, "The measured button row remains its actual size.")
+        layout.setFrame(nil, for: .centerTransport)
+        XCTAssertEqual(SubtitleOverlayGeometry.upwardOffset(for: subtitle, avoiding: layout.frames, in: bounds), 0)
+    }
+    #endif
 
     func testLetterboxedBitmapUsesDisplaySpaceForControlIntersection() throws {
         let bounds = CGRect(x: 0, y: 0, width: 1920, height: 1080)

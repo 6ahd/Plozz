@@ -1,6 +1,7 @@
 import AVKit
 import CoreModels
 import CoreUI
+import EnginePlozzigen
 import SwiftUI
 @testable import AppShelliOS
 @testable import FeaturePlayback
@@ -28,6 +29,15 @@ struct PlayerLayoutFixture: View {
         model.controls.intendsPause = !ProcessInfo.processInfo.arguments.contains("--playing")
         model.controls.isScrubbing = ProcessInfo.processInfo.arguments.contains("--scrubbing")
         model.controls.scrubSeconds = model.controls.currentSeconds
+        model.controls.engineCapabilities = ProcessInfo.processInfo.arguments.contains("--no-playback-speed")
+            ? [] : [.playbackSpeed]
+        if ProcessInfo.processInfo.arguments.contains("--playback-menu") {
+            model.controls.engineCapabilities.formUnion([.videoZoom, .dialogEnhance])
+        }
+        model.controls.subtitleDelayAdjustable = ProcessInfo.processInfo.arguments.contains("--subtitle-delay")
+        if ProcessInfo.processInfo.arguments.contains("--audio-delay") {
+            model.controls.engineCapabilities.insert(.audioDelay)
+        }
         model.controls.infoCard.cast = [MediaPerson(id: "actor", name: "Actor", role: "Character")]
         _model = State(initialValue: model)
     }
@@ -63,19 +73,23 @@ struct PlayerLayoutFixture: View {
                 if ProcessInfo.processInfo.arguments.contains("--video") {
                     NativePlayerGlassFixture(showsControls: false).ignoresSafeArea()
                 }
-                PlozziOSPlayerControlsOverlay(
-                    viewModel: model, keyboardActions: PlozziOSPlayerKeyboardActions(),
-                    hasVersions: false, versionsPresented: false, onShowVersions: {}, onClose: {}
-                )
+                if ProcessInfo.processInfo.arguments.contains("--live-player") {
+                    LivePlayerLayoutFixture()
+                } else {
+                    PlozziOSPlayerControlsOverlay(
+                        viewModel: model, keyboardActions: PlozziOSPlayerKeyboardActions(),
+                        hasVersions: false, versionsPresented: false, onShowVersions: {}, onClose: {}
+                    )
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("player-layout-fixture")
+                    .accessibilityValue("scrubbing:\(model.controls.isScrubbing),starts:\(scrubStarts)")
+                }
             }
         }
         .statusBarHidden()
         .onChange(of: model.controls.isScrubbing) { _, active in
             if active { scrubStarts += 1 }
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("player-layout-fixture")
-        .accessibilityValue("scrubbing:\(model.controls.isScrubbing),starts:\(scrubStarts)")
         .environment(\.themePalette, light ? .light : .dark)
         .environment(\.colorScheme, light ? .light : .dark)
         .preferredColorScheme(light ? .light : .dark)
@@ -93,6 +107,57 @@ struct PlayerLayoutFixture: View {
                 .accessibilityValue("\(timelineSampleIndex)")
                 .padding(.top, 110)
             }
+        }
+    }
+
+    private struct LivePlayerLayoutFixture: View {
+        @State private var tracks: LiveChannelPlayerModel
+        @State private var paused = false
+        @State private var behind: TimeInterval = 0
+        @State private var channel = 0
+        @State private var scrubStarts = 0
+        @FocusState private var focus: LiveChannelControl?
+        private let input: LiveChannelInput
+        private let now = Date()
+
+        init() {
+            input = .stream(url: URL(string: "https://fixture.invalid/live.m3u8")!, httpHeaders: [:])
+            do {
+                _tracks = State(initialValue: LiveChannelPlayerModel(engine: try PlozzigenVideoEngine(), input: input))
+            } catch {
+                preconditionFailure("Could not create Live layout fixture: \(error)")
+            }
+        }
+
+        var body: some View {
+            LiveChannelOverlay(
+                title: "Sample Channel", logoURL: nil, plozzChannelID: nil, channelID: "sample", input: input,
+                program: .init(
+                    title: "Evening News", start: now.addingTimeInterval(-900), end: now.addingTimeInterval(900)
+                ),
+                earlierPrograms: [], libraryItem: nil, openLibraryItem: nil, phase: paused ? .paused : .playing,
+                isAtLiveEdge: behind == 0, behindLiveSeconds: behind, canPause: true, canGoLive: true,
+                seekWindowSeconds: 3600, onSeekBy: { behind = max(0, behind - $0) },
+                onSeekBehindLive: { behind = $0 }, focus: $focus, onClose: {},
+                onPrevious: { channel -= 1 }, onPlayPause: { paused.toggle() }, onGoLive: { behind = 0 },
+                onNext: { channel += 1 }, onMultiview: nil, guideContent: nil,
+                pendingGuideOpen: false, consumeGuideOpen: {}, onGuideCardChange: { _ in },
+                loadOnNow: {
+                    ProcessInfo.processInfo.arguments.contains("--empty-on-now") ? [] : [
+                        .init(channelID: "other", channelName: "Another Channel", logoURL: nil, program: .init(
+                            title: "Another Programme", start: now.addingTimeInterval(-900), end: now.addingTimeInterval(900)
+                        ))
+                    ]
+                }, onTuneChannel: nil, tracks: tracks,
+                diagnosticsEnabled: false, toggleDiagnostics: {},
+                onTracksPresentationChange: { _ in }, onControlActivity: {}, onDismissControls: {},
+                onTouchScrubbingChanged: { if $0 { scrubStarts += 1 } }
+            )
+            .ignoresSafeArea()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("live-player-layout-fixture")
+            .accessibilityValue(Text(verbatim: "channel:\(channel),behind:\(Int(behind)),scrubs:\(scrubStarts)"))
+            .onDisappear { tracks.stop() }
         }
     }
 

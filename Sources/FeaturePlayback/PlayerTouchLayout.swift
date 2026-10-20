@@ -13,6 +13,20 @@ public enum PlayerTouchLayout {
         contentHeight > 0 && contentHeight < 352
     }
 
+    public static func usesCompactTransport(in viewport: CGSize) -> Bool {
+        usesCompactTransport(contentHeight: viewport.height - 2 * edgeInset)
+    }
+
+    public static func usesCompactTitle(in viewport: CGSize) -> Bool {
+        viewport.height > 0 && viewport.height < 352
+    }
+
+    public static func transportSpacing(in viewport: CGSize) -> CGFloat {
+        transportSpacing(
+            availableWidth: viewport.width - 2 * horizontalInset, portrait: viewport.height > viewport.width
+        )
+    }
+
     public static func transportSpacing(availableWidth: CGFloat, portrait: Bool = false) -> CGFloat {
         min(portrait ? 39 : 68, max(0, (availableWidth - playDiameter - 2 * skipDiameter) / 2))
     }

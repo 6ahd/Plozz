@@ -431,6 +431,12 @@ public struct LiveChannelPlayerView: View {
                             onStopPlayback()
                         }
                     ))
+                    #if os(iOS)
+                    .reportSubtitleControlsFrame(
+                        in: model.subtitles.controlsLayout, region: .topControls,
+                        isVisible: controlsVisible && isExpanded && !touchScrubbing
+                    )
+                    #endif
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     #if os(iOS)
                     // Beside the overlay's close button, as VOD's top bar.

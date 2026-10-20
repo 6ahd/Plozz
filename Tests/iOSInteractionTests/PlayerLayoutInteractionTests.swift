@@ -3,6 +3,267 @@ import XCTest
 
 @MainActor
 final class PlayerLayoutInteractionTests: XCTestCase {
+    func testLiveAndVODUseMatchingNativeControlsAndEdgeSpacingAfterRotation() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        for orientation in [UIDeviceOrientation.landscapeLeft, .portrait] {
+            XCUIDevice.shared.orientation = orientation
+            var reference: [CGRect] = []
+            for live in [false, true] {
+                app.launchArguments = ["--player-layout-fixture", "--light"]
+                if live { app.launchArguments.append("--live-player") }
+                app.launch()
+                let close = app.buttons[live ? "live-channel-close" : "Close player"]
+                XCTAssertTrue(close.waitForExistence(timeout: 10))
+                let landscape = orientation.isLandscape
+                wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                    (app.frame.width > app.frame.height) == landscape
+                        && (landscape ? close.frame.minY < 40 : close.frame.minX < 40)
+                }, object: nil)], timeout: 10)
+                let names = live
+                    ? ["live-channel-previous", "live-channel-play-pause", "live-channel-next"]
+                    : ["Skip backward", "Play", "Skip forward"]
+                let frames = names.map { app.buttons[$0].frame }
+                let info = app.buttons[live ? "live-channel-info" : "Info"]
+                XCTAssertTrue(info.exists)
+                if live {
+                    XCTAssertEqual(frames, Array(reference.prefix(3)))
+                    XCTAssertEqual(close.frame, reference[3])
+                    XCTAssertEqual(info.frame, reference[4])
+                    let title = app.staticTexts["live-channel-program-title"].frame
+                    for frame in frames { XCTAssertFalse(frame.intersects(title)) }
+                    let scrubber = app.descendants(matching: .any)["live-channel-timeline-scrubber"].firstMatch
+                    XCTAssertTrue(scrubber.exists)
+                    XCTAssertGreaterThanOrEqual(scrubber.frame.height, 44)
+                    let current = app.descendants(matching: .any)["live-timeline-current-time"].firstMatch.frame
+                    let end = app.descendants(matching: .any)["live-timeline-end-time"].firstMatch.frame
+                    XCTAssertEqual(current.midY, scrubber.frame.midY, accuracy: 1)
+                    XCTAssertEqual(end.midY, scrubber.frame.midY, accuracy: 1)
+                    XCTAssertEqual(scrubber.frame.minX - current.maxX, 4, accuracy: 1)
+                    XCTAssertEqual(end.minX - scrubber.frame.maxX, 4, accuracy: 1)
+                } else {
+                    reference = frames + [close.frame, info.frame]
+                }
+                if app.frame.size == CGSize(width: 956, height: 440)
+                    || app.frame.size == CGSize(width: 440, height: 956) {
+                    XCTAssertEqual(close.frame.minY, landscape ? 24 : 62, accuracy: 1)
+                    XCTAssertEqual(app.frame.maxY - info.frame.maxY, landscape ? 24 : 34, accuracy: 1)
+                }
+                capture(app, name: "\(live ? "Live" : "VOD") real \(landscape ? "landscape" : "portrait") geometry")
+                attachMeasurements(["window \(app.frame)", "close \(close.frame)", "info \(info.frame)", "center \(frames)"])
+                app.terminate()
+            }
+        }
+    }
+
+    func testLiveInlineTimelineSeeksWithinTheBarAndPreservesChannelActions() {
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        app.launchArguments = ["--player-layout-fixture", "--live-player", "--light"]
+        app.launch()
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        let play = app.buttons["live-channel-play-pause"]
+        XCTAssertTrue(play.waitForExistence(timeout: 10))
+        play.tap()
+        XCTAssertEqual(play.label, "Play")
+        play.tap()
+        XCTAssertEqual(play.label, "Pause")
+        let fixture = app.descendants(matching: .any)["live-player-layout-fixture"].firstMatch
+        app.buttons["live-channel-next"].tap()
+        XCTAssertTrue((fixture.value as? String)?.hasPrefix("channel:1,") == true)
+        app.buttons["live-channel-previous"].tap()
+        XCTAssertTrue((fixture.value as? String)?.hasPrefix("channel:0,") == true)
+        let scrubber = app.descendants(matching: .any)["live-channel-timeline-scrubber"].firstMatch
+        let original = scrubber.frame
+        scrubber.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.5))
+            .press(forDuration: 0.2, thenDragTo: scrubber.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.5)))
+        XCTAssertTrue(play.waitForExistence(timeout: 5))
+        XCTAssertEqual(scrubber.frame, original)
+        let value = fixture.value as? String ?? ""
+        let landing = Int(value.components(separatedBy: "behind:").last?.components(separatedBy: ",").first ?? "")
+        // The bar spans one hour of history plus the programme's remaining 15 minutes.
+        XCTAssertEqual(Double(landing ?? -1), 3600 - 4500 * 0.25, accuracy: 20)
+        XCTAssertTrue(value.hasSuffix("scrubs:1"))
+        app.buttons["live-channel-go-live"].tap()
+        XCTAssertTrue((fixture.value as? String)?.contains("behind:0,") == true)
+    }
+
+    func testNativeFullscreenPlayerEdgeReferenceAfterRotation() {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        app.launchArguments = ["--player-layout-fixture", "--native-avkit", "--light"]
+        app.launch()
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        let fullscreen = app.buttons["Fullscreen Button"]
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
+        XCTAssertTrue(fullscreen.waitForExistence(timeout: 10))
+        fullscreen.tap()
+        for orientation in [UIDeviceOrientation.landscapeLeft, .portrait] {
+            XCUIDevice.shared.orientation = orientation
+            wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                (app.frame.width > app.frame.height) == orientation.isLandscape
+            }, object: nil)], timeout: 10)
+            if !app.buttons["Play"].exists {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
+            }
+            XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 5))
+            if app.frame.size == CGSize(width: 956, height: 440)
+                || app.frame.size == CGSize(width: 440, height: 956) {
+                XCTAssertEqual(
+                    app.buttons["Close Button"].frame.midY, orientation.isLandscape ? 46 : 84, accuracy: 1
+                )
+                XCTAssertEqual(
+                    app.frame.maxY - app.sliders["Current position"].frame.midY - 22,
+                    orientation.isLandscape ? 24 : 34, accuracy: 1
+                )
+            }
+            capture(app, name: "Native AVKit fullscreen edge reference \(orientation.isLandscape ? "landscape" : "portrait")")
+            attachMeasurements([app.debugDescription])
+        }
+    }
+
+    func testLiveInfoAndOnNowUseNativeMediaGlassInBothAppearances() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        for appearance in ["light", "dark"] {
+            for empty in [false, true] {
+                app.launchArguments = ["--player-layout-fixture", "--live-player", "--\(appearance)"]
+                if empty { app.launchArguments.append("--empty-on-now") }
+                app.launch()
+                XCTAssertTrue(app.buttons["live-channel-info"].waitForExistence(timeout: 10))
+                for (tab, panel) in [
+                    ("live-channel-info", "live-channel-info-panel"),
+                    ("live-channel-on-now", empty ? "live-channel-on-now-empty" : "live-channel-on-now-other")
+                ] {
+                    app.buttons[tab].tap()
+                    let card = app.descendants(matching: .any)[panel].firstMatch
+                    XCTAssertTrue(card.waitForExistence(timeout: 5))
+                    capture(app, name: "Live \(tab) \(appearance) \(empty ? "empty" : "populated")")
+                    let padding = CGRect(x: card.frame.maxX - 16, y: card.frame.midY - 10, width: 8, height: 20)
+                    XCTAssertLessThan(
+                        try brightness(XCUIScreen.main.screenshot().image, in: padding, screen: app.frame), 0.4,
+                        "Live panels must not retain regular glass's pale backing over black video."
+                    )
+                    if tab == "live-channel-info" {
+                        let action = app.buttons["live-channel-playback-info"]
+                        XCTAssertTrue(action.isHittable)
+                        let ink = try visibleBounds(
+                            uprightImage(XCUIScreen.main.screenshot().image, screen: app.frame),
+                            in: action.frame.insetBy(dx: 8, dy: 8), screen: app.frame, threshold: 200
+                        )
+                        XCTAssertGreaterThan(ink.width, 8, "Secondary actions need the main player's light foreground.")
+                        XCTAssertGreaterThan(ink.height, 8)
+                    }
+                }
+                app.terminate()
+            }
+        }
+    }
+
+    func testPlaybackMenuKeepsNativeMediaContrastInBothAppearances() throws {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer {
+            app.terminate()
+            XCUIDevice.shared.orientation = .portrait
+        }
+        var levels: [Double] = []
+        for appearance in ["light", "dark"] {
+            for backdrop in ["black", "white", "video"] {
+                XCUIDevice.shared.orientation = backdrop == "video" ? .landscapeLeft : .portrait
+                app.launchArguments = ["--player-layout-fixture", "--playback-menu", "--\(appearance)"]
+                if backdrop == "white" { app.launchArguments.append("--white-video") }
+                if backdrop == "video" { app.launchArguments.append("--video") }
+                app.launch()
+                let options = app.buttons["player-playback-options"]
+                XCTAssertTrue(options.waitForExistence(timeout: 10))
+                options.tap()
+                let speed = app.buttons["Playback Speed"]
+                XCTAssertTrue(speed.waitForExistence(timeout: 5))
+                XCTAssertTrue(app.buttons["Audio"].exists)
+                XCTAssertTrue(app.buttons["Zoom Mode"].exists)
+                XCTAssertFalse(app.buttons["Playback Sync"].exists)
+                capture(app, name: "Plozz native menu \(appearance) \(backdrop) video")
+                if backdrop == "black" {
+                    let image = XCUIScreen.main.screenshot().image
+                    let interior = speed.frame.insetBy(dx: 12, dy: 6)
+                    let level = try brightness(image, in: interior, screen: app.frame)
+                    levels.append(level)
+                    XCTAssertLessThan(level, 0.45, "The media menu must not become a white-tinted surface in Light mode.")
+                    let ink = try visibleBounds(image, in: interior, screen: app.frame, threshold: 200)
+                    XCTAssertGreaterThan(ink.width, 80, "The native menu's title must retain light ink.")
+                    XCTAssertLessThan(ink.height, interior.height - 2, "Measure label ink, not a pale menu background.")
+                }
+                speed.tap()
+                XCTAssertTrue(app.navigationBars["Playback Speed"].waitForExistence(timeout: 5))
+                app.buttons["Done"].tap()
+                XCTAssertTrue(app.navigationBars["Playback Speed"].waitForNonExistence(timeout: 5))
+                XCTAssertTrue(options.waitForExistence(timeout: 5))
+                options.tap()
+                XCTAssertTrue(app.buttons["Playback Speed"].waitForExistence(timeout: 5))
+                app.terminate()
+            }
+        }
+        XCTAssertEqual(levels[0], levels[1], accuracy: 0.08)
+    }
+
+    func testSyncControlsLiveInsideSubtitlesAndRespectCapabilities() {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        defer { app.terminate() }
+        for (subtitles, audio, speed) in [
+            (true, false, true), (false, true, true), (true, true, true), (false, false, true), (true, true, false)
+        ] {
+            app.launchArguments = ["--player-layout-fixture"]
+            if subtitles { app.launchArguments.append("--subtitle-delay") }
+            if audio { app.launchArguments.append("--audio-delay") }
+            if !speed { app.launchArguments.append("--no-playback-speed") }
+            app.launch()
+            XCTAssertTrue(app.buttons["Subtitles"].waitForExistence(timeout: 10))
+            let options = app.buttons["player-playback-options"]
+            if speed {
+                XCTAssertTrue(options.exists)
+                options.tap()
+                XCTAssertTrue(app.buttons["Playback Speed"].waitForExistence(timeout: 5))
+                XCTAssertFalse(app.buttons["Playback Sync"].exists)
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).tap()
+            } else {
+                XCTAssertFalse(options.exists, "Moving sync must not leave an empty playback-options button.")
+            }
+            app.buttons["Subtitles"].tap()
+            XCTAssertTrue(app.navigationBars["Subtitles"].waitForExistence(timeout: 5))
+            XCTAssertEqual(app.sliders["player-subtitle-delay"].exists, subtitles)
+            XCTAssertEqual(app.sliders["player-audio-delay"].exists, audio)
+            var values: [String: String] = [:]
+            for identifier in ["player-subtitle-delay", "player-audio-delay"] where app.sliders[identifier].exists {
+                let slider = app.sliders[identifier]
+                let original = slider.value as? String
+                slider.adjust(toNormalizedSliderPosition: 0.75)
+                XCTAssertNotEqual(slider.value as? String, original)
+                values[identifier] = slider.value as? String
+            }
+            app.buttons["Done"].tap()
+            app.buttons["Subtitles"].tap()
+            for (identifier, value) in values {
+                XCTAssertEqual(app.sliders[identifier].value as? String, value)
+            }
+            app.terminate()
+        }
+    }
+
     func testBackgroundingCancelsScrubPresentation() {
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
         XCUIDevice.shared.orientation = .portrait
@@ -350,7 +611,7 @@ final class PlayerLayoutInteractionTests: XCTestCase {
     }
 
     private func brightness(_ image: UIImage, in frame: CGRect, screen: CGRect) throws -> Double {
-        let source = try XCTUnwrap(image.cgImage)
+        let source = try XCTUnwrap(uprightImage(image, screen: screen).cgImage)
         let scale = CGFloat(source.width) / screen.width
         let crop = try XCTUnwrap(source.cropping(to: CGRect(
             x: (frame.minX - screen.minX) * scale, y: (frame.minY - screen.minY) * scale,
@@ -411,7 +672,7 @@ final class PlayerLayoutInteractionTests: XCTestCase {
 
     private func capture(_ app: XCUIApplication, name: String) {
         Thread.sleep(forTimeInterval: 0.7)
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        let attachment = XCTAttachment(image: uprightImage(XCUIScreen.main.screenshot().image, screen: app.frame))
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)

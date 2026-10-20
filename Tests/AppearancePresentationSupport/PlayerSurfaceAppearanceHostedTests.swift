@@ -100,8 +100,8 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                     }
                     let options = try XCTUnwrap(descendant(in: window, identifier: "player-playback-options") as? UIButton)
                     XCTAssertEqual(options.tintColor, reduced && scheme == .light ? .black : .white)
-                    XCTAssertEqual(options.traitCollection.userInterfaceStyle, scheme == .light ? .light : .dark,
-                                   "Changing the icon must not force the native menu's appearance.")
+                    XCTAssertEqual(options.traitCollection.userInterfaceStyle, .dark,
+                                   "Only the native media menu owner uses dark appearance; the host still follows the theme.")
                     #endif
                 }
                 for name in ["circle", "tab", "track", "panel", "card", "native-button"] {

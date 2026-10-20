@@ -10,7 +10,6 @@ private enum PlozziOSPlayerSheet: String, Identifiable {
     case speed
     case zoom
     case subtitles
-    case sync
     case quality
 
     var id: Self { self }
@@ -92,6 +91,7 @@ struct PlozziOSPlayerControlsOverlay: View {
                 VStack(spacing: 0) {
                     if controlsVisible && !isScrubbing {
                         PlozziOSPlayerTopBar(
+                            subtitleLayout: viewModel.controls.subtitleLayout,
                             pictureInPictureAvailable: pictureInPicture.isAvailable,
                             onTogglePictureInPicture: {
                                 pictureInPicture.toggle()
@@ -161,10 +161,6 @@ struct PlozziOSPlayerControlsOverlay: View {
                             presentedSheet = .subtitles
                             cancelAutoHide()
                         },
-                        onShowSync: {
-                            presentedSheet = .sync
-                            cancelAutoHide()
-                        },
                         onShowQuality: {
                             presentedSheet = .quality
                             cancelAutoHide()
@@ -187,9 +183,8 @@ struct PlozziOSPlayerControlsOverlay: View {
             }
 
             if controlsVisible && !isScrubbing && !isCardOpen && !showsUpNext {
-                primaryPlaybackControls(compact: PlayerTouchLayout.usesCompactTransport(
-                    contentHeight: availableSize.height - 2 * PlayerTouchLayout.edgeInset
-                ))
+                primaryPlaybackControls(compact: PlayerTouchLayout.usesCompactTransport(in: availableSize))
+                    .reportSubtitleControlsFrame(in: viewModel.controls.subtitleLayout, region: .centerTransport)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
@@ -293,8 +288,6 @@ struct PlozziOSPlayerControlsOverlay: View {
                 PlayerZoomSettingsSheet(model: viewModel.controls.videoZoom)
             case .subtitles:
                 PlozziOSSubtitleOptionsSheet(viewModel: viewModel)
-            case .sync:
-                PlozziOSPlaybackSyncSheet(viewModel: viewModel)
             case .quality:
                 PlozziOSStreamingQualitySheet(viewModel: viewModel)
             }
@@ -303,10 +296,7 @@ struct PlozziOSPlayerControlsOverlay: View {
     }
 
     private func primaryPlaybackControls(compact: Bool) -> some View {
-        HStack(spacing: compact ? 20 : PlayerTouchLayout.transportSpacing(
-            availableWidth: availableSize.width - 2 * PlayerTouchLayout.horizontalInset,
-            portrait: availableSize.height > availableSize.width
-        )) {
+        HStack(spacing: compact ? 20 : PlayerTouchLayout.transportSpacing(in: availableSize)) {
             Button {
                 seek(by: -viewModel.controls.skipGesture.backwardInterval.seconds)
                 backwardSpins -= 1
@@ -621,6 +611,7 @@ private struct PlozziOSAirPlayRouteButton: UIViewRepresentable {
 /// corner. Route and PiP join it on the left because they are the same class of
 /// thing: WHERE this is playing, not what.
 private struct PlozziOSPlayerTopBar: View {
+    let subtitleLayout: SubtitleControlsLayout
     let pictureInPictureAvailable: Bool
     let onTogglePictureInPicture: () -> Void
     let onClose: () -> Void
@@ -633,6 +624,7 @@ private struct PlozziOSPlayerTopBar: View {
             }
             .buttonStyle(PlayerGlassCircleButtonStyle(diameter: 44))
             .accessibilityLabel("Close player")
+            .reportSubtitleControlsFrame(in: subtitleLayout, region: .topControls)
 
             PlayerGlassControlGroup {
                 PlozziOSAirPlayRouteButton()
@@ -648,6 +640,7 @@ private struct PlozziOSPlayerTopBar: View {
                     .accessibilityLabel("Picture in Picture")
                 }
             }
+            .reportSubtitleControlsFrame(in: subtitleLayout, region: .topControls)
 
             Spacer(minLength: 0)
         }
@@ -683,7 +676,6 @@ private struct PlozziOSPlaybackOptionsMenu: View {
     let hasAudioControls: Bool
     let supportsPlaybackSpeed: Bool
     let videoZoom: PlayerVideoZoomModel?
-    let supportsSync: Bool
     let supportsDialogEnhance: Bool
     let dialogEnhanceEnabled: Bool
     let supportsQuality: Bool
@@ -692,14 +684,15 @@ private struct PlozziOSPlaybackOptionsMenu: View {
     let onSetDialogEnhance: (Bool) -> Void
     let onShowSpeed: () -> Void
     let onShowCustomZoom: () -> Void
-    let onShowSync: () -> Void
     let onShowQuality: () -> Void
     let onShowVersions: () -> Void
     let onPresentationChange: (Bool) -> Void
 
     var body: some View {
-        PlayerOptionsMenuButton(makeMenu: makeMenu, onPresentationChange: onPresentationChange)
-            .frame(width: 44, height: 44)
+        if hasAudioControls || supportsPlaybackSpeed || videoZoom != nil || supportsQuality || supportsVersions {
+            PlayerOptionsMenuButton(makeMenu: makeMenu, onPresentationChange: onPresentationChange)
+                .frame(width: 44, height: 44)
+        }
     }
 
     private func makeMenu() -> UIMenu {
@@ -731,9 +724,6 @@ private struct PlozziOSPlaybackOptionsMenu: View {
         }
         if supportsPlaybackSpeed {
             items.append(action("Playback Speed", icon: "speedometer", perform: onShowSpeed))
-        }
-        if supportsSync {
-            items.append(action("Playback Sync", icon: "slider.horizontal.3", perform: onShowSync))
         }
         return UIMenu(children: items)
     }
@@ -772,7 +762,6 @@ struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
     let supportsVideoZoom: Bool
     let onShowCustomZoom: () -> Void
     let onShowSubtitles: () -> Void
-    let onShowSync: () -> Void
     let onShowQuality: () -> Void
     let hasVersions: Bool
     let onShowVersions: () -> Void
@@ -827,14 +816,14 @@ struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
                 // name, so it belongs above the thing it qualifies. This had the
                 // two the other way round.
                 VStack(alignment: .leading, spacing: 1) {
-                    if !viewModel.controls.subtitle.isEmpty {
+                    if !viewModel.controls.subtitle.isEmpty, !PlayerTouchLayout.usesCompactTitle(in: availableSize) {
                         Text(viewModel.controls.subtitle)
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.85))
                             .lineLimit(1)
                     }
                     Text(viewModel.controls.title)
-                        .font(.title3.weight(.semibold))
+                        .font(PlayerTouchLayout.usesCompactTitle(in: availableSize) ? .headline : .title3.weight(.semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
@@ -935,7 +924,6 @@ struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
             hasAudioControls: viewModel.controls.hasAudioControls,
             supportsPlaybackSpeed: viewModel.controls.engineCapabilities.contains(.playbackSpeed),
             videoZoom: supportsVideoZoom ? viewModel.controls.videoZoom : nil,
-            supportsSync: supportsSync,
             supportsDialogEnhance: supportsDialogEnhance,
             dialogEnhanceEnabled: viewModel.controls.dialogEnhanceEnabled,
             supportsQuality: viewModel.streamingQualityAvailable,
@@ -950,16 +938,10 @@ struct PlozziOSPlayerTransport<PlaybackControls: View>: View {
             },
             onShowSpeed: onShowSpeed,
             onShowCustomZoom: onShowCustomZoom,
-            onShowSync: onShowSync,
             onShowQuality: onShowQuality,
             onShowVersions: onShowVersions,
             onPresentationChange: onOptionsMenuPresentationChange
         )
-    }
-
-    private var supportsSync: Bool {
-        viewModel.controls.engineCapabilities.contains(.audioDelay)
-            || viewModel.controls.subtitleDelayAdjustable
     }
 
     private var supportsDialogEnhance: Bool {
@@ -1138,6 +1120,7 @@ private struct PlozziOSSubtitleOptionsSheet: View {
             Form {
                 primaryTracks
                 secondaryTracks
+                PlozziOSPlaybackSyncControls(viewModel: viewModel)
                 appearance
                 remoteSearch
             }
@@ -1372,58 +1355,51 @@ private struct PlozziOSPlaybackSpeedSheet: View {
     }
 }
 
-private struct PlozziOSPlaybackSyncSheet: View {
-    @Environment(\.dismiss) private var dismiss
+private struct PlozziOSPlaybackSyncControls: View {
     let viewModel: PlayerViewModel
 
     var body: some View {
-        NavigationStack {
-            Form {
-                if viewModel.controls.engineCapabilities.contains(.audioDelay) {
-                    Section("Audio Delay") {
-                        Slider(
-                            value: Binding(
-                                get: { viewModel.controls.audioDelaySeconds },
-                                set: { viewModel.setAudioDelay($0) }
-                            ),
-                            in: -2...2,
-                            step: 0.05
-                        )
-                        Text(
-                            viewModel.controls.audioDelaySeconds,
-                            format: .number.precision(.fractionLength(2))
-                        )
-                        .plozzForeground(.secondary)
-                    }
-                }
-
-                if viewModel.controls.subtitleDelayAdjustable {
-                    Section("Subtitle Delay") {
-                        Slider(
-                            value: Binding(
-                                get: { viewModel.controls.subtitleDelaySeconds },
-                                set: { viewModel.setSubtitleDelay($0) }
-                            ),
-                            in: -2...2,
-                            step: 0.05
-                        )
-                        Text(
-                            viewModel.controls.subtitleDelaySeconds,
-                            format: .number.precision(.fractionLength(2))
-                        )
-                        .plozzForeground(.secondary)
-                    }
+        Group {
+            if viewModel.controls.engineCapabilities.contains(.audioDelay) {
+                Section("Audio Delay") {
+                    Slider(
+                        value: Binding(
+                            get: { viewModel.controls.audioDelaySeconds },
+                            set: { viewModel.setAudioDelay($0) }
+                        ),
+                        in: -2...2,
+                        step: 0.05
+                    )
+                    .accessibilityLabel("Audio Delay")
+                    .accessibilityIdentifier("player-audio-delay")
+                    Text(
+                        viewModel.controls.audioDelaySeconds,
+                        format: .number.precision(.fractionLength(2))
+                    )
+                    .plozzForeground(.secondary)
                 }
             }
-            .navigationTitle("Playback Sync")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+
+            if viewModel.controls.subtitleDelayAdjustable {
+                Section("Subtitle Delay") {
+                    Slider(
+                        value: Binding(
+                            get: { viewModel.controls.subtitleDelaySeconds },
+                            set: { viewModel.setSubtitleDelay($0) }
+                        ),
+                        in: -2...2,
+                        step: 0.05
+                    )
+                    .accessibilityLabel("Subtitle Delay")
+                    .accessibilityIdentifier("player-subtitle-delay")
+                    Text(
+                        viewModel.controls.subtitleDelaySeconds,
+                        format: .number.precision(.fractionLength(2))
+                    )
+                    .plozzForeground(.secondary)
                 }
             }
         }
-        .presentationDetents([.medium])
     }
 }
 

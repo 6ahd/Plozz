@@ -22,6 +22,8 @@ public struct PlayerOptionsMenuButton: UIViewRepresentable {
         button.setImage(UIImage(systemName: "slider.horizontal.3",
                                 withConfiguration: UIImage.SymbolConfiguration(textStyle: .title3)), for: .normal)
         button.tintColor = context.environment.playerControlTint
+        // Scope the native media menu's light labels to its owner, never the player or sheets.
+        button.overrideUserInterfaceStyle = .dark
         button.showsMenuAsPrimaryAction = true
         button.isContextMenuInteractionEnabled = true
         button.preferredMenuElementOrder = .fixed
