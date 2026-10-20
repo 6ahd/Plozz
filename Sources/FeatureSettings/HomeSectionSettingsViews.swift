@@ -72,11 +72,20 @@ struct HomeEditorRowLabel: View {
     let title: Text
     let subtitle: Text?
     var accessory = "chevron.forward"
+    var titleSymbol: String? = nil
 
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                title.font(.body.weight(.medium))
+                HStack(spacing: 8) {
+                    title.font(.body.weight(.medium))
+                    if let titleSymbol {
+                        Image(systemName: titleSymbol)
+                            .font(.footnote)
+                            .settingsRowSecondary()
+                            .accessibilityHidden(true)
+                    }
+                }
                 subtitle?.font(.footnote).settingsRowSecondary()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -242,7 +251,7 @@ struct HomeHeroSettingsView: View {
 
     @ViewBuilder private var page: some View {
         @Bindable var hero = hero
-        HomeEditorPage(title: Text("Hero"), showsHeader: true) {
+        HomeEditorPage(title: pageTitle, showsHeader: true) {
             #if os(tvOS)
             HomeLayoutPicker(layout: $hero.settings.style)
             if hero.settings.style == .followsFocus {
@@ -267,6 +276,14 @@ struct HomeHeroSettingsView: View {
             HeroSettingsControls(libraries: availableLibraries, accounts: accounts)
             #endif
         }
+    }
+
+    private var pageTitle: Text {
+        #if os(tvOS)
+        Text("Home layout")
+        #else
+        Text("Hero")
+        #endif
     }
 }
 
@@ -374,7 +391,6 @@ struct HomeRowPresetPicker: View {
     }
 
     @ViewBuilder private var picker: some View {
-        #if os(iOS)
         Menu {
             selectionPicker.pickerStyle(.inline).labelsHidden()
         } label: {
@@ -384,21 +400,22 @@ struct HomeRowPresetPicker: View {
                     .font(.caption2.weight(.semibold))
                     .accessibilityHidden(true)
             }
-            .font(.subheadline.weight(.semibold))
-            .padding(.vertical, 6)
+            #if os(iOS)
+                .font(.subheadline.weight(.semibold))
+                .padding(.vertical, 6)
+            #endif
         }
+        #if os(tvOS)
+        .menuStyle(.button)
+        .plozzActionButton(role: .secondary)
+        #else
         .buttonStyle(.bordered)
         .buttonBorderShape(.capsule)
         .frame(minHeight: 44)
+        #endif
         .accessibilityLabel(Text("Preset"))
         .accessibilityValue(currentTitle)
         .accessibilityIdentifier("home-row-preset")
-        #else
-        selectionPicker
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .accessibilityIdentifier("home-row-preset")
-        #endif
     }
 
     private var currentTitle: Text {

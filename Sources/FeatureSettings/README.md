@@ -22,14 +22,20 @@ watch history and planning-list behavior are documented in
   Normal rows open their own settings. Source-specific rows and their settings
   use the shared provider brand mark, including the transport badge for shares;
   generic row glyphs appear only during reordering.
-  An inline Preset selector sits below the title; mobile uses a secondary heading
+  An inline Preset selector sits below the title, with up/down chevrons beside
+  its current value to expose the native menu; mobile uses a secondary heading
   with a trailing native menu capsule and a divider, not another section card.
+  TV gives this control row additional vertical separation from the header and sections.
   It scrolls with the content and stacks at large text sizes when needed.
   An accessible + action remains beside Reorder/Done in the native toolbar.
   TV keeps its labeled Add section beside Preset. A second, labeled
   Add section action follows the list. Reorder/Done switches to
   native movement controls with no Hidden drop zone; Hero stays
-  pinned and cannot move. Mobile uses the shared page inset without extra gutters.
+  pinned and cannot move. Its editable row carries a subtle pin rather than a
+  lock; “Pinned at top” appears only while reordering an enabled Fullscreen Hero.
+  On TV, the single-line title is “Home layout: Hero” or “Home layout: Showcase”,
+  reflecting the active layout and opening the Home layout settings page.
+  Mobile uses the shared page inset without extra gutters.
   Add section offers available existing rows not already shown. Removing a
   section hides it without erasing its configuration or disabling its libraries.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
@@ -41,8 +47,12 @@ watch history and planning-list behavior are documented in
   One bottom card on the main editor uses shared `InlineErrorMessage` warnings
   to name affected sources and offers Retry, without repeating these on detail pages.
   The root and every catalog-editing destination keep discovery active while
-  visible and retain loading status and local edit failures. Preset changes reload the catalog;
-  adding, removing and reordering wait for discovery to finish.
+  visible and retain loading status and local edit failures. Preset changes reload the catalog.
+  Reorder is available as soon as two known sections can move, independently of
+  server discovery or failures. An editing session snapshots its known rows so
+  late discovery cannot move or disable a lifted row; the first actual move
+  saves that arrangement, retaining unavailable saved identities. Newly discovered
+  sections remain available through Add section. Add/remove still wait for discovery.
   Mobile library discovery publishes one identity-scoped snapshot, never pairing
   a previous viewer's library metadata with the newly active credentials.
   Mobile Continue Watching artwork previews size their swatch by available width

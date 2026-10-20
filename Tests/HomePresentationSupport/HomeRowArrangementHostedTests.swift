@@ -14,6 +14,114 @@ import XCTest
 
 @MainActor
 final class HomeRowArrangementHostedTests: XCTestCase {
+    func testReorderSnapshotSavesKnownRowsBeforeOrAfterDiscoveryWithoutLosingPreferences() async throws {
+        for completesBeforeMove in [false, true] {
+            let suite = "HomeReorderSnapshot.\(UUID())"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let store = HomeLibraryVisibilityStore(defaults: defaults)
+            let visibility = HomeLibraryVisibilityModel(store: store)
+            visibility.useRowDefaults(.matchServer)
+            let requested = expectation(description: "Native layout discovery remains pending")
+            let provider = HomeSettingsLibraryProvider(
+                name: "Slow server", kind: .plex,
+                homeLayout: .init(
+                    sections: [.init(id: "native", kind: .recommendations)], source: .promotedHubs
+                ),
+                holdsHome: true, onFirstHomeRequest: { requested.fulfill() }
+            )
+            defer { Task { await provider.resumeHome() } }
+            let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+            let inventory = HomeSectionCatalogModel()
+            let load = Task { await inventory.load(libraries: [], accounts: [account], visibility: visibility) }
+            await fulfillment(of: [requested], timeout: 5)
+            var session = HomeSectionReorderSession(catalog: inventory.catalog, visibility: visibility.visibility)
+            let original = session.catalog.sections(in: session.visibility).enabled
+            XCTAssertGreaterThan(original.count, 1)
+            let saved = store.load()
+            try session.move(original, savingTo: visibility)
+            XCTAssertEqual(store.load(), saved, "Entering Reorder or making no move must not freeze a preset.")
+            if completesBeforeMove {
+                await provider.resumeHome()
+                await load.value
+                XCTAssertEqual(session.catalog.sections(in: session.visibility).enabled, original)
+            }
+            visibility.setContinueWatchingShowsSeriesArtwork(false)
+            let reordered = Array(original.reversed())
+            try session.move(reordered, savingTo: visibility)
+            XCTAssertEqual(store.load().rowCustomization?.defaults, .custom)
+            XCTAssertFalse(store.load().continueWatchingShowsSeriesArtwork,
+                           "Saving a reorder must not overwrite unrelated settings changed after entry.")
+            if !completesBeforeMove {
+                await provider.resumeHome()
+                await load.value
+            }
+            XCTAssertEqual(inventory.catalog.sections(in: visibility.visibility).enabled, reordered)
+            XCTAssertEqual(inventory.catalog.sections(in: store.load()).enabled, reordered)
+            XCTAssertTrue(inventory.catalog.sections(in: visibility.visibility).disabled.contains(
+                .server(accountID: account.account.id, section: "native")
+            ), "Late discoveries remain available to add without changing the saved arrangement.")
+            XCTAssertFalse(inventory.isLoading)
+        }
+    }
+
+    #if os(tvOS)
+    func testReorderRemainsFocusableDuringSlowDiscoveryAndFailure() async throws {
+        let suite = "HomeReorderDiscovery.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let visibility = HomeLibraryVisibilityModel(store: HomeLibraryVisibilityStore(defaults: defaults))
+        visibility.useRowDefaults(.combined)
+        let requested = expectation(description: "Server discovery remains pending")
+        let provider = HomeSettingsLibraryProvider(
+            name: "Slow server", homeError: .serverUnreachable, holdsHome: true,
+            onFirstHomeRequest: { requested.fulfill() }
+        )
+        defer { Task { await provider.resumeHome() } }
+        let account = ResolvedAccount(account: Account(from: provider.session), provider: provider)
+        let inventory = HomeSectionCatalogModel()
+        try await withWindow {
+            HomeRowsSettingsView(libraries: [], accounts: [account], visibility: visibility, inventory: inventory)
+                .frame(width: SettingsFormMetrics.pageWidth)
+        } inspect: { window in
+            await self.fulfillment(of: [requested], timeout: 5)
+            XCTAssertTrue(inventory.isLoading)
+            XCTAssertGreaterThan(inventory.catalog.sections(in: visibility.visibility).enabled.count, 1)
+            try await self.assertReorderFocusable(in: window, name: "Reorder during pending discovery")
+            await provider.resumeHome()
+            let finished = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in !inventory.isLoading }, object: nil
+            )
+            await self.fulfillment(of: [finished], timeout: 5)
+            XCTAssertEqual(inventory.serverFailures[account.account.id], .serverUnreachable)
+            try await self.assertReorderFocusable(in: window, name: "Reorder after discovery failure")
+            let requests = await provider.homeRequests
+            XCTAssertEqual(requests, 1, "An idle page must not retry a failed server automatically.")
+        }
+        await provider.resumeHome()
+    }
+
+    private func assertReorderFocusable(in window: UIWindow, name: String) async throws {
+        let lines = try await capture(window, name: name)
+        let label = try XCTUnwrap(lines.first { $0.0.contains("Reorder") }).1
+        let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+        var containers: [any UIFocusItemContainer] = [window]
+        var seen = Set<ObjectIdentifier>()
+        var canFocus = false
+        while let container = containers.popLast() {
+            guard seen.insert(ObjectIdentifier(container)).inserted else { continue }
+            let bounds = container.coordinateSpace.convert(window.bounds, from: window)
+            for item in container.focusItems(in: bounds) {
+                if let child = item.focusItemContainer { containers.append(child) }
+                if let view = item as? UIView { containers.append(view) }
+                let frame = container.coordinateSpace.convert(item.frame, to: window)
+                if !(item is UIScrollView), item.canBecomeFocused, frame.contains(point) { canFocus = true }
+            }
+        }
+        XCTAssertTrue(canFocus, "Known sections must be reorderable without waiting for server discovery.")
+    }
+    #endif
+
     func testPresetSelectionRefreshesRecoveredNativeSectionsBeforeSavingCustomRows() async throws {
         let suite = "HomePresetRecovery.\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -864,6 +972,7 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
     private var homeContinuations: [CheckedContinuation<Void, Never>] = []
     private let onFirstHomeRequest: (@Sendable () -> Void)?
     private var requestedHome = false
+    private(set) var homeRequests = 0
 
     init(
         name: String, isOffline: Bool = false, homeError: AppError? = nil,
@@ -895,6 +1004,7 @@ private actor HomeSettingsLibraryProvider: MediaProvider {
         libraryContinuation = nil
     }
     func serverHomeLayout() async throws -> ServerHomeLayout? {
+        homeRequests += 1
         if !requestedHome {
             requestedHome = true
             onFirstHomeRequest?()
