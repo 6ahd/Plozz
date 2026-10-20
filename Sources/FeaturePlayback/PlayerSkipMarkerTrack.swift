@@ -32,7 +32,10 @@ enum SkipMarkerTrackLayout {
         return merged
     }
 
-    static func segmentedSections(ranges: [Range<Double>], size: CGSize) -> [CGRect] {
+    static func segmentedSections(
+        ranges: [Range<Double>], size: CGSize, minimumSectionWidth: CGFloat = 0
+    ) -> [CGRect] {
+        guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return [] }
         var boundaries: [CGFloat] = [0]
         for range in ranges {
             for fraction in [range.lowerBound, range.upperBound] where fraction > 0 && fraction < 1 {
@@ -40,10 +43,23 @@ enum SkipMarkerTrackLayout {
             }
         }
         boundaries.append(size.width)
+        let maximumHalfGap: CGFloat = 2
+        if minimumSectionWidth > 0 {
+            // Inspect the original neighbors, including unmarked intervals. Removing
+            // both cuts around a tiny piece avoids replacing it with a misleading
+            // enlarged segment or a cut through its center.
+            let minimumInterval = minimumSectionWidth + 2 * maximumHalfGap
+            boundaries = boundaries.indices.compactMap { index in
+                guard index > 0, index < boundaries.count - 1 else { return boundaries[index] }
+                guard boundaries[index] - boundaries[index - 1] >= minimumInterval,
+                      boundaries[index + 1] - boundaries[index] >= minimumInterval else { return nil }
+                return boundaries[index]
+            }
+        }
         let halfGaps = boundaries.indices.map { index -> CGFloat in
             guard index > 0, index < boundaries.count - 1 else { return 0 }
             // Keep gaps centered on their time boundary without consuming tiny sections.
-            return min(2, min(
+            return min(maximumHalfGap, min(
                 (boundaries[index] - boundaries[index - 1]) / 4,
                 (boundaries[index + 1] - boundaries[index]) / 4
             ))
@@ -56,18 +72,21 @@ enum SkipMarkerTrackLayout {
     }
 }
 
-/// Splits all three progress fills into rounded sections at skip boundaries.
+/// Splits all three progress fills at legible skip boundaries without changing timing.
 struct PlayerSkipMarkerTrack: View, Equatable {
     let segments: [MediaSegment]
     let duration: TimeInterval
     let height: CGFloat
+    var minimumSectionWidth: CGFloat = 0
 
     var body: some View {
         let ranges = SkipMarkerTrackLayout.ranges(segments: segments, duration: duration)
         Canvas { context, size in
             guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else { return }
             var mask = Path()
-            for section in SkipMarkerTrackLayout.segmentedSections(ranges: ranges, size: size) {
+            for section in SkipMarkerTrackLayout.segmentedSections(
+                ranges: ranges, size: size, minimumSectionWidth: minimumSectionWidth
+            ) {
                 let radius = min(section.width, section.height) / 2
                 mask.addRoundedRect(in: section, cornerSize: CGSize(width: radius, height: radius))
             }

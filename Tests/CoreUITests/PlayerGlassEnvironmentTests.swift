@@ -5,7 +5,7 @@ import XCTest
 
 @MainActor
 final class PlayerGlassEnvironmentTests: XCTestCase {
-    func testNativePlayerAppearanceIsDarkAndFallbackPreservesTheCurrentScheme() {
+    func testPlayerGlassAvailabilityPreservesTheCurrentScheme() {
         for scheme in [ColorScheme.light, .dark] {
             for reduced in [false, true] {
                 var environment = EnvironmentValues()
@@ -13,14 +13,12 @@ final class PlayerGlassEnvironmentTests: XCTestCase {
                 environment.plozzReduceTransparency = reduced
                 if #available(iOS 26.0, tvOS 26.0, *) {
                     XCTAssertEqual(environment.playerUsesNativeGlass, !reduced)
-                    XCTAssertEqual(environment.playerSurfaceColorScheme, reduced ? scheme : .dark)
                 } else {
                     XCTAssertFalse(environment.playerUsesNativeGlass)
-                    XCTAssertEqual(environment.playerSurfaceColorScheme, scheme)
                 }
                 environment.plozzReducePanelGlass = true
                 XCTAssertFalse(environment.playerUsesNativeGlass)
-                XCTAssertEqual(environment.playerSurfaceColorScheme, scheme)
+                XCTAssertEqual(environment.colorScheme, scheme)
             }
         }
     }
@@ -31,7 +29,7 @@ final class PlayerGlassEnvironmentTests: XCTestCase {
         environment.plozzReduceTransparency = true
         environment.plozzReducePanelGlass = false
         XCTAssertFalse(environment.playerUsesNativeGlass)
-        XCTAssertEqual(environment.playerSurfaceColorScheme, .light)
+        XCTAssertEqual(environment.colorScheme, .light)
     }
 
     func testPanelsFollowTheResolvedProfileAndAccessibilityPreferenceWithoutAnotherGate() {

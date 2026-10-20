@@ -1,5 +1,8 @@
 #if canImport(SwiftUI)
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 public extension EnvironmentValues {
     var playerUsesNativeGlass: Bool {
@@ -9,50 +12,46 @@ public extension EnvironmentValues {
         return false
     }
 
-    var playerSurfaceColorScheme: ColorScheme {
-        playerUsesNativeGlass ? .dark : colorScheme
+    var playerControlForeground: Color {
+        #if os(iOS)
+        Color(playerControlTint)
+        #else
+        .primary
+        #endif
     }
+
+    #if os(iOS)
+    var playerControlTint: UIColor {
+        playerUsesNativeGlass || colorScheme == .dark ? .white : .black
+    }
+    #endif
 }
 
 public extension View {
-    /// Scope to a playback surface and its content, never the player or a sheet host.
-    func playerSurfaceAppearance() -> some View {
-        modifier(PlayerSurfaceAppearance())
+    /// Scope television playback chrome, not the window or the browsing theme.
+    @ViewBuilder
+    func playerPlatformAppearance() -> some View {
+        #if os(tvOS)
+        environment(\.colorScheme, .dark)
+            .environment(\.themePalette, .dark)
+        #else
+        self
+        #endif
     }
 }
 
 @available(iOS 26.0, tvOS 26.0, *)
 public struct PlayerNativeGlassSurface<S: Shape>: View {
     private let shape: S
-    private let highlighted: Bool
+    private let glass: Glass
 
-    public init(_ shape: S, highlighted: Bool = false) {
+    public init(_ shape: S, glass: Glass = .regular) {
         self.shape = shape
-        self.highlighted = highlighted
+        self.glass = glass
     }
 
     public var body: some View {
-        Color.clear.glassEffect(PlayerNativeGlass.material(highlighted: highlighted), in: shape)
-            .environment(\.colorScheme, .dark)
-    }
-}
-
-@available(iOS 26.0, tvOS 26.0, *)
-enum PlayerNativeGlass {
-    static func material(highlighted: Bool = false) -> Glass {
-        // Regular glass recolors itself over bright video even with a dark scheme.
-        .clear.tint(Color(white: highlighted ? 0.12 : 0).opacity(highlighted ? 0.70 : 0.60))
-    }
-}
-
-private struct PlayerSurfaceAppearance: ViewModifier {
-    @Environment(\.playerSurfaceColorScheme) private var colorScheme
-    @Environment(\.themePalette) private var palette
-
-    func body(content: Content) -> some View {
-        content
-            .environment(\.colorScheme, colorScheme)
-            .environment(\.themePalette, colorScheme == .light ? .light : (palette.isLight ? .dark : palette))
+        Color.clear.glassEffect(glass, in: shape)
     }
 }
 #endif

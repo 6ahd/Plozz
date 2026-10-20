@@ -521729,6 +521729,7 @@
     },
     "Playback Sync" : {
       "comment" : "Button label and sheet title in iOS player controls for adjusting playback sync, such as subtitle timing.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

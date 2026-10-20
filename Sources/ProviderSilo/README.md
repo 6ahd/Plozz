@@ -170,6 +170,25 @@ These Home and device-login contracts were checked at upstream revision
 - Watched state and the native Silo watchlist write back to Silo. Batched resume
   synchronization checks each result, not only HTTP success.
 
+### Watch indicators
+
+The shared mapper retains `user_state.played` and maps detail/season
+`user_data.unplayed_count` into episode-count badges. That count already includes
+in-progress episodes. Container progress uses watched / (watched + unplayed);
+missing counts stay unknown rather than becoming zero. Leaf progress uses the
+supplied position and duration, including a saved rewatch position. Existing
+Continue Watching and Home responses update position and percentage together.
+No extra requests, per-card detail hydration, or catalog scans are added.
+
+At upstream revision `dd3f7a604ade38bb537d9c6cc63d149ff3f484b5`, native catalog
+and Home cards expose completion through `user_state`, but do not expose the
+detail/season `user_data` rollup. Browse `sort_metrics.progress_ratio` is
+sort-dependent; Home Continue Watching cards can carry position/duration.
+The native browse query has no watch-rollup expansion option. Consequently,
+cards without those values cannot show an accurate remaining-episode count.
+Supporting `user_data` on Silo's existing card responses would let this mapper
+consume the same rollup without additional client requests.
+
 ## Collections
 
 Library collections and personal collections have separate native contracts.
