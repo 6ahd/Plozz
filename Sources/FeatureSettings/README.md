@@ -34,7 +34,7 @@ watch history and planning-list behavior are documented in
   Add section action follows the list. Reorder/Done switches to
   native movement controls with no Hidden drop zone; Hero stays
   pinned and cannot move. Its editable row carries a subtle pin rather than a
-  lock; “Pinned at top” appears only while reordering an enabled Fullscreen Hero.
+  lock, without a “Pinned at top” subtitle in either editing mode.
   On TV, the single-line title is “Home layout: Hero” or “Home layout: Showcase”,
   reflecting the active layout and opening the Home layout settings page.
   Mobile uses the shared page inset without extra gutters.

@@ -233,7 +233,7 @@ public struct HomeRowsSettingsView: View {
         if hero.settings.style == .followsFocus { return nil }
         #endif
         if !hero.settings.isEnabled { return Text("Off") }
-        return isReordering ? Text("Pinned at top") : nil
+        return nil
     }
 }
 

@@ -52,6 +52,11 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   Rows can opt into `providerMarkInSubtitle` to place their provider/transport
   mark beside the secondary source name; other callers retain leading marks.
 
+- **Settings icon columns** — `SettingsRowLabel` reserves one icon column on TV.
+  Grouped `Label` controls use `SettingsIconLabelStyle` with a shared,
+  Dynamic Type-scaled column, so wide symbols cannot shift neighboring titles.
+  Both keep icons centered and text leading-aligned in either layout direction.
+
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
   error layout, bounded symbol inline with the heading, readable summary, adaptive
   native actions and optional Details sheet. Hosts own retry and dismissal; the error surface owns

@@ -685,7 +685,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(reorder, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertFalse(hero.isEnabled)
-        XCTAssertTrue(app.staticTexts["Pinned at top"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
+        XCTAssertEqual(hero.label, "Home layout: Hero")
         capture("home-hero-pin-reordering", in: app)
         XCTAssertFalse(app.staticTexts["HIDDEN"].exists)
         let watching = app.buttons.containing(.staticText, identifier: "Continue Watching").firstMatch
