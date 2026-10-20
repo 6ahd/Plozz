@@ -65,20 +65,117 @@ bounded language-match/accessibility flags without track titles or URLs.
 
 ## Player appearance
 
-Player transport buttons, timelines, tabs, cards, and inline panels share a
-surface-local appearance: native Liquid Glass stays dark in both app themes;
-the reduced-glass/older-system fallback follows light and dark mode with paired
+Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
+without tint or a colored backing. Like AVKit video chrome, their symbols and
+progress remain white in both appearances. The controls scrim dims the video
+beneath the transport as well as the edge chrome, so white scenes remain legible
+without coloring the glass itself. Mobile Info, Cast, and Live TV Info/On Now/Guide
+cards use that same native media (`clear`) material, without a colored backing or an added border;
+their labels and badges retain light ink over the dimmed video, and their
+actions use native secondary bordered buttons rather than nesting glass surfaces.
+Their semantic foreground follows the panel's contrast; the system owns the
+button's fill and interaction states. Other inline
+panels retain regular native glass. Material variants describe the surface's
+role, not a replacement for the user's system Liquid Glass preference. Do not
+add a custom Clear/Tinted setting or force a color scheme on mobile sheets,
+panels, or their host. Badge-only contrast is scoped to the badge content, never
+the card's glass or its presentation host.
+tvOS playback chrome retains build 57's dark appearance with regular native
+glass, scoped by `playerPlatformAppearance` without changing the browsing theme
+or window. TV panels retain their thin edge and selected tabs their highlight.
+The mobile reduced-glass/older-system fallback follows light and dark mode with paired
 foreground colors. Text directly over video stays white. UIKit-backed route and
-options buttons resolve the same icon contrast without forcing their presented
-menus or sheets into the player's appearance.
-Native surfaces use clear glass with a fixed dark tint; regular glass's adaptive
-coloration can wash out white controls over bright video despite a dark scheme.
-Native capsule buttons use black-tinted prominent glass on tvOS and iOS 26.0;
-iOS 26.1+ supports the clear material in its native button style.
+options buttons resolve the same icon contrast. The native playback-options
+menu alone uses a dark appearance on its owning UIKit button, retaining light
+menu labels over video in either app theme. UIKit still owns the popup material,
+accessibility adaptation, and interaction; there is no painted menu background,
+and presenting a speed/quality/subtitle sheet does not carry that override.
 
-On iPhone and iPad, the main transport row is centered in the remaining space
-between the top buttons and bottom controls, rather than the full screen.
-Both layouts use the controls' intrinsic heights, including after rotation.
+Volume and brightness gesture meters reuse the seek track's native clear surface
+and `PlayerTouchProgressFill`: 62% white at rest, 90% while adjusting.
+All playback tracks, including Live TV and reduced-effects fallbacks, keep light
+progress on a subdued track in both themes; never invert to black progress on a
+pale solid track. This contrast rule does not tint or override native glass.
+Symbols invert only where covered by the fill. Their vertical geometry, inward
+direct-touch expansion, overshoot, and fixed 44-by-156-point interaction area
+remain independent of the material. The shared gesture feedback view owns
+window-safe-area padding once, so both VOD and Live meters clear the Dynamic
+Island in either landscape orientation.
+
+On iPhone and iPad, the main transport row is centered on the video. Its 92-point
+play button and 64-point skip buttons use 68 points of edge-to-edge spacing in
+landscape and 39 in portrait, contracting further in narrow windows. Short
+landscape windows use the compact transport so it stays clear of the bottom
+controls. VOD and Live use the same full-viewport sizing calculation, not the
+Live menu layer's already-inset bounds. Very short windows keep a single
+headline instead of stacking metadata into the center controls; Live retains
+its position badge beside that headline. Mobile Live headers are text-only:
+channel name and position share a baseline above the programme title, or a
+single headline when guide data is absent. Artwork remains in the panels.
+Position badges show LIVE/BEHIND LIVE (ON NOW/DELAYED for scheduled channels),
+not transient connection, seeking, or error messages. Those keep their existing
+activity/error presentation; pausing remains visible in the transport. Hide the
+badge during transient phases and while paused at the edge, retaining its
+localized layout space so the header and timeline do not shift.
+VOD and Live chrome use the larger of the
+window safe area and native edge margins (21 horizontal, 24 vertical), rather
+than adding the two. Adjacent
+routing and playback-option controls share one untinted glass capsule while
+retaining independent actions. Grouped children have no individual glass
+backgrounds or circular clipping, including UIKit menu buttons; Close and the
+main transport remain separate. Timeline-only skip feedback preserves the
+track-control group's space but hides its native hit and accessibility targets.
+Mobile card tabs use native glass buttons with player-sized labels, 8-point gaps,
+and a 44-point minimum touch target instead of TV padding. Open cards sit 12
+points below their tabs. The mobile Guide fills the card's width in both
+orientations; current-channel details belong in Info, not a repeated sidebar.
+Phone rows stay compact, with extra width available for programme time.
+The Guide uses one media-glass underlay, with no standalone guide gradient on top. Its grid
+uses media-contrast text/cell colors on native glass and the selected theme on
+the reduced-glass fallback; the standalone guide and tvOS remain unchanged.
+The timeline occupies
+a 38-point layout row while VOD and Live scrubbing retain a 44-point touch target.
+Live uses the same inline timestamp layout, with the picture/seek-target clock
+on the left and programme end on the right (`--:--` without guide data).
+Clock columns reserve their locale-aware widths, and drag coordinates belong
+only to the bar, never its neighboring labels. Programme boundaries, unavailable
+history, and the live edge retain their existing timeline semantics.
+VOD's elapsed and remaining labels align to the outer chrome edges, including
+when reserved clock widths are wider than the visible times.
+VOD timestamps always include seconds and choose their fields and column
+widths from the video's total duration: `mm:ss` below an hour, `h:mm:ss` from an
+hour onward, with extra hour digits reserved only for longer videos. Both elapsed
+and remaining columns stay fixed across playback rollovers and scrubbing, with
+4-point gaps beside the track. Clock mode retains its locale-aware width samples.
+
+During mobile VOD or Live scrubbing, only the original timeline, its timestamps,
+and an available thumbnail remain visible. Top/center controls, title, track
+actions, routing controls, cards, and gesture feedback are hidden. The preview
+floats above the timeline without changing its layout or touch target; its 16:9
+frame grows to 360 points wide, bounded by the available window. Releasing or
+cancelling a scrub restores the controls. TV's remote scrub presentation is unchanged.
+
+Double-tap skip, speed, and unavailable-level feedback are Plozz components
+using native media glass and SF Symbols, not stock AVKit HUDs. They share the
+transport's foreground pairing: light ink on native media glass in either theme,
+theme-aware ink on the reduced-glass fallback.
+
+## Skip-marker timeline
+
+The on-demand and Live touch timelines keep the native glass surface continuous wherever
+segment cuts would strand tiny pieces. Each uses its measured track width, not
+orientation or device type: a cut needs enough room on both sides for the
+20-point touched diameter plus the existing gaps. Both cuts around a short
+marker or short unmarked interval are omitted, including near the track ends.
+The same threshold applies at rest and while dragging, so touching does not
+change which cuts appear. Wider layouts retain cuts wherever they fit.
+
+Marker ranges are never enlarged or retimed; skip behavior, linear seeking, and
+existing touch targets remain unchanged. On iPhone and iPad, progress is shown
+only by the advancing fill, without a vertical playhead at rest or while dragging.
+The track is 8 points tall at rest and 20 while dragging. The dimmer buffered or
+aired fill remains behind it. Live preserves programme timing, rewind availability,
+and its paused/live-edge indicators. tvOS retains its playhead and segmentation.
 
 ## Live rewind scrubbing
 
@@ -768,10 +865,22 @@ while the title fades, preventing subtitles from dropping into its empty space.
 The normal transport reserves its full title-to-tabs band, including gaps between
 controls: a short title must not let centered captions stay beneath the timeline.
 Info/Cast and full appearance editing release that reserved clearance.
+On iPhone and iPad, the visible center transport also reserves the band down to
+the bottom controls, so lower captions move above the play/pause and skip row
+rather than into its buttons or the space below it. Top controls are measured
+separately. A mobile caption moves only when the complete text/dual-lane block
+or movable artwork fits above every obstruction; otherwise its original
+position is retained, without a partial lift. TV placement is unchanged.
 Hiding the controls restores normal placement; style
 editing, previews, and saved position values are unchanged. The normal dialogue
 percentage remains screen-relative. Captions already encoded into video pixels
 cannot be repositioned.
+
+Mobile on-demand subtitle settings include the existing subtitle-delay control
+directly, rather than a separate Playback Sync menu entry. Engines that support
+audio delay retain that adjustment in the same settings. Availability, ranges,
+and the existing engine/overlay timing setters are unchanged. If no other
+playback options remain, their empty menu trigger is hidden.
 
 Coverage: `NativeSubtitleCueOutputTests`, `SubtitleOverlayGeometryTests`,
 `SubtitleLineRenderingTests`, and the shared tvOS/iOS app-hosted

@@ -611,7 +611,16 @@ enum NativeLibraryPosterBitmap {
             presentation: key.presentation, hasArtwork: source != nil, size: size, environment: environment
         ))
         active.scale = key.scale
-        guard let overlay = active.uiImage else {
+        // Materialize on the main actor before background composition. A deferred
+        // SwiftUI image can reuse placeholder pixels when the new overlay is empty.
+        var overlay: UIImage?
+        active.render(rasterizationScale: key.scale) { _, draw in
+            overlay = NativePosterArtworkBitmap.image(
+                source: nil, size: size, scale: key.scale, backgroundColor: .clear,
+                clipsToArtwork: false, drawOverlay: draw
+            )
+        }
+        guard let overlay, overlay.cgImage != nil else {
             PlozzLog.app.error("Unable to render composited library indicators")
             return nil
         }

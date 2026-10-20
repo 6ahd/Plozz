@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 @MainActor
@@ -47,8 +48,8 @@ final class PlayerGestureInteractionTests: XCTestCase {
         XCTAssertEqual(scrubBar.frame.height, 44, accuracy: 1)
         XCTAssertTrue(app.buttons["player-timeline-current-time"].exists)
         XCTAssertTrue(app.buttons["player-timeline-end-time"].exists)
-        XCTAssertFalse(app.buttons["Playback options"].isHittable)
-        XCTAssertFalse(app.buttons["Subtitles"].isHittable)
+        XCTAssertFalse(app.buttons["Playback options"].isHittable, app.debugDescription)
+        XCTAssertFalse(app.buttons["Subtitles"].isHittable, app.debugDescription)
         capture("forward-cumulative")
         let backward = point(x: 0.2, y: 0.43)
         backward.doubleTap()
@@ -179,17 +180,24 @@ final class PlayerGestureInteractionTests: XCTestCase {
     }
 
     func testRevealedBrightnessMeterAcceptsAbsoluteTapsAndDragsWithoutPlayerShortcuts() throws {
-        point(x: 0.18, y: 0.42).press(forDuration: 0.05, thenDragTo: point(x: 0.18, y: 0.60))
-        XCTAssertTrue(levelMeter.exists, app.debugDescription)
-        let frame = levelMeter.frame
-        let origin = app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let revealStart = point(x: 0.18, y: 0.42)
+        let revealEnd = point(x: 0.18, y: 0.60)
+        revealStart.press(forDuration: 0.05, thenDragTo: revealEnd)
+        let frame = try levelMeter.snapshot().frame
+        XCTAssertGreaterThan(frame.minX, 44, "Landscape feedback must clear the Dynamic Island's unsafe edge.")
         let upper = origin.withOffset(CGVector(dx: frame.midX, dy: frame.minY + frame.height * 0.25))
         let lower = origin.withOffset(CGVector(dx: frame.midX, dy: frame.minY + frame.height * 0.75))
+        let below = origin.withOffset(CGVector(dx: frame.midX, dy: frame.maxY + 28))
+        // Prepare coordinates before revealing the 1.2-second HUD so accessibility
+        // snapshots cannot consume its lifetime before the direct contact.
+        revealStart.press(forDuration: 0.05, thenDragTo: revealEnd)
         upper.tap()
         try assertLevel(0.75)
+        revealStart.press(forDuration: 0.05, thenDragTo: revealEnd)
         lower.press(forDuration: 0.05, thenDragTo: upper, withVelocity: .slow, thenHoldForDuration: 1.4)
         try assertLevel(0.75)
-        let below = origin.withOffset(CGVector(dx: frame.midX, dy: frame.maxY + 28))
+        revealStart.press(forDuration: 0.05, thenDragTo: revealEnd)
         upper.press(forDuration: 0.05, thenDragTo: below)
         try assertLevel(0)
         XCTAssertFalse(app.staticTexts["player-gesture-skip-total"].exists)
@@ -199,8 +207,24 @@ final class PlayerGestureInteractionTests: XCTestCase {
         XCTAssertEqual(app.staticTexts["rotation-load-count"].label, "Loads 1")
         capture("direct-brightness")
         XCUIDevice.shared.orientation = .landscapeRight
-        point(x: 0.18, y: 0.42).press(forDuration: 0.05, thenDragTo: point(x: 0.18, y: 0.60))
-        levelMeter.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75)).tap()
+        XCTAssertTrue(app.staticTexts["rotation-interface-orientation"].wait(
+            for: \.label, toEqual: String(UIInterfaceOrientation.landscapeLeft.rawValue), timeout: 10
+        ))
+        let mirroredOrigin = app.coordinate(withNormalizedOffset: .zero)
+        let mirroredStart = point(x: 0.18, y: 0.42)
+        let mirroredEnd = point(x: 0.18, y: 0.60)
+        mirroredStart.press(
+            forDuration: 0.05, thenDragTo: mirroredEnd, withVelocity: .slow, thenHoldForDuration: 0.3
+        )
+        XCTAssertTrue(levelMeter.exists, app.debugDescription)
+        let mirroredFrame = try levelMeter.snapshot().frame
+        let mirroredLower = mirroredOrigin.withOffset(CGVector(
+            dx: mirroredFrame.midX, dy: mirroredFrame.minY + mirroredFrame.height * 0.75
+        ))
+        mirroredStart.press(
+            forDuration: 0.05, thenDragTo: mirroredEnd, withVelocity: .slow, thenHoldForDuration: 0.3
+        )
+        mirroredLower.tap()
         try assertLevel(0.25)
         XCTAssertFalse(app.staticTexts["player-gesture-skip-total"].exists)
     }
@@ -238,15 +262,16 @@ final class PlayerGestureInteractionTests: XCTestCase {
     }
 
     private func assertLevel(_ expected: Double, file: StaticString = #filePath, line: UInt = #line) throws {
-        let label = try XCTUnwrap(levelMeter.value as? String, file: file, line: line)
+        let meter = try levelMeter.snapshot()
+        let label = try XCTUnwrap(meter.value as? String, file: file, line: line)
         let percent = try XCTUnwrap(
             Double(label.replacingOccurrences(of: "%", with: "").trimmingCharacters(in: .whitespaces)),
             file: file, line: line
         )
         // UIKit's pan translation excludes the initial recognition slop.
         XCTAssertEqual(percent / 100, min(max(expected, 0), 1), accuracy: 0.04, file: file, line: line)
-        XCTAssertEqual(levelMeter.frame.width, 44, accuracy: 1, file: file, line: line)
-        XCTAssertEqual(levelMeter.frame.height, 156, accuracy: 1, file: file, line: line)
+        XCTAssertEqual(meter.frame.width, 44, accuracy: 1, file: file, line: line)
+        XCTAssertEqual(meter.frame.height, 156, accuracy: 1, file: file, line: line)
         XCTAssertEqual(
             app.otherElements["player-gesture-level-pill"].staticTexts.count, 0,
             "Successful level feedback must not display a percentage or any other text.", file: file, line: line
@@ -258,7 +283,7 @@ final class PlayerGestureInteractionTests: XCTestCase {
     }
 
     private func point(x: CGFloat, y: CGFloat) -> XCUICoordinate {
-        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y))
+        app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y))
     }
 
     private func capture(_ name: String) {

@@ -20,14 +20,24 @@ watch history and planning-list behavior are documented in
   libraries for those controls must not restore a separate management list.
 - **Customize Home** is one shared section editor on TV, iPhone and iPad.
   Normal rows open their own settings. Source-specific rows and their settings
-  use the shared provider brand mark, including the transport badge for shares;
+  use the shared provider brand mark, including the transport badge for shares.
+  In the editor, Add section, and reorder rows, the mark sits beside the
+  library/server name on the second line rather than before the section title;
   generic row glyphs appear only during reordering.
-  An inline Preset selector sits below the title; mobile keeps it visible while
-  scrolling and places an accessible + action beside Reorder/Done in the native
-  toolbar. TV keeps its labeled Add section beside Preset. A second, labeled
+  An inline Preset selector sits below the title, with up/down chevrons beside
+  its current value to expose the native menu; mobile uses a secondary heading
+  with a trailing native menu capsule and a divider, not another section card.
+  TV gives this control row additional vertical separation from the header and sections.
+  It scrolls with the content and stacks at large text sizes when needed.
+  An accessible + action remains beside Reorder/Done in the native toolbar.
+  TV keeps its labeled Add section beside Preset. A second, labeled
   Add section action follows the list. Reorder/Done switches to
   native movement controls with no Hidden drop zone; Hero stays
-  pinned and cannot move. Mobile uses the shared page inset without extra gutters.
+  pinned and cannot move. Its editable row carries a subtle pin rather than a
+  lock, without a “Pinned at top” subtitle in either editing mode.
+  On TV, the single-line title is “Home layout: Hero” or “Home layout: Showcase”,
+  reflecting the active layout and opening the Home layout settings page.
+  Mobile uses the shared page inset without extra gutters.
   Add section offers available existing rows not already shown. Removing a
   section hides it without erasing its configuration or disabling its libraries.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
@@ -72,8 +82,12 @@ watch history and planning-list behavior are documented in
   One bottom card on the main editor uses shared `InlineErrorMessage` warnings
   to name affected sources and offers Retry, without repeating these on detail pages.
   The root and every catalog-editing destination keep discovery active while
-  visible and retain loading status and local edit failures. Preset changes reload the catalog;
-  adding, removing and reordering wait for discovery to finish.
+  visible and retain loading status and local edit failures. Preset changes reload the catalog.
+  Reorder is available as soon as two known sections can move, independently of
+  server discovery or failures. An editing session snapshots its known rows so
+  late discovery cannot move or disable a lifted row; the first actual move
+  saves that arrangement, retaining unavailable saved identities. Newly discovered
+  sections remain available through Add section. Add/remove still wait for discovery.
   Mobile library discovery publishes one identity-scoped snapshot, never pairing
   a previous viewer's library metadata with the newly active credentials.
   Continue Watching artwork previews remain inside equal native choices rather
@@ -153,6 +167,9 @@ watch history and planning-list behavior are documented in
   TV forms share row/section spacing and contained, concentric focus geometry;
   steppers focus the whole labeled row, with visible minus/plus cues and
   Left/Right adjustment. Values stay aligned to the trailing column.
+  `ViewCustomizationList` varies edge-fade strength over fixed mask geometry.
+  Resizing the mask while native focus scrolls can feed back into layout and
+  leave long forms, including Hero content sources, unresponsive.
   `SettingsControlRows` separates controls sharing a container, keeping each
   helper with its control and omitting the divider after the last visible row.
   Hero copy uses **content** for the overall selection and **item** for one entry,

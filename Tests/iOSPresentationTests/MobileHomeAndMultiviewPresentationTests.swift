@@ -15,7 +15,7 @@ import XCTest
 
 @MainActor
 final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
-    func testInPlayerGuideAlignsItsHeaderAndUsesAnOpaqueInsetSurface() async throws {
+    func testInPlayerGuideAlignsItsHeaderWithoutPaintingOverThePlayerSurface() async throws {
         let model = LiveTVPrototypeModel(now: Date(), channels: Array(LiveTVPrototypeModel().channels.prefix(4)))
         let imports = LiveTVPrototypeImportModel()
         try await withWindow { window, host in
@@ -25,7 +25,7 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
                 (1194, 380, .large), (844, 320, .xxxLarge)
             ] {
                 window.frame.size = CGSize(width: width, height: height)
-                var standaloneHeaderY: CGFloat?
+                var standaloneHeaderY: [Bool: CGFloat] = [:]
                 for embedded in [false, true] {
                     for reducedTransparency in [false, true] {
                         host.rootView = AnyView(
@@ -33,6 +33,7 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
                                 .environment(\.themePalette, reducedTransparency ? .light : .dark)
                                 .environment(\.colorScheme, .dark)
                                 .environment(\.plozzReduceTransparency, reducedTransparency)
+                                .environment(\.gradientBackgroundsEnabled, false)
                                 .environment(\.dynamicTypeSize, typeSize)
                         )
                         try await settle(window)
@@ -43,36 +44,53 @@ final class MobileHomeAndMultiviewPresentationTests: XCTestCase {
                         let header = try textFrame(
                             typeSize == .xxxLarge ? "Chan" : "Channels", observations: text(image), size: image.size
                         )
+                        let pixels = try rgbaPixels(image)
+                        let imageWidth = try XCTUnwrap(image.cgImage).width
+                        let sampleX = Int((header.minX - 4) * image.scale)
+                        let columns = Int(header.minX * image.scale)..<Int(header.maxX * image.scale)
+                        // OCR locates the label; pixel ink, not Vision's approximate box, measures its inset.
+                        let inkRows = (Int((header.minY - 4) * image.scale)..<Int((header.maxY + 4) * image.scale))
+                            .filter { row in
+                                let reference = (row * imageWidth + sampleX) * 4
+                                return columns.contains { column in
+                                    let offset = (row * imageWidth + column) * 4
+                                    return (0..<3).contains {
+                                        abs(Int(pixels[offset + $0]) - Int(pixels[reference + $0])) > 40
+                                    }
+                                }
+                            }
+                        let headerTop = CGFloat(try XCTUnwrap(inkRows.first)) / image.scale
+                        XCTAssertLessThan(header.minX, width * 0.15, "The guide must start at the card's leading edge.")
                         if embedded {
                             XCTAssertEqual(
-                                try XCTUnwrap(standaloneHeaderY) - header.minY, PrototypeLayout.guideInset,
-                                accuracy: 2, "Only the redundant standalone top inset should be removed."
+                                try XCTUnwrap(standaloneHeaderY[reducedTransparency]) - headerTop, PrototypeLayout.guideInset,
+                                accuracy: 1 / image.scale, "Only the redundant standalone top inset should be removed."
                             )
                             XCTAssertLessThan(
-                                header.minY - LiveGuideLayoutFixture.inset,
+                                headerTop - LiveGuideLayoutFixture.inset,
                                 UIFontMetrics(forTextStyle: .caption1).scaledValue(
                                     for: PrototypeLayout.rulerHeight,
                                     compatibleWith: UITraitCollection(
                                         preferredContentSizeCategory: typeSize == .xxxLarge ? .extraExtraExtraLarge : .large
                                     )
                                 ) / 2,
-                                "The ruler must start alongside the current-program surface, not a second inset below it."
+                                "The embedded ruler must not retain the standalone guide's top inset."
                             )
                         } else {
-                            standaloneHeaderY = header.minY
+                            standaloneHeaderY[reducedTransparency] = headerTop
                         }
-                        let pixels = try rgbaPixels(image)
-                        let x = Int((LiveGuideLayoutFixture.inset + width * 0.18) * image.scale)
-                        let y = Int((height - LiveGuideLayoutFixture.inset - 12) * image.scale)
-                        let imageWidth = try XCTUnwrap(image.cgImage).width
-                        let offset = (y * imageWidth + x) * 4
-                        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
-                        XCTAssertTrue(UIColor(ThemePalette.dark.raised.fill).getRed(&red, green: &green, blue: &blue, alpha: &alpha))
-                        for (component, expected) in [red, green, blue].enumerated() {
-                            XCTAssertEqual(
-                                Double(pixels[offset + component]), Double(expected * 255), accuracy: 3,
-                                "The inset is a shared opaque content surface, not glass sampling the colored backdrop."
-                            )
+                        let referenceOffset = (Int(height / 2 * image.scale) * imageWidth + Int(4 * image.scale)) * 4
+                        let backdrop = Array(pixels[referenceOffset..<(referenceOffset + 3)])
+                        XCTAssertGreaterThan(backdrop[0], 200)
+                        XCTAssertLessThan(backdrop[1], 100)
+                        if embedded {
+                            let gridX = Int((width - LiveGuideLayoutFixture.inset - 2) * image.scale)
+                            let gridY = Int(height / 2 * image.scale)
+                            let gridOffset = (gridY * imageWidth + gridX) * 4
+                            for (component, expected) in backdrop.enumerated() {
+                                XCTAssertEqual(Double(pixels[gridOffset + component]), Double(expected), accuracy: 3,
+                                               "The embedded grid must not add the standalone guide's background.")
+                            }
                         }
                     }
                 }
@@ -1473,33 +1491,26 @@ private struct LiveGuideLayoutFixture: View {
     let embedded: Bool
 
     var body: some View {
-        GeometryReader { geometry in
-            HStack(alignment: .top, spacing: 12) {
-                LiveChannelGuideInfoColumn(title: "Current channel", logoURL: nil, plozzChannelID: nil, program: nil)
-                    .frame(width: geometry.size.width * 0.36)
-                if embedded {
-                    LiveTVPlayerGuideOverlay(
-                        model: model, imports: imports, playingChannelID: model.channels.first?.id ?? "",
-                        libraryCatalog: nil, loadLibraryGuide: nil,
-                        embedding: .init(back: {}, didTune: {}, focusesPlayingChannel: false), tune: { _ in }
-                    )
-                } else {
-                    PrototypeBrowser(
-                        model: model, imports: imports,
-                        selectedID: .constant(nil), selectedRowID: .constant(nil),
-                        railActive: .constant(false), focusedProgram: .constant(nil), hasFocus: .constant(false),
-                        topRequest: 0, nowRequest: 0, guideOffset: .constant(0), timeAnchor: .constant(Date()),
-                        timelineOffset: .constant(0), restoreFocusRequest: 0, isPresented: true,
-                        isRestoringFocus: false, restoresPlaybackFocus: false, watchOrigin: nil,
-                        focusRestored: { _ in }, tune: { _ in }, details: { _ in },
-                        openControls: {}, openSources: {}, openGuideTime: {}, openToolbar: nil,
-                        isLoading: false, loadFailed: false, reload: {}
-                    )
-                }
+        Group {
+            if embedded {
+                LiveTVPlayerGuideOverlay(
+                    model: model, imports: imports, playingChannelID: model.channels.first?.id ?? "",
+                    libraryCatalog: nil, loadLibraryGuide: nil,
+                    embedding: .init(back: {}, didTune: {}, focusesPlayingChannel: false), tune: { _ in }
+                )
+            } else {
+                PrototypeBrowser(
+                    model: model, imports: imports,
+                    selectedID: .constant(nil), selectedRowID: .constant(nil),
+                    railActive: .constant(false), focusedProgram: .constant(nil), hasFocus: .constant(false),
+                    topRequest: 0, nowRequest: 0, guideOffset: .constant(0), timeAnchor: .constant(Date()),
+                    timelineOffset: .constant(0), restoreFocusRequest: 0, isPresented: true,
+                    isRestoringFocus: false, restoresPlaybackFocus: false, watchOrigin: nil,
+                    focusRestored: { _ in }, tune: { _ in }, details: { _ in },
+                    openControls: {}, openSources: {}, openGuideTime: {}, openToolbar: nil,
+                    isLoading: false, loadFailed: false, reload: {}
+                )
             }
-            .environment(\.playerCardMetrics, PlayerCardMetrics.liveTouch(
-                forWidth: geometry.size.width, height: geometry.size.height
-            ))
         }
         .padding(Self.inset)
         .background(Color.red)

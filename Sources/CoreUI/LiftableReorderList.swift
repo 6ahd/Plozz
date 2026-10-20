@@ -28,6 +28,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
         public var providerKind: ProviderKind?
         /// Transport badge for a media-share provider mark.
         public var mediaShareTransport: MediaShareTransportKind?
+        public var providerMarkInSubtitle: Bool
         /// Optional trailing detail line, e.g. the server a library came from.
         public var detail: Text?
         public var subtitle: Text?
@@ -38,12 +39,14 @@ public struct LiftableReorderList<Element: Hashable>: View {
             providerKind: ProviderKind? = nil,
             mediaShareTransport: MediaShareTransportKind? = nil,
             detail: Text? = nil,
-            subtitle: Text? = nil
+            subtitle: Text? = nil,
+            providerMarkInSubtitle: Bool = false
         ) {
             self.title = title
             self.symbolName = symbolName
             self.providerKind = providerKind
             self.mediaShareTransport = mediaShareTransport
+            self.providerMarkInSubtitle = providerMarkInSubtitle
             self.detail = detail
             self.subtitle = subtitle
         }
@@ -160,6 +163,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
             symbolName: content.symbolName,
             providerKind: content.providerKind,
             mediaShareTransport: content.mediaShareTransport,
+            providerMarkInSubtitle: content.providerMarkInSubtitle,
             isEnabled: isEnabled,
             isLifted: liftedElement == element,
             isDimmed: lifting && liftedElement != element,
@@ -295,7 +299,7 @@ public struct LiftableReorderList<Element: Hashable>: View {
                 )
                 .font(.caption)
                 .plozzForeground(.secondary)
-                if let providerKind = content.providerKind {
+                if let providerKind = content.providerKind, !content.providerMarkInSubtitle {
                     ProviderBrandMark(
                         provider: providerKind,
                         size: 24,
@@ -314,7 +318,14 @@ public struct LiftableReorderList<Element: Hashable>: View {
                     content.title
                         .foregroundStyle(isEnabled ? .primary : .secondary)
                     if let subtitle = content.subtitle {
-                        subtitle.font(.caption).plozzForeground(.secondary)
+                        HStack(spacing: 6) {
+                            if content.providerMarkInSubtitle, let providerKind = content.providerKind {
+                                ReorderSubtitleProviderMark(
+                                    provider: providerKind, transport: content.mediaShareTransport
+                                )
+                            }
+                            subtitle.font(.caption).plozzForeground(.secondary)
+                        }
                     }
                 }
                 .lineLimit(1)
@@ -393,6 +404,7 @@ private struct LiftableRow: View {
     let symbolName: String?
     let providerKind: ProviderKind?
     let mediaShareTransport: MediaShareTransportKind?
+    let providerMarkInSubtitle: Bool
     let isEnabled: Bool
     let isLifted: Bool
     let isDimmed: Bool
@@ -409,7 +421,7 @@ private struct LiftableRow: View {
             HStack(spacing: SettingsRowMetrics.spacing(.primary)) {
                 ReorderRank(rank: rank, maximumRank: maximumRank)
                     .font(SettingsRowMetrics.titleFont)
-                if let providerKind {
+                if let providerKind, !providerMarkInSubtitle {
                     ProviderBrandMark(
                         provider: providerKind,
                         size: 24,
@@ -427,7 +439,12 @@ private struct LiftableRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     title.font(SettingsRowMetrics.titleFont)
                     if let subtitle {
-                        subtitle.font(SettingsRowMetrics.descriptionFont).opacity(0.7)
+                        HStack(spacing: 6) {
+                            if providerMarkInSubtitle, let providerKind {
+                                ReorderSubtitleProviderMark(provider: providerKind, transport: mediaShareTransport)
+                            }
+                            subtitle.font(SettingsRowMetrics.descriptionFont).opacity(0.7)
+                        }
                     }
                 }
                 .lineLimit(1)
@@ -457,6 +474,19 @@ private struct LiftableRow: View {
         .scaleEffect(isLifted ? 1.04 : 1)
         .shadow(color: .black.opacity(isLifted ? 0.5 : 0), radius: isLifted ? 18 : 0, y: isLifted ? 9 : 0)
         .zIndex(isLifted ? 1 : 0)
+    }
+}
+
+private struct ReorderSubtitleProviderMark: View {
+    let provider: ProviderKind
+    let transport: MediaShareTransportKind?
+    @ScaledMetric(relativeTo: .footnote) private var size: CGFloat = 20
+
+    var body: some View {
+        ProviderBrandMark(
+            provider: provider, size: size, showsBackground: false, mediaShareTransport: transport
+        )
+        .accessibilityHidden(true)
     }
 }
 

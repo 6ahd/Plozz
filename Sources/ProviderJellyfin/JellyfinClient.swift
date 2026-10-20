@@ -976,6 +976,8 @@ public struct JellyfinClient: Sendable {
     /// `NameLessThan` compares against `SortName` (the same key the browse sorts
     /// by), so `count(SortName < "L")` is exactly the grid offset of the first
     /// item under letter "L", which is what the A–Z fast-scroll rail needs.
+    /// Nil means the endpoint returned rows despite `Limit=0`, so it does not
+    /// honor this count-only contract. Invalid counts and request failures throw.
     func itemCount(
         userID: String,
         parentID: String,
@@ -984,7 +986,7 @@ public struct JellyfinClient: Sendable {
         nameLessThan: String? = nil,
         nameStartsWith: String? = nil,
         filters: LibraryFilters = .all
-    ) async throws -> Int {
+    ) async throws -> Int? {
         var queryItems = [
             URLQueryItem(name: "ParentId", value: parentID),
             URLQueryItem(name: "StartIndex", value: "0"),
@@ -1007,8 +1009,14 @@ public struct JellyfinClient: Sendable {
         queryItems += try Self.libraryFilterQuery(filters)
         let endpoint = Endpoint(path: "/Users/\(userID)/Items", queryItems: queryItems, headers: authHeaders)
         let response = try await http.decode(ItemsResponse.self, from: endpoint, baseURL: baseURL)
-        guard let count = response.TotalRecordCount, count >= 0 else { throw AppError.invalidResponse }
-        return count
+        try Task.checkCancellation()
+        guard let count = response.TotalRecordCount, count >= response.Items.count else {
+            PlozzLog.networking.error(
+                "Library alphabet count rejected: total=\(response.TotalRecordCount.map(String.init) ?? "missing") rows=\(response.Items.count)"
+            )
+            throw AppError.invalidResponse
+        }
+        return response.Items.isEmpty ? count : nil
     }
 
     /// Maps a provider-agnostic `SortField` onto Jellyfin's `SortBy` key.

@@ -72,12 +72,35 @@ struct HomeEditorRowLabel: View {
     let title: Text
     let subtitle: Text?
     var accessory = "chevron.forward"
+    var titleSymbol: String? = nil
+    var subtitleProvider: ProviderKind? = nil
+    var mediaShareTransport: MediaShareTransportKind? = nil
+    @ScaledMetric(relativeTo: .footnote) private var sourceMarkSize: CGFloat = 20
 
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                title.font(.body.weight(.medium))
-                subtitle?.font(.footnote).settingsRowSecondary()
+                HStack(spacing: 8) {
+                    title.font(.body.weight(.medium))
+                    if let titleSymbol {
+                        Image(systemName: titleSymbol)
+                            .font(.footnote)
+                            .settingsRowSecondary()
+                            .accessibilityHidden(true)
+                    }
+                }
+                if let subtitle {
+                    HStack(spacing: 6) {
+                        if let subtitleProvider {
+                            ProviderBrandMark(
+                                provider: subtitleProvider, size: sourceMarkSize, showsBackground: false,
+                                mediaShareTransport: mediaShareTransport
+                            )
+                            .accessibilityHidden(true)
+                        }
+                        subtitle.font(.footnote).settingsRowSecondary()
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: accessory).font(.footnote).settingsRowSecondary().accessibilityHidden(true)
@@ -115,13 +138,12 @@ struct HomeSectionChoiceLabel: View {
     var accessory = "chevron.forward"
 
     var body: some View {
-        HStack(spacing: 12) {
-            choice.homeEditorProviderMark
-            HomeEditorRowLabel(
-                title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
-                accessory: accessory
-            )
-        }
+        HomeEditorRowLabel(
+            title: choice.homeEditorTitle, subtitle: choice.homeEditorSource,
+            accessory: accessory,
+            subtitleProvider: choice.library?.providerKind ?? choice.serverRow?.providerKind,
+            mediaShareTransport: choice.library?.transportKind
+        )
     }
 }
 
@@ -312,7 +334,7 @@ struct HomeHeroSettingsView: View {
 
     @ViewBuilder private var page: some View {
         @Bindable var hero = hero
-        HomeEditorPage(title: Text("Hero"), showsHeader: true) {
+        HomeEditorPage(title: pageTitle, showsHeader: true) {
             #if os(tvOS)
             HomeLayoutPicker(layout: $hero.settings.style)
             if hero.settings.style == .followsFocus {
@@ -337,6 +359,14 @@ struct HomeHeroSettingsView: View {
             HeroSettingsControls(libraries: availableLibraries, accounts: accounts)
             #endif
         }
+    }
+
+    private var pageTitle: Text {
+        #if os(tvOS)
+        Text("Home layout")
+        #else
+        Text("Hero")
+        #endif
     }
 }
 
@@ -392,15 +422,20 @@ struct HomeRowPresetPicker: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 8) {
-                Text("Preset")
+                presetLabel
+                #if os(iOS)
+                Spacer(minLength: 12)
+                #endif
                 picker
                     #if os(iOS)
                     .fixedSize()
                     #endif
             }
+                #if !os(iOS)
                 .fixedSize(horizontal: true, vertical: false)
+                #endif
             VStack(alignment: .leading, spacing: 4) {
-                Text("Preset")
+                presetLabel
                 picker.fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -429,8 +464,16 @@ struct HomeRowPresetPicker: View {
         }
     }
 
+    private var presetLabel: some View {
+        Text("Preset")
+            #if os(iOS)
+            .font(.subheadline.weight(.semibold))
+            .settingsRowSecondary()
+            .fixedSize()
+            #endif
+    }
+
     @ViewBuilder private var picker: some View {
-        #if os(iOS)
         Menu {
             selectionPicker.pickerStyle(.inline).labelsHidden()
         } label: {
@@ -440,18 +483,22 @@ struct HomeRowPresetPicker: View {
                     .font(.caption2.weight(.semibold))
                     .accessibilityHidden(true)
             }
-            .frame(minHeight: 44)
+            #if os(iOS)
+                .font(.subheadline.weight(.semibold))
+                .padding(.vertical, 6)
+            #endif
         }
-        .buttonStyle(.borderless)
+        #if os(tvOS)
+        .menuStyle(.button)
+        .plozzActionButton(role: .secondary)
+        #else
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.capsule)
+        .frame(minHeight: 44)
+        #endif
         .accessibilityLabel(Text("Preset"))
         .accessibilityValue(currentTitle)
         .accessibilityIdentifier("home-row-preset")
-        #else
-        selectionPicker
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .accessibilityIdentifier("home-row-preset")
-        #endif
     }
 
     private var currentTitle: Text {

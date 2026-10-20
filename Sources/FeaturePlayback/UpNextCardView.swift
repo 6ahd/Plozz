@@ -84,6 +84,7 @@ struct UpNextCardView: View {
         .ignoresSafeArea()
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: model.upNextCard.isPresenting)
         .onAppear { focused = true }
+        .playerPlatformAppearance()
     }
 
     @ViewBuilder
@@ -246,7 +247,7 @@ private struct CountdownRing: View {
 }
 
 /// Shared Up Next/Cast focus treatment: keep the surface and mark focus with
-/// a contrasting ring and lift. Native glass stays dark; fallback follows the app.
+/// a contrasting ring and lift. The fallback follows the app's appearance.
 struct PlayerOverVideoCardStyle: ButtonStyle {
     let focused: Bool
     let cornerRadius: CGFloat
@@ -263,11 +264,14 @@ struct PlayerOverVideoCardStyle: ButtonStyle {
     /// to animate out of is measuring a position the viewer is actively
     /// changing.
     var pressScale: CGFloat = 0.94
+    var mediaGlass = false
 
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return configuration.label
-            .background { PlayerOverVideoSurface(focused: focused, cornerRadius: cornerRadius) }
+            .background {
+                PlayerOverVideoSurface(focused: focused, cornerRadius: cornerRadius, mediaGlass: mediaGlass)
+            }
             .overlay {
                 // Focus only. A resting hairline reads as an outline rather than
                 // an edge — tolerable on one floating card, busy repeated across a
@@ -283,7 +287,6 @@ struct PlayerOverVideoCardStyle: ButtonStyle {
             .shadow(color: .black.opacity(focused ? 0.30 : 0.20), radius: focused ? 14 : 8, y: focused ? 7 : 4)
             .animation(.easeOut(duration: 0.18), value: focused)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .playerSurfaceAppearance()
     }
 
 }
@@ -294,6 +297,7 @@ struct PlayerOverVideoCardStyle: ButtonStyle {
 struct PlayerOverVideoSurface: View {
     var focused: Bool = false
     let cornerRadius: CGFloat
+    var mediaGlass = false
 
     /// Accessibility and user intent. Takes the flat scrim, because a viewer who
     /// asked for less transparency wants exactly that.
@@ -302,11 +306,10 @@ struct PlayerOverVideoSurface: View {
     /// paying for live refraction, NOT to stop being translucent, and the two
     /// wants are different enough to deserve different surfaces.
     @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
-    @Environment(\.playerSurfaceColorScheme) private var colorScheme
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         surface(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .playerSurfaceAppearance()
     }
 
     @ViewBuilder
@@ -327,7 +330,11 @@ struct PlayerOverVideoSurface: View {
             // as a flat scrim. Drawn as a background underlay rather than wrapped
             // around the content: wrapping `.glassEffect` hangs tvOS 27's focus
             // engine (see PlozzGlassCardModifier).
-            PlayerNativeGlassSurface(shape, highlighted: focused)
+            #if os(iOS)
+            PlayerNativeGlassSurface(shape, glass: mediaGlass ? .clear : .regular)
+            #else
+            PlayerNativeGlassSurface(shape)
+            #endif
         } else {
             scrim
         }

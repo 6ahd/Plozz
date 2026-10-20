@@ -153,8 +153,7 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
                         for progress in batch {
                             group.addTask { [self] in
                                 var item = try await item(id: progress.media_item_id)
-                                item.resumePosition = progress.position_seconds
-                                item.runtime = progress.duration_seconds > 0 ? progress.duration_seconds : item.runtime
+                                Self.applyResume(position: progress.position_seconds, duration: progress.duration_seconds, to: &item)
                                 item.lastPlayedAt = Self.date(progress.updated_at)
                                 item.libraryID = scope
                                 return item
@@ -183,7 +182,11 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
                 }
                 guard !seen.contains(dto.play_content_id ?? dto.content_id) else { continue }
                 var candidate = summary
-                if let target = dto.play_content_id, target != dto.content_id { candidate = try await item(id: target) }
+                if let target = dto.play_content_id, target != dto.content_id {
+                    candidate = try await item(id: target)
+                    Self.applyResume(position: dto.position_seconds, duration: dto.duration_seconds, to: &candidate)
+                    candidate.lastPlayedAt = dto.progress_updated_at.flatMap(Self.date) ?? candidate.lastPlayedAt
+                }
                 if let libraryIDs {
                     guard let membership = try await homeLibraryID(for: candidate, in: libraryIDs) else { continue }
                     candidate.libraryID = membership
@@ -337,6 +340,31 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
         if let anchor, dto.series_id == nil || dto.series_id == anchor.seriesID {
             ids.merge(anchor.providerIDs) { declared, _ in declared }
         }
+        let isContainer = itemKind == .series || itemKind == .season
+        let runtime = dto.duration_seconds ?? dto.user_data?.duration_seconds ?? dto.runtime.map { $0 * 60 }
+        let position = dto.position_seconds ?? dto.user_data?.position_seconds
+        let played = dto.user_state?.played ?? dto.user_data?.played ?? false
+        var unwatchedCount = isContainer ? dto.user_data?.unplayed_count : nil
+        var watchedCount = isContainer ? dto.user_data?.watched_count : nil
+        if let count = unwatchedCount, count < 0 {
+            PlozzLog.networking.error("Silo returned a negative unplayed episode count.")
+            unwatchedCount = nil
+        }
+        if let count = watchedCount, count < 0 {
+            PlozzLog.networking.error("Silo returned a negative watched episode count.")
+            watchedCount = nil
+        }
+        let progress: Double?
+        if isContainer {
+            // unplayed_count already includes in-progress episodes.
+            if let watchedCount, let unwatchedCount, watchedCount > 0 {
+                progress = Double(watchedCount) / (Double(watchedCount) + Double(unwatchedCount))
+            } else {
+                progress = dto.sort_metrics?.progress_ratio
+            }
+        } else {
+            progress = Self.playbackFraction(position: position, duration: runtime) ?? dto.sort_metrics?.progress_ratio
+        }
         return MediaItem(
             id: dto.content_id, title: dto.title, originalTitle: dto.original_title,
             kind: itemKind,
@@ -350,10 +378,9 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
                 MediaPerson(id: $0.person_id ?? $0.name, name: $0.name, role: $0.character,
                             imageURL: resourceURL($0.photo_url))
             }, studios: dto.studios ?? [], seriesID: dto.series_id ?? anchor?.seriesID,
-            runtime: dto.duration_seconds ?? dto.user_data?.duration_seconds ?? dto.runtime.map { $0 * 60 },
-            resumePosition: dto.position_seconds ?? dto.user_data?.position_seconds,
-            playedPercentage: dto.sort_metrics?.progress_ratio,
-            isPlayed: dto.user_state?.played ?? dto.user_data?.played ?? false,
+            runtime: runtime, resumePosition: position,
+            playedPercentage: progress, unwatchedEpisodeCount: unwatchedCount,
+            isPlayed: played, hasBeenPlayed: played || (watchedCount ?? 0) > 0,
             posterURL: resourceURL(dto.poster_url ?? dto.still_url),
             backdropURL: resourceURL(dto.backdrop_url), logoURL: resourceURL(dto.logo_url),
             ratings: displayRatings(dto.ratings ?? []), usesProviderRatings: dto.ratings != nil,
@@ -376,6 +403,23 @@ public final class SiloProvider: MediaProvider, CapabilityReporting, MediaSortFi
                     }
                 }
             ))
+    }
+
+    static func playbackFraction(position: Double?, duration: Double?) -> Double? {
+        guard let position, let duration else { return nil }
+        guard position.isFinite, duration.isFinite, position >= 0, duration >= 0 else {
+            PlozzLog.networking.error("Silo returned an invalid playback position or duration.")
+            return nil
+        }
+        guard duration > 0 else { return nil }
+        return min(1, position / duration)
+    }
+
+    static func applyResume(position: Double?, duration: Double?, to item: inout MediaItem) {
+        guard position != nil || duration != nil else { return }
+        if let position { item.resumePosition = position }
+        if let duration, duration > 0 { item.runtime = duration }
+        item.playedPercentage = playbackFraction(position: item.resumePosition, duration: item.runtime)
     }
 
     private func displayRatings(_ ratings: [SiloRating]) -> [ExternalRating] {

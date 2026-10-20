@@ -3,7 +3,7 @@ import CoreModels
 import CoreNetworking
 
 struct HomeDisplayPreferencesDto: Decodable {
-    let CustomPrefs: [String: String]?
+    let CustomPrefs: [String: String?]?
 }
 
 /// The native Emby ContentService contract. SectionType is deliberately not
@@ -190,7 +190,7 @@ extension JellyfinProvider {
             omitsMusic: views.contains { Self.isMusicCollection($0.CollectionType) }
         )
         for (slot, defaultValue) in defaults.enumerated() {
-            let configured = preferences.CustomPrefs?["homesection\(slot)"]
+            let configured = preferences.CustomPrefs?["homesection\(slot)"] ?? nil
             let value = configured.flatMap { $0.isEmpty ? nil : $0 } ?? defaultValue
             let id = "web:\(slot):\(value)"
             let kind: ServerHomeSection.Kind

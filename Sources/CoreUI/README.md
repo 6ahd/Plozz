@@ -89,6 +89,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   enabled entries only and keeps them enabled through native dragging, remote
   lift-and-move and context-menu movement. It has no Hidden divider or Hide/Show
   actions. Existing callers keep the reorder-and-hide behavior by default.
+  Rows can opt into `providerMarkInSubtitle` to place their provider/transport
+  mark beside the secondary source name; other callers retain leading marks.
+
+- **Settings icon columns** — `SettingsRowLabel` reserves one icon column on TV.
+  Grouped `Label` controls use `SettingsIconLabelStyle` with a shared,
+  Dynamic Type-scaled column, so wide symbols cannot shift neighboring titles.
+  Both keep icons centered and text leading-aligned in either layout direction.
 
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
   error layout, bounded symbol inline with the heading, readable summary, adaptive
@@ -112,6 +119,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   content stays inside the button surface. Circular actions retain their 48pt
   touch targets and cap glyph scaling at XXX Large; text buttons continue to
   honor the full accessibility text size.
+
+- **Portrait mobile hero artwork** — `HeroStageMetrics` reserves 24pt at the
+  top for a softly faded reflection, shifting the original artwork below more
+  of the status-bar chrome without moving metadata or growing the hero.
+  Home and Details share this still-image layout, including swipe reflections.
+  The bottom reflection and minimum dissolve span remain intact; trailers keep
+  their full-stage presentation. Landscape and tvOS heroes are unchanged.
 
 - **Setup presentation** — `ConnectionCodeView` shares the readable monospaced
   code panel across server sign-in and device pairing. `SetupCodeComparisonView`
@@ -193,10 +207,17 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   keeps visible title-and-icon labels and uses the same `playerGlassButton`
   treatment, including native menus. Only the existing reduced-transparency
   playback path draws the shared frosted fallback.
-  `playerSurfaceAppearance()` keeps native playback glass dark across browsing
-  themes, scoped to each surface and its contents. Fallback surfaces inherit the
-  app appearance and pair light fills with dark foregrounds; never apply the
-  modifier to the full player or a sheet presenter.
+  Mobile video chrome uses untinted clear Liquid Glass with white symbols and
+  progress in both appearances; `playerControlForeground`/`playerControlTint`
+  keep SwiftUI and UIKit controls consistent without overriding menu appearance.
+  Mobile panels use regular native glass with no extra decoration and leave
+  the system Liquid Glass preference in control. Mobile fallback surfaces inherit
+  the app appearance and pair light fills with dark foregrounds.
+  Playback progress is the exception: seek tracks and level meters keep light
+  progress over a subdued track even in the light-theme fallback.
+  `playerPlatformAppearance` scopes tvOS playback chrome to dark regular glass,
+  as in build 57, without changing the surrounding browsing or window appearance.
+  It is a no-op on iOS.
 - **Settings steppers** — TV makes the whole labeled row one focus target using
   the existing `SettingsFormButtonStyle`, including its helper, persistent minus/plus cues and
   `SettingsRowMetrics.titleFont` value. Labels must be supplied to the shared
@@ -638,6 +659,11 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   grids, landscape/episode card widths and mobile sizing are unchanged.
   Native Browse uses the correction for both borderless and framed system-focus
   cells. Debug's `--original-library-posters` opts out of Browse only.
+  Browse rasterizes its SwiftUI overlay to concrete pixels on the main actor
+  before background composition, including fully transparent overlays. Passing
+  a deferred renderer image to the worker can retain the previous missing-art
+  placeholder's center glyph and wash over loaded posters. Missing artwork keeps
+  its placeholder; watch badges, episode counts and progress remain independent.
   The collection cell remains the focus and selection owner,
   with the same opaque artwork, native ancestor-focus adjustment, and immediate
   foreground alignment as row posters. Reuse clears both image layers.

@@ -134,6 +134,8 @@ including when package-test evidence is reused.
 
 Keep the authoritative passing summary and expected-bundle
 evidence, not just a success marker; missing or changed evidence reruns the gate.
+Package integrity scans have a two-minute per-checkout bound for large dependency
+trees; metadata reads retain their 30-second bound. A timeout is never clean evidence.
 A failed fresh attempt invalidates an earlier success. Inputs changing between
 phases prevent the combined candidate from being declared ready. Invalidating a
 cached full-suite result does not itself require running that suite: reassess
@@ -399,6 +401,21 @@ Empty and single-profile summaries keep the same reachable action. These tests
 use synthetic received data, not pairing services or stored household credentials.
 Package-only UIKit snapshots cannot replace this gate:
 without an application scene, `drawHierarchy` returns an empty image.
+
+`SystemAppearanceTests` changes the scene's device appearance while keeping the
+same window and pushed sheet alive. System leaves the window override unspecified
+and follows light/dark changes; explicit Light, Dark, and Pure Black remain pinned.
+The iOS root owns UIKit appearance from the selected theme, not its resolved
+palette. Sheets inherit that window instead of freezing the opening appearance.
+`PlayerSurfaceAppearanceHostedTests` and `PlayerGlassAppearanceInteractionTests`
+compare player panels against stock regular Liquid Glass in each appearance,
+rather than requiring a fixed dark compositor output.
+`PlayerLayoutInteractionTests` measures actual iPhone 16 Pro Max portrait and
+landscape control frames against the native-player reference, including the
+different skip spacing, edge margins, and non-stretching tabs.
+`PlayerTransportPositionTests` also checks VOD/Live resizing and compact
+landscape clearance. Grouped glass must span adjacent controls without merging
+their actions; compositor coverage checks the bridge and both tap targets.
 
 `PlayerOrientationTests` checks the UIKit player owner's close path without
 another update from the hidden SwiftUI presenter, including disappearance

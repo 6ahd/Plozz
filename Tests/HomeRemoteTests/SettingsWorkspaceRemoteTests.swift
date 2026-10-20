@@ -2,6 +2,44 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testSwitchingFromPinnedSidebarKeepsNavigationSettingsResponsive() throws {
+        try exerciseSidebarSwitch(from: "rail")
+    }
+
+    func testSwitchingFromTopBarKeepsNavigationSettingsResponsive() throws {
+        try exerciseSidebarSwitch(from: "tabBar")
+    }
+
+    private func exerciseSidebarSwitch(from style: String) throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: style)
+        defer { app.terminate() }
+        let navigation = app.buttons["settings-page-navigation"]
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(navigation, in: app)
+        XCUIRemote.shared.press(.select)
+        let choice = app.buttons["Sidebar"]
+        try focus(choice, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(hasFocus(choice), "Changing chrome must preserve the focused Settings control. \(app.debugDescription)")
+        XCUIRemote.shared.press(.left)
+        XCTAssertTrue(hasFocus(app.buttons["Pinned Sidebar"]), "The next directional input must work.")
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(navigation.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(hasFocus(navigation), "Back must return to the Navigation action.")
+
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(section("screensNavigation", in: app).waitForExistence(timeout: 5))
+        XCUIRemote.shared.press(.menu)
+        XCTAssertFalse(section("screensNavigation", in: app).exists, app.debugDescription)
+        try openSettingsIfNeeded(in: app)
+        try enterAndReturn("playback", in: app)
+        #else
+        throw XCTSkip("Never changes navigation settings on a physical device.")
+        #endif
+    }
+
     func testDeviceSetupOpensAndReturnsToICloudSettings() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings()
@@ -618,11 +656,38 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.select)
         let hero = app.buttons["home-section-hero"]
         XCTAssertTrue(hero.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(hero, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.staticTexts["Home layout"].waitForExistence(timeout: 5))
+        try focus(app.buttons["Showcase"], in: app)
+        XCUIRemote.shared.press(.select)
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(hero)
+        XCTAssertEqual(hero.label, "Home layout: Showcase")
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
+        try focus(hero, in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["Fullscreen Hero"], in: app)
+        XCUIRemote.shared.press(.select)
+        let enabledHero = app.switches["hero-enabled"]
+        try focus(enabledHero, in: app)
+        if enabledHero.value as? String != "1" { XCUIRemote.shared.press(.select) }
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(hero)
+        XCTAssertEqual(hero.label, "Home layout: Hero")
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
+        capture("home-hero-pin", in: app)
         let heroY = hero.frame.minY
         let reorder = app.buttons["home-section-reorder"]
+        let preset = app.buttons["home-row-preset"]
+        XCTAssertGreaterThanOrEqual(preset.frame.minY - reorder.frame.maxY, 16)
+        XCTAssertGreaterThanOrEqual(hero.frame.minY - preset.frame.maxY, 16)
         try focus(reorder, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertFalse(hero.isEnabled)
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
+        XCTAssertEqual(hero.label, "Home layout: Hero")
+        capture("home-hero-pin-reordering", in: app)
         XCTAssertFalse(app.staticTexts["HIDDEN"].exists)
         let watching = app.buttons.containing(.staticText, identifier: "Continue Watching").firstMatch
         try focus(watching, in: app)
@@ -643,6 +708,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(reorder, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(hero.isEnabled)
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
         XCTAssertEqual(hero.frame.minY, heroY, accuracy: 1)
         let configured = app.buttons["home-section-home-continueWatching"]
         try focus(configured, in: app)
@@ -657,7 +723,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(hasFocus(pageBack("settings-workspace-back", in: app)), app.debugDescription)
         capture("home-section-header-back", in: app)
         let watchingWasBelowWatchlist = configured.frame.minY > app.buttons["home-section-home-watchlist"].frame.minY
-        let preset = app.buttons["home-row-preset"]
+        XCTAssertEqual(preset.value as? String, "Custom")
         try focus(preset, in: app)
         XCUIRemote.shared.press(.select)
         let combinedOption = app.cells.containing(.other, identifier: "Combined rows").firstMatch
@@ -692,6 +758,94 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         }
         #else
         throw XCTSkip("Simulator-only Home editor navigation.")
+        #endif
+    }
+
+    func testHeroRandomAndDiscoverySourcesKeepSettingsResponsive() throws {
+        #if targetEnvironment(simulator)
+        func openSources(in app: XCUIApplication) throws {
+            try focus(section("screensNavigation", in: app), in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(app.buttons["settings-page-customize-home"], in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(app.buttons["home-section-hero"], in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(app.buttons["Fullscreen Hero"], in: app)
+            XCUIRemote.shared.press(.select)
+            try focus(app.buttons["hero-settings-titles"], in: app)
+            XCUIRemote.shared.press(.select)
+        }
+
+        var app = try launchSettings()
+        defer { app.terminate() }
+        try openSources(in: app)
+
+        let random = app.switches["Random from Library"]
+        let discovery = app.switches["Discovery"]
+        for source in [random, discovery] {
+            try focus(source, in: app)
+            if source.value as? String == "1" { XCUIRemote.shared.press(.select) }
+            XCTAssertEqual(source.value as? String, "0")
+        }
+        for source in [random, discovery] {
+            try focus(source, in: app)
+            XCUIRemote.shared.press(.select)
+            XCTAssertEqual(source.value as? String, "1")
+            XCTAssertTrue(hasFocus(source), app.debugDescription)
+        }
+        capture("hero-random-and-discovery-enabled", in: app)
+        let providers = app.buttons["hero-settings-discovery"]
+        for visit in 0..<3 {
+            try focus(providers, in: app)
+            XCUIRemote.shared.press(.select)
+            let labels = app.switches["Show provider labels"]
+            XCTAssertTrue(labels.waitForExistence(timeout: 5), app.debugDescription)
+            try focus(labels, in: app)
+            let previous = labels.value as? String
+            XCUIRemote.shared.press(.select)
+            XCTAssertNotEqual(labels.value as? String, previous)
+            XCUIRemote.shared.press(.menu)
+            XCTAssertTrue(providers.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(hasFocus(providers), app.debugDescription)
+            if visit == 0 {
+                XCUIRemote.shared.press(.menu)
+                let sources = app.buttons["hero-settings-titles"]
+                XCTAssertTrue(sources.waitForExistence(timeout: 5))
+                try focus(sources, in: app)
+                XCUIRemote.shared.press(.select)
+            }
+        }
+
+        app.terminate()
+        // Use native top-bar entry after relaunch; the fixture leaves Hero preferences intact.
+        app = try launchSettings(style: "tabBar")
+        try openSources(in: app)
+        for title in ["Random from Library", "Discovery"] {
+            XCTAssertEqual(app.switches[title].value as? String, "1", "The enabled sources must survive restart.")
+        }
+        let restoredDiscovery = app.switches["Discovery"]
+        try focus(restoredDiscovery, in: app)
+        for value in ["0", "1"] {
+            XCUIRemote.shared.press(.select)
+            XCTAssertEqual(restoredDiscovery.value as? String, value)
+            XCTAssertTrue(hasFocus(restoredDiscovery), app.debugDescription)
+        }
+        let restoredProviders = app.buttons["hero-settings-discovery"]
+        try focus(restoredProviders, in: app)
+        XCUIRemote.shared.press(.select)
+        let labels = app.switches["Show provider labels"]
+        XCTAssertTrue(labels.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(labels, in: app)
+        let previous = labels.value as? String
+        XCUIRemote.shared.press(.select)
+        XCTAssertNotEqual(labels.value as? String, previous)
+        XCUIRemote.shared.press(.menu)
+        let returned = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in self.hasFocus(restoredProviders) }, object: nil
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [returned], timeout: 5), .completed, app.debugDescription)
+        #else
+        throw XCTSkip("Simulator-only Hero source investigation.")
         #endif
     }
 
@@ -1268,6 +1422,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             return
         }
         var requestedNavigation = false
+        var lastDirection: XCUIRemote.Button = .left
         for _ in 0..<35 {
             if stoppingWhen() { return }
             if hasFocus(target) { return }
@@ -1280,7 +1435,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
                     XCUIRemote.shared.press(.menu)
                     requestedNavigation = true
                 } else {
-                    XCUIRemote.shared.press(.left)
+                    // Single-label SwiftUI buttons can highlight without exposing AX focus.
+                    XCUIRemote.shared.press(lastDirection)
                 }
                 continue
             }
@@ -1292,21 +1448,23 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             let sameDetail = fullWidthSettings
                 || (playback.exists && from.minX > playback.frame.maxX && to.minX > playback.frame.maxX)
             if sameDetail && to.maxY <= from.minY {
-                XCUIRemote.shared.press(.up)
+                lastDirection = .up
             } else if sameDetail && to.minY >= from.maxY {
-                XCUIRemote.shared.press(.down)
+                lastDirection = .down
             } else if to.minX > from.maxX {
-                XCUIRemote.shared.press(.right)
+                lastDirection = .right
             } else if to.maxX < from.minX {
-                XCUIRemote.shared.press(.left)
+                lastDirection = .left
             } else if min(to.maxY, from.maxY) > max(to.minY, from.minY),
                       abs(to.midX - from.midX) > abs(to.midY - from.midY) {
                 // Native focus scaling can overlap adjacent cards' horizontal frames.
-                XCUIRemote.shared.press(to.midX > from.midX ? .right : .left)
+                lastDirection = to.midX > from.midX ? .right : .left
             } else {
-                XCUIRemote.shared.press(to.midY < from.midY ? .up : .down)
+                lastDirection = to.midY < from.midY ? .up : .down
             }
+            XCUIRemote.shared.press(lastDirection)
         }
+        capture("unreachable-focus-\(target.identifier)", in: app)
         XCTFail("Could not focus \(target.identifier) \(target.label). \(app.debugDescription)")
     }
 

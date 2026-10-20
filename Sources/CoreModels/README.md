@@ -107,8 +107,10 @@ last consumer cancels it. A pushed page can restart a cancelled load, and preset
 selections refresh both resolved native sections and discovery errors; freezing
 a preset during a row edit does not restart discovery. Library metadata changes
 also invalidate the catalog even when account/library keys remain stable. Section
-mutations wait for discovery so an incomplete catalog cannot freeze a preset
-without its newly discovered rows.
+add/remove mutations wait for discovery. Reordering instead uses the editor's
+snapshot of known sections, allowing local moves while a server is slow or offline.
+Only an actual move customizes that snapshot; late discoveries remain available
+to add rather than changing the rows being moved.
 
 Hero stays in `HeroSettings`, fixed above `HomePresentationRow`; Showcase remains
 a page layout. Future custom source scopes, mixed feeds, duplicate instances,
