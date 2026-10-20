@@ -49,6 +49,19 @@ cache that every feature module reuses on tvOS and iOS/iPadOS — guarded behind
   enabled entries only and keeps them enabled through native dragging, remote
   lift-and-move and context-menu movement. It has no Hidden divider or Hide/Show
   actions. Existing callers keep the reorder-and-hide behavior by default.
+  Rows can opt into `providerMarkInSubtitle` to place their provider/transport
+  mark beside the secondary source name; other callers retain leading marks.
+  Menu edge moves stay within the item's current section and preserve peer order.
+  Hosts may provide removal independently of the Hidden divider.
+  TV lift-and-move uses the vertical axis of `SettingsAdjustmentFocusScope`,
+  retaining the native focus item instead of inferring direction from neighboring
+  focus changes. Press repetition stops on release, focus loss, screen changes,
+  dismissal, or app deactivation; ordinary navigation remains native when dropped.
+
+- **Settings icon columns** — `SettingsRowLabel` reserves one icon column on TV.
+  Grouped `Label` controls use `SettingsIconLabelStyle` with a shared,
+  Dynamic Type-scaled column, so wide symbols cannot shift neighboring titles.
+  Both keep icons centered and text leading-aligned in either layout direction.
 
 - **Playback failures** — `PlaybackFailureView` owns the full-screen TV/mobile
   error layout, bounded symbol inline with the heading, readable summary, adaptive

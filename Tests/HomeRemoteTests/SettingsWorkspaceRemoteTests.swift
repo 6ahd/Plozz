@@ -656,11 +656,38 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCUIRemote.shared.press(.select)
         let hero = app.buttons["home-section-hero"]
         XCTAssertTrue(hero.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(hero, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.staticTexts["Home layout"].waitForExistence(timeout: 5))
+        try focus(app.buttons["Showcase"], in: app)
+        XCUIRemote.shared.press(.select)
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(hero)
+        XCTAssertEqual(hero.label, "Home layout: Showcase")
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
+        try focus(hero, in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["Fullscreen Hero"], in: app)
+        XCUIRemote.shared.press(.select)
+        let enabledHero = app.switches["hero-enabled"]
+        try focus(enabledHero, in: app)
+        if enabledHero.value as? String != "1" { XCUIRemote.shared.press(.select) }
+        XCUIRemote.shared.press(.menu)
+        waitForEnabled(hero)
+        XCTAssertEqual(hero.label, "Home layout: Hero")
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
+        capture("home-hero-pin", in: app)
         let heroY = hero.frame.minY
         let reorder = app.buttons["home-section-reorder"]
+        let preset = app.buttons["home-row-preset"]
+        XCTAssertGreaterThanOrEqual(preset.frame.minY - reorder.frame.maxY, 16)
+        XCTAssertGreaterThanOrEqual(hero.frame.minY - preset.frame.maxY, 16)
         try focus(reorder, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertFalse(hero.isEnabled)
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
+        XCTAssertEqual(hero.label, "Home layout: Hero")
+        capture("home-hero-pin-reordering", in: app)
         XCTAssertFalse(app.staticTexts["HIDDEN"].exists)
         let watching = app.buttons.containing(.staticText, identifier: "Continue Watching").firstMatch
         try focus(watching, in: app)
@@ -681,6 +708,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         try focus(reorder, in: app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(hero.isEnabled)
+        XCTAssertFalse(app.staticTexts["Pinned at top"].exists)
         XCTAssertEqual(hero.frame.minY, heroY, accuracy: 1)
         let configured = app.buttons["home-section-home-continueWatching"]
         try focus(configured, in: app)
@@ -695,7 +723,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertTrue(hasFocus(pageBack("settings-workspace-back", in: app)), app.debugDescription)
         capture("home-section-header-back", in: app)
         let watchingWasBelowWatchlist = configured.frame.minY > app.buttons["home-section-home-watchlist"].frame.minY
-        let preset = app.buttons["home-row-preset"]
+        XCTAssertEqual(preset.value as? String, "Custom")
         try focus(preset, in: app)
         XCUIRemote.shared.press(.select)
         let combinedOption = app.cells.containing(.other, identifier: "Combined rows").firstMatch
@@ -730,6 +758,138 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         }
         #else
         throw XCTSkip("Simulator-only Home editor navigation.")
+        #endif
+    }
+
+    func testHomeReorderAcceptsHeldAndRapidDirectionalInput() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings()
+        defer { app.terminate() }
+        try focus(section("screensNavigation", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-customize-home"], in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(app.buttons["home-section-home-continueWatching"].waitForExistence(timeout: 5))
+        let controls: Set<String> = [
+            "home-section-hero", "home-section-reorder", "home-section-add", "home-section-add-bottom"
+        ]
+        let count = app.buttons.allElementsBoundByIndex.filter {
+            $0.identifier.hasPrefix("home-section-") && !controls.contains($0.identifier)
+        }.count
+        XCTAssertGreaterThan(count, 2)
+        let reorder = app.buttons["home-section-reorder"]
+        try focus(reorder, in: app)
+        XCUIRemote.shared.press(.select)
+        let watching = app.buttons.containing(.staticText, identifier: "Continue Watching").firstMatch
+        try focus(watching, in: app)
+        XCUIRemote.shared.press(.select)
+        XCUIRemote.shared.press(.down, forDuration: 3)
+        capture("home-reorder-held-down", in: app)
+        XCTAssertTrue(watching.staticTexts[String(count)].exists,
+                      "Holding Down must move the lifted row all the way to the bottom. \(app.debugDescription)")
+        XCTAssertTrue(hasFocus(watching))
+        XCUIRemote.shared.press(.up, forDuration: 3)
+        capture("home-reorder-held-up", in: app)
+        XCTAssertTrue(watching.staticTexts["1"].exists,
+                      "Holding Up must reach the top without reversing direction. \(app.debugDescription)")
+        XCTAssertTrue(hasFocus(watching))
+        let moves = min(3, count - 1)
+        for _ in 0..<moves { XCUIRemote.shared.press(.down) }
+        XCTAssertTrue(watching.staticTexts[String(moves + 1)].exists, app.debugDescription)
+        for _ in 0..<moves { XCUIRemote.shared.press(.up) }
+        XCTAssertTrue(watching.staticTexts["1"].exists, app.debugDescription)
+        XCTAssertTrue(hasFocus(watching))
+        XCUIRemote.shared.press(.select)
+        waitForEnabled(reorder)
+        func menuAction(_ title: String) throws {
+            XCUIRemote.shared.press(.select, forDuration: 1)
+            let action = app.cells.containing(.other, identifier: title).firstMatch
+            XCTAssertTrue(action.waitForExistence(timeout: 3), app.debugDescription)
+            try focus(action, in: app)
+            XCUIRemote.shared.press(.select)
+        }
+        for (title, rank) in [("Move to bottom", count), ("Move to top", 1)] {
+            try menuAction(title)
+            let followed = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in watching.staticTexts[String(rank)].exists && self.hasFocus(watching) },
+                object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [followed], timeout: 3), .completed, app.debugDescription)
+        }
+        try menuAction("Remove section")
+        XCTAssertTrue(watching.waitForNonExistence(timeout: 3), app.debugDescription)
+        XCTAssertFalse(app.staticTexts["HIDDEN"].exists)
+        waitForEnabled(reorder)
+        try focus(reorder, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertFalse(app.buttons["home-section-home-continueWatching"].exists)
+        try focus(app.buttons["home-section-add"], in: app)
+        XCUIRemote.shared.press(.select)
+        let addWatching = app.buttons["home-add-home-continueWatching"]
+        XCTAssertTrue(addWatching.waitForExistence(timeout: 3), app.debugDescription)
+        try focus(addWatching, in: app)
+        XCUIRemote.shared.press(.select)
+        let restored = app.buttons["home-section-home-continueWatching"]
+        XCTAssertTrue(restored.waitForExistence(timeout: 3), app.debugDescription)
+        try focus(restored, in: app)
+        try menuAction("Remove section")
+        XCTAssertTrue(restored.waitForNonExistence(timeout: 3))
+        try focus(app.buttons["home-section-add"], in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(addWatching, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(restored.waitForExistence(timeout: 3), app.debugDescription)
+        #else
+        throw XCTSkip("Simulator-only Home reorder input regression.")
+        #endif
+    }
+
+    func testHeldReorderScrollsLongListsAndCrossesVisibilityDivider() throws {
+        #if targetEnvironment(simulator)
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["PLOZZ_SETTINGS_REVIEW"] == "1")
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        defer { app.terminate() }
+        for allowsHiding in [false, true] {
+            app.launchArguments = ["--reorder-input-fixture"] + (allowsHiding ? ["--with-hidden-rows"] : [])
+            app.launch()
+            let row = app.buttons.containing(.staticText, identifier: "Row 0").firstMatch
+            try focus(row, in: app)
+            XCUIRemote.shared.press(.select)
+            XCUIRemote.shared.press(.down, forDuration: 4)
+            let position = app.staticTexts["reorder-fixture-position"]
+            XCTAssertEqual(position.label, "Position \(allowsHiding ? 25 : 23); hidden \(allowsHiding)")
+            func positions() throws -> [Int] {
+                let value = try XCTUnwrap(position.value as? String)
+                return try value.split(separator: ",").map { try XCTUnwrap(Int($0)) }
+            }
+            let downward = try positions()
+            XCTAssertEqual(downward, Array(1...23) + (allowsHiding ? [23, 24, 25] : []),
+                           "Every delivered move must advance, never bounce or skip a row.")
+            XCTAssertTrue(hasFocus(row), app.debugDescription)
+            XCTAssertTrue(row.isHittable)
+            XCTAssertGreaterThan(row.frame.minY, 0)
+            XCTAssertLessThan(row.frame.maxY, app.frame.maxY)
+            capture("long-reorder-bottom-hidden-\(allowsHiding)", in: app)
+            XCUIRemote.shared.press(.up, forDuration: 4)
+            XCTAssertEqual(position.label, "Position 0; hidden false")
+            let upward = Array(try positions().dropFirst(downward.count))
+            XCTAssertEqual(upward, (allowsHiding ? [24, 23] : []) + Array((0...23).reversed().dropFirst(allowsHiding ? 0 : 1)))
+            XCTAssertTrue(hasFocus(row), app.debugDescription)
+            XCTAssertTrue(row.isHittable)
+            capture("long-reorder-top-hidden-\(allowsHiding)", in: app)
+            XCUIRemote.shared.press(.down, forDuration: 0.7)
+            let releasedPosition = position.label
+            RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+            XCTAssertEqual(position.label, releasedPosition, "Repetition must stop when the button is released.")
+            XCUIRemote.shared.press(.up, forDuration: 4)
+            XCUIRemote.shared.press(.select)
+            XCUIRemote.shared.press(.down)
+            XCTAssertTrue(hasFocus(app.buttons.containing(.staticText, identifier: "Row 1").firstMatch))
+            app.terminate()
+        }
+        #else
+        throw XCTSkip("Task-owned simulator input fixture.")
         #endif
     }
 
@@ -1394,6 +1554,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             return
         }
         var requestedNavigation = false
+        var lastDirection: XCUIRemote.Button = .left
         for _ in 0..<35 {
             if stoppingWhen() { return }
             if hasFocus(target) { return }
@@ -1406,7 +1567,8 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
                     XCUIRemote.shared.press(.menu)
                     requestedNavigation = true
                 } else {
-                    XCUIRemote.shared.press(.left)
+                    // Single-label SwiftUI buttons can highlight without exposing AX focus.
+                    XCUIRemote.shared.press(lastDirection)
                 }
                 continue
             }
@@ -1418,21 +1580,23 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
             let sameDetail = fullWidthSettings
                 || (playback.exists && from.minX > playback.frame.maxX && to.minX > playback.frame.maxX)
             if sameDetail && to.maxY <= from.minY {
-                XCUIRemote.shared.press(.up)
+                lastDirection = .up
             } else if sameDetail && to.minY >= from.maxY {
-                XCUIRemote.shared.press(.down)
+                lastDirection = .down
             } else if to.minX > from.maxX {
-                XCUIRemote.shared.press(.right)
+                lastDirection = .right
             } else if to.maxX < from.minX {
-                XCUIRemote.shared.press(.left)
+                lastDirection = .left
             } else if min(to.maxY, from.maxY) > max(to.minY, from.minY),
                       abs(to.midX - from.midX) > abs(to.midY - from.midY) {
                 // Native focus scaling can overlap adjacent cards' horizontal frames.
-                XCUIRemote.shared.press(to.midX > from.midX ? .right : .left)
+                lastDirection = to.midX > from.midX ? .right : .left
             } else {
-                XCUIRemote.shared.press(to.midY < from.midY ? .up : .down)
+                lastDirection = to.midY < from.midY ? .up : .down
             }
+            XCUIRemote.shared.press(lastDirection)
         }
+        capture("unreachable-focus-\(target.identifier)", in: app)
         XCTFail("Could not focus \(target.identifier) \(target.label). \(app.debugDescription)")
     }
 

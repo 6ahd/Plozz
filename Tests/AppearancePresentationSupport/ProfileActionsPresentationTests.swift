@@ -8,6 +8,91 @@ import XCTest
 
 @MainActor
 final class ProfileActionsPresentationTests: XCTestCase {
+    func testSettingsLabelsKeepIconAndTitleColumnsAcrossSymbolWidths() throws {
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            for textSize in [DynamicTypeSize.large, .accessibility3] {
+                let renderer = ImageRenderer(content:
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(ProfileSettingsCategory.allCases) { category in
+                            Group {
+                                #if os(tvOS)
+                                SettingsRowLabel(
+                                    icon: category.symbol,
+                                    title: Text(verbatim: "Alignment")
+                                        .foregroundStyle(Color(red: 1, green: 0, blue: 0))
+                                )
+                                .environment(\.settingsRowIsFocused, true)
+                                .environment(\.settingsRowFocusForeground, Color(red: 0, green: 1, blue: 0))
+                                #else
+                                Label {
+                                    Text(verbatim: "Alignment").background(Color(red: 1, green: 0, blue: 0))
+                                } icon: {
+                                    Image(systemName: category.symbol).background(Color(red: 0, green: 1, blue: 0))
+                                }
+                                #endif
+                            }
+                            .frame(width: 500, height: 100, alignment: .leading)
+                        }
+                    }
+                    .labelStyle(SettingsIconLabelStyle())
+                    .environment(\.layoutDirection, direction)
+                    .environment(\.dynamicTypeSize, textSize)
+                    .environment(\.themePalette, .dark)
+                    .background(Color.black)
+                )
+                renderer.scale = 1
+                let image = try XCTUnwrap(renderer.cgImage)
+                let attachment = XCTAttachment(image: UIImage(cgImage: image))
+                attachment.name = "Settings columns \(direction) \(textSize)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+                let rows = try columnBounds(in: image, rowHeight: 100)
+                let reference = try XCTUnwrap(rows.first)
+                for (index, row) in rows.enumerated() {
+                    XCTAssertEqual(row.icon.midX, reference.icon.midX, accuracy: 1,
+                                   "\(ProfileSettingsCategory.allCases[index]) icon center")
+                    XCTAssertEqual(
+                        direction == .leftToRight ? row.title.minX : row.title.maxX,
+                        direction == .leftToRight ? reference.title.minX : reference.title.maxX,
+                        accuracy: 1, "\(ProfileSettingsCategory.allCases[index]) title column"
+                    )
+                }
+            }
+        }
+    }
+
+    private func columnBounds(in image: CGImage, rowHeight: Int) throws -> [(icon: CGRect, title: CGRect)] {
+        var bytes = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        try bytes.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(
+                data: buffer.baseAddress, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        return (0..<ProfileSettingsCategory.allCases.count).map { row in
+            var icon = CGRect.null
+            var title = CGRect.null
+            for y in (row * rowHeight)..<((row + 1) * rowHeight) {
+                for x in 0..<image.width {
+                    let offset = (y * image.width + x) * 4
+                    let point = CGRect(x: x, y: y, width: 1, height: 1)
+                    if bytes[offset] > 200, bytes[offset + 1] < 30, bytes[offset + 2] < 30 {
+                        title = title.union(point)
+                    }
+                    if bytes[offset + 1] > 200, bytes[offset] < 30, bytes[offset + 2] < 30 {
+                        icon = icon.union(point)
+                    }
+                }
+            }
+            XCTAssertFalse(icon.isNull)
+            XCTAssertFalse(title.isNull)
+            return (icon, title)
+        }
+    }
+
     func testProfileActionsKeepDeviceScopeAndAlignedSeparateGroups() async throws {
         #if os(tvOS)
         let cases: [(CGSize, DynamicTypeSize)] = [(CGSize(width: 1920, height: 1080), .large)]

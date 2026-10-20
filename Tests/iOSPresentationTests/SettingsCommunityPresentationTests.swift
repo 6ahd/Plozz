@@ -13,6 +13,70 @@ import XCTest
 final class SettingsCommunityPresentationTests: XCTestCase {
     private var capturedImages: [CGImage] = []
 
+    func testCategoryTitlesAlignIncludingScreensAndNavigation() throws {
+        for (width, textSize) in [(320.0, DynamicTypeSize.large), (390.0, .accessibility3), (500.0, .large)] {
+            let renderer = ImageRenderer(content:
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(ProfileSettingsCategory.allCases) { category in
+                        PlozziOSSettingsCategoryLabel(
+                            category: category, accounts: [], isAccountIncluded: { _ in true }
+                        )
+                        .frame(width: width, height: 180, alignment: .leading)
+                    }
+                }
+                .labelStyle(SettingsIconLabelStyle())
+                .environment(\.themePalette, .dark)
+                .environment(\.colorScheme, .dark)
+                .environment(\.locale, Locale(identifier: "en_US"))
+                .environment(\.dynamicTypeSize, textSize)
+                .background(Color.black)
+            )
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.cgImage)
+            let attachment = XCTAttachment(image: UIImage(cgImage: image))
+            attachment.name = "Settings category alignment \(width) \(textSize)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+            try pixels.withUnsafeMutableBytes { buffer in
+                let context = try XCTUnwrap(CGContext(
+                    data: buffer.baseAddress, width: image.width, height: image.height,
+                    bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                    space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+                ))
+                context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            }
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.recognitionLanguages = ["en-US"]
+            try VNImageRequestHandler(cgImage: image).perform([request])
+            let titles = try ["Playback", "Subtitles", "Live TV", "Libraries", "Appearance",
+                              "Screens", "Trackers", "Language"].map { title in
+                let result = try XCTUnwrap(request.results?.first {
+                    $0.topCandidates(1).first?.string.contains(title) == true
+                }, "Missing category \(title)")
+                let candidate = try XCTUnwrap(result.topCandidates(1).first)
+                let range = try XCTUnwrap(candidate.string.range(of: title))
+                let bounds = try XCTUnwrap(candidate.boundingBox(for: range)).boundingBox
+                let top = max(0, Int((1 - bounds.maxY) * CGFloat(image.height)) - 2)
+                let bottom = min(image.height, Int((1 - bounds.minY) * CGFloat(image.height)) + 2)
+                // OCR locates the title line; its estimated left edge can include the adjacent icon.
+                let leading = try XCTUnwrap((0..<image.width).first { x in
+                    (top..<bottom).contains { y in
+                        let offset = (y * image.width + x) * 4
+                        return pixels[offset] > 230 && pixels[offset + 1] > 230 && pixels[offset + 2] > 230
+                    }
+                })
+                return CGFloat(leading)
+            }
+            let leading = try XCTUnwrap(titles.first)
+            for title in titles {
+                XCTAssertEqual(title, leading, accuracy: 3, "All category titles must share one leading column.")
+            }
+        }
+    }
+
     func testCompactSettingsTitleStartsLeadingAndCentersOnlyAfterScrolling() async throws {
         let model = PlozziOSAppModel()
         let originalTheme = model.settings.theme.theme
