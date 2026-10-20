@@ -1068,6 +1068,10 @@ final class SettingsInteractionTests: XCTestCase {
             capture("continue-watching-\(selected)-labels-off")
             let details = app.buttons["continue-watching-playback-details"]
             XCTAssertTrue(details.exists)
+            for option in choices {
+                XCTAssertFalse(option.frame.intersects(details.frame),
+                               "Decorative preview content must not expand a choice over the playback control.")
+            }
             selectCustomization(details, expecting: "Progress only")
             selectCustomization(details, expecting: "Detailed")
             if selected == 2 { capture("continue-watching-three-presentations") }

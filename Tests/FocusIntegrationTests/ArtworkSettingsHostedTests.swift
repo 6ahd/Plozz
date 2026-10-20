@@ -10,7 +10,7 @@ import XCTest
 
 @MainActor
 final class ArtworkSettingsHostedTests: XCTestCase {
-    func testContinueWatchingPreviewDetailsStayReadableInTheTVSettingsColumn() async throws {
+    func testContinueWatchingPreviewsUseSharedSelectionStyleAndReadableDetails() async throws {
         for showsCaptions in [false, true] {
             var captions = CardCaptionSettings.default
             captions.setOverride(showsCaptions ? .show : .hide, for: .continueWatching)
@@ -31,6 +31,37 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 attachment.lifetime = .keepAlways
                 self.add(attachment)
                 let bitmap = try XCTUnwrap(image.cgImage)
+                let focusFrames: [CGRect] = try self.focusItems(in: window).map {
+                    try self.nativeFrame($0, in: window)
+                }
+                let choices = focusFrames.filter {
+                    $0.width > 200 && $0.width < SettingsFormMetrics.pageWidth / 2 && $0.height > 200
+                }.sorted { $0.minX < $1.minX }
+                XCTAssertEqual(choices.count, 3)
+                let surfaces: [[Int]] = try choices.map { frame in
+                    let patch = try XCTUnwrap(bitmap.cropping(to: CGRect(
+                        x: frame.midX - 2, y: frame.minY + 6, width: 4, height: 4
+                    ).integral))
+                    var pixels = [UInt8](repeating: 0, count: patch.width * patch.height * 4)
+                    try pixels.withUnsafeMutableBytes { bytes in
+                        let context = try XCTUnwrap(CGContext(
+                            data: bytes.baseAddress, width: patch.width, height: patch.height,
+                            bitsPerComponent: 8, bytesPerRow: patch.width * 4,
+                            space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                        ))
+                        context.draw(patch, in: CGRect(x: 0, y: 0, width: patch.width, height: patch.height))
+                    }
+                    return (0..<3).map { channel in
+                        stride(from: channel, to: pixels.count, by: 4).reduce(0) { $0 + Int(pixels[$1]) }
+                            / (patch.width * patch.height)
+                    }
+                }
+                let selectedSurface = try XCTUnwrap(surfaces.last)
+                for surface in surfaces.dropLast() {
+                    XCTAssertTrue(zip(selectedSurface, surface).contains { $0 - $1 > 20 },
+                                  "The selected choice must use the shared preview card's accent wash.")
+                }
                 let left = (window.bounds.width - SettingsFormMetrics.pageWidth) / 2
                 let columnWidth = SettingsFormMetrics.pageWidth / 3
                 var heights: [CGFloat] = []

@@ -9,6 +9,7 @@ struct ContinueWatchingArtworkPicker: View {
     var playbackDetails: ContinueWatchingPlaybackDetails = .default
     var captions: CardCaptionSettings = .default
     var isShowcase = false
+    @Environment(\.themePalette) private var palette
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -36,10 +37,18 @@ struct ContinueWatchingArtworkPicker: View {
             ForEach(ContinueWatchingArtworkStyle.allCases, id: \.self) { option in
                 Button { style = option } label: {
                     optionLabel(option)
-                        .padding(usesRows ? 8 : 12)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, usesRows ? 8 : 12)
+                        .contentShape(RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.panel))
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(Text(option.displayName))
                 }
-                .plozzActionButton(role: .secondary)
-                .buttonBorderShape(.roundedRectangle(radius: PlozzTheme.Metrics.Radius.panel))
+                .buttonStyle(ThemeCardButtonStyle(
+                    accent: palette.accent,
+                    isSelected: style == option,
+                    cornerRadius: PlozzTheme.Metrics.Radius.panel
+                ))
+                .focusEffectDisabled()
                 .accessibilityLabel(Text(option.displayName))
                 .accessibilityHint(Text(option.detail))
                 .accessibilityAddTraits(style == option ? .isSelected : [])

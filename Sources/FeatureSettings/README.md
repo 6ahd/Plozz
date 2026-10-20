@@ -37,10 +37,15 @@ watch history and planning-list behavior are documented in
   with an overlaid logo, an unbranded scene, and portrait poster artwork without
   implying a fixed title position. Figures preserve their proportions; artwork
   and playback controls use a shared scale that preserves the cards' relative
-  sizes, with larger compact previews and tighter padding. Visible artwork and
-  optional labels are centered together, with no empty caption space when labels are off.
+  sizes, with larger compact previews, 12-point horizontal gutters, and tighter
+  vertical padding. Visible artwork and optional labels are centered together,
+  with no empty caption space when labels are off.
   TV examples use a taller preview area and larger playback details for viewing-distance
   legibility; this illustration-only adjustment does not change real cards or mobile previews.
+  Their containers use the same `ThemeCardButtonStyle` as `PreviewCard`, including
+  its shared selection and focus treatment, rather than a separate glass action-button style.
+  Each choice owns its hit shape and accessibility label so scaled decorative
+  artwork cannot overlap neighboring controls or expose fabricated playback text.
   They share equal choice sizes on TV and
   wide layouts, becoming preview-led rows on compact mobile layouts. The native
   Playback details control applies to all three choices: Detailed retains the
