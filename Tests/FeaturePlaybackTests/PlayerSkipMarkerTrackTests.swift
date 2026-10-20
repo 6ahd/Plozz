@@ -39,7 +39,7 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
         XCTAssertTrue(SkipMarkerTrackLayout.ranges(segments: segments, duration: 100).isEmpty)
     }
 
-    func testFlatPerformanceTrackPairsItsSurfaceWithTheAppAppearance() throws {
+    func testFlatPerformanceTrackKeepsSubduedFillAcrossAppAppearances() throws {
         XCTAssertEqual(PlayerScrubTrackSurface.flatFillOpacity, 0.22)
         for height in [CGFloat(12), 20] {
             for scheme in [ColorScheme.light, .dark] {
@@ -52,14 +52,12 @@ final class PlayerSkipMarkerTrackTests: XCTestCase {
                             .background(background)
                     )
                     let reference = try pixels(
-                        Capsule().fill(scheme == .light
-                            ? PlozzFrostedSurface.fill(colorScheme: .light)
-                            : .white.opacity(0.22)).frame(height: height)
+                        Capsule().fill(.white.opacity(0.22)).frame(height: height)
                             .frame(width: 320, height: 44)
                             .background(background)
                     )
-                    XCTAssertEqual(actual.bytes, reference.bytes,
-                                   "The fallback track uses a static themed fill, never a live blur.")
+                    XCTAssertTrue(actual.bytes == reference.bytes,
+                                  "The fallback track must match the static 22% white fill at \(height)/\(scheme).")
                 }
             }
         }

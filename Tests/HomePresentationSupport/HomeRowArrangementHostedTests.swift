@@ -363,13 +363,14 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                     .frame(width: 900, height: 650)
                     #endif
                 } inspect: { window in
-                    let lines = try await self.capture(window, name: "Merge Next Up \(scheme) \(size)")
-                    let text = lines.map(\.0).joined(separator: " ")
+                    let text = try await self.captureScrollContent(window, name: "Merge Next Up \(scheme) \(size)")
                     XCTAssertTrue(text.contains("Merge Next Up rows"), text)
                     XCTAssertTrue(text.contains("next episodes"), text)
                     visibility.setGlobalRowEnabled(false, for: .continueWatching)
-                    let disabled = try await self.capture(window, name: "Merge Next Up with hidden Continue Watching")
-                    XCTAssertTrue(disabled.map(\.0).joined(separator: " ").contains("Add Continue Watching"), text)
+                    let disabledText = try await self.captureScrollContent(
+                        window, name: "Merge Next Up with hidden Continue Watching"
+                    )
+                    XCTAssertTrue(disabledText.contains("Add Continue Watching"), disabledText)
                 }
             }
         }
@@ -1039,11 +1040,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         try await inspect(window)
     }
 
-    private func snapshot(_ window: UIWindow, name: String) async throws -> UIImage {
+    private func snapshot(_ window: UIWindow, name: String, scale: CGFloat = 1) async throws -> UIImage {
         try await Task.sleep(for: .milliseconds(400))
         window.layoutIfNeeded()
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
+        format.scale = scale
         let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
             XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
         }
@@ -1054,12 +1055,32 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         return image
     }
 
+    private func captureScrollContent(_ window: UIWindow, name: String) async throws -> String {
+        let image = try await snapshot(window, name: name, scale: window.screen.scale)
+        func scrollView(in view: UIView) -> UIScrollView? {
+            if let scroll = view as? UIScrollView { return scroll }
+            return view.subviews.lazy.compactMap { scrollView(in: $0) }.first
+        }
+        let scroll = try XCTUnwrap(scrollView(in: window))
+        let visibleContent = scroll.convert(CGRect(origin: .zero, size: scroll.contentSize), to: window)
+            .intersection(window.bounds)
+        // Keep the native pixels, but exclude the empty viewport from small-text recognition.
+        let crop = try XCTUnwrap(image.cgImage?.cropping(to: visibleContent.applying(
+            CGAffineTransform(scaleX: image.scale, y: image.scale)
+        ).integral))
+        return try recognizedText(in: crop).map(\.0).joined(separator: " ")
+    }
+
     private func capture(_ window: UIWindow, name: String) async throws -> [(String, CGRect)] {
         let image = try await snapshot(window, name: name)
+        return try recognizedText(in: XCTUnwrap(image.cgImage))
+    }
+
+    private func recognizedText(in image: CGImage) throws -> [(String, CGRect)] {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
-        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        try VNImageRequestHandler(cgImage: image).perform([request])
         return (request.results ?? []).compactMap { result in
             result.topCandidates(1).first.map { ($0.string, result.boundingBox) }
         }
