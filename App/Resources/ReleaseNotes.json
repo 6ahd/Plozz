@@ -21,12 +21,25 @@
             {
               "text": "Faster startup for supported HDR and Dolby Vision videos when Apple TV switches display modes.",
               "platforms": ["tvOS"]
+            },
+            {
+              "text": "Opening an episode from Home or Search now starts at the top of its detail page with Play selected.",
+              "platforms": ["tvOS"]
             }
           ]
         },
         {
           "category": "Fixed",
           "items": [
+            "Series pages failing to resume an in-progress episode on some Jellyfin-compatible servers.",
+            {
+              "text": "Episode rows jumping or losing the selected episode when returning from Related or other detail sections.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Related titles being skipped when moving down from episodes.",
+              "platforms": ["tvOS"]
+            },
             {
               "text": "Some supported DTS:X tracks losing height audio at playback start on tvOS 26+.",
               "platforms": ["tvOS"]
