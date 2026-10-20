@@ -74,7 +74,11 @@ public struct MediaVersionChoiceButton: View {
                 }
                 if !presentation.badges.isEmpty {
                     versionBadges(languages: languages)
-                    .environment(\.mediaBadgeScale, 0.85)
+                        #if os(tvOS)
+                        .environment(\.mediaBadgeScale, 2)
+                        #else
+                        .environment(\.mediaBadgeScale, 0.85)
+                        #endif
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

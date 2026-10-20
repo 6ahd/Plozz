@@ -48,7 +48,7 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
 
 - **Version choices** — `MediaVersionChoiceButton` is the shared native rounded
   card for pre-play, detail, and in-player pickers. It keeps edition/size and
-  release text above the smaller wrapping format/language badges, with one
+  release text above the wrapping format/language badges, with one
   trailing selected checkmark. Hosts retain selection, dismissal, and focus
   ownership. `MediaVersionPicker` supplies the sheet used by mobile playback
   and hero context-menu actions; context menus link to it rather than rendering
@@ -56,6 +56,10 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   On iOS/iPadOS, version sheets use an inline centered navigation title and a
   leading native X close action, with no bottom Cancel button. The pre-play X
   cancels the pending playback choice; tvOS retains its existing dialog controls.
+  TV version cards enlarge their format/language marks for viewing at a distance;
+  mobile keeps the compact badge scale. The TV pre-play heading uses the compact
+  34-point semibold dialog treatment, scaled with the headline text style, rather
+  than the oversized native TV title.
   Edition/size, source quality, bitrate and runtime share one naturally wrapping
   summary instead of separate size-only or runtime-only rows on either platform.
   Release filenames preserve their original script and wrap to their full height,

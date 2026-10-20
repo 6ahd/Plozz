@@ -121,13 +121,20 @@ private struct PlaybackVersionChoiceList: View {
     @Environment(\.locale) private var locale
     @Environment(\.themePalette) private var palette
     @FocusState private var focusedID: String?
+    #if os(tvOS)
+    @ScaledMetric(relativeTo: .headline) private var headingSize: CGFloat = 34
+    #endif
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 #if !os(iOS)
                 Text("Choose a version")
+                    #if os(tvOS)
+                    .font(.system(size: headingSize, weight: .semibold))
+                    #else
                     .font(.title.bold())
+                    #endif
                     .foregroundStyle(palette.primaryText)
                     .accessibilityAddTraits(.isHeader)
                 #endif

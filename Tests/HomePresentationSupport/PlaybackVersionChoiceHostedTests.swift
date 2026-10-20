@@ -232,6 +232,11 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertNil(probe.selected, "Choosing the mode alone must not select a file.")
         XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
+        #if os(tvOS)
+        if typeSize == .large, versionCount == 2 {
+            try assertVersionTypography(in: window)
+        }
+        #endif
         let choices = try await visibleText(in: window, name: "version-choice-\(Int(width))-\(typeSize)")
         for fact in ["Choose a version", "4K", "42 GB", "English", "HEVC", "TrueHD"] {
             XCTAssertTrue(choices.localizedCaseInsensitiveContains(fact), "Missing \(fact): \(choices)")
@@ -295,6 +300,50 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
     #endif
 
     #if os(tvOS)
+    private func assertVersionTypography(in window: UIWindow) throws {
+        window.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "TV version picker typography"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        let cgImage = try XCTUnwrap(image.cgImage)
+        let inverted = CIImage(cgImage: cgImage).applyingFilter("CIColorInvert")
+        let invertedImage = try XCTUnwrap(CIContext().createCGImage(inverted, from: inverted.extent))
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        request.usesLanguageCorrection = false
+        request.minimumTextHeight = 0.001
+        request.customWords = ["4K", "1080P", "HEVC", "SDR"]
+        let minimumHeights: [String: CGFloat] = [
+            "Choose a version": 20, "4K": 14, "1080P": 14,
+            "HEVC": 14, "English": 14, "SDR": 18, "VISION": 10
+        ]
+        var heights: [String: CGFloat] = [:]
+        for recognitionImage in [cgImage, invertedImage] {
+            try VNImageRequestHandler(cgImage: recognitionImage).perform([request])
+            for observation in request.results ?? [] {
+                guard let candidate = observation.topCandidates(1).first else { continue }
+                for label in minimumHeights.keys {
+                    guard let range = candidate.string.range(of: label, options: .caseInsensitive),
+                          let box = try candidate.boundingBox(for: range) else { continue }
+                    let height = box.boundingBox.height * image.size.height
+                    heights[label] = min(heights[label] ?? height, height)
+                }
+            }
+        }
+        for (label, minimum) in minimumHeights {
+            let height = try XCTUnwrap(heights[label], "Missing visible picker text: \(label)")
+            XCTAssertGreaterThanOrEqual(height, minimum, "\(label) must be readable at TV viewing distance.")
+        }
+        XCTAssertLessThanOrEqual(try XCTUnwrap(heights["Choose a version"]), 40,
+                                "The heading must remain a compact hint, not a large TV title.")
+    }
+
     private func assertCompactCard(in window: UIWindow, maximumHeight: CGFloat) throws {
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
