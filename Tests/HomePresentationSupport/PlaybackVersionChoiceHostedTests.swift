@@ -320,8 +320,8 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         request.minimumTextHeight = 0.001
         request.customWords = ["4K", "1080P", "HEVC", "SDR"]
         let minimumHeights: [String: CGFloat] = [
-            "Choose a version": 20, "4K": 14, "1080P": 14,
-            "HEVC": 14, "English": 14, "SDR": 18, "VISION": 10
+            "Choose a version": 20, "4K": 12, "1080P": 12,
+            "HEVC": 12, "English": 12, "SDR": 16, "VISION": 8
         ]
         var heights: [String: CGFloat] = [:]
         for recognitionImage in [cgImage, invertedImage] {

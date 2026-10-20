@@ -75,7 +75,7 @@ public struct MediaVersionChoiceButton: View {
                 if !presentation.badges.isEmpty {
                     versionBadges(languages: languages)
                         #if os(tvOS)
-                        .environment(\.mediaBadgeScale, 2)
+                        .environment(\.mediaBadgeScale, 1.7)
                         #else
                         .environment(\.mediaBadgeScale, 0.85)
                         #endif
@@ -95,17 +95,17 @@ public struct MediaVersionChoiceButton: View {
     private func versionBadges(languages: [String]) -> some View {
         if languages.count == 2 {
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
+                HStack(spacing: badgeSpacing) {
                     formatBadges
                     languageBadge("\(languages[0]) | +1", languages: languages)
                 }
                 .fixedSize(horizontal: true, vertical: true)
                 VStack(alignment: .leading, spacing: 6) {
-                    WrappingHStackLayout(spacing: 8, lineSpacing: 6) { formatBadges }
+                    WrappingHStackLayout(spacing: badgeSpacing, lineSpacing: 6) { formatBadges }
                     ViewThatFits(in: .horizontal) {
                         languageBadge(languages.joined(separator: " | "), languages: languages)
                             .fixedSize(horizontal: true, vertical: true)
-                        WrappingHStackLayout(spacing: 8, lineSpacing: 6) {
+                        WrappingHStackLayout(spacing: badgeSpacing, lineSpacing: 6) {
                             ForEach(languages, id: \.self) { language in
                                 languageBadge(language, languages: [language])
                             }
@@ -114,7 +114,7 @@ public struct MediaVersionChoiceButton: View {
                 }
             }
         } else {
-            WrappingHStackLayout(spacing: 8, lineSpacing: 6) {
+            WrappingHStackLayout(spacing: badgeSpacing, lineSpacing: 6) {
                 formatBadges
                 if let language = languages.first {
                     languageBadge(
@@ -124,6 +124,14 @@ public struct MediaVersionChoiceButton: View {
                 }
             }
         }
+    }
+
+    private var badgeSpacing: CGFloat {
+        #if os(tvOS)
+        12
+        #else
+        8
+        #endif
     }
 
     private var formatBadges: some View {
