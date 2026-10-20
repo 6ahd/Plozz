@@ -184,14 +184,12 @@ struct PlozziOSHomeHeroSkeleton: View {
     }
 
     /// Mirrors the action row: pills whose height is driven by the same
-    /// `.headline` label plus `PlozziOSHeroActionButtonStyle`'s 12pt vertical
+    /// `.headline` label plus the hero action fallback's 12pt vertical
     /// padding and 48pt floor, so the row grows with Dynamic Type exactly as the
     /// real buttons do.
     private var actionRow: some View {
         HStack(spacing: 12) {
             pill(width: 150)
-            pill(width: 48)
-            pill(width: 48)
             pill(width: 48)
         }
     }

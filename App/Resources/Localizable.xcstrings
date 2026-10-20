@@ -607005,6 +607005,7 @@
       }
     },
     "Requests as %@. Choose seasons and review their request status." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

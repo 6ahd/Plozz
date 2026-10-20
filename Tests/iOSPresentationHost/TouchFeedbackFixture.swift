@@ -88,7 +88,7 @@ struct WatchlistFeedbackFixture: View {
             PlozziOSHomeHeroForeground(
                 item: item, detailItem: item, watchlistItem: item,
                 presentation: .init(item: item, artworkStyle: .compactPortrait, surface: .home),
-                style: .compactPortrait, provider: nil, onPlay: { _ in }
+                style: .compactPortrait, onPlay: { _ in }
             )
             .id(revision)
             Text("Taps \(probe.taps)").accessibilityIdentifier("watchlist-taps")

@@ -288,14 +288,9 @@ struct PlozziOSHeroRequest {
     var isRequesting: Bool
     var actingName: String?
     var onRequest: (MediaItem) -> Void
-    /// For a **series**: the loaded Seerr season-request availability (nil while it
-    /// loads), plus per-season request/refresh callbacks. Series never fall back to
-    /// a whole-title request while coverage is unresolved.
+    /// The current season summary. The shared Seasons sheet owns per-season actions.
     var seasonAvailability: MediaRequestAvailability? = nil
-    var onRequestSeasons: (([Int]) -> Void)? = nil
-    var seasonRefreshFailed = false
-    var onRefreshSeasons: (() -> Void)? = nil
-    /// Detail pages reuse their season manager rather than opening a second request flow.
+    /// Home and detail heroes open the same season manager.
     var onOpenSeasonRequests: (() -> Void)? = nil
 }
 
@@ -325,50 +320,6 @@ struct PlozziOSHeroRequestButton: View {
             }
             .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary))
             .accessibilityHint("Choose seasons and review their request status.")
-        } else if showsSeasonRequestControl,
-           let onRequestSeasons = request.onRequestSeasons {
-            if let availability = request.seasonAvailability {
-                let presentation = SeasonRequestPresentation(
-                    availability: availability,
-                    isSubmitting: request.isRequesting
-                )
-                let accessibilityHint =
-                    presentation.detail
-                    ?? "Choose seasons and review their request status."
-                let accessibilityHintText = request.actingName.map {
-                    Text(
-                        "Requests as \($0). Choose seasons and review their request status."
-                    )
-                } ?? Text(accessibilityHint)
-                Menu {
-                    SeasonRequestMenuContent(
-                        availability: availability,
-                        isSubmitting: request.isRequesting,
-                        refreshFailed: request.seasonRefreshFailed,
-                        onRefresh: request.onRefreshSeasons,
-                        onRequest: onRequestSeasons
-                    )
-                } label: {
-                    PlozziOSSeasonRequestSummaryLabel(
-                        presentation: presentation
-                    )
-                }
-                .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary))
-                .accessibilityLabel(Text(presentation.title))
-                .accessibilityHint(accessibilityHintText)
-            } else if request.seasonRefreshFailed,
-                      let onRefreshSeasons = request.onRefreshSeasons {
-                Button(action: onRefreshSeasons) {
-                    Label("Retry Season Status", systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary))
-            } else {
-                Button {} label: {
-                    Label("Loading Seasons…", systemImage: "clock")
-                }
-                .buttonStyle(PlozziOSHeroActionButtonStyle(kind: .primary))
-                .disabled(true)
-            }
         } else {
             switch request.cta {
             case .request:
@@ -402,18 +353,6 @@ struct PlozziOSHeroRequestButton: View {
             case .play, .unavailable:
                 EmptyView()
             }
-        }
-    }
-
-    private var showsSeasonRequestControl: Bool {
-        guard item.kind == .series, request.onRequestSeasons != nil else {
-            return false
-        }
-        switch request.cta {
-        case .play:
-            return false
-        case .request, .requested, .downloading, .unavailable:
-            return true
         }
     }
 
@@ -1712,6 +1651,30 @@ private struct PlozziOSStableHomeHeroMetadata: View {
     }
 }
 
+struct PlozziOSHomeHeroArtworkLink: View {
+    @Environment(PlozziOSAppModel.self) private var appModel
+
+    let item: MediaItem
+    let provider: any MediaProvider
+
+    var body: some View {
+        NavigationLink {
+            PlozziOSItemDetailView(
+                appModel: appModel,
+                provider: provider,
+                item: item,
+                seerService: appModel.seerService
+            )
+        } label: {
+            Color.clear.contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("More Info")
+        .accessibilityValue(Text(verbatim: item.title))
+        .accessibilityIdentifier("home-hero-artwork-detail")
+    }
+}
+
 struct PlozziOSHomeHeroForeground: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(PlozziOSAppModel.self) private var appModel
@@ -1722,7 +1685,6 @@ struct PlozziOSHomeHeroForeground: View {
     let watchlistItem: MediaItem
     let presentation: HeroPresentation
     let style: HeroArtworkStyle
-    let provider: (any MediaProvider)?
     let onPlay: (MediaItem) -> Void
     var heroRequest: PlozziOSHeroRequest?
     /// "New episode every Friday" for a returning series, from the shared
@@ -1746,6 +1708,9 @@ struct PlozziOSHomeHeroForeground: View {
                 scheduleLine: scheduleLine,
                 logoFallback: PlozziOSHeroMetadata.tmdbLogoFallback(for: item)
             )
+            // The artwork link underneath owns navigation for the whole hero,
+            // including its logo and metadata, but not the action row.
+            .allowsHitTesting(false)
 
             // Keep the actions on a single row: try the full Play pill first, then
             // shrink its resume trailing (drop "• 58m", then hide the text, keeping
@@ -1819,32 +1784,6 @@ struct PlozziOSHomeHeroForeground: View {
                 isWatchlisted ? "In Watchlist" : "Not in Watchlist"
             )
         }
-
-        if let provider {
-            let infoIsPrimary = !hasPlayAction && !showsRequestPrimary
-            NavigationLink {
-                PlozziOSItemDetailView(
-                    appModel: appModel,
-                    provider: provider,
-                    item: detailItem,
-                    seerService: appModel.seerService
-                )
-            } label: {
-                if infoIsPrimary {
-                    Label("More Info", systemImage: "info.circle")
-                } else {
-                    Image(systemName: "info.circle")
-                        .font(.headline.weight(.semibold))
-                }
-            }
-            .buttonStyle(
-                PlozziOSHeroActionButtonStyle(
-                    kind: infoIsPrimary ? .primary : .secondary,
-                    circular: !infoIsPrimary
-                )
-            )
-            .accessibilityLabel("More Info")
-        }
     }
 
     /// One-tap Seerr request CTA for a discovery movie, matching the detail hero.
@@ -1852,16 +1791,6 @@ struct PlozziOSHomeHeroForeground: View {
     private var heroRequestButton: some View {
         if let heroRequest {
             PlozziOSHeroRequestButton(item: item, request: heroRequest)
-        }
-    }
-
-    /// Whether the request pill provides the leading (primary-ish) action, so
-    /// "More Info" should step down to a secondary circular button.
-    private var showsRequestPrimary: Bool {
-        guard let heroRequest else { return false }
-        switch heroRequest.cta {
-        case .request, .requested, .downloading: return true
-        case .play, .unavailable: return false
         }
     }
 
@@ -2526,7 +2455,63 @@ struct PlozziOSDetailHeroForeground: View {
 
 }
 
-private typealias PlozziOSHeroActionButtonStyle = TouchHeroActionButtonStyle
+struct PlozziOSHeroActionButtonStyle: PrimitiveButtonStyle {
+    let kind: TouchHeroActionButtonStyle.Kind
+    var circular = false
+    var minimumWidth: CGFloat?
+    @Environment(\.themePalette) private var palette
+    @Environment(\.plozzReducePanelGlass) private var reducePanelGlass
+    @Environment(\.plozzReduceTransparency) private var reduceTransparency
+
+    func makeBody(configuration: Configuration) -> some View {
+        if #available(iOS 26.0, *), !reducePanelGlass, !reduceTransparency {
+            if circular {
+                nativeButton(configuration)
+                    .buttonBorderShape(.circle)
+                    .buttonSizing(.flexible)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .frame(width: 48, height: 48)
+            } else {
+                nativeButton(configuration)
+                    .buttonBorderShape(.roundedRectangle(radius: 24))
+                    .buttonSizing(minimumWidth == nil ? .fitted : .flexible)
+                    .frame(minWidth: minimumWidth, minHeight: 48)
+                    .fixedSize(horizontal: minimumWidth != nil, vertical: true)
+            }
+        } else {
+            Button(role: configuration.role, action: configuration.trigger) {
+                configuration.label
+                    .tint(kind == .primary ? palette.backgroundBase : palette.primaryText)
+            }
+            .buttonStyle(TouchHeroActionButtonStyle(
+                kind: kind, circular: circular, minimumWidth: minimumWidth
+            ))
+        }
+    }
+
+    @available(iOS 26.0, *)
+    @ViewBuilder
+    private func nativeButton(_ configuration: Configuration) -> some View {
+        let button = Button(role: configuration.role, action: configuration.trigger) {
+            configuration.label
+                .font(.headline.weight(.semibold))
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(kind == .primary ? palette.backgroundBase : palette.primaryText)
+                // Keep the native icon slot stable even for short glyphs such as ellipsis.
+                .frame(width: circular ? 18 : nil, height: circular ? 18 : nil)
+        }
+        .controlSize(.large)
+
+        if kind == .primary {
+            button
+                .buttonStyle(.glassProminent)
+                .tint(palette.primaryText)
+        } else {
+            button.buttonStyle(.glass)
+        }
+    }
+}
 
 private struct PlozziOSHeroMetadata: View {
     enum Mode {

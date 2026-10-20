@@ -165,6 +165,28 @@ and omitted from the current picker rather than blocking a confirmed primary.
   configured. Completion belongs to the current curation inputs and profile;
   cancelled work cannot settle a replacement request. This never changes saved
   preferences or treats a failed fetch as authority to erase cached candidates.
+  On iPhone and iPad, tapping the Home hero artwork, logo or metadata opens its
+  item/provider detail page instead of a separate More Info button. The artwork
+  link sits behind the non-interactive metadata and foreground actions, so Play,
+  Watchlist and requests stay independent. Horizontal paging and vertical scrolling
+  do not open details; in-flight page transitions disable the artwork link.
+  VoiceOver exposes the artwork as More Info with the current title.
+  The tvOS More Info button is unchanged.
+  Mobile Home and detail hero actions share native Liquid Glass buttons on iOS 26+.
+  Primary actions use the prominent style with their existing monochrome theme
+  tint and contrasting label; secondary actions use untinted glass. The existing
+  solid styles remain on older systems and when transparency/panel glass is reduced.
+  Native controls own the glass and press treatment; tvOS and multiview are unchanged.
+  Request Seasons is a primary button, not a dropdown. Home and request-only
+  detail heroes open the same Seasons sheet with per-season status, Request All
+  Missing, refresh/retry and the active request identity. Unknown/loading status
+  still opens that sheet; failures never enable a whole-series request.
+  Home pauses hero navigation/auto-advance while the sheet is open, dismisses it
+  when the request profile/server changes, and presents confirmations/errors in
+  the sheet without bypassing the existing request-context checks.
+  Closing the sheet starts a fresh carousel dwell interval. Status polling
+  continues for the selected series while the sheet is open; a lookup superseded
+  by a sheet/manual refresh is not treated as a server failure.
 - **Collections hero source** — an opt-in source mixes individual movies and
   shows from multiple account-qualified collections across libraries, not collection cards. TV and
   mobile use the same `MediaProvider.collectionMembers` loader and existing
