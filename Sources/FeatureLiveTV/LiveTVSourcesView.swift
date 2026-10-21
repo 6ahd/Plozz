@@ -612,7 +612,7 @@ private struct LiveTVPlaylistSourceDetails: View {
                         get: { source.isEnabled },
                         set: { model.setPlaylistEnabled(source.id, enabled: $0) }
                     )) {
-                        Label("Enabled", systemImage: "antenna.radiowaves.left.and.right")
+                        Label("Use this source", systemImage: "antenna.radiowaves.left.and.right")
                     }
                     .accessibilityIdentifier("live-tv-source-enabled-\(source.id)")
                     LiveTVSourceApprovalControl(
@@ -869,7 +869,7 @@ private struct LiveTVServerSourceDetails: View {
                         get: { source.isEnabled },
                         set: { model.setServerEnabled(source.id, enabled: $0) }
                     )) {
-                        Label("Enabled", systemImage: "server.rack")
+                        Label("Use this source", systemImage: "server.rack")
                     }
                     .accessibilityIdentifier("live-tv-source-enabled-\(source.id)")
                     SettingsPageLink {

@@ -30,7 +30,7 @@ final class IPTVSetupInteractionTests: XCTestCase {
         XCTAssertTrue(app.textFields["Name (optional)"].exists)
         XCTAssertFalse(authentication.exists)
         XCTAssertTrue(app.textFields["EPG URL (optional)"].exists)
-        XCTAssertTrue(app.staticTexts["Leave blank to use your provider's guide."].exists)
+        XCTAssertFalse(app.staticTexts["Leave blank to use your provider's guide."].exists)
         XCTAssertFalse(app.switches["Find guides in playlist"].exists)
         XCTAssertFalse(app.switches["Advanced options"].exists)
         XCTAssertFalse(app.staticTexts[httpWarning].exists)

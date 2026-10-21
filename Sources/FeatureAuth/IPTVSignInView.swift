@@ -103,9 +103,6 @@ private struct IPTVConnectionFields: View {
                     IPTVLoginFields(username: $model.username, password: $model.password)
                 }
                 IPTVAddressField(title: "EPG URL (optional)", value: $model.guideAddress)
-                Text("Leave blank to use your provider's guide.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
                 Button {
                     showsAdvanced.toggle()
                 } label: {
