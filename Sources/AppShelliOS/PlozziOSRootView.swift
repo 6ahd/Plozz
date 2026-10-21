@@ -442,7 +442,9 @@ public struct PlozziOSRootView: View {
 
     private var showsLaunchProfilePicker: Bool {
         isSelectingLaunchProfile || appModel.mustChooseProfile
-            || (appModel.requiresLaunchProfileSelection && !appModel.didCompleteLaunchProfileSelection)
+            || (!appModel.didCompleteLaunchProfileSelection
+                && (appModel.requiresLaunchProfileSelection
+                    || appModel.plexHomeUsers.pendingPlexPINRequest != nil))
     }
 
     private var shellIdentity: String {

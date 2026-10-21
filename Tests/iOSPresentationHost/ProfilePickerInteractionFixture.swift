@@ -75,6 +75,9 @@ struct ProfileSelectionInteractionFixture: View {
         let profiles = ProfilesModel(store: store)
         var first = profiles.activeProfile
         first.name = "Alex"
+        first.avatarEmoji = nil
+        first.avatarSymbol = "person.fill"
+        first.colorIndex = 0
         profiles.update(first)
         var protected = profiles.add(name: "Protected", avatarSymbol: "person.fill", colorIndex: 1)
         protected = protected.settingHomeUserBinding(
@@ -118,6 +121,9 @@ struct ProfileSelectionInteractionFixture: View {
         if ProcessInfo.processInfo.arguments.contains("--initial-profile-lock") {
             model.profiles.select(protected.id)
             model.enforceActiveProfileLock()
+        } else if ProcessInfo.processInfo.arguments.contains("--initial-plex-pin") {
+            model.profiles.select(protected.id)
+            model.refreshActiveProfileConfiguration()
         }
         _appModel = State(initialValue: model)
     }
@@ -149,6 +155,7 @@ struct ProfileSelectionInteractionFixture: View {
         }
         .environment(\.themePalette, .dark)
         .environment(\.locale, Locale(identifier: "en"))
+        .environment(\.gradientBackgroundsEnabled, true)
         .preferredColorScheme(.dark)
         .onAppear { if !usesLaunchPicker { showsPicker = true } }
     }

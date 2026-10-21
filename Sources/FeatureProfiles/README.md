@@ -50,12 +50,18 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   profile id from `CoreModels.ProfilesModel`.
 - **Continuous mobile selection.** Launch and Settings keep the picker and
   parental/profile/Plex PIN steps on one opaque surface until authorization
-  finishes. The modal owner sits outside the profile-scoped shell identity;
+  finishes.
+  A pending PIN never opens automatically when the picker appears: only a
+  profile tap starts authorization, including when a restored profile is locked.
+  The modal owner sits outside the profile-scoped shell identity;
   launch keeps that identity stable through PIN entry and cancellation.
   Cancelling a PIN returns to the retained picker, not Home. Authorization
   still belongs to the existing profile/Plex models.
 - **Visible mobile entrance.** Start the cascade after native presentation
-  finishes, with a separate 200 ms slot per tile and a 650 ms eased reveal.
+  finishes, with overlapping 450 ms native smooth springs, 90 ms between tiles,
+  and a subtle lift. All visual starts share one presentation transaction,
+  rather than waiting on separate task wake-ups; tasks only admit input when
+  each tile starts appearing. Six profiles should settle within one second.
   Never cap later delays into a batch. Reduce Motion reveals everything
   immediately; newly realized offscreen cells do not wait through earlier slots.
 - **Native editor controls.** On tvOS, the scrollable editor keeps its title

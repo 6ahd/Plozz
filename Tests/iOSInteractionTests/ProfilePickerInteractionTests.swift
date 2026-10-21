@@ -130,13 +130,18 @@ final class ProfilePickerInteractionTests: XCTestCase {
         XCTAssertEqual(result.label, "Selected")
     }
 
-    func testInitialProfileLockContinuesToPlexInLaunchPicker() throws {
+    func testInitialProfileLockWaitsForTapThenContinuesToPlex() throws {
         app.launchArguments = [
             "--profile-selection-fixture", "--launch-selection", "--two-pins",
             "--initial-profile-lock"
         ]
         app.launch()
-        XCTAssertTrue(app.buttons["1"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertFalse(app.buttons["1"].exists, "An existing lock must wait for an explicit profile tap.")
+        XCTAssertFalse(app.buttons["profile-picker-close"].exists)
+        try assertHomeIsCovered()
+        app.buttons["Protected"].tap()
+        XCTAssertTrue(app.buttons["1"].waitForExistence(timeout: 5), app.debugDescription)
         try assertHomeIsCovered()
         for digit in ["1", "2", "3", "4"] { app.buttons[digit].tap() }
         XCTAssertTrue(app.staticTexts["Enter your Plex PIN"].waitForExistence(timeout: 5), app.debugDescription)
@@ -145,6 +150,44 @@ final class ProfilePickerInteractionTests: XCTestCase {
         let result = app.staticTexts["fixture-selection-result"]
         XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 8), app.debugDescription)
         XCTAssertEqual(result.label, "Selected")
+    }
+
+    func testPendingPlexRequestWaitsForAnExplicitProfileTap() throws {
+        for launchArguments in [[], ["--launch-selection"]] {
+            if app.state != .notRunning { app.terminate() }
+            app.launchArguments = ["--profile-selection-fixture", "--initial-plex-pin"] + launchArguments
+            app.launch()
+            XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 10), app.debugDescription)
+            XCTAssertFalse(app.staticTexts["Enter your Plex PIN"].exists)
+            XCTAssertFalse(app.buttons["1"].exists)
+            try assertHomeIsCovered()
+            app.buttons["Protected"].tap()
+            XCTAssertTrue(app.staticTexts["Enter your Plex PIN"].waitForExistence(timeout: 5))
+            try assertHomeIsCovered()
+            app.buttons["Cancel"].tap()
+            XCTAssertTrue(app.buttons["Alex"].waitForExistence(timeout: 5))
+            XCTAssertFalse(app.buttons["1"].exists)
+            app.buttons["Alex"].tap()
+            let result = app.staticTexts["fixture-selection-result"]
+            XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 8), app.debugDescription)
+            XCTAssertEqual(result.label, "Selected")
+        }
+    }
+
+    func testPendingProfileLockDoesNotPreventChoosingADifferentProfile() throws {
+        app.launchArguments = [
+            "--profile-selection-fixture", "--launch-selection", "--two-pins",
+            "--initial-profile-lock"
+        ]
+        app.launch()
+        XCTAssertTrue(app.buttons["Alex"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertFalse(app.buttons["1"].exists)
+        try assertHomeIsCovered()
+        app.buttons["Alex"].tap()
+        let result = app.staticTexts["fixture-selection-result"]
+        XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 8), app.debugDescription)
+        XCTAssertEqual(result.label, "Selected")
+        XCTAssertFalse(app.buttons["1"].exists)
     }
 
     func testCancellingPlexWithLockedFallbackAllowsANewSelection() throws {
@@ -167,7 +210,12 @@ final class ProfilePickerInteractionTests: XCTestCase {
 
     private func assertHomeIsCovered(file: StaticString = #filePath, line: UInt = #line) throws {
         XCTAssertFalse(app.staticTexts["fixture-selection-result"].isHittable, file: file, line: line)
-        let image = try XCTUnwrap(app.screenshot().image.cgImage)
+        let screenshot = app.screenshot()
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "picker-or-pin-covered"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let image = try XCTUnwrap(screenshot.image.cgImage)
         var rgba = [UInt8](repeating: 0, count: image.width * image.height * 4)
         let context = try XCTUnwrap(CGContext(
             data: &rgba, width: image.width, height: image.height, bitsPerComponent: 8,

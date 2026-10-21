@@ -87,16 +87,17 @@ final class ProfilePickerPresentationTests: XCTestCase {
 
     func testEntranceIsStaggeredSettlesWithoutOvershootAndHonorsReduceMotion() async throws {
         XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 0), 0)
-        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 1), 0.2)
+        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 1), 0.09)
         for position in 1...40 {
             XCTAssertEqual(
                 PlozziOSProfilePickerEntrance.delay(at: position)
                     - PlozziOSProfilePickerEntrance.delay(at: position - 1),
-                0.2, accuracy: 0.001, "Later profiles must never collapse into one reveal group."
+                0.09, accuracy: 0.001, "Later profiles must never collapse into one reveal group."
             )
         }
-        XCTAssertEqual(PlozziOSProfilePickerEntrance.duration, 0.65)
-        XCTAssertEqual(PlozziOSProfilePickerEntrance.initialScale, 0.94)
+        XCTAssertEqual(PlozziOSProfilePickerEntrance.duration, 0.45)
+        XCTAssertEqual(PlozziOSProfilePickerEntrance.initialScale, 0.96)
+        XCTAssertEqual(PlozziOSProfilePickerEntrance.initialOffset, 8)
         let model = PickerMotionFixtureModel()
         try await withWindow(
             PickerMotionFixture(model: model), size: .init(width: 240, height: 360)
@@ -144,20 +145,35 @@ final class ProfilePickerPresentationTests: XCTestCase {
             await withCheckedContinuation { continuation in
                 presenter.present(picker, animated: true) { continuation.resume() }
             }
+            let start = ContinuousClock.now
             let entering = self.capture(window, name: "production-picker-entering", afterUpdates: false)
             // The cascade starts after the native navigation/cover appearance,
             // not while that presentation is still sliding onto the screen.
             try await Task.sleep(for: .milliseconds(400))
             let cascading = self.capture(window, name: "production-picker-cascading", afterUpdates: false)
-            try await Task.sleep(for: .seconds(2))
+            try await Task.sleep(until: start.advanced(by: .seconds(1)), clock: .continuous)
+            let oneSecond = self.capture(window, name: "production-picker-one-second", afterUpdates: false)
+            try await Task.sleep(until: start.advanced(by: .seconds(2.4)), clock: .continuous)
             let settled = self.capture(window, name: "production-picker-settled")
             let early = try self.redPixelCount(entering)
             let middle = try self.redPixelCount(cascading)
+            let nearEnd = try self.redPixelCount(oneSecond)
             let final = try self.redPixelCount(settled)
+            let progress = XCTAttachment(data: try JSONSerialization.data(withJSONObject: [
+                "initialPixels": early, "cascadingPixels": middle,
+                "oneSecondPixels": nearEnd, "settledPixels": final
+            ], options: [.sortedKeys]), uniformTypeIdentifier: "public.json")
+            progress.name = "native-cascade-progress"
+            progress.lifetime = .keepAlways
+            self.add(progress)
             XCTAssertGreaterThan(final, 10_000, "The actual shared avatars must be rendered.")
             XCTAssertLessThan(early, final * 9 / 10, "The production grid must reveal, not start fully visible.")
             XCTAssertGreaterThan(middle, 1_000, "Some avatars must already be appearing.")
             XCTAssertLessThan(middle, final * 9 / 10, "The cascade must not appear all at once.")
+            XCTAssertGreaterThan(
+                nearEnd, final * 95 / 100,
+                "Six profiles must be substantially settled within one second of presentation."
+            )
         }
     }
 

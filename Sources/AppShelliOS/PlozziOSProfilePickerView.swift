@@ -15,7 +15,6 @@ struct PlozziOSProfileSelectionView: View {
     var onCancel: (() -> Void)?
 
     @State private var selectedProfileID: String?
-    @State private var showsAuthorization = true
     @Environment(\.themePalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -25,7 +24,7 @@ struct PlozziOSProfileSelectionView: View {
     }
 
     private var presentsAuthorization: Bool {
-        showsAuthorization && hasPendingAuthorization
+        selectedProfileID != nil && hasPendingAuthorization
     }
 
     private var selectionCompleted: Bool {
@@ -44,7 +43,6 @@ struct PlozziOSProfileSelectionView: View {
                 onSelect: { profile in
                     onSelectionStarted()
                     selectedProfileID = profile.id
-                    showsAuthorization = true
                     // A cancelled Plex attempt can leave a fallback PIN prompt.
                     // A new selection must recheck gates for its own target.
                     appModel.cancelProfileLockPrompt()
@@ -61,7 +59,6 @@ struct PlozziOSProfileSelectionView: View {
             if presentsAuthorization {
                 PlozziOSProfileAccessGateView(appModel: appModel) {
                     selectedProfileID = nil
-                    showsAuthorization = false
                 }
                 .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .trailing)))
                 .zIndex(1)
@@ -71,12 +68,6 @@ struct PlozziOSProfileSelectionView: View {
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: presentsAuthorization)
         .onChange(of: selectionCompleted) { _, completed in
             if completed { onComplete() }
-        }
-        .onAppear {
-            guard hasPendingAuthorization else { return }
-            onSelectionStarted()
-            selectedProfileID = appModel.parentalSwitch?.target.id
-                ?? appModel.lockedSwitch?.target.id ?? appModel.profiles.activeProfileID
         }
     }
 }
@@ -235,7 +226,6 @@ private struct PlozziOSProfilePickerGrid: View {
     let onEdit: (Profile) -> Void
     let onAdd: (Bool) -> Void
     @State private var hasAppeared = false
-    @State private var presentationReady = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -292,18 +282,9 @@ private struct PlozziOSProfilePickerGrid: View {
             }
         }
         .background {
-            ProfilePickerPresentationObserver { presentationReady = true }
+            ProfilePickerPresentationObserver { hasAppeared = true }
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
-        }
-        .task(id: presentationReady) {
-            guard presentationReady, !hasAppeared else { return }
-            if !reduceMotion {
-                // Commit the hidden grid first; onAppear coalesces into the initial render.
-                try? await Task.sleep(for: .milliseconds(40))
-                guard !Task.isCancelled else { return }
-            }
-            hasAppeared = true
         }
     }
 }
@@ -392,11 +373,12 @@ struct PlozziOSProfilePickerEntrance: ViewModifier {
     let isPresented: Bool
     let position: Int
     let reduceMotion: Bool
-    @State private var hasEntered = false
+    @State private var isInteractive = false
 
-    static let initialScale: CGFloat = 0.94
-    static let duration: TimeInterval = 0.65
-    static func delay(at position: Int) -> TimeInterval { Double(max(0, position)) * 0.2 }
+    static let initialScale: CGFloat = 0.96
+    static let initialOffset: CGFloat = 8
+    static let duration: TimeInterval = 0.45
+    static func delay(at position: Int) -> TimeInterval { Double(max(0, position)) * 0.09 }
 
     init(isPresented: Bool, position: Int, reduceMotion: Bool) {
         self.isPresented = isPresented
@@ -404,28 +386,32 @@ struct PlozziOSProfilePickerEntrance: ViewModifier {
         self.reduceMotion = reduceMotion
         // Cells first realized after the entrance (scrolling a large household)
         // are immediately available instead of waiting through offscreen slots.
-        _hasEntered = State(initialValue: isPresented || reduceMotion)
+        _isInteractive = State(initialValue: isPresented || reduceMotion)
     }
 
     func body(content: Content) -> some View {
         content
-            .opacity(hasEntered || reduceMotion ? 1 : 0)
-            .scaleEffect(hasEntered || reduceMotion ? 1 : Self.initialScale)
-            .allowsHitTesting(hasEntered || reduceMotion)
-            .accessibilityHidden(!hasEntered && !reduceMotion)
+            .opacity(isPresented || reduceMotion ? 1 : 0)
+            .scaleEffect(isPresented || reduceMotion ? 1 : Self.initialScale)
+            .offset(y: isPresented || reduceMotion ? 0 : Self.initialOffset)
             .animation(
-                reduceMotion ? nil : .timingCurve(0.22, 0.61, 0.36, 1, duration: Self.duration),
-                value: hasEntered
+                reduceMotion ? nil : .smooth(duration: Self.duration)
+                    .delay(isPresented ? Self.delay(at: position) : 0),
+                value: isPresented
             )
+            .allowsHitTesting(reduceMotion || (isPresented && isInteractive))
+            .accessibilityHidden(!reduceMotion && (!isPresented || !isInteractive))
             .task(id: isPresented) {
-                guard isPresented else { hasEntered = false; return }
-                guard !hasEntered else { return }
+                guard isPresented else { isInteractive = false; return }
+                guard !isInteractive else { return }
+                // Only input admission waits on a task. Every visual animation
+                // is scheduled together from the presentation transaction.
                 if !reduceMotion {
                     do {
                         try await Task.sleep(for: .seconds(Self.delay(at: position)))
                     } catch { return }
                 }
-                hasEntered = true
+                isInteractive = true
             }
     }
 }

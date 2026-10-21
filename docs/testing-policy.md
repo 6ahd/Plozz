@@ -439,7 +439,8 @@ to the UIKit presentation owner.
 `ProfilePickerPresentationTests` covers compact/adaptive avatar sizing, small
 and large households, themes/gradients, landscape, iPad, accessible names and RTL.
 Hosted animation frames check native presentation readiness, individually
-staggered reveals without a capped batch, and settled scale; Reduce Motion
+staggered reveals without a capped batch, settled scale, and six avatars
+substantially settled within one second; Reduce Motion
 reveals every tile immediately. Scrolling a 40-profile household also checks
 that newly realized cells do not inherit long entrance delays.
 `ProfilePickerInteractionTests` exercises
@@ -447,8 +448,10 @@ selection, cancellation, reopening, Edit/Done, long-press editing, separate
 adult/kids creation entry points, and launch/restricted management visibility.
 Its selection fixture keeps the real picker and PIN components mounted across
 profile-scoped content identity changes. Actual taps cover Plex cancellation,
-profile-to-Plex PIN sequencing, launch selection retention, an initially
-locked launch, and choosing again after cancellation targets a locked fallback.
+profile-to-Plex PIN sequencing, launch selection retention, and choosing again
+after cancellation targets a locked fallback. Existing profile locks and Plex
+requests must leave the picker visible until a profile is explicitly tapped;
+choosing another profile must not show the old target's PIN.
 A contrasting Home backdrop must stay covered
 and untappable until selection completes. Fixtures disable sync and use only
 synthetic host-sandbox profiles and in-memory Plex credentials.
