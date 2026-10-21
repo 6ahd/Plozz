@@ -1524,7 +1524,7 @@ private struct ProfileAccessGateView: View {
                     sequenceStep: expectsTwoPINs
                         ? .init(current: 1, total: 2)
                         : nil,
-                    onSubmit: { appState.profileFlow.submitProfileLockPIN($0) },
+                    onSubmit: { await appState.profileFlow.submitProfileLockPIN($0) },
                     onCancel: { appState.profileFlow.cancelProfileLockPrompt() }
                 )
                 .id("profile-pin")

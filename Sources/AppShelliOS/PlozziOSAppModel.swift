@@ -1176,12 +1176,6 @@ final class PlozziOSAppModel {
     var managementRequiresParentalPIN: Bool {
         profiles.managementRequiresParentalPIN || gate.parentalFallThrough != nil
     }
-    /// Message from the last failed unlock attempt.
-
-    /// Profiles unlocked during this app run, so hopping back and forth doesn't
-    /// re-ask. In-memory on purpose: a cold launch always re-asks.
-    private var unlockedProfileIDs: Set<String> = []
-
     /// Where a newly created profile is in its setup sequence.
     ///
     /// An explicit sequence rather than a handful of overlapping optionals: the
@@ -1442,7 +1436,7 @@ final class PlozziOSAppModel {
     /// `selectProfile(_:)` (a synced deletion re-pointing at `profiles.first`).
     var activeProfileNeedsUnlock: Bool {
         let active = profiles.activeProfile
-        return active.isLocked && !unlockedProfileIDs.contains(active.id)
+        return active.isLocked && !profiles.isProfileUnlocked(active.id)
             && !plexHomeUsers.isAutomaticallySignedIn(active)
     }
 
@@ -1453,7 +1447,7 @@ final class PlozziOSAppModel {
         )
     }
 
-    /// Switches to `id`, unless it's locked and unproven this run — in which case
+    /// Switches to `id`, unless its lock needs proof for this activation — in which case
     /// the PIN prompt is raised and nothing is re-scoped until it's satisfied.
     ///
     /// The lock rides the synced profile record, so a profile locked on the Apple
@@ -1482,7 +1476,8 @@ final class PlozziOSAppModel {
 
     /// The switch past the parental gate, still subject to the target's own lock.
     private func continueSelect(_ target: Profile) {
-        if target.isLocked, !unlockedProfileIDs.contains(target.id) {
+        if target.isLocked,
+           target.id != profiles.activeProfileID || !profiles.isProfileUnlocked(target.id) {
             gate.lockedSwitch = ParentalSwitchRequest(target: target)
             return
         }
@@ -1514,18 +1509,25 @@ final class PlozziOSAppModel {
     /// Checks `pin` against the pending profile's lock, completing the held-back
     /// switch on a match.
     @discardableResult
-    func submitProfileLockPIN(_ pin: String) -> Bool {
-        guard let profile = gate.lockedSwitch?.target, let lock = profile.lock else { return false }
-        guard lock.matches(pin: pin) else {
+    func submitProfileLockPIN(_ pin: String) async -> Bool {
+        guard let request = gate.lockedSwitch, let lock = request.target.lock else { return false }
+        let selection = profiles.selectionGeneration
+        let matches = await lock.matchesOffMainActor(pin: pin)
+        guard !Task.isCancelled, gate.lockedSwitch?.id == request.id,
+              profiles.selectionGeneration == selection else { return false }
+        guard profiles.profiles.first(where: { $0.id == request.target.id })?.lock == lock else {
+            gate.lockedSwitch?.error = ProfileLockCopy.profileChanged
+            return false
+        }
+        guard matches else {
             gate.lockedSwitch?.error = ProfileLockCopy.incorrectPIN
             return false
         }
-        unlockedProfileIDs.insert(profile.id)
         gate.lockedSwitch = nil
         if lock.matchesPlexPIN {
-            plexHomeUsers.prefillPlexPIN(pin, forProfile: profile.id)
+            plexHomeUsers.prefillPlexPIN(pin, forProfile: request.target.id)
         }
-        performSelectProfile(profile.id)
+        performSelectProfile(request.target.id, unlocking: lock)
         return true
     }
 
@@ -1542,20 +1544,19 @@ final class PlozziOSAppModel {
         profiles.update(profile)
         // Drop any unlock the OLD PIN granted, then re-grant it when a new PIN
         // was just chosen: whoever typed it demonstrably knows it.
-        unlockedProfileIDs.remove(id)
-        if lock != nil { unlockedProfileIDs.insert(id) }
+        profiles.forgetProfileUnlock(id)
+        if lock != nil { profiles.noteProfileUnlocked(id) }
     }
 
-    /// Whether a profile's PIN has been proved this run, so a locked profile's
-    /// settings stay sealed until someone enters it.
+    /// Whether a profile's PIN has been proved since the last profile change.
     func isUnlockedThisRun(_ id: String) -> Bool {
-        unlockedProfileIDs.contains(id)
+        profiles.isProfileUnlocked(id)
     }
 
     /// Records that a profile's PIN was proved outside `submitProfileLockPIN` —
     /// e.g. to edit it. Knowing the PIN is knowing the PIN.
     func noteUnlocked(_ id: String) {
-        unlockedProfileIDs.insert(id)
+        profiles.noteProfileUnlocked(id)
     }
 
     /// Marks a profile as restricted, or lifts the restriction.
@@ -1612,7 +1613,7 @@ final class PlozziOSAppModel {
         return true
     }
 
-    func performSelectProfile(_ id: String) {
+    func performSelectProfile(_ id: String, unlocking lock: ProfileLock? = nil) {
         universalWatchlistRetryScheduler = nil
         profiles.select(id)
         // `select` NO-OPS for an id this device doesn't have — a peer can delete
@@ -1622,6 +1623,7 @@ final class PlozziOSAppModel {
         // profile the gate exists to withhold, so everything below is conditional
         // on the switch having actually landed.
         guard profiles.activeProfileID == id else { return }
+        if let lock, profiles.activeProfile.lock == lock { profiles.noteProfileUnlocked(id) }
         TouchFeedback.shared.invalidatePendingConfirmations()
         plexHomeUsers.beginExplicitProfileActivation()
         // Past both gates, so the hold has done its job. Released here rather

@@ -121,6 +121,49 @@ final class ProfilePickerInteractionTests: XCTestCase {
         XCTAssertEqual(result.label, "Selected")
     }
 
+    func testLocalToPlexAndBackRequiresTheLocalPINAgain() throws {
+        app.launchArguments = ["--profile-selection-fixture", "--local-profile"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Local"].waitForExistence(timeout: 10))
+        app.buttons["Local"].tap()
+        enterPIN(["1", "3", "5", "7"])
+        let result = app.staticTexts["fixture-selection-result"]
+        XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        app.buttons["Open picker"].tap()
+        XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 5))
+        app.buttons["Protected"].tap()
+        enterPIN(["2", "4", "6", "8"])
+        XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        app.buttons["Open picker"].tap()
+        XCTAssertTrue(app.buttons["Local"].waitForExistence(timeout: 5))
+        app.buttons["Local"].tap()
+        XCTAssertTrue(app.buttons["1"].waitForExistence(timeout: 5), app.debugDescription)
+        try assertHomeIsCovered()
+        enterPIN(["1", "3", "5", "7"])
+        XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 5))
+    }
+
+    func testMatchingPINCompletesWithoutAnEmptyOrSecondPINPage() {
+        app.launchArguments = [
+            "--profile-selection-fixture", "--matched-plex-pin", "--slow-plex-authentication"
+        ]
+        app.launch()
+        XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 10))
+        app.buttons["Protected"].tap()
+        enterPIN(["2", "4", "6", "8"])
+        XCTAssertTrue(app.staticTexts["Enter your PIN"].exists, app.debugDescription)
+        XCTAssertTrue(app.buttons["1"].exists, "Keep the entered PIN surface while authentication finishes.")
+        XCTAssertFalse(app.staticTexts["Plex PIN"].exists)
+        XCTAssertTrue(app.staticTexts["fixture-selection-result"].wait(
+            for: \.isHittable, toEqual: true, timeout: 6
+        ))
+    }
+
+    private func enterPIN(_ digits: [String]) {
+        XCTAssertTrue(app.buttons[digits[0]].wait(for: \.isHittable, toEqual: true, timeout: 5))
+        for digit in digits { app.buttons[digit].tap() }
+    }
+
     func testPlexVerificationMovesProfileIdentityBeforeRevealingPIN() throws {
         app.launchArguments = ["--profile-selection-fixture", "--slow-plex-check"]
         app.launch()

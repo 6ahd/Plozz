@@ -7,6 +7,66 @@ import XCTest
 
 @MainActor
 final class ProfileSelectionPerformanceTests: XCTestCase {
+    func testPerformanceLocalPINHandoff() async throws {
+        try PerformanceProbe.requireEnabled()
+        let lock = try XCTUnwrap(ProfileLock.make(pin: "1357"))
+        let suite = "ProfilePINPerformance.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let app = PlozziOSAppModel(
+            accountStore: AccountStore(secureStore: InMemorySecureStore()),
+            profileStore: ProfileStore(defaults: defaults)
+        )
+        let original = app.profiles.activeProfileID
+        let targets = (0..<15).map { index in
+            app.profiles.add(name: "Viewer \(index)", avatarSymbol: "person.fill", colorIndex: index % 5)
+        }
+        defer { removeOwnedProfileSettings(targets.map(\.id)) }
+        var target = targets[0]
+        target.lock = lock
+        app.profiles.update(target)
+        // Measure switching within one household, not fresh-profile migrations
+        // and app construction on every sample.
+        try await Task.sleep(for: .milliseconds(200))
+        try await PerformanceProbe.measure(self, scenario: "mobile-profile-pin-handoff") {
+            app.selectProfile(original)
+            app.selectProfile(target.id)
+            XCTAssertEqual(app.lockedSwitch?.target.id, target.id)
+            XCTAssertFalse(app.isUnlockedThisRun(target.id))
+
+            var maxGap = Duration.zero
+            let heartbeat = Task { @MainActor in
+                var previous = ContinuousClock.now
+                while !Task.isCancelled {
+                    do { try await Task.sleep(for: .milliseconds(2)) } catch { return }
+                    let now = ContinuousClock.now
+                    maxGap = max(maxGap, previous.duration(to: now))
+                    previous = now
+                }
+            }
+            defer { heartbeat.cancel() }
+            try await Task.sleep(for: .milliseconds(10))
+            let start = ContinuousClock.now
+            let accepted = await app.submitProfileLockPIN("1357")
+            let elapsed = start.duration(to: .now)
+            try await Task.sleep(for: .milliseconds(10))
+            XCTAssertTrue(accepted)
+            XCTAssertNil(app.lockedSwitch)
+            XCTAssertEqual(app.profiles.activeProfileID, target.id)
+            XCTAssertFalse(app.activeProfileNeedsUnlock)
+            func microseconds(_ duration: Duration) -> Int {
+                let parts = duration.components
+                return Int(parts.seconds) * 1_000_000 + Int(parts.attoseconds / 1_000_000_000_000)
+            }
+            return [
+                "profiles": app.profiles.profiles.count,
+                "verifierIterations": lock.iterations,
+                "verificationMicroseconds": microseconds(elapsed),
+                "maxMainActorGapMicroseconds": microseconds(maxGap)
+            ]
+        }
+    }
+
     func testPerformanceProfileSelection() async throws {
         try PerformanceProbe.requireEnabled()
         let suite = "ProfileSelectionPerformance.\(UUID())"
@@ -32,6 +92,7 @@ final class ProfileSelectionPerformanceTests: XCTestCase {
             profiles.setActiveAccountIDs(["profile-performance-plex"], for: profile.id)
             return profile.id
         }
+        defer { removeOwnedProfileSettings(targets) }
         let app = PlozziOSAppModel(accountStore: accounts, profileStore: store)
         app.plexHomeUsers.plexHomeUsersFetch = { _, _ in
             try await Task.sleep(for: .milliseconds(5))
@@ -61,6 +122,14 @@ final class ProfileSelectionPerformanceTests: XCTestCase {
                 "selections": targets.count, "selectionMicroseconds": selectionMicroseconds,
                 "maxSelectionMicroseconds": maxSelectionMicroseconds
             ]
+        }
+    }
+
+    private func removeOwnedProfileSettings(_ profileIDs: [String]) {
+        let owned = Set(profileIDs)
+        for key in UserDefaults.standard.dictionaryRepresentation().keys
+        where key.components(separatedBy: ".").contains(where: owned.contains) {
+            UserDefaults.standard.removeObject(forKey: key)
         }
     }
 }

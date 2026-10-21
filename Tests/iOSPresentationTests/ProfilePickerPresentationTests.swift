@@ -235,7 +235,11 @@ final class ProfilePickerPresentationTests: XCTestCase {
                         x: 0, y: max(0, scroll.contentSize.height - scroll.bounds.height)
                     ), animated: false)
                     try await Task.sleep(for: .milliseconds(80))
-                    XCTAssertTrue(try self.recognize(self.capture(window)).contains { $0 == "Cancel" })
+                    let bottomText = try self.recognize(self.capture(
+                        window, name: "profile-pin-bottom-\(Int(size.width))-\(typeSize)-\(availability)"
+                    ))
+                    XCTAssertTrue(bottomText.contains { $0 == "Cancel" },
+                                  "\(size), \(typeSize), \(availability): \(bottomText)")
                     scroll.setContentOffset(.zero, animated: false)
                 }
             }

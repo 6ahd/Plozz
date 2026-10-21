@@ -210,8 +210,11 @@ Only the startup entry point can restore this session, once per process. Manual
 profile activation discards startup unlock credit and Plex overrides, so switching
 back to a protected Plex Home user still requires their PIN, including two Plozz
 profiles mapped to the same Plex user. Local Profile Locks and Kids Profile exit
-gates remain in force for manual switching. Disabling automatic sign-in removes
-the stored session without changing any PIN; sign-out invalidates it.
+gates remain in force for manual switching. Local unlock proof expires on every
+active-profile change, not just process exit; async verification must still match
+the original request, selection generation and lock before granting entry.
+Disabling automatic sign-in removes the stored session without changing any PIN;
+sign-out invalidates it.
 Every unresolved Plex binding verifies current Home-user protection before entry,
 even if its last saved status said no PIN. Removing and later re-adding a Plex PIN
 must therefore prompt on the next manual switch. Old unprotected token-cache
@@ -227,10 +230,12 @@ using the owner's credential alone is not proof of PIN removal or PIN knowledge.
 Legacy bindings without a verified protection marker cannot restore unprotected
 cached tokens or automatic-sign-in sessions until they are revalidated.
 Verification is not PIN entry: both shells show a neutral loading state while
-checking and a retryable error when protection cannot be determined. The PIN
-heading, identity badge, and keypad are instantiated only after Plex explicitly
-confirms that the selected Home user is protected. An unprotected user never
-passes through a PIN screen, including while its authorization cover dismisses.
+checking and a retryable error when protection cannot be determined. The
+Plex PIN heading and keypad are instantiated only after Plex explicitly confirms
+that the selected Home user is protected. A local Plozz PIN already entered
+remains visible and disabled during chained verification, rather than disappearing
+while its matching PIN authenticates with Plex. An unprotected Plex-only user
+never passes through a PIN screen, including while its authorization cover dismisses.
 Plex's account-password flag (`hasPassword`) is not Home PIN protection; only
 the explicit `protected` field establishes that requirement.
 Plex rejecting a PIN-less switch leaves a retryable authentication error, not a

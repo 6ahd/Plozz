@@ -14,6 +14,7 @@ struct PlozziOSPlexPINView: View {
     var dismissOnSuccess = true
     var onCancel: () -> Void = {}
     @Environment(\.pinProfileTransition) private var profileTransition
+    @State private var lastAvailability: PINEntryAvailability = .checking
 
     var body: some View {
         let pendingRequest = model.pendingPlexPINRequest
@@ -22,8 +23,8 @@ struct PlozziOSPlexPINView: View {
             name: Text(verbatim: profile?.name ?? request.homeUserName),
             showsLock: true,
             errorMessage: model.plexPINError,
-            isSubmitting: model.isSubmittingPlexPIN,
-            availability: pendingRequest == nil ? .checking : model.plexPINEntryAvailability,
+            isSubmitting: model.isSubmittingPlexPIN || pendingRequest != request,
+            availability: pendingRequest == request ? model.plexPINEntryAvailability : lastAvailability,
             onRetry: {
                 guard model.pendingPlexPINRequest == request else { return }
                 model.retryPlexPINRequirement()
@@ -66,6 +67,9 @@ struct PlozziOSPlexPINView: View {
         }
         .id([request.id, request.accountID, request.homeUserID])
         .interactiveDismissDisabled(pendingRequest != nil)
+        .onChange(of: model.plexPINEntryAvailability, initial: true) { _, availability in
+            if model.pendingPlexPINRequest == request { lastAvailability = availability }
+        }
         .onChange(of: pendingRequest?.id) { _, requestID in
             if requestID == nil, dismissOnSuccess {
                 dismiss()

@@ -1925,11 +1925,36 @@ struct PlozziOSProfileAccessGateView: View {
     @Environment(\.pinProfileTransition) private var profileTransition
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expectsTwoPINs: Bool
+    @State private var retainedStep: Step?
+
+    private enum Step: Equatable {
+        case parental(ParentalSwitchRequest)
+        case profile(ParentalSwitchRequest)
+        case plex(PlexHomeUsersModel.PlexPINRequest)
+    }
+
+    private static func pendingStep(_ app: PlozziOSAppModel) -> Step? {
+        if let request = app.parentalSwitch { return .parental(request) }
+        if let request = app.lockedSwitch { return .profile(request) }
+        return app.plexHomeUsers.pendingPlexPINRequest.map(Step.plex)
+    }
+
+    private var displayedStep: Step? {
+        let pending = Self.pendingStep(appModel)
+        // Keep the entered local PIN in place until Plex actually needs another
+        // PIN, rather than replacing it with a blank verification page.
+        if case .profile = retainedStep, case .plex = pending,
+           appModel.plexHomeUsers.plexPINEntryAvailability == .checking {
+            return retainedStep
+        }
+        return pending ?? retainedStep
+    }
 
     init(appModel: PlozziOSAppModel, profile: Profile? = nil, onCancel: @escaping () -> Void) {
         self.appModel = appModel
         self.profile = profile
         self.onCancel = onCancel
+        _retainedStep = State(initialValue: Self.pendingStep(appModel))
         let profile = appModel.lockedSwitch?.target
         _expectsTwoPINs = State(initialValue:
             profile?.isLocked == true
@@ -1943,20 +1968,18 @@ struct PlozziOSProfileAccessGateView: View {
             AppBackground(palette: palette).ignoresSafeArea()
                 .opacity(profileTransition == nil ? 1 : 0)
 
-            if let request = appModel.parentalSwitch {
+            switch displayedStep {
+            case let .parental(request):
                 // First: may you leave the child's profile at all?
                 ParentalPINView(
                     destination: request.target,
                     errorMessage: request.error,
                     onSubmit: { appModel.submitParentalPIN($0) },
-                    onCancel: {
-                        onCancel()
-                        appModel.cancelParentalSwitch()
-                    }
+                    onCancel: cancel
                 )
                 .id("parental-pin")
                 .transition(profileTransition == nil ? .opacity : .identity)
-            } else if let lockRequest = appModel.lockedSwitch {
+            case let .profile(lockRequest):
                 ProfileLockPINView(
                     profile: lockRequest.target,
                     errorMessage: lockRequest.error,
@@ -1964,15 +1987,13 @@ struct PlozziOSProfileAccessGateView: View {
                     sequenceStep: expectsTwoPINs
                         ? .init(current: 1, total: 2)
                         : nil,
-                    onSubmit: { appModel.submitProfileLockPIN($0) },
-                    onCancel: {
-                        onCancel()
-                        appModel.cancelProfileLockPrompt()
-                    }
+                    isSubmitting: appModel.lockedSwitch == nil,
+                    onSubmit: { await appModel.submitProfileLockPIN($0) },
+                    onCancel: cancel
                 )
                 .id("profile-pin")
                 .transition(profileTransition == nil ? .opacity : .identity)
-            } else if let request = appModel.plexHomeUsers.pendingPlexPINRequest {
+            case let .plex(request):
                 PlozziOSPlexPINView(
                     model: appModel.plexHomeUsers,
                     request: request,
@@ -1985,7 +2006,13 @@ struct PlozziOSProfileAccessGateView: View {
                 )
                 .id("plex-pin")
                 .transition(profileTransition == nil ? .opacity : .identity)
+            case nil:
+                EmptyView()
             }
+        }
+        .disabled(Self.pendingStep(appModel) == nil)
+        .onChange(of: displayedStep, initial: true) { _, step in
+            if let step { retainedStep = step }
         }
         .animation(
             reduceMotion ? nil : .easeInOut(duration: 0.25),
@@ -1993,6 +2020,17 @@ struct PlozziOSProfileAccessGateView: View {
                     appModel.parentalSwitch?.target.id, appModel.lockedSwitch?.target.id,
                     appModel.plexHomeUsers.pendingPlexPINRequest?.id]
         )
+    }
+
+    private func cancel() {
+        onCancel()
+        if appModel.parentalSwitch != nil {
+            appModel.cancelParentalSwitch()
+        } else if appModel.lockedSwitch != nil {
+            appModel.cancelProfileLockPrompt()
+        } else {
+            appModel.plexHomeUsers.cancelPlexPIN()
+        }
     }
 }
 #endif

@@ -364,7 +364,7 @@ final class AppAdmissionIntegrationTests: XCTestCase {
         XCTAssertFalse(harness.profiles.firstRunProfileSetupComplete)
     }
 
-    func testForegroundCredentialRecoveryCannotSkipProfileUnlockDuringLaunch() throws {
+    func testForegroundCredentialRecoveryCannotSkipProfileUnlockDuringLaunch() async throws {
         let secrets = AdmissionMembershipStore()
         let harness = try makeHarness(
             profileSetupComplete: true, withAccount: true, profileSecrets: secrets
@@ -388,9 +388,11 @@ final class AppAdmissionIntegrationTests: XCTestCase {
         XCTAssertEqual(harness.state.state, .ready)
         XCTAssertTrue(harness.state.profileFlow.isChoosingProfile)
         harness.state.profileFlow.switchProfile(to: profile.id)
-        XCTAssertFalse(harness.state.profileFlow.submitProfileLockPIN("0000"))
+        let incorrect = await harness.state.profileFlow.submitProfileLockPIN("0000")
+        XCTAssertFalse(incorrect)
         XCTAssertFalse(harness.state.isLiveTVProfileAuthorized)
-        XCTAssertTrue(harness.state.profileFlow.submitProfileLockPIN("1234"))
+        let accepted = await harness.state.profileFlow.submitProfileLockPIN("1234")
+        XCTAssertTrue(accepted)
         XCTAssertFalse(harness.state.profileFlow.isChoosingProfile)
         XCTAssertTrue(harness.state.isLiveTVProfileAuthorized)
     }
@@ -464,7 +466,7 @@ final class AppAdmissionIntegrationTests: XCTestCase {
         XCTAssertTrue(harness.state.allowsStandalonePlayback)
     }
 
-    func testStandaloneProfileSwitchKeepsAdmissionAndLockGate() throws {
+    func testStandaloneProfileSwitchKeepsAdmissionAndLockGate() async throws {
         let harness = try makeHarness(standalone: true, profileSetupComplete: true)
         var locked = harness.profiles.add(name: "Locked")
         locked.replaceLock(with: try XCTUnwrap(ProfileLock.make(pin: "1234", iterations: 64)))
@@ -477,7 +479,8 @@ final class AppAdmissionIntegrationTests: XCTestCase {
         XCTAssertEqual(harness.state.state, .ready)
         XCTAssertTrue(harness.state.canEnterApp)
         XCTAssertTrue(harness.state.profileFlow.isChoosingProfile)
-        XCTAssertTrue(harness.state.profileFlow.submitProfileLockPIN("1234"))
+        let accepted = await harness.state.profileFlow.submitProfileLockPIN("1234")
+        XCTAssertTrue(accepted)
         XCTAssertEqual(harness.profiles.activeProfileID, locked.id)
         XCTAssertEqual(harness.state.state, .ready)
         XCTAssertTrue(harness.state.canEnterApp)

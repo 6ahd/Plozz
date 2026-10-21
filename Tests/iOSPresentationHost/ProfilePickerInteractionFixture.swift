@@ -87,8 +87,17 @@ struct ProfileSelectionInteractionFixture: View {
         if ProcessInfo.processInfo.arguments.contains("--two-pins") {
             protected.lock = ProfileLock.make(pin: "1234", iterations: 1)
         }
+        if ProcessInfo.processInfo.arguments.contains("--matched-plex-pin") {
+            protected.lock = ProfileLock.make(pin: "2468", matchesPlexPIN: true, iterations: 1)
+        }
         profiles.update(protected)
         profiles.setActiveAccountIDs(["plex"], for: protected.id)
+        if ProcessInfo.processInfo.arguments.contains("--local-profile") {
+            var local = profiles.add(name: "Local", avatarSymbol: "star.fill", colorIndex: 2)
+            local.lock = ProfileLock.make(pin: "1357", iterations: 1)
+            profiles.update(local)
+            profiles.setActiveAccountIDs([], for: local.id)
+        }
         if ProcessInfo.processInfo.arguments.contains("--locked-fallback") {
             first.lock = ProfileLock.make(pin: "1357", iterations: 1)
             profiles.update(first)
@@ -119,6 +128,9 @@ struct ProfileSelectionInteractionFixture: View {
         }
         model.plexHomeUsers.plexHomeUserSwitch = { _, pin, _, _ in
             guard pin == (isProtected ? "2468" : nil) else { throw URLError(.userAuthenticationRequired) }
+            if ProcessInfo.processInfo.arguments.contains("--slow-plex-authentication") {
+                try await Task.sleep(for: .seconds(2))
+            }
             return "FIXTURE-CLOUD"
         }
         model.plexHomeUsers.plexServerTokenResolve = { _, _, _ in "FIXTURE-SERVER" }

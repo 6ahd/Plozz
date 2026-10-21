@@ -67,6 +67,13 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   Retry/Cancel. Cancelling returns to the retained tile order, while profile
   details still reflect live edits. Reduce Motion removes the movement and
   reveal delays. Existing parental and separate-PIN steps remain explicit.
+  A verified local PIN stays visible, with input disabled, while chained Plex
+  authentication finishes. Only a confirmed additional PIN replaces it with a
+  fresh keypad; failures remain retryable. Completion retains the outgoing PIN
+  surface through dismissal rather than clearing it before Home appears.
+  Local PIN verification does not block the UI executor, and cancellation or a
+  changed profile/lock invalidates an in-flight result. Switching away expires
+  local unlock proof on both platforms; returning requires the PIN again.
 - Mobile Plex identity selection explains playback and watchlist ownership in
   its scrolling content. Whole-row buttons show pending work immediately;
   verification, Retry/Cancel, and confirmed PIN entry stay in that chooser.

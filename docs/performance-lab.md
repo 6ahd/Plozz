@@ -59,6 +59,15 @@ from a fixed 5 ms Plex metadata delay, checks that every selection reaches the
 PIN gate, and verifies tokens remain denied. It measures activation work, not
 rendered frame pacing or physical-device network latency.
 
+`mobile-profile-pin-handoff` unlocks a local profile in a sixteen-profile
+household using the production 120,000-round verifier. It separates verification
+duration from the largest 2 ms main-actor heartbeat gap. Initialization settles
+before sampling, and all repetitions reuse one household; the warmup covers
+first-entry settings migrations. Each measured switch first leaves the locked
+profile and proves its PIN again. Fixture-owned settings are removed afterward.
+Moving verification off the UI executor should preserve its cost and result,
+not reduce the verifier rounds. Heartbeat gaps are not rendered FPS.
+
 1. Select the scenario matching the suspected work and capture a baseline
    **before** editing production code. Keep the printed run path. Record the
    symptom and configuration; do not replace a reported failure with an easier

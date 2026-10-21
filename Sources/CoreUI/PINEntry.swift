@@ -366,7 +366,8 @@ public struct PINEntryScaffold<Badge: View>: View {
     private var padColumn: some View {
         VStack(spacing: 28) {
             HStack(spacing: 18) {
-                PINProgressDots(filledCount: entry.pin.count)
+                PINProgressDots(filledCount: isSubmitting
+                    ? max(entry.pin.count, entry.submittedDigitCount) : entry.pin.count)
                 if isSubmitting {
                     ProgressView().controlSize(.large)
                 }
@@ -420,6 +421,7 @@ struct PINIdentityName: View {
 @MainActor @Observable
 final class PINEntryState {
     private(set) var pin = ""
+    private(set) var submittedDigitCount = 0
     private(set) var isCommitting = false
     @ObservationIgnored private var commitTask: Task<Void, Never>?
 
@@ -436,6 +438,7 @@ final class PINEntryState {
                 try? await Task.sleep(for: .milliseconds(140))
                 guard !Task.isCancelled, let self else { return }
                 // Reset before submitting so repeated identical errors also allow retry.
+                self.submittedDigitCount = self.pin.count
                 self.pin = ""
                 self.isCommitting = false
                 self.commitTask = nil
@@ -448,6 +451,7 @@ final class PINEntryState {
         commitTask?.cancel()
         commitTask = nil
         pin = ""
+        submittedDigitCount = 0
         isCommitting = false
     }
 

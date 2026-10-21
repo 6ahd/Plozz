@@ -18,6 +18,12 @@ language every other module speaks.
   plus the neutral `SubtitleColor` / `SubtitleEdgeStyle` / `SubtitleMode` primitives.
 - Profiles persistence contract: `ProfilePersisting`, `ProfileStore`,
   `ProfilesModel`, plus the Plex Home-user mapping (`PlexHomeUser`).
+- Local PIN proof is in-memory and bound to the current verifier and selection.
+  `ProfilesModel` clears it whenever the active profile changes, including
+  deletion/sync fallbacks. Manual entry to another locked profile requires fresh
+  proof; opting into startup sign-in remains a separate, startup-only exception.
+  Profile Lock verification keeps its full stored derivation cost off the UI
+  executor; callers must recheck request, selection generation and lock afterward.
 
 ## Invariants
 
