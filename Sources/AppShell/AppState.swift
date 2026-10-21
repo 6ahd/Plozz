@@ -1569,7 +1569,7 @@ public final class AppState {
     }
 
     /// Handles an incoming deep link. Recognised `plozz://item/<id>` links queue
-    /// the item for playback once the user is signed in.
+    /// playback or details once the user is signed in.
     public func handle(url: URL) {
         if ExternalPlaybackRuntime.shared.receive(url) { return }
         // `plozz://shots/…` is the capture rig asking for a screen. Checked
@@ -1577,11 +1577,7 @@ public final class AppState {
         // declines, so a shipped build falls straight through to Top Shelf.
         if screenshotDirector.handle(url: url) { return }
         if let reference = TopShelf.itemReference(from: url) {
-            pendingPlay.itemID = reference.id
-            // Kept rather than discarded: the link knows which server the title
-            // came from, and throwing that away leaves the router guessing across
-            // every signed-in account for an id that is only unique within one.
-            pendingPlay.accountID = reference.accountID
+            pendingPlay.enqueue(reference)
         }
     }
 

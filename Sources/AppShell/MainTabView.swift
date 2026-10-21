@@ -285,8 +285,8 @@ struct MainTabView: View {
             Color.clear
                 .frame(width: 0, height: 0)
                 .accessibilityHidden(true)
-                .task(id: pendingPlay.itemID) {
-                    guard pendingPlay.itemID != nil else { return }
+                .task(id: pendingPlay.request) {
+                    guard pendingPlay.request != nil else { return }
                     onRequireHome()
                 }
                 .task(id: screenshotDirector.request) {

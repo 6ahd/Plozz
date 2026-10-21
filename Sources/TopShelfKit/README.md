@@ -38,14 +38,36 @@ resolve artwork. The extension returns no media for the empty snapshot.
 as a native `TVTopShelfCarouselContent` with `.details`: Continue Watching first,
 then Recently Added, deduplicated by account-qualified identity. tvOS owns the
 Home Screen presentation and swipe-up expansion; Plozz does not force fullscreen.
-The carousel exposes Play using the existing account-scoped route, not a More
-Info button that would misleadingly start playback. No video autoplay is added.
+The carousel exposes **Play** using the existing account-scoped route and
+**More Info** using `action=details`, which opens the existing title/series page
+without starting playback. Poster selection keeps its existing Play behavior.
+Both actions wait for app admission and resolve only the named active account;
+only legacy accountless links search across active accounts. A newer request or
+cancelled identity scope cannot consume an older async result. Failures surface
+through the app's normal error copy. No video autoplay is added.
+
+Full Screen exports the synopsis, up to three genres, known release date, full
+runtime, and supported native format badges (HD/4K, HDR/Dolby Vision, Atmos,
+closed captions and SDH when reported). A production year without a release
+date stays in the context line rather than inventing a calendar date. Episode
+headlines include the series name and retain season/episode numbering.
+tvOS allows four named attributes: available remaining time, content rating,
+cast and directors take priority, then studio and ratings fill unused slots.
+Unknown fields are omitted; surround channels alone do not imply Atmos, and
+badges never combine unrelated versions. Remaining time uses current Home watch
+state while native duration remains the total runtime.
+
+The app fetches provider detail only for the limited full-screen selection,
+once per account-qualified item per publication. Poster and disabled modes do
+not add metadata requests. These optional fetches use active providers, do not
+fetch playback URLs, and log failures before retaining known Home metadata.
+Cancellation discards the publication. The extension still does no provider I/O.
 
 Full-screen art uses the active profile's Top Shelf artwork policy and bounded
 hero resolution. Episodes resolve series artwork, not episode stills. The app
 writes 1920x1080 JPEGs; portrait fallbacks are fitted without cropping and missing
-art gets a neutral background. Episode titles and summaries respect spoiler
-protection. Only the selected style's artwork is resolved. Preview cards in
+art gets a neutral background. Episode titles, summaries and guest cast respect
+spoiler protection. Only the selected style's artwork is resolved. Preview cards in
 Settings are schematic illustrations, never a second copy of profile media.
 Old settings and snapshots without a layout flag keep their poster presentation.
 

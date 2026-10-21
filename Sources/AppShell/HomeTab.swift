@@ -245,6 +245,12 @@ struct HomeTab: View {
                         latest: latest,
                         locale: locale,
                         spoilerSettings: SpoilerSettingsStore(namespace: libraryPreferencesNamespace).load(),
+                        resolveMetadata: { item in
+                            guard let accountID = item.sourceAccountID else { return item }
+                            return try await TopShelfItemResolver.resolve(
+                                .init(id: item.id, accountID: accountID), accounts: accounts
+                            )
+                        },
                         resolveArtwork: { item in
                             let source = MediaArtworkSource(
                                 item: item, placement: item.kind == .episode ? .seriesPoster : .poster,
@@ -667,6 +673,7 @@ struct HomeTab: View {
             DeepLinkPlayRouter(
                 pendingPlay: runtime.pendingPlay,
                 accounts: accounts,
+                scopeKey: runtime.scopeKey,
                 isActive: isActiveTab,
                 // Open the title's page, then start it. Playing straight from the
                 // shelf left the viewer on Home the moment they backed out — the
@@ -675,7 +682,11 @@ struct HomeTab: View {
                 // again. Pushing first means Back lands somewhere that makes
                 // sense, and costs nothing on the way in: the player is presented
                 // over the stack, so the page is simply already there underneath.
-                onResolved: { item in
+                onResolved: { item, action in
+                    if action == .details {
+                        navigate(item, libraryOrigin: item.sourceAccountID)
+                        return
+                    }
                     #if os(tvOS)
                     DetailTransitionNavigation.suppressNextEntranceForPlayback()
                     #endif
@@ -966,18 +977,18 @@ struct HomeTab: View {
         }
     }
 
-    /// Resolves a deep-linked item id (from a Top Shelf card) and routes to it,
-    /// then clears the request so it fires exactly once. Because the id alone is
-    /// provider-ambiguous once content is merged, each active provider is tried
-    /// until one resolves the item; the resolved item is tagged with its source.
+    /// Resolves a Top Shelf action against its owning account, then consumes it
+    /// once. Unscoped links from older builds retain their provider search.
     ///
     /// Lives on ``DeepLinkPlayRouter`` rather than on the tab so that watching
     /// the pending id cannot invalidate the tab's body.
     private struct DeepLinkPlayRouter: View {
         let pendingPlay: PendingPlayRequest
         let accounts: [ResolvedAccount]
+        let scopeKey: String
         let isActive: Bool
-        let onResolved: (MediaItem) -> Void
+        let onResolved: (MediaItem, TopShelf.ItemReference.Action) -> Void
+        @State private var failure: AppError?
 
         var body: some View {
             Color.clear
@@ -989,64 +1000,52 @@ struct HomeTab: View {
                 // again — the app opens and sits there, which is exactly what the
                 // shelf looked like from the sofa.
                 .task(id: RouteRequest(
-                    itemID: pendingPlay.itemID,
-                    accountID: pendingPlay.accountID,
+                    request: pendingPlay.request,
                     accountIDs: accounts.map(\.account.id),
+                    scopeKey: scopeKey,
                     isActive: isActive
                 )) { await route() }
+                .alert(
+                    "Unable to Open Title",
+                    isPresented: Binding(
+                        get: { failure != nil },
+                        set: { if !$0 { failure = nil } }
+                    ),
+                    presenting: failure
+                ) { _ in
+                    Button("OK", role: .cancel) {}
+                } message: { error in
+                    Text(error.userMessage)
+                }
         }
 
         /// What a routing attempt depends on. Any change re-runs it.
         private struct RouteRequest: Equatable {
-            let itemID: String?
-            let accountID: String?
+            let request: PendingPlayRequest.Request?
             let accountIDs: [String]
+            let scopeKey: String
             let isActive: Bool
         }
 
         private func route() async {
-            guard isActive else { return }
-            guard let id = pendingPlay.itemID else { return }
+            guard isActive, let request = pendingPlay.request else { return }
             // Nothing to ask yet. Deliberately keeps the request pending: accounts
             // arriving is a change this task is watching, so it will run again with
             // something to resolve against.
             guard !accounts.isEmpty else { return }
 
-            // The link's own account first, when it named one — it is the server the
-            // card was built from, so it is both the fastest answer and the only one
-            // guaranteed to mean the same title.
-            let ordered: [ResolvedAccount]
-            if let owner = pendingPlay.accountID,
-               let match = accounts.first(where: { $0.account.id == owner }) {
-                ordered = [match] + accounts.filter { $0.account.id != owner }
-            } else {
-                ordered = accounts
+            do {
+                let item = try await TopShelfItemResolver.resolve(request.reference, accounts: accounts)
+                try Task.checkCancellation()
+                guard pendingPlay.consume(request) else { return }
+                failure = nil
+                onResolved(item, request.reference.action)
+            } catch {
+                guard !Task.isCancelled, !(error is CancellationError),
+                      (error as? AppError) != .cancelled, pendingPlay.consume(request) else { return }
+                PlozzLog.app.error("Unable to resolve the Top Shelf action in the active account scope.")
+                failure = error as? AppError ?? .unknown("Top Shelf item unavailable")
             }
-
-            for resolved in ordered {
-                if let item = try? await resolved.provider.item(id: id) {
-                    // Another run may have resolved it while this one was waiting:
-                    // the task restarts whenever the accounts change, and a request
-                    // already in flight is not stopped by that. Acting twice pushes
-                    // the page twice and presents the player over itself.
-                    guard pendingPlay.itemID == id else { return }
-                    pendingPlay.itemID = nil
-                    pendingPlay.accountID = nil
-                    onResolved(item.taggingSource(resolved.account.id))
-                    return
-                }
-            }
-            // Only an uninterrupted sweep may declare the title gone. A cancelled
-            // one asked nobody: the fetch above cannot tell being cancelled apart
-            // from a server saying no, so a task restarted mid-flight would fall
-            // through here and discard a request that no server ever answered —
-            // landing the viewer on Home, which is the whole thing this fixes.
-            guard !Task.isCancelled else { return }
-            // Asked every signed-in server and none of them knows it. Clearing stops
-            // a title that has genuinely gone from re-asking on every account change
-            // for the rest of the session.
-            pendingPlay.itemID = nil
-            pendingPlay.accountID = nil
         }
     }
 

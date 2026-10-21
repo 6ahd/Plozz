@@ -88,9 +88,11 @@ private struct TopShelfStylePreview: View {
                             .fill(.white.opacity(index == 2 ? 0.9 : 0.24))
                             .overlay {
                                 if index == 2 {
-                                    Image(systemName: "play.fill")
-                                        .font(.system(size: height * 0.06))
-                                        .foregroundStyle(Color(white: 0.15))
+                                    Image("PlozzLogo")
+                                        .renderingMode(.original)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: height * 0.10, height: height * 0.10)
                                 }
                             }
                     }

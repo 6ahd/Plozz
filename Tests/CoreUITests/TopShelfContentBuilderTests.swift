@@ -33,7 +33,9 @@ final class TopShelfContentBuilderTests: XCTestCase {
         XCTAssertEqual(first.imageURL(for: .screenScale2x), item.imageURL)
         XCTAssertEqual(first.playAction?.url, TopShelf.itemDeepLink(id: "123", accountID: "plex"))
         XCTAssertEqual(content.items.last?.playAction?.url, TopShelf.itemDeepLink(id: "123", accountID: "jellyfin"))
-        XCTAssertNil(first.displayAction, "Do not show a More Info action that would actually start playback")
+        XCTAssertEqual(first.displayAction?.url,
+                       TopShelf.itemDeepLink(id: "123", accountID: "plex", action: .details))
+        XCTAssertNotEqual(first.displayAction?.url, first.playAction?.url)
         XCTAssertNil(first.previewVideoURL)
         XCTAssertNil(first.cinemagraphURL)
     }
@@ -82,7 +84,7 @@ final class TopShelfContentBuilderTests: XCTestCase {
         XCTAssertEqual(result.sections.map { $0.items.count }, [1, 1])
         let published = try XCTUnwrap(result.sections.first?.items.first)
         XCTAssertEqual(published.imageURL, episode.fallbackArtworkURL)
-        XCTAssertEqual(published.title, "Episode 2")
+        XCTAssertEqual(published.title, "Series — Episode 2")
         XCTAssertNil(published.summary)
         XCTAssertEqual(published.genre, "Drama")
         XCTAssertEqual(published.duration, 3600)
@@ -142,6 +144,39 @@ final class TopShelfContentBuilderTests: XCTestCase {
         }
         let placeholder = try XCTUnwrap(TopShelfBackdropComposer.imageData(data: nil))
         XCTAssertEqual(UIImage(data: placeholder)?.size, CGSize(width: 1920, height: 1080))
+    }
+
+    func testNativeMetadataUsesMutuallyExclusiveBadgesAndAtMostFourAttributes() throws {
+        var item = entry(account: "plex")
+        item.releaseDate = MediaItem.calendarDayReleaseDate(from: "2022-09-12")
+        item.mediaOptions = [.hd, .ultraHD, .hdr, .dolbyVision, .dolbyAtmos, .closedCaptions, .sdh]
+        item.namedAttributes = (1...5).map { .init(name: "Field \($0)", values: ["Value \($0)"]) }
+        let content = try XCTUnwrap(TopShelfContentBuilder.makeContent(from: snapshot(item: item, fullScreen: true))
+            as? TVTopShelfCarouselContent)
+        let native = try XCTUnwrap(content.items.first)
+        XCTAssertEqual(native.creationDate,
+                       item.releaseDate.flatMap { TopShelfContentBuilder.releaseDateForDisplay($0) })
+        XCTAssertEqual(native.mediaOptions, [
+            .videoResolution4K, .videoColorSpaceDolbyVision, .audioDolbyAtmos,
+            .audioTranscriptionClosedCaptioning, .audioTranscriptionSDH
+        ])
+        XCTAssertEqual(native.namedAttributes.map(\.name), ["Field 1", "Field 2", "Field 3", "Field 4"])
+        XCTAssertEqual(native.namedAttributes.first?.values, ["Value 1"])
+        let roundTrip = try JSONDecoder().decode(TopShelfSnapshot.Item.self, from: JSONEncoder().encode(item))
+        XCTAssertEqual(roundTrip, item)
+    }
+
+    func testNativeReleaseDateRetainsCalendarDayAcrossTimeZones() throws {
+        let date = try XCTUnwrap(MediaItem.calendarDayReleaseDate(from: "2022-01-01"))
+        for offset in [-12 * 3600, 0, 14 * 3600] {
+            let timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: offset))
+            let native = try XCTUnwrap(TopShelfContentBuilder.releaseDateForDisplay(date, timeZone: timeZone))
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = timeZone
+            XCTAssertEqual(calendar.dateComponents([.year, .month, .day], from: native),
+                           DateComponents(year: 2022, month: 1, day: 1))
+        }
+        XCTAssertNil(TopShelfContentBuilder.releaseDateForDisplay(Date(timeIntervalSince1970: .nan)))
     }
 
     private func entry(account: String) -> TopShelfSnapshot.Item {

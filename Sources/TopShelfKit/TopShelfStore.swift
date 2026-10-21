@@ -26,25 +26,37 @@ public enum TopShelf {
     /// one server. The app is multi-account by design, so the account travels with
     /// the link.
     public struct ItemReference: Hashable, Sendable {
+        public enum Action: String, Hashable, Sendable {
+            case play
+            case details
+        }
+
         public let id: String
         public let accountID: String?
+        public let action: Action
 
-        public init(id: String, accountID: String? = nil) {
+        public init(id: String, accountID: String? = nil, action: Action = .play) {
             self.id = id
             self.accountID = accountID
+            self.action = action
         }
     }
 
     /// Builds the deep link that launches Plozz straight into an item.
     /// Example: `plozz://item/abc123?account=jf-1`.
-    public static func itemDeepLink(id: String, accountID: String? = nil) -> URL {
+    public static func itemDeepLink(
+        id: String, accountID: String? = nil, action: ItemReference.Action = .play
+    ) -> URL {
         var components = URLComponents()
         components.scheme = deepLinkScheme
         components.host = itemHost
         components.path = "/" + id
+        var queryItems: [URLQueryItem] = []
         if let accountID, !accountID.isEmpty {
-            components.queryItems = [URLQueryItem(name: accountQueryItem, value: accountID)]
+            queryItems.append(URLQueryItem(name: accountQueryItem, value: accountID))
         }
+        if action != .play { queryItems.append(URLQueryItem(name: "action", value: action.rawValue)) }
+        if !queryItems.isEmpty { components.queryItems = queryItems }
         return components.url ?? URL(string: "\(deepLinkScheme)://\(itemHost)/\(id)")!
     }
 
@@ -56,13 +68,23 @@ public enum TopShelf {
     /// decode with `accountID == nil`.
     public static func itemReference(from url: URL) -> ItemReference? {
         guard let id = itemID(from: url) else { return nil }
-        let accountID = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?
-            .first { $0.name == accountQueryItem }?
-            .value
+        let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let actions = queryItems.filter { $0.name == "action" }
+        guard actions.count <= 1 else { return nil }
+        let action: ItemReference.Action
+        if let query = actions.first {
+            guard let value = query.value, let parsed = ItemReference.Action(rawValue: value) else { return nil }
+            action = parsed
+        } else {
+            action = .play
+        }
+        let accounts = queryItems.filter { $0.name == accountQueryItem }
+        guard accounts.count <= 1 else { return nil }
+        let accountID = accounts.first?.value
         return ItemReference(
             id: id,
-            accountID: accountID.flatMap { $0.isEmpty ? nil : $0 }
+            accountID: accountID.flatMap { $0.isEmpty ? nil : $0 },
+            action: action
         )
     }
 

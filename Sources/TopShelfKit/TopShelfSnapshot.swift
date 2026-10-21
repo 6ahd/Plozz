@@ -8,6 +8,20 @@ import Foundation
 /// package and extension without the provider or app UI stack. The app exports
 /// policy-resolved artwork so the extension needs no provider credentials.
 public struct TopShelfSnapshot: Codable, Equatable, Sendable {
+    public enum MediaOption: String, Codable, Equatable, Sendable {
+        case hd, ultraHD, hdr, dolbyVision, dolbyAtmos, closedCaptions, sdh
+    }
+
+    public struct NamedAttribute: Codable, Equatable, Sendable {
+        public var name: String  // l10n:content — localized by the app before crossing the process boundary
+        public var values: [String]
+
+        public init(name: String, values: [String]) {  // l10n:content — already-resolved label
+            self.name = name
+            self.values = values
+        }
+    }
+
     /// When the snapshot was produced. Used purely for debugging/freshness.
     public var generatedAt: Date
     public var usesFullScreen: Bool
@@ -52,6 +66,9 @@ public struct TopShelfSnapshot: Codable, Equatable, Sendable {
         public var summary: String?  // l10n:content — spoiler-filtered server synopsis
         public var genre: String?  // l10n:content — server-supplied genre
         public var duration: TimeInterval?
+        public var releaseDate: Date?
+        public var mediaOptions: [MediaOption]?
+        public var namedAttributes: [NamedAttribute]?
 
         /// Collision-free identity for the shelf card and its deep link.
         public var shelfIdentifier: String {
@@ -68,7 +85,10 @@ public struct TopShelfSnapshot: Codable, Equatable, Sendable {
             playbackProgress: Double? = nil,
             summary: String? = nil,  // l10n:content — spoiler-filtered server synopsis
             genre: String? = nil,  // l10n:content — server-supplied genre
-            duration: TimeInterval? = nil
+            duration: TimeInterval? = nil,
+            releaseDate: Date? = nil,
+            mediaOptions: [MediaOption]? = nil,
+            namedAttributes: [NamedAttribute]? = nil
         ) {
             self.id = id
             self.accountID = accountID
@@ -79,6 +99,9 @@ public struct TopShelfSnapshot: Codable, Equatable, Sendable {
             self.summary = summary
             self.genre = genre
             self.duration = duration
+            self.releaseDate = releaseDate
+            self.mediaOptions = mediaOptions
+            self.namedAttributes = namedAttributes
         }
     }
 

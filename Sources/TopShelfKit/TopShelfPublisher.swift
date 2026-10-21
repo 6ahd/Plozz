@@ -1,5 +1,6 @@
 import Foundation
 import CoreModels
+import OSLog
 #if os(tvOS)
 import TVServices
 #endif
@@ -12,6 +13,7 @@ import TVServices
 /// native content builder directly, keeping `CoreModels` out of its memory budget.
 public enum TopShelfPublisher {
     public typealias ArtworkResolver = @MainActor @Sendable (MediaItem) async -> Data?
+    public typealias MetadataResolver = @MainActor @Sendable (MediaItem) async throws -> MediaItem
 
     @MainActor private static let publication = TopShelfPublication(save: save)
 
@@ -43,6 +45,7 @@ public enum TopShelfPublisher {
         latest: [MediaItem],
         locale: Locale? = nil,
         spoilerSettings: SpoilerSettings = .default,
+        resolveMetadata: MetadataResolver? = nil,
         resolveArtwork: ArtworkResolver? = nil,
         resolveBackdrop: ArtworkResolver? = nil
     ) async {
@@ -51,6 +54,7 @@ public enum TopShelfPublisher {
             await makeSnapshot(
                 continueWatching: continueWatching, latest: latest, settings: settings,
                 locale: locale, spoilerSettings: spoilerSettings,
+                resolveMetadata: resolveMetadata,
                 resolveArtwork: resolveArtwork, resolveBackdrop: resolveBackdrop
             )
         }
@@ -78,17 +82,43 @@ public enum TopShelfPublisher {
         settings: TopShelfSettings = .default,
         locale: Locale? = nil,
         spoilerSettings: SpoilerSettings = .default,
+        resolveMetadata: MetadataResolver? = nil,
         resolveArtwork: ArtworkResolver? = nil,
         resolveBackdrop: ArtworkResolver? = nil
     ) async -> TopShelfSnapshot? {
         guard !Task.isCancelled else { return nil }
         guard settings.isEnabled else { return TopShelfSnapshot(sections: []) }
         var sections: [TopShelfSnapshot.Section] = []
+        let resumeItems = Array(continueWatching.prefix(settings.continueWatchingItems))
+        let recentItems = Array(latest.prefix(settings.recentlyAddedItems))
+        var metadata: [String: MediaItem] = [:]
+        if settings.usesFullScreen, let resolveMetadata {
+            var attempted = Set<String>()
+            for item in resumeItems + recentItems {
+                guard !Task.isCancelled else { return nil }
+                let key = TopShelfSnapshot.Item(id: item.id, accountID: item.sourceAccountID, title: item.title)
+                    .shelfIdentifier
+                guard attempted.insert(key).inserted else { continue }
+                do {
+                    let detail = try await resolveMetadata(item)
+                    guard !Task.isCancelled else { return nil }
+                    guard detail.id == item.id, detail.sourceAccountID == item.sourceAccountID else {
+                        throw AppError.invalidResponse
+                    }
+                    metadata[key] = detail
+                } catch {
+                    guard !Task.isCancelled, !(error is CancellationError),
+                          (error as? AppError) != .cancelled else { return nil }
+                    Logger(subsystem: "com.plozz.app", category: "top-shelf")
+                        .warning("Full-screen metadata unavailable; retaining the Home item's known information.")
+                }
+            }
+        }
 
         let resume = await items(
-            from: Array(continueWatching.prefix(settings.continueWatchingItems)),
+            from: resumeItems,
             compositeProgress: true, usesFullScreen: settings.usesFullScreen,
-            spoilerSettings: spoilerSettings, locale: locale,
+            spoilerSettings: spoilerSettings, locale: locale, metadata: metadata,
             resolveArtwork: resolveArtwork, resolveBackdrop: resolveBackdrop
         )
         if !resume.isEmpty {
@@ -98,8 +128,8 @@ public enum TopShelfPublisher {
         }
 
         let recent = await items(
-            from: Array(latest.prefix(settings.recentlyAddedItems)), usesFullScreen: settings.usesFullScreen,
-            spoilerSettings: spoilerSettings, locale: locale,
+            from: recentItems, usesFullScreen: settings.usesFullScreen,
+            spoilerSettings: spoilerSettings, locale: locale, metadata: metadata,
             resolveArtwork: resolveArtwork, resolveBackdrop: resolveBackdrop
         )
         if !recent.isEmpty {
@@ -144,6 +174,7 @@ public enum TopShelfPublisher {
         usesFullScreen: Bool,
         spoilerSettings: SpoilerSettings,
         locale: Locale?,
+        metadata: [String: MediaItem],
         resolveArtwork: ArtworkResolver? = nil,
         resolveBackdrop: ArtworkResolver? = nil
     ) async -> [TopShelfSnapshot.Item] {
@@ -205,21 +236,17 @@ public enum TopShelfPublisher {
                 )
             }
 
-            let hidesText = usesFullScreen && spoilerSettings.shouldHideText(for: item)
-            let title = hidesText ? resolved(spoilerSettings.maskedTitle(for: item), locale) : item.title
-            result.append(
-                TopShelfSnapshot.Item(
-                    id: item.id,
-                    accountID: item.sourceAccountID,
-                    title: title,
-                    subtitle: item.subtitle,
-                    imageURL: imageURL,
-                    playbackProgress: item.playedPercentage,
-                    summary: usesFullScreen && !hidesText ? item.overview : nil,
-                    genre: usesFullScreen ? item.genres.first : nil,
-                    duration: usesFullScreen ? item.runtime : nil
-                )
+            var snapshot = TopShelfSnapshot.Item(
+                id: item.id, accountID: item.sourceAccountID, title: item.title,
+                subtitle: item.subtitle, imageURL: imageURL, playbackProgress: item.playedPercentage
             )
+            if usesFullScreen {
+                TopShelfMetadata.apply(
+                    to: &snapshot, item: item, details: metadata[artworkID],
+                    spoilerSettings: spoilerSettings, locale: locale
+                )
+            }
+            result.append(snapshot)
         }
 
         return result
@@ -240,7 +267,7 @@ public enum TopShelfPublisher {
 
     /// Resolves a section title against the app's current language. `nil` means
     /// "follow the system", which is what `LocalizedStringResource` already does.
-    private static func resolved(_ resource: LocalizedStringResource, _ locale: Locale?) -> String {
+    static func resolved(_ resource: LocalizedStringResource, _ locale: Locale?) -> String {
         var resource = resource
         if let locale { resource.locale = locale }
         return String(localized: resource)   // l10n:content — deliberately resolved here: the value is written to an App Group file the Top Shelf extension reads in another process
