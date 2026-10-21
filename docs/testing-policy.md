@@ -438,11 +438,33 @@ to the UIKit presentation owner.
 
 `ProfilePickerPresentationTests` covers compact/adaptive avatar sizing, small
 and large households, themes/gradients, landscape, iPad, accessible names and RTL.
-Hosted animation frames check the stagger and settled scale; Reduce Motion
-reveals every tile immediately. `ProfilePickerInteractionTests` exercises
+Hosted animation frames check native presentation readiness, individually
+staggered reveals without a capped batch, settled scale, and six or sixteen
+avatars substantially settled within one second. Launch preserves its visible
+cascade after presentation; manual switching must already be revealing avatars
+when the native cover finishes opening. Reduce Motion
+reveals every tile immediately. Scrolling a 40-profile household also checks
+that newly realized cells do not inherit long entrance delays.
+`ProfilePickerInteractionTests` exercises
 selection, cancellation, reopening, Edit/Done, long-press editing, separate
 adult/kids creation entry points, and launch/restricted management visibility.
-Its fixture disables sync and uses only synthetic host-sandbox profiles.
+Its selection fixture keeps the real picker and PIN components mounted across
+profile-scoped content identity changes. Actual taps cover Plex cancellation,
+profile-to-Plex PIN sequencing, launch selection retention, and choosing again
+after cancellation targets a locked fallback. Existing profile locks and Plex
+requests must leave the picker visible until a profile is explicitly tapped;
+choosing another profile must not show the old target's PIN.
+Slow Plex verification moves the selected Plozz avatar/name into the PIN layout
+without an avatar spinner, server-user identity substitution, or premature
+keypad. Cancellation must suppress late PIN presentation and restore the
+original tile position; confirmed unprotected users complete without a PIN page.
+Failed checks retain identity and allow retry/cancel. The native keypad reveal
+must be ordered and bypass its movement/delays with Reduce Motion.
+Hosted PIN layouts cover phone/tablet portrait and landscape plus accessible
+long names: no horizontal overflow, no truncation, and a reachable Cancel.
+A contrasting Home backdrop must stay covered
+and untappable until selection completes. Fixtures disable sync and use only
+synthetic host-sandbox profiles and in-memory Plex credentials.
 
 `DownloadActivityLifecycleTests` and `DownloadNotificationDeliveryTests` cover
 continued-processing admission, expiration, profile retirement, real-progress

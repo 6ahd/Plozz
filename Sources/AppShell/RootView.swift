@@ -1526,7 +1526,7 @@ private struct ProfileAccessGateView: View {
                     sequenceStep: expectsTwoPINs
                         ? .init(current: 1, total: 2)
                         : nil,
-                    onSubmit: { appState.profileFlow.submitProfileLockPIN($0) },
+                    onSubmit: { await appState.profileFlow.submitProfileLockPIN($0) },
                     onCancel: { appState.profileFlow.cancelProfileLockPrompt() }
                 )
                 .id("profile-pin")
@@ -1599,6 +1599,7 @@ private struct PlexPINEntryView: View {
         return PINEntryScaffold(
             title: "Enter your Plex PIN",
             name: Text(verbatim: userName),
+            showsLock: true,
             errorMessage: appState.plexHomeUsers.plexPINError,
             isSubmitting: appState.plexHomeUsers.isSubmittingPlexPIN,
             availability: pendingRequest == nil ? .checking : appState.plexHomeUsers.plexPINEntryAvailability,
