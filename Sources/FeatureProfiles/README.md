@@ -57,12 +57,15 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   launch keeps that identity stable through PIN entry and cancellation.
   Cancelling a PIN returns to the retained picker, not Home. Authorization
   still belongs to the existing profile/Plex models.
-  Initial Plex verification stays on the selected tile with a native progress
-  indicator; the confirmed PIN or verification error then crossfades in without
-  sliding the whole backdrop. Profile positions stay stable through selection
-  and cancellation, while profile details still reflect live edits. Cancelling
-  verification keeps the picker open; an unprotected Plex user completes without
-  briefly showing a PIN page. Once a gate opens it remains through chained steps.
+  Selection carries the Plozz profile's own avatar and name into authorization
+  using native matched geometry while the other tiles fade away. PIN type is
+  secondary copy, not a replacement server-user identity. Live Plex verification
+  keeps that identity in place without an avatar spinner; only a longer check
+  shows loading feedback below it. Confirmed PIN keys reveal progressively;
+  unprotected users never mount a keypad. Errors retain the identity and expose
+  Retry/Cancel. Cancelling returns to the retained tile order, while profile
+  details still reflect live edits. Reduce Motion removes the movement and
+  reveal delays. Existing parental and separate-PIN steps remain explicit.
 - **Visible mobile entrance.** Launch waits for native presentation to finish;
   the cancellable in-app switcher starts during presentation instead of adding
   another pause afterward. Overlapping 450 ms native smooth springs use a subtle

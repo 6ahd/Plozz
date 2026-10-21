@@ -1,6 +1,6 @@
 #if os(iOS)
 import CoreModels
-import CoreUI
+@testable import CoreUI
 import SwiftUI
 import UIKit
 import Vision
@@ -173,6 +173,73 @@ final class ProfilePickerPresentationTests: XCTestCase {
             "Starting sooner must not coalesce the whole cascade into an immediate reveal."
         )
         XCTAssertGreaterThan(progress.oneSecond, progress.settled * 95 / 100)
+    }
+
+    func testPINKeyCascadeRevealsInOrderAndHonorsReduceMotion() async throws {
+        for reduceMotion in [false, true] {
+            try await withWindow(
+                PINKeyMotionFixture(reduceMotion: reduceMotion),
+                size: .init(width: 240, height: 360)
+            ) { window in
+                try await Task.sleep(for: .milliseconds(reduceMotion ? 100 : 300))
+                let early = self.capture(window, name: "pin-keys-early-\(reduceMotion)", afterUpdates: false)
+                let first = try self.brightness(early, x: 70, y: 70)
+                let last = try self.brightness(early, x: 70, y: 190)
+                if reduceMotion {
+                    XCTAssertGreaterThan(first, 245)
+                    XCTAssertGreaterThan(last, 245)
+                } else {
+                    XCTAssertGreaterThan(first, last + 20)
+                    try await Task.sleep(for: .seconds(1))
+                    let settled = self.capture(window, name: "pin-keys-settled")
+                    XCTAssertGreaterThan(try self.brightness(settled, x: 70, y: 70), 245)
+                    XCTAssertGreaterThan(try self.brightness(settled, x: 70, y: 190), 245)
+                }
+            }
+        }
+    }
+
+    func testProfilePINLayoutFitsPhoneTabletAndAccessibleNames() async throws {
+        let cases: [(CGSize, DynamicTypeSize)] = [
+            (.init(width: 320, height: 568), .large),
+            (.init(width: 390, height: 844), .large),
+            (.init(width: 844, height: 390), .large),
+            (.init(width: 768, height: 1024), .large),
+            (.init(width: 1024, height: 768), .large),
+            (.init(width: 390, height: 844), .accessibility3)
+        ]
+        for (size, typeSize) in cases {
+            let model = ProfilePINLayoutFixtureModel()
+            try await withWindow(
+                ProfilePINLayoutFixture(model: model, usesLongName: typeSize.isAccessibilitySize)
+                    .environment(\.dynamicTypeSize, typeSize)
+                    .environment(\.themePalette, .dark)
+                    .environment(\.locale, Locale(identifier: "en"))
+                    .preferredColorScheme(.dark),
+                size: size
+            ) { window in
+                for availability in [PINEntryAvailability.checking, .available] {
+                    model.availability = availability
+                    try await Task.sleep(for: .milliseconds(750))
+                    let scroll = try XCTUnwrap(self.scrollViews(window).first)
+                    XCTAssertLessThanOrEqual(scroll.contentSize.width, scroll.bounds.width + 1)
+                    let text = try self.recognize(self.capture(
+                        window, name: "profile-pin-\(Int(size.width))-\(typeSize)-\(availability)"
+                    ))
+                    XCTAssertTrue(text.contains { $0.contains("Alex") }, "\(text)")
+                    XCTAssertFalse(text.contains { $0.contains("…") }, "\(text)")
+                    if availability == .checking {
+                        XCTAssertFalse(text.contains { $0.contains("Plex PIN") }, "\(text)")
+                    }
+                    scroll.setContentOffset(CGPoint(
+                        x: 0, y: max(0, scroll.contentSize.height - scroll.bounds.height)
+                    ), animated: false)
+                    try await Task.sleep(for: .milliseconds(80))
+                    XCTAssertTrue(try self.recognize(self.capture(window)).contains { $0 == "Cancel" })
+                    scroll.setContentOffset(.zero, animated: false)
+                }
+            }
+        }
     }
 
     private func measureProductionEntrance(
@@ -350,6 +417,47 @@ private struct PickerMotionFixture: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.black)
         .ignoresSafeArea()
+    }
+}
+
+private struct PINKeyMotionFixture: View {
+    let reduceMotion: Bool
+
+    var body: some View {
+        VStack(spacing: 20) {
+            ForEach([0, 10], id: \.self) { position in
+                Color.white.frame(width: 100, height: 100)
+                    .modifier(PINKeyEntrance(enabled: true, position: position, reduceMotion: reduceMotion))
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(.black)
+        .ignoresSafeArea()
+    }
+}
+
+@MainActor @Observable
+private final class ProfilePINLayoutFixtureModel {
+    var availability = PINEntryAvailability.checking
+}
+
+private struct ProfilePINLayoutFixture: View {
+    let model: ProfilePINLayoutFixtureModel
+    let usesLongName: Bool
+    @Namespace private var identity
+
+    var body: some View {
+        PINEntryScaffold(
+            title: "Plex PIN",
+            name: Text(verbatim: usesLongName ? "Alex with a longer profile name" : "Alex"),
+            availability: model.availability,
+            onSubmit: { _ in }, onCancel: {}
+        ) {
+            Circle().fill(.red).frame(width: 88, height: 88)
+        }
+        .environment(\.pinProfileTransition, PINProfileTransition(profileID: "alex", namespace: identity))
+        .background(.black)
     }
 }
 #endif

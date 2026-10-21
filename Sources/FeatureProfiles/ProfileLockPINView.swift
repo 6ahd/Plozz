@@ -30,6 +30,7 @@ public struct ProfileLockPINView: View {
     private let sequenceStep: PINSequenceStep?
     private let onSubmit: (String) -> Void
     private let onCancel: () -> Void
+    @Environment(\.pinProfileTransition) private var profileTransition
 
     /// - Parameter isSyncEnabled: whether these settings currently reach the
     ///   user's other devices. Drives the caveat: with Sync off the lock only
@@ -61,7 +62,7 @@ public struct ProfileLockPINView: View {
             onSubmit: onSubmit,
             onCancel: onCancel
         ) {
-            ProfileAvatarView(profile: profile, size: PINLayout.badgeSize)
+            ProfileAvatarView(profile: profile, size: profileTransition?.avatarSize ?? PINLayout.badgeSize)
         }
     }
 }

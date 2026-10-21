@@ -334,6 +334,12 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Mobile PIN headings use native Title 2 bold, matching the profile picker.
   The shared scaffold keeps this typography consistent across PIN flows;
   tvOS retains its larger viewing-distance heading.
+  Mobile profile selection opts into `PINProfileTransition`: the profile's
+  avatar/name are the primary identity, with the PIN type in smaller text.
+  `PINEntryScaffold` retains this identity through live verification and errors;
+  it mounts the progressively revealed dial pad only after protection is
+  confirmed. Its portrait stack and landscape columns scroll at constrained
+  heights. Standalone PIN prompts and tvOS keep their existing presentation.
   The detail information band retains its darker 40%-opaque surface.
   Compact mobile detail metadata and actions reveal the page gradient instead
   of covering it with a solid rectangle; Gradient Off and Reduce Transparency

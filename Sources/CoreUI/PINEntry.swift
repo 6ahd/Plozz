@@ -146,6 +146,8 @@ public struct PINEntryScaffold<Badge: View>: View {
     @ViewBuilder public let badge: () -> Badge
 
     @Environment(\.themePalette) private var palette
+    @Environment(\.pinProfileTransition) private var profileTransition
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var entry = PINEntryState()
 
     public init(
@@ -186,9 +188,19 @@ public struct PINEntryScaffold<Badge: View>: View {
             // glass has to sample a real backdrop — floating them over
             // `.ultraThinMaterial` was glass on glass, which reads muddy and
             // costs a second blur pass for nothing.
-            AppBackground(palette: palette).ignoresSafeArea()
+            AppBackground(palette: palette)
+                .ignoresSafeArea()
+                .opacity(profileTransition == nil ? 1 : 0)
 
-            if availability != .available {
+            if let profileTransition {
+                PINProfileEntryLayout(
+                    transition: profileTransition, title: title, name: name,
+                    availability: availability, errorMessage: errorMessage,
+                    footnote: footnote, sequenceStep: sequenceStep,
+                    onRetry: onRetry, onCancel: cancelEntry,
+                    badge: badge, pad: { padColumn }
+                )
+            } else if availability != .available {
                 PINRequirementCheckView(
                     name: name, availability: availability, errorMessage: errorMessage,
                     onRetry: onRetry, onCancel: cancelEntry
@@ -356,7 +368,11 @@ public struct PINEntryScaffold<Badge: View>: View {
                     ProgressView().controlSize(.large)
                 }
             }
-            PINDialPad(onDigit: appendDigit, onDelete: deleteDigit)
+            .modifier(PINKeyEntrance(enabled: profileTransition != nil, position: 0, reduceMotion: reduceMotion))
+            PINDialPad(
+                animatesEntrance: profileTransition != nil,
+                onDigit: appendDigit, onDelete: deleteDigit
+            )
                 .disabled(isSubmitting || entry.isCommitting)
                 .opacity(isSubmitting ? 0.5 : 1.0)
         }
@@ -462,7 +478,7 @@ private struct PINRequirementCheckView: View {
 /// The rail says "this is one continuous two-step action" before the first PIN
 /// is entered, while the text removes any ambiguity about why another PIN screen
 /// follows. Single-PIN flows pass no step and render nothing.
-private struct PINSequenceIndicator: View {
+struct PINSequenceIndicator: View {
     let step: PINSequenceStep
 
     @Environment(\.themePalette) private var palette
@@ -533,10 +549,16 @@ public struct PINProgressDots: View {
 /// 10-foot target readable at a glance — and because delete can then be a capsule
 /// that visibly spans two columns without looking like a mistake.
 public struct PINDialPad: View {
+    public let animatesEntrance: Bool
     public let onDigit: (String) -> Void
     public let onDelete: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(onDigit: @escaping (String) -> Void, onDelete: @escaping () -> Void) {
+    public init(
+        animatesEntrance: Bool = false,
+        onDigit: @escaping (String) -> Void, onDelete: @escaping () -> Void
+    ) {
+        self.animatesEntrance = animatesEntrance
         self.onDigit = onDigit
         self.onDelete = onDelete
     }
@@ -549,13 +571,17 @@ public struct PINDialPad: View {
 
     public var body: some View {
         VStack(spacing: PINMetrics.keySpacing) {
-            ForEach(Self.rows, id: \.self) { row in
+            ForEach(Array(Self.rows.enumerated()), id: \.offset) { rowIndex, row in
                 HStack(spacing: PINMetrics.keySpacing) {
-                    ForEach(row, id: \.self) { digit in
+                    ForEach(Array(row.enumerated()), id: \.element) { columnIndex, digit in
                         Button { onDigit(digit) } label: {
                             Text(verbatim: digit).font(digitFont)
                         }
                         .buttonStyle(PINKeyStyle(width: PINMetrics.keyDiameter))
+                        .modifier(PINKeyEntrance(
+                            enabled: animatesEntrance, position: rowIndex * 3 + columnIndex,
+                            reduceMotion: reduceMotion
+                        ))
                     }
                 }
             }
@@ -564,6 +590,7 @@ public struct PINDialPad: View {
                     Text(verbatim: "0").font(digitFont)
                 }
                 .buttonStyle(PINKeyStyle(width: PINMetrics.keyDiameter))
+                .modifier(PINKeyEntrance(enabled: animatesEntrance, position: 9, reduceMotion: reduceMotion))
 
                 Button(action: onDelete) {
                     Image(systemName: "delete.backward")
@@ -571,6 +598,7 @@ public struct PINDialPad: View {
                 }
                 .buttonStyle(PINKeyStyle(width: PINMetrics.deleteKeyWidth))
                 .accessibilityLabel("Delete")
+                .modifier(PINKeyEntrance(enabled: animatesEntrance, position: 10, reduceMotion: reduceMotion))
             }
         }
     }

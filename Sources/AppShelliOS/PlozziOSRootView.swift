@@ -1911,14 +1911,17 @@ private struct PlozziOSHomeLandingView: View {
 /// iPhone/iPad counterpart of tvOS's persistent profile-entry gate.
 struct PlozziOSProfileAccessGateView: View {
     let appModel: PlozziOSAppModel
+    let profile: Profile?
     let onCancel: () -> Void
 
     @Environment(\.themePalette) private var palette
+    @Environment(\.pinProfileTransition) private var profileTransition
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expectsTwoPINs: Bool
 
-    init(appModel: PlozziOSAppModel, onCancel: @escaping () -> Void) {
+    init(appModel: PlozziOSAppModel, profile: Profile? = nil, onCancel: @escaping () -> Void) {
         self.appModel = appModel
+        self.profile = profile
         self.onCancel = onCancel
         let profile = appModel.lockedSwitch?.target
         _expectsTwoPINs = State(initialValue:
@@ -1931,6 +1934,7 @@ struct PlozziOSProfileAccessGateView: View {
     var body: some View {
         ZStack {
             AppBackground(palette: palette).ignoresSafeArea()
+                .opacity(profileTransition == nil ? 1 : 0)
 
             if let request = appModel.parentalSwitch {
                 // First: may you leave the child's profile at all?
@@ -1944,7 +1948,7 @@ struct PlozziOSProfileAccessGateView: View {
                     }
                 )
                 .id("parental-pin")
-                .transition(.opacity)
+                .transition(profileTransition == nil ? .opacity : .identity)
             } else if let lockRequest = appModel.lockedSwitch {
                 ProfileLockPINView(
                     profile: lockRequest.target,
@@ -1960,11 +1964,12 @@ struct PlozziOSProfileAccessGateView: View {
                     }
                 )
                 .id("profile-pin")
-                .transition(.opacity)
+                .transition(profileTransition == nil ? .opacity : .identity)
             } else if let request = appModel.plexHomeUsers.pendingPlexPINRequest {
                 PlozziOSPlexPINView(
                     model: appModel.plexHomeUsers,
                     request: request,
+                    profile: profile,
                     sequenceStep: expectsTwoPINs
                         ? .init(current: 2, total: 2)
                         : nil,
@@ -1972,12 +1977,13 @@ struct PlozziOSProfileAccessGateView: View {
                     onCancel: onCancel
                 )
                 .id("plex-pin")
-                .transition(.opacity)
+                .transition(profileTransition == nil ? .opacity : .identity)
             }
         }
         .animation(
             reduceMotion ? nil : .easeInOut(duration: 0.25),
-            value: [appModel.parentalSwitch?.target.id, appModel.lockedSwitch?.target.id,
+            value: profileTransition != nil ? [] : [
+                    appModel.parentalSwitch?.target.id, appModel.lockedSwitch?.target.id,
                     appModel.plexHomeUsers.pendingPlexPINRequest?.id]
         )
     }

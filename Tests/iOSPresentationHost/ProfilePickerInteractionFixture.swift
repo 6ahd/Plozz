@@ -110,10 +110,12 @@ struct ProfileSelectionInteractionFixture: View {
         }
         let model = PlozziOSAppModel(accountStore: accounts, profileStore: store)
         let slowCheck = ProcessInfo.processInfo.arguments.contains("--slow-plex-check")
+        let failedCheck = ProcessInfo.processInfo.arguments.contains("--failed-plex-check")
         let isProtected = !ProcessInfo.processInfo.arguments.contains("--unprotected-plex-check")
         model.plexHomeUsers.plexHomeUsersFetch = { _, _ in
             try await Task.sleep(for: slowCheck ? .seconds(5) : .milliseconds(350))
-            return [PlexHomeUser(id: "protected", name: "Protected", requiresPIN: isProtected)]
+            if failedCheck { throw URLError(.notConnectedToInternet) }
+            return [PlexHomeUser(id: "protected", name: "Server identity", requiresPIN: isProtected)]
         }
         model.plexHomeUsers.plexHomeUserSwitch = { _, pin, _, _ in
             guard pin == (isProtected ? "2468" : nil) else { throw URLError(.userAuthenticationRequired) }

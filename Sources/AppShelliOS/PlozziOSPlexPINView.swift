@@ -1,21 +1,25 @@
 #if os(iOS)
 import AppRuntime
+import CoreModels
 import CoreUI
+import FeatureProfiles
 import SwiftUI
 
 struct PlozziOSPlexPINView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var model: PlexHomeUsersModel
     let request: PlexHomeUsersModel.PlexPINRequest
+    var profile: Profile?
     var sequenceStep: PINSequenceStep? = nil
     var dismissOnSuccess = true
     var onCancel: () -> Void = {}
+    @Environment(\.pinProfileTransition) private var profileTransition
 
     var body: some View {
         let pendingRequest = model.pendingPlexPINRequest
         PINEntryScaffold(
-            title: "Enter your Plex PIN",
-            name: Text(verbatim: request.homeUserName),
+            title: profile == nil ? "Enter your Plex PIN" : "Plex PIN",
+            name: Text(verbatim: profile?.name ?? request.homeUserName),
             errorMessage: model.plexPINError,
             isSubmitting: model.isSubmittingPlexPIN,
             availability: pendingRequest == nil ? .checking : model.plexPINEntryAvailability,
@@ -36,22 +40,26 @@ struct PlozziOSPlexPINView: View {
                 if dismissOnSuccess, model.pendingPlexPINRequest == nil { dismiss() }
             }
         ) {
-            PINBadge {
-                if let url = request.homeUserAvatarURL.flatMap(URL.init(string:)) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case let .success(image):
-                            image.resizable().scaledToFill()
-                        default:
-                            Image(systemName: "person.fill")
-                                .font(.title)
-                                .foregroundStyle(.secondary)
+            if let profile {
+                ProfileAvatarView(profile: profile, size: profileTransition?.avatarSize ?? PINLayout.badgeSize)
+            } else {
+                PINBadge {
+                    if let url = request.homeUserAvatarURL.flatMap(URL.init(string:)) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case let .success(image):
+                                image.resizable().scaledToFill()
+                            default:
+                                Image(systemName: "person.fill")
+                                    .font(.title)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.title)
+                            .foregroundStyle(.secondary)
                     }
-                } else {
-                    Image(systemName: "person.fill")
-                        .font(.title)
-                        .foregroundStyle(.secondary)
                 }
             }
         }

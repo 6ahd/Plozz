@@ -454,9 +454,14 @@ profile-to-Plex PIN sequencing, launch selection retention, and choosing again
 after cancellation targets a locked fallback. Existing profile locks and Plex
 requests must leave the picker visible until a profile is explicitly tapped;
 choosing another profile must not show the old target's PIN.
-Slow Plex verification stays on the selected tile without changing its position
-or showing a full-page checking interstitial. Cancellation must suppress late
-PIN presentation; confirmed unprotected users complete without a PIN page.
+Slow Plex verification moves the selected Plozz avatar/name into the PIN layout
+without an avatar spinner, server-user identity substitution, or premature
+keypad. Cancellation must suppress late PIN presentation and restore the
+original tile position; confirmed unprotected users complete without a PIN page.
+Failed checks retain identity and allow retry/cancel. The native keypad reveal
+must be ordered and bypass its movement/delays with Reduce Motion.
+Hosted PIN layouts cover phone/tablet portrait and landscape plus accessible
+long names: no horizontal overflow, no truncation, and a reachable Cancel.
 A contrasting Home backdrop must stay covered
 and untappable until selection completes. Fixtures disable sync and use only
 synthetic host-sandbox profiles and in-memory Plex credentials.
