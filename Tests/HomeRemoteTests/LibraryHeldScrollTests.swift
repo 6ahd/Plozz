@@ -2,7 +2,7 @@ import XCTest
 
 @MainActor
 final class LibraryHeldScrollTests: XCTestCase {
-    func testRecommendedHeaderKeylineAndFocusedTabsKeepEvenInsets() throws {
+    func testLibraryHeaderStaysFixedAcrossModesAndFocusedTabsKeepEvenInsets() throws {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
         defer { app.terminate() }
@@ -28,7 +28,7 @@ final class LibraryHeldScrollTests: XCTestCase {
 
                 XCTAssertEqual(bar.frame.minX, heading.frame.minX, accuracy: 1,
                                "Align the mode container to Showcase without moving the shared content.")
-                let recommendedLeading = bar.frame.minX
+                let expectedFrame = bar.frame
                 for mode in ["recommended", "titles", "collections", "playlists"] {
                     let tab = app.buttons["library-content-mode-\(mode)"]
                     if mode != "recommended" { XCUIRemote.shared.press(.right) }
@@ -46,11 +46,15 @@ final class LibraryHeldScrollTests: XCTestCase {
                                        "The last focused pill must retain the same trailing clearance.")
                     }
                 }
-                try selectMode("titles", in: app)
-                XCTAssertEqual(bar.frame.minX, recommendedLeading + (pinnedSidebar ? 16 : 0), accuracy: 1,
-                               "Browse must retain its extra pinned-sidebar grid clearance.")
-                try selectMode("recommended", in: app)
-                XCTAssertEqual(bar.frame.minX, recommendedLeading, accuracy: 1)
+                for mode in ["titles", "collections", "playlists", "recommended"] {
+                    try selectMode(mode, in: app)
+                    XCTAssertEqual(bar.frame.minX, expectedFrame.minX, accuracy: 1,
+                                   "Switching to \(mode) must not move the navigation horizontally.")
+                    XCTAssertEqual(bar.frame.minY, expectedFrame.minY, accuracy: 1,
+                                   "Switching to \(mode) must not move the navigation vertically.")
+                    XCTAssertEqual(bar.frame.width, expectedFrame.width, accuracy: 1)
+                    XCTAssertEqual(bar.frame.height, expectedFrame.height, accuracy: 1)
+                }
                 app.terminate()
             }
         }

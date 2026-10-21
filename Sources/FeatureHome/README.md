@@ -397,10 +397,11 @@ and omitted from the current picker rather than blocking a confirmed primary.
   The outer focus host and Recommended content both break out at the trailing
   edge so artwork reaches the screen edge; headers and grids retain their safe
   margins, including the custom pinned rail's foreground inset. Home is unchanged.
-  Recommended's mode container follows the Showcase hero and row-heading keyline;
-  the extra 16pt pinned-sidebar clearance applies only to the grid-mode header
-  and content. Focus changes a tab's contrast, not its size, preserving the
-  container's even 6pt inner padding. Pressed feedback remains unchanged.
+  The mode container stays on the Showcase hero and row-heading keyline across
+  Recommended, Browse, Collections, and Playlists; switching pages must not move
+  or resize the navigation. The extra 16pt pinned-sidebar clearance belongs only
+  to grid content, never the header. Focus changes a tab's contrast, not its size,
+  preserving the container's even 6pt inner padding. Pressed feedback remains unchanged.
   Sort sits on that same top navigation line alongside Filter and file browsing.
   Filter and Sort form a compact pair. Alphabet navigation stays on the
   scrolling rail; there is no separate Jump to letter button.

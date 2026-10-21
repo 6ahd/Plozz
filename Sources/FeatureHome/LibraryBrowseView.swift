@@ -98,9 +98,7 @@ public struct LibraryBrowseView: View {
     }
 
     private var headerLeadingPadding: CGFloat {
-        viewModel.contentMode == .recommended
-            ? HomeLayout.horizontalPadding + navigationContentInset
-            : contentLeadingPadding
+        HomeLayout.horizontalPadding + navigationContentInset
     }
 
     private var isEntryContentPending: Bool {
