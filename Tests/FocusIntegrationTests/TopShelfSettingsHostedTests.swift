@@ -71,7 +71,8 @@ final class TopShelfSettingsHostedTests: XCTestCase {
         let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         for label in [
             "Top Shelf", "Show Top Shelf", "Continue Watching", "Recently Added",
-            "Applies to everyone on this device.", "top row", "Apple TV Home Screen", "above the app icons."
+            "Applies to everyone on this device.", "top row", "Apple TV Home Screen", "above the app icons.",
+            "Posters", "Full Screen"
         ] {
             XCTAssertTrue(text.localizedCaseInsensitiveContains(label), "Missing settings copy \(label): \(text)")
         }
@@ -80,6 +81,16 @@ final class TopShelfSettingsHostedTests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
 
+        model.settings.usesFullScreen = true
+        try await Task.sleep(for: .milliseconds(400))
+        XCTAssertEqual(TopShelfSettingsModel(defaults: defaults).settings,
+                       .init(usesFullScreen: true, continueWatchingItems: 2, recentlyAddedItems: 2))
+        let fullscreen = XCTAttachment(image: DetailTransitionSnapshot.image(of: window))
+        fullscreen.name = "Top Shelf full-screen selection"
+        fullscreen.lifetime = .keepAlways
+        add(fullscreen)
+        model.settings.usesFullScreen = false
+
         model.settings.isEnabled = false
         try await waitUntil { self.inputs(in: host).isEmpty }
         XCTAssertEqual(TopShelfSettingsModel(defaults: defaults).settings,
@@ -87,6 +98,24 @@ final class TopShelfSettingsHostedTests: XCTestCase {
         model.settings.isEnabled = true
         try await waitUntil { self.inputs(in: host).count == 2 }
         XCTAssertEqual(model.settings, .init(continueWatchingItems: 2, recentlyAddedItems: 2))
+    }
+
+    func testHomeScreenIconLoadsAsATemplateAtSettingsSizes() throws {
+        let icon = try XCTUnwrap(UIImage(named: "TopShelfIcon"))
+        let white = icon.withTintColor(.white, renderingMode: .alwaysOriginal)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 280, height: 140), format: format).image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 280, height: 140))
+            for (x, size): (CGFloat, CGFloat) in [(24, 22), (80, 44), (160, 88)] {
+                white.draw(in: CGRect(x: x, y: (140 - size) / 2, width: size, height: size))
+            }
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "Top Shelf Home Screen icon at 22, 44 and 88 points"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     private func press(_ direction: SettingsMoveCommandDirection, _ input: any SettingsAdjustmentRemoteInput) {

@@ -7,6 +7,7 @@ public struct TopShelfSettings: Codable, Equatable, Sendable {
     public static let `default` = TopShelfSettings()
 
     public var isEnabled: Bool
+    public var usesFullScreen: Bool
     public var continueWatchingItems: Int {
         didSet { continueWatchingItems = Self.bounded(continueWatchingItems) }
     }
@@ -14,20 +15,26 @@ public struct TopShelfSettings: Codable, Equatable, Sendable {
         didSet { recentlyAddedItems = Self.bounded(recentlyAddedItems) }
     }
 
-    public init(isEnabled: Bool = true, continueWatchingItems: Int = 4, recentlyAddedItems: Int = 4) {
+    public init(
+        isEnabled: Bool = true, usesFullScreen: Bool = false,
+        continueWatchingItems: Int = 4, recentlyAddedItems: Int = 4
+    ) {
         self.isEnabled = isEnabled
+        self.usesFullScreen = usesFullScreen
         self.continueWatchingItems = Self.bounded(continueWatchingItems)
         self.recentlyAddedItems = Self.bounded(recentlyAddedItems)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, continueWatchingItems, recentlyAddedItems
+        case isEnabled, usesFullScreen, continueWatchingItems, recentlyAddedItems
     }
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             isEnabled: try values.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? Self.default.isEnabled,
+            usesFullScreen: try values.decodeIfPresent(Bool.self, forKey: .usesFullScreen)
+                ?? Self.default.usesFullScreen,
             continueWatchingItems: try values.decodeIfPresent(Int.self, forKey: .continueWatchingItems)
                 ?? Self.default.continueWatchingItems,
             recentlyAddedItems: try values.decodeIfPresent(Int.self, forKey: .recentlyAddedItems)

@@ -8,8 +8,8 @@ import TVServices
 /// the shared App Group container for the Top Shelf extension to render.
 ///
 /// This file imports `CoreModels`, so it is compiled **only** into the app (via
-/// the `TopShelfKit` package). The extension compiles just `TopShelfSnapshot`
-/// and `TopShelfStore`, keeping `CoreModels` out of its memory budget.
+/// the `TopShelfKit` package). The extension compiles the snapshot, store and
+/// native content builder directly, keeping `CoreModels` out of its memory budget.
 public enum TopShelfPublisher {
     public typealias ArtworkResolver = @MainActor @Sendable (MediaItem) async -> Data?
 
@@ -42,13 +42,16 @@ public enum TopShelfPublisher {
         continueWatching: [MediaItem],
         latest: [MediaItem],
         locale: Locale? = nil,
-        resolveArtwork: ArtworkResolver? = nil
+        spoilerSettings: SpoilerSettings = .default,
+        resolveArtwork: ArtworkResolver? = nil,
+        resolveBackdrop: ArtworkResolver? = nil
     ) async {
         let settings = TopShelfSettingsModel.shared.settings
         await publication.publish {
             await makeSnapshot(
                 continueWatching: continueWatching, latest: latest, settings: settings,
-                locale: locale, resolveArtwork: resolveArtwork
+                locale: locale, spoilerSettings: spoilerSettings,
+                resolveArtwork: resolveArtwork, resolveBackdrop: resolveBackdrop
             )
         }
     }
@@ -74,7 +77,9 @@ public enum TopShelfPublisher {
         latest: [MediaItem],
         settings: TopShelfSettings = .default,
         locale: Locale? = nil,
-        resolveArtwork: ArtworkResolver? = nil
+        spoilerSettings: SpoilerSettings = .default,
+        resolveArtwork: ArtworkResolver? = nil,
+        resolveBackdrop: ArtworkResolver? = nil
     ) async -> TopShelfSnapshot? {
         guard !Task.isCancelled else { return nil }
         guard settings.isEnabled else { return TopShelfSnapshot(sections: []) }
@@ -82,7 +87,9 @@ public enum TopShelfPublisher {
 
         let resume = await items(
             from: Array(continueWatching.prefix(settings.continueWatchingItems)),
-            compositeProgress: true, resolveArtwork: resolveArtwork
+            compositeProgress: true, usesFullScreen: settings.usesFullScreen,
+            spoilerSettings: spoilerSettings, locale: locale,
+            resolveArtwork: resolveArtwork, resolveBackdrop: resolveBackdrop
         )
         if !resume.isEmpty {
             sections.append(.init(id: "continue",
@@ -91,7 +98,9 @@ public enum TopShelfPublisher {
         }
 
         let recent = await items(
-            from: Array(latest.prefix(settings.recentlyAddedItems)), resolveArtwork: resolveArtwork
+            from: Array(latest.prefix(settings.recentlyAddedItems)), usesFullScreen: settings.usesFullScreen,
+            spoilerSettings: spoilerSettings, locale: locale,
+            resolveArtwork: resolveArtwork, resolveBackdrop: resolveBackdrop
         )
         if !recent.isEmpty {
             sections.append(.init(id: "latest",
@@ -100,7 +109,7 @@ public enum TopShelfPublisher {
         }
 
         guard !Task.isCancelled else { return nil }
-        return TopShelfSnapshot(sections: sections)
+        return TopShelfSnapshot(usesFullScreen: settings.usesFullScreen, sections: sections)
     }
 
     /// What a half-watched card says beside its progress bar: which episode, and
@@ -132,7 +141,11 @@ public enum TopShelfPublisher {
     private static func items(
         from media: [MediaItem],
         compositeProgress: Bool = false,
-        resolveArtwork: ArtworkResolver? = nil
+        usesFullScreen: Bool,
+        spoilerSettings: SpoilerSettings,
+        locale: Locale?,
+        resolveArtwork: ArtworkResolver? = nil,
+        resolveBackdrop: ArtworkResolver? = nil
     ) async -> [TopShelfSnapshot.Item] {
         var result: [TopShelfSnapshot.Item] = []
         result.reserveCapacity(media.count)
@@ -152,7 +165,17 @@ public enum TopShelfPublisher {
             let progress = compositeProgress ? item.playedPercentage : nil
             var imageURL: URL?
 
-            if let resolveArtwork {
+            if usesFullScreen {
+                if let resolveBackdrop {
+                    let data = await resolveBackdrop(item)
+                    guard !Task.isCancelled else { return [] }
+                    imageURL = TopShelfBackdropComposer.imageURL(data: data)
+                } else {
+                    imageURL = item.kind == .episode
+                        ? item.fallbackArtworkURL : item.heroBackdropURL ?? item.backdropURL
+                    if imageURL == nil { imageURL = TopShelfBackdropComposer.imageURL(data: nil) }
+                }
+            } else if let resolveArtwork {
                 if let data = await resolveArtwork(item), !Task.isCancelled {
                     imageURL = TopShelfPosterComposer.selectedPosterURL(
                         id: artworkID, data: data, progress: progress,
@@ -173,7 +196,7 @@ public enum TopShelfPublisher {
                     imageURL = poster
                 }
             }
-            if imageURL == nil, !Task.isCancelled {
+            if !usesFullScreen, imageURL == nil, !Task.isCancelled {
                 // No vertical artwork anywhere: render a neutral title-card
                 // placeholder (with the resume bar burned in when mid-playback)
                 // instead of leaving a blank card or a zoomed backdrop.
@@ -182,14 +205,19 @@ public enum TopShelfPublisher {
                 )
             }
 
+            let hidesText = usesFullScreen && spoilerSettings.shouldHideText(for: item)
+            let title = hidesText ? resolved(spoilerSettings.maskedTitle(for: item), locale) : item.title
             result.append(
                 TopShelfSnapshot.Item(
                     id: item.id,
                     accountID: item.sourceAccountID,
-                    title: item.title,
+                    title: title,
                     subtitle: item.subtitle,
                     imageURL: imageURL,
-                    playbackProgress: item.playedPercentage
+                    playbackProgress: item.playedPercentage,
+                    summary: usesFullScreen && !hidesText ? item.overview : nil,
+                    genre: usesFullScreen ? item.genres.first : nil,
+                    duration: usesFullScreen ? item.runtime : nil
                 )
             )
         }

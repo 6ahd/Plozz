@@ -5,6 +5,7 @@ import XCTest
 final class TopShelfSettingsTests: XCTestCase {
     func testDefaultsAndAllowedRange() {
         XCTAssertTrue(TopShelfSettings.default.isEnabled)
+        XCTAssertFalse(TopShelfSettings.default.usesFullScreen)
         XCTAssertEqual(TopShelfSettings.default.continueWatchingItems, 4)
         XCTAssertEqual(TopShelfSettings.default.recentlyAddedItems, 4)
         XCTAssertEqual(TopShelfSettings.itemCountRange, 1...20)
@@ -32,6 +33,20 @@ final class TopShelfSettingsTests: XCTestCase {
             model.settings.recentlyAddedItems = 1
             XCTAssertEqual(TopShelfSettingsModel(defaults: defaults).settings,
                            TopShelfSettings(continueWatchingItems: 20, recentlyAddedItems: 1))
+        }
+    }
+
+    func testFullscreenSelectionPersistsWithoutChangingCountsOrEnablement() throws {
+        try withDefaults { defaults in
+            let model = TopShelfSettingsModel(defaults: defaults)
+            model.settings = .init(isEnabled: false, continueWatchingItems: 3, recentlyAddedItems: 9)
+            model.settings.usesFullScreen = true
+            XCTAssertEqual(TopShelfSettingsModel(defaults: defaults).settings,
+                           .init(isEnabled: false, usesFullScreen: true,
+                                 continueWatchingItems: 3, recentlyAddedItems: 9))
+            model.settings.usesFullScreen = false
+            XCTAssertEqual(TopShelfSettingsModel(defaults: defaults).settings,
+                           .init(isEnabled: false, continueWatchingItems: 3, recentlyAddedItems: 9))
         }
     }
 

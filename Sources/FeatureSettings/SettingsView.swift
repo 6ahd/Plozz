@@ -601,8 +601,10 @@ public struct SettingsView: View {
                        value: Text(verbatim: profiles.count.formatted()),
                        route: .profile)
 
-                sectionRow("Top Shelf", icon: "appletv",
-                           route: .topShelf)
+                SettingsSectionButton(
+                    title: Text("Top Shelf"), icon: "rectangle.topthird.inset.filled",
+                    assetIcon: "TopShelfIcon", route: .topShelf
+                )
 
                 // Household-level, so it sits here rather than on a profile —
                 // one PIN for everyone, not a property of any one person.

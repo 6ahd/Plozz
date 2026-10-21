@@ -19,6 +19,7 @@ struct TopShelfSettingsView: View {
                         .accessibilityIdentifier("top-shelf-enabled")
                 }
                 if model.settings.isEnabled {
+                    TopShelfStylePicker(usesFullScreen: $model.settings.usesFullScreen)
                     SettingsControlGroup {
                         SettingsStepper(
                             options: Array(TopShelfSettings.itemCountRange),
@@ -34,6 +35,12 @@ struct TopShelfSettingsView: View {
                             verbatimTitle: { $0.formatted() }
                         )
                         .accessibilityIdentifier("top-shelf-recently-added")
+                    }
+                    if model.settings.usesFullScreen {
+                        Text("Swipe up on the Apple TV Home Screen to open the full-screen view. Continue Watching appears first, followed by Recently Added.")
+                            .font(SettingsRowMetrics.helperFont)
+                            .plozzForeground(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }

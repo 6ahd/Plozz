@@ -244,6 +244,7 @@ struct HomeTab: View {
                         continueWatching: continueWatching,
                         latest: latest,
                         locale: locale,
+                        spoilerSettings: SpoilerSettingsStore(namespace: libraryPreferencesNamespace).load(),
                         resolveArtwork: { item in
                             let source = MediaArtworkSource(
                                 item: item, placement: item.kind == .episode ? .seriesPoster : .poster,
@@ -251,6 +252,13 @@ struct HomeTab: View {
                             )
                             return await source.resolve(variant: .posterCard, maxAspectRatio: 1)?
                                 .image.pngData()
+                        },
+                        resolveBackdrop: { item in
+                            let subject = item.kind == .episode ? ArtworkRouter.seriesArtworkItem(for: item) : item
+                            let source = MediaArtworkSource(
+                                item: subject, placements: [.detailBackdrop, .poster], policy: policy
+                            )
+                            return await source.resolve(variant: .heroBackdrop)?.image.jpegData(compressionQuality: 0.9)
                         }
                     )
                 }
