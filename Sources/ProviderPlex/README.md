@@ -84,6 +84,9 @@ Exhaustive feed pagination detects repeated server items using namespaced
 when both local identifiers are absent: copies or editions in different
 libraries can legitimately share it. Size, total, offset, and forward-progress
 validation remain strict.
+Failed reads also record the failing endpoint category and paging invariant for
+the shared Details sheet. These opt-in diagnostics preserve error/fallback
+behavior and never export item identities or response bodies.
 
 ## Continue Watching artwork
 

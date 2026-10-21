@@ -1,5 +1,6 @@
 import XCTest
 import CoreModels
+import CoreNetworking
 @testable import ProviderPlex
 
 final class PlexContinueWatchingFeedTests: XCTestCase {
@@ -133,6 +134,66 @@ final class PlexContinueWatchingFeedTests: XCTestCase {
             }
             XCTAssertEqual(stub.sentPaths, ["/hubs/continueWatching/items"])
         }
+    }
+
+    func testDetailsIdentifyPagingFailureWithoutExposingItemIdentity() async throws {
+        for route in [Route.combinedHome, .nativeHome] {
+            let stub = StubHTTPClient()
+            stub.stub(
+                pathSuffix: "/hubs/continueWatching/items",
+                json: copies.replacingOccurrences(of: #""ratingKey":"202""#, with: #""ratingKey":"101""#)
+            )
+            let provider = provider(stub)
+            let section = section
+            let captured = await HTTPResponseDiagnostics.capture {
+                if route == .nativeHome {
+                    return try await provider.serverHomeItems(section: section, limit: .max, excludingLibraryIDs: [])
+                }
+                return try await provider.homeContinueWatching(limit: .max, inLibraries: nil, separateNextUp: false)
+            }
+            guard case .failure(let error) = captured.result else { return XCTFail("Expected paging failure") }
+            XCTAssertEqual(error as? AppError, .invalidResponse)
+            XCTAssertEqual(captured.paging, [
+                .init(stage: .continueWatchingItems, reason: .repeatedItem, start: 0, rows: 2, total: 2)
+            ])
+            let report = LibraryLoadDiagnostic(provider: .plex, operation: .homeContinueWatching, failures: [
+                .init(section: .continueWatching, error: .invalidResponse, paging: captured.paging)
+            ])
+            XCTAssertTrue(report.supportText.contains("page_0.reason=repeatedItem"))
+            for privateValue in ["101", "plex://movie/shared", "/library/metadata", "TEST_TOKEN", "plex.test"] {
+                XCTAssertFalse(report.supportText.contains(privateValue))
+            }
+        }
+    }
+
+    func testDetailsDistinguishHubAndLegacyDecodeFailures() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/hubs/continueWatching/items", json: "{}")
+        stub.stub(pathSuffix: "/hubs/continueWatching", json: "{}")
+        stub.stub(pathSuffix: "/library/onDeck", json: "{}")
+        let provider = provider(stub)
+        let captured = await HTTPResponseDiagnostics.capture {
+            try await provider.continueWatching(limit: .max)
+        }
+        guard case .failure(let error) = captured.result else { return XCTFail("Expected decode failure") }
+        XCTAssertEqual(error as? AppError, .decoding)
+        XCTAssertEqual(captured.responses.map(\.route), [.continueWatchingItems, .continueWatchingHub, .onDeck])
+        XCTAssertEqual(captured.responses.map(\.path), Array(repeating: "MediaContainer", count: 3))
+    }
+
+    func testSuccessfulFallbackDoesNotLeaveDetailsBehind() async throws {
+        let stub = StubHTTPClient()
+        stub.stub(pathSuffix: "/hubs/continueWatching/items", json: "{}")
+        stub.stub(pathSuffix: "/hubs/continueWatching", json: copies)
+        let provider = provider(stub)
+        let section = section
+        let captured = await HTTPResponseDiagnostics.capture {
+            try await provider.serverHomeItems(section: section, limit: .max, excludingLibraryIDs: [])
+        }
+        XCTAssertEqual(try captured.result.get().count, 2)
+        XCTAssertTrue(captured.responses.isEmpty)
+        XCTAssertTrue(captured.paging.isEmpty)
+        XCTAssertTrue(captured.http.isEmpty)
     }
 
     func testInitialEndpointFailuresUseTheSamePlainHubFallbackOnEverySurface() async throws {

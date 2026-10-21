@@ -322,11 +322,13 @@ public final class HomeViewModel {
     public private(set) var isRefreshing = false
     public private(set) var loadingRows: Set<HomeRowKind> = []
     public private(set) var rowFailures: [HomeRowKind: AppError] = [:]
+    public private(set) var continueWatchingDiagnostic: LibraryLoadDiagnostic?
     public var hasLiveContinueWatching: Bool { hasReceivedLiveContent }
     @ObservationIgnored private var loadGeneration: UInt64 = 0
     @ObservationIgnored private var publishedLoadRows: Set<HomeRowKind> = []
     @ObservationIgnored private var mutationsDuringLoad: [MediaItemMutation] = []
     @ObservationIgnored private var loadFailures: [HomeRowKind: AppError] = [:]
+    @ObservationIgnored private var loadContinueWatchingDiagnostic: LibraryLoadDiagnostic?
     /// Exact unresolved Watchlist slots. Resolved cards remain fixed while these
     /// placeholders are replaced, matching ordinary paged library browsing.
     public private(set) var watchlistLoadingPlaceholderCount = 0
@@ -712,6 +714,7 @@ public final class HomeViewModel {
         publishedLoadRows = []
         mutationsDuringLoad = []
         loadFailures = [:]
+        loadContinueWatchingDiagnostic = nil
         detailResumeByAccount = [:]
         defer {
             // The view may be covered when settings change, so a discarded load
@@ -741,6 +744,7 @@ public final class HomeViewModel {
         let publishesProgress = showLoadingState || !hasCompletedHomeLoad
         if publishesProgress, !accounts.isEmpty {
             rowFailures = [:]
+            continueWatchingDiagnostic = nil
             loadingRows = Set(HomeRowKind.allCases)
             var initial = previousContent ?? Content()
             initial.mergeLibraries = !visibility.usesIndividualHomeRows
@@ -924,6 +928,7 @@ public final class HomeViewModel {
         content = applyingLoadMutations(to: content)
         loadingRows = []
         rowFailures = loadFailures
+        continueWatchingDiagnostic = loadContinueWatchingDiagnostic
         if content.isEmpty, accounts.isEmpty {
             await scheduleSnapshotClear().value
         } else if content.isEmpty, !showLoadingState, let previousContent {
@@ -1040,6 +1045,7 @@ public final class HomeViewModel {
     ) async {
         guard !Task.isCancelled, generation == loadGeneration, currentVisibility() == visibility else { return }
         loadFailures = progress.failures
+        loadContinueWatchingDiagnostic = progress.continueWatchingDiagnostic
         guard publishesProgress else { return }
         let ready = Set(HomeRowKind.allCases).subtracting(progress.loadingRows)
         let newlyReady = ready.subtracting(publishedLoadRows)
@@ -1106,6 +1112,7 @@ public final class HomeViewModel {
         // Publish failures with reconciled content, never across an await that
         // could replace a focused loading row before its usable cards arrive.
         rowFailures = progress.failures
+        continueWatchingDiagnostic = progress.continueWatchingDiagnostic
         loadingRows = progress.loadingRows
         let publication = PerformanceDiagnostics.shared.begin(.homePublish)
         if state.value != content { state = .loaded(content) }
