@@ -9,6 +9,7 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   household's profile tiles (avatar + name), focusable, with an "add
   profile" tile that opens the editor. `AppShell.ProfileSelectionView`
   hosts this for both the launch flow and Settings → Switch Profile.
+  Mobile uses `AppShelliOS.PlozziOSProfileSelectionView` and its touch picker.
 - `ProfileEditorView` — create / rename / restyle a profile (name,
   `avatarSymbol` SF Symbol, color from `ProfileTileColor` palette,
   account subset, Plex Home-user mapping).
@@ -47,6 +48,16 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
 - **Profile-aware everywhere.** Any feature reading per-user state
   (settings, watched, recommendations) must scope through the active
   profile id from `CoreModels.ProfilesModel`.
+- **Continuous mobile selection.** Launch and Settings keep the picker and
+  parental/profile/Plex PIN steps on one opaque surface until authorization
+  finishes. The modal owner sits outside the profile-scoped shell identity;
+  launch keeps that identity stable through PIN entry and cancellation.
+  Cancelling a PIN returns to the retained picker, not Home. Authorization
+  still belongs to the existing profile/Plex models.
+- **Visible mobile entrance.** Start the cascade after native presentation
+  finishes, with a separate 200 ms slot per tile and a 650 ms eased reveal.
+  Never cap later delays into a batch. Reduce Motion reveals everything
+  immediately; newly realized offscreen cells do not wait through earlier slots.
 - **Native editor controls.** On tvOS, the scrollable editor keeps its title
   separate from one center-aligned row of Back, Delete, and save/revert actions.
   The navigation owner still supplies Back and its focus-restoration behavior.

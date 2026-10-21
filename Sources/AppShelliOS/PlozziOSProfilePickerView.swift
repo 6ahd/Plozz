@@ -4,6 +4,82 @@ import FeatureProfiles
 import Foundation
 import SwiftUI
 import CoreUI
+import UIKit
+
+/// Keeps selection and authorization in one presentation, including while Plex
+/// checks the current PIN requirement. Only a completed selection closes it.
+struct PlozziOSProfileSelectionView: View {
+    let appModel: PlozziOSAppModel
+    var onSelectionStarted: () -> Void = {}
+    let onComplete: () -> Void
+    var onCancel: (() -> Void)?
+
+    @State private var selectedProfileID: String?
+    @State private var showsAuthorization = true
+    @Environment(\.themePalette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var hasPendingAuthorization: Bool {
+        appModel.parentalSwitch != nil || appModel.lockedSwitch != nil
+            || appModel.plexHomeUsers.pendingPlexPINRequest != nil
+    }
+
+    private var presentsAuthorization: Bool {
+        showsAuthorization && hasPendingAuthorization
+    }
+
+    private var selectionCompleted: Bool {
+        selectedProfileID != nil
+            && selectedProfileID == appModel.profiles.activeProfileID
+            && !hasPendingAuthorization
+            && !appModel.activeProfileNeedsUnlock
+            && !appModel.mustChooseProfile
+    }
+
+    var body: some View {
+        ZStack {
+            PlozziOSProfilePickerView(
+                profiles: appModel.profiles.profilesByRecency,
+                activeProfileID: appModel.profiles.activeProfileID,
+                onSelect: { profile in
+                    onSelectionStarted()
+                    selectedProfileID = profile.id
+                    showsAuthorization = true
+                    // A cancelled Plex attempt can leave a fallback PIN prompt.
+                    // A new selection must recheck gates for its own target.
+                    appModel.cancelProfileLockPrompt()
+                    appModel.cancelParentalSwitch()
+                    appModel.selectProfile(profile.id)
+                },
+                manager: appModel.managementRequiresParentalPIN ? nil : appModel,
+                onCancel: onCancel
+            )
+            .opacity(presentsAuthorization ? 0 : 1)
+            .allowsHitTesting(!presentsAuthorization)
+            .accessibilityHidden(presentsAuthorization)
+
+            if presentsAuthorization {
+                PlozziOSProfileAccessGateView(appModel: appModel) {
+                    selectedProfileID = nil
+                    showsAuthorization = false
+                }
+                .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .trailing)))
+                .zIndex(1)
+            }
+        }
+        .background { AppBackground(palette: palette).ignoresSafeArea() }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: presentsAuthorization)
+        .onChange(of: selectionCompleted) { _, completed in
+            if completed { onComplete() }
+        }
+        .onAppear {
+            guard hasPendingAuthorization else { return }
+            onSelectionStarted()
+            selectedProfileID = appModel.parentalSwitch?.target.id
+                ?? appModel.lockedSwitch?.target.id ?? appModel.profiles.activeProfileID
+        }
+    }
+}
 
 /// "Who's watching?" — the one screen for choosing a profile, and for changing
 /// or adding one.
@@ -159,6 +235,7 @@ private struct PlozziOSProfilePickerGrid: View {
     let onEdit: (Profile) -> Void
     let onAdd: (Bool) -> Void
     @State private var hasAppeared = false
+    @State private var presentationReady = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -214,14 +291,52 @@ private struct PlozziOSProfilePickerGrid: View {
                 ))
             }
         }
-        .task {
-            guard !hasAppeared else { return }
+        .background {
+            ProfilePickerPresentationObserver { presentationReady = true }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .task(id: presentationReady) {
+            guard presentationReady, !hasAppeared else { return }
             if !reduceMotion {
                 // Commit the hidden grid first; onAppear coalesces into the initial render.
                 try? await Task.sleep(for: .milliseconds(40))
                 guard !Task.isCancelled else { return }
             }
             hasAppeared = true
+        }
+    }
+}
+
+private struct ProfilePickerPresentationObserver: UIViewControllerRepresentable {
+    let onAppear: () -> Void
+
+    func makeUIViewController(context: Context) -> Observer {
+        Observer(onAppear: onAppear)
+    }
+
+    func updateUIViewController(_ controller: Observer, context: Context) {
+        controller.onAppear = onAppear
+    }
+
+    final class Observer: UIViewController {
+        var onAppear: () -> Void
+
+        init(onAppear: @escaping () -> Void) {
+            self.onAppear = onAppear
+            super.init(nibName: nil, bundle: nil)
+        }
+
+        required init?(coder: NSCoder) { nil }
+
+        override func loadView() {
+            view = UIView()
+            view.isUserInteractionEnabled = false
+        }
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            onAppear()
         }
     }
 }
@@ -277,22 +392,41 @@ struct PlozziOSProfilePickerEntrance: ViewModifier {
     let isPresented: Bool
     let position: Int
     let reduceMotion: Bool
+    @State private var hasEntered = false
 
     static let initialScale: CGFloat = 0.94
-    static let duration: TimeInterval = 0.5
-    static func delay(at position: Int) -> TimeInterval { min(Double(max(0, position)) * 0.05, 0.3) }
+    static let duration: TimeInterval = 0.65
+    static func delay(at position: Int) -> TimeInterval { Double(max(0, position)) * 0.2 }
+
+    init(isPresented: Bool, position: Int, reduceMotion: Bool) {
+        self.isPresented = isPresented
+        self.position = position
+        self.reduceMotion = reduceMotion
+        // Cells first realized after the entrance (scrolling a large household)
+        // are immediately available instead of waiting through offscreen slots.
+        _hasEntered = State(initialValue: isPresented || reduceMotion)
+    }
 
     func body(content: Content) -> some View {
         content
-            .opacity(isPresented || reduceMotion ? 1 : 0)
-            .scaleEffect(isPresented || reduceMotion ? 1 : Self.initialScale)
-            .allowsHitTesting(isPresented || reduceMotion)
-            .accessibilityHidden(!isPresented && !reduceMotion)
+            .opacity(hasEntered || reduceMotion ? 1 : 0)
+            .scaleEffect(hasEntered || reduceMotion ? 1 : Self.initialScale)
+            .allowsHitTesting(hasEntered || reduceMotion)
+            .accessibilityHidden(!hasEntered && !reduceMotion)
             .animation(
-                reduceMotion ? nil : .timingCurve(0.2, 0.8, 0.2, 1, duration: Self.duration)
-                    .delay(Self.delay(at: position)),
-                value: isPresented
+                reduceMotion ? nil : .timingCurve(0.22, 0.61, 0.36, 1, duration: Self.duration),
+                value: hasEntered
             )
+            .task(id: isPresented) {
+                guard isPresented else { hasEntered = false; return }
+                guard !hasEntered else { return }
+                if !reduceMotion {
+                    do {
+                        try await Task.sleep(for: .seconds(Self.delay(at: position)))
+                    } catch { return }
+                }
+                hasEntered = true
+            }
     }
 }
 #endif

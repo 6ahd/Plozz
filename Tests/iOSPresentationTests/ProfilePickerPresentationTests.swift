@@ -38,6 +38,7 @@ final class ProfilePickerPresentationTests: XCTestCase {
             (.init(width: 390, height: 844), 3, .dark, true),
             (.init(width: 390, height: 844), 10, .dark, true),
             (.init(width: 320, height: 568), 12, .light, false),
+            (.init(width: 320, height: 568), 40, .dark, false),
             (.init(width: 768, height: 1024), 4, .light, true),
             (.init(width: 844, height: 390), 6, .pureBlack, false),
             (.init(width: 390, height: 844), 1, .light, false)
@@ -54,7 +55,7 @@ final class ProfilePickerPresentationTests: XCTestCase {
                 if count <= 4, size.height > 700 {
                     XCTAssertLessThanOrEqual(scroll.contentSize.height, scroll.bounds.height + 1)
                 }
-                if count == 12 {
+                if count >= 12 {
                     for _ in 0..<3 {
                         scroll.setContentOffset(CGPoint(x: 0, y: max(
                             0, scroll.contentSize.height - scroll.bounds.height
@@ -62,7 +63,7 @@ final class ProfilePickerPresentationTests: XCTestCase {
                         try await Task.sleep(for: .milliseconds(80))
                     }
                     let bottom = self.capture(window, name: "picker-many-bottom")
-                    XCTAssertTrue(try self.recognize(bottom).contains { $0.contains("Viewer 12") })
+                    XCTAssertTrue(try self.recognize(bottom).contains { $0.contains("Viewer \(count)") })
                 }
             }
         }
@@ -86,8 +87,15 @@ final class ProfilePickerPresentationTests: XCTestCase {
 
     func testEntranceIsStaggeredSettlesWithoutOvershootAndHonorsReduceMotion() async throws {
         XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 0), 0)
-        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 1), 0.05)
-        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 100), 0.3)
+        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 1), 0.2)
+        for position in 1...40 {
+            XCTAssertEqual(
+                PlozziOSProfilePickerEntrance.delay(at: position)
+                    - PlozziOSProfilePickerEntrance.delay(at: position - 1),
+                0.2, accuracy: 0.001, "Later profiles must never collapse into one reveal group."
+            )
+        }
+        XCTAssertEqual(PlozziOSProfilePickerEntrance.duration, 0.65)
         XCTAssertEqual(PlozziOSProfilePickerEntrance.initialScale, 0.94)
         let model = PickerMotionFixtureModel()
         try await withWindow(
@@ -101,7 +109,7 @@ final class ProfilePickerPresentationTests: XCTestCase {
             let first = try self.brightness(entering, x: 70, y: 70)
             let last = try self.brightness(entering, x: 70, y: 190)
             XCTAssertGreaterThan(first, last + 20, "The first tile must lead the later tile.")
-            try await Task.sleep(for: .milliseconds(750))
+            try await Task.sleep(for: .seconds(2))
             let settled = self.capture(window, name: "picker-motion-settled")
             XCTAssertGreaterThan(try self.brightness(settled, x: 70, y: 70), 245)
             XCTAssertGreaterThan(try self.brightness(settled, x: 70, y: 190), 245)
@@ -124,18 +132,24 @@ final class ProfilePickerPresentationTests: XCTestCase {
         let profiles = (0..<6).map {
             Profile(id: "motion-\($0)", name: "Viewer \($0)", avatarSymbol: "person.fill", colorIndex: 0)
         }
-        try await withWindow(
-            PlozziOSProfilePickerView(profiles: profiles, activeProfileID: profiles[0].id, onSelect: { _ in })
-                .environment(\.themePalette, .pureBlack)
-                .environment(\.gradientBackgroundsEnabled, false)
-                .preferredColorScheme(.dark),
-            size: .init(width: 390, height: 844)
-        ) { window in
-            try await Task.sleep(for: .milliseconds(80))
+        try await withWindow(Color.black.ignoresSafeArea(), size: .init(width: 390, height: 844)) { window in
+            let picker = UIHostingController(rootView:
+                PlozziOSProfilePickerView(profiles: profiles, activeProfileID: profiles[0].id, onSelect: { _ in })
+                    .environment(\.themePalette, .pureBlack)
+                    .environment(\.gradientBackgroundsEnabled, false)
+                    .preferredColorScheme(.dark)
+            )
+            picker.modalPresentationStyle = .fullScreen
+            let presenter = try XCTUnwrap(window.rootViewController)
+            await withCheckedContinuation { continuation in
+                presenter.present(picker, animated: true) { continuation.resume() }
+            }
             let entering = self.capture(window, name: "production-picker-entering", afterUpdates: false)
-            try await Task.sleep(for: .milliseconds(150))
+            // The cascade starts after the native navigation/cover appearance,
+            // not while that presentation is still sliding onto the screen.
+            try await Task.sleep(for: .milliseconds(400))
             let cascading = self.capture(window, name: "production-picker-cascading", afterUpdates: false)
-            try await Task.sleep(for: .milliseconds(700))
+            try await Task.sleep(for: .seconds(2))
             let settled = self.capture(window, name: "production-picker-settled")
             let early = try self.redPixelCount(entering)
             let middle = try self.redPixelCount(cascading)
@@ -172,7 +186,7 @@ final class ProfilePickerPresentationTests: XCTestCase {
                 .preferredColorScheme(palette.isLight ? .light : .dark),
             size: size
         ) { window in
-            try await Task.sleep(for: .seconds(1))
+            try await Task.sleep(for: .seconds(3))
             try await inspect(window)
         }
     }
