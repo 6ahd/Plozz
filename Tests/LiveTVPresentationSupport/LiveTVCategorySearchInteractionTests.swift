@@ -2,6 +2,64 @@ import XCTest
 
 @MainActor
 final class LiveTVCategorySearchInteractionTests: XCTestCase {
+    #if os(iOS)
+    func testNativeToolbarGroupsProfileAndBrowseActions() {
+        let app = launch()
+        defer { app.terminate() }
+        let profile = app.navigationBars.buttons["live-tv-profile"]
+        let filters = app.navigationBars.buttons["live-tv-category"]
+        XCTAssertTrue(profile.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(filters.exists, app.debugDescription)
+        XCTAssertEqual(filters.frame.midY, profile.frame.midY, accuracy: 1)
+        XCTAssertLessThanOrEqual(profile.frame.minX - filters.frame.maxX, 16)
+        for button in [profile, filters] {
+            XCTAssertGreaterThanOrEqual(button.frame.height, 32)
+            XCTAssertLessThanOrEqual(button.frame.height, 48)
+        }
+        let guide = app.navigationBars.buttons["live-tv-open-guide"]
+        if guide.exists {
+            XCTAssertEqual(guide.frame.midY, filters.frame.midY, accuracy: 1)
+            XCTAssertLessThanOrEqual(filters.frame.minX - guide.frame.maxX, 16)
+        }
+        filters.tap()
+        let close = app.buttons["live-tv-close-sheet"]
+        XCTAssertTrue(close.waitForExistence(timeout: 5), app.debugDescription)
+        close.tap()
+        XCTAssertTrue(close.waitForNonExistence(timeout: 5))
+        profile.tap()
+        XCTAssertTrue(app.staticTexts["category-search-profile-settings"].waitForExistence(timeout: 5))
+    }
+
+    func testCategoryGridAndSearchShareKeylinesAndEqualGaps() {
+        let app = launch()
+        defer { app.terminate() }
+        let first = app.buttons["live-tv-category-all"]
+        if !first.waitForExistence(timeout: 5) {
+            XCTAssertTrue(app.buttons["live-tv-sidebar-category-all"].waitForExistence(timeout: 10))
+            return
+        }
+        let second = app.buttons["live-tv-browse-category-Entertainment"]
+        let third = app.buttons["live-tv-browse-category-International Sports"]
+        let field = searchField(in: app)
+        XCTAssertEqual(field.frame.minX, first.frame.minX, accuracy: 1)
+        XCTAssertEqual(field.frame.maxX, second.frame.maxX, accuracy: 1)
+        XCTAssertEqual(app.staticTexts["Categories"].frame.minX, first.frame.minX, accuracy: 1)
+        let horizontalGap = second.frame.minX - first.frame.maxX
+        let verticalGap = third.frame.minY - first.frame.maxY
+        XCTAssertGreaterThanOrEqual(horizontalGap, 8)
+        XCTAssertEqual(horizontalGap, verticalGap, accuracy: 1)
+        field.tap()
+        field.typeText("sports")
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Cancel"].waitForNonExistence(timeout: 5))
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertEqual(field.frame.minX, first.frame.minX, accuracy: 1)
+        XCTAssertEqual(field.frame.maxX, second.frame.maxX, accuracy: 1)
+        capture("category-browser-aligned", in: app)
+    }
+    #endif
+
     func testCategoryEntryRetainsConnectionRecoveryActions() {
         let app = launch(failsLoading: true)
         defer { app.terminate() }
@@ -46,6 +104,12 @@ final class LiveTVCategorySearchInteractionTests: XCTestCase {
             XCTAssertLessThan(sidebar.frame.maxX, channel("Arena One", in: app).frame.minX)
         } else {
             #if os(iOS)
+            let profile = app.navigationBars.buttons["live-tv-profile"]
+            XCTAssertTrue(profile.isHittable, app.debugDescription)
+            XCTAssertLessThanOrEqual(profile.frame.maxX, app.frame.maxX)
+            app.buttons["live-tv-guide-actions"].tap()
+            XCTAssertTrue(app.buttons["live-tv-multiview-favorites"].exists)
+            app.buttons["live-tv-guide-now"].tap()
             app.buttons["live-tv-categories"].tap()
             XCTAssertTrue(tile.waitForExistence(timeout: 5))
             XCTAssertFalse(channel("Arena One", in: app).exists)
@@ -159,7 +223,7 @@ final class LiveTVCategorySearchInteractionTests: XCTestCase {
         #if os(tvOS)
         app.searchFields.firstMatch
         #else
-        app.searchFields["live-tv-search-field"]
+        app.textFields["live-tv-search-field"]
         #endif
     }
 

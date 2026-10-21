@@ -2,10 +2,12 @@ import CoreModels
 import CoreUI
 import FeatureLiveTV
 import FeatureLiveTVCore
+import FeatureProfiles
 import SwiftUI
 
 struct LiveTVCategorySearchFixture: View {
     @State private var profiles: ProfilesModel
+    @State private var showsProfile = false
     private let namespace = "CategorySearch.\(UUID().uuidString)"
 
     init() {
@@ -21,7 +23,8 @@ struct LiveTVCategorySearchFixture: View {
                 sourceStore: CategorySearchSources(),
                 sourceLoader: CategorySearchLoader(),
                 preferencesNamespace: namespace,
-                sourceApprovalContext: { [profiles] in LiveTVSourceApprovalContext(profiles: profiles) }
+                sourceApprovalContext: { [profiles] in LiveTVSourceApprovalContext(profiles: profiles) },
+                topBarAccessory: profileAction
             ) { _ in
                 Color.black.accessibilityIdentifier("category-search-playback")
             }
@@ -33,6 +36,24 @@ struct LiveTVCategorySearchFixture: View {
         .background { AppBackground(palette: .dark) }
         #if os(iOS)
         .environment(\.plozzMetrics, .touch(density: .standard))
+        .sheet(isPresented: $showsProfile) {
+            Text("Profile settings").accessibilityIdentifier("category-search-profile-settings")
+        }
+        #endif
+    }
+
+    private var profileAction: AnyView? {
+        #if os(iOS)
+        AnyView(
+            Button { showsProfile = true } label: {
+                ProfileAvatarView(profile: profiles.activeProfile, size: 36, rendersAsImage: true)
+            }
+            .buttonBorderShape(.circle)
+            .accessibilityLabel("Profile settings")
+            .accessibilityIdentifier("live-tv-profile")
+        )
+        #else
+        nil
         #endif
     }
 }

@@ -111,8 +111,6 @@ struct PlozziOSLiveTVDestination: View {
             homeModel: HomeLiveTVRuntime.model(profileID: profileID),
             homeAuthorizationID: HomeLiveTVRuntime.authorizationID(profileID: profileID, accounts: accountsProviders),
             onOpenTitle: navigateToItem.map { navigator in { navigator($0) } },
-            // The guide draws its own top row (browse controls and this), in
-            // place of the navigation bar, which is hidden below.
             topBarAccessory: AnyView(PlozziOSSettingsAvatarButton(size: 36, action: onShowSettings))
         ) { playback in
             LiveChannelPlayerView(
@@ -213,7 +211,6 @@ struct PlozziOSLiveTVDestination: View {
             orientation: playbackOrientation
         )
         .toolbar(isExpanded ? .hidden : .visible, for: .tabBar)
-        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             network.start()
         }

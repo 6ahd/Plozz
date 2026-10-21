@@ -14,14 +14,29 @@ struct PrototypeSearchHeader: View {
     let close: () -> Void
     let focusChanged: (Bool) -> Void
     var showsSummary = true
+    @State private var isEditing = false
+    @State private var dismissRequest = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: PrototypeLayout.smallGap) {
-            PrototypeMobileSearchField(
-                query: $query, focusRequest: focusRequest,
-                submit: browse, cancel: close, focusChanged: focusChanged
-            )
-            .frame(height: 56)
+            HStack(spacing: PrototypeLayout.smallGap) {
+                PrototypeMobileSearchField(
+                    query: $query, focusRequest: focusRequest, dismissRequest: dismissRequest,
+                    submit: browse,
+                    focusChanged: {
+                        isEditing = $0
+                        focusChanged($0)
+                    }
+                )
+                .frame(height: 44)
+                if isEditing {
+                    Button("Cancel") {
+                        dismissRequest &+= 1
+                        query = ""
+                        close()
+                    }
+                }
+            }
             if showsSummary {
                 PrototypeSearchSummary(channelCount: channelCount, category: category)
             }
@@ -32,58 +47,64 @@ struct PrototypeSearchHeader: View {
 private struct PrototypeMobileSearchField: UIViewRepresentable {
     @Binding var query: String
     let focusRequest: Int
+    let dismissRequest: Int
     let submit: () -> Void
-    let cancel: () -> Void
     let focusChanged: (Bool) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    func makeUIView(context: Context) -> UISearchBar {
-        let bar = UISearchBar()
-        bar.searchBarStyle = .minimal
-        bar.placeholder = String(localized: "Search")
-        bar.autocapitalizationType = .none
-        bar.autocorrectionType = .no
-        bar.searchTextField.accessibilityIdentifier = "live-tv-search-field"
-        bar.delegate = context.coordinator
-        return bar
+    func makeUIView(context: Context) -> UISearchTextField {
+        let field = UISearchTextField()
+        field.placeholder = String(localized: "Search")
+        field.autocapitalizationType = .none
+        field.autocorrectionType = .no
+        field.returnKeyType = .search
+        field.accessibilityIdentifier = "live-tv-search-field"
+        field.delegate = context.coordinator
+        field.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
+        return field
     }
 
-    func updateUIView(_ bar: UISearchBar, context: Context) {
+    func updateUIView(_ field: UISearchTextField, context: Context) {
         context.coordinator.parent = self
-        if bar.text != query { bar.text = query }
+        if field.text != query { field.text = query }
+        if dismissRequest > context.coordinator.dismissRequest {
+            context.coordinator.dismissRequest = dismissRequest
+            DispatchQueue.main.async { [weak field] in
+                field?.resignFirstResponder()
+            }
+        }
         if focusRequest > context.coordinator.focusRequest {
             context.coordinator.focusRequest = focusRequest
-            DispatchQueue.main.async { [weak bar] in
-                guard let bar, bar.window != nil else { return }
-                bar.becomeFirstResponder()
+            DispatchQueue.main.async { [weak field] in
+                guard let field, field.window != nil else { return }
+                field.becomeFirstResponder()
             }
         }
     }
 
-    final class Coordinator: NSObject, UISearchBarDelegate {
+    final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: PrototypeMobileSearchField
         var focusRequest = 0
+        var dismissRequest = 0
         init(_ parent: PrototypeMobileSearchField) { self.parent = parent }
-        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-            parent.query = searchText
+        @objc func textChanged(_ field: UISearchTextField) {
+            parent.query = field.text ?? ""
         }
-        func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
-            searchBar.setShowsCancelButton(true, animated: true)
+        func textFieldDidBeginEditing(_ textField: UITextField) {
             parent.focusChanged(true)
         }
-        func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-            searchBar.setShowsCancelButton(false, animated: true)
+        func textFieldDidEndEditing(_ textField: UITextField) {
             parent.focusChanged(false)
         }
-        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-            searchBar.resignFirstResponder()
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
             parent.submit()
+            return true
         }
-        func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        func textFieldShouldClear(_ textField: UITextField) -> Bool {
             parent.query = ""
-            searchBar.resignFirstResponder()
-            parent.cancel()
+            return true
         }
     }
 }

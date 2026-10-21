@@ -15,7 +15,10 @@ struct PrototypeCategoryDirectory: View {
                 VStack(alignment: .leading, spacing: PrototypeLayout.gap) {
                     Text("Categories").font(.headline).foregroundStyle(.secondary)
                     LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: typeSize.isAccessibilitySize ? 280 : 160))],
+                        columns: [GridItem(
+                            .adaptive(minimum: typeSize.isAccessibilitySize ? 280 : 160),
+                            spacing: PrototypeLayout.gap
+                        )],
                         spacing: PrototypeLayout.gap
                     ) {
                         PrototypeCategoryTile(name: nil, count: totalCount) { select(nil) }

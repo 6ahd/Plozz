@@ -133,100 +133,75 @@ struct PrototypeBrowseToolbar: View {
 }
 
 #if os(iOS)
-/// Touch: the guide's top-row controls as a cluster of icon buttons, level
-/// with the profile avatar — Search, the category filter, Multiviews, and
-/// "now", which brings the timeline back to the current programme after
-/// scrolling away. Icons rather than labelled pills so the row fits a phone
-/// without truncating.
-struct PrototypeTouchBrowseBar: View {
+struct PrototypeTouchBrowseToolbar: ToolbarContent {
     @Bindable var model: LiveTVPrototypeModel
-    var isSearching = false
+    let isSearching: Bool
+    let showsDirectory: Bool
+    let hasSidebar: Bool
+    let isDisabled: Bool
+    let showGuide: () -> Void
+    let showCategories: () -> Void
     let search: () -> Void
     let filters: () -> Void
     var multiviews: (() -> Void)?
     let goToNow: () -> Void
-    @Environment(\.themePalette) private var palette
+    let cancelSelection: (() -> Void)?
+    let accessory: AnyView?
 
-    static let diameter: CGFloat = 40
-
-    var body: some View {
-        HStack(spacing: PrototypeLayout.smallGap) {
-            Button(action: search) {
-                Label(isSearching ? "Back to guide" : "Search",
-                      systemImage: isSearching ? "chevron.backward" : "magnifyingglass")
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            if let cancelSelection {
+                Button("Cancel", action: cancelSelection)
+            } else if !hasSidebar && !showsDirectory && !isSearching {
+                Button("Categories", systemImage: "chevron.backward", action: showCategories)
                     .labelStyle(.iconOnly)
-                    .circleControl(active: false, palette: palette)
-            }
-            .buttonStyle(.plain)
-            .accessibilityValue(model.query)
-            .accessibilityIdentifier("live-tv-search")
-
-            Menu {
-                Picker("Category", selection: $model.category) {
-                    Text("All categories").tag(String?.none)
-                    ForEach(model.categories, id: \.self) { category in
-                        Text(category).tag(Optional(category))
-                    }
-                }
-                .pickerStyle(.inline)
-                Divider()
-                Button("More filters", systemImage: "line.3.horizontal.decrease", action: filters)
-            } label: {
-                Label("Categories", systemImage: hasActiveFilters
-                      ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
-                    .labelStyle(.iconOnly)
-                    .circleControl(active: hasActiveFilters, palette: palette)
-            }
-            .menuOrder(.fixed)
-            .accessibilityValue(Text(verbatim: model.category ?? ""))
-            .accessibilityIdentifier("live-tv-category")
-
-            if let multiviews {
-                Button(action: multiviews) {
-                    Label("Multiviews", systemImage: "rectangle.split.2x2")
-                        .labelStyle(.iconOnly)
-                        .circleControl(active: false, palette: palette)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("live-tv-multiview-favorites")
-            }
-
-            if !isSearching {
-                Button(action: goToNow) {
-                    Label {
-                        Text("Now", comment: "Guide button that scrolls the timeline back to the programmes airing now.")
-                    } icon: {
-                        Image(systemName: "arrow.right.and.line.vertical.and.arrow.left")
-                    }
-                    .labelStyle(.iconOnly)
-                    .circleControl(active: false, palette: palette)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("live-tv-guide-now")
+                    .accessibilityIdentifier("live-tv-categories")
+                    .disabled(isDisabled)
             }
         }
-        .font(.body.weight(.medium))
-    }
-
-    private var hasActiveFilters: Bool {
-        model.category != nil || model.guideOnly || model.source != nil
-            || model.language != nil || model.country != nil || model.favoritesOnly
-    }
-}
-
-private extension View {
-    func circleControl(active: Bool, palette: ThemePalette) -> some View {
-        self
-            .foregroundStyle(active ? palette.onAccent : palette.primaryText)
-            .frame(width: PrototypeTouchBrowseBar.diameter, height: PrototypeTouchBrowseBar.diameter)
-            .background {
-                if active {
-                    Circle().fill(palette.accent)
-                } else {
-                    PrototypeControlSurface().clipShape(Circle())
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            Group {
+                if showsDirectory && !isSearching {
+                    Button("Guide", systemImage: "list.bullet.rectangle", action: showGuide)
+                        .accessibilityIdentifier("live-tv-open-guide")
+                } else if !hasSidebar {
+                    Button(
+                        isSearching ? "Back to guide" : "Search",
+                        systemImage: isSearching ? "chevron.backward" : "magnifyingglass",
+                        action: search
+                    )
+                    .accessibilityValue(model.query)
+                    .accessibilityIdentifier("live-tv-search")
+                }
+                Button("Filters", systemImage: "line.3.horizontal.decrease", action: filters)
+                    .accessibilityValue(Text(verbatim: model.category ?? ""))
+                    .accessibilityIdentifier("live-tv-category")
+                if !hasSidebar && !showsDirectory {
+                    Menu {
+                        if let multiviews {
+                            Button("Multiviews", systemImage: "rectangle.split.2x2", action: multiviews)
+                                .accessibilityIdentifier("live-tv-multiview-favorites")
+                        }
+                        if !isSearching {
+                            Button(action: goToNow) {
+                                Label {
+                                    Text("Now", comment: "Guide button that scrolls the timeline back to the programmes airing now.")
+                                } icon: {
+                                    Image(systemName: "arrow.right.and.line.vertical.and.arrow.left")
+                                }
+                            }
+                            .accessibilityIdentifier("live-tv-guide-now")
+                        }
+                    } label: {
+                        Label("More", systemImage: "ellipsis")
+                    }
+                    .accessibilityIdentifier("live-tv-guide-actions")
                 }
             }
-            .contentShape(Circle())
+            .labelStyle(.iconOnly)
+            .disabled(isDisabled)
+            accessory
+        }
     }
 }
 #endif

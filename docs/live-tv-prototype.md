@@ -735,6 +735,13 @@ is no prior in-memory history to migrate on the first updated launch.
   Mobile windows with at least 700 points of content width and 500 of content
   height use the sidebar, including roomy phone layouts. Narrow iPad windows and
   short landscape windows use the same category directory as narrow phones.
+  On iOS, Guide, Filters and the profile action share the native navigation
+  toolbar and its system Liquid Glass grouping. Browse actions use standard
+  native button sizes rather than custom circular controls. The native search
+  text field, category heading and tile grid share one content keyline; category
+  columns and rows use the same gap. Only the timeline guide uses edge bleed.
+  On narrow guides, More holds Multiviews and Now so the profile action remains
+  visible without shrinking toolbar buttons.
   Apple TV reserves 384 points for categories on wide layouts and 320 on narrower
   sidebar layouts, without shrinking category text. Mobile sidebars use
   200, 224, or 272 points according to available width.

@@ -26,7 +26,7 @@ struct PrototypePreviewLayout {
     var sectionGap: CGFloat { short || isSearching ? PrototypeLayout.smallGap : PrototypeLayout.sectionGap }
 
     var heroArtworkSize: CGSize {
-        let height = min(heroHeight - PrototypeLayout.smallGap, compact ? 92 : 220)
+        let height = max(0, min(heroHeight - PrototypeLayout.smallGap, compact ? 92 : 220))
         return CGSize(width: (height * 16 / 9).rounded(), height: height.rounded())
     }
 
@@ -168,6 +168,7 @@ struct PrototypePreviewLayout {
 
 struct PrototypeBrowseLayout<Header: View, Sidebar: View, Guide: View>: View {
     let layout: PrototypePreviewLayout
+    var extendsGuideToEdges = true
     @ViewBuilder let header: () -> Header
     @ViewBuilder let sidebar: () -> Sidebar
     @ViewBuilder let guide: () -> Guide
@@ -215,11 +216,14 @@ struct PrototypeBrowseLayout<Header: View, Sidebar: View, Guide: View>: View {
 
     private var guideSlot: some View {
         guide()
-            .frame(width: layout.guideWidth + layout.guideLeadingExtension + layout.guideTrailingExtension)
-            .padding(.leading, -layout.guideLeadingExtension)
-            .padding(.trailing, -layout.guideTrailingExtension)
+            .frame(width: layout.guideWidth + leadingExtension + trailingExtension)
+            .padding(.leading, -leadingExtension)
+            .padding(.trailing, -trailingExtension)
             .padding(.bottom, -layout.guideBottomExtension)
     }
+
+    private var leadingExtension: CGFloat { extendsGuideToEdges ? layout.guideLeadingExtension : 0 }
+    private var trailingExtension: CGFloat { extendsGuideToEdges ? layout.guideTrailingExtension : 0 }
 }
 
 struct PrototypeGuidePlacement<Content: View>: View {
@@ -372,8 +376,12 @@ struct PrototypePreviewHero: View {
                 Image(systemName: watchTitle == nil ? "play.fill" : "rectangle.split.2x2")
             }
         }
+        #if os(iOS)
+        .plozzActionButton(role: .secondary)
+        #else
         .font(.subheadline.weight(.semibold))
         .plozzGlassPillButton()
+        #endif
         .accessibilityIdentifier("live-tv-info-watch")
     }
 

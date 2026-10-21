@@ -164,8 +164,7 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
     private let connectServer: (() -> Void)?
     private let onExpandedChange: (Bool) -> Void
     private let onOpenTitle: ((MediaItem) -> Void)?
-    /// Touch: what sits at the trailing end of the guide's top row, opposite
-    /// the browse controls — the host's profile avatar.
+    /// The host's profile action shares the native mobile browse toolbar.
     private let topBarAccessory: AnyView?
     private let player: (LiveTVPrototypePlayback) -> PlayerContent
 
@@ -456,6 +455,27 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     .zIndex(2)
                 }
             }
+            #if os(iOS)
+            .toolbar {
+                PrototypeTouchBrowseToolbar(
+                    model: model, isSearching: isSearching,
+                    showsDirectory: usesCategoryDirectory(layout),
+                    hasSidebar: layout.sidebarWidth > 0,
+                    isDisabled: blocksBrowseControls || !isActive || expanded,
+                    showGuide: { showCategory(nil) }, showCategories: showCategories,
+                    search: { if isSearching { closeSearch() } else { openSearch() } },
+                    filters: { sheet = .filters },
+                    multiviews: multiviewSelection == nil ? { sheet = .multiviewFavorites } : nil,
+                    goToNow: { nowRequest += 1 },
+                    cancelSelection: multiviewSelection == nil ? nil : finishMultiviewSelection,
+                    accessory: topBarAccessory
+                )
+            }
+            .navigationTitle(usesCategoryDirectory(layout) || layout.sidebarWidth > 0 ? "Live TV" : "")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(expanded ? .hidden : .visible, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            #endif
         }
         .environment(\.themePalette, palette)
         .tint(palette.accent)
@@ -1445,51 +1465,6 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
         .disabled(blocksBrowseControls)
     }
 
-    /// Touch: the page's own top row — browse controls leading, the host's
-    /// avatar trailing — where a navigation bar would sit, so the controls
-    /// cost the guide no height of their own.
-    @ViewBuilder
-    private func touchTopBar(_ layout: PrototypePreviewLayout) -> some View {
-        #if os(iOS)
-        if layout.sidebarWidth == 0 || topBarAccessory != nil {
-            HStack(spacing: PrototypeLayout.gap) {
-                if layout.sidebarWidth == 0 {
-                    if showsCategoryDirectory && !isSearching {
-                        Text("Live TV").font(.title2.bold())
-                        Spacer(minLength: 0)
-                        Button("Guide", systemImage: "list.bullet.rectangle") { showCategory(nil) }
-                            .buttonStyle(.bordered)
-                            .accessibilityIdentifier("live-tv-open-guide")
-                        Button("Filters", systemImage: "line.3.horizontal.decrease") { sheet = .filters }
-                            .labelStyle(.iconOnly)
-                            .buttonStyle(.bordered)
-                    } else {
-                        if !isSearching {
-                            Button("Categories", systemImage: "chevron.backward", action: showCategories)
-                                .labelStyle(.iconOnly)
-                                .buttonStyle(.bordered)
-                                .accessibilityIdentifier("live-tv-categories")
-                        }
-                        PrototypeTouchBrowseBar(
-                            model: model, isSearching: isSearching,
-                            search: { if isSearching { closeSearch() } else { openSearch() } },
-                            filters: { sheet = .filters },
-                            multiviews: multiviewSelection == nil ? { sheet = .multiviewFavorites } : nil,
-                            goToNow: { nowRequest += 1 }
-                        )
-                        .modifier(LiveTVMultiviewGuideExit(
-                            cancel: multiviewSelection == nil ? nil : finishMultiviewSelection))
-                        .disabled(blocksBrowseControls)
-                    }
-                }
-                Spacer(minLength: 0)
-                topBarAccessory
-            }
-            .frame(height: 44)
-        }
-        #endif
-    }
-
     private func usesCategoryDirectory(_ layout: PrototypePreviewLayout) -> Bool {
         #if os(iOS)
         showsCategoryDirectory && layout.availableSidebarWidth == 0
@@ -1499,7 +1474,9 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
     }
 
     private func browsingContent(_ layout: PrototypePreviewLayout) -> some View {
-        PrototypeBrowseLayout(layout: layout) {
+        PrototypeBrowseLayout(
+            layout: layout, extendsGuideToEdges: !usesCategoryDirectory(layout) && !isSearching
+        ) {
             browsingHeader(layout)
         } sidebar: {
             browsingSidebar
@@ -1518,12 +1495,10 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                             categories: model.browsingCategories, totalCount: model.categoryChannelCount(nil),
                             returnCategory: categoryDirectoryReturnID, select: { showCategory($0) }
                         )
-                        .padding(.horizontal, PrototypeLayout.gap)
                     }
                 } else if isSearching || usesCategoryDirectory(layout) {
                     searchScopePicker
                         #if os(iOS)
-                        .padding(.horizontal, PrototypeLayout.gap)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         #endif
                     searchResults(closeSearch: closeSearch)
@@ -1567,7 +1542,6 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
 
     @ViewBuilder
     private func browsingHeader(_ layout: PrototypePreviewLayout) -> some View {
-        touchTopBar(layout)
         #if os(iOS)
         if isSearching || usesCategoryDirectory(layout) {
             PrototypeSearchHeader(
@@ -1718,9 +1692,6 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                         closeSearch()
                         #endif
                     }
-                    #if os(iOS)
-                    .padding(.horizontal, PrototypeLayout.gap)
-                    #endif
                 }
                 guideBrowser(closeSearch: closeSearch)
             }

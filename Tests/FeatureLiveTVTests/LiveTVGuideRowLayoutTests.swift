@@ -724,6 +724,7 @@ final class LiveTVGuideRowLayoutTests: XCTestCase {
             XCTAssertGreaterThan(searching.heroHeight, 0)
             #else
             XCTAssertEqual(searching.heroHeight, 0)
+            XCTAssertEqual(searching.heroArtworkSize, .zero)
             XCTAssertEqual(searching.sectionGap, PrototypeLayout.smallGap)
             #endif
         }
