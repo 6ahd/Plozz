@@ -267,9 +267,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than
-  the watch-status marks. Watched mode uses an inset count tile and a colored
-  completed circle with a contrasting check. Unwatched mode uses a colored triangle for
-  unnumbered titles and a flush count tile with a curved bottom-left corner.
+  the watch-status marks. Counts independently use an inset Floating tile or a
+  flush Attached tile with a curved bottom-left corner. Watched marks use a colored
+  completed circle with a contrasting check; unwatched marks use a colored triangle.
   The count tile's top-right corner stays square; only the artwork clips its
   outer corner and shadow. Native poster and library-card overlay hosts apply
   that clipping at the full artwork bounds, not at the badge's own bounds.
@@ -278,6 +278,11 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Floating marks have density-scaled clearance (16pt at standard TV size).
   Touch sizes and artwork radii remain proportionate. Episode cards and the
   watch-indicator Settings previews reuse the same check badge and flag.
+  Their middle poster represents an in-progress series with three remaining
+  episodes. Its shared count badge follows the live count toggle and independent
+  Attached/Floating preference while progress stays visible. Count style crosses
+  native hosting boundaries, controls overlay placement, and invalidates both
+  native poster bitmap caches.
   `MediaWatchIndicatorStyle` owns the eight opaque watch-mark colors and contrasting
   check colors; white is the default. The profile preference crosses native
   hosting boundaries and participates in both native poster bitmap cache keys.

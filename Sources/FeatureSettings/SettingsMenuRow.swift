@@ -24,7 +24,7 @@ struct SettingsMenuRow<Options: View>: View {
         .accessibilityLabel(Text(title))
         .accessibilityValue(value)
         #else
-        LabeledSettingRow(title, subtitle: subtitle, trailingAlignment: .trailing) {
+        LabeledSettingRow(title, subtitle: subtitle, labelWidth: 0, trailingAlignment: .trailing) {
             Menu(content: options) {
                 HStack {
                     if let icon { Image(systemName: icon) }

@@ -774,6 +774,7 @@ public struct RootView: View {
         .environment(\.plozzWatchStatusIndicator, appState.profileSettings.watchStatusIndicatorModel.indicator)
         .environment(\.plozzWatchIndicatorColor, appState.profileSettings.watchStatusIndicatorModel.color)
         .environment(\.plozzShowsUnwatchedEpisodeCount, appState.profileSettings.watchStatusIndicatorModel.showsUnwatchedEpisodeCount)
+        .environment(\.plozzEpisodeCountBadgeStyle, appState.profileSettings.watchStatusIndicatorModel.episodeCountStyle)
         // Read by the corner mark on a card whose title isn't in the library:
         // connected turns "not yours" into "you can ask for this". Injected here
         // rather than passed down because the mark is drawn beneath every row,

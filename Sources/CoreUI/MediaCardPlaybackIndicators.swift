@@ -46,6 +46,7 @@ public struct MediaCardPlaybackIndicators: View {
     @Environment(\.plozzMetrics) private var metrics
     @Environment(\.plozzWatchStatusIndicator) private var watchStatusIndicator
     @Environment(\.plozzShowsUnwatchedEpisodeCount) private var showsUnwatchedEpisodeCount
+    @Environment(\.plozzEpisodeCountBadgeStyle) private var episodeCountStyle
     /// Whether an unowned title can be requested, or is merely flagged as absent.
     @Environment(\.plozzSeerConnected) private var seerConnected
     /// Published by the hosting card so this chrome can settle back at rest and
@@ -242,10 +243,10 @@ public struct MediaCardPlaybackIndicators: View {
 
     private func episodeCountBadge(_ count: Int) -> some View {
         MediaEpisodeCountBadge(
-            count: count, indicator: watchStatusIndicator, size: metrics.watchedBadgeSize,
+            count: count, style: episodeCountStyle, size: metrics.watchedBadgeSize,
             cornerRadius: artworkCornerRadius ?? metrics.posterArtworkCornerRadius
         )
-        .padding(watchStatusIndicator == .watched ? floatingBadgeInset : 0)
+        .padding(episodeCountStyle == .floating ? floatingBadgeInset : 0)
         .accessibilityLabel(Text("Unwatched episodes: \(count)"))
     }
 
@@ -441,7 +442,7 @@ struct MediaUnwatchedCorner: View {
 
 struct MediaEpisodeCountBadge: View {
     let count: Int
-    let indicator: WatchStatusIndicator
+    let style: EpisodeCountBadgeStyle
     let size: CGFloat
     let cornerRadius: CGFloat
     @Environment(\.nativePosterIndicatorLayer) private var nativeIndicatorLayer
@@ -457,8 +458,8 @@ struct MediaEpisodeCountBadge: View {
     }
 
     @ViewBuilder var body: some View {
-        switch indicator {
-        case .watched:
+        switch style {
+        case .floating:
             if nativeIndicatorLayer != .background {
                 digits
                     .padding(.horizontal, 12 * scale)
@@ -470,7 +471,7 @@ struct MediaEpisodeCountBadge: View {
                     }
                     .shadow(color: .black.opacity(0.2), radius: 3 * scale, y: scale)
             }
-        case .unwatched:
+        case .attached:
             let height = 52 * scale
             let width = max(48, 24 + CGFloat(String(count).count) * 16) * scale
             let radius = min(cornerRadius, height / 2)

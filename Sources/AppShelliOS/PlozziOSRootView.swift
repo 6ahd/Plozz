@@ -258,6 +258,7 @@ public struct PlozziOSRootView: View {
             appModel.settings.watchIndicator.indicator
         )
         .environment(\.plozzShowsUnwatchedEpisodeCount, appModel.settings.watchIndicator.showsUnwatchedEpisodeCount)
+        .environment(\.plozzEpisodeCountBadgeStyle, appModel.settings.watchIndicator.episodeCountStyle)
         .environment(\.plozzWatchIndicatorColor, appModel.settings.watchIndicator.color)
         // See the note in RootView: drives whether an unowned title's corner mark
         // reads as information or as an invitation to request it.

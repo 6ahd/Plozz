@@ -277,7 +277,13 @@ watch history and planning-list behavior are documented in
 - `CardAppearanceControls` — the independent **Show unwatched episode count**
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing
-  its watched/unwatched style.
+  its watched/unwatched style. Both previews show a sample count on the
+  in-progress series when enabled; toggling it updates the previews immediately
+  without removing the separate watched check or unwatched flag examples.
+  **Episode count style** offers Attached or Floating while counts are enabled;
+  it is profile-scoped, transfers with the profile, and never changes watch marks.
+  Turning counts off retains the style. Existing profiles keep their previous
+  placement on upgrade; both previews then follow this independent choice.
   The eight watch-mark colors appear as one horizontal swatch row below the
   indicator previews. White remains the default; changes update the previews
   immediately and persist/transfer per profile. Narrow mobile layouts scroll

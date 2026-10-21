@@ -49,6 +49,7 @@ enum NativePosterArtworkBitmap {
         let palette: ThemePalette
         let watchIndicator: WatchStatusIndicator
         let watchIndicatorColor: WatchIndicatorColor
+        let episodeCountStyle: EpisodeCountBadgeStyle
         let showsEpisodeCount: Bool
         let seerConnected: Bool
         let locale: Locale
@@ -77,6 +78,7 @@ enum NativePosterArtworkBitmap {
                 && lhs.metrics == rhs.metrics && lhs.palette == rhs.palette
                 && lhs.watchIndicator == rhs.watchIndicator && lhs.watchIndicatorColor == rhs.watchIndicatorColor
                 && lhs.showsEpisodeCount == rhs.showsEpisodeCount
+                && lhs.episodeCountStyle == rhs.episodeCountStyle
                 && lhs.seerConnected == rhs.seerConnected && lhs.locale == rhs.locale
                 && lhs.layoutDirection == rhs.layoutDirection && lhs.colorScheme == rhs.colorScheme
                 && lhs.contrast == rhs.contrast && lhs.dynamicTypeSize == rhs.dynamicTypeSize
@@ -92,6 +94,7 @@ enum NativePosterArtworkBitmap {
             palette = environment.themePalette
             watchIndicator = environment.plozzWatchStatusIndicator
             watchIndicatorColor = environment.plozzWatchIndicatorColor
+            episodeCountStyle = environment.plozzEpisodeCountBadgeStyle
             showsEpisodeCount = environment.plozzShowsUnwatchedEpisodeCount
             seerConnected = environment.plozzSeerConnected
             locale = environment.locale
@@ -114,7 +117,7 @@ enum NativePosterArtworkBitmap {
         var overlayPlacement: NativePosterOverlayPlacement? {
             switch status {
             case .episodeCount:
-                return watchIndicator == .unwatched ? .croppedCount : .floating
+                return episodeCountStyle == .attached ? .croppedCount : .floating
             case .library, .watched:
                 return .floating
             case .unwatched, nil:
@@ -455,6 +458,7 @@ enum NativeLibraryPosterBitmap {
         let palette: ThemePalette
         let watchIndicator: WatchStatusIndicator
         let watchIndicatorColor: WatchIndicatorColor
+        let episodeCountStyle: EpisodeCountBadgeStyle
         let showsEpisodeCount: Bool
         let seerConnected: Bool
         let locale: Locale
@@ -487,6 +491,7 @@ enum NativeLibraryPosterBitmap {
             palette = environment.themePalette
             watchIndicator = environment.plozzWatchStatusIndicator
             watchIndicatorColor = environment.plozzWatchIndicatorColor
+            episodeCountStyle = environment.plozzEpisodeCountBadgeStyle
             showsEpisodeCount = environment.plozzShowsUnwatchedEpisodeCount
             seerConnected = environment.plozzSeerConnected
             locale = environment.locale

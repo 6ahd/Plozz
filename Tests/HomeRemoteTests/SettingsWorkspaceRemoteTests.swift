@@ -2,6 +2,43 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testEpisodeCountStyleMenuKeepsWatchModeAndRetainsHiddenChoice() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        defer { app.terminate() }
+        try focus(section("appearance", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-cards"], in: app)
+        XCUIRemote.shared.press(.select)
+        let style = app.buttons["episode-count-style"]
+        let watched = app.buttons["watch-indicator-preview-watched"]
+        let wasSelected = watched.isSelected
+        for choice in ["Attached", "Floating"] {
+            try focus(style, in: app)
+            XCUIRemote.shared.press(.select)
+            let option = app.cells.containing(.any, identifier: choice).firstMatch
+            try focus(option, in: app)
+            XCUIRemote.shared.press(.select)
+            let changed = XCTNSPredicateExpectation(
+                predicate: NSPredicate { _, _ in style.value as? String == choice && self.hasFocus(style) },
+                object: nil
+            )
+            XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 5), .completed)
+            XCTAssertEqual(watched.isSelected, wasSelected)
+        }
+        let toggle = app.switches["unwatched-episode-count-toggle"]
+        try focus(toggle, in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(style.waitForNonExistence(timeout: 5))
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(style.waitForExistence(timeout: 5))
+        XCTAssertEqual(style.value as? String, "Floating")
+        capture("episode-count-floating", in: app)
+        #else
+        throw XCTSkip("Never changes appearance preferences on a physical device.")
+        #endif
+    }
+
     func testWatchIndicatorColorRailSupportsDirectionalSelectionAndExit() throws {
         #if targetEnvironment(simulator)
         let app = try launchSettings(style: "tabBar")

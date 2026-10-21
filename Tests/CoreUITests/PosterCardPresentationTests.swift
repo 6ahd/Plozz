@@ -363,6 +363,20 @@ final class PosterCardPresentationTests: XCTestCase {
         }
     }
 
+    func testHostedEnvironmentCarriesIndependentEpisodeCountStyle() {
+        var source = EnvironmentValues()
+        var hosted = EnvironmentValues()
+        for indicator in WatchStatusIndicator.allCases {
+            source.plozzWatchStatusIndicator = indicator
+            for style in EpisodeCountBadgeStyle.allCases {
+                source.plozzEpisodeCountBadgeStyle = style
+                hosted.copyHostedPresentation(from: source)
+                XCTAssertEqual(hosted.plozzWatchStatusIndicator, indicator)
+                XCTAssertEqual(hosted.plozzEpisodeCountBadgeStyle, style)
+            }
+        }
+    }
+
     func testProgressTakesPriorityOverWatchedBadge() {
         let item = MediaItem(
             id: "movie",

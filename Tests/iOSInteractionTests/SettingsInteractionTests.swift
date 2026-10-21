@@ -101,6 +101,56 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertFalse(app.buttons["Huge"].exists)
     }
 
+    func testEpisodeCountToggleUpdatesBothWatchIndicatorPreviews() throws {
+        launch()
+        app.buttons["appearance-cards"].tap()
+        XCTAssertTrue(app.navigationBars["Cards"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["appearance-cards"].waitForNonExistence(timeout: 5))
+        let toggle = app.switches["unwatched-episode-count-toggle"]
+        reveal(toggle, fullyVisible: true)
+        let previews = ["watched", "unwatched"].map { app.buttons["watch-indicator-preview-\($0)"] }
+        reveal(previews[0], fullyVisible: true)
+        let enabled = try previews.map { try XCTUnwrap($0.screenshot().image.pngData()) }
+        tapNativeSwitch(toggle)
+        XCTAssertEqual(toggle.value as? String, "0")
+        let disabled = try previews.map { try XCTUnwrap($0.screenshot().image.pngData()) }
+        for index in previews.indices {
+            XCTAssertNotEqual(enabled[index], disabled[index], "Both preview styles must respond to the count toggle.")
+        }
+        tapNativeSwitch(toggle)
+        XCTAssertEqual(toggle.value as? String, "1")
+        for (index, preview) in previews.enumerated() {
+            XCTAssertEqual(try XCTUnwrap(preview.screenshot().image.pngData()), enabled[index])
+        }
+        capture("watch-count-previews")
+    }
+
+    func testEpisodeCountStyleChangesWithoutSelectingAnotherWatchIndicator() throws {
+        launch()
+        app.buttons["appearance-cards"].tap()
+        XCTAssertTrue(app.navigationBars["Cards"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["appearance-cards"].waitForNonExistence(timeout: 5))
+        let style = app.buttons["episode-count-style"]
+        reveal(style, fullyVisible: true)
+        let watched = app.buttons["watch-indicator-preview-watched"]
+        let wasSelected = watched.isSelected
+        for choice in ["Attached", "Floating"] {
+            style.tap()
+            let option = app.buttons["episode-count-style-\(choice.lowercased())"]
+            XCTAssertTrue(option.waitForExistence(timeout: 3), app.debugDescription)
+            option.tap()
+            XCTAssertTrue(style.staticTexts[choice].exists)
+            XCTAssertLessThan(style.staticTexts[choice].frame.height, 30, "The value must not wrap on a narrow phone.")
+            XCTAssertEqual(watched.isSelected, wasSelected)
+        }
+        let toggle = app.switches["unwatched-episode-count-toggle"]
+        tapNativeSwitch(toggle)
+        XCTAssertFalse(style.exists)
+        tapNativeSwitch(toggle)
+        XCTAssertTrue(style.staticTexts["Floating"].exists, "Hiding counts must retain the style.")
+        capture("episode-count-floating")
+    }
+
     func testWatchIndicatorColorsStayInOneRowAndSelectionSurvivesNavigation() {
         launch()
         app.buttons["appearance-cards"].tap()

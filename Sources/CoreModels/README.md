@@ -24,6 +24,10 @@ language every other module speaks.
   plus the neutral `SubtitleColor` / `SubtitleEdgeStyle` / `SubtitleMode` primitives.
 - Profiles persistence contract: `ProfilePersisting`, `ProfileStore`,
   `ProfilesModel`, plus the Plex Home-user mapping (`PlexHomeUser`).
+- `EpisodeCountBadgeStyle` is an independent, profile-scoped appearance preference.
+  On first load, `WatchStatusIndicatorSettingsStore` preserves the legacy
+  watch-mode-derived style (watched: floating, unwatched: attached), then persists
+  it independently. It transfers with profile settings; watch marks do not follow it.
 
 ## Invariants
 
