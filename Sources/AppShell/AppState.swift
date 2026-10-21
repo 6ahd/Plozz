@@ -476,7 +476,7 @@ public final class AppState {
                 try await boundTraktScrobbler.scrobbleResult(
                     item: intent.makeScrobbleItem(),
                     progress: intent.progress,
-                    event: .stop
+                    event: intent.playbackEvent
                 )
             },
             applySimkl: { intent in
@@ -1601,7 +1601,8 @@ public final class AppState {
                 item: result.item, position: result.position, watchedPercent: result.watchedPercent,
                 primaryAccountID: result.item.sourceAccountID,
                 additionalSources: identityIndex.identitySnapshotStore.current.sourceRefs(for: result.item),
-                crossServerSync: profileSettings.playbackModel.settings.syncWatchAcrossServers
+                crossServerSync: profileSettings.playbackModel.settings.syncWatchAcrossServers,
+                reportTraktProgress: true
               )?.bindingServerScope(accountsProviders.watchMutationServerScope) else { return }
         mutation.id = result.id
         mutation.capturedAt = result.reportedAt

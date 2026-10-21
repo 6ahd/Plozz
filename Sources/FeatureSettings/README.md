@@ -54,6 +54,14 @@ Callbacks expire after 24 hours; a new playback intent supersedes older returns.
 VLC/custom app links do not update Plozz watch progress. Once another app has
 accepted a handoff, Plozz cannot detect arbitrary playback failures inside it;
 supported error callbacks show the existing error without fabricating progress.
+Native Player's optional `progress` fraction must be finite and within 0...1.
+When present, it determines completion and its returned position is not clamped
+to a possibly missing or inaccurate catalog runtime. Without that fraction,
+existing runtime-based validation/calculation remains, including for Infuse.
+The fraction survives receipt restoration; malformed or duplicate values are
+rejected before watch state changes.
+Supported partial returns also queue their percentage to Trakt as paused
+playback; completion retains the existing watched-history reporting.
 `ExternalPlayerSettingsModel` owns the unnamespaced device key, excluded from
 profile transfer. The active profile's old choice migrates once; later profile
 switches or sync never overwrite the device selection. `PlaybackSettings` reads
