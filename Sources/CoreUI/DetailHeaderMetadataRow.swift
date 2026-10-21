@@ -150,16 +150,12 @@ public struct DetailHeaderMetadataRow: View {
     private func metadataLine(
         ratingCount: Int, badgeCount: Int, showsDisclosure: Bool = true
     ) -> some View {
-        HStack(spacing: 12) {
+        WrappingHStackLayout(spacing: 12, lineSpacing: 8) {
             if let familyGuidanceAge {
                 FamilyGuidanceAgeBadge(age: familyGuidanceAge)
             }
             ForEach(Array(ratings.prefix(ratingCount))) { RatingBadge(rating: $0) }
-            if badgeCount > 0 {
-                HStack(spacing: 10) {
-                    ForEach(Array(badges.prefix(badgeCount))) { MetadataMediaBadgeChip(badge: $0) }
-                }
-            }
+            ForEach(Array(badges.prefix(badgeCount))) { MetadataMediaBadgeChip(badge: $0) }
             if showsDisclosure {
                 disclosureChevron.accessibilityHidden(
                     familyGuidanceAge != nil || ratingCount > 0 || badgeCount > 0

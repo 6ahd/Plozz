@@ -7,6 +7,33 @@ import CoreText
 import UIKit
 #endif
 
+enum MetadataBadgeSpacing {
+    static let betweenRatings: CGFloat = 14
+    static let betweenBadges: CGFloat = 12
+    static let iconToValue: CGFloat = 4
+
+    static func textScale(for dynamicTypeSize: DynamicTypeSize) -> CGFloat {
+        #if canImport(UIKit)
+        let traits = UITraitCollection(
+            preferredContentSizeCategory: dynamicTypeSize.plozzContentSizeCategory
+        )
+        let standardTraits = UITraitCollection(preferredContentSizeCategory: .large)
+        return UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: traits).pointSize
+            / UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: standardTraits).pointSize
+        #else
+        return 1
+        #endif
+    }
+
+    static func ratingGap(for dynamicTypeSize: DynamicTypeSize) -> CGFloat {
+        #if os(iOS)
+        betweenRatings * textScale(for: dynamicTypeSize)
+        #else
+        betweenRatings
+        #endif
+    }
+}
+
 private struct MediaBadgeScaleKey: EnvironmentKey {
     static let defaultValue: CGFloat = 1
 }
@@ -28,7 +55,7 @@ public struct MediaBadgeRow: View {
 
     public var body: some View {
         if !badges.isEmpty {
-            WrappingHStackLayout(spacing: 8 * scale, lineSpacing: 8 * scale) {
+            WrappingHStackLayout(spacing: MetadataBadgeSpacing.betweenBadges * scale, lineSpacing: 8 * scale) {
                 ForEach(badges) { MediaBadgeChip(badge: $0) }
             }
         }
@@ -38,15 +65,20 @@ public struct MediaBadgeRow: View {
 /// Compact capability marks that grow with the subheadline metadata beside them.
 public struct MetadataMediaBadgeChip: View {
     private let badge: MediaBadge
+    private let adjacentSpacing: CGFloat?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.mediaBadgeScale) private var containerScale
 
-    public init(badge: MediaBadge) {
+    public init(badge: MediaBadge, adjacentSpacing: CGFloat? = nil) {
         self.badge = badge
+        self.adjacentSpacing = adjacentSpacing
     }
 
     public var body: some View {
-        MediaBadgeChip(badge: badge)
+        MediaBadgeChip(
+            badge: badge,
+            adjacentSpacing: adjacentSpacing ?? MetadataBadgeSpacing.betweenBadges * containerScale * textScale
+        )
             .environment(\.mediaBadgeScale, containerScale * compactScale * textScale)
     }
 
@@ -59,51 +91,44 @@ public struct MetadataMediaBadgeChip: View {
     }
 
     private var textScale: CGFloat {
-        #if canImport(UIKit)
-        let traits = UITraitCollection(
-            preferredContentSizeCategory: dynamicTypeSize.plozzContentSizeCategory
-        )
-        let standardTraits = UITraitCollection(preferredContentSizeCategory: .large)
-        return UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: traits).pointSize
-            / UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: standardTraits).pointSize
-        #else
-        return 1
-        #endif
+        MetadataBadgeSpacing.textScale(for: dynamicTypeSize)
     }
 }
 
 /// Porcelain: filled resolution badges, tinted range capsules, and outlined audio.
 public struct MediaBadgeChip: View {
     private let badge: MediaBadge
+    private let adjacentSpacing: CGFloat?
     @Environment(\.themePalette) private var palette
     @Environment(\.mediaBadgeScale) private var scale
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
 
-    public init(badge: MediaBadge) {
+    public init(badge: MediaBadge, adjacentSpacing: CGFloat? = nil) {
         self.badge = badge
+        self.adjacentSpacing = adjacentSpacing
     }
 
     public var body: some View {
         Group {
             if badge.style == .rating {
                 certificate
-            } else if badge.isAudio || badge.style == .dolby || badge.style == .hdr || badge.style == .sdr {
-                outlinedFormat
-            } else {
+            } else if badge.style == .prominent {
                 formatLabel
                     .foregroundStyle(palette.backgroundBase)
                     .padding(.horizontal, 6 * scale)
-                    .frame(height: (badge.style == .prominent ? 22 : 26) * scale)
+                    .frame(height: 22 * scale)
                     .background(palette.primaryText, in:
                         RoundedRectangle(cornerRadius: 6 * scale, style: .continuous))
+            } else {
+                outlinedFormat
             }
         }
         .fixedSize(horizontal: true, vertical: false)
         .layoutValue(
             key: WrappingHStackLayout.AdjacentSpacing.self,
-            value: badge.style == .rating ? nil : 8 * scale
+            value: adjacentSpacing ?? MetadataBadgeSpacing.betweenBadges * scale
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: badge.accessibilityText))

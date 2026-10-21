@@ -397,7 +397,7 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         public let supplementalFactsWithoutBadges: [String]
 
         public var badges: [MediaBadge] {
-            formatBadges + audioLanguages.map { MediaBadge($0) }
+            formatBadges + audioLanguages.map { MediaBadge($0, style: .audio) }
         }
 
         public func prioritizedAudioLanguages(
@@ -451,7 +451,8 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
                 }
             }
             if let codec, !formats.contains(where: { $0.label == codec }) {
-                formats.append(MediaBadge(codec))
+                let audioStart = formats.firstIndex(where: \.isAudio) ?? formats.endIndex
+                formats.insert(MediaBadge(codec), at: audioStart)
             }
             let languages = version.audioLanguageNames(in: locale)
             formatBadges = formats

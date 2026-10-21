@@ -234,7 +234,7 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
         #if os(tvOS)
         if typeSize == .large, versionCount == 2 {
-            try assertVersionTypography(in: window)
+            try await assertVersionTypography(in: window)
         }
         #endif
         let choices = try await visibleText(in: window, name: "version-choice-\(Int(width))-\(typeSize)")
@@ -300,11 +300,24 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
     #endif
 
     #if os(tvOS)
-    private func assertVersionTypography(in window: UIWindow) throws {
-        window.layoutIfNeeded()
-        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+    private func assertVersionTypography(in window: UIWindow) async throws {
+        var previousImage: Data?
+        var settledImage: UIImage?
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(250))
+            window.layoutIfNeeded()
+            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+            }
+            let bytes = try XCTUnwrap(image.pngData())
+            if bytes == previousImage {
+                settledImage = image
+                break
+            }
+            previousImage = bytes
         }
+        let image = try XCTUnwrap(settledImage, "Native focus must settle before measuring badge typography.")
         let attachment = XCTAttachment(image: image)
         attachment.name = "TV version picker typography"
         attachment.lifetime = .keepAlways
@@ -318,22 +331,46 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         request.recognitionLanguages = ["en-US"]
         request.usesLanguageCorrection = false
         request.minimumTextHeight = 0.001
-        request.customWords = ["4K", "1080P", "HEVC", "SDR"]
+        request.customWords = ["4K", "1080P", "HEVC", "SDR", "HDR10"]
+        // HDR10 shares the range typography without the short DV label's OCR ambiguity.
         let minimumHeights: [String: CGFloat] = [
             "Choose a version": 20, "4K": 12, "1080P": 12,
-            "HEVC": 12, "English": 12, "SDR": 16, "VISION": 8
+            "HEVC": 12, "English": 12, "SDR": 12, "HDR10": 12
         ]
         var heights: [String: CGFloat] = [:]
-        for recognitionImage in [cgImage, invertedImage] {
+        func measure(_ recognitionImage: CGImage, pointHeight: CGFloat) throws -> [VNRecognizedTextObservation] {
             try VNImageRequestHandler(cgImage: recognitionImage).perform([request])
-            for observation in request.results ?? [] {
+            let observations = request.results ?? []
+            for observation in observations {
                 guard let candidate = observation.topCandidates(1).first else { continue }
                 for label in minimumHeights.keys {
                     guard let range = candidate.string.range(of: label, options: .caseInsensitive),
                           let box = try candidate.boundingBox(for: range) else { continue }
-                    let height = box.boundingBox.height * image.size.height
+                    let height = box.boundingBox.height * pointHeight
                     heights[label] = min(heights[label] ?? height, height)
                 }
+            }
+            return observations
+        }
+        for recognitionImage in [cgImage, invertedImage] {
+            let observations = try measure(recognitionImage, pointHeight: image.size.height)
+            // Whole-screen OCR downsamples compact labels. Preserve point units in cropped passes.
+            for observation in observations where observation.boundingBox.height * image.size.height < 40 {
+                let box = observation.boundingBox
+                let region = CGRect(
+                    x: box.minX * CGFloat(cgImage.width),
+                    y: (1 - box.maxY) * CGFloat(cgImage.height),
+                    width: box.width * CGFloat(cgImage.width),
+                    height: box.height * CGFloat(cgImage.height)
+                ).insetBy(dx: -8, dy: -8).intersection(
+                    CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height)
+                )
+                let crop = try XCTUnwrap(recognitionImage.cropping(to: region))
+                let enlarged = CIImage(cgImage: crop).applyingFilter(
+                    "CILanczosScaleTransform", parameters: [kCIInputScaleKey: 4]
+                )
+                let enlargedImage = try XCTUnwrap(CIContext().createCGImage(enlarged, from: enlarged.extent))
+                _ = try measure(enlargedImage, pointHeight: CGFloat(crop.height) / image.scale)
             }
         }
         for (label, minimum) in minimumHeights {
