@@ -23,6 +23,7 @@ import WetrakrService
 import AniListService
 import MALService
 import LastFmService
+import TopShelfKit
 
 /// Keep the typed environment dependency stable across Settings redraws.
 @MainActor
@@ -284,13 +285,29 @@ struct MainTabView: View {
             Color.clear
                 .frame(width: 0, height: 0)
                 .accessibilityHidden(true)
-                .task(id: pendingPlay.itemID) {
-                    guard pendingPlay.itemID != nil else { return }
+                .task(id: pendingPlay.request) {
+                    guard pendingPlay.request != nil else { return }
                     onRequireHome()
                 }
                 .task(id: screenshotDirector.request) {
                     guard screenshotDirector.request != nil else { return }
                     onRequireHome()
+                }
+        }
+    }
+
+    /// Remains mounted while Settings is open, even when Home's view is not.
+    private struct TopShelfSettingsObserver: View {
+        let runtime: HomeTabRuntime
+
+        var body: some View {
+            Color.clear
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+                .onChange(of: TopShelfSettingsModel.shared.settings, initial: true) { _, settings in
+                    TopShelfPublisher.settingsDidChange(settings)
+                    guard settings.isEnabled else { return }
+                    runtime.homeViewModel.existingValue(forKey: runtime.scopeKey)?.publishCurrentContent()
                 }
         }
     }
@@ -1350,6 +1367,11 @@ struct MainTabView: View {
         pendingPersonRoute = PersonRoute(person: person, sourceAccountID: accountID)
     }
 
+    private func openTitleFromPlayer(_ item: MediaItem) {
+        playRequest = nil
+        pendingTitleRoute = item
+    }
+
     /// Live playback blocks all shell-owned ambient audio for as long as the
     /// Live TV destination is visible.
     private var isLiveTVDestinationActive: Bool {
@@ -1749,17 +1771,8 @@ struct MainTabView: View {
         railLibrariesLoaded = true
     }
 
-    var body: some View {
-        // TEMPORARY. MainTabView was the one view in the detail-page loop with no
-        // probe, and the loop is driven through the bindings IT creates: the
-        // capture showed HomeTab reporting only `_pendingPersonRoute,
-        // _pendingTitleRoute changed`, 3,559 times, with its own state and
-        // `__path` untouched. Those two bindings are built inline here, so a
-        // re-run of this body hands HomeTab fresh ones every pass. Without this
-        // probe the cycle is invisible at exactly the point it turns over.
-        let _ = plozzPrintChanges { Self._printChanges() }
-        let _ = PlozzBodyRate.tick("MainTabView")
-        return contentAwareShell
+    private var routedShell: some View {
+        contentAwareShell
         .homeLiveTVScope(
             profileID: activeProfile.id, namespace: liveTVPreferencesNamespace,
             accounts: accountsProviders, isAuthorized: isLiveTVProfileAuthorized,
@@ -1808,6 +1821,9 @@ struct MainTabView: View {
                 screenshotDirector: homeRuntime.screenshotDirector,
                 onRequireHome: requireHomeDestination
             )
+        }
+        .background {
+            TopShelfSettingsObserver(runtime: homeRuntime)
         }
         .onChange(of: resolvedRailSelection) { _, _ in
             guard navigationStyle != .tabBar else { return }
@@ -1874,10 +1890,14 @@ struct MainTabView: View {
             homeHeroRuntime.resetForSourceScopeChange()
             onWarmIdentityIndex()
         }
+    }
+
+    private var playbackShell: some View {
         // Host the full-screen Now Playing player here, on the root TabView, so it
         // presents reliably on the first trigger under both tab styles. Hosting it
         // inside the Music tab's navigation stack made it present a beat late under
         // the sidebar style (only appearing after a stray Back press).
+        routedShell
         .plozzFullScreenCover(isPresented: $showNowPlaying) {
             NowPlayingView(
                 controller: audioController,
@@ -1916,11 +1936,21 @@ struct MainTabView: View {
             // navigation stacks live inside the tabs, so this is the only place
             // that can see both.
             onOpenPerson: openPersonFromPlayer,
-            onOpenTitle: { item in
-                playRequest = nil
-                pendingTitleRoute = item
-            }
+            onOpenTitle: openTitleFromPlayer
         )
+    }
+
+    var body: some View {
+        // TEMPORARY. MainTabView was the one view in the detail-page loop with no
+        // probe, and the loop is driven through the bindings IT creates: the
+        // capture showed HomeTab reporting only `_pendingPersonRoute,
+        // _pendingTitleRoute changed`, 3,559 times, with its own state and
+        // `__path` untouched. Those two bindings are built inline here, so a
+        // re-run of this body hands HomeTab fresh ones every pass. Without this
+        // probe the cycle is invisible at exactly the point it turns over.
+        let _ = plozzPrintChanges { Self._printChanges() }
+        let _ = PlozzBodyRate.tick("MainTabView")
+        return playbackShell
         .environment(\.themeMusicController, themeMusicController)
         .environment(
             \.seasonRequestContextID,

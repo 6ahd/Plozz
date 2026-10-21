@@ -12,6 +12,20 @@ workspace's full-width destination layout, like subtitle styling. Their
 two-column content must not be squeezed into the ordinary centered Settings
 column. The stack retains the narrower parent page and its focus on return.
 
+On tvOS, **Everyone → Top Shelf** reuses the native left/right `SettingsStepper`
+for Continue Watching and Recently Added counts (4 by default, 1–20 each).
+`TopShelfSettingsModel` owns one device-local preference shared across Plozz
+profiles, excluded from profile transfer and sync. Household settings require an
+adult profile; changing these counts never broadens the shelf's content access.
+The page explains how top-row apps appear on the Apple TV Home Screen. The
+default-on **Show Top Shelf** switch clears published media when disabled and
+hides the count controls while retaining both counts for re-enabling.
+The category uses a monochrome Home Screen icon with the shelf highlighted.
+Posters / Full Screen reuse the shared `PreviewCard` focus and selection style
+with schematic Home Screen previews. A slightly larger solid-white tile marks
+the focused app, without an icon. Posters stays the default; full-screen explains
+tvOS's swipe-up expansion and retains the same two item limits.
+
 Playback > Advanced also contains **Dolby Vision FEL (experimental)** on TV,
 iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
 device-wide external-player choice. It applies to new built-in on-demand sessions

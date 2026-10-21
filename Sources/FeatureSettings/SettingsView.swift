@@ -601,6 +601,11 @@ public struct SettingsView: View {
                        value: Text(verbatim: profiles.count.formatted()),
                        route: .profile)
 
+                SettingsSectionButton(
+                    title: Text("Top Shelf"), icon: "rectangle.topthird.inset.filled",
+                    assetIcon: "TopShelfIcon", route: .topShelf
+                )
+
                 // Household-level, so it sits here rather than on a profile —
                 // one PIN for everyone, not a property of any one person.
                 sectionRow(KidsProfileCopy.parentalPIN, icon: "figure.and.child.holdinghands",
@@ -932,6 +937,8 @@ public struct SettingsView: View {
             ParentalPINSetupPage(context: context)
         case .parentalPIN:
             ParentalPINDetailView(context: context)
+        case .topShelf:
+            TopShelfSettingsView(model: .shared)
         case let .profileSettings(profileID):
             ProfileSettingsDetailView(context: context, profileID: profileID, syncEnabled: syncEnabled)
         case .myLibraries:

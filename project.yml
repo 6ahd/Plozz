@@ -310,6 +310,7 @@ targets:
       # it stays free of CoreModels and the rest of the app's stack.
       - path: Sources/TopShelfKit/TopShelfSnapshot.swift
       - path: Sources/TopShelfKit/TopShelfStore.swift
+      - path: Sources/TopShelfKit/TopShelfContentBuilder.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thatcube.Plozz${PLOZZ_ID_SUFFIX}.TopShelf
