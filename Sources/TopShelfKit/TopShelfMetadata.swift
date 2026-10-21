@@ -9,16 +9,22 @@ enum TopShelfMetadata {
         let metadata = details ?? item
         let hidesText = spoilerSettings.shouldHideText(for: item)
         let title = hidesText ? TopShelfPublisher.resolved(spoilerSettings.maskedTitle(for: item), locale) : item.title
+        let seriesTitle = cleaned([item.parentTitle, metadata.parentTitle]).first
+        let episodeLabel = item.seasonEpisodeLabel ?? metadata.seasonEpisodeLabel
         snapshot.title = item.kind == .episode
-            ? cleaned([item.parentTitle ?? metadata.parentTitle, title]).joined(separator: " — ") : title
-        snapshot.summary = hidesText ? nil : cleaned([metadata.overview, item.overview]).first
+            ? cleaned([seriesTitle, title]).joined(separator: " — ") : title
+        if hidesText {
+            snapshot.summary = cleaned([seriesTitle, episodeLabel ?? title]).joined(separator: " · ")
+        } else {
+            snapshot.summary = cleaned([metadata.overview, item.overview]).first
+        }
         snapshot.genre = cleaned((metadata.genres.isEmpty ? item.genres : metadata.genres).map(Optional.some))
             .prefix(3).joined(separator: " · ")
         if snapshot.genre?.isEmpty == true { snapshot.genre = nil }
         snapshot.duration = validDuration(item.runtime) ?? validDuration(metadata.runtime)
         snapshot.releaseDate = metadata.releaseDate ?? item.releaseDate
         if item.kind == .episode {
-            snapshot.subtitle = item.seasonEpisodeLabel ?? metadata.seasonEpisodeLabel
+            snapshot.subtitle = episodeLabel
         } else if snapshot.releaseDate != nil {
             snapshot.subtitle = nil
         } else if let year = metadata.productionYear ?? item.productionYear {

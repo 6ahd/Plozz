@@ -54,9 +54,45 @@ final class TopShelfMetadataTests: XCTestCase {
         let result = metadata(episode, spoilers: .init(isEnabled: true))
         XCTAssertEqual(result.title, "The Series — Episode 3")
         XCTAssertEqual(result.subtitle, "S2, E3")
-        XCTAssertNil(result.summary)
+        XCTAssertEqual(result.summary, "The Series · S2, E3")
         XCTAssertFalse(result.namedAttributes?.contains { $0.name == "Cast" } ?? true)
         XCTAssertEqual(result.namedAttributes?.first, .init(name: "Time Left", values: ["50m"]))
+
+        episode.isPlayed = true
+        XCTAssertEqual(metadata(episode, spoilers: .init(isEnabled: true)).summary, episode.overview)
+    }
+
+    func testSpoilerSummaryUsesSafeDetailContextWithoutTrustingItsWatchState() {
+        let episode = MediaItem(
+            id: "episode", title: "Revealing title", kind: .episode,
+            overview: "Revealing row synopsis", parentTitle: "  "
+        )
+        var details = episode
+        details.parentTitle = " The Series "
+        details.seasonNumber = 2
+        details.episodeNumber = 3
+        details.overview = "Revealing detailed synopsis"
+        details.isPlayed = true
+
+        let result = metadata(episode, details: details, spoilers: .init(isEnabled: true))
+        XCTAssertEqual(result.title, "The Series — Episode")
+        XCTAssertEqual(result.summary, "The Series · S2, E3")
+    }
+
+    func testSpoilerSummaryWithoutSeriesOrSeasonNeverFallsBackToEpisodeTitle() {
+        var episode = MediaItem(
+            id: "episode", title: "Revealing title", kind: .episode,
+            overview: "Revealing synopsis", episodeNumber: 3
+        )
+        XCTAssertEqual(
+            metadata(episode, spoilers: .init(isEnabled: true)).summary,
+            "Episode 3"
+        )
+        episode.episodeNumber = nil
+        XCTAssertEqual(
+            metadata(episode, spoilers: .init(isEnabled: true)).summary,
+            "Episode"
+        )
     }
 
     func testAttributesUseAvailableStudioAndRatingsWithoutEmptyRows() {
