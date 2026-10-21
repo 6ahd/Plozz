@@ -35,6 +35,28 @@ HOME_HOST_FITTING_COUNTERS = [
     "hostFittingMaxNanoseconds", "hostFittingReentrantCalls",
 ]
 SCENARIOS = {
+    "live-tv-schedule-capture": {
+        "suite": "core", "target": "AppRuntimeTests",
+        "test": "LiveTVPortableCapturePerformanceTests/testPerformanceDefinitionOnlyCaptures",
+        "file": "Tests/AppRuntimeTests/LiveTVPortableCapturePerformanceTests.swift",
+        "description": "Capture 12,000 immutable schedule inputs, advance the published guide five times, then capture changed inputs.",
+        "counters": ["captures", "fullSnapshotEncodes", "initialItems", "changedItems", "initialEncodedBytes"],
+    },
+    "guide-large-batches": {
+        "suite": "network", "target": "ProviderIPTVTests",
+        "test": "IPTVPerformanceProbeTests/testPerformanceLargeGuideBatches",
+        "file": "Tests/ProviderIPTVTests/IPTVPerformanceProbeTests.swift",
+        "description": "Two 2,000-channel batches from one 6,000-channel, 48,000-programme XMLTV document above the small-body cache limit.",
+        "counters": ["guideBytes", "httpRequests", "downloadedBytes", "parseInvocations",
+                     "retainedRows", "requestedChannels"],
+    },
+    "live-tv-schedule-sync": {
+        "suite": "core", "target": "FeatureLiveTVCoreTests",
+        "test": "LibraryChannelSyncSizeTests/testPerformanceLibrarySyncPayload",
+        "file": "Tests/FeatureLiveTVCoreTests/LibraryChannelSyncSizeTests.swift",
+        "description": "Plan five distinct channels from 4,000 films, refresh metadata spelling, and serialize preserved broadcast revisions.",
+        "counters": ["channels", "snapshots", "snapshotItemReferences", "encodedSnapshotBytes"],
+    },
     "collection-discovery": {
         "suite": "network", "target": "ProviderJellyfinTests",
         "test": "CollectionDiscoveryPerformanceTests/testPerformanceCollectionDiscovery",

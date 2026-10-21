@@ -18,6 +18,10 @@ final class IPTVContinuityHostedTests: XCTestCase {
         try await exercise(fragmented: true, observationSeconds: 60)
     }
 
+    func testLongRollingHLSRenewsRepeatedSessionsAndPreservesPauseAcrossBackground() async throws {
+        try await exercise(fragmented: true, fault: .longSession, observationSeconds: 330)
+    }
+
     func testRollingHLSRecoversFromADelayedSegment() async throws {
         try await exercise(fragmented: true, fault: .delayedSegment)
     }
@@ -88,6 +92,7 @@ final class IPTVContinuityHostedTests: XCTestCase {
         fragmented: Bool, fault: RollingIPTVSource.Fault = .none, observationSeconds: Int = 25
     ) async throws {
         let source = try RollingIPTVSource(bundle: Bundle(for: Self.self), fragmented: fragmented, fault: fault)
+        XCTAssertGreaterThan(source.durationSeconds, observationSeconds + 30, "The source must not run out during observation.")
         let server = try IPTVTestHTTPServer(
             beforeBodyChunk: { try source.interruptConnectionIfNeeded() },
             respond: { source.response(to: $0) }
@@ -160,6 +165,8 @@ final class IPTVContinuityHostedTests: XCTestCase {
         var position = engine.liveSnapshot.position
         var advancement: TimeInterval = 0
         var checkedGuide = false
+        var pausedAt: ContinuousClock.Instant?
+        var resumed = false
         while ContinuousClock.now < (firstFrame.map { $0 + .seconds(observationSeconds) } ?? started + .seconds(30)) {
             if let item = engine.nowPlayingPlayer?.currentItem, capture?.0 !== item {
                 if let capture { capture.0.remove(capture.1) }
@@ -189,6 +196,22 @@ final class IPTVContinuityHostedTests: XCTestCase {
             let nextPosition = engine.liveSnapshot.position
             if firstFrame != nil { advancement += max(0, nextPosition - position) }
             position = nextPosition
+            if fault == .longSession, let firstFrame {
+                if pausedAt == nil, now >= firstFrame + .seconds(75) {
+                    XCTAssertTrue(model.canPause, "The fixture must advertise a usable native time-shift window.")
+                    model.togglePlayPause()
+                    XCTAssertEqual(model.phase, .paused)
+                    model.handleScenePhase(.inactive)
+                    model.handleScenePhase(.background)
+                    pausedAt = now
+                } else if let pausedAt, !resumed, now >= pausedAt + .seconds(3) {
+                    model.handleScenePhase(.active)
+                    XCTAssertFalse(model.intendsPlayback, "Foregrounding must preserve explicit pause intent.")
+                    XCTAssertEqual(model.phase, .paused)
+                    model.togglePlayPause()
+                    resumed = true
+                }
+            }
             if fault == .guide, !checkedGuide, let firstFrame, now > firstFrame + .seconds(6) {
                 let player = engine.nowPlayingPlayer
                 let initial = try await provider.liveTVGuide(
@@ -223,11 +246,16 @@ final class IPTVContinuityHostedTests: XCTestCase {
         XCTAssertGreaterThan(changedFrames, observationSeconds * 5, "Require changing decoded images across the observation.")
         XCTAssertGreaterThan(advancement, Double(observationSeconds) * 0.72, "Playback must advance throughout observation.")
         let gapLimit: Duration = fault == .none || fault == .guide ? .seconds(3)
-            : fault == .disconnect ? .seconds(12) : .seconds(8)
+            : fault == .disconnect || fault == .longSession ? .seconds(12) : .seconds(8)
         XCTAssertLessThan(longestGap, gapLimit)
         let counts = source.counts
         if fault != .disconnect { XCTAssertGreaterThanOrEqual(counts.sequences, 5) }
-        if fault == .expiredSession {
+        if fault == .longSession {
+            XCTAssertEqual(counts.opens, 4, "Three expired sessions must each be renewed exactly once.")
+            XCTAssertGreaterThanOrEqual(counts.expired, 3)
+            XCTAssertGreaterThanOrEqual(counts.sequences, observationSeconds / 3)
+            XCTAssertTrue(resumed)
+        } else if fault == .expiredSession {
             XCTAssertEqual(counts.opens, 2, "Only the expired session may re-open the origin.")
             XCTAssertGreaterThan(counts.expired, 0)
         } else if fault == .disconnect {
@@ -271,7 +299,7 @@ final class IPTVContinuityHostedTests: XCTestCase {
 }
 
 private final class RollingIPTVSource: @unchecked Sendable {
-    enum Fault: String { case none, delayedSegment, expiredSession, guide, disconnect }
+    enum Fault: String { case none, delayedSegment, expiredSession, guide, disconnect, longSession }
     private let lock = NSLock()
     private let fault: Fault
     private let media: URL
@@ -287,6 +315,7 @@ private final class RollingIPTVSource: @unchecked Sendable {
     private var interruptionAt: TimeInterval?
     private var sequences: Set<Int> = []
     private var guideFailure: Int?
+    var durationSeconds: Int { segments.count * 2 }
 
     init(bundle: Bundle, fragmented: Bool, fault: Fault) throws {
         self.fault = fault
@@ -363,8 +392,18 @@ private final class RollingIPTVSource: @unchecked Sendable {
                     expired += 1
                     return .init(status: 403)
                 }
-                let end = min(segments.count, 4 + Int(elapsed / 2))
-                let first = max(0, end - 4)
+                if fault == .longSession, let interruptionAt {
+                    for (index, seconds) in [30.0, 120.0, 240.0].enumerated()
+                        where now >= interruptionAt - 6 + seconds
+                            && request.contains("/session-\(index + 1).m3u8 ") {
+                        expired += 1
+                        return .init(status: 403)
+                    }
+                }
+                // AVPlayer reserves three segments as live holdback; pause needs a usable range beyond it.
+                let windowSegments = fault == .longSession ? 8 : 4
+                let end = min(segments.count, windowSegments + Int(elapsed / 2))
+                let first = max(0, end - windowSegments)
                 sequences.insert(first)
                 var lines = ["#EXTM3U", "#EXT-X-VERSION:7", "#EXT-X-TARGETDURATION:2", "#EXT-X-MEDIA-SEQUENCE:\(first)"]
                 if let map { lines.append(map) }

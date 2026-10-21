@@ -298,7 +298,14 @@ Confirmed XMLTV 404s are reused only within the current provider's refresh,
 across its channel/window batches. Every new refresh can retry immediately;
 neither another account nor a later refresh inherits those failures. Diagnostics
 distinguish a reused failure from a new HTTP request. Successful document caching
-retains its existing 16 MiB/60-second limits and HTTP cache directives.
+retains one account-scoped response per provider instance for at most 60 seconds,
+honoring shorter max-age, no-cache and no-store. Bodies up to 16 MiB remain in
+memory; larger permitted bodies (up to the existing 256 MiB download limit) use an unlinked temporary
+file mapping. Expiry and teardown release the cache without requiring another
+request. This avoids downloading a large guide again for each channel batch;
+matching and parsing still run separately for each batch. Initial download
+assembly still uses Data. Backing failures are logged and leave a valid response
+uncached rather than failing its guide import.
 XMLTV accepts compact and colon-separated numeric timezone offsets, with strict
 date/offset validation. Programme-only feeds can supply exact channel IDs without
 invented display names or relaxed station matching. Referenced IDs and declared
@@ -998,6 +1005,11 @@ an oversized broad catalogue reports a preparation error instead of silently
 omitting part of the library. Metadata-poor libraries may therefore have fewer
 themed channels, but do not require manual recipes.
 
+Automatic recipe revisions reuse an existing snapshot when all immutable inputs
+match, rather than duplicating them for a metadata-only recipe change. Published
+revisions and their boundaries are never rewritten. This prevents new redundant
+payloads; it does not migrate or delete previously published duplicate snapshots.
+
 The opt-in is stored per profile on this device and defaults to Off. Disabling
 it stops automatic discovery and removes generated channels from playback and
 the guide without deleting their saved identities or any custom channel/IPTV
@@ -1471,6 +1483,11 @@ generated schedule, not video files. Authenticated IPTV accounts use the normal
 account-descriptor and credential-transfer paths; their disk-backed catalogues
 and downloaded guides remain local. The imported files mentioned below belong
 to the older playlist-source transfer path, not the newer IPTV account catalogue.
+The sync breakdown separates **Plozz Channels schedules** (definitions and
+immutable inputs) from **Live TV preferences**, and reports pending-upload bytes
+separately from all locally retained payloads. These are encoded record bytes,
+not measured CloudKit storage or wire traffic. Unchanged acknowledged records
+are not re-uploaded on every capture.
 For genuinely empty onboarding and separate cloud-restoration tests, use the
 [cloud-enabled first-user cases](per-branch-builds.md#cloud-enabled-first-user-cases)
 rather than resetting the normal app or disabling sync.
@@ -1531,6 +1548,10 @@ Full reloads retain the existing per-channel ledger and verified-deletion rules.
 Portable library schedule validation, snapshot assembly/encoding and merge
 planning run on a serial worker actor using immutable inputs. Prepared exports
 are reused during capture instead of rebuilding schedules on the main actor.
+Definition-only changes, such as advancing the published guide horizon, are
+revalidated but reuse the same encoded snapshot records. Changed snapshot
+contents or a different profile require a fresh export; matching UUIDs alone
+are insufficient.
 Consent, source changes, acknowledgements and definition publication remain
 main-actor-owned. Every worker result is checked against the current profile,
 account epoch and consent revision; definition publication also rechecks the

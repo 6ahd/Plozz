@@ -17,6 +17,9 @@ actor IPTVClient {
     private var authenticatedAt: Date?
     private var liveExtension = "ts"
     private var cachedGuide: (url: URL, data: Data, expires: Date)?
+    private var guideCacheExpiry: Task<Void, Never>?
+    private var guideCacheGeneration = UUID()
+    var cachedGuideByteCount: Int { cachedGuide?.data.count ?? 0 }
     private final class GuideRefreshState {
         weak var scope: ServerLiveTVGuideRefreshScope?
         var missingURLs = Set<URL>()
@@ -691,15 +694,45 @@ actor IPTVClient {
         let maxAge = directives.first { $0.hasPrefix("max-age=") }
             .flatMap { Double($0.dropFirst(8).trimmingCharacters(in: CharacterSet(charactersIn: "\""))) }
         let duration = min(60, maxAge.flatMap { $0.isFinite ? max(0, $0) : nil } ?? 60)
-        if data.count <= 16 * 1_024 * 1_024, !directives.contains("no-store"), !directives.contains("no-cache") {
-            cachedGuide = (url, data, Date().addingTimeInterval(duration))
-        } else { cachedGuide = nil }
+        clearGuideCache()
+        if duration > 0, !directives.contains("no-store"), !directives.contains("no-cache") {
+            do {
+                let retained = data.count <= 16 * 1_024 * 1_024
+                    ? data : try TemporaryMappedData.store(data)
+                cachedGuide = (url, retained, Date().addingTimeInterval(duration))
+                let generation = guideCacheGeneration
+                guideCacheExpiry = Task { [weak self] in
+                    do { try await Task.sleep(for: .seconds(duration)) }
+                    catch is CancellationError { return }
+                    catch {
+                        PlozzLog.networking.error("IPTV guide cache expiry wait failed")
+                    }
+                    await self?.expireGuideCache(generation: generation)
+                }
+            } catch let error as NSError where error.domain == NSPOSIXErrorDomain {
+                // Caching is optional; a spool failure must not discard a valid downloaded guide.
+                PlozzLog.networking.error("IPTV guide cache backing failed code=\(error.code)")
+            }
+        }
+        try Task.checkCancellation()
         return data
+    }
+
+    private func expireGuideCache(generation: UUID) {
+        guard generation == guideCacheGeneration else { return }
+        clearGuideCache()
+    }
+
+    private func clearGuideCache() {
+        guideCacheExpiry?.cancel()
+        guideCacheExpiry = nil
+        guideCacheGeneration = UUID()
+        cachedGuide = nil
     }
 
     func cancel() {
         refresh?.cancel()
-        cachedGuide = nil
+        clearGuideCache()
         guideRefreshes.removeAll()
         http.cancel()
     }
