@@ -1161,6 +1161,7 @@ final class PlozziOSAppModel {
         /// Whether the launch picker has been satisfied by a switch that actually
         /// completed. See `performSelectProfile`.
         var didCompleteLaunchSelection = false
+        var inlinePlexPINRequest: PlexHomeUsersModel.PlexPINRequest?
     }
 
     /// `PlozziOSRootView` presents the profile-lock PIN screen off this.
@@ -1226,6 +1227,17 @@ final class PlozziOSAppModel {
 
     /// Whether the Settings sheet is on screen. Set by the sheet itself.
     private(set) var isSettingsPresented = false
+
+    /// The exact request owned by an on-screen Plex user chooser, not another modal.
+    var inlinePlexPINRequest: PlexHomeUsersModel.PlexPINRequest? {
+        get { gate.inlinePlexPINRequest }
+        set { gate.inlinePlexPINRequest = newValue }
+    }
+
+    var plexPINRequestForAppPresentation: PlexHomeUsersModel.PlexPINRequest? {
+        let request = plexHomeUsers.pendingPlexPINRequest
+        return request == inlinePlexPINRequest ? nil : request
+    }
 
     func noteSettingsPresented(_ presented: Bool) {
         isSettingsPresented = presented

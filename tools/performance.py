@@ -237,6 +237,13 @@ SCENARIOS = {
         "description": "Update 24 production mobile Home cards against a four-source identity index without activating a card.",
         "counters": ["rootUpdates", "cards", "sourceResolutions", "observedRevision"],
     },
+    "mobile-profile-selection": {
+        "suite": "ui", "platforms": ["iOS"],
+        "test": "ProfileSelectionPerformanceTests/testPerformanceProfileSelection",
+        "file": "Tests/iOSPresentationTests/ProfileSelectionPerformanceTests.swift",
+        "description": "Activate sixteen profiles through the mobile app model and verify current Plex PIN gating; measure synchronous selection separately from 5-ms fixture metadata.",
+        "counters": ["selections", "selectionMicroseconds", "maxSelectionMicroseconds"],
+    },
     "source-menu-version-presentation": {
         "suite": "ui",
         "test": "PlaybackSourceMenuPerformanceTests/testPerformanceVersionPresentation",

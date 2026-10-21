@@ -316,7 +316,7 @@ private struct ProfileTile: View {
         )
         .plozzCircularFocusStyle()
         .accessibilityLabel(profile.name)
-        .accessibilityValue(profile.isLocked ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
+        .accessibilityValue(profile.showsPINLock ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
     }
 }
 

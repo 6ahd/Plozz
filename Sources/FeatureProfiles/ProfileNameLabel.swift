@@ -13,7 +13,7 @@ public struct ProfileNameLabel: View {
     public var body: some View {
         HStack(spacing: 6) {
             Text(profile.name)
-            if profile.isLocked {
+            if profile.showsPINLock {
                 Image(systemName: "lock.fill")
                     .font(.caption2.weight(.semibold))
                     .accessibilityHidden(true)
@@ -21,7 +21,7 @@ public struct ProfileNameLabel: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(profile.name)
-        .accessibilityValue(profile.isLocked ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
+        .accessibilityValue(profile.showsPINLock ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
     }
 }
 #endif

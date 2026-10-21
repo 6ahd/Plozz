@@ -109,6 +109,7 @@ public struct PINEntryScaffold<Badge: View>: View {
     /// copy case had to call `String(localized:)`, which resolves at call time
     /// and freezes the value against a language change.
     public let name: Text
+    public let showsLock: Bool
     /// Error from the last attempt, or `nil`. The slot is reserved either way so
     /// the pad doesn't jump when one appears.
     ///
@@ -154,6 +155,7 @@ public struct PINEntryScaffold<Badge: View>: View {
         title: LocalizedStringResource,
         subtitle: LocalizedStringResource? = nil,
         name: Text,
+        showsLock: Bool = false,
         errorMessage: LocalizedStringResource? = nil,
         isSubmitting: Bool = false,
         availability: PINEntryAvailability = .available,
@@ -169,6 +171,7 @@ public struct PINEntryScaffold<Badge: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.name = name
+        self.showsLock = showsLock
         self.errorMessage = errorMessage
         self.isSubmitting = isSubmitting
         self.availability = availability
@@ -194,7 +197,7 @@ public struct PINEntryScaffold<Badge: View>: View {
 
             if let profileTransition {
                 PINProfileEntryLayout(
-                    transition: profileTransition, title: title, name: name,
+                    transition: profileTransition, title: title, name: name, showsLock: showsLock,
                     availability: availability, errorMessage: errorMessage,
                     footnote: footnote, sequenceStep: sequenceStep,
                     onRetry: onRetry, onCancel: cancelEntry,
@@ -317,7 +320,7 @@ public struct PINEntryScaffold<Badge: View>: View {
                 HStack(spacing: 14) {
                     badge()
                         .clipShape(Circle())
-                    name
+                    PINIdentityName(name: name, showsLock: showsLock)
                         .font(PINMetrics.nameFont)
                         .foregroundStyle(palette.primaryText)
                         .lineLimit(1)
@@ -398,6 +401,19 @@ public struct PINEntryScaffold<Badge: View>: View {
     private func deleteDigit() {
         guard !isSubmitting else { return }
         entry.deleteDigit()
+    }
+}
+
+struct PINIdentityName: View {
+    let name: Text
+    let showsLock: Bool
+
+    var body: some View {
+        (showsLock
+            ? name + Text(verbatim: " ") + Text(Image(systemName: "lock.fill")).font(.caption2)
+            : name)
+            .accessibilityLabel(name)
+            .accessibilityValue(showsLock ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
     }
 }
 

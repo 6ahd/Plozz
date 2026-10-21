@@ -315,7 +315,7 @@ private struct PlozziOSProfilePickerGrid: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(profile.name)
-                .accessibilityValue(profile.isLocked ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
+                .accessibilityValue(profile.showsPINLock ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
                 .accessibilityIdentifier("profile-picker-\(profile.id)")
                 .accessibilityHint(isEditing
                     ? "Opens this profile’s settings" : "Switches to this profile")

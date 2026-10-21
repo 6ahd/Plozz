@@ -53,6 +53,12 @@ Cancellation/timeout stops only the owned process group and preserves evidence.
 
 ## Baseline → attribution → candidate → regression
 
+The iOS `mobile-profile-selection` scenario activates sixteen synthetic profiles
+through the real app model. It reports synchronous selection time separately
+from a fixed 5 ms Plex metadata delay, checks that every selection reaches the
+PIN gate, and verifies tokens remain denied. It measures activation work, not
+rendered frame pacing or physical-device network latency.
+
 1. Select the scenario matching the suspected work and capture a baseline
    **before** editing production code. Keep the printed run path. Record the
    symptom and configuration; do not replace a reported failure with an easier

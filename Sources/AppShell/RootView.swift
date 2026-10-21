@@ -1597,6 +1597,7 @@ private struct PlexPINEntryView: View {
         return PINEntryScaffold(
             title: "Enter your Plex PIN",
             name: Text(verbatim: userName),
+            showsLock: true,
             errorMessage: appState.plexHomeUsers.plexPINError,
             isSubmitting: appState.plexHomeUsers.isSubmittingPlexPIN,
             availability: pendingRequest == nil ? .checking : appState.plexHomeUsers.plexPINEntryAvailability,

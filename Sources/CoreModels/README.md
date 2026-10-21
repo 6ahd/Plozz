@@ -245,6 +245,9 @@ survive reload, profile switching, and transfer.
 Synced artwork/label-setting deletions consume their one-time legacy import
 even for profiles not yet loaded on this device. The separate `.migrated` store
 markers remain device-local and never enter profile transfer snapshots.
+Once migrated, loading these stores is read-only. Subtitle appearance model
+hydration likewise does not save or broadcast its loaded values: profile
+activation must not re-persist unchanged preferences on the main actor.
 
 ## Device-local playback buffering
 

@@ -61,6 +61,7 @@ public struct PlozziOSRootView: View {
     /// Drives the unrestricted receive/pairing flow launched from the detected-setup
     /// page (brings the whole household over from the detected device).
     @State private var showReceiveFromDetected = false
+    @State private var settingsShellIdentity: (profileID: String, value: String)?
     private var releaseNotes: ReleaseNotesModel { .shared }
 
     public init() {}
@@ -123,27 +124,6 @@ public struct PlozziOSRootView: View {
             set: { if !$0 { appModel.cancelProfileOnboarding() } }
         )) {
             PlozziOSProfileOnboardingCover(appModel: appModel)
-        }
-        // "Who are you on this server?" for a question recorded while the user was
-        // elsewhere — CloudSync enabling a server in the background, or an account
-        // signing in and making an already-recorded question answerable.
-        //
-        // The Libraries screen presents this too, for questions raised by its own
-        // toggle; that one is inside the Settings sheet and can't present when
-        // Settings is closed, which is most of the time. Without a presenter here
-        // the question would gate the watchlist import while nothing ever asked
-        // it. The two are mutually exclusive on `isSettingsPresented` so they
-        // can't both try.
-        .plozzSheet(item: Binding(
-            get: { appModel.isSettingsPresented ? nil : appModel.pendingIdentityAccount },
-            set: { if $0 == nil { appModel.resolveIdentityPromptForPending() } }
-        )) { account in
-            PlozziOSServerIdentityPromptView(
-                appModel: appModel,
-                account: account,
-                onFinish: { appModel.concludeIdentityPrompt(for: account.id) },
-                onDecline: { appModel.declineIdentityPrompt(for: account.id) }
-            )
         }
         .task { appModel.resumeProfileOnboardingIfNeeded() }
         .onAppear { PlozziOSScreenshotSeed.applyIfRequested(to: appModel) }
@@ -215,9 +195,26 @@ public struct PlozziOSRootView: View {
             }
         }
         .background { AppBackground(palette: resolvedPalette) }
-        .id(shellIdentity)
+        .id(presentationShellIdentity)
+        .onChange(of: appModel.isSettingsPresented) { _, presented in
+            settingsShellIdentity = presented
+                ? (appModel.profiles.activeProfileID, shellIdentity) : nil
+        }
         .onChange(of: shellIdentity) {
             heroTrailerController.stop()
+        }
+        // A successful Plex selection changes shellIdentity, not the sheet collecting it.
+        // Libraries owns the same question while Settings is presented.
+        .plozzSheet(item: Binding(
+            get: { appModel.isSettingsPresented ? nil : appModel.pendingIdentityAccount },
+            set: { if $0 == nil { appModel.resolveIdentityPromptForPending() } }
+        )) { account in
+            PlozziOSServerIdentityPromptView(
+                appModel: appModel,
+                account: account,
+                onFinish: { appModel.concludeIdentityPrompt(for: account.id) },
+                onDecline: { appModel.declineIdentityPrompt(for: account.id) }
+            )
         }
         // Outside the profile-scoped identity, inside its shared environment:
         // changing accounts must not tear down the surface collecting their PIN.
@@ -458,6 +455,16 @@ public struct PlozziOSRootView: View {
             )
     }
 
+    private var presentationShellIdentity: String {
+        // Settings owns its navigation and nested identity chooser. Rebuild the
+        // covered content after dismissal, but never retain a different profile.
+        if appModel.isSettingsPresented, let settingsShellIdentity,
+           settingsShellIdentity.profileID == appModel.profiles.activeProfileID {
+            return settingsShellIdentity.value
+        }
+        return shellIdentity
+    }
+
     private var plexUserSelectionBinding:
         Binding<PlexHomeUsersModel.PendingPlexUserSelection?>
     {
@@ -487,7 +494,7 @@ public struct PlozziOSRootView: View {
                 guard !showingSettings,
                       appModel.profileOnboardingStep != .libraries
                 else { return false }
-                return appModel.plexHomeUsers.pendingPlexPINRequest != nil
+                return appModel.plexPINRequestForAppPresentation != nil
             },
             set: { presented in
                 if !presented {

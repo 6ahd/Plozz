@@ -22,9 +22,10 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
 - `ProfileTileColor` — the colour palette and the deterministic
   `colorIndex → Color` resolution used by avatar / tile / picker.
 - `ProfileNameLabel` — shared picker and summary name with an inline lock
-  for profiles with a Plozz Profile Lock. The indicator and VoiceOver value
-  describe the configured lock, not temporary unlock state, Plex PINs, or Kids
-  restrictions. Settings lists retain their existing lock indicators.
+  for a Plozz Profile Lock or a configured PIN-protected Plex Home binding.
+  The indicator and VoiceOver value describe configured protection, not temporary
+  unlock state, source enablement, or Kids restrictions. It does not add a local
+  PIN gate; live Plex checks still decide whether authorization is required.
 - `ProfilePhotoCandidate` — value type for profile photos borrowed from
   connected accounts and Plex Home users.
 - `ProfileActionsList` — shared profile management actions. Settings pages use
@@ -66,6 +67,14 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   Retry/Cancel. Cancelling returns to the retained tile order, while profile
   details still reflect live edits. Reduce Motion removes the movement and
   reveal delays. Existing parental and separate-PIN steps remain explicit.
+- Mobile Plex identity selection explains playback and watchlist ownership in
+  its scrolling content. Whole-row buttons show pending work immediately;
+  verification, Retry/Cancel, and confirmed PIN entry stay in that chooser.
+  Its exact pending request is excluded from app-level PIN presenters, and the
+  root identity sheet survives Plex identity-generation changes. Settings retains
+  its same-profile presentation until dismissal before rebuilding covered content;
+  a different active profile still invalidates that presentation. A proposed
+  binding is still saved only after authentication succeeds.
 - **Visible mobile entrance.** Launch waits for native presentation to finish;
   the cancellable in-app switcher starts during presentation instead of adding
   another pause afterward. Overlapping 450 ms native smooth springs use a subtle

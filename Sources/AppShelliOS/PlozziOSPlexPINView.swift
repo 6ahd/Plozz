@@ -20,6 +20,7 @@ struct PlozziOSPlexPINView: View {
         PINEntryScaffold(
             title: profile == nil ? "Enter your Plex PIN" : "Plex PIN",
             name: Text(verbatim: profile?.name ?? request.homeUserName),
+            showsLock: true,
             errorMessage: model.plexPINError,
             isSubmitting: model.isSubmittingPlexPIN,
             availability: pendingRequest == nil ? .checking : model.plexPINEntryAvailability,

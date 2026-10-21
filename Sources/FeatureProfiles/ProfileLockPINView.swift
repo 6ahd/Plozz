@@ -56,6 +56,7 @@ public struct ProfileLockPINView: View {
         PINEntryScaffold(
             title: ProfileLockCopy.unlockTitle,
             name: Text(verbatim: profile.name),
+            showsLock: true,
             errorMessage: errorMessage,
             footnote: isSyncEnabled ? nil : ProfileLockCopy.lockIsDeviceOnly,
             sequenceStep: sequenceStep,
