@@ -1017709,7 +1017709,7 @@
     },
     "watchlist.feedback.removed" : {
       "comment" : "Transient confirmation after a title is removed locally from the user's Watchlist.",
-      "extractionState" : "stale",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -1017937,7 +1017937,7 @@
     },
     "watchlist.feedback.removing" : {
       "comment" : "Transient acknowledgement shown when removal from the Watchlist begins.",
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
