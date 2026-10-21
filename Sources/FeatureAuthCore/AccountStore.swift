@@ -358,14 +358,13 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
         guard !catalogs.isEmpty else { return true }
         try Self.processMutationLock.withLock {
             try lock.withLock {
-                let raw = try inventoryStore.readString(for: accountsKey)
-                let accounts: [Account]
-                if let raw {
-                    guard let data = raw.data(using: .utf8) else { throw AccountStoreError.decodingFailed }
-                    accounts = try JSONDecoder().decode([Account].self, from: data)
-                } else {
-                    accounts = []
+                // An absent household record may still await per-user Keychain promotion.
+                // Only an explicitly persisted empty list authorizes empty-inventory cleanup.
+                guard let raw = try inventoryStore.readString(for: accountsKey) else {
+                    throw AppError.unauthorized
                 }
+                guard let data = raw.data(using: .utf8) else { throw AccountStoreError.decodingFailed }
+                let accounts = try JSONDecoder().decode([Account].self, from: data)
                 var identities = Set<UUID>()
                 for account in accounts where account.server.provider == .iptv {
                     guard let token = try inventoryStore.readString(for: tokenKey(account.id)) else {

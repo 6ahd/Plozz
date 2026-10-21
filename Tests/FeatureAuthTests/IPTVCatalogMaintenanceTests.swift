@@ -108,6 +108,33 @@ final class IPTVCatalogMaintenanceTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
     }
 
+    func testMaintenanceBeforeHouseholdPromotionPreservesLegacyAccountCache() throws {
+        let root = try directory()
+        let legacy = InMemorySecureStore()
+        let household = InMemorySecureStore()
+        let store = AccountStore(secureStore: legacy)
+        let saved = try credential()
+        let url = try cache(saved, in: root)
+        let orphan = try cache(credential(), in: root)
+        try store.add(account("saved"), token: saved.encoded())
+
+        XCTAssertThrowsError(try store.maintainIPTVCatalogs(directory: root, inventoryStore: household))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: orphan.path))
+
+        try household.setString(
+            XCTUnwrap(legacy.readString(for: "com.plozz.accounts.v2")), for: "com.plozz.accounts.v2"
+        )
+        XCTAssertThrowsError(try store.maintainIPTVCatalogs(directory: root, inventoryStore: household))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: orphan.path))
+
+        try household.setString(saved.encoded(), for: "com.plozz.account.token.saved")
+        try store.maintainIPTVCatalogs(directory: root, inventoryStore: household)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: orphan.path))
+    }
+
     func testCredentialReplacementReclaimsOldCacheWithoutTouchingImportedFiles() throws {
         let root = try directory()
         let cacheDirectory = root.appendingPathComponent("Caches")

@@ -82,7 +82,9 @@ session persistence.
 - **IPTV cache cleanup uses the complete household inventory.** Background
   maintenance runs at startup and after account mutations on both platforms.
   It preserves disabled/profile-unselected accounts and fails closed on missing,
-  malformed, or unreadable credentials. tvOS maintenance does not use a per-user
+  malformed, or unreadable credentials or a missing household account record.
+  An explicitly persisted empty list is distinct from a record that has not yet
+  been promoted from the per-user Keychain. tvOS maintenance does not use a per-user
   Keychain fallback to authorize deletion. Removed/replaced catalogues are reclaimed
   only after their final SQLite connection closes and a fresh inventory confirms
   that no saved account references them. Unowned legacy cache files need a 24-hour
