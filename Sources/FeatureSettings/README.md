@@ -29,11 +29,20 @@ tvOS's swipe-up expansion and retains the same two item limits.
 Playback > Advanced also contains **Dolby Vision FEL (experimental)** on TV,
 iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
 device-wide external-player choice. It applies to new built-in on-demand sessions
-and travels through profile settings transfer. The helper explains the added
-GPU/memory cost and loss of Atmos objects and DTS:X height audio on the FEL route.
+and travels through profile settings transfer. The helper explains the memory
+cost, possible stuttering and loss of overhead sound on the FEL route.
 Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
+
+On tvOS 26+, Playback > **Spatial audio** controls lossy spatial conversion for
+eligible soundtracks, not directly compatible spatial audio. Feature descriptions
+use this neutral name; track metadata, diagnostics and legal notices retain their
+accurate format and dependency names. The `trueHDAtmosEnabled` preference and
+`truehd-atmos` row identity remain unchanged so saved choices and focus survive.
+The short helper covers supported tracks, compatible equipment and stuttering;
+the compatibility documentation retains conversion quality and session timing.
+See [spatial audio](../../docs/playback-engines.md#spatial-audio) for limitations.
 
 Playback > Advanced > External player is a device-only, default-off preference
 shared by all profiles on that device. It stays inside Playback rather than

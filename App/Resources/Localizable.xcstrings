@@ -256156,6 +256156,7 @@
       }
     },
     "Decode the full enhancement layer in supported Dolby Vision Profile 7 videos. Uses more GPU and memory and may stutter. FEL playback loses Dolby Atmos objects and DTS:X height audio." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -353653,6 +353654,7 @@
       }
     },
     "Hear overhead sound from supported TrueHD Atmos and DTS:X tracks on compatible equipment, using lossy conversion. If playback stutters or seeking is slow, try turning this off. Those tracks will still play, but without height positioning. Dolby Digital Plus Atmos is unaffected. Applies to new playback sessions." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -354089,6 +354091,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "透過有損轉換，在相容設備上聆聽支援的 TrueHD Atmos 音軌所呈現的頭頂音效。若播放卡頓或跳轉到其他播放位置時反應緩慢，請嘗試關閉此選項。這些音軌仍會播放聲音，但不再具有 Atmos 的高度定位效果。Dolby Digital Plus Atmos 不受影響。僅對新開始的播放生效。"
+          }
+        }
+      }
+    },
+    "Hear overhead sound from supported tracks on compatible equipment. Turn off if playback stutters." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استمع إلى صوت من الأعلى مع المسارات المدعومة والمعدات المتوافقة. عطّل هذا الخيار إذا تقطّع التشغيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чуйте звук отгоре от поддържани аудиописти със съвместимо оборудване. Изключете при накъсване на възпроизвеждането."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escolta so des de dalt amb pistes admeses i equips compatibles. Desactiva-ho si la reproducció va a batzegades."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poslouchejte zvuk shora z podporovaných stop na kompatibilním zařízení. Vypněte, pokud se přehrávání trhá."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hør lyd ovenfra fra understøttede lydspor på kompatibelt udstyr. Slå fra, hvis afspilningen hakker."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Höre Klang von oben mit unterstützten Tonspuren und kompatiblen Geräten. Schalte dies aus, wenn die Wiedergabe ruckelt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ακούστε ήχο από πάνω με υποστηριζόμενα κομμάτια ήχου και συμβατό εξοπλισμό. Απενεργοποιήστε το αν η αναπαραγωγή κολλάει."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escucha sonido desde arriba con pistas y equipos compatibles. Desactívalo si la reproducción da tirones."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "با ترک‌های صوتی پشتیبانی‌شده و تجهیزات سازگار، صدا را از بالا بشنوید. اگر پخش تکه‌تکه شد، این گزینه را خاموش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kuule ääntä yläpuoleltasi tuetuilla ääniraidoilla ja yhteensopivilla laitteilla. Poista käytöstä, jos toisto nykii."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Entendez le son au-dessus de vous avec des pistes et un équipement compatibles. Désactivez cette option si la lecture saccade."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "צליל מלמעלה ברצועות נתמכות ובציוד תואם. יש לכבות אם הניגון מקרטע."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समर्थित ऑडियो ट्रैक और संगत उपकरण पर ऊपर से आती आवाज़ सुनें। प्लेबैक रुक-रुककर चलने लगे तो इसे बंद करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Čujte zvuk odozgo uz podržane zvučne zapise i kompatibilnu opremu. Isključite ako reprodukcija zastajkuje."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hallj felülről érkező hangot támogatott hangsávokkal és kompatibilis eszközökkel. Kapcsold ki, ha akadozik a lejátszás."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dengarkan suara dari atas dengan trek yang didukung dan perangkat yang kompatibel. Matikan jika pemutaran tersendat."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ascolta suoni dall’alto con tracce e dispositivi compatibili. Disattiva se la riproduzione va a scatti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対応する音声トラックと機器で、頭上からの音を楽しめます。再生がカクつく場合はオフにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "지원되는 오디오 트랙과 호환 기기로 머리 위에서 들리는 소리를 즐기세요. 재생이 끊기면 꺼 주세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dengar bunyi dari atas dengan trek yang disokong dan peralatan yang serasi. Matikan jika main balik tersekat-sekat."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hør lyd ovenfra fra støttede lydspor på kompatibelt utstyr. Slå av hvis avspillingen hakker."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hoor geluid van boven met ondersteunde audiotracks en geschikte apparatuur. Schakel dit uit als het afspelen hapert."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usłysz dźwięk z góry dzięki obsługiwanym ścieżkom i zgodnemu sprzętowi. Wyłącz, jeśli odtwarzanie się zacina."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ouça sons vindos de cima com faixas e equipamentos compatíveis. Desative se a reprodução ficar entrecortada."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Auzi sunet de deasupra cu piste acceptate și echipamente compatibile. Dezactivează dacă redarea sacadează."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Звук сверху в поддерживаемых дорожках на совместимом оборудовании. Выключите, если воспроизведение идёт рывками."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Počúvajte zvuk zhora z podporovaných stôp na kompatibilnom zariadení. Vypnite, ak sa prehrávanie zasekáva."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poslušajte zvok od zgoraj s podprtimi zvočnimi stezami in združljivo opremo. Izklopite, če se predvajanje zatika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Čujte zvuk odozgo uz podržane audio-zapise i kompatibilnu opremu. Isključite ako reprodukcija zastajkuje."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hör ljud ovanifrån med ljudspår som stöds och kompatibel utrustning. Stäng av om uppspelningen hackar."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ฟังเสียงจากด้านบนด้วยแทร็กเสียงที่รองรับและอุปกรณ์ที่เข้ากันได้ ปิดหากการเล่นกระตุก"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desteklenen ses parçaları ve uyumlu ekipmanla yukarıdan gelen sesleri duyun. Oynatma takılırsa kapatın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Звук згори в підтримуваних доріжках на сумісному обладнанні. Вимкніть, якщо відтворення йде ривками."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nghe âm thanh từ phía trên với bản âm thanh được hỗ trợ và thiết bị tương thích. Tắt nếu phát bị giật."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用兼容设备播放受支持的音轨，感受来自上方的声音。播放卡顿时请关闭。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用相容設備播放支援的音軌，感受來自上方的聲音。播放不順時請關閉。"
           }
         }
       }
@@ -443197,6 +443419,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "類似《%@》的電影"
+          }
+        }
+      }
+    },
+    "More picture detail for supported Dolby Vision Profile 7 videos. Uses more memory, may stutter, and turns off overhead sound." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تفاصيل صورة أكثر لفيديوهات Dolby Vision Profile 7 المدعومة. يستهلك ذاكرة أكثر، وقد يسبب تقطّع التشغيل، ويوقف الصوت القادم من الأعلى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Повече детайли в картината за поддържани видеа с Dolby Vision Profile 7. Използва повече памет, може да накъсва и изключва звука отгоре."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Més detall d'imatge als vídeos Dolby Vision Profile 7 admesos. Fa servir més memòria, pot causar salts i desactiva el so des de dalt."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Více detailů obrazu u podporovaných videí Dolby Vision Profile 7. Využívá více paměti, může způsobit trhání přehrávání a vypíná zvuk shora."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Flere billeddetaljer i understøttede Dolby Vision Profile 7-videoer. Bruger mere hukommelse, kan få afspilningen til at hakke og slår lyd ovenfra fra."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mehr Bilddetails für unterstützte Dolby Vision Profile 7-Videos. Benötigt mehr Speicher, kann Ruckeln verursachen und schaltet den Klang von oben aus."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Περισσότερη λεπτομέρεια εικόνας σε υποστηριζόμενα βίντεο Dolby Vision Profile 7. Χρησιμοποιεί περισσότερη μνήμη, μπορεί να προκαλέσει κολλήματα στην αναπαραγωγή και απενεργοποιεί τον ήχο από πάνω."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Más detalle de imagen en vídeos Dolby Vision Profile 7 compatibles. Usa más memoria, puede dar tirones y desactiva el sonido desde arriba."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جزئیات تصویر بیشتر برای ویدیوهای پشتیبانی‌شدهٔ Dolby Vision Profile 7. حافظهٔ بیشتری مصرف می‌کند، ممکن است پخش تکه‌تکه شود و صدای بالاسری را خاموش می‌کند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enemmän kuvan yksityiskohtia tuetuissa Dolby Vision Profile 7 -videoissa. Käyttää enemmän muistia, voi aiheuttaa nykimistä ja poistaa yläpuolelta kuuluvan äänen käytöstä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plus de détails d’image pour les vidéos Dolby Vision Profile 7 compatibles. Utilise plus de mémoire, peut provoquer des saccades et désactive le son venant d’en haut."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "יותר פרטים בתמונה בסרטוני Dolby Vision Profile 7 נתמכים. משתמש ביותר זיכרון, עלול לגרום לקרטועים בניגון ומכבה את הצליל מלמעלה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समर्थित Dolby Vision Profile 7 वीडियो की तस्वीर में अधिक बारीकियाँ। अधिक मेमोरी इस्तेमाल होती है, प्लेबैक रुक-रुककर चल सकता है और ऊपर से आने वाली आवाज़ बंद हो जाती है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Više detalja slike u podržanim videozapisima Dolby Vision Profile 7. Troši više memorije, može uzrokovati zastajkivanje i isključuje zvuk odozgo."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Több képrészlet a támogatott Dolby Vision Profile 7 videókban. Több memóriát használ, akadozást okozhat, és kikapcsolja a felülről érkező hangot."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lebih banyak detail gambar untuk video Dolby Vision Profile 7 yang didukung. Menggunakan lebih banyak memori dan menonaktifkan suara dari atas. Pemutaran dapat tersendat."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Più dettagli d’immagine nei video Dolby Vision Profile 7 supportati. Usa più memoria, può causare scatti e disattiva i suoni dall’alto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対応するDolby Vision Profile 7動画の映像をより細かく再現します。メモリ使用量が増え、再生がカクつく場合があります。頭上からの音はオフになります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "지원되는 Dolby Vision Profile 7 영상의 세부 묘사를 높입니다. 메모리를 더 사용하고 재생이 끊길 수 있으며, 머리 위에서 들리는 소리는 꺼집니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lebih banyak perincian gambar untuk video Dolby Vision Profile 7 yang disokong. Menggunakan lebih banyak memori dan mematikan bunyi dari atas. Main balik mungkin tersekat-sekat."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Flere bildedetaljer i støttede Dolby Vision Profile 7-videoer. Bruker mer minne, kan gi hakking og slår av lyd ovenfra."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Meer beelddetail voor ondersteunde Dolby Vision Profile 7-video’s. Gebruikt meer geheugen, kan haperingen veroorzaken en schakelt geluid van boven uit."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Więcej szczegółów obrazu w obsługiwanych filmach Dolby Vision Profile 7. Zużywa więcej pamięci, może powodować zacięcia i wyłącza dźwięk z góry."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mais detalhes de imagem em vídeos Dolby Vision Profile 7 compatíveis. Usa mais memória, pode deixar a reprodução entrecortada e desativa os sons vindos de cima."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mai multe detalii de imagine pentru videoclipurile Dolby Vision Profile 7 acceptate. Folosește mai multă memorie, poate sacada și dezactivează sunetul de deasupra."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Больше деталей изображения в поддерживаемых видео Dolby Vision Profile 7. Использует больше памяти и отключает звук сверху. Воспроизведение может идти рывками."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Viac detailov obrazu v podporovaných videách Dolby Vision Profile 7. Využíva viac pamäte, môže spôsobovať zasekávanie a vypína zvuk zhora."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Več podrobnosti slike v podprtih videih Dolby Vision Profile 7. Porabi več pomnilnika, lahko povzroči zatikanje in izklopi zvok od zgoraj."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Više detalja slike u podržanim Dolby Vision Profile 7 video-zapisima. Koristi više memorije, može izazvati zastajkivanje i isključuje zvuk odozgo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fler bilddetaljer i Dolby Vision Profile 7-videor som stöds. Använder mer minne, kan få uppspelningen att hacka och stänger av ljud ovanifrån."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เพิ่มรายละเอียดภาพสำหรับวิดีโอ Dolby Vision Profile 7 ที่รองรับ ใช้หน่วยความจำมากขึ้น อาจกระตุก และปิดเสียงจากด้านบน"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desteklenen Dolby Vision Profile 7 videolarında daha fazla görüntü ayrıntısı sağlar. Daha fazla bellek kullanır, oynatmada takılmalara neden olabilir ve yukarıdan gelen sesleri kapatır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Більше деталей зображення в підтримуваних відео Dolby Vision Profile 7. Використовує більше пам’яті та вимикає звук згори. Відтворення може йти ривками."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Thêm chi tiết hình ảnh cho video Dolby Vision Profile 7 được hỗ trợ. Dùng nhiều bộ nhớ hơn và tắt âm thanh từ phía trên. Quá trình phát có thể bị giật."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "为受支持的 Dolby Vision Profile 7 视频呈现更多画面细节。占用更多内存，可能卡顿，并会关闭上方声效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "為支援的 Dolby Vision Profile 7 影片呈現更多畫面細節。使用更多記憶體，可能播放不順，並會關閉上方音效。"
           }
         }
       }
@@ -728524,6 +728966,226 @@
         }
       }
     },
+    "Spatial audio" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الصوت المكاني"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пространствен звук"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Àudio espacial"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorový zvuk"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rumlig lyd"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Räumliches Audio"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χωρικός ήχος"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio espacial"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صدای فضایی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tilaääni"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spatial"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שמע מרחבי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "स्थानिक ऑडियो"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorni zvuk"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Térbeli hang"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spasial"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spaziale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空間オーディオ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "공간 음향"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio ruang"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Romlig lyd"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ruimtelijke audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dźwięk przestrzenny"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Áudio espacial"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spațial"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пространственное аудио"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Priestorový zvuk"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorski zvok"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorni zvuk"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rumsligt ljud"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เสียงเชิงพื้นที่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uzamsal ses"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Просторове аудіо"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Âm thanh không gian"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空间音频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空間音訊"
+          }
+        }
+      }
+    },
     "Specials" : {
       "localizations" : {
         "ar" : {
@@ -849882,6 +850544,7 @@
       }
     },
     "TrueHD Atmos and DTS:X" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

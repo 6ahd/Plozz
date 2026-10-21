@@ -2,7 +2,7 @@
 
 Plozz uses two playback engines, automatically selected per-item based on
 container, codecs, and subtitle requirements. The goal is maximum format coverage
-with the best possible quality (Dolby Vision, Atmos, full-timeline seek).
+with the best possible quality (Dolby Vision, spatial audio, full-timeline seek).
 
 ## Media-share disc images
 
@@ -203,7 +203,7 @@ Playback diagnostics show `AetherEngine v7.44.0`, read from the linked engine
 rather than a duplicated version constant. The exact fork commit remains in
 attributions because the upstream version does not identify Plozz's patches.
 The update overlaps eligible VOD segment preparation with HDR display switching
-and moves DTS:X height decoding to FFmpegBuild 3.9.0.
+and moves one spatial-audio decoding path to FFmpegBuild 3.9.0.
 ASS/SSA packets with neither a decoded end nor a packet duration are now discarded
 instead of lingering for a fabricated five seconds. This also applies to sidecars;
 other subtitle codecs retain their established fallback. This upstream snapshot
@@ -246,74 +246,81 @@ fixes, corrected software resume/seek timelines, transport-intent preservation
 during rebuilds, and blocking engine work moved off Swift's cooperative pool.
 Changing speed while paused now leaves the session paused until `play()`.
 E-AC-3 JOC stream copies advertise object audio in the HLS master, including
-untagged tracks. FFmpegBuild **3.7.x** fixes dependent-substream Atmos signaling;
+untagged tracks. FFmpegBuild **3.7.x** fixes dependent-substream spatial signaling;
 LibDovi remains **2.1.x**. The earlier 7.36.0 integration used LibTrueHD **2.3.x** and
-LibDTSX **1.0.1**. Upstream 7.36.0 added DTS:X object rendering, corrected spatial
-speaker positions and a tvOS Atmos output activator for receivers that need it.
+LibDTSX **1.0.1**. Upstream 7.36.0 added another object-audio rendering path, corrected
+spatial speaker positions and a tvOS spatial-output activator for receivers that need it.
 It also includes live-replay recovery, software-video recovery after a screen lock,
 and the intervening 7.35.x playback fixes; these are upstream changes, not new
 Plozz-specific implementations. The current pin uses FFmpegBuild **3.9.0**
 and LibTrueHD **3.0.0**, retaining LibDovi **2.1.x** and removing LibDTSX. It also includes
-single-connection Atmos-probe safeguards and system-composited Dolby Vision
+single-connection spatial-audio probe safeguards and system-composited Dolby Vision
 held pictures. The fork retains the persistent HTTP body-reader isolation
 correction from its previous integration.
 
+### Spatial audio
+
 On **tvOS 26 and later**, ordinary on-demand playback automatically requests
-TrueHD Atmos and DTS:X object rendering with `LoadOptions.objectAudioRendering = .apac(.l714)`.
+spatial rendering for eligible soundtracks with `LoadOptions.objectAudioRendering = .apac(.l714)`.
 The 7.1.4 layout is an **intermediate spatial bed**, not a detected physical speaker
 configuration. tvOS and the receiver handle final output; there is no speaker
-setup prompt or mandatory opt-in. **Settings > Playback > TrueHD Atmos and DTS:X**
+setup prompt or mandatory opt-in. **Settings > Playback > Spatial audio**
 provides an on-by-default switch on supported Apple TVs. It is saved per profile,
 including profile settings transfer, and applies when the next playback session
 starts. The original `trueHDAtmosEnabled` storage key is retained, so existing
-profile choices and transfers apply to both formats without resetting the preference.
-Keep it on for overhead sound from eligible TrueHD Atmos and DTS:X tracks on
+profile choices and transfers apply to both decoding paths without resetting the preference.
+Keep it on for overhead sound from eligible spatial-audio tracks on
 compatible equipment. Turning it off retains the ordinary channel bridge
 described below: the compatible channel presentation still plays, but does not carry
 the original height positioning. Avoiding the extra spatial conversion may
 help when those tracks stutter or seek slowly; it is not a guaranteed remedy for
-unrelated playback problems. This is not a global Atmos switch: Dolby Digital Plus
-(E-AC-3/JOC) Atmos remains unaffected.
+unrelated playback problems. This is not a global spatial-audio switch: directly
+compatible E-AC-3/JOC tracks remain unaffected.
 Older saved profiles default to on. HDMI channel counts and the current rendering
-mode are not used as Atmos capability gates: neither reliably describes the room's speakers.
+mode are not used as spatial capability gates: neither reliably describes the room's speakers.
 
-Aether converts **48 kHz TrueHD Atmos and supported lossless DTS:X** on its
-native/HLS VOD path. For DTS-HD Master Audio, FFmpeg's patched decoder checks the actual packets:
-some DTS:X tracks are labelled only DTS-HD MA by FFmpeg, so metadata alone does
-not decide eligibility. Standard DTS:X has its four fixed heights removed from
-the compatible 7.1 downmix using the standard's constant fold, then mapped to the spatial bed.
-Alternate DTS:X presentations containing objects fall back to the ordinary
-channel bridge. Ordinary DTS-HD MA also retains that bridge.
+Aether converts **eligible 48 kHz lossless spatial soundtracks** on its native/HLS
+VOD path. Eligibility depends on the actual stream, not just its displayed format
+name. The patched FFmpeg `dca` decoder can identify spatial information in packets
+even when the reported profile identifies only the compatible channel-based mix.
+Its supported presentation has four fixed heights removed from the compatible
+7.1 downmix using the standard's constant fold, then mapped to the spatial bed.
+Alternate object presentations and ordinary channel-only tracks retain the
+channel bridge.
 The engine renders into the spatial bed and encodes Apple Positional Audio (APAC), which
-tvOS can deliver as Dolby MAT to compatible equipment. This is **lossy conversion**,
-not TrueHD/DTS:X bitstream passthrough or preservation of the original dynamic object
+tvOS can deliver through its system audio output to compatible equipment. This is
+**lossy conversion**, not original-audio bitstream passthrough or preservation of the original dynamic object
 stream. It adds decoding/encoding work during eligible playback, not library
 scanning or idle sync. Shared live players and muted previews stay off to avoid
 additional spatial encoding in those background/concurrent paths.
 
-Since 7.40, TrueHD uses the stream's own channel presentation and `BedSplitter`
+Since 7.40, the `truehd` decoding path uses the stream's own channel presentation and `BedSplitter`
 to distribute its energy between floor and height speakers, guided by decoded
 object positions and energy. This is an approximation, not the earlier exact
 object-signal mix; the production LibTrueHD build excludes matrix interpolation.
 The engine accounts for the split's latency and drains it on restart and EOF.
 With rendering enabled, completely untagged audio tracks can now prefer a
-recognized TrueHD Atmos/DTS:X track over the container default. Explicit track
+recognized spatial-audio track over the container default. Explicit track
 selections and the language/dub boundaries of tagged files remain authoritative.
 
-Live stream loading, iOS/iPadOS and older tvOS keep object rendering off. Plain
-TrueHD, ordinary DTS/DTS-HD MA, unsupported DTS:X presentations, ineligible sources and APAC initialization
+Live stream loading, iOS/iPadOS and older tvOS keep object rendering off.
+Channel-only tracks in unsupported native formats, unsupported spatial presentations, ineligible sources and APAC initialization
 failures retain the existing bridge: FLAC for source layouts above six channels,
 otherwise the E-AC-3 compatibility bridge. Software-video playback does not use
-this conversion. E-AC-3/JOC Atmos remains stream-copied. Explicit track selections
+this conversion. E-AC-3/JOC spatial audio remains stream-copied. Explicit track selections
 and language preferences are still passed to Aether; its automatic selection can
-prefer TrueHD Atmos or DTS:X within the same language/dub when rendering is enabled.
-DTS:X alternate object presentations are not rendered by the current pin.
+prefer eligible spatial tracks within the same language/dub when rendering is enabled.
+The `dca` path's alternate object presentations are not rendered by the current pin.
 
 Progressive segment delivery remains disabled. The upstream Apple TV reports in
 [AetherEngine #731](https://github.com/superuser404notfound/AetherEngine/issues/731)
 support this output path, but are not verification of every receiver/speaker
-configuration. An Atmos receiver label alone does not prove discrete height
+configuration. A spatial-audio receiver label alone does not prove discrete height
 mapping, particularly with tvOS Continuous Audio.
+
+The neutral feature name does not change format detection, playback, or licensing
+requirements. Track details, badges, diagnostics, dependency/API identifiers and
+required legal notices retain their accurate names.
 
 Both apps bundle the unmodified
 MIT license, Apache-2.0 license and NOTICE from
@@ -422,8 +429,8 @@ layer is discarded.
 
 FEL decodes both layers with VideoToolbox and reconstructs the picture with Metal.
 It adds GPU/memory work and uses the sample-buffer playback path, not AVPlayer.
-E-AC-3 Atmos therefore loses its objects, and the native/HLS TrueHD Atmos and
-DTS:X height conversion does not run. The separate audio preference is preserved,
+Spatial objects are therefore not retained, and the native/HLS spatial conversion
+does not run. The separate audio preference is preserved,
 so non-FEL titles still receive their configured audio behavior. These tradeoffs
 are stated next to the switch.
 
@@ -585,7 +592,7 @@ Plozzigen accepts content when ALL of these are true:
 
 - **Container:** MKV / Matroska
 - **Video codec:** HEVC, H.264, VP9, or AV1
-- **Audio codec:** Any (fMP4-legal codecs are stream-copied; eligible TrueHD Atmos
+- **Audio codec:** Any (fMP4-legal codecs are stream-copied; eligible lossless spatial audio
   is spatially rendered on tvOS 26+; other incompatible audio uses the existing
   FLAC/E-AC-3 bridge)
 - **Byte-range readable:** HTTP range requests or local file access
@@ -617,13 +624,13 @@ Native handles content the server has already prepared:
 | Feature | Plozzigen | Native |
 |---------|-----------|--------|
 | Dolby Vision | ✅ (Profile 5/8) | ✅ (if server delivers DV) |
-| Dolby Atmos | ✅ (E-AC-3 JOC stream-copy; TrueHD Atmos converted to APAC on tvOS 26+ VOD) | ✅ (if stream has E-AC3 JOC) |
+| Directly compatible spatial audio | ✅ (E-AC-3 JOC stream-copy) | ✅ (if stream has E-AC-3 JOC) |
 | HDR10 / HLG | ✅ | ✅ |
 | Full-timeline seek | ✅ | ✅ (if not live transcode) |
 | PGS subtitles | ❌ | ❌ |
-| DTS:X heights | ✅ (supported lossless DTS:X converted to APAC on tvOS 26+ native/HLS VOD) | ❌ |
+| Spatial audio conversion with heights | ✅ (eligible lossless spatial soundtracks converted to APAC on tvOS 26+ native/HLS VOD) | ❌ |
 | DTS bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
-| TrueHD bitstream | ❌ (eligible Atmos uses APAC; otherwise FLAC/E-AC-3 bridge) | ❌ |
+| TrueHD bitstream | ❌ (eligible spatial tracks use APAC; otherwise FLAC/E-AC-3 bridge) | ❌ |
 
 ## AirPlay 2 / HomePod Audio Recovery
 
@@ -650,7 +657,7 @@ handle Plex content correctly. The prior engine's experimental branches are
 preserved under `preserve/remux-*` git tags for reference but are not used.
 
 AetherEngine was adopted because it solves the exact same problem (MKV → AVPlayer
-with DoVi + Atmos + seeking) with a battle-tested pipeline. Plozz wraps it via
+with Dolby Vision, spatial audio and seeking) with a battle-tested pipeline. Plozz wraps it via
 the `PlozzigenVideoEngine` adapter conforming to the `VideoEngine` protocol.
 
 An earlier libmpv-backed `EngineMPV` engine (routed via `.hybrid`) was also
