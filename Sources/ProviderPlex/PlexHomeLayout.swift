@@ -32,12 +32,7 @@ extension PlexProvider {
         let boundedLimit = min(limit, 100)
         if section.id == "plex:continueWatching" {
             let requestLimit = limit > 100 || !excludingLibraryIDs.isEmpty ? Int.max : limit
-            let metadata: [PlexMetadata]
-            do {
-                metadata = try await client.continueWatchingHub(limit: requestLimit)
-            } catch AppError.notFound {
-                metadata = try await client.continueWatchingHub(limit: requestLimit, itemsVariant: false)
-            }
+            let (metadata, _) = try await resumeFeed(limit: requestLimit)
             return Array(metadata.filter {
                 guard Self.isServerHomeVideo($0) else { return false }
                 return $0.librarySectionID.map { !excludingLibraryIDs.contains(String($0)) }

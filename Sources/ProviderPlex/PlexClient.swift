@@ -943,13 +943,19 @@ public struct PlexClient: Sendable {
     }
 
     private func resumeFeedIdentifiers(_ item: PlexMetadata) -> Set<String> {
-        Set(
-            [item.ratingKey, item.guid, item.key]
-                .compactMap { value in
-                    guard let value, !value.isEmpty else { return nil }
-                    return value
-                }
-        )
+        var identifiers = Set<String>()
+        if let ratingKey = item.ratingKey, !ratingKey.isEmpty {
+            identifiers.insert("ratingKey:\(ratingKey)")
+        }
+        if let key = item.key, !key.isEmpty {
+            identifiers.insert("key:\(key)")
+        }
+        // Copies and editions can share a global GUID but remain distinct
+        // server items. Use it only when no server-local identity is available.
+        if identifiers.isEmpty, let guid = item.guid, !guid.isEmpty {
+            identifiers.insert("guid:\(guid)")
+        }
+        return identifiers
     }
 
     /// `GET /library/sections/{id}/firstCharacter` — the section's title

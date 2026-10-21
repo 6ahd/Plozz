@@ -72,6 +72,19 @@ excluded. The library Recommended view retains `libraryHubs` behavior.
 Home continues to use the canonical Continue Watching feed rather than
 duplicating a resume/on-deck hub inside each library.
 
+Home and library Continue Watching share the same endpoint selection: items hub,
+plain hub, then legacy on-deck only after an initial unsupported, invalid-response,
+or decode failure. An empty successful hub is authoritative. Authentication,
+rate-limit, cancellation, transport, and failures after a decoded page do not
+switch feeds or publish partial results. Home still applies its video and
+hidden-library filtering after the complete feed is available.
+
+Exhaustive feed pagination detects repeated server items using namespaced
+`ratingKey` and metadata `key` aliases. A global Plex GUID is only a fallback
+when both local identifiers are absent: copies or editions in different
+libraries can legitimately share it. Size, total, offset, and forward-progress
+validation remain strict.
+
 ## Continue Watching artwork
 
 The existing parent-series metadata batches (at most 50 referenced series per
