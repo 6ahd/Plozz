@@ -234,6 +234,12 @@ private struct LiveTVCatalogIndex<Entry: Identifiable> {
     }
 }
 
+public struct LiveTVBrowseCategory: Identifiable, Equatable, Sendable {
+    public let name: String
+    public let channelCount: Int
+    public var id: String { name }
+}
+
 @MainActor
 @Observable
 public final class LiveTVPrototypeModel {
@@ -266,14 +272,14 @@ public final class LiveTVPrototypeModel {
     public var query: String = "" {
         didSet {
             guard query != oldValue else { return }
-            refreshVisibleChannels()
+            refreshVisibleChannels(refreshCategoryCounts: false)
         }
     }
 
     public var category: String? {
         didSet {
             guard category != oldValue else { return }
-            refreshVisibleChannels()
+            refreshVisibleChannels(refreshCategoryCounts: false)
         }
     }
 
@@ -329,7 +335,7 @@ public final class LiveTVPrototypeModel {
     public var sort: LiveTVPrototypeSort = .channelNumber {
         didSet {
             guard sort != oldValue else { return }
-            refreshVisibleChannels()
+            refreshVisibleChannels(refreshCategoryCounts: false)
         }
     }
 
@@ -346,7 +352,27 @@ public final class LiveTVPrototypeModel {
         }
     }
 
-    public private(set) var visibleChannels: [LiveTVPrototypeChannel] = []
+    private struct FilteredCatalog {
+        let channels: [LiveTVPrototypeChannel]
+        let categories: [String]
+        var categoryCounts: [String: Int] = [:]
+        var totalCount = 0
+    }
+    private var filteredCatalog = FilteredCatalog(channels: [], categories: [])
+    public var visibleChannels: [LiveTVPrototypeChannel] { filteredCatalog.channels }
+    public var matchingCategories: [String] { filteredCatalog.categories }
+    public var browsingCategories: [LiveTVBrowseCategory] {
+        categories.compactMap { name in
+            guard let count = filteredCatalog.categoryCounts[name], count > 0 else { return nil }
+            return LiveTVBrowseCategory(name: name, channelCount: count)
+        }
+    }
+    public var matchingCategoryResults: [LiveTVBrowseCategory] {
+        matchingCategories.map { LiveTVBrowseCategory(name: $0, channelCount: categoryChannelCount($0)) }
+    }
+    public func categoryChannelCount(_ category: String?) -> Int {
+        category.map { filteredCatalog.categoryCounts[$0, default: 0] } ?? filteredCatalog.totalCount
+    }
     public private(set) var guideChannels: [LiveTVGuideChannel] = []
     @ObservationIgnored private var orderedGuideRowIDs: [LiveTVGuideRowID] = []
     @ObservationIgnored private var guideEntries = LiveTVCatalogIndex<LiveTVGuideChannel>()
@@ -1114,12 +1140,17 @@ public final class LiveTVPrototypeModel {
         refreshVisibleChannels()
     }
 
-    private func refreshVisibleChannels() {
+    private func refreshVisibleChannels(refreshCategoryCounts: Bool = true) {
         guard !isBatchingFilterChanges else { return }
         if preferencesLoaded, savedBrowse != browsePreferences {
             _ = persistPreferences(currentPreferences)
         }
         let normalizedQuery = Self.normalized(query)
+        let categoryMatches = normalizedQuery.isEmpty ? [] : categories.filter {
+            Self.normalized($0).contains(normalizedQuery)
+        }
+        let matchingCategoryNames = Set(categoryMatches)
+        var visibleCategoryMatches = Set<String>()
         let selectedCategory = category.map(Self.normalized)
         let hiddenChannelIDs = effectiveHiddenChannelIDs
         let language = language.map(Self.normalized)
@@ -1132,19 +1163,45 @@ public final class LiveTVPrototypeModel {
         let sort = sort
         let channels = channels
 
-        // Sort lightweight keys rather than repeatedly moving whole channel payloads.
+        func isEligible(_ channel: LiveTVPrototypeChannel) -> Bool {
+            !hiddenChannelIDs.contains(channel.id)
+                && (source == nil || channel.source == source)
+                && (language == nil || channel.languages.contains(where: { Self.normalized($0) == language }))
+                && (country == nil || channel.countries.contains(where: { Self.normalized($0) == country }))
+                && (playlistSourceID == nil || channel.playlistSourceID == playlistSourceID)
+                && (!favoritesOnly || favoriteIDs.contains(channel.id))
+                && (!guideOnly || hasGuide(for: channel))
+        }
+
+        var counts = filteredCatalog.categoryCounts
+        var total = filteredCatalog.totalCount
+        if refreshCategoryCounts {
+            var normalizedCounts: [String: Int] = [:]
+            var eligibleCategories = Set<String>()
+            total = 0
+            for channel in channels where isEligible(channel) {
+                total += 1
+                eligibleCategories.formUnion(channel.categories)
+                for name in Set(channel.categories.map(Self.normalized)) {
+                    normalizedCounts[name, default: 0] += 1
+                }
+            }
+            counts = Dictionary(uniqueKeysWithValues: eligibleCategories.map {
+                ($0, normalizedCounts[Self.normalized($0), default: 0])
+            })
+        }
+
+        // Category/query changes reuse counts and the category index, even for large lineups.
         let candidates = selectedCategory.map { categoryChannelIndices[$0] ?? [] } ?? Array(channels.indices)
-        visibleChannels = candidates.compactMap {
+        let visibleChannels = candidates.compactMap {
             index -> (index: Int, rank: Int, number: Int, id: String, name: String)? in
             let channel = channels[index]
-            guard !hiddenChannelIDs.contains(channel.id),
-                  source == nil || channel.source == source,
-                  language == nil || channel.languages.contains(where: { Self.normalized($0) == language }),
-                  country == nil || channel.countries.contains(where: { Self.normalized($0) == country }),
-                  playlistSourceID == nil || channel.playlistSourceID == playlistSourceID,
-                  !favoritesOnly || favoriteIDs.contains(channel.id),
-                  !guideOnly || hasGuide(for: channel)
-            else { return nil }
+            guard isEligible(channel) else { return nil }
+            if !matchingCategoryNames.isEmpty {
+                for category in channel.categories where matchingCategoryNames.contains(category) {
+                    visibleCategoryMatches.insert(category)
+                }
+            }
 
             // Normalize once per match, not on every comparison of a large lineup.
             let name = sort == .name || !normalizedQuery.isEmpty ? Self.normalized(channel.name) : ""
@@ -1182,6 +1239,11 @@ public final class LiveTVPrototypeModel {
             return lhs.id < rhs.id
         }
         .map { channels[$0.index] }
+        filteredCatalog = FilteredCatalog(
+            channels: visibleChannels,
+            categories: categoryMatches.filter { visibleCategoryMatches.contains($0) },
+            categoryCounts: counts, totalCount: total
+        )
         refreshGuideChannels()
     }
 

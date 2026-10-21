@@ -165,12 +165,11 @@ replacement, including when the saved playlist has no channels.
 
 Search and the active-channel artwork stay aligned, with an additional 16-point
 clearance below native navigation. Pinned navigation keeps its existing inset.
-The full-height Search/categories pane slides and fades over 0.28 seconds while the guide resizes;
-Reduce Motion suppresses this animation. iPhone/iPad retain their existing layout.
-The pane has one geometry group, so button-local focus styling
-cannot cancel Search or Multiviews movement independently of the categories.
+The full-height Search/categories pane remains beside the guide during TV
+browsing. Moving focus between panes does not move or resize the guide.
 The category list remains lazy; no per-row animation timers or rasterized
-snapshots are used.
+snapshots are used. Mobile layouts choose the sidebar or category directory
+from the available window dimensions, not the device name.
 Native guide row hosts accept both growing and shrinking widths with leading
 alignment, so explicit-width programme timelines do not recenter independently
 of channels without listings during the sidebar transition.
@@ -648,6 +647,14 @@ Earlier prototype builds did not store Favorites or Recents on disk, so there
 is no prior in-memory history to migrate on the first updated launch.
 
 - Browse, search names/numbers/categories/sources, filter and sort.
+  Live TV opens to Categories by default. The profile-scoped **Live TV opens to**
+  preference in Settings > Live TV can select Guide instead.
+  Narrow windows show a grid of category tiles and an All channels tile, each
+  with its eligible channel count. Selecting a tile opens that category's guide
+  without tuning; Categories returns to the directory and its previous position.
+  Counts exclude hidden/filtered channels, deduplicate multi-group membership,
+  and do not change with the current search query or selected category.
+  Eligibility/catalog changes refresh counts; category/query changes reuse them.
 - Select a channel logo to open its Play, Favorite and Hide actions. The
   right-hand programme/channel-name area plays directly; long-press actions
   remain available there.
@@ -659,8 +666,16 @@ is no prior in-memory history to migrate on the first updated launch.
   a replacement. An all-hidden catalog explains where to restore channels.
 - Search transforms the current screen rather than opening a second results
   dialog. Apple TV uses the native inline search keyboard above the familiar
-  channel/programme rows; iPhone/iPad replace the hero with an inline search field.
+  channel/programme rows; mobile uses a standard native search field without
+  reserving the hero's height. The narrow category directory includes this field
+  directly above the tiles.
   Both use the same query and filtered catalog, not an extra eight-result list.
+  Channel search also shows matching categories above its channel results.
+  Category matches use the same active browse filters and hidden-channel rules;
+  a channel-name match alone does not make its unrelated category a result.
+  Selecting a category closes Search and opens that category at the first guide
+  row without tuning a channel. Back without selecting a category still restores
+  the previous guide position. Program search remains a separate scope.
   On TV, the guide and Search use `PrototypeNativeGuideList`, a native collection
   view that recycles visible rows while retaining the shared SwiftUI row controls.
   The focus engine no longer traverses a full-catalog set of synthetic lazy-stack
@@ -716,16 +731,19 @@ is no prior in-memory history to migrate on the first updated launch.
   at collapsed width. Collapsed icons have no panel behind them.
 - Wide screens pin Search and an independently scrolling category list
   to the left of the guide. Search never scrolls away
-  with either list. Select a category directly; Right returns to the remembered
-  guide channel/program. Compact or short windows keep pinned horizontal controls.
+  with either list. Select a category directly; Right enters its guide.
+  Mobile windows with at least 700 points of content width and 500 of content
+  height use the sidebar, including roomy phone layouts. Narrow iPad windows and
+  short landscape windows use the same category directory as narrow phones.
   Apple TV reserves 384 points for categories on wide layouts and 320 on narrower
-  sidebar layouts, without shrinking category text. Mobile layout widths are unchanged.
+  sidebar layouts, without shrinking category text. Mobile sidebars use
+  200, 224, or 272 points according to available width.
   Its sidebar runs the full content height, beside both the channel details and
   guide. Loading and loaded layouts use the same two-column container.
-  The category panel collapses completely when native focus enters the TV guide;
-  the channel details and same mounted guide expand into its space without resetting the channel,
-  vertical position, or time. A leading-edge move out of the guide reveals the
-  panel and focuses the selected category. Back still opens Search. Internal
+  The category panel remains visible when native focus enters the TV guide;
+  channel details and the mounted guide keep their geometry, channel,
+  vertical position, and time. A leading-edge move out of the guide focuses the
+  selected category. Back belongs to native app navigation. Internal
   programme-to-programme moves keep their normal timeline behavior.
   Once a category-entry focus request completes, transient focus loss during
   native fast scrolling must not re-arm its eligibility gate. Only a new
@@ -734,8 +752,8 @@ is no prior in-memory history to migrate on the first updated launch.
   visible category disabled. Real menu round trips still restore the selected
   category before releasing that gate.
   Left/Right continues across the guide normally. Exactly one leading press
-  from the far-left channel column (far-right in RTL) must reveal categories
-  and Search, without revealing them early or also opening app navigation.
+  from the far-left channel column (far-right in RTL) must enter categories,
+  without entering them early or also opening app navigation.
   A separate leading press from the panel should reach the app menu.
   The guide's boundary recognizer gives ancestor horizontal navigation
   recognizers a failure dependency: they wait until the guide decides whether

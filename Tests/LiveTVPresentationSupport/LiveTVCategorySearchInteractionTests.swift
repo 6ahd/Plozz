@@ -1,0 +1,210 @@
+import XCTest
+
+@MainActor
+final class LiveTVCategorySearchInteractionTests: XCTestCase {
+    func testCategoryEntryRetainsConnectionRecoveryActions() {
+        let app = launch(failsLoading: true)
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["Channels unavailable"].waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(app.buttons["Retry"].exists)
+        XCTAssertTrue(app.buttons["Sources"].exists)
+        XCTAssertFalse(app.otherElements["category-search-playback"].exists)
+        XCTAssertFalse(app.buttons["live-tv-category-all"].exists)
+    }
+
+    func testCategoryFirstBrowsingUsesGridOrSidebarAndShowsChannelCounts() {
+        let app = launch()
+        defer { app.terminate() }
+        let sidebar = app.buttons["live-tv-sidebar-category-Sports"]
+        let tile = app.buttons["live-tv-browse-category-Sports"]
+        let ready = NSPredicate { _, _ in sidebar.exists || tile.exists }
+        XCTAssertEqual(XCTWaiter.wait(
+            for: [XCTNSPredicateExpectation(predicate: ready, object: nil)], timeout: 15
+        ), .completed, app.debugDescription)
+        let usesSidebar = sidebar.exists
+        let sports = usesSidebar ? sidebar : tile
+        XCTAssertEqual(sports.value as? String, "2 channels")
+        let originalX = usesSidebar ? sidebar.frame.minX : 0
+        if !usesSidebar {
+            XCTAssertFalse(channel("Arena One", in: app).exists)
+            #if os(iOS)
+            let field = searchField(in: app)
+            XCTAssertLessThanOrEqual(field.frame.height, 44)
+            XCTAssertLessThanOrEqual(field.frame.minY - app.buttons["live-tv-open-guide"].frame.maxY, 24)
+            #endif
+        }
+        capture("category-browser", in: app)
+        activate(sports, in: app)
+        XCTAssertTrue(channel("World Arena", in: app).waitForNonExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(channel("Arena One", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(channel("Stadium Live", in: app).exists)
+        XCTAssertFalse(channel("Daily News", in: app).exists)
+        capture("category-browser-guide", in: app)
+        if usesSidebar {
+            XCTAssertTrue(sidebar.exists)
+            XCTAssertEqual(sidebar.frame.minX, originalX, accuracy: 1)
+            XCTAssertLessThan(sidebar.frame.maxX, channel("Arena One", in: app).frame.minX)
+        } else {
+            #if os(iOS)
+            app.buttons["live-tv-categories"].tap()
+            XCTAssertTrue(tile.waitForExistence(timeout: 5))
+            XCTAssertFalse(channel("Arena One", in: app).exists)
+            XCTAssertFalse(app.keyboards.firstMatch.exists)
+            #endif
+        }
+        XCTAssertFalse(app.otherElements["category-search-playback"].exists)
+    }
+
+    func testCategoryAndChannelResultsOpenTheSelectedCategoryWithoutPlayback() {
+        let app = launchSearch()
+        defer { app.terminate() }
+        let field = searchField(in: app)
+        field.typeText("sports")
+        let category = app.buttons["live-tv-search-category-International Sports"]
+        XCTAssertTrue(category.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.buttons["live-tv-search-category-Sports"].exists)
+        XCTAssertFalse(app.buttons["live-tv-search-category-Entertainment"].exists)
+        XCTAssertTrue(channel("Arena One", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(channel("Sports Report", in: app).exists)
+        #if os(tvOS)
+        focus(category, in: app)
+        XCUIRemote.shared.press(.down)
+        let firstRowFocused = NSPredicate { _, _ in
+            self.containsFocus(self.channel("Arena One", in: app))
+                || self.containsFocus(app.buttons["Matchday Live"].firstMatch)
+        }
+        XCTAssertEqual(XCTWaiter.wait(
+            for: [XCTNSPredicateExpectation(predicate: firstRowFocused, object: nil)], timeout: 5
+        ), .completed, app.debugDescription)
+        focus(category, in: app)
+        #else
+        field.typeText("\n")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(category.frame.minX, app.frame.minX + 12)
+        #endif
+        capture("category-search-results", in: app)
+        activate(category, in: app)
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5), app.debugDescription)
+        let world = channel("World Arena", in: app)
+        XCTAssertTrue(world.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertFalse(channel("Arena One", in: app).exists)
+        XCTAssertFalse(channel("Sports Report", in: app).exists)
+        XCTAssertFalse(app.otherElements["category-search-playback"].exists)
+        #if os(tvOS)
+        let guideFocused = NSPredicate { _, _ in
+            self.containsFocus(world) || self.containsFocus(app.buttons["World Sports"].firstMatch)
+        }
+        XCTAssertEqual(XCTWaiter.wait(
+            for: [XCTNSPredicateExpectation(predicate: guideFocused, object: nil)], timeout: 5
+        ), .completed, app.debugDescription)
+        #endif
+        capture("category-search-selected-guide", in: app)
+    }
+
+    func testBackFromSearchPreservesTheUnfilteredGuide() {
+        let app = launchSearch(guideFirst: true)
+        defer { app.terminate() }
+        let field = searchField(in: app)
+        field.typeText("sports")
+        XCTAssertTrue(app.buttons["live-tv-search-category-Sports"].waitForExistence(timeout: 5))
+        #if os(tvOS)
+        XCUIRemote.shared.press(.menu)
+        #else
+        field.typeText("\n")
+        app.buttons["live-tv-search"].tap()
+        #endif
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(channel("Daily News", in: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["live-tv-search-category-Sports"].exists)
+    }
+
+    private func launch(guideFirst: Bool = false, failsLoading: Bool = false) -> XCUIApplication {
+        continueAfterFailure = false
+        #if os(tvOS)
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        #else
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.PresentationHost")
+        #endif
+        app.launchArguments = ["--category-search-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        if guideFirst { app.launchArguments.append("--category-search-guide-first") }
+        if failsLoading { app.launchArguments.append("--category-search-failure") }
+        app.launch()
+        return app
+    }
+
+    private func launchSearch(guideFirst: Bool = false) -> XCUIApplication {
+        let app = launch(guideFirst: guideFirst)
+        #if os(iOS)
+        if !guideFirst, searchField(in: app).waitForExistence(timeout: 2) {
+            searchField(in: app).tap()
+            return app
+        }
+        #endif
+        let search = app.buttons["live-tv-search"]
+        XCTAssertTrue(channel("Arena One", in: app).waitForExistence(timeout: 15), app.debugDescription)
+        #if os(tvOS)
+        if guideFirst {
+            let categories = app.buttons["live-tv-sidebar-category-all"]
+            for _ in 0..<3 where !containsFocus(categories) { XCUIRemote.shared.press(.left) }
+            XCTAssertTrue(containsFocus(categories), app.debugDescription)
+        }
+        #endif
+        XCTAssertTrue(search.waitForExistence(timeout: 5), app.debugDescription)
+        activate(search, in: app)
+        XCTAssertTrue(searchField(in: app).waitForExistence(timeout: 5), app.debugDescription)
+        return app
+    }
+
+    private func searchField(in app: XCUIApplication) -> XCUIElement {
+        #if os(tvOS)
+        app.searchFields.firstMatch
+        #else
+        app.searchFields["live-tv-search-field"]
+        #endif
+    }
+
+    private func channel(_ name: String, in app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(NSPredicate(
+            format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+            "live-tv-channel-channels-", name
+        )).firstMatch
+    }
+
+    private func activate(_ target: XCUIElement, in app: XCUIApplication) {
+        #if os(tvOS)
+        focus(target, in: app)
+        XCUIRemote.shared.press(.select)
+        #else
+        target.tap()
+        #endif
+    }
+
+    #if os(tvOS)
+    private func containsFocus(_ target: XCUIElement) -> Bool {
+        target.exists && (target.hasFocus || target.descendants(matching: .any)
+            .matching(NSPredicate(format: "hasFocus == true")).firstMatch.exists)
+    }
+
+    private func focus(_ target: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<20 {
+            if containsFocus(target) { return }
+            let current = app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch
+            if target.frame.midY > current.frame.maxY {
+                XCUIRemote.shared.press(.down)
+            } else if target.frame.midY < current.frame.minY {
+                XCUIRemote.shared.press(.up)
+            } else {
+                XCUIRemote.shared.press(target.frame.midX < current.frame.midX ? .left : .right)
+            }
+        }
+        XCTFail("Could not focus \(target.identifier)\n\(app.debugDescription)")
+    }
+    #endif
+
+    private func capture(_ name: String, in app: XCUIApplication) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}

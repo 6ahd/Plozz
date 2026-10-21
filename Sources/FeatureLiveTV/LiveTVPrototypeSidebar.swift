@@ -11,6 +11,7 @@ struct PrototypeBrowseSidebar: View {
     var restoresCategoryFocus = false
     let search: () -> Void
     let enterGuide: () -> Void
+    var selectCategory: ((String?) -> Void)?
     var multiviews: (() -> Void)?
     var manageChannels: (() -> Void)?
     @FocusState private var focused: Control?
@@ -67,13 +68,17 @@ struct PrototypeBrowseSidebar: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: PrototypeLayout.smallGap) {
-                        ForEach([nil] + model.categories.map(Optional.some), id: \.self) { category in
+                        ForEach([nil] + model.browsingCategories.map { Optional($0.name) }, id: \.self) { category in
                             Button {
-                                model.category = category
+                                if let selectCategory { selectCategory(category) }
+                                else { model.category = category }
                             } label: {
                                 HStack(spacing: PrototypeLayout.smallGap) {
                                     if let category { Text(category) } else { Text("All categories") }
                                     Spacer(minLength: 0)
+                                    Text(model.categoryChannelCount(category), format: .number)
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(.secondary)
                                     Image(systemName: "checkmark")
                                         .font(.caption)
                                         .opacity(model.category == category ? 1 : 0)
@@ -84,6 +89,7 @@ struct PrototypeBrowseSidebar: View {
                                     maxWidth: .infinity, minHeight: PrototypeLayout.controlHeight, alignment: .leading
                                 )
                                 .padding(.horizontal, PrototypeLayout.gap)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(
                                 PrototypeButtonStyle(
@@ -94,6 +100,9 @@ struct PrototypeBrowseSidebar: View {
                             .disabled(isEnteringCategory && category != model.category)
                             .id(Control.category(category))
                             .accessibilityAddTraits(model.category == category ? .isSelected : [])
+                            .accessibilityLabel(category.map { Text(verbatim: $0) } ?? Text("All categories"))
+                            .accessibilityValue(Text("\(model.categoryChannelCount(category)) channels"))
+                            .accessibilityIdentifier("live-tv-sidebar-category-\(category ?? "all")")
                         }
                     }
                     .padding(.vertical, PrototypeLayout.smallGap)

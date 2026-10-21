@@ -54,6 +54,14 @@ public final class LiveTVPreviewController {
         return first
     }
 
+    public func requestInitialCategoryFocus(isActive: Bool, hasOverlay: Bool) -> Bool {
+        guard isActive, !hasOverlay, !isExpanded, !hasRequestedInitialGuideFocus,
+              !model.guideChannels.isEmpty else { return false }
+        hasRequestedInitialGuideFocus = true
+        cancelPendingPreview()
+        return true
+    }
+
     public func focus(_ channelID: String?) {
         guard focusedChannelID != channelID else { return }
         focusedChannelID = channelID

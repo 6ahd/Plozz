@@ -166,6 +166,26 @@ final class LiveTVGuideRowLayoutTests: XCTestCase {
         }
     }
 
+    #if os(iOS)
+    func testCategoriesUseAvailableSpaceInsteadOfDeviceFamily() {
+        for size in [CGSize(width: 732, height: 600), CGSize(width: 820, height: 1_180)] {
+            let layout = PrototypePreviewLayout(size: size, showsCategories: true)
+            XCTAssertEqual(layout.sidebarWidth, 200)
+            XCTAssertGreaterThan(layout.guideWidth, 450)
+            XCTAssertGreaterThan(layout.heroHeight, 0)
+        }
+        for size in [
+            CGSize(width: 731, height: 600), CGSize(width: 430, height: 932),
+            CGSize(width: 932, height: 430), CGSize(width: 640, height: 1_000)
+        ] {
+            let layout = PrototypePreviewLayout(size: size, showsCategories: true)
+            XCTAssertEqual(layout.sidebarWidth, 0)
+            XCTAssertEqual(layout.heroHeight, 0)
+            XCTAssertEqual(layout.sectionGap, PrototypeLayout.smallGap)
+        }
+    }
+    #endif
+
     func testGuideReachesTVBottomWithoutMovingSidebarControlsIntoOverscan() {
         let layout = PrototypePreviewLayout(
             size: CGSize(width: 1_740, height: 960),
@@ -700,7 +720,12 @@ final class LiveTVGuideRowLayoutTests: XCTestCase {
             XCTAssertEqual(searching.contentFrame, browsing.contentFrame)
             XCTAssertEqual(searching.fadeEnd, browsing.fadeEnd)
             XCTAssertLessThanOrEqual(searching.heroHeight, browsing.heroHeight)
+            #if os(tvOS)
             XCTAssertGreaterThan(searching.heroHeight, 0)
+            #else
+            XCTAssertEqual(searching.heroHeight, 0)
+            XCTAssertEqual(searching.sectionGap, PrototypeLayout.smallGap)
+            #endif
         }
     }
 

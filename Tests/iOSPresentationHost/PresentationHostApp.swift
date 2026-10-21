@@ -150,6 +150,8 @@ struct PresentationHostApp: App {
                 ServerAddressNavigationFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--iptv-organization-fixture") {
                 IPTVOrganizationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--category-search-fixture") {
+                LiveTVCategorySearchFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--sync-erasure-fixture") {
                 SyncErasureInteractionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--watchlist-feedback-fixture") {

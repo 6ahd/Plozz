@@ -1,7 +1,9 @@
-#if os(iOS)
 import CoreUI
 import FeatureLiveTVCore
 import SwiftUI
+
+#if os(iOS)
+import UIKit
 
 struct PrototypeSearchHeader: View {
     @Binding var query: String
@@ -11,65 +13,116 @@ struct PrototypeSearchHeader: View {
     let browse: () -> Void
     let close: () -> Void
     let focusChanged: (Bool) -> Void
-    @FocusState private var focused: Control?
-    @Environment(\.themePalette) private var palette
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    private enum Control: Hashable { case query, clear }
+    var showsSummary = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PrototypeLayout.gap) {
-            HStack(spacing: PrototypeLayout.gap) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(palette.secondaryText)
-                    .accessibilityHidden(true)
-                TextField("Search channels", text: $query)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .submitLabel(.search)
-                    .focused($focused, equals: .query)
-                    .accessibilityIdentifier("live-tv-search-field")
-                    .onSubmit {
-                        focused = nil
-                        browse()
-                    }
-                if !query.isEmpty {
-                    Button {
-                        query = ""
-                        focused = .query
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                    }
-                    .accessibilityLabel("Clear search")
-                    .buttonStyle(PrototypeButtonStyle(surface: .control))
-                    .focused($focused, equals: .clear)
-                }
+        VStack(alignment: .leading, spacing: PrototypeLayout.smallGap) {
+            PrototypeMobileSearchField(
+                query: $query, focusRequest: focusRequest,
+                submit: browse, cancel: close, focusChanged: focusChanged
+            )
+            .frame(height: 56)
+            if showsSummary {
+                PrototypeSearchSummary(channelCount: channelCount, category: category)
             }
-            .font(.title2.weight(.semibold))
-            .padding(PrototypeLayout.gap)
-            .background { PrototypeControlSurface() }
+        }
+    }
+}
 
-            PrototypeSearchSummary(channelCount: channelCount, category: category)
-        }
-        .task(id: focusRequest) {
-            if !reduceMotion { try? await Task.sleep(for: .milliseconds(340)) }
-            guard !Task.isCancelled else { return }
-            focused = .query
-        }
-        .onChange(of: focused) { _, value in focusChanged(value != nil) }
-        #if os(tvOS)
-        .onMoveCommand { direction in
-            if direction == .down, focused != nil {
-                focused = nil
-                browse()
+private struct PrototypeMobileSearchField: UIViewRepresentable {
+    @Binding var query: String
+    let focusRequest: Int
+    let submit: () -> Void
+    let cancel: () -> Void
+    let focusChanged: (Bool) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> UISearchBar {
+        let bar = UISearchBar()
+        bar.searchBarStyle = .minimal
+        bar.placeholder = String(localized: "Search")
+        bar.autocapitalizationType = .none
+        bar.autocorrectionType = .no
+        bar.searchTextField.accessibilityIdentifier = "live-tv-search-field"
+        bar.delegate = context.coordinator
+        return bar
+    }
+
+    func updateUIView(_ bar: UISearchBar, context: Context) {
+        context.coordinator.parent = self
+        if bar.text != query { bar.text = query }
+        if focusRequest > context.coordinator.focusRequest {
+            context.coordinator.focusRequest = focusRequest
+            DispatchQueue.main.async { [weak bar] in
+                guard let bar, bar.window != nil else { return }
+                bar.becomeFirstResponder()
             }
         }
-        .onExitCommand(perform: close)
-        #endif
+    }
+
+    final class Coordinator: NSObject, UISearchBarDelegate {
+        var parent: PrototypeMobileSearchField
+        var focusRequest = 0
+        init(_ parent: PrototypeMobileSearchField) { self.parent = parent }
+        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+            parent.query = searchText
+        }
+        func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+            searchBar.setShowsCancelButton(true, animated: true)
+            parent.focusChanged(true)
+        }
+        func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+            searchBar.setShowsCancelButton(false, animated: true)
+            parent.focusChanged(false)
+        }
+        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+            searchBar.resignFirstResponder()
+            parent.submit()
+        }
+        func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+            parent.query = ""
+            searchBar.resignFirstResponder()
+            parent.cancel()
+        }
     }
 }
 #endif
 
-import SwiftUI
+struct PrototypeCategorySearchResults: View {
+    let categories: [LiveTVBrowseCategory]
+    let select: (String) -> Void
+    @Environment(\.themePalette) private var palette
+    #if os(tvOS)
+    @ScaledMetric(relativeTo: .headline) private var tileHeight: CGFloat = 128
+    #else
+    @ScaledMetric(relativeTo: .headline) private var tileHeight: CGFloat = 68
+    #endif
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PrototypeLayout.smallGap) {
+            Text("Categories")
+                .font(.subheadline)
+                .foregroundStyle(palette.secondaryText)
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: PrototypeLayout.gap) {
+                    ForEach(categories) { category in
+                        PrototypeCategoryTile(name: category.name, count: category.channelCount) {
+                            select(category.name)
+                        }
+                        .frame(width: PrototypeCategoryTile.searchWidth)
+                        .accessibilityIdentifier("live-tv-search-category-\(category.name)")
+                    }
+                }
+                .padding(PrototypeLayout.gap)
+            }
+            .scrollIndicators(.hidden)
+            .frame(height: tileHeight + PrototypeLayout.gap * 4)
+            .padding(.horizontal, -PrototypeLayout.gap)
+        }
+        .accessibilityIdentifier("live-tv-search-categories")
+    }
+}
 
 private struct PrototypeSearchResultsKey: EnvironmentKey {
     static let defaultValue = false
