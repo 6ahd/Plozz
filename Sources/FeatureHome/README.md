@@ -5,6 +5,14 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+Home Continue Watching failures use the existing Details / Try Again actions on
+TV (including focus-following layouts), iPhone and iPad. The report follows the
+same failed source as the visible error and retains bounded, task-scoped HTTP,
+decoding, paging and transport evidence. Retry/success clears stale reports;
+cancelled or superseded requests cannot publish diagnostics into another load.
+Reports contain provider and route categories, never account identifiers,
+server addresses, credentials, media IDs/titles or response bodies.
+
 Playback inventory failures on automatically selected TV sources use the existing
 untried-account failover before constructing a player. Every replacement still
 loads authoritative inventory; explicit selections, cancellation and revoked

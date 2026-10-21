@@ -431,18 +431,20 @@ public struct PlexClient: Sendable {
 
     /// `GET /library/onDeck` — Continue Watching.
     func onDeck(limit: Int) async throws -> [PlexMetadata] {
-        if limit == Int.max {
-            return try await exhaustiveResumeFeed(
+        try await HTTPResponseDiagnostics.$route.withValue(.onDeck) {
+            if limit == Int.max {
+                return try await exhaustiveResumeFeed(
+                    path: "/library/onDeck",
+                    acceptsNestedHubs: false,
+                    streamEnriched: true
+                )
+            }
+            return try await decodeStreamEnriched(
+                PlexMediaContainerResponse.self,
                 path: "/library/onDeck",
-                acceptsNestedHubs: false,
-                streamEnriched: true
-            )
+                query: containerQuery(start: 0, size: limit)
+            ).MediaContainer.Metadata ?? []
         }
-        return try await decodeStreamEnriched(
-            PlexMediaContainerResponse.self,
-            path: "/library/onDeck",
-            query: containerQuery(start: 0, size: limit)
-        ).MediaContainer.Metadata ?? []
     }
 
     /// Fetches exact metadata records in bounded batches chosen by the caller.
@@ -765,6 +767,12 @@ public struct PlexClient: Sendable {
     /// Older servers may not route the `items` variant; the provider falls back to
     /// the plain hub and then the legacy feed only when an endpoint fails.
     func continueWatchingHub(limit: Int, itemsVariant: Bool = true) async throws -> [PlexMetadata] {
+        try await HTTPResponseDiagnostics.$route.withValue(itemsVariant ? .continueWatchingItems : .continueWatchingHub) {
+            try await continueWatchingHubPage(limit: limit, itemsVariant: itemsVariant)
+        }
+    }
+
+    private func continueWatchingHubPage(limit: Int, itemsVariant: Bool) async throws -> [PlexMetadata] {
         let path = itemsVariant ? "/hubs/continueWatching/items" : "/hubs/continueWatching"
         if limit == Int.max {
             return try await exhaustiveResumeFeed(
@@ -840,11 +848,20 @@ public struct PlexClient: Sendable {
                     from: container,
                     acceptsNestedHubs: acceptsNestedHubs
                 )
+                func invalidPage(_ reason: LibraryPagingDiagnostic.Reason) -> AppError {
+                    let stage: LibraryPagingDiagnostic.Stage = path == "/hubs/continueWatching/items"
+                        ? .continueWatchingItems : acceptsNestedHubs ? .continueWatchingHub : .onDeck
+                    HTTPResponseDiagnostics.recordPagingFailure(.init(
+                        stage: stage, reason: reason, start: start,
+                        rows: page.items.count, total: page.totalSize
+                    ))
+                    return .invalidResponse
+                }
                 if let total = page.totalSize {
-                    guard total >= 0 else { throw AppError.invalidResponse }
+                    guard total >= 0 else { throw invalidPage(.negativeTotal) }
                     if let expectedTotal {
                         guard total == expectedTotal else {
-                            throw AppError.invalidResponse
+                            throw invalidPage(.changedTotal)
                         }
                     } else {
                         expectedTotal = total
@@ -852,26 +869,26 @@ public struct PlexClient: Sendable {
                 }
                 if let size = page.size {
                     guard size >= 0, size == page.items.count else {
-                        throw AppError.invalidResponse
+                        throw invalidPage(.sizeMismatch)
                     }
                 }
                 if let offset = page.offset {
-                    guard offset == start else { throw AppError.invalidResponse }
+                    guard offset == start else { throw invalidPage(.offsetMismatch) }
                 }
 
                 guard !page.items.isEmpty else {
                     let totalIsIncomplete = expectedTotal.map { start < $0 } ?? false
                     if page.more == true || totalIsIncomplete {
-                        throw AppError.invalidResponse
+                        throw invalidPage(.emptyBeforeTotal)
                     }
                     return collected
                 }
 
                 for item in page.items {
                     let identifiers = resumeFeedIdentifiers(item)
-                    guard !identifiers.isEmpty,
-                          seenIdentifiers.isDisjoint(with: identifiers) else {
-                        throw AppError.invalidResponse
+                    guard !identifiers.isEmpty else { throw invalidPage(.emptyID) }
+                    guard seenIdentifiers.isDisjoint(with: identifiers) else {
+                        throw invalidPage(.repeatedItem)
                     }
                     seenIdentifiers.formUnion(identifiers)
                 }
@@ -879,26 +896,26 @@ public struct PlexClient: Sendable {
 
                 let (nextStart, overflow) = start.addingReportingOverflow(page.items.count)
                 guard !overflow, nextStart > start else {
-                    throw AppError.invalidResponse
+                    throw invalidPage(.nonAdvancing)
                 }
-                start = nextStart
 
                 if let expectedTotal {
-                    guard start <= expectedTotal else {
-                        throw AppError.invalidResponse
+                    guard nextStart <= expectedTotal else {
+                        throw invalidPage(.itemsPastEnd)
                     }
-                    if start == expectedTotal {
+                    if nextStart == expectedTotal {
                         guard page.more != true else {
-                            throw AppError.invalidResponse
+                            throw invalidPage(.contradictoryMore)
                         }
                         return collected
                     }
                     if page.more == false {
-                        throw AppError.invalidResponse
+                        throw invalidPage(.contradictoryMore)
                     }
                 } else if page.more == false {
                     return collected
                 }
+                start = nextStart
             }
         } catch let cancellation as CancellationError {
             throw cancellation
@@ -943,13 +960,19 @@ public struct PlexClient: Sendable {
     }
 
     private func resumeFeedIdentifiers(_ item: PlexMetadata) -> Set<String> {
-        Set(
-            [item.ratingKey, item.guid, item.key]
-                .compactMap { value in
-                    guard let value, !value.isEmpty else { return nil }
-                    return value
-                }
-        )
+        var identifiers = Set<String>()
+        if let ratingKey = item.ratingKey, !ratingKey.isEmpty {
+            identifiers.insert("ratingKey:\(ratingKey)")
+        }
+        if let key = item.key, !key.isEmpty {
+            identifiers.insert("key:\(key)")
+        }
+        // Copies and editions can share a global GUID but remain distinct
+        // server items. Use it only when no server-local identity is available.
+        if identifiers.isEmpty, let guid = item.guid, !guid.isEmpty {
+            identifiers.insert("guid:\(guid)")
+        }
+        return identifiers
     }
 
     /// `GET /library/sections/{id}/firstCharacter` — the section's title
