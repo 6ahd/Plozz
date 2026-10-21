@@ -85,6 +85,19 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
         }
     }
 
+    func testMobileEngineHeaderIncludesVersionWithoutRepeatingTheOldBrand() throws {
+        var diagnostics = fixture(mode: .plozzigen)
+        diagnostics.engineName = "AetherEngine v7.44.0"
+        let panel = PlaybackDiagnosticsOverlay(diagnostics: diagnostics, presentation: .mobile)
+        let text = try renderedText(
+            panel.mobileContent(width: 390).frame(width: 390).fixedSize(horizontal: false, vertical: true),
+            locale: "en_US"
+        )
+        XCTAssertTrue(text.contains("AetherEngine"), text)
+        XCTAssertTrue(text.contains("v7.44.0"), text)
+        XCTAssertFalse(text.contains("Plozzigen"), text)
+    }
+
     func testTelevisionDiagnosticsUseTheSameLocalizedLabels() throws {
         let panel = PlaybackDiagnosticsOverlay(diagnostics: fixture(mode: .transcode), presentation: .television)
         let text = try renderedText(

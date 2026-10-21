@@ -232,6 +232,11 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertNil(probe.selected, "Choosing the mode alone must not select a file.")
         XCTAssertFalse(try XCTUnwrap(model.prompt).needsIntroduction)
+        #if os(tvOS)
+        if typeSize == .large, versionCount == 2 {
+            try assertVersionTypography(in: window)
+        }
+        #endif
         let choices = try await visibleText(in: window, name: "version-choice-\(Int(width))-\(typeSize)")
         for fact in ["Choose a version", "4K", "42 GB", "English", "HEVC", "TrueHD"] {
             XCTAssertTrue(choices.localizedCaseInsensitiveContains(fact), "Missing \(fact): \(choices)")
@@ -295,6 +300,50 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
     #endif
 
     #if os(tvOS)
+    private func assertVersionTypography(in window: UIWindow) throws {
+        window.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "TV version picker typography"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        let cgImage = try XCTUnwrap(image.cgImage)
+        let inverted = CIImage(cgImage: cgImage).applyingFilter("CIColorInvert")
+        let invertedImage = try XCTUnwrap(CIContext().createCGImage(inverted, from: inverted.extent))
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        request.usesLanguageCorrection = false
+        request.minimumTextHeight = 0.001
+        request.customWords = ["4K", "1080P", "HEVC", "SDR"]
+        let minimumHeights: [String: CGFloat] = [
+            "Choose a version": 20, "4K": 12, "1080P": 12,
+            "HEVC": 12, "English": 12, "SDR": 16, "VISION": 8
+        ]
+        var heights: [String: CGFloat] = [:]
+        for recognitionImage in [cgImage, invertedImage] {
+            try VNImageRequestHandler(cgImage: recognitionImage).perform([request])
+            for observation in request.results ?? [] {
+                guard let candidate = observation.topCandidates(1).first else { continue }
+                for label in minimumHeights.keys {
+                    guard let range = candidate.string.range(of: label, options: .caseInsensitive),
+                          let box = try candidate.boundingBox(for: range) else { continue }
+                    let height = box.boundingBox.height * image.size.height
+                    heights[label] = min(heights[label] ?? height, height)
+                }
+            }
+        }
+        for (label, minimum) in minimumHeights {
+            let height = try XCTUnwrap(heights[label], "Missing visible picker text: \(label)")
+            XCTAssertGreaterThanOrEqual(height, minimum, "\(label) must be readable at TV viewing distance.")
+        }
+        XCTAssertLessThanOrEqual(try XCTUnwrap(heights["Choose a version"]), 40,
+                                "The heading must remain a compact hint, not a large TV title.")
+    }
+
     private func assertCompactCard(in window: UIWindow, maximumHeight: CGFloat) throws {
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
@@ -363,9 +412,8 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
                 try VNImageRequestHandler(cgImage: recognitionImage).perform([request])
                 let observations = request.results ?? []
                 result += " " + observations.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-                #if os(tvOS)
-                // TV's tiny badge lettering needs a cropped pass; scaling a whole screen is downsampled by Vision.
-                for observation in observations where observation.boundingBox.height * CGFloat(cgImage.height) < 24 {
+                // Tiny badge lettering needs a cropped pass on both platforms, not a downsampled whole screen.
+                for observation in observations where observation.boundingBox.height * image.size.height < 24 {
                     let box = observation.boundingBox
                     let rect = CGRect(
                         x: box.minX * CGFloat(cgImage.width),
@@ -375,15 +423,28 @@ final class PlaybackVersionChoiceHostedTests: XCTestCase {
                     ).insetBy(dx: -8, dy: -8).intersection(
                         CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height)
                     )
-                    let crop = try XCTUnwrap(recognitionImage.cropping(to: rect))
-                    let enlarged = CIImage(cgImage: crop).applyingFilter(
-                        "CILanczosScaleTransform", parameters: [kCIInputScaleKey: 4]
-                    )
-                    let enlargedImage = try XCTUnwrap(CIContext().createCGImage(enlarged, from: enlarged.extent))
-                    try VNImageRequestHandler(cgImage: enlargedImage).perform([request])
-                    result += " " + (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                    var regions = [rect]
+                    #if os(iOS)
+                    // The isolated resolution pill may be omitted entirely. Include its actual badge row.
+                    if observation.topCandidates(1).first?.string.contains("HEVC") == true {
+                        for x in stride(from: CGFloat(0), to: CGFloat(cgImage.width), by: 160 * image.scale) {
+                            regions.append(CGRect(
+                                x: x, y: rect.minY, width: min(192 * image.scale, CGFloat(cgImage.width) - x),
+                                height: rect.height
+                            ))
+                        }
+                    }
+                    #endif
+                    for region in regions {
+                        let crop = try XCTUnwrap(recognitionImage.cropping(to: region))
+                        let enlarged = CIImage(cgImage: crop).applyingFilter(
+                            "CILanczosScaleTransform", parameters: [kCIInputScaleKey: 4]
+                        )
+                        let enlargedImage = try XCTUnwrap(CIContext().createCGImage(enlarged, from: enlarged.extent))
+                        try VNImageRequestHandler(cgImage: enlargedImage).perform([request])
+                        result += " " + (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                    }
                 }
-                #endif
             }
         }
         return result

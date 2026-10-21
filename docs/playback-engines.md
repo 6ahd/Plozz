@@ -196,12 +196,14 @@ headers when updating the vendored sources, and update sources, public headers,
 binary checksums, and bundled notices together.
 
 Plozz pins the playback-corrected
-[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/deb90eb3f740fe1ddda74301a64e3937e480877d)
-at commit `deb90eb3f740fe1ddda74301a64e3937e480877d`, integrating upstream
-main **`3721cec573478bf82bc5056417f13b76d644517b`**: release **7.42.0**
-plus its unreleased FFmpegBuild 3.8.0, encrypted-HLS backpressure and untagged
-object-audio track-selection changes. The engine's version string is still 7.42.0;
-the exact commit, not that string, identifies this build.
+[AetherEngine fork](https://github.com/brandomoore/AetherEngine/tree/86af70ddfe7bcde27e06356dc7aa81e8997d43c4)
+at commit `86af70ddfe7bcde27e06356dc7aa81e8997d43c4`, integrating upstream
+**7.44.0** (`e5ea8dac56a6962d7f6793fc80b7c84caa61b7af`).
+Playback diagnostics show `AetherEngine v7.44.0`, read from the linked engine
+rather than a duplicated version constant. The exact fork commit remains in
+attributions because the upstream version does not identify Plozz's patches.
+The update overlaps eligible VOD segment preparation with HDR display switching
+and moves DTS:X height decoding to FFmpegBuild 3.9.0.
 ASS/SSA packets with neither a decoded end nor a packet duration are now discarded
 instead of lingering for a fabricated five seconds. This also applies to sidecars;
 other subtitle codecs retain their established fallback. This upstream snapshot
@@ -224,10 +226,10 @@ each bring a Rust exception personality; statically combining both with Plozz's
 Objective-C and C++ text-rendering code exceeds Mach-O compact unwind's three
 personality slots. The framework keeps the engine's decoder runtimes in a
 separate Mach-O image, preserving unwind metadata and panic handling. Both app
-targets must embed and sign it alongside the existing FFmpeg frameworks and the
-new dynamic **DTSX.framework**. LibDTSX's combined decoder is LGPL-3.0-or-later;
-its upstream notice, Apache license, LGPL 2.1 and LGPL 3.0/GPL 3.0 texts are
-bundled verbatim in the `LibDTSX*` resources, with the exact source in attributions.
+targets must embed and sign it alongside the FFmpeg frameworks. Upstream 7.44.0
+replaces LibDTSX with FFmpeg's patched `dca` decoder. `DTSX.framework` and the
+retired LibDTSX notices are no longer shipped; the `DTSXObjectAudio` trait and
+existing FFmpeg notices remain.
 
 Plozz explicitly enables `TrueHDObjectAudio`, `DTSXObjectAudio`,
 `DualLayerDolbyVision` and `DolbyVisionStillReshaping` on its Swift package
@@ -250,8 +252,8 @@ LibDTSX **1.0.1**. Upstream 7.36.0 added DTS:X object rendering, corrected spati
 speaker positions and a tvOS Atmos output activator for receivers that need it.
 It also includes live-replay recovery, software-video recovery after a screen lock,
 and the intervening 7.35.x playback fixes; these are upstream changes, not new
-Plozz-specific implementations. The current pin advances FFmpegBuild to **3.8.0**
-and LibTrueHD/LibDTSX to **3.0.0**, retaining LibDovi **2.1.x**. It also includes
+Plozz-specific implementations. The current pin uses FFmpegBuild **3.9.0**
+and LibTrueHD **3.0.0**, retaining LibDovi **2.1.x** and removing LibDTSX. It also includes
 single-connection Atmos-probe safeguards and system-composited Dolby Vision
 held pictures. The fork retains the persistent HTTP body-reader isolation
 correction from its previous integration.
@@ -276,7 +278,7 @@ Older saved profiles default to on. HDMI channel counts and the current renderin
 mode are not used as Atmos capability gates: neither reliably describes the room's speakers.
 
 Aether converts **48 kHz TrueHD Atmos and supported lossless DTS:X** on its
-native/HLS VOD path. For DTS-HD Master Audio, LibDTSX checks the actual packets:
+native/HLS VOD path. For DTS-HD Master Audio, FFmpeg's patched decoder checks the actual packets:
 some DTS:X tracks are labelled only DTS-HD MA by FFmpeg, so metadata alone does
 not decide eligibility. Standard DTS:X has its four fixed heights removed from
 the compatible 7.1 downmix using the standard's constant fold, then mapped to the spatial bed.
@@ -400,6 +402,37 @@ The 7.1.1 to 7.7.1 update preserves HDR routing during audio changes and
 background recovery, retains the native Now Playing host across screensaver
 recovery, and avoids dispatch-pool starvation in loopback connections and source
 size probes. FFmpegBuild 3.4.x adds AV1 Dolby Vision sample-entry support.
+
+## Dolby Vision FEL
+
+**Settings > Playback > Advanced > Dolby Vision FEL (experimental)** is off by
+default, saved per profile, and applied to new built-in on-demand playback
+sessions on tvOS and iOS/iPadOS. Existing profiles remain off, including older
+or malformed stored values. Profile transfer carries the choice. The adapter
+passes it through `LoadOptions.preferDualLayerDolbyVision`; it does not enable
+FEL for live streams, shared players, muted previews or display-suppressed
+previews. External players own their own decoding preferences.
+
+The engine, not provider metadata, decides eligibility: seekable Profile 7 FEL,
+automatic Dolby Vision handling, hardware HEVC decode and the engine's real-time
+pixel budget. MEL, other profiles and unsupported sources retain their ordinary
+route. With FEL off, Profile 7 is converted to single-layer Profile 8.1 where the
+display accepts Dolby Vision, or the HDR10 base layer otherwise; the enhancement
+layer is discarded.
+
+FEL decodes both layers with VideoToolbox and reconstructs the picture with Metal.
+It adds GPU/memory work and uses the sample-buffer playback path, not AVPlayer.
+E-AC-3 Atmos therefore loses its objects, and the native/HLS TrueHD Atmos and
+DTS:X height conversion does not run. The separate audio preference is preserved,
+so non-FEL titles still receive their configured audio behavior. These tradeoffs
+are stated next to the switch.
+
+Upstream documents measured Dolby Vision metadata consumption on tvOS, but not
+on iOS/iPadOS. Enabling the option is not evidence that a particular file took
+the route or that a physical display applied its metadata. The engine logs
+`DV P7 dual-layer route: taken` or the reason it was not taken; actual picture
+and HDMI output require a suitable physical-device sample.
+See the pinned [FEL design and evidence](https://github.com/brandomoore/AetherEngine/blob/86af70ddfe7bcde27e06356dc7aa81e8997d43c4/docs/dolby-vision-fel.md).
 
 ## Remote AV1 Matroska startup
 

@@ -5,6 +5,11 @@ import UIKit
 #endif
 
 public struct WrappingHStackLayout: Layout {
+    /// Overrides the gap only when both neighboring subviews opt in.
+    public struct AdjacentSpacing: LayoutValueKey {
+        public static let defaultValue: CGFloat? = nil
+    }
+
     public enum RowAlignment: Sendable {
         case leading
         case center
@@ -37,7 +42,7 @@ public struct WrappingHStackLayout: Layout {
             partial, index in
             partial
                 + subviews[index].sizeThatFits(.unspecified).width
-                + (index == subviews.startIndex ? 0 : spacing)
+                + (index == subviews.startIndex ? 0 : spacing(before: index, subviews: subviews))
         }
         let maxWidth = finiteWidth(
             from: proposal.width,
@@ -66,6 +71,9 @@ public struct WrappingHStackLayout: Layout {
                 availableWidth: bounds.width
             )
             for index in row.startIndex..<row.endIndex {
+                if index > row.startIndex {
+                    x += spacing(before: index, subviews: subviews)
+                }
                 let size = row.sizes[index - row.startIndex]
                 subviews[index].place(
                     at: CGPoint(
@@ -74,7 +82,7 @@ public struct WrappingHStackLayout: Layout {
                     ),
                     proposal: ProposedViewSize(size)
                 )
-                x += size.width + spacing
+                x += size.width
             }
             y += row.height + lineSpacing
         }
@@ -86,6 +94,15 @@ public struct WrappingHStackLayout: Layout {
         let sizes: [CGSize]
         let width: CGFloat
         let height: CGFloat
+    }
+
+    private func spacing(before index: Int, subviews: Subviews) -> CGFloat {
+        guard index > subviews.startIndex,
+              let previous = subviews[index - 1][AdjacentSpacing.self],
+              let current = subviews[index][AdjacentSpacing.self] else {
+            return spacing
+        }
+        return max(previous, current)
     }
 
     private func makeRows(
@@ -100,9 +117,10 @@ public struct WrappingHStackLayout: Layout {
 
         for index in subviews.indices {
             let size = subviews[index].sizeThatFits(.unspecified)
+            let gap = spacing(before: index, subviews: subviews)
             let candidateWidth = sizes.isEmpty
                 ? size.width
-                : width + spacing + size.width
+                : width + gap + size.width
 
             if candidateWidth > maxWidth, !sizes.isEmpty {
                 rows.append(
@@ -120,7 +138,7 @@ public struct WrappingHStackLayout: Layout {
                 height = 0
             }
 
-            width = sizes.isEmpty ? size.width : width + spacing + size.width
+            width = sizes.isEmpty ? size.width : width + gap + size.width
             height = max(height, size.height)
             sizes.append(size)
         }
@@ -142,20 +160,20 @@ public struct WrappingHStackLayout: Layout {
         // Prefer 2+2 to 3+1 when an intact item can move without adding a row.
         if last.sizes.count == 1, previous.sizes.count > 2,
            let moved = previous.sizes.last,
-           moved.width + spacing + last.width <= maxWidth {
+           moved.width + spacing(before: last.startIndex, subviews: subviews) + last.width <= maxWidth {
             let remaining = Array(previous.sizes.dropLast())
             rows[rows.count - 2] = Row(
                 startIndex: previous.startIndex,
                 endIndex: previous.endIndex - 1,
                 sizes: remaining,
-                width: previous.width - spacing - moved.width,
+                width: previous.width - spacing(before: previous.endIndex - 1, subviews: subviews) - moved.width,
                 height: remaining.map(\.height).max() ?? 0
             )
             rows[rows.count - 1] = Row(
                 startIndex: previous.endIndex - 1,
                 endIndex: last.endIndex,
                 sizes: [moved] + last.sizes,
-                width: moved.width + spacing + last.width,
+                width: moved.width + spacing(before: last.startIndex, subviews: subviews) + last.width,
                 height: max(moved.height, last.height)
             )
         }

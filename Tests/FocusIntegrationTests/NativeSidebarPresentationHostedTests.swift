@@ -65,15 +65,16 @@ final class NativeSidebarPresentationHostedTests: XCTestCase {
     }
 
     func testNativeSidebarDisplaysOfflineStatusAndRemovesItAfterRecovery() async throws {
-        let fixture = try await makeFixture()
-        defer { fixture.close() }
-        let model = LibraryStatusModel()
-        let host = UIHostingController(rootView: LibraryStatusSidebar(model: model)
-            .environment(\.locale, Locale(identifier: "en_US")))
-        fixture.window.rootViewController = host
-        let focusSystem = try XCTUnwrap(UIFocusSystem.focusSystem(for: fixture.window))
         for appearance in [UIUserInterfaceStyle.dark, .light] {
+            let fixture = try await makeFixture()
+            defer { fixture.close() }
+            // Set traits before constructing the native sidebar, not during its focus transition.
             fixture.window.overrideUserInterfaceStyle = appearance
+            let model = LibraryStatusModel()
+            let host = UIHostingController(rootView: LibraryStatusSidebar(model: model)
+                .environment(\.locale, Locale(identifier: "en_US")))
+            fixture.window.rootViewController = host
+            let focusSystem = try XCTUnwrap(UIFocusSystem.focusSystem(for: fixture.window))
             for offline in [false, true, false] {
                 model.isOffline = offline
                 let deadline = ContinuousClock.now + .seconds(5)
@@ -93,7 +94,6 @@ final class NativeSidebarPresentationHostedTests: XCTestCase {
                     try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
                     let labels = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
                     presentation = (image, labels)
-                    // Theme changes can rebuild and collapse the native sidebar after focus was acquired.
                     if labels.contains(where: { $0.contains("Movies") }),
                        labels.filter({ $0.contains("Offline") }).count == (offline ? 2 : 0) {
                         break

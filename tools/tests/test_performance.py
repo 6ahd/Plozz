@@ -85,9 +85,11 @@ class EvidenceTests(unittest.TestCase):
     def test_selection_is_explicit_and_narrow_by_default(self):
         self.assertEqual(set(performance.select(None, None)), {
             "sync-unchanged", "library-unchanged", "catalog-import", "watchlist-artwork-rehydration",
-            "live-tv-schedule-capture", "live-tv-schedule-sync",
+            "live-tv-schedule-capture", "live-tv-schedule-sync", "poster-preview-admission",
         })
         self.assertEqual(performance.select(None, ["guide-large-batches"]), ["guide-large-batches"])
+        self.assertEqual(performance.select(None, ["poster-preview-admission"]),
+                         ["poster-preview-admission"])
         self.assertEqual(performance.select(None, ["watchlist-artwork-rehydration"]),
                          ["watchlist-artwork-rehydration"])
         self.assertEqual(performance.select("matrix", None), ["runtime-matrix"])

@@ -123,18 +123,20 @@ final class FakeMediaProvider: MediaProvider, InteractiveBrowseActivityReporting
     init(
         allItems: [MediaItem],
         kind: ProviderKind = .jellyfin,
-        accountID: String = "s"
+        accountID: String = "s",
+        serverName: String = "Home",
+        userName: String = "Alice"
     ) {
         self.allItems = allItems
         self.kind = kind
         self.session = UserSession(
             server: MediaServer(
                 id: accountID,
-                name: "Home",
+                name: serverName,
                 baseURL: URL(string: "http://host:8096")!,
                 provider: kind
             ),
-            userID: "u1", userName: "Alice", deviceID: "d1", accessToken: "TOKEN"
+            userID: "u1", userName: userName, deviceID: "d1", accessToken: "TOKEN"
         )
     }
 

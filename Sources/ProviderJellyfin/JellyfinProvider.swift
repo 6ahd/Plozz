@@ -17,6 +17,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     let client: JellyfinClient
     let collectionLibraryCache = MediaBrowserCollectionLibraryCache()
     let videoPlaylistCache = VideoPlaylistSnapshotCache()
+    let watchHistoryScope = JellyfinWatchHistoryScope()
     let liveTVLeases = JellyfinLiveTVLeaseStore()
     let themeArchiveResolver: @Sendable (String?) async -> URL?
     private let authenticatedStreamProber: (any AuthenticatedHTTPStreamProbing)?
@@ -178,10 +179,12 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     public func homeContinueWatching(
         limit: Int, inLibraries libraryIDs: [String]?, separateNextUp: Bool
     ) async throws -> [MediaItem] {
+        guard limit > 0 else { return [] }
         guard separateNextUp else {
             return try await continueWatching(limit: limit, inLibraries: libraryIDs)
         }
-        let parents: [String?] = libraryIDs.map {
+        let historyLibraries = try await watchHistoryLibraries(libraryIDs)
+        let parents: [String?] = historyLibraries.map {
             $0.filter { $0 != collectionDirectoryID }.map(Optional.some)
         } ?? [nil]
         var items: [MediaItem] = []
@@ -551,9 +554,12 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// so the only reliable way to attribute — and therefore Home-filter — items
     /// is to fetch them **scoped to each visible library** via `ParentId` and
     /// stamp the result. `nil` keeps the fast unscoped feed (used when the user
-    /// has hidden nothing on this account).
+    /// has hidden nothing on this account). AIOStreams explicitly owns history
+    /// at account scope, independently of its virtual catalogs.
     public func continueWatching(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
-        guard let libraryIDs = libraryIDs?.filter({ $0 != collectionDirectoryID }) else {
+        guard limit > 0 else { return [] }
+        guard let libraryIDs = try await watchHistoryLibraries(libraryIDs)?
+            .filter({ $0 != collectionDirectoryID }) else {
             return try await continueWatching(limit: limit)
         }
         guard !libraryIDs.isEmpty else { return [] }
@@ -620,6 +626,13 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         // path: a just-finished show's stamped next episode must survive the cut.
         let ordered = orderedByEffectiveRecency(result)
         return limit == Int.max ? ordered : Array(ordered.prefix(limit))
+    }
+
+    private func watchHistoryLibraries(_ libraryIDs: [String]?) async throws -> [String]? {
+        guard let libraryIDs else { return nil }
+        if !libraryIDs.isEmpty, libraryIDs.allSatisfy({ $0 == collectionDirectoryID }) { return [] }
+        return try await watchHistoryScope.isAccountWide(client: client, serverID: session.server.id)
+            ? nil : libraryIDs
     }
 
     /// Library-scoped Recently Added — see ``continueWatching(limit:inLibraries:)``

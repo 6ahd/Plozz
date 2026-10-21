@@ -43,9 +43,7 @@ final class MediaVersionTests: XCTestCase {
         XCTAssertEqual(version.compatibility(with: .init(supportsHDR10: false)), .transcode)
     }
 
-    func testTechnicalBadgesUseDolbyGroupedOrder() {
-        // A 4K DoVi+HDR10 Atmos version should emit
-        // 4K · Dolby Vision · Dolby Atmos · HDR10 — Dolby logos grouped.
+    func testTechnicalBadgesUsePictureThenAudioOrder() {
         let dovi = MediaVersion(
             id: "1",
             width: 3840,
@@ -57,7 +55,7 @@ final class MediaVersionTests: XCTestCase {
             audioProfile: "Dolby Atmos"
         )
         XCTAssertEqual(dovi.technicalBadges.map(\.label),
-                       ["4K", "Dolby Vision", "Dolby Atmos", "HDR10"])
+                       ["4K", "Dolby Vision", "HDR10", "Dolby Digital+", "Dolby Atmos"])
 
         // A 720p SDR stereo version should emit just 720p · SDR — no audio
         // headline, no HDR badges, and channels < 6 are not surfaced.
@@ -72,10 +70,6 @@ final class MediaVersionTests: XCTestCase {
         )
         XCTAssertEqual(sd.technicalBadges.map(\.label), ["720p", "SDR"])
 
-        // A 1080p HDR10 5.1 Dolby Digital+ version: resolution, HDR10 (not
-        // Dolby-styled), then Dolby Digital+ (Dolby-styled) — verifying the
-        // Dolby-grouping helper picks the audio-Dolby out of the trailing
-        // group when there's no Dolby-styled range.
         let dd = MediaVersion(
             id: "3",
             width: 1920,
@@ -87,8 +81,7 @@ final class MediaVersionTests: XCTestCase {
         )
         let labels = dd.technicalBadges.map(\.label)
         XCTAssertEqual(labels.first, "1080p")
-        // Dolby Digital+ (Dolby-styled audio) comes before HDR10 (non-Dolby range).
-        XCTAssertEqual(labels.dropFirst().prefix(2), ArraySlice(["Dolby Digital+", "HDR10"]))
+        XCTAssertEqual(labels.dropFirst().prefix(2), ArraySlice(["HDR10", "Dolby Digital+"]))
     }
 
     func testDisplayLabelPrefersDerivedFactsThenName() {
@@ -161,7 +154,7 @@ final class MediaVersionTests: XCTestCase {
         ])
         XCTAssertEqual(row.releaseName, "Film.Extended.2160p.REMUX-GROUP.mkv")
         XCTAssertEqual(row.badges.map(\.label), [
-            "4K", "Dolby Vision", "Dolby Atmos", "Dolby TrueHD", "HDR10", "7.1", "HEVC", "English", "French"
+            "4K", "Dolby Vision", "HDR10", "Dolby TrueHD", "Dolby Atmos", "HEVC", "English", "French"
         ])
         XCTAssertEqual(row.badges.first { $0.label == "Dolby TrueHD" }?.style, .dolby)
         XCTAssertEqual(row.titleWithoutBadges, "Extended · Remux · 42 GB")
@@ -201,11 +194,12 @@ final class MediaVersionTests: XCTestCase {
             id: "surround", height: 1080, videoCodec: "h264", videoRange: "SDR",
             audioCodec: "ac3", audioChannels: 6
         ))
-        XCTAssertEqual(surround.badges.map(\.accessibilityText), ["1080p", "Dolby Digital 5.1", "SDR", "H.264"])
+        XCTAssertEqual(surround.badges.map(\.accessibilityText), ["1080p", "SDR", "Dolby Digital 5.1", "H.264"])
         XCTAssertNil(surround.titleWithoutBadges)
         XCTAssertTrue(surround.supplementalFactsWithoutBadges.isEmpty)
         let stereo = MediaVersion.PickerPresentation(.init(id: "stereo", height: 720, audioCodec: "aac", audioChannels: 2))
-        XCTAssertEqual(stereo.badges.map(\.label), ["720p", "AAC Stereo"])
+        XCTAssertEqual(stereo.badges.map(\.label), ["720p", "AAC"])
+        XCTAssertEqual(stereo.badges.last?.detail, "Stereo")
         XCTAssertTrue(stereo.supplementalFactsWithoutBadges.isEmpty)
         XCTAssertFalse(stereo.badges.contains { $0.style == .dolby || $0.style == .sdr })
         XCTAssertEqual(
@@ -219,22 +213,22 @@ final class MediaVersionTests: XCTestCase {
             (.init(id: "truehd", audioCodec: "truehd", audioChannels: 6),
              [MediaBadge("Dolby TrueHD", style: .dolby, detail: "5.1")]),
             (.init(id: "atmos", audioCodec: "truehd", audioProfile: "Atmos"),
-             [MediaBadge("Dolby Atmos", style: .dolby), MediaBadge("Dolby TrueHD", style: .dolby)]),
+             [MediaBadge("Dolby TrueHD", style: .dolby), MediaBadge("Dolby Atmos", style: .dolby)]),
             (.init(id: "ddp", audioCodec: "eac3", audioProfile: "Atmos"),
-             [MediaBadge("Dolby Atmos", style: .dolby), MediaBadge("Dolby Digital+", style: .dolby)]),
+             [MediaBadge("Dolby Digital+", style: .dolby), MediaBadge("Dolby Atmos", style: .dolby)]),
             (.init(id: "atmos-channels", audioCodec: "eac3", audioChannels: 6, audioProfile: "Atmos"),
-             [MediaBadge("Dolby Atmos", style: .dolby), MediaBadge("Dolby Digital+", style: .dolby), MediaBadge("5.1")]),
+             [MediaBadge("Dolby Digital+", style: .dolby, detail: "5.1"), MediaBadge("Dolby Atmos", style: .dolby)]),
             (.init(id: "atmos-layout", sourceMetadata: .init(
                 audio: .init(codec: "truehd", profile: "Atmos", channels: 8, channelLayout: "7.1")
             )),
-             [MediaBadge("Dolby Atmos", style: .dolby), MediaBadge("Dolby TrueHD", style: .dolby), MediaBadge("7.1")]),
+             [MediaBadge("Dolby TrueHD", style: .dolby, detail: "7.1"), MediaBadge("Dolby Atmos", style: .dolby)]),
             (.init(id: "dtsx-channels", audioCodec: "dts", audioChannels: 8, audioProfile: "DTS:X"),
-             [MediaBadge("DTS:X", style: .dts), MediaBadge("DTS", style: .dts), MediaBadge("7.1")]),
+             [MediaBadge("DTS", style: .dts, detail: "7.1"), MediaBadge("DTS:X", style: .dts)]),
             (.init(id: "dts", audioCodec: "dts", audioChannels: 8, audioProfile: "DTS-HD MA"),
              [MediaBadge("DTS-HD", style: .dts, detail: "MA 7.1")]),
             (.init(id: "aac", audioCodec: "aac", audioChannels: 6),
-             [MediaBadge("AAC 5.1")]),
-            (.init(id: "channels", audioChannels: 6), [MediaBadge("5.1")])
+             [MediaBadge("AAC", style: .audio, detail: "5.1")]),
+            (.init(id: "channels", audioChannels: 6), [MediaBadge("5.1", style: .audio)])
         ]
         for (version, expected) in cases {
             let row = MediaVersion.PickerPresentation(version)
@@ -243,8 +237,8 @@ final class MediaVersionTests: XCTestCase {
         }
         XCTAssertEqual(
             cases[1].0.technicalBadges,
-            [MediaBadge("Dolby Atmos", style: .dolby)],
-            "The detail hero keeps its compact format summary."
+            [MediaBadge("Dolby TrueHD", style: .dolby), MediaBadge("Dolby Atmos", style: .dolby)],
+            "The detail hero and picker retain the same codec and spatial facts."
         )
     }
 

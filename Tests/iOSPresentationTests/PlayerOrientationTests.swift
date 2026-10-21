@@ -259,6 +259,54 @@ final class PlayerOrientationTests: XCTestCase {
         XCTAssertEqual(probe.disappearances, 0)
     }
 
+    func testCoveringEmbeddedLiveOwnerDoesNotReleaseItsOrientation() async throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let root = UIViewController()
+        let player = PlozziOSOrientationHostingController(
+            rootView: AnyView(Color.black), orientation: .init(preference: .landscape),
+            ownsWindowOrientation: true
+        )
+        root.addChild(player)
+        root.view.addSubview(player.view)
+        player.view.frame = root.view.bounds
+        player.didMove(toParent: root)
+        window.rootViewController = root
+        window.makeKeyAndVisible()
+        defer {
+            player.tearDown()
+            root.dismiss(animated: false)
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        try await waitUntil {
+            PlozziOSWindowOrientation.supportedOrientations(for: window) == .landscape
+                && scene.effectiveGeometry.interfaceOrientation.isLandscape
+        }
+        let controls = UIHostingController(rootView: Color.gray)
+        controls.modalPresentationStyle = .fullScreen
+        await withCheckedContinuation { continuation in
+            root.present(controls, animated: true) { continuation.resume() }
+        }
+        XCTAssertNil(player.view.window, "The native cover must have completed the embedded owner's disappearance.")
+        XCTAssertTrue(player.orientation.host === player)
+        XCTAssertEqual(PlozziOSWindowOrientation.supportedOrientations(for: window), .landscape)
+
+        player.willMove(toParent: nil)
+        player.view.removeFromSuperview()
+        player.removeFromParent()
+        player.tearDown()
+        XCTAssertEqual(PlozziOSWindowOrientation.supportedOrientations(for: window), .all)
+        await withCheckedContinuation { continuation in
+            controls.dismiss(animated: true) { continuation.resume() }
+        }
+        XCTAssertNil(player.orientation.host)
+        XCTAssertEqual(PlozziOSWindowOrientation.supportedOrientations(for: window), .all)
+    }
+
     func testWindowOwnershipIsIsolatedAndOldOwnersCannotReleaseReplacements() {
         let window = UIWindow()
         let otherWindow = UIWindow()

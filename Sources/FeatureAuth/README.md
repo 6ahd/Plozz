@@ -43,6 +43,15 @@ session persistence.
 
 ## Invariants
 
+- **Repeat sign-ins reuse the exact server/user connection.** Authentication
+  matches provider, backend server ID, and authenticated user ID under the account
+  store's mutation lock. Existing account IDs, creation order, approved alternate
+  addresses, and enabled/disabled selections survive reconnecting, including older
+  randomly identified accounts. Fresh credentials replace the existing credential;
+  unchanged credentials keep their revision. Server names, addresses, and library
+  overlap are not identities. Different users on the same server remain separate,
+  and Plex Home bindings remain attached to their existing Plozz profiles.
+  Already-saved duplicates are not silently deleted or merged.
 - **Public discovery retains the canonical API address.** Jellyfin/Emby may
   upgrade HTTP to HTTPS on the same hostname or redirect within the same origin,
   preserving the final reverse-proxy prefix. Public requests carry no credentials;

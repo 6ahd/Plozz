@@ -48,7 +48,7 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
 
 - **Version choices** — `MediaVersionChoiceButton` is the shared native rounded
   card for pre-play, detail, and in-player pickers. It keeps edition/size and
-  release text above the smaller wrapping format/language badges, with one
+  release text above the wrapping format/language badges, with one
   trailing selected checkmark. Hosts retain selection, dismissal, and focus
   ownership. `MediaVersionPicker` supplies the sheet used by mobile playback
   and hero context-menu actions; context menus link to it rather than rendering
@@ -56,6 +56,14 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   On iOS/iPadOS, version sheets use an inline centered navigation title and a
   leading native X close action, with no bottom Cancel button. The pre-play X
   cancels the pending playback choice; tvOS retains its existing dialog controls.
+  TV version cards enlarge their format/language marks for viewing at a distance;
+  marks use a 1.7 container scale and 12-point gaps, while mobile keeps its compact
+  scale and spacing. The TV source menu gives its version page an 800-point width
+  and up to 820 points of height, bounded inside the screen. Each TV menu page owns
+  its native scroll state so Back from a long list restores visible root actions.
+  The TV pre-play heading uses the compact
+  34-point semibold dialog treatment, scaled with the headline text style, rather
+  than the oversized native TV title.
   Edition/size, source quality, bitrate and runtime share one naturally wrapping
   summary instead of separate size-only or runtime-only rows on either platform.
   Release filenames preserve their original script and wrap to their full height,
@@ -311,13 +319,18 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   retaining its hue and brightness without desaturating the hero image. Showcase,
   detail pages, and untinted stock gradients retain their existing treatment.
   Tint saturation is page-scoped and shared with native card fills/textures.
-  Settings panels, detail information cards, and PIN digit/delete keys share a
+  Settings panels and detail information cards share a
   5%-white wash in Dark and Black, or a 5%-black wash in Light, so they remain
   distinct without replacing the gradient's colour. SwiftUI surfaces keep their
   shadow and a matching hairline edge. Gradient Off or Reduce Transparency restores the original solid
   surface and border; unrelated raised cards remain unchanged.
-  PIN keys retain their existing focus, press, and hover treatment. Their resting
-  gradient fill and edge also apply on systems before Liquid Glass.
+  PIN digit/delete keys use native Liquid Glass at rest and during interaction
+  on iOS/tvOS 26+, independent of the page gradient. `PINDialPad` and `PINKeyStyle`
+  own this for profile, Plex, parental, and Live TV authorization/setup prompts.
+  The system owns their glass appearance, focus, hover, and press treatment;
+  digits keep their original circular size and Delete spans two columns at the
+  same height. Mobile activation retains haptic feedback. Reduce Transparency
+  and older OS versions retain the previous shared keypad fallback and exact key sizes.
   The detail information band retains its darker 40%-opaque surface.
   Compact mobile detail metadata and actions reveal the page gradient instead
   of covering it with a solid rectangle; Gradient Off and Reduce Transparency
@@ -392,6 +405,12 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   bookkeeping must not invalidate the row that constructs all card inputs.
   Entry-gate state remains observable for episode rows; ordinary Home rows
   retain native column-aligned entry and cover/return behavior.
+- **Poster preview prefetch** — shared media rows and mobile Home use
+  `MediaArtworkPrefetchPolicy.claimPreview` to reject already-queued item IDs
+  before parsing/resizing their URLs. Eligibility remains lazy; rejected
+  previews are not recorded, so later usable artwork can still be queued.
+  Existing row resets and direction changes rearm the same ID sets. This
+  changes neither the nearest-first queue nor the full-image fallback ladder.
 - **Grouped settings interactions** — `SettingsSectionGroup` uses explicit
   native switch toggles and menu pickers on iOS/iPadOS. Standalone mobile
   settings/Live TV controls and the shared `SettingsSwitchToggleStyle` also
@@ -530,9 +549,31 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   the player (`FeaturePlayback`'s in-player Style screen), not via a shared
   Settings card.
 - **Cast & metadata cards** — `CastRowView` and friends, used by Home /
-  detail. Common Sense marks keep a transparent background in every theme;
-  the palette selects dark checkmark ink in Light and white ink in dark themes,
-  preserving the green ring and the existing optical size.
+  detail. Family guidance uses the Common Sense circle/check artwork, with a
+  palette-selected light/dark variant shared by the inline age and guidance panel.
+  The inline mark retains its original 32 points on TV and 24 Dynamic Type-scaled
+  points on mobile, with a 4-point scaled gap to the age and no extra frame or
+  padding. Age text matches neighboring review scores'
+  medium weight. Full Common Sense Media attribution remains in the guidance
+  panel and accessibility label; the decorative mark is hidden from VoiceOver.
+- **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
+  license), filled resolution badges, and matching outlined capsules for dynamic
+  range and audio. Dynamic-range capsules add a 15% foreground tint
+  (white in dark themes, dark in light themes); audio stays clear with attached
+  channel segments. Format names are ordinary text, not vendor logo drawings.
+  Refined compact uses 22-point resolution badges and 26-point other technical
+  badges with 15-point main text, short display
+  names (DV, DD+, DD, TrueHD, Atmos), and full source names in accessibility.
+  Mobile metadata wrappers retain an 18-point baseline height for both.
+  Resolution padding is 6 points; capsule outer padding is 8 points, with
+  4 points on either side of the channel divider and 7 after the channels.
+  Adjacent technical badges use an 8-point scaled gap without tightening the
+  surrounding ratings/facts or grouping badges into an unbreakable row.
+  Resolution and picture precede audio; codec and spatial capability may both
+  describe one stream. Representative audio keeps the codec, channels and
+  capability from one source instead of combining incompatible files' facts.
+  Missing facts remain missing; filenames do not invent HDR or audio badges.
+  Compact metadata badges follow the surrounding text's Dynamic Type scale.
 - **Detail information focus** — the tvOS About/Ratings/Information band uses
   native focus with at most 2% growth and 6pt of expansion per edge, leaving
   clearance in its 18pt gutters. Focused read-only cards and card buttons draw

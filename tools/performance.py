@@ -57,6 +57,13 @@ SCENARIOS = {
         "description": "Plan five distinct channels from 4,000 films, refresh metadata spelling, and serialize preserved broadcast revisions.",
         "counters": ["channels", "snapshots", "snapshotItemReferences", "encodedSnapshotBytes"],
     },
+    "poster-preview-admission": {
+        "suite": "core", "target": "CoreUITests",
+        "test": "PosterPreviewAdmissionTests/testPerformanceOverlappingPosterWindows",
+        "file": "Tests/CoreUITests/PosterPreviewAdmissionTests.swift",
+        "description": "Traverse 181 posters forward/backward with repeated overlapping windows across Jellyfin, Emby, Plex, and TMDB URLs.",
+        "counters": ["candidateVisits", "distinctURLChecks", "queuedPreviews"],
+    },
     "collection-discovery": {
         "suite": "network", "target": "ProviderJellyfinTests",
         "test": "CollectionDiscoveryPerformanceTests/testPerformanceCollectionDiscovery",

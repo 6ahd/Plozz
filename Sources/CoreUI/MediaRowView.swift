@@ -608,7 +608,8 @@ public struct MediaRowView: View {
                         pendingEntryHandoff = false
                         activity.focusEngaged = false
                         alignedEntryTarget = nil
-                        if let target = gateTarget { scrollToInitialPosition(target, using: proxy) }
+                        // The next measured layout reveals an offscreen target.
+                        // Re-entry must not leading-align an already-visible card.
                     }
                     // The navigation gutter is the scroll view's SAFE AREA — the
                     // same mechanism that lets a row scroll under the system tab bar
@@ -677,6 +678,7 @@ public struct MediaRowView: View {
                         if !remembersCurrentRow { activity.lastFocusedID = nil }
                         activity.hasBrowsedSinceTargetChange = remembersCurrentRow
                         alignedEntryTarget = nil
+                        if remembersCurrentRow { return }
                         guard let target = episodeEntry != nil ? gateTarget : newTarget,
                               itemIDSet.contains(target) else { return }
                         // Hard-align rather than going through `scrollToIfNeeded`.
@@ -719,7 +721,6 @@ public struct MediaRowView: View {
                         if episodeEntry != nil {
                             pendingEntryHandoff = false
                             alignedEntryTarget = nil
-                            if let target = gateTarget { scrollToInitialPosition(target, using: proxy) }
                         } else if let target = gateTarget {
                             scrollToIfNeeded(target, using: proxy)
                         }
@@ -980,7 +981,8 @@ public struct MediaRowView: View {
     private var showsEntryPlaceholder: Bool {
         guard let episodeEntry else { return false }
         return MediaRowEpisodeEntryPolicy.showsPlaceholder(
-            phase: episodeEntry.phase, targetReady: entryTargetReady, focusEngaged: activity.focusEngaged
+            phase: episodeEntry.phase, targetReady: entryTargetReady, focusEngaged: activity.focusEngaged,
+            hasBrowsedTarget: activity.lastFocusedID.map(itemIDSet.contains) == true
         )
     }
 
@@ -1056,7 +1058,11 @@ public struct MediaRowView: View {
             activity.requestFocus(target)
         } else if (layout.viewportWidth ?? 0) > 0, alignedEntryTarget != target {
             alignedEntryTarget = target
-            scrollToInitialPosition(target, using: proxy)
+            if activity.lastFocusedID == target {
+                proxy.scrollTo(target)
+            } else {
+                scrollToInitialPosition(target, using: proxy)
+            }
         }
     }
 
@@ -1131,13 +1137,13 @@ public struct MediaRowView: View {
             // the full two-candidate ladder below still handles the fallback.
             if presentation == .poster,
                let preview = candidates.first,
-               ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
-                   from: variant,
-                   for: preview
-               ),
-               activity.prefetchedPreviewIDs.insert(
-                   candidate.stablePresentationID
-               ).inserted {
+               MediaArtworkPrefetchPolicy.claimPreview(
+                   for: candidate.stablePresentationID,
+                   prefetchedIDs: &activity.prefetchedPreviewIDs,
+                   isDistinct: ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
+                       from: variant, for: preview
+                   )
+               ) {
                 trackPrefetch(preview, variant: .posterPreview)
             }
             if activity.prefetchedIDs.insert(candidate.stablePresentationID).inserted {
@@ -1162,13 +1168,13 @@ public struct MediaRowView: View {
                           showsSeriesArtwork: showsSeriesArtwork,
                           artworkPolicy: artworkPolicy
                       ).first,
-                      ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
-                          from: .posterCard,
-                          for: preview
-                      ),
-                      activity.prefetchedPreviewIDs.insert(
-                          candidate.stablePresentationID
-                      ).inserted
+                      MediaArtworkPrefetchPolicy.claimPreview(
+                          for: candidate.stablePresentationID,
+                          prefetchedIDs: &activity.prefetchedPreviewIDs,
+                          isDistinct: ArtworkImageVariant.posterPreview.hasDistinctRequestURL(
+                              from: .posterCard, for: preview
+                          )
+                      )
                 else { continue }
                 trackPrefetch(preview, variant: .posterPreview)
             }
@@ -1536,6 +1542,14 @@ enum MediaRowFocusPolicy {
 }
 
 public enum MediaArtworkPrefetchPolicy {
+    public static func claimPreview(
+        for id: String,
+        prefetchedIDs: inout Set<String>,
+        isDistinct: @autoclosure () -> Bool
+    ) -> Bool {
+        !prefetchedIDs.contains(id) && isDistinct() && prefetchedIDs.insert(id).inserted
+    }
+
     public static func candidates(
         for item: MediaItem,
         style: PosterCardView.Style,

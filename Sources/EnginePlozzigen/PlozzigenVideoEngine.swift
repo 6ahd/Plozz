@@ -47,7 +47,7 @@ struct PlozzigenLiveAttemptGate {
     }
 }
 
-/// `VideoEngine` implementation backed by AetherEngine (branded "Plozzigen").
+/// `VideoEngine` implementation backed by AetherEngine.
 ///
 /// AetherEngine handles the full native pipeline internally:
 /// FFmpeg demux → on-device copy-remux → localhost HLS-fMP4 → AVPlayer.
@@ -256,7 +256,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         engine.state == .playing
     }
 
-    public var displayName: String { "Plozzigen" }
+    public var displayName: String { "AetherEngine v\(AEEngine.version)" } // l10n:content — engine brand and runtime version
 
     public var capabilities: PlayerEngineCapabilities {
         engine.videoRoute == .remoteBypass
@@ -751,6 +751,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
             audioChannels: request.localRemuxSource?.sourceMetadata.audio?.channels
                 ?? request.sourceMetadata?.audio?.channels ?? 0,
             trueHDAtmosEnabled: request.trueHDAtmosEnabled,
+            dolbyVisionFELEnabled: request.dolbyVisionFELEnabled,
             outputPolicy: outputPolicy,
             readAhead: isLocalFile || request.suppressOrdinaryWatchReporting
                 ? .default : readAheadPreference()
@@ -760,6 +761,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     nonisolated static func onDemandLoadOptions(
         audioChannels: Int,
         trueHDAtmosEnabled: Bool = PlaybackSettings.default.trueHDAtmosEnabled,
+        dolbyVisionFELEnabled: Bool = PlaybackSettings.default.dolbyVisionFELEnabled,
         outputPolicy: LiveChannelOutputPolicy = .init(),
         readAhead: PlaybackReadAhead = .default
     ) -> LoadOptions {
@@ -768,6 +770,9 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
             matchContentEnabled: true,
             audioBridgeMode: audioChannels > 6 ? .lossless : .surroundCompat
         )
+        options.preferDualLayerDolbyVision = dolbyVisionFELEnabled
+            && outputPolicy.isAudible && !outputPolicy.sharesAudioSession
+            && !outputPolicy.suppressesDisplayMatching
         // Aether uses approximately four-second segments and clamps the maximum
         // to 2,700, retaining its free-space budget and producer backpressure.
         switch readAhead {

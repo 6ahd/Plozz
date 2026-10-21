@@ -136,7 +136,7 @@ final class VersionPickerPresentationTests: XCTestCase {
     func testCompactVersionDisclosurePreservesLongProviderNameFallback() async throws {
         try await assertCompactSummary(
             MediaVersion(id: "archive", name: "Festival archive presentation with restored opening credits"),
-            expectedFacts: ["Festival", "archive", "presentation", "restored", "opening", "credits"],
+            expectedFacts: ["Festival", "archive", "presentation", "with", "restored", "opening", "credits"],
             width: 320, typeSize: .accessibility2
         )
     }
@@ -222,8 +222,15 @@ final class VersionPickerPresentationTests: XCTestCase {
             return try candidate.boundingBox(for: range)?.boundingBox
         }.first, "The category must remain intact, including beside its accessibility-layout chevron: \(visible)")
         let factWords = expectedFacts.flatMap { $0.split(separator: " ").map(String.init) }
-        let factLines = lines.filter { line in
-            factWords.contains { line.0.localizedCaseInsensitiveContains($0) }
+        let factLines = try (request.results ?? []).compactMap { result -> (String, CGRect)? in
+            guard let candidate = result.topCandidates(1).first else { return nil }
+            let ranges = factWords.compactMap { candidate.string.range(of: $0, options: .caseInsensitive) }
+            guard let start = ranges.map(\.lowerBound).min(), let end = ranges.map(\.upperBound).max() else {
+                return nil
+            }
+            // Vision can group the neighboring film icon into the same recognized line.
+            let bounds = try XCTUnwrap(candidate.boundingBox(for: start..<end)).boundingBox
+            return (candidate.string, bounds)
         }
         for (text, bounds) in factLines {
             let expected = direction == .leftToRight ? heading.minX : heading.maxX

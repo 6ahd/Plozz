@@ -189,8 +189,7 @@ struct PlaybackDiagnosticsOverlay: View {
             optionalRow("File", d.sourceFileNameText, lineLimit: presentation == .television ? 2 : nil)
             optionalRow("Size", d.sourceFileSizeText)
             row(LocalizedStringResource("Delivery", comment: "Playback diagnostics label for how media is delivered: direct play, remuxing, or server transcoding."),
-                presentation == .television && d.mode == .plozzigen && d.engineName != nil
-                    ? PlaybackDiagnostics.PlaybackMode.directPlay.displayName : d.mode.displayName)
+                d.mode.displayName)
             optionalRow(LocalizedStringResource("Stream", comment: "Playback diagnostics label for the current stream host and transport format."), streamTransportText(d.streamTransport))
             if d.mode != .transcode {
                 optionalRow(LocalizedStringResource("Container", comment: "Playback diagnostics label for the media container format, such as MKV or MP4."), containerText(d))
@@ -596,7 +595,7 @@ struct PlaybackDiagnosticsOverlay: View {
 #Preview("Diagnostics HUD") {
     var d = PlaybackDiagnostics(
         videoCodec: "HEVC", audioCodec: "EAC3", audioChannels: 6, container: "mkv",
-        mode: .directPlay, engineName: "Plozzigen",
+        mode: .directPlay, engineName: "AetherEngine v7.44.0",
         droppedVideoFrames: 0, frameRate: 23.976, observedFps: 23.9
     )
     d.serverName = "Brandoland"

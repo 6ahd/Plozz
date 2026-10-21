@@ -151,8 +151,12 @@ enum SettingsRouteAccess: Equatable {
 
 extension SettingsRoute {
     var usesFullScreenDetail: Bool {
-        if case .subtitleStyle = self { return true }
-        return false
+        switch self {
+        case .subtitleStyle, .profileAppearance, .profileLockSetup, .parentalPINSetup:
+            return true
+        default:
+            return false
+        }
     }
 
     func access(activeProfileID: String, isKids: Bool, isParentalSealed: Bool) -> SettingsRouteAccess {

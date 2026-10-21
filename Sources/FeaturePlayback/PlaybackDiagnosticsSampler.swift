@@ -105,7 +105,7 @@ public final class PlaybackDiagnosticsSampler {
     ///     baseline, corrected by engine-probed source range when available.
     ///     For transcodes these live only in `originalSource`; primary video and
     ///     audio fields come from the active rendition.
-    ///   - engineName: the engine decoding the stream (e.g. `AVPlayer`, `VLCKit`),
+    ///   - engineName: the engine decoding the stream (e.g. `AVPlayer`, `AetherEngine v7.44.0`),
     ///     shown in the overlay so the user can see which engine is active.
     ///
     /// `playerProvider` follows engines that create or replace their internal

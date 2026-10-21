@@ -576,8 +576,9 @@ Back starts toward that shape immediately while native focus restores underneath
 A replaced source or changed window size uses a nonspatial fallback. A temporarily
 unrealized source still returns to its captured shape without waiting for focus.
 The episode browser keeps its layout while masked until its final reveal and
-cannot take entry focus during a whole-show entrance. Episode-context opens
-retain their existing initial-focus behavior; Reduce Motion reveals it directly.
+cannot take entry focus during a whole-show or episode-context entrance.
+Both routes must reach the actual native Hero Play control; Reduce Motion
+retains the same entry destination.
 Its rendered keyline check waits for native focus completion and the artwork's
 painted width to settle, then compares artwork and About in one captured frame.
 The settling condition is independent of x-position, so real misalignment still
@@ -907,8 +908,8 @@ gated until the episode reveal finishes.
 Lower detail content first mounts after the episode row has received focus and the browser's recede
 animation has completed, so rapid early Down presses cannot enter its blank
 scroll region. The page remains at least one viewport tall before that reveal.
-Explicit episode entry keeps its immediate browser behavior; Reduce Motion uses
-an immediate completion. Once revealed, lower content remains mounted so later
+Episode-context entry keeps the hero visible and the prepared episode unfocused;
+Reduce Motion uses an immediate completion. Once revealed, lower content remains mounted so later
 navigation preserves its state. No extra hosting controller divides native
 button focus from the original page tree.
 `DetailTransitionVisualRegressionTests` also moves horizontally between real
@@ -918,8 +919,43 @@ must be restored afterward. Pixel checks compare the season pill's outer edge,
 resting episode artwork, and About's leading keyline. Coverage includes all
 card focus styles, explicit episode entry, and scroll-guard
 removal without disabling nested rails or overriding an existing entrance gate.
-The same production test samples the rail's presented position after completion:
-it must stay within one point of its final position. Checking page offset alone
+Single-season round trips through the lower information sections must preserve
+the horizontal episode offset, restore the page to the browser's vertical stage,
+and settle native focus without leaving scrolling disabled. The isolated
+episode-row regression repeats re-entry across all card focus styles and retains
+the browsed card while its entry geometry remounts.
+`testRelatedReturnsDirectlyToVisibleEpisodeWithoutSeasonFocus` separately returns
+from the second Related poster straight to the episode, without a season-chip
+handoff. Across every focus style and three round trips, actual native focus must
+remain on the episode, its full frame must be onscreen, the page must return to
+zero, and the horizontal row offset must remain unchanged. Screenshots retain
+the rendered result; testing only the focused item misses an offscreen selection.
+Presentation-layer samples also require at least eight intermediate positions
+and 300-600ms between 5% and 95% of the normal-motion return. The 0.6-second
+page animation must not inherit the much shorter focus-effect duration; its
+visible duration must match an unforced native downward reveal within 150ms.
+Nine-move native-focus bursts at 0, 30, 80, 150, and 300ms intervals end on each
+row, across all three focus styles. The final focused item must be fully visible,
+its page destination correct, and scrolling enabled. These exact-target bursts
+exercise animation races, not directional candidate selection.
+`DetailReturnFocusRemoteTests.testEpisodeRelatedDirectionsRevealTheFocusedRow`
+separately uses actual remote Up/Down on the production series detail. Remote
+calls may wait for idle; the hosted burst matrix supplies the rapid timing.
+Its sparse-row cases use real remote directions from left, middle, right, and
+horizontally scrolled episode positions with one or three Related cards and a
+competing Cast row. Every populated Related row must receive focus before Cast;
+an empty Related row must allow direct Cast entry. Both directions and all card
+focus styles are covered.
+`testRapidPassThroughEpisodesPreservesTheBrowsedEpisode` moves among Related
+columns, immediately sends three Up presses through Episodes and Seasons to the
+hero, then returns Down. Across every focus style, actual native focus must
+return to Episode 1 (then a deliberately browsed Episode 4), rather than
+replacing its remembered selection with Episode 2 during the upward pass.
+Remote calls in the reproduction arrive about 220ms apart, before the page
+animations finish.
+System Reduce Motion must reach the same destination without the full-page animation.
+The production browser-layout test also samples the rail's presented position
+after completion: it must stay within one point of its final position. Checking page offset alone
 misses the spring's measured 7–8.5pt post-completion movement of the whole browser.
 
 `NativePosterComparisonTests` is an opt-in, simulator-only comparison, enabled by
