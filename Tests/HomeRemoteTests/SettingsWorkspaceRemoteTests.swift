@@ -526,6 +526,45 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         #endif
     }
 
+    func testProfileAppearanceAndPINUseFullWidthDestinations() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        try focus(app.buttons["settings-profile-edit"], in: app)
+        XCUIRemote.shared.press(.select)
+        let appearance = app.buttons["profile.appearance"]
+        XCTAssertTrue(appearance.waitForExistence(timeout: 5), app.debugDescription)
+        try focus(appearance, in: app)
+        XCUIRemote.shared.press(.select)
+        let heading = app.staticTexts["Edit Profile"]
+        XCTAssertTrue(heading.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertLessThan(heading.frame.height, 90, "The editor heading must stay on one line.")
+        XCTAssertGreaterThan(heading.frame.width, 200)
+        let done = app.buttons["Done"]
+        // Cross into the editor column before the single-column vertical navigation helper.
+        XCUIRemote.shared.press(.right)
+        try focus(done, in: app)
+        XCTAssertTrue(app.frame.contains(done.frame), "The editor actions must fit on screen.")
+        capture("profile-appearance-full-width", in: app)
+        XCUIRemote.shared.press(.select)
+        XCTAssertTrue(appearance.waitForExistence(timeout: 5), app.debugDescription)
+        let lock = app.buttons["profile.lock"]
+        try focus(lock, in: app)
+        XCUIRemote.shared.press(.select)
+        let pinTitle = app.staticTexts["pin-entry-title"]
+        XCTAssertTrue(pinTitle.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertLessThan(pinTitle.frame.minX, app.frame.midX - 400,
+                          "PIN prose must start in the left half of a centered two-column composition.")
+        try focus(app.buttons["1"], in: app)
+        capture("profile-lock-full-width", in: app)
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(lock.waitForExistence(timeout: 5), app.debugDescription)
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(section("playback", in: app).waitForExistence(timeout: 5))
+        #else
+        throw XCTSkip("Simulator-only Settings review.")
+        #endif
+    }
+
     func testKidsSettingsRequirePINOnlyWhenConfigured() throws {
         #if targetEnvironment(simulator)
         for mode in ["no-pin", "pin"] {

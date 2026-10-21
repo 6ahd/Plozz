@@ -1,8 +1,12 @@
 @testable import FeatureSettings
+import CoreModels
 import CoreUI
+@testable import AppShell
+import FeatureProfiles
 import Observation
 import SwiftUI
 import UIKit
+import Vision
 import XCTest
 
 @MainActor
@@ -112,7 +116,21 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
     }
 
     func testWorkspaceStyleDestinationsStayFullWidthDuringEntryAndReturn() async throws {
-        try await verifyWorkspaceStyleWidth()
+        try await verifyWorkspaceWidth(
+            parent: .subtitles,
+            destinations: [.subtitleStyle(liveTV: false), .subtitleStyle(liveTV: true)]
+        )
+    }
+
+    func testProfileSetupDestinationsStayFullWidthDuringEntryAndReturn() async throws {
+        try await verifyWorkspaceWidth(
+            parent: .profileSettings(profileID: "fixture"),
+            destinations: [
+                .profileAppearance(profileID: "fixture"),
+                .profileLockSetup(profileID: "fixture"),
+                .parentalPINSetup
+            ]
+        )
     }
 
     func testCategoriesAndNestedPagesKeepOneCenteredWidthThroughoutMotion() async throws {
@@ -183,7 +201,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         }
     }
 
-    private func verifyWorkspaceStyleWidth() async throws {
+    private func verifyWorkspaceWidth(parent: SettingsRoute, destinations: [SettingsRoute]) async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
               ContinuousClock.now < deadline {
@@ -196,7 +214,7 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
         let navigation = SettingsNavigationModel()
-        navigation.select(.subtitles)
+        navigation.select(parent)
         navigation.enterDetail()
         let probes = PageMotionProbes()
         let host = UIHostingController(rootView:
@@ -204,10 +222,10 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
                 Button("Subtitles") {}
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } detail: { route in
-                Button(route.usesFullScreenDetail ? "Style control" : "Open style") {}
+                Button(route == parent ? "Open editor" : "Editor control") {}
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background {
-                        PageMotionProbe(id: route.usesFullScreenDetail ? "detail" : "root", probes: probes)
+                        PageMotionProbe(id: route == parent ? "root" : "detail", probes: probes)
                     }
             }
             .padding(.horizontal, 80)
@@ -225,10 +243,10 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         sampler.start()
         defer { sampler.stop() }
         let expectedWidth = window.bounds.width - 160
-        for liveTV in [false, true] {
+        for destination in destinations {
             for opening in [true, false] {
                 sampler.samples.removeAll()
-                navigation.path = opening ? [.subtitles, .subtitleStyle(liveTV: liveTV)] : [.subtitles]
+                navigation.path = opening ? [parent, destination] : [parent]
                 try await Task.sleep(for: .milliseconds(650))
                 if opening {
                     XCTAssertEqual(try XCTUnwrap(probes.frame("detail", in: window)).width,
@@ -240,14 +258,191 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
                 }
                 for sample in sampler.samples {
                     XCTAssertEqual(sample.detailWidth, expectedWidth, accuracy: 1,
-                                   "The style editor must not grow from or shrink to the two-column width.")
+                                   "The editor must not grow from or shrink to the ordinary Settings width.")
+                    XCTAssertEqual(sample.rootWidth, SettingsFormMetrics.pageWidth, accuracy: 1)
                 }
                 let attachment = XCTAttachment(string: String(describing: sampler.samples))
-                attachment.name = "workspace-style-width-live-\(liveTV)-opening-\(opening)-reduced-\(reduceMotion)"
+                attachment.name = "workspace-editor-\(destination)-opening-\(opening)-reduced-\(reduceMotion)"
                 attachment.lifetime = .keepAlways
                 add(attachment)
             }
         }
+    }
+
+    func testProfileAppearanceContentKeepsReadableHeadingAndControls() async throws {
+        let imageURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("profile-layout-\(UUID()).png")
+        let avatar = UIGraphicsImageRenderer(size: CGSize(width: 80, height: 80)).pngData { context in
+            UIColor.systemBlue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 80, height: 80))
+        }
+        try avatar.write(to: imageURL)
+        defer { try? FileManager.default.removeItem(at: imageURL) }
+        let profiles = [
+            Profile(id: "symbol", name: "Sample profile", avatarSymbol: "person.fill"),
+            Profile(id: "emoji", name: "Sample profile", avatarSymbol: "person.fill", avatarEmoji: "😀"),
+            Profile(id: "photo", name: "Sample profile", avatarSymbol: "person.fill", avatarImageURL: imageURL.absoluteString)
+        ]
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            for profile in profiles {
+                try await withProfileDestination(
+                    .profileAppearance(profileID: profile.id), direction: direction
+                ) {
+                    ProfileEditorView(
+                        editingProfile: profile, onSave: { _ in }, onLiveChange: { _ in },
+                        ownsFullScreen: false, onCancel: {}
+                    )
+                } inspect: { window in
+                    let labels = try self.captureLabels(window, name: "profile-appearance-\(profile.id)-\(direction)")
+                    let heading = try self.label("Edit Profile", in: labels)
+                    XCTAssertLessThan(heading.height, 80, "The heading must not wrap into a vertical strip.")
+                    XCTAssertGreaterThan(heading.width, 200)
+                    for text in ["Revert All Changes", "Done", "NAME", "AVATAR"] {
+                        let frame = try self.label(text, in: labels)
+                        XCTAssertTrue(window.bounds.insetBy(dx: 40, dy: 0).contains(frame), "\(text) is clipped.")
+                    }
+                    let preview = try self.label("PREVIEW", in: labels)
+                    if direction == .leftToRight {
+                        XCTAssertLessThan(preview.maxX, heading.minX)
+                    } else {
+                        XCTAssertGreaterThan(preview.minX, heading.maxX)
+                    }
+                }
+            }
+        }
+    }
+
+    func testPINSetupCompositionIsCenteredWithinTheWorkspace() async throws {
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            for parental in [false, true] {
+                try await withProfileDestination(
+                    parental ? .parentalPINSetup : .profileLockSetup(profileID: "fixture"),
+                    direction: direction
+                ) {
+                    if parental {
+                        ParentalPINSetupView(onComplete: { _ in }, onCancel: {})
+                    } else {
+                        ProfileLockSetupView(
+                            profile: Profile(id: "fixture", name: "Sample profile"),
+                            offersPlexPINReuse: true, onComplete: { _ in }, onCancel: {}
+                        )
+                    }
+                } inspect: { window in
+                    let labels = try self.captureLabels(window, name: "profile-pin-\(parental)-\(direction)")
+                    let heading = try self.label(parental ? "Create a Parental PIN" : "Add a Profile PIN?", in: labels)
+                    XCTAssertLessThan(heading.height, 80)
+                    let focused = UIFocusSystem.focusSystem(for: window)?.focusedItem
+                    let keys = try self.focusItems(in: window).map { item in
+                        let frame = try XCTUnwrap(NavigationRowFocusRequester.frame(of: item, relativeTo: window))
+                        if item !== focused {
+                            XCTAssertEqual(frame.height, 108, accuracy: 1,
+                                           "The native control itself must fill the original key height.")
+                            XCTAssertEqual(frame.width, frame.width > 180 ? 238 : 108, accuracy: 1)
+                        }
+                        return frame
+                    }
+                    XCTAssertEqual(keys.count, 11, "All ten digits and Delete must remain focusable.")
+                    let pad = keys.reduce(CGRect.null) { $0.union($1) }
+                    let padOffset: CGFloat = 420 // Half the shared 720pt prose column plus 120pt gap.
+                    XCTAssertEqual(
+                        pad.midX, window.bounds.midX + (direction == .leftToRight ? padOffset : -padOffset),
+                        accuracy: 8, "The prose/keypad pair must be centered, not overflowing the narrow Settings column."
+                    )
+                    for frame in keys + [heading] {
+                        XCTAssertTrue(window.bounds.insetBy(dx: 40, dy: 0).contains(frame))
+                    }
+                }
+            }
+        }
+    }
+
+    private func withProfileDestination<Content: View>(
+        _ route: SettingsRoute, direction: LayoutDirection,
+        @ViewBuilder content: () -> Content, inspect: (UIWindow) throws -> Void
+    ) async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let navigation = SettingsNavigationModel()
+        let destination = content()
+        window.rootViewController = UIHostingController(rootView:
+            SettingsWorkspace(navigation: navigation) {
+                Button("Profile settings") {}
+            } detail: { _ in
+                destination
+            }
+            .padding(.horizontal, 80)
+            .environment(\.layoutDirection, direction)
+            .environment(\.themePalette, .dark)
+            .environment(\.colorScheme, .dark)
+            .environment(\.locale, Locale(identifier: "en_US"))
+            .ignoresSafeArea()
+        )
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        navigation.pages.push(route)
+        try await Task.sleep(for: .milliseconds(750))
+        window.layoutIfNeeded()
+        XCTAssertNotNil(UIFocusSystem.focusSystem(for: window)?.focusedItem)
+        try inspect(window)
+    }
+
+    private func captureLabels(_ window: UIWindow, name: String) throws -> [(text: String, frame: CGRect)] {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        request.minimumTextHeight = 0.01
+        try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+        return (request.results ?? []).compactMap { observation in
+            guard let text = observation.topCandidates(1).first?.string else { return nil }
+            let bounds = observation.boundingBox
+            return (text, CGRect(
+                x: bounds.minX * window.bounds.width, y: (1 - bounds.maxY) * window.bounds.height,
+                width: bounds.width * window.bounds.width, height: bounds.height * window.bounds.height
+            ))
+        }
+    }
+
+    private func label(_ text: String, in labels: [(text: String, frame: CGRect)]) throws -> CGRect {
+        try XCTUnwrap(labels.first { $0.text == text }, "Missing or clipped \(text): \(labels.map(\.text))").frame
+    }
+
+    private func focusItems(in window: UIWindow) -> [any UIFocusItem] {
+        var containers: [any UIFocusItemContainer] = [window]
+        var seen = Set<ObjectIdentifier>()
+        var items: [ObjectIdentifier: any UIFocusItem] = [:]
+        while let container = containers.popLast() {
+            guard seen.insert(ObjectIdentifier(container)).inserted else { continue }
+            let frame = container.coordinateSpace.convert(window.bounds, from: window)
+            for item in container.focusItems(in: frame) {
+                if let child = item.focusItemContainer { containers.append(child) }
+                if let view = item as? UIView { containers.append(view) }
+                if item.canBecomeFocused, !(item is UIScrollView) {
+                    items[ObjectIdentifier(item)] = item
+                }
+            }
+        }
+        return Array(items.values)
     }
 
     func testBothPagesMoveAndFadeInBothDirectionsAndRetainTheRoot() async throws {

@@ -311,13 +311,18 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   retaining its hue and brightness without desaturating the hero image. Showcase,
   detail pages, and untinted stock gradients retain their existing treatment.
   Tint saturation is page-scoped and shared with native card fills/textures.
-  Settings panels, detail information cards, and PIN digit/delete keys share a
+  Settings panels and detail information cards share a
   5%-white wash in Dark and Black, or a 5%-black wash in Light, so they remain
   distinct without replacing the gradient's colour. SwiftUI surfaces keep their
   shadow and a matching hairline edge. Gradient Off or Reduce Transparency restores the original solid
   surface and border; unrelated raised cards remain unchanged.
-  PIN keys retain their existing focus, press, and hover treatment. Their resting
-  gradient fill and edge also apply on systems before Liquid Glass.
+  PIN digit/delete keys use native Liquid Glass at rest and during interaction
+  on iOS/tvOS 26+, independent of the page gradient. `PINDialPad` and `PINKeyStyle`
+  own this for profile, Plex, parental, and Live TV authorization/setup prompts.
+  The system owns their glass appearance, focus, hover, and press treatment;
+  digits keep their original circular size and Delete spans two columns at the
+  same height. Mobile activation retains haptic feedback. Reduce Transparency
+  and older OS versions retain the previous shared keypad fallback and exact key sizes.
   The detail information band retains its darker 40%-opaque surface.
   Compact mobile detail metadata and actions reveal the page gradient instead
   of covering it with a solid rectangle; Gradient Off and Reduce Transparency

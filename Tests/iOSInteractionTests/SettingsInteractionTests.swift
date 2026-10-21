@@ -231,6 +231,22 @@ final class SettingsInteractionTests: XCTestCase {
             XCTAssertTrue(app.staticTexts["Enter the Parental PIN"].waitForExistence(timeout: 5), app.debugDescription)
             XCTAssertFalse(app.buttons["Add Server"].exists)
             capture("settings-kids-parental-gate-\(arguments.joined())")
+            for digit in 0...9 {
+                let key = app.buttons[String(digit)]
+                XCTAssertTrue(key.isHittable, "Every PIN digit must remain tappable.")
+                XCTAssertEqual(key.frame.width, 74, accuracy: 1)
+                XCTAssertEqual(key.frame.height, 74, accuracy: 1)
+            }
+            let delete = app.buttons["Delete"]
+            XCTAssertTrue(delete.isHittable)
+            XCTAssertEqual(delete.frame.width, 164, accuracy: 1)
+            XCTAssertEqual(delete.frame.height, 74, accuracy: 1)
+            app.buttons["1"].tap()
+            app.buttons["9"].tap()
+            delete.tap()
+            for digit in ["2", "3", "4"] { app.buttons[digit].tap() }
+            XCTAssertTrue(app.navigationBars["Libraries"].waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertFalse(app.staticTexts["Enter the Parental PIN"].exists)
             app.terminate()
         }
         launch(settingsRoot: true, arguments: ["--kids-settings"])

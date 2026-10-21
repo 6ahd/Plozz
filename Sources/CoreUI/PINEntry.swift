@@ -576,16 +576,53 @@ public struct PINDialPad: View {
     }
 }
 
-/// A pill/circular key. Drawn entirely by the style so the rendered frame is
-/// exactly the size asked for — no auto-expanding fill from a bordered style and
-/// no inheritance from the parent layout. Focus inverts it to a solid light key
-/// with a soft bloom, which is what makes the focused digit obvious from a sofa.
-public struct PINKeyStyle: ButtonStyle {
+/// Native Liquid Glass for every PIN keypad, with the existing opaque/legacy fallback.
+public struct PINKeyStyle: PrimitiveButtonStyle {
     public let width: CGFloat
+    @Environment(\.plozzReduceTransparency) private var reduceTransparency
 
     public init(width: CGFloat) { self.width = width }
 
     public func makeBody(configuration: Configuration) -> some View {
+        if #available(iOS 26.0, tvOS 26.0, *), !reduceTransparency {
+            PINNativeKeyBody(configuration: configuration, width: width)
+        } else {
+            Button(role: configuration.role, action: configuration.trigger) {
+                configuration.label
+            }
+            .buttonStyle(PINFallbackKeyStyle(width: width))
+        }
+    }
+}
+
+@available(iOS 26.0, tvOS 26.0, *)
+private struct PINNativeKeyBody: View {
+    let configuration: PrimitiveButtonStyleConfiguration
+    let width: CGFloat
+    @State private var activationCount = 0
+
+    var body: some View {
+        Button(role: configuration.role) {
+            activationCount += 1
+            configuration.trigger()
+        } label: {
+            configuration.label
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(width == PINMetrics.keyDiameter ? .circle : .capsule)
+        .buttonSizing(.flexible)
+        .frame(width: width, height: PINMetrics.keyDiameter)
+        #if os(iOS)
+        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: activationCount)
+        #endif
+    }
+}
+
+private struct PINFallbackKeyStyle: ButtonStyle {
+    let width: CGFloat
+
+    func makeBody(configuration: Configuration) -> some View {
         PINKeyBody(configuration: configuration, width: width)
     }
 }
