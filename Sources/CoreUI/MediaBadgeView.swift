@@ -28,7 +28,7 @@ public struct MediaBadgeRow: View {
 
     public var body: some View {
         if !badges.isEmpty {
-            WrappingHStackLayout(spacing: 10 * scale, lineSpacing: 8 * scale) {
+            WrappingHStackLayout(spacing: 8 * scale, lineSpacing: 8 * scale) {
                 ForEach(badges) { MediaBadgeChip(badge: $0) }
             }
         }
@@ -52,7 +52,7 @@ public struct MetadataMediaBadgeChip: View {
 
     private var compactScale: CGFloat {
         #if os(iOS)
-        0.6
+        18 / 26
         #else
         0.75
         #endif
@@ -72,7 +72,7 @@ public struct MetadataMediaBadgeChip: View {
     }
 }
 
-/// Porcelain: filled picture badges, outlined audio capsules, and attached channel segments.
+/// Porcelain: filled resolution badges, tinted range capsules, and outlined audio.
 public struct MediaBadgeChip: View {
     private let badge: MediaBadge
     @Environment(\.themePalette) private var palette
@@ -89,48 +89,47 @@ public struct MediaBadgeChip: View {
         Group {
             if badge.style == .rating {
                 certificate
-            } else if badge.isAudio {
-                audio
+            } else if badge.isAudio || badge.style == .dolby || badge.style == .hdr || badge.style == .sdr {
+                outlinedFormat
             } else {
                 formatLabel
                     .foregroundStyle(palette.backgroundBase)
-                    .padding(.horizontal, 10 * scale)
-                    .frame(height: 30 * scale)
+                    .padding(.horizontal, 6 * scale)
+                    .frame(height: 26 * scale)
                     .background(palette.primaryText, in:
                         RoundedRectangle(cornerRadius: 6 * scale, style: .continuous))
             }
         }
         .fixedSize(horizontal: true, vertical: false)
+        .layoutValue(
+            key: WrappingHStackLayout.AdjacentSpacing.self,
+            value: badge.style == .rating ? nil : 8 * scale
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: badge.accessibilityText))
     }
 
     private var formatLabel: some View {
-        HStack(spacing: 4 * scale) {
-            if badge.label.hasPrefix("Dolby ") {
-                Text(verbatim: "Dolby")
-                    .font(PorcelainBadgeFont.font(size: 15 * scale, weight: 450))
-                Text(verbatim: String(badge.label.dropFirst(6)))
-            } else {
-                Text(verbatim: badge.label)
-            }
-        }
-        .font(PorcelainBadgeFont.font(size: 15 * scale, weight: 650))
-        .tracking(-0.2 * scale)
-        .lineLimit(1)
-        .environment(\.layoutDirection, .leftToRight)
+        Text(verbatim: badge.compactDisplayLabel)
+            .font(PorcelainBadgeFont.font(size: 15 * scale, weight: 650))
+            .tracking(-0.2 * scale)
+            .lineLimit(1)
+            .environment(\.layoutDirection, .leftToRight)
     }
 
-    private var audio: some View {
+    private var outlinedFormat: some View {
         HStack(spacing: 0) {
-            formatLabel.padding(.horizontal, 11 * scale)
+            formatLabel
+                .padding(.leading, 8 * scale)
+                .padding(.trailing, (badge.detail?.isEmpty == false ? 4 : 8) * scale)
             if let detail = badge.detail, !detail.isEmpty {
                 Text(verbatim: detail)
                     .font(PorcelainBadgeFont.font(size: 12.5 * scale, weight: 600))
                     .monospacedDigit()
                     .lineLimit(1)
-                    .padding(.horizontal, 10 * scale)
-                    .frame(height: 30 * scale)
+                    .padding(.leading, 4 * scale)
+                    .padding(.trailing, 7 * scale)
+                    .frame(height: 26 * scale)
                     .background(palette.primaryText.opacity(0.11))
                     .overlay(alignment: .leading) {
                         Rectangle()
@@ -140,7 +139,8 @@ public struct MediaBadgeChip: View {
             }
         }
         .foregroundStyle(palette.primaryText)
-        .frame(height: 30 * scale)
+        .frame(height: 26 * scale)
+        .background(badge.isAudio ? Color.clear : palette.primaryText.opacity(0.05))
         .clipShape(Capsule())
         .overlay {
             Capsule().strokeBorder(palette.primaryText.opacity(0.72), lineWidth: scale)
@@ -192,6 +192,19 @@ public struct MediaBadgeChip: View {
         #else
         3
         #endif
+    }
+}
+
+extension MediaBadge {
+    var compactDisplayLabel: String {
+        switch label {
+        case "Dolby Vision": "DV"
+        case "Dolby Digital+": "DD+"
+        case "Dolby Digital": "DD"
+        case "Dolby TrueHD": "TrueHD"
+        case "Dolby Atmos": "Atmos"
+        default: label
+        }
     }
 }
 

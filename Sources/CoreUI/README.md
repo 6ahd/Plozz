@@ -536,8 +536,16 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   the badge or changing the age text. Full Common Sense Media attribution remains
   in the guidance panel and accessibility label. No Common Sense logo artwork is bundled.
 - **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
-  license), filled picture badges, and outlined audio capsules with attached
+  license), filled resolution badges, and matching outlined capsules for dynamic
+  range and audio. Dynamic-range capsules add a subtle 5% foreground tint
+  (white in dark themes, dark in light themes); audio stays clear with attached
   channel segments. Format names are ordinary text, not vendor logo drawings.
+  Refined compact uses 26-point badges with 15-point main text, short display
+  names (DV, DD+, DD, TrueHD, Atmos), and full source names in accessibility.
+  Resolution padding is 6 points; capsule outer padding is 8 points, with
+  4 points on either side of the channel divider and 7 after the channels.
+  Adjacent technical badges use an 8-point scaled gap without tightening the
+  surrounding ratings/facts or grouping badges into an unbreakable row.
   Resolution and picture precede audio; codec and spatial capability may both
   describe one stream. Representative audio keeps the codec, channels and
   capability from one source instead of combining incompatible files' facts.

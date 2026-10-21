@@ -30,7 +30,7 @@ final class MediaBadgeSizingTests: XCTestCase {
 
     private var metadataScale: CGFloat {
         #if os(iOS)
-        0.6
+        18 / 26
         #else
         0.75
         #endif
@@ -75,12 +75,116 @@ final class MediaBadgeSizingTests: XCTestCase {
 
     func testTechnicalBadgesShareHeightAndKeepChannelsInsideTheBadge() {
         for badge in badges {
-            XCTAssertEqual(size(of: MediaBadgeChip(badge: badge)).height, 30, accuracy: 0.5, badge.label)
+            XCTAssertEqual(size(of: MediaBadgeChip(badge: badge)).height, 26, accuracy: 0.5, badge.label)
         }
         let plain = size(of: MediaBadgeChip(badge: MediaBadge("Dolby TrueHD", style: .dolby)))
         let channels = size(of: MediaBadgeChip(badge: MediaBadge("Dolby TrueHD", style: .dolby, detail: "7.1")))
         XCTAssertGreaterThan(channels.width, plain.width + 20)
         XCTAssertEqual(channels.height, plain.height, accuracy: 0.5)
+    }
+
+    func testCompactNamesPreserveFullSourceAndAccessibilityLabels() {
+        for (source, compact) in [
+            ("Dolby Vision", "DV"), ("Dolby Digital+", "DD+"),
+            ("Dolby Digital", "DD"), ("Dolby TrueHD", "TrueHD"),
+            ("Dolby Atmos", "Atmos"), ("HDR10+", "HDR10+"),
+            ("DTS-HD", "DTS-HD")
+        ] {
+            let badge = MediaBadge(source)
+            XCTAssertEqual(badge.compactDisplayLabel, compact)
+            XCTAssertEqual(badge.label, source)
+            XCTAssertEqual(badge.accessibilityText, source)
+        }
+        XCTAssertEqual(
+            MediaBadge("Dolby Digital+", style: .dolby, detail: "5.1").accessibilityText,
+            "Dolby Digital+ 5.1"
+        )
+    }
+
+    func testRefinedCompactMatchesTheApprovedRowWidth() {
+        let example = [
+            MediaBadge("4K", style: .prominent),
+            MediaBadge("Dolby Vision", style: .dolby),
+            MediaBadge("HDR10", style: .hdr),
+            MediaBadge("Dolby Digital+", style: .dolby, detail: "5.1"),
+            MediaBadge("Dolby Atmos", style: .dolby)
+        ]
+        let row = size(of: MediaBadgeRow(badges: example).fixedSize())
+        XCTAssertEqual(row.width, 294, accuracy: 8)
+        XCTAssertEqual(row.height, 26, accuracy: 0.5)
+        for channels in ["5.1", "7.1"] {
+            let plain = size(of: MediaBadgeChip(badge: MediaBadge("Dolby Digital+", style: .dolby)))
+            let attached = size(of: MediaBadgeChip(
+                badge: MediaBadge("Dolby Digital+", style: .dolby, detail: channels)
+            ))
+            let channelText = size(of: Text(verbatim: channels)
+                .font(PorcelainBadgeFont.font(size: 12.5, weight: 600))
+                .monospacedDigit())
+            XCTAssertEqual(attached.width - plain.width, channelText.width + 7, accuracy: 0.5)
+        }
+    }
+
+    func testAdjacentBadgeSpacingPreservesOtherMetadataAndWrapping() {
+        let first = MediaBadge("4K", style: .prominent)
+        let second = MediaBadge("Dolby Vision", style: .dolby)
+        let width = 100 + 16 + size(of: MediaBadgeChip(badge: first)).width
+            + 8 + size(of: MediaBadgeChip(badge: second)).width
+        let row = WrappingHStackLayout(spacing: 16, lineSpacing: 8) {
+            Color.white.frame(width: 100, height: 30)
+            MediaBadgeChip(badge: first)
+            MediaBadgeChip(badge: second)
+        }
+        XCTAssertEqual(size(of: row.fixedSize()).width, width, accuracy: 0.5)
+        XCTAssertEqual(size(of: row.frame(width: width - 1)).height, 64, accuracy: 0.5)
+    }
+
+    func testBalancingRowsRetainsAdjacentSpacing() {
+        func row(balanced: Bool) -> some View {
+            WrappingHStackLayout(spacing: 16, lineSpacing: 8, balancesLastRow: balanced) {
+                ForEach(0..<4) { index in
+                    Color.white.frame(width: 80, height: index < 2 ? 20 : 60)
+                        .layoutValue(
+                            key: WrappingHStackLayout.AdjacentSpacing.self,
+                            value: index == 0 ? nil : 8
+                        )
+                }
+            }.frame(width: 264)
+        }
+        XCTAssertEqual(size(of: row(balanced: false)).height, 128, accuracy: 0.5)
+        XCTAssertEqual(size(of: row(balanced: true)).height, 88, accuracy: 0.5)
+    }
+
+    func testRangeCapsulesUseFivePercentFillWhileAudioStaysClear() throws {
+        let rangeBadges = [
+            MediaBadge("Dolby Vision", style: .dolby),
+            MediaBadge("HDR10", style: .hdr),
+            MediaBadge("HDR10+", style: .hdr),
+            MediaBadge("HDR", style: .hdr),
+            MediaBadge("HLG", style: .hdr),
+            MediaBadge("SDR", style: .sdr)
+        ]
+        let audioBadges = [
+            MediaBadge("Dolby Atmos", style: .dolby),
+            MediaBadge("DTS:X", style: .dts),
+            MediaBadge("AAC", style: .audio)
+        ]
+        for palette in [ThemePalette.dark, .pureBlack, .light] {
+            for badge in rangeBadges + audioBadges + [MediaBadge("4K", style: .prominent)] {
+                let renderer = ImageRenderer(content: MediaBadgeChip(badge: badge)
+                    .environment(\.themePalette, palette))
+                renderer.scale = 1
+                let image = try XCTUnwrap(renderer.uiImage?.cgImage)
+                let pixels = try rgbaPixels(in: image)
+                let fillAlpha = Double(pixels[(3 * image.width + image.width / 2) * 4 + 3])
+                let foregroundAlpha = Double(UIColor(palette.primaryText).cgColor.alpha) * 255
+                let opacity = badge.style == .prominent ? 1.0 : badge.isAudio ? 0 : 0.05
+                XCTAssertEqual(fillAlpha, foregroundAlpha * opacity, accuracy: 1, badge.label)
+                XCTAssertEqual(image.height, 26, badge.label)
+                if badge.style != .prominent {
+                    XCTAssertEqual(pixels[(3 * image.width + 1) * 4 + 3], 0, badge.label)
+                }
+            }
+        }
     }
 
     func testPorcelainAndFamilyBadgeRenderInBothThemes() throws {
@@ -119,16 +223,7 @@ final class MediaBadgeSizingTests: XCTestCase {
         renderer.scale = 1
         let image = try XCTUnwrap(renderer.uiImage?.cgImage)
         XCTAssertEqual(Double(image.height), Double(iconSlot + 8), accuracy: 1)
-        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
-        try pixels.withUnsafeMutableBytes { bytes in
-            let context = try XCTUnwrap(CGContext(
-                data: bytes.baseAddress, width: image.width, height: image.height,
-                bitsPerComponent: 8, bytesPerRow: image.width * 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            ))
-            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
-        }
+        let pixels = try rgbaPixels(in: image)
         let symbolRows = (0..<image.height).filter { y in
             (9..<(9 + iconSlot)).contains { x in
                 pixels[(y * image.width + x) * 4 + 3] > 200
@@ -139,6 +234,20 @@ final class MediaBadgeSizingTests: XCTestCase {
         XCTAssertLessThanOrEqual(lastRow - firstRow + 1, Int(ceil(Double(iconSlot) * 0.8)))
         XCTAssertGreaterThanOrEqual(firstRow, 6)
         XCTAssertGreaterThanOrEqual(image.height - lastRow - 1, 6)
+    }
+
+    private func rgbaPixels(in image: CGImage) throws -> [UInt8] {
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        try pixels.withUnsafeMutableBytes { bytes in
+            let context = try XCTUnwrap(CGContext(
+                data: bytes.baseAddress, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        return pixels
     }
 
     func testFormatAndChannelOrderDoesNotReverseInRTL() throws {
