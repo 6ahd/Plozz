@@ -539134,7 +539134,6 @@
     },
     "Plex PIN" : {
       "comment" : "Navigation title for the iOS screen where the user enters a Plex Home PIN.",
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -825751,6 +825750,226 @@
         }
       }
     },
+    "This profile changed. Choose it again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تم تغيير هذا الملف الشخصي. اختره مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Този профил е променен. Изберете го отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aquest perfil ha canviat. Torna'l a seleccionar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tento profil se změnil. Vyberte ho znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Denne profil er blevet ændret. Vælg den igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dieses Profil wurde geändert. Wähle es erneut aus."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αυτό το προφίλ άλλαξε. Επιλέξτε το ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Este perfil ha cambiado. Vuelve a seleccionarlo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "این نمایه تغییر کرده است. دوباره آن را انتخاب کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tämä profiili on muuttunut. Valitse se uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ce profil a été modifié. Sélectionnez-le à nouveau."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הפרופיל הזה השתנה. יש לבחור בו שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "यह प्रोफ़ाइल बदल गई है। इसे फिर से चुनें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ovaj je profil promijenjen. Odaberite ga ponovno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ez a profil megváltozott. Válaszd ki újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Profil ini telah berubah. Pilih lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Questo profilo è stato modificato. Selezionalo di nuovo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このプロファイルは変更されました。もう一度選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 프로필이 변경되었습니다. 다시 선택해 주세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Profil ini telah berubah. Pilih profil ini semula."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Denne profilen er endret. Velg den på nytt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dit profiel is gewijzigd. Selecteer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ten profil został zmieniony. Wybierz go ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Este perfil foi alterado. Selecione-o novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acest profil a fost modificat. Selectează-l din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Этот профиль изменён. Выберите его снова."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tento profil sa zmenil. Vyberte ho znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ta profil je bil spremenjen. Izberite ga znova."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ovaj profil je promenjen. Izaberite ga ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Den här profilen har ändrats. Välj den igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "โปรไฟล์นี้มีการเปลี่ยนแปลง โปรดเลือกอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu profil değişti. Yeniden seçin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Цей профіль змінено. Виберіть його знову."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hồ sơ này đã thay đổi. Hãy chọn lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此个人资料已更改。请重新选择。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此個人檔案已變更。請重新選取。"
+          }
+        }
+      }
+    },
     "This profile changed. Reopen Sync settings and try again." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -937677,12 +937896,6 @@
       "comment" : "Episode-count badge style: the numbered badge touches the top trailing corner of the poster.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Attached"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -937723,6 +937936,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Στην άκρη"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Attached"
           }
         },
         "es" : {
@@ -937905,12 +938124,6 @@
       "comment" : "Episode-count badge style: the numbered badge is inset from the poster edges.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Floating"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -937951,6 +938164,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Με περιθώριο"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Floating"
           }
         },
         "es" : {
@@ -938133,12 +938352,6 @@
       "comment" : "Settings control for choosing an attached or floating unwatched episode-count badge.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Episode count style"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -938179,6 +938392,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Στυλ μετρητή επεισοδίων"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Episode count style"
           }
         },
         "es" : {
