@@ -35,8 +35,7 @@ actor IPTVClient {
 
     private func reclaimJournalOnce() {
         guard !didReclaimJournal else { return }
-        didReclaimJournal = true
-        catalog.reclaimJournal()
+        didReclaimJournal = catalog.reclaimJournal()
     }
 
     init(
@@ -48,9 +47,10 @@ actor IPTVClient {
             + [credential.password].filter { !$0.isEmpty }
         self.progress = progress
         http = IPTVHTTP(configuration: configuration, sensitiveValues: [credential.password])
-        let directory = directory ?? FileManager.default.urls(
-            for: credential.mode == .file ? .applicationSupportDirectory : .cachesDirectory, in: .userDomainMask
-        )[0].appendingPathComponent("IPTVCatalogs", isDirectory: true)
+        let directory = directory ?? (credential.mode == .file
+            ? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("IPTVCatalogs", isDirectory: true)
+            : IPTVCatalogStorage.cacheDirectory)
         catalog = try IPTVCatalog(
             url: directory.appendingPathComponent(credential.identity.uuidString + ".sqlite"),
             key: credential.catalogKey
@@ -238,7 +238,10 @@ actor IPTVClient {
         diagnostic?.advance(to: credential.mode == .playlist ? .playlist
             : library == "movies" ? .movies : library == "series" ? .series : .channels)
         try catalog.beginImport()
-        defer { catalog.discardImport() }
+        defer {
+            catalog.discardImport()
+            didReclaimJournal = false
+        }
         if credential.mode == .playlist {
             try await importPlaylist()
         } else {

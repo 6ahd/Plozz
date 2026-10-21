@@ -79,6 +79,18 @@ session persistence.
   than invalidating every provider and losing active Silo grants.
 - **Tokens NEVER leave the Keychain.** Never written to `UserDefaults`,
   never logged. `AccountStore` is split-storage by design.
+- **IPTV cache cleanup uses the complete household inventory.** Background
+  maintenance runs at startup and after account mutations on both platforms.
+  It preserves disabled/profile-unselected accounts and fails closed on missing,
+  malformed, or unreadable credentials. tvOS maintenance does not use a per-user
+  Keychain fallback to authorize deletion. Removed/replaced catalogues are reclaimed
+  only after their final SQLite connection closes and a fresh inventory confirms
+  that no saved account references them. Unowned legacy cache files need a 24-hour
+  grace period; recent setup files remain protected until sign-in is persisted.
+  Maintenance only scans the IPTV cache directory, never imported playlist
+  snapshots in Application Support, watch state, or sync data. Saved journals are
+  recovered through SQLite off the main thread, with busy readers left intact;
+  failed/cancelled imports also reclaim journals after rollback.
 - **Pure state machine.** `SessionStateMachine` has no I/O — all side
   effects live in the services it produces events for.
 - **Provider-appropriate sign-in.** Jellyfin uses Quick Connect or password,

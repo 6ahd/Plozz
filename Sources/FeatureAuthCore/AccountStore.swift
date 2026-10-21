@@ -1,6 +1,7 @@
 import Foundation
 import CoreModels
 import CoreNetworking
+import ProviderIPTV
 
 /// Persists household accounts while keeping all credential bytes in the
 /// user-independent Keychain.
@@ -92,6 +93,12 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
     private static let processMutationLock = NSLock()
     private static let credentialCacheGenerationLock = NSLock()
     nonisolated(unsafe) private static var credentialCacheGeneration: UInt64 = 0
+    private static let catalogMaintenanceQueue = DispatchQueue(label: "com.plozz.iptv.cache-maintenance", qos: .utility)
+    private var catalogMaintenance: (directory: URL, inventoryStore: SecureStore)?
+    private var catalogMaintenanceQueued = false
+    private var catalogMaintenanceRequested = false
+    private var catalogMaintenanceSucceeded = false
+    private var removedCatalogs: Set<UUID> = []
 
     // This is intentionally a new, migration-free schema. The app is still in
     // tester-only distribution, so old account records are ignored and users
@@ -143,6 +150,7 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
     public func loadAccounts() -> [Account] {
         lock.lock()
         defer { lock.unlock() }
+        if !catalogMaintenanceSucceeded { scheduleCatalogMaintenanceLocked() }
         synchronizeCredentialCacheGenerationLocked()
         let result = visibleAccountsResultLocked()
         let accounts = result.accounts
@@ -306,6 +314,91 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
         cachedTokens.removeAll(keepingCapacity: true)
         observedCredentialCacheGeneration =
             Self.advanceCredentialCacheGeneration()
+        scheduleCatalogMaintenanceLocked()
+    }
+
+    func enableIPTVCatalogMaintenance(directory: URL, inventoryStore: SecureStore) {
+        lock.withLock {
+            catalogMaintenance = (directory, inventoryStore)
+            scheduleCatalogMaintenanceLocked()
+        }
+    }
+
+    private func scheduleCatalogMaintenanceLocked() {
+        guard catalogMaintenance != nil else { return }
+        catalogMaintenanceRequested = true
+        guard !catalogMaintenanceQueued else { return }
+        catalogMaintenanceQueued = true
+        Self.catalogMaintenanceQueue.async { [self] in
+            while let configuration = lock.withLock({ () -> (directory: URL, inventoryStore: SecureStore)? in
+                guard catalogMaintenanceRequested else {
+                    catalogMaintenanceQueued = false
+                    return nil
+                }
+                catalogMaintenanceRequested = false
+                return catalogMaintenance
+            }) {
+                do {
+                    let succeeded = try maintainIPTVCatalogs(
+                        directory: configuration.directory, inventoryStore: configuration.inventoryStore
+                    )
+                    lock.withLock { catalogMaintenanceSucceeded = succeeded }
+                } catch {
+                    lock.withLock { catalogMaintenanceSucceeded = false }
+                    PlozzLog.auth.error("IPTV cache maintenance deferred; storage or credential inventory unavailable")
+                }
+            }
+        }
+    }
+
+    /// Uses uncached, throwing reads of every household IPTV credential, never the active profile subset.
+    @discardableResult
+    func maintainIPTVCatalogs(directory: URL, inventoryStore: SecureStore) throws -> Bool {
+        let catalogs = try IPTVCatalogStorage.catalogs(in: directory)
+        guard !catalogs.isEmpty else { return true }
+        try Self.processMutationLock.withLock {
+            try lock.withLock {
+                let raw = try inventoryStore.readString(for: accountsKey)
+                let accounts: [Account]
+                if let raw {
+                    guard let data = raw.data(using: .utf8) else { throw AccountStoreError.decodingFailed }
+                    accounts = try JSONDecoder().decode([Account].self, from: data)
+                } else {
+                    accounts = []
+                }
+                var identities = Set<UUID>()
+                for account in accounts where account.server.provider == .iptv {
+                    guard let token = try inventoryStore.readString(for: tokenKey(account.id)) else {
+                        throw AppError.unauthorized
+                    }
+                    identities.insert(try IPTVCredential.decode(token).identity)
+                }
+                try IPTVCatalogStorage.removeUnreferenced(
+                    catalogs, retaining: identities, removed: removedCatalogs
+                ) { [weak self] in
+                    guard let self else { return }
+                    self.lock.withLock { self.scheduleCatalogMaintenanceLocked() }
+                }
+            }
+        }
+        var reclaimed = true
+        for catalog in catalogs {
+            let succeeded = try IPTVCatalogStorage.reclaimJournal(at: catalog)
+            reclaimed = succeeded && reclaimed
+        }
+        return reclaimed
+    }
+
+    private func rememberRemovedCatalogLocked(for account: Account) {
+        guard account.server.provider == .iptv else { return }
+        do {
+            guard let token = try secureStore.readString(for: tokenKey(account.id)) else {
+                throw AppError.unauthorized
+            }
+            removedCatalogs.insert(try IPTVCredential.decode(token).identity)
+        } catch {
+            PlozzLog.auth.error("Removed IPTV catalogue identity unavailable; preserving recent cache files")
+        }
     }
 
     private static func currentCredentialCacheGeneration() -> UInt64 {
@@ -561,6 +654,7 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
         if let index = accounts.firstIndex(where: { $0.id == account.id }) {
             let existing = accounts[index]
             let existingToken = try secureStore.readString(for: tokenKey(account.id))
+            if existingToken != token { rememberRemovedCatalogLocked(for: existing) }
             persistedAccount.credentialRevision = existingToken == token
                 ? existing.credentialRevision
                 : CredentialRevision()
@@ -968,6 +1062,7 @@ public final class AccountStore: AccountPersisting, RotatingCredentialStoring, @
     private func removeLocked(id: String) throws {
         var accounts = try persistedAccountsLockedThrowing()
         guard let account = accounts.first(where: { $0.id == id }) else { return }
+        rememberRemovedCatalogLocked(for: account)
 
         if account.server.provider == .mediaShare {
             let infrastructure = try mediaShareInfrastructure()
