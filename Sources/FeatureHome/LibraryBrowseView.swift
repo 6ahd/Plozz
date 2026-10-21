@@ -97,6 +97,12 @@ public struct LibraryBrowseView: View {
             + (navigationContentInset > 0 ? 16 : 0)
     }
 
+    private var headerLeadingPadding: CGFloat {
+        viewModel.contentMode == .recommended
+            ? HomeLayout.horizontalPadding + navigationContentInset
+            : contentLeadingPadding
+    }
+
     private var isEntryContentPending: Bool {
         if viewModel.contentMode == .recommended {
             if case .idle = viewModel.recommendationState { return true }
@@ -620,7 +626,7 @@ public struct LibraryBrowseView: View {
             }
         }
         .lineLimit(1)
-        .padding(.leading, contentLeadingPadding)
+        .padding(.leading, headerLeadingPadding)
         .padding(.trailing, HomeLayout.horizontalPadding)
         .focusSection()
     }
@@ -799,7 +805,7 @@ private struct LibraryContentSegmentStyle: ButtonStyle {
                             ? (colorScheme == .dark ? Color.white : .black)
                             : palette.primaryText.opacity(isSelected ? 0.18 : 0))
                 }
-                .scaleEffect(configuration.isPressed ? 0.97 : (isFocused ? 1.04 : 1))
+                .scaleEffect(configuration.isPressed ? 0.97 : 1)
                 .animation(.easeOut(duration: 0.16), value: isFocused)
                 .animation(.easeOut(duration: 0.16), value: isSelected)
                 .animation(.easeOut(duration: 0.12), value: configuration.isPressed)

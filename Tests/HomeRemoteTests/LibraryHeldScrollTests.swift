@@ -2,6 +2,60 @@ import XCTest
 
 @MainActor
 final class LibraryHeldScrollTests: XCTestCase {
+    func testRecommendedHeaderKeylineAndFocusedTabsKeepEvenInsets() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
+        defer { app.terminate() }
+        for pinnedSidebar in [true, false] {
+            for opaque in [false, true] {
+                app.launchArguments = ["--library-showcase-fixture"]
+                if pinnedSidebar { app.launchArguments.append("--library-showcase-pinned-sidebar") }
+                if opaque { app.launchArguments.append("--library-showcase-opaque-controls") }
+                app.launch()
+                let bar = app.descendants(matching: .any)
+                    .matching(identifier: "library-content-mode").firstMatch
+                let heading = app.staticTexts["media-row-title"].firstMatch
+                let recommended = app.buttons["library-content-mode-recommended"]
+                XCTAssertTrue(heading.waitForExistence(timeout: 15), app.debugDescription)
+                XCTAssertTrue(bar.waitForExistence(timeout: 5), app.debugDescription)
+                for _ in 0..<8 where !recommended.hasFocus { XCUIRemote.shared.press(.up) }
+                XCTAssertTrue(recommended.hasFocus, app.debugDescription)
+                Thread.sleep(forTimeInterval: 0.3)
+                let screenshot = XCTAttachment(screenshot: app.screenshot())
+                screenshot.name = "library-tabs-pinned-\(pinnedSidebar)-opaque-\(opaque)"
+                screenshot.lifetime = .keepAlways
+                add(screenshot)
+
+                XCTAssertEqual(bar.frame.minX, heading.frame.minX, accuracy: 1,
+                               "Align the mode container to Showcase without moving the shared content.")
+                let recommendedLeading = bar.frame.minX
+                for mode in ["recommended", "titles", "collections", "playlists"] {
+                    let tab = app.buttons["library-content-mode-\(mode)"]
+                    if mode != "recommended" { XCUIRemote.shared.press(.right) }
+                    XCTAssertTrue(tab.hasFocus, app.debugDescription)
+                    Thread.sleep(forTimeInterval: 0.2)
+                    let top = tab.frame.minY - bar.frame.minY
+                    let bottom = bar.frame.maxY - tab.frame.maxY
+                    XCTAssertEqual(top, 6, accuracy: 1, "Focus must preserve the capsule's inner padding.")
+                    XCTAssertEqual(bottom, top, accuracy: 1)
+                    if mode == "recommended" {
+                        XCTAssertEqual(tab.frame.minX - bar.frame.minX, top, accuracy: 1,
+                                       "The first focused pill must remain concentric with its container.")
+                    } else if mode == "playlists" {
+                        XCTAssertEqual(bar.frame.maxX - tab.frame.maxX, top, accuracy: 1,
+                                       "The last focused pill must retain the same trailing clearance.")
+                    }
+                }
+                try selectMode("titles", in: app)
+                XCTAssertEqual(bar.frame.minX, recommendedLeading + (pinnedSidebar ? 16 : 0), accuracy: 1,
+                               "Browse must retain its extra pinned-sidebar grid clearance.")
+                try selectMode("recommended", in: app)
+                XCTAssertEqual(bar.frame.minX, recommendedLeading, accuracy: 1)
+                app.terminate()
+            }
+        }
+    }
+
     func testLibraryShowcaseKeepsHomesMetadataToRowHeadingSpacing() throws {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
