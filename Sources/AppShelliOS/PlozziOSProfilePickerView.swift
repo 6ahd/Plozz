@@ -131,6 +131,7 @@ struct PlozziOSProfilePickerView: View {
                         PlozziOSProfilePickerGrid(
                             profiles: profiles, layout: layout,
                             canManage: manager != nil, isEditing: isEditing,
+                            startsDuringPresentation: onCancel != nil,
                             onSelect: onSelect,
                             onEdit: { route = .edit(profileID: $0.id) },
                             onAdd: { route = .add(isKids: $0) }
@@ -222,6 +223,7 @@ private struct PlozziOSProfilePickerGrid: View {
     let layout: PlozziOSProfilePickerLayout
     let canManage: Bool
     let isEditing: Bool
+    let startsDuringPresentation: Bool
     let onSelect: (Profile) -> Void
     let onEdit: (Profile) -> Void
     let onAdd: (Bool) -> Void
@@ -262,7 +264,8 @@ private struct PlozziOSProfilePickerGrid: View {
                     }
                 }
                 .modifier(PlozziOSProfilePickerEntrance(
-                    isPresented: hasAppeared, position: position, reduceMotion: reduceMotion
+                    isPresented: hasAppeared, position: position,
+                    profileCount: profiles.count, reduceMotion: reduceMotion
                 ))
             }
             if canManage, !isEditing {
@@ -270,19 +273,23 @@ private struct PlozziOSProfilePickerGrid: View {
                     title: "Add Profile", symbol: "plus", size: layout.avatarSize
                 ) { onAdd(false) }
                 .modifier(PlozziOSProfilePickerEntrance(
-                    isPresented: hasAppeared, position: profiles.count, reduceMotion: reduceMotion
+                    isPresented: hasAppeared, position: profiles.count,
+                    profileCount: profiles.count, reduceMotion: reduceMotion
                 ))
                 PlozziOSProfilePickerAddTile(
                     title: KidsProfileCopy.addTile, symbol: "figure.and.child.holdinghands",
                     size: layout.avatarSize
                 ) { onAdd(true) }
                 .modifier(PlozziOSProfilePickerEntrance(
-                    isPresented: hasAppeared, position: profiles.count + 1, reduceMotion: reduceMotion
+                    isPresented: hasAppeared, position: profiles.count + 1,
+                    profileCount: profiles.count, reduceMotion: reduceMotion
                 ))
             }
         }
         .background {
-            ProfilePickerPresentationObserver { hasAppeared = true }
+            ProfilePickerPresentationObserver(startsDuringPresentation: startsDuringPresentation) {
+                hasAppeared = true
+            }
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
@@ -290,20 +297,24 @@ private struct PlozziOSProfilePickerGrid: View {
 }
 
 private struct ProfilePickerPresentationObserver: UIViewControllerRepresentable {
+    let startsDuringPresentation: Bool
     let onAppear: () -> Void
 
     func makeUIViewController(context: Context) -> Observer {
-        Observer(onAppear: onAppear)
+        Observer(startsDuringPresentation: startsDuringPresentation, onAppear: onAppear)
     }
 
     func updateUIViewController(_ controller: Observer, context: Context) {
+        controller.startsDuringPresentation = startsDuringPresentation
         controller.onAppear = onAppear
     }
 
     final class Observer: UIViewController {
+        var startsDuringPresentation: Bool
         var onAppear: () -> Void
 
-        init(onAppear: @escaping () -> Void) {
+        init(startsDuringPresentation: Bool, onAppear: @escaping () -> Void) {
+            self.startsDuringPresentation = startsDuringPresentation
             self.onAppear = onAppear
             super.init(nibName: nil, bundle: nil)
         }
@@ -315,9 +326,14 @@ private struct ProfilePickerPresentationObserver: UIViewControllerRepresentable 
             view.isUserInteractionEnabled = false
         }
 
+        override func viewIsAppearing(_ animated: Bool) {
+            super.viewIsAppearing(animated)
+            if startsDuringPresentation { onAppear() }
+        }
+
         override func viewDidAppear(_ animated: Bool) {
             super.viewDidAppear(animated)
-            onAppear()
+            if !startsDuringPresentation { onAppear() }
         }
     }
 }
@@ -372,17 +388,22 @@ private struct PlozziOSProfilePickerAddTile: View {
 struct PlozziOSProfilePickerEntrance: ViewModifier {
     let isPresented: Bool
     let position: Int
+    let profileCount: Int
     let reduceMotion: Bool
     @State private var isInteractive = false
 
     static let initialScale: CGFloat = 0.96
     static let initialOffset: CGFloat = 8
     static let duration: TimeInterval = 0.45
-    static func delay(at position: Int) -> TimeInterval { Double(max(0, position)) * 0.09 }
+    static func delay(at position: Int, profileCount: Int) -> TimeInterval {
+        let interval = min(0.09, 0.45 / Double(max(1, profileCount - 1)))
+        return Double(max(0, position)) * interval
+    }
 
-    init(isPresented: Bool, position: Int, reduceMotion: Bool) {
+    init(isPresented: Bool, position: Int, profileCount: Int, reduceMotion: Bool) {
         self.isPresented = isPresented
         self.position = position
+        self.profileCount = profileCount
         self.reduceMotion = reduceMotion
         // Cells first realized after the entrance (scrolling a large household)
         // are immediately available instead of waiting through offscreen slots.
@@ -390,13 +411,14 @@ struct PlozziOSProfilePickerEntrance: ViewModifier {
     }
 
     func body(content: Content) -> some View {
+        let delay = Self.delay(at: position, profileCount: profileCount)
         content
             .opacity(isPresented || reduceMotion ? 1 : 0)
             .scaleEffect(isPresented || reduceMotion ? 1 : Self.initialScale)
             .offset(y: isPresented || reduceMotion ? 0 : Self.initialOffset)
             .animation(
                 reduceMotion ? nil : .smooth(duration: Self.duration)
-                    .delay(isPresented ? Self.delay(at: position) : 0),
+                    .delay(isPresented ? delay : 0),
                 value: isPresented
             )
             .allowsHitTesting(reduceMotion || (isPresented && isInteractive))
@@ -408,7 +430,7 @@ struct PlozziOSProfilePickerEntrance: ViewModifier {
                 // is scheduled together from the presentation transaction.
                 if !reduceMotion {
                     do {
-                        try await Task.sleep(for: .seconds(Self.delay(at: position)))
+                        try await Task.sleep(for: .seconds(delay))
                     } catch { return }
                 }
                 isInteractive = true

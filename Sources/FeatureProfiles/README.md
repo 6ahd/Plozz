@@ -57,12 +57,15 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   launch keeps that identity stable through PIN entry and cancellation.
   Cancelling a PIN returns to the retained picker, not Home. Authorization
   still belongs to the existing profile/Plex models.
-- **Visible mobile entrance.** Start the cascade after native presentation
-  finishes, with overlapping 450 ms native smooth springs, 90 ms between tiles,
-  and a subtle lift. All visual starts share one presentation transaction,
+- **Visible mobile entrance.** Launch waits for native presentation to finish;
+  the cancellable in-app switcher starts during presentation instead of adding
+  another pause afterward. Overlapping 450 ms native smooth springs use a subtle
+  lift and 90 ms between profiles for households of up to six. Larger households
+  shorten every interval so the last profile starts within 450 ms; Add tiles
+  continue the same cadence. All visual starts share one presentation transaction,
   rather than waiting on separate task wake-ups; tasks only admit input when
-  each tile starts appearing. Six profiles should settle within one second.
-  Never cap later delays into a batch. Reduce Motion reveals everything
+  each tile starts appearing. Sixteen profiles should settle within one second.
+  Never clamp later delays into a batch. Reduce Motion reveals everything
   immediately; newly realized offscreen cells do not wait through earlier slots.
 - **Native editor controls.** On tvOS, the scrollable editor keeps its title
   separate from one center-aligned row of Back, Delete, and save/revert actions.

@@ -86,15 +86,23 @@ final class ProfilePickerPresentationTests: XCTestCase {
     }
 
     func testEntranceIsStaggeredSettlesWithoutOvershootAndHonorsReduceMotion() async throws {
-        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 0), 0)
-        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 1), 0.09)
-        for position in 1...40 {
-            XCTAssertEqual(
-                PlozziOSProfilePickerEntrance.delay(at: position)
-                    - PlozziOSProfilePickerEntrance.delay(at: position - 1),
-                0.09, accuracy: 0.001, "Later profiles must never collapse into one reveal group."
+        for count in [1, 3, 6, 8, 16, 40] {
+            XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 0, profileCount: count), 0)
+            let interval = PlozziOSProfilePickerEntrance.delay(at: 1, profileCount: count)
+            XCTAssertLessThanOrEqual(interval, 0.09)
+            if count <= 6 { XCTAssertEqual(interval, 0.09) }
+            for position in 1...(count + 1) {
+                let delay = PlozziOSProfilePickerEntrance.delay(at: position, profileCount: count)
+                let previous = PlozziOSProfilePickerEntrance.delay(at: position - 1, profileCount: count)
+                XCTAssertGreaterThan(delay, previous, "Even the Add tiles need distinct reveal slots.")
+                XCTAssertEqual(delay - previous, interval, accuracy: 0.001)
+            }
+            XCTAssertLessThanOrEqual(
+                PlozziOSProfilePickerEntrance.delay(at: count - 1, profileCount: count), 0.45 + 1e-9
             )
         }
+        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 15, profileCount: 16), 0.45, accuracy: 0.001)
+        XCTAssertEqual(PlozziOSProfilePickerEntrance.delay(at: 17, profileCount: 16), 0.51, accuracy: 0.001)
         XCTAssertEqual(PlozziOSProfilePickerEntrance.duration, 0.45)
         XCTAssertEqual(PlozziOSProfilePickerEntrance.initialScale, 0.96)
         XCTAssertEqual(PlozziOSProfilePickerEntrance.initialOffset, 8)
@@ -130,12 +138,56 @@ final class ProfilePickerPresentationTests: XCTestCase {
     }
 
     func testProductionPickerActuallyAnimatesOnPresentation() async throws {
-        let profiles = (0..<6).map {
+        let progress = try await measureProductionEntrance(count: 6, isSwitcher: false)
+        XCTAssertLessThan(
+            progress.initial, progress.settled * 9 / 10,
+            "The launch cascade must remain visible after native presentation."
+        )
+        XCTAssertGreaterThan(progress.cascading, 1_000, "Some avatars must already be appearing.")
+        XCTAssertLessThan(progress.cascading, progress.settled * 9 / 10, "The cascade must not appear all at once.")
+        XCTAssertGreaterThan(
+            progress.oneSecond, progress.settled * 95 / 100,
+            "Six profiles must be substantially settled within one second of presentation."
+        )
+    }
+
+    func testSixteenProfilesSettleWithinOneSecond() async throws {
+        let progress = try await measureProductionEntrance(
+            count: 16, isSwitcher: false, size: .init(width: 768, height: 1024)
+        )
+        XCTAssertLessThan(progress.cascading, progress.settled * 9 / 10)
+        XCTAssertGreaterThan(
+            progress.oneSecond, progress.settled * 95 / 100,
+            "Larger households must not stretch the profile cascade beyond one second."
+        )
+    }
+
+    func testManualPickerStartsDuringNativePresentation() async throws {
+        let progress = try await measureProductionEntrance(count: 6, isSwitcher: true)
+        XCTAssertGreaterThan(
+            progress.initial, progress.settled / 5,
+            "Switching profiles must already be revealing avatars when the cover finishes opening."
+        )
+        XCTAssertLessThan(
+            progress.initial, progress.settled * 9 / 10,
+            "Starting sooner must not coalesce the whole cascade into an immediate reveal."
+        )
+        XCTAssertGreaterThan(progress.oneSecond, progress.settled * 95 / 100)
+    }
+
+    private func measureProductionEntrance(
+        count: Int, isSwitcher: Bool, size: CGSize = .init(width: 390, height: 844)
+    ) async throws -> (initial: Int, cascading: Int, oneSecond: Int, settled: Int) {
+        let profiles = (0..<count).map {
             Profile(id: "motion-\($0)", name: "Viewer \($0)", avatarSymbol: "person.fill", colorIndex: 0)
         }
-        try await withWindow(Color.black.ignoresSafeArea(), size: .init(width: 390, height: 844)) { window in
+        var result = (initial: 0, cascading: 0, oneSecond: 0, settled: 0)
+        try await withWindow(Color.black.ignoresSafeArea(), size: size) { window in
             let picker = UIHostingController(rootView:
-                PlozziOSProfilePickerView(profiles: profiles, activeProfileID: profiles[0].id, onSelect: { _ in })
+                PlozziOSProfilePickerView(
+                    profiles: profiles, activeProfileID: profiles[0].id, onSelect: { _ in },
+                    onCancel: isSwitcher ? {} : nil
+                )
                     .environment(\.themePalette, .pureBlack)
                     .environment(\.gradientBackgroundsEnabled, false)
                     .preferredColorScheme(.dark)
@@ -147,8 +199,6 @@ final class ProfilePickerPresentationTests: XCTestCase {
             }
             let start = ContinuousClock.now
             let entering = self.capture(window, name: "production-picker-entering", afterUpdates: false)
-            // The cascade starts after the native navigation/cover appearance,
-            // not while that presentation is still sliding onto the screen.
             try await Task.sleep(for: .milliseconds(400))
             let cascading = self.capture(window, name: "production-picker-cascading", afterUpdates: false)
             try await Task.sleep(until: start.advanced(by: .seconds(1)), clock: .continuous)
@@ -159,22 +209,22 @@ final class ProfilePickerPresentationTests: XCTestCase {
             let middle = try self.redPixelCount(cascading)
             let nearEnd = try self.redPixelCount(oneSecond)
             let final = try self.redPixelCount(settled)
-            let progress = XCTAttachment(data: try JSONSerialization.data(withJSONObject: [
+            let samples: [String: Any] = [
+                "profileCount": count, "isSwitcher": isSwitcher,
                 "initialPixels": early, "cascadingPixels": middle,
                 "oneSecondPixels": nearEnd, "settledPixels": final
-            ], options: [.sortedKeys]), uniformTypeIdentifier: "public.json")
+            ]
+            let progress = XCTAttachment(
+                data: try JSONSerialization.data(withJSONObject: samples, options: [.sortedKeys]),
+                uniformTypeIdentifier: "public.json"
+            )
             progress.name = "native-cascade-progress"
             progress.lifetime = .keepAlways
             self.add(progress)
             XCTAssertGreaterThan(final, 10_000, "The actual shared avatars must be rendered.")
-            XCTAssertLessThan(early, final * 9 / 10, "The production grid must reveal, not start fully visible.")
-            XCTAssertGreaterThan(middle, 1_000, "Some avatars must already be appearing.")
-            XCTAssertLessThan(middle, final * 9 / 10, "The cascade must not appear all at once.")
-            XCTAssertGreaterThan(
-                nearEnd, final * 95 / 100,
-                "Six profiles must be substantially settled within one second of presentation."
-            )
+            result = (early, middle, nearEnd, final)
         }
+        return result
     }
 
     private func renderPicker(
@@ -291,7 +341,8 @@ private struct PickerMotionFixture: View {
             ForEach([0, 6], id: \.self) { position in
                 Color.white.frame(width: 100, height: 100)
                     .modifier(PlozziOSProfilePickerEntrance(
-                        isPresented: model.isPresented, position: position, reduceMotion: reduceMotion
+                        isPresented: model.isPresented, position: position,
+                        profileCount: 7, reduceMotion: reduceMotion
                     ))
             }
         }

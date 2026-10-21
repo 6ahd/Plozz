@@ -439,8 +439,10 @@ to the UIKit presentation owner.
 `ProfilePickerPresentationTests` covers compact/adaptive avatar sizing, small
 and large households, themes/gradients, landscape, iPad, accessible names and RTL.
 Hosted animation frames check native presentation readiness, individually
-staggered reveals without a capped batch, settled scale, and six avatars
-substantially settled within one second; Reduce Motion
+staggered reveals without a capped batch, settled scale, and six or sixteen
+avatars substantially settled within one second. Launch preserves its visible
+cascade after presentation; manual switching must already be revealing avatars
+when the native cover finishes opening. Reduce Motion
 reveals every tile immediately. Scrolling a 40-profile household also checks
 that newly realized cells do not inherit long entrance delays.
 `ProfilePickerInteractionTests` exercises
