@@ -1,4 +1,5 @@
 import CoreModels
+import CoreNetworking
 import XCTest
 @testable import FeatureHomeCore
 
@@ -122,6 +123,32 @@ final class PlaybackVersionChoiceTests: XCTestCase {
         await gate.release()
         await assertCancelled(task)
         XCTAssertNil(model.prompt)
+    }
+
+    func testVersionFailurePublishesPreparationEvidenceThroughSharedGate() async throws {
+        let before = Set(PlozzLog.recentEntries(limit: 500).map(\.id))
+        let full = item()
+        let provider = FakeMediaProvider(allItems: [full])
+        provider.playbackItemHandler = { _ in
+            HTTPResponseDiagnostics.recordValidationFailure(
+                .duplicateSourceID, route: .playbackInventory, sourceCount: 2
+            )
+            throw AppError.invalidResponse
+        }
+        do {
+            _ = try await start(full, provider: provider).value
+            XCTFail("The original preparation error must still reach the caller.")
+        } catch {
+            XCTAssertEqual(error as? AppError, .invalidResponse)
+        }
+        let text = try XCTUnwrap(PlozzLog.recentEntries(limit: 500).first {
+            !before.contains($0.id) && $0.message.hasPrefix("format=plozz-preparation-1")
+        }?.message)
+        XCTAssertTrue(text.contains("operation=versions"))
+        XCTAssertTrue(text.contains("validation_0.reason=duplicateSourceID"))
+        XCTAssertTrue(text.contains("validation_0.sources=2"))
+        XCTAssertNil(model.prompt)
+        XCTAssertFalse(model.isPreparing)
     }
 
     func testPreparationFailoverLoadsHealthyInventoryInsteadOfUsingCachedFiles() async throws {

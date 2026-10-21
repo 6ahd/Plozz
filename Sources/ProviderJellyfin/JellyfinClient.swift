@@ -693,8 +693,9 @@ public struct JellyfinClient: Sendable {
             ],
             headers: authHeaders
         )
-        let result = try await interactiveHTTP.decode(BaseItemDto.self, from: endpoint, baseURL: baseURL)
-        return result
+        return try await HTTPResponseDiagnostics.$route.withValue(.itemDetail) {
+            try await interactiveHTTP.decode(BaseItemDto.self, from: endpoint, baseURL: baseURL)
+        }
     }
 
     /// `GET /Items/{id}/ThemeSongs`. Parent inheritance lets season and episode
@@ -1105,15 +1106,17 @@ public struct JellyfinClient: Sendable {
     /// GET enumerates sources without a device profile, stream opening, or
     /// playback reporting. Its generated PlaySessionId is not an encoding lease.
     func playbackSourceInventory(userID: String, itemID: String) async throws -> PlaybackInfoResponse {
-        try await interactiveHTTP.decode(
-            PlaybackInfoResponse.self,
-            from: Endpoint(
-                path: "/Items/\(itemID)/PlaybackInfo",
-                queryItems: [URLQueryItem(name: "UserId", value: userID)],
-                headers: authHeaders
-            ),
-            baseURL: baseURL
-        )
+        try await HTTPResponseDiagnostics.$route.withValue(.playbackInventory) {
+            try await interactiveHTTP.decode(
+                PlaybackInfoResponse.self,
+                from: Endpoint(
+                    path: "/Items/\(itemID)/PlaybackInfo",
+                    queryItems: [URLQueryItem(name: "UserId", value: userID)],
+                    headers: authHeaders
+                ),
+                baseURL: baseURL
+            )
+        }
     }
 
     func playbackInfo(

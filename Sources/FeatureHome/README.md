@@ -19,6 +19,13 @@ loads authoritative inventory; explicit selections, cancellation and revoked
 presentation scope never fail over. An unavailable unselected edition is logged
 and omitted from the current picker rather than blocking a confirmed primary.
 
+The shared version gate and detail/episode inventory enrichment emit bounded,
+failure-only `plozz-preparation-1` records to Recent Activity. They identify the
+request stage, elapsed time, HTTP/network failure, safe decode field/type, and
+inventory validation reason. Identity checks name the mismatched dimension, not
+the item/account values. The existing Send Recent Activity action includes these
+records on both platforms; error dialogs, playback routing and timeouts are unchanged.
+
 - **Library browse failures** — Browse, Collections, Playlists and their member
   pages use the shared Details / Try Again actions on mobile and TV, including
   nonfatal later-page failures. `LibraryLoadDiagnostic` identifies the requested

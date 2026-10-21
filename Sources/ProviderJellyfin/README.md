@@ -226,6 +226,14 @@ a temporary error as proof that a title has no streams.
 Both backends advertise deferred inventory enrichment so detail menus can refresh
 through the same authoritative endpoint after their hero has painted.
 
+Version-preparation diagnostics distinguish the item-detail GET from the inventory
+GET, transport timeouts from HTTP failures, and decoding from source validation.
+Validation identifies an empty inventory, missing/blank/duplicate source IDs,
+an explicit unavailable placeholder, or server refusal without retaining source
+IDs or payloads. The shared version gate and deferred detail/episode enrichment
+capture these facts through `PlaybackPreparationDiagnostics`; existing playback
+errors and browsing fallbacks are unchanged.
+
 Inventory GET does not send a device profile, open a stream, or report playback.
 Its generated `PlaySessionId` is not an owned encoding session and needs no stop
 request. This differs from playback negotiation below; see the pinned
