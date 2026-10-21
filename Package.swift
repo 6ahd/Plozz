@@ -234,14 +234,14 @@ let package = Package(
         //
         // The current fork retains that correction and exports the engine dynamically:
         // LibDovi and LibTrueHD's Rust unwind personalities must stay separate
-        // from the host's Objective-C/C++ stack. FFmpegBuild moves to 3.8.x,
-        // LibDovi stays at 2.1.x, and LibTrueHD/LibDTSX move to 3.0.x.
-        // LibDTSX is now a separate dynamic framework with LGPL notices.
+        // from the host's Objective-C/C++ stack. Upstream 7.44.0 uses FFmpegBuild
+        // 3.9.x for DTS:X heights, removing LibDTSX from the dependency graph.
+        // LibDovi stays at 2.1.x and LibTrueHD at 3.0.x.
         // Explicit traits preserve the formerly compiled-in features; the
         // measurement-only TrueHDReferenceRender trait must remain excluded.
         // Plozz opts tvOS 26+ on-demand playback into TrueHD Atmos and DTS:X rendering.
         // Progressive segment delivery remains off.
-        // Both apps embed the engine framework and the new dependency notices.
+        // Both apps embed the engine framework and its dependency notices.
         //
         // AAC-LC MP4 tracks whose timestamps drift from their decoded sample
         // clock selectively use timestamp-aware resampling (#89). Ordinary AAC
@@ -251,14 +251,14 @@ let package = Package(
         // bridge; the engine's legacy SMB URL product is not linked.
         .package(
             url: "https://github.com/brandomoore/AetherEngine",
-            revision: "deb90eb3f740fe1ddda74301a64e3937e480877d",
+            revision: "86af70ddfe7bcde27e06356dc7aa81e8997d43c4",
             traits: [
                 "TrueHDObjectAudio", "DTSXObjectAudio",
                 "DualLayerDolbyVision", "DolbyVisionStillReshaping",
             ]
         ),
         // NOTE: FFmpegBuild (FFmpeg n8.1.x decode-only), LibDovi (Dolby Vision
-        // RPU parser), LibTrueHD and LibDTSX are transitive dependencies — AetherEngine
+        // RPU parser) and LibTrueHD are transitive dependencies — AetherEngine
         // declares and consumes them. The retired hybrid-engine target needed
         // direct FFmpegBuild/LibDovi declarations; current Plozz targets do not
         // consume those products. AetherEngine owns their version alignment.
@@ -997,7 +997,7 @@ let package = Package(
         ),
         .testTarget(
             name: "CoreUITests",
-            dependencies: ["CoreUI", "CoreModels", "TopShelfKit"]
+            dependencies: ["CoreUI", "CoreModels", "TopShelfKit", "TestSupportPerformance"]
         ),
         .testTarget(
             name: "CoreNetworkingTests",

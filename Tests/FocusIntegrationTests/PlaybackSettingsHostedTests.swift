@@ -9,6 +9,41 @@ import XCTest
 
 @MainActor
 final class PlaybackSettingsHostedTests: XCTestCase {
+    func testAdvancedPlaybackShowsFELControlAndAudioTradeoff() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let suite = "FELSettingsHosted-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let playback = PlaybackSettingsModel(store: PlaybackSettingsStore(defaults: defaults, namespace: "guest"))
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        window.rootViewController = UIHostingController(rootView:
+            PlaybackAdvancedSettingsView(
+                playback: playback, model: ExternalPlayerSettingsModel(defaults: defaults)
+            )
+            .environment(\.settingsInWorkspace, true)
+            .environment(\.themePalette, .dark)
+            .environment(\.locale, Locale(identifier: "en_US"))
+            .frame(width: SettingsFormMetrics.pageWidth)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.black)
+        )
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+            defaults.removePersistentDomain(forName: suite)
+        }
+        try await Task.sleep(for: .milliseconds(400))
+        let text = try visibleText(in: window, attachment: "FEL advanced playback setting")
+        for label in ["FEL", "experimental", "GPU", "memory", "Dolby Atmos", "DTS:X"] {
+            XCTAssertTrue(text.contains(label), "The setting and tradeoff must be visible: \(text)")
+        }
+        XCTAssertFalse(playback.settings.dolbyVisionFELEnabled)
+    }
+
     func testLibrarySourcesShowConfiguredNamesAndUpdateWithProfileSelection() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),

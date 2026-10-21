@@ -8,6 +8,108 @@ import XCTest
 
 @MainActor
 final class PlayerVersionMenuHostedTests: XCTestCase {
+    func testReturningFromScrolledVersionsRestoresVisibleRootAndNativeFocus() async throws {
+        try await waitUntil {
+            UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        let navigation = PlaybackSourceMenuState()
+        let versions = (0..<12).map { index in
+            MediaVersion(
+                id: "version-\(index)",
+                fileName: """
+                UHD
+                Example Movie (2026)
+                WEB-DL HDR10+ Dolby Vision HEVC
+                Atmos DDP 5.1
+                English and French
+                Release Group \(index)
+                Ready
+                """,
+                height: 2160, bitrate: 26_700_000, sizeBytes: 25_400_000_000,
+                duration: 7_620, videoCodec: "hevc", videoRange: "DOVIWithHDR10",
+                audioCodec: "eac3", audioChannels: 6
+            )
+        }
+        let host = UIHostingController(rootView:
+            Color.black.ignoresSafeArea()
+            .playbackSourceMenu(
+                state: navigation, sources: [], selectedSourceID: nil,
+                versions: versions, selectedVersionID: versions.sortedForPicker().last?.id,
+                onSelectSource: { _ in }, onSelectVersion: { _ in }
+            )
+            .environment(\.locale, Locale(identifier: "en_US"))
+            .environment(\.dynamicTypeSize, .large)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.black)
+        )
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer {
+            host.dismiss(animated: false)
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        navigation.open(
+            from: CGRect(x: 700, y: 950, width: 80, height: 80),
+            actions: [.init(id: "refresh", title: "Refresh", systemImage: "arrow.clockwise")]
+        )
+        try await waitUntil { host.presentedViewController != nil }
+        for trigger in [
+            CGRect(x: 700, y: 950, width: 80, height: 80),
+            CGRect(x: 1_760, y: 120, width: 80, height: 80)
+        ] {
+            navigation.triggerFrame = trigger
+            withAnimation(.easeInOut(duration: 0.28)) { navigation.page = .versions }
+            try await waitUntil {
+                (self.focusFrame(in: window)?.width ?? 0) > 500
+                    && self.scrollViews(in: window).contains { $0.contentSize.height > $0.bounds.height * 2 }
+            }
+            let scroll = try XCTUnwrap(scrollViews(in: window).first)
+            try await waitUntil { scroll.contentOffset.y > 1_000 }
+            XCTAssertGreaterThan(scroll.contentOffset.y, 1_000, "Exercise a genuinely scrolled version list.")
+            try await Task.sleep(for: .milliseconds(400))
+            window.layoutIfNeeded()
+            let versionsImage = DetailTransitionSnapshot.image(of: window)
+            let panelFrame = try renderedPanelFrame(in: versionsImage)
+            XCTAssertEqual(panelFrame.width, 800, accuracy: 2)
+            XCTAssertEqual(panelFrame.height, 820, accuracy: 2)
+            XCTAssertTrue(window.bounds.insetBy(dx: 31, dy: 31).contains(panelFrame))
+            let versionsAttachment = XCTAttachment(image: versionsImage)
+            versionsAttachment.name = "TV expanded multiline versions"
+            versionsAttachment.lifetime = .keepAlways
+            add(versionsAttachment)
+            withAnimation(.easeInOut(duration: 0.28)) { navigation.page = .root }
+            try await Task.sleep(for: .milliseconds(400))
+            window.layoutIfNeeded()
+            let rootScroll = try XCTUnwrap(scrollViews(in: window).first)
+            XCTAssertFalse(rootScroll === scroll, "Pages must not reuse the outgoing scroll container.")
+            XCTAssertEqual(rootScroll.contentOffset.y, -rootScroll.adjustedContentInset.top, accuracy: 4,
+                           "Returning to the short root menu must not retain the version list's scroll offset.")
+            let focus = try XCTUnwrap(focusFrame(in: window))
+            XCTAssertTrue(rootScroll.convert(rootScroll.bounds, to: window).intersects(focus),
+                          "A visible root action must receive native focus after Back.")
+            let image = DetailTransitionSnapshot.image(of: window)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "TV source menu after returning from scrolled versions"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.recognitionLanguages = ["en-US"]
+            try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+            let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+            for label in ["Version", "Refresh"] {
+                XCTAssertTrue(text.localizedCaseInsensitiveContains(label), "Blank root menu: \(text)")
+            }
+        }
+    }
+
     private struct NoSystemAudio: SystemPlaybackAudioControlling {
         func read() -> SystemPlaybackAudioState { .init(values: [:]) }
         func setEnabled(_ enabled: Bool, for setting: SystemPlaybackAudioSetting) throws {
@@ -160,6 +262,41 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
         ).background(.black))
     }
 
+    private func scrollViews(in view: UIView) -> [UIScrollView] {
+        (view as? UIScrollView).map { [$0] } ?? view.subviews.flatMap { scrollViews(in: $0) }
+    }
+
+    private func renderedPanelFrame(in snapshot: UIImage) throws -> CGRect {
+        let image = try XCTUnwrap(snapshot.cgImage)
+        let width = image.width, height = image.height
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        try bytes.withUnsafeMutableBytes {
+            let context = try XCTUnwrap(CGContext(
+                data: $0.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        var minX = width, maxX = -1, minY = height, maxY = -1
+        // The fixture is black outside the glass; ignore its faint outer shadow.
+        for y in 0..<height {
+            for x in 0..<width {
+                let index = (y * width + x) * 4
+                if max(bytes[index], bytes[index + 1], bytes[index + 2]) > 16 {
+                    minX = min(minX, x); maxX = max(maxX, x)
+                    minY = min(minY, y); maxY = max(maxY, y)
+                }
+            }
+        }
+        XCTAssertGreaterThan(maxX, minX)
+        return CGRect(
+            x: CGFloat(minX) / snapshot.scale, y: CGFloat(minY) / snapshot.scale,
+            width: CGFloat(maxX - minX + 1) / snapshot.scale,
+            height: CGFloat(maxY - minY + 1) / snapshot.scale
+        )
+    }
+
     private func textRequest() -> VNRecognizeTextRequest {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
@@ -177,17 +314,21 @@ final class PlayerVersionMenuHostedTests: XCTestCase {
             if let container = current.focusItemContainer {
                 return container.coordinateSpace.convert(item.frame, to: window)
             }
+
             environment = current.parentFocusEnvironment
         }
         return nil
     }
 
-    private func waitUntil(_ condition: () -> Bool) async throws {
+    private func waitUntil(
+        file: StaticString = #filePath, line: UInt = #line,
+        _ condition: () -> Bool
+    ) async throws {
         let deadline = ContinuousClock.now + .seconds(4)
         while ContinuousClock.now < deadline {
             if condition() { return }
             try await Task.sleep(for: .milliseconds(20))
         }
-        XCTFail("Native focus did not reach the requested player control or menu.")
+        XCTFail("Native focus did not reach the requested player control or menu.", file: file, line: line)
     }
 }

@@ -56,7 +56,9 @@ bounded language-match/accessibility flags without track titles or URLs.
   fall back permanently, while timeout/rate-limit responses remain retryable.
 - **Diagnostics** — `PlaybackDiagnosticsSampler` +
   `PlaybackDiagnosticsOverlay`: opt-in HUD with engine, codec, bitrate,
-  dropped frames, etc.
+  dropped frames, etc. The Aether adapter supplies `AetherEngine v<version>`
+  from the linked engine's public version API for both VOD and Live TV.
+  Delivery stays a separate Direct Play/Remux/Transcode fact.
 - **Display matching** — `DolbyVisionDisplayCriteria` /
   `IdleSleepGuard`: AVKit display-criteria match + platform-specific keep-awake.
   Mobile playback owns a foreground presentation lease through startup and

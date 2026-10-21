@@ -128,10 +128,12 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 "Shared heading", "Shared preferred language", "Shared toggle",
                 "Shared helper", "Shared time interval", "Shared interval description", "Shared footer"
             ]
+            let image = self.renderWindow(window)
             let expected = (window.bounds.width - SettingsFormMetrics.pageWidth) / 2 + 28
             for label in labels {
                 let frame = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: label).first).frame
-                XCTAssertEqual(frame.minX, expected, accuracy: 3, "\(label) must share the group text keyline.")
+                let ink = try self.textInkBounds(in: image, frame: frame)
+                XCTAssertEqual(ink.minX, expected, accuracy: 3, "\(label) must share the group text keyline.")
             }
             _ = try await self.capture(window, name: "settings-native-shared-keylines", includeMaster: true)
         }
@@ -837,6 +839,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
             let row = try XCTUnwrap(before.last {
                 $0.text.hasPrefix("Collection ") && $0.frame.maxY < innerBottom - 40
             }, "\(before)")
+            let originalInkHeight = try self.textInkBounds(in: self.renderWindow(window), frame: row.frame).height
             let baselineOffset = scroll.contentOffset.y
             for targetY in [innerBottom + 30, window.bounds.maxY - 60] {
                 let newOffset = baselineOffset + row.frame.minY - targetY
@@ -847,7 +850,8 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 let visible = try XCTUnwrap(self.collectionLabelFrames(in: window).first { $0.text == row.text })
                 XCTAssertGreaterThan(visible.frame.minY, innerBottom + 15)
                 XCTAssertLessThan(visible.frame.maxY, window.bounds.maxY)
-                XCTAssertGreaterThan(visible.frame.height, row.frame.height * 0.85)
+                let visibleInkHeight = try self.textInkBounds(in: self.renderWindow(window), frame: visible.frame).height
+                XCTAssertGreaterThan(visibleInkHeight, originalInkHeight * 0.85)
             }
         }
     }
@@ -948,15 +952,16 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 try await Task.sleep(for: .milliseconds(20))
             }
             XCTAssertFalse(navigation.awaitingFocus)
+            let text = try await self.capture(window, name: "hero-personal-collection-pane", includeMaster: true)
             let focused = try self.nativeFocusedFrame(system, in: window)
             let labels = try self.collectionLabelFrames(in: window)
             let sourceLabel = try XCTUnwrap(labels.first { $0.text == "Personal collections" })
             XCTAssertTrue(focused.contains(CGPoint(x: sourceLabel.frame.midX, y: sourceLabel.frame.midY)),
                           "Entry must reach the real source row, not Back: \(focused), label: \(sourceLabel.frame)")
-            let heading = try XCTUnwrap(labels.first { $0.text == "Choose collections" })
+            let heading = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: "Choose collections").first)
             XCTAssertGreaterThan(heading.frame.minX, 800)
-            XCTAssertLessThan(heading.frame.height, 60, "The shared page title must fit the available pane.")
-            let text = try await self.capture(window, name: "hero-personal-collection-pane", includeMaster: true)
+            let headingInk = try self.textInkBounds(in: self.renderWindow(window), frame: heading.frame)
+            XCTAssertLessThan(headingInk.height, 60, "The shared page title must fit the available pane.")
             XCTAssertTrue(text.contains("Choose collections"), text)
             XCTAssertTrue(text.contains("Back"), "The pane's Back label must remain legible: \(text)")
             XCTAssertTrue(text.contains("Funny movies from year 2000"), text)
@@ -1591,7 +1596,8 @@ final class ArtworkSettingsHostedTests: XCTestCase {
                 XCTAssertTrue(system.focusedItem === target, "Inline help must retain native focus.")
                 if index == 0 {
                     let title = try XCTUnwrap(self.collectionLabelFrames(in: window, matchingText: "Recommended").first)
-                    XCTAssertEqual(title.frame.height, try self.controlInkHeight("Recommended"), accuracy: 3,
+                    let ink = try self.textInkBounds(in: self.renderWindow(window), frame: title.frame)
+                    XCTAssertEqual(ink.height, try self.controlInkHeight("Recommended", excludingOCRPadding: true), accuracy: 3,
                                    "Artwork presets must use the same body-sized font as other settings controls.")
                 }
                 for (snippetIndex, snippet) in snippets.enumerated() {
@@ -1742,6 +1748,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
         }
         XCTAssertNotNil(system.focusedItem)
         try await Task.sleep(for: .milliseconds(350))
+        try await waitForHostedLayout(window)
         try await inspect(window)
     }
 
@@ -1759,7 +1766,7 @@ final class ArtworkSettingsHostedTests: XCTestCase {
 
     private func capture(_ window: UIWindow, name: String, includeMaster: Bool = false) async throws -> String {
         try await Task.sleep(for: .milliseconds(250))
-        window.layoutIfNeeded()
+        try await waitForHostedLayout(window)
         let image = renderWindow(window)
         let attachment = XCTAttachment(image: image)
         attachment.name = name

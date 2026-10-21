@@ -107,4 +107,5 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           DISCORD_BRIDGE_ENABLED: ${{ vars.DISCORD_BRIDGE_ENABLED }}
           DISCORD_PUBLIC_SINCE: ${{ vars.DISCORD_PUBLIC_SINCE }}
+          TESTFLIGHT_RESOLUTION_ENABLED: ${{ vars.TESTFLIGHT_RESOLUTION_ENABLED }}
         run: python3 tools/discord-bridge.py --mode sync

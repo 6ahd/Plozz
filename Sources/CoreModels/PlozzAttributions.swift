@@ -72,8 +72,8 @@ public enum PlozzAttributions {
         PlozzAttribution(
             title: "AetherEngine",
             detail:
-                "Plozzigen playback is powered by AetherEngine by Vincent Herbst. "
-                + "Source: https://github.com/brandomoore/AetherEngine/tree/deb90eb3f740fe1ddda74301a64e3937e480877d",
+                "Playback is powered by AetherEngine by Vincent Herbst. "
+                + "Source: https://github.com/brandomoore/AetherEngine/tree/86af70ddfe7bcde27e06356dc7aa81e8997d43c4",
             licenses: [.init("LGPL-3.0", family: .lgpl)]
         ),
         PlozzAttribution(
@@ -99,21 +99,6 @@ public enum PlozzAttributions {
                 + "LibTrueHDLicense.txt and LibTrueHDApacheLicense.txt.",
             licenses: [
                 .init("MIT", family: .mit),
-                .init("Apache-2.0", family: .apache),
-            ]
-        ),
-        PlozzAttribution(
-            title: "LibDTSX",
-            detail:
-                "AetherEngine includes LibDTSX by kristofferR and Vincent Herbst, "
-                + "using the FFmpeg-derived dca decoder from harletty-bridge to render standard DTS:X heights. "
-                + "Source: https://github.com/superuser404notfound/LibDTSX/tree/3.0.0. "
-                + "The combined library is LGPL-3.0-or-later and ships as the replaceable DTSX.framework. "
-                + "Complete notices and license texts are bundled in LibDTSXNotices.txt, "
-                + "LibDTSXLicense.txt, LibDTSXLgplLicense.txt, LibDTSXGplLicense.txt "
-                + "and LibDTSXLgpl21License.txt.",
-            licenses: [
-                .init("LGPL-3.0+", family: .lgpl),
                 .init("Apache-2.0", family: .apache),
             ]
         ),

@@ -7,6 +7,20 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+On tvOS, profile Appearance, Profile Lock setup, and Parental PIN setup use the
+workspace's full-width destination layout, like subtitle styling. Their
+two-column content must not be squeezed into the ordinary centered Settings
+column. The stack retains the narrower parent page and its focus on return.
+
+Playback > Advanced also contains **Dolby Vision FEL (experimental)** on TV,
+iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
+device-wide external-player choice. It applies to new built-in on-demand sessions
+and travels through profile settings transfer. The helper explains the added
+GPU/memory cost and loss of Atmos objects and DTS:X height audio on the FEL route.
+Live playback, shared players and muted previews do not opt in.
+See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
+and output limits.
+
 Playback > Advanced > External player is a device-only, default-off preference
 shared by all profiles on that device. It stays inside Playback rather than
 adding an Everyone category. The picker has one short scope label; About external

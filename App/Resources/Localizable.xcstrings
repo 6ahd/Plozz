@@ -254170,7 +254170,228 @@
         }
       }
     },
+    "DTS requires AetherEngine decode or a passthrough route" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يتطلب DTS فك الترميز عبر AetherEngine أو مسارًا لتمرير الصوت مباشرةً"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS изисква декодиране с AetherEngine или път за директно предаване на аудио"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS requereix descodificació amb AetherEngine o una via de pas directe de l’àudio"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS vyžaduje dekódování pomocí AetherEngine nebo cestu pro přímé předávání zvuku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS kræver afkodning med AetherEngine eller en lydsti med passthrough"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS erfordert die Dekodierung mit AetherEngine oder einen Audiopfad mit Passthrough"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το DTS απαιτεί αποκωδικοποίηση από το AetherEngine ή διαδρομή απευθείας διέλευσης ήχου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS requiere decodificación con AetherEngine o una ruta de paso directo de audio"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS به رمزگشایی با AetherEngine یا مسیر عبور مستقیم صدا نیاز دارد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS vaatii AetherEngine-dekoodauksen tai äänen läpivientireitin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS nécessite un décodage par AetherEngine ou une sortie audio en transmission directe"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS מחייב פענוח באמצעות AetherEngine או נתיב להעברת שמע ישירה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS के लिए AetherEngine से डिकोडिंग या पासथ्रू ऑडियो आउटपुट ज़रूरी है"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS zahtijeva dekodiranje mehanizmom AetherEngine ili izlaz za prosljeđivanje zvuka"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A DTS-hez AetherEngine-dekódolás vagy közvetlen hangtovábbítási útvonal szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS memerlukan pendekodean dengan AetherEngine atau jalur passthrough audio"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS richiede la decodifica con AetherEngine o un percorso audio passthrough"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTSにはAetherEngineによるデコードまたは音声パススルー経路が必要です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS에는 AetherEngine 디코딩 또는 오디오 패스스루 경로가 필요합니다"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS memerlukan penyahkodan oleh AetherEngine atau laluan passthrough audio"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS krever dekoding med AetherEngine eller en lydsignalvei med passthrough"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS vereist decodering met AetherEngine of een audiopad met passthrough"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS wymaga dekodowania przez AetherEngine lub toru audio obsługującego passthrough"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS requer decodificação pelo AetherEngine ou uma rota de áudio com passthrough"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS necesită decodificare cu AetherEngine sau o cale de transmitere directă a sunetului (passthrough)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для DTS требуется декодирование с помощью AetherEngine или сквозная передача звука (passthrough)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS vyžaduje dekódovanie pomocou AetherEngine alebo priamy prenos zvuku (passthrough)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS zahteva dekodiranje s pogonom AetherEngine ali neposredni prenos zvoka (passthrough)"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS zahteva dekodiranje pomoću mehanizma AetherEngine ili direktan prenos zvuka (passthrough)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS kräver avkodning med AetherEngine eller en ljudväg med passthrough"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS ต้องใช้การถอดรหัสด้วย AetherEngine หรือเส้นทางส่งผ่านสัญญาณเสียง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS, AetherEngine ile kod çözme veya doğrudan ses aktarımı yolu gerektirir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для DTS потрібне декодування в AetherEngine або тракт наскрізного передавання аудіо"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS cần giải mã bằng AetherEngine hoặc một đường xuất âm thanh truyền thẳng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS 需要由 AetherEngine 解码或通过音频直通路径输出"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS 需要由 AetherEngine 解碼或透過音訊直通路徑輸出"
+          }
+        }
+      }
+    },
     "DTS requires Plozzigen decode or a passthrough route" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -254611,7 +254832,228 @@
         }
       }
     },
+    "DTS-HD requires AetherEngine decode or a passthrough route" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يتطلب DTS-HD فك الترميز عبر AetherEngine أو مسارًا لتمرير الصوت مباشرةً"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD изисква декодиране с AetherEngine или път за директно предаване на аудио"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD requereix descodificació amb AetherEngine o una via de pas directe de l’àudio"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD vyžaduje dekódování pomocí AetherEngine nebo cestu pro přímé předávání zvuku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD kræver afkodning med AetherEngine eller en lydsti med passthrough"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD erfordert die Dekodierung mit AetherEngine oder einen Audiopfad mit Passthrough"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το DTS-HD απαιτεί αποκωδικοποίηση από το AetherEngine ή διαδρομή απευθείας διέλευσης ήχου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD requiere decodificación con AetherEngine o una ruta de paso directo de audio"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD به رمزگشایی با AetherEngine یا مسیر عبور مستقیم صدا نیاز دارد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD vaatii AetherEngine-dekoodauksen tai äänen läpivientireitin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD nécessite un décodage par AetherEngine ou une sortie audio en transmission directe"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD מחייב פענוח באמצעות AetherEngine או נתיב להעברת שמע ישירה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD के लिए AetherEngine से डिकोडिंग या पासथ्रू ऑडियो आउटपुट ज़रूरी है"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD zahtijeva dekodiranje mehanizmom AetherEngine ili izlaz za prosljeđivanje zvuka"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A DTS-HD-hez AetherEngine-dekódolás vagy közvetlen hangtovábbítási útvonal szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD memerlukan pendekodean dengan AetherEngine atau jalur passthrough audio"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD richiede la decodifica con AetherEngine o un percorso audio passthrough"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HDにはAetherEngineによるデコードまたは音声パススルー経路が必要です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD에는 AetherEngine 디코딩 또는 오디오 패스스루 경로가 필요합니다"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD memerlukan penyahkodan oleh AetherEngine atau laluan passthrough audio"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD krever dekoding med AetherEngine eller en lydsignalvei med passthrough"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD vereist decodering met AetherEngine of een audiopad met passthrough"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD wymaga dekodowania przez AetherEngine lub toru audio obsługującego passthrough"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD requer decodificação pelo AetherEngine ou uma rota de áudio com passthrough"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD necesită decodificare cu AetherEngine sau o cale de transmitere directă a sunetului (passthrough)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для DTS-HD требуется декодирование с помощью AetherEngine или сквозная передача звука (passthrough)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD vyžaduje dekódovanie pomocou AetherEngine alebo priamy prenos zvuku (passthrough)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD zahteva dekodiranje s pogonom AetherEngine ali neposredni prenos zvoka (passthrough)"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD zahteva dekodiranje pomoću mehanizma AetherEngine ili direktan prenos zvuka (passthrough)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD kräver avkodning med AetherEngine eller en ljudväg med passthrough"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD ต้องใช้การถอดรหัสด้วย AetherEngine หรือเส้นทางส่งผ่านสัญญาณเสียง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD, AetherEngine ile kod çözme veya doğrudan ses aktarımı yolu gerektirir"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Для DTS-HD потрібне декодування в AetherEngine або тракт наскрізного передавання аудіо"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD cần giải mã bằng AetherEngine hoặc một đường xuất âm thanh truyền thẳng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD 需要由 AetherEngine 解码或通过音频直通路径输出"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "DTS-HD 需要由 AetherEngine 解碼或透過音訊直通路徑輸出"
+          }
+        }
+      }
+    },
     "DTS-HD requires Plozzigen decode or a passthrough route" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -255489,6 +255931,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "宣告的串流位元率"
+          }
+        }
+      }
+    },
+    "Decode the full enhancement layer in supported Dolby Vision Profile 7 videos. Uses more GPU and memory and may stutter. FEL playback loses Dolby Atmos objects and DTS:X height audio." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فك ترميز طبقة التحسين الكاملة في فيديوهات Dolby Vision Profile 7 المدعومة. يستخدم المزيد من موارد معالج الرسومات والذاكرة وقد يسبب تقطعًا. أثناء تشغيل FEL، تُفقد الكائنات الصوتية في Dolby Atmos وصوت قنوات الارتفاع في DTS:X."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Декодиране на пълния слой за подобрение в поддържаните видеоклипове с Dolby Vision Profile 7. Използва повече ресурси на графичния процесор и повече памет и може да причини насичане. При възпроизвеждане с FEL се губят звуковите обекти на Dolby Atmos и звукът от височинните канали на DTS:X."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Descodifica la capa de millora completa dels vídeos compatibles amb Dolby Vision Profile 7. Utilitza més recursos de la GPU i més memòria i pot provocar salts en la reproducció. Durant la reproducció amb FEL es perden els objectes d’àudio de Dolby Atmos i l’àudio en alçada de DTS:X."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekóduje plnou rozšiřující vrstvu v podporovaných videích Dolby Vision Profile 7. Zvyšuje využití GPU a paměti a může způsobovat trhání obrazu. Při přehrávání s FEL dochází ke ztrátě zvukových objektů Dolby Atmos a zvuku z výškových kanálů DTS:X."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afkod det fulde forbedringslag i understøttede Dolby Vision Profile 7-videoer. Bruger flere GPU-ressourcer og mere hukommelse og kan medføre hakken. Ved FEL-afspilning går Dolby Atmos-lydobjekter og lyd fra DTS:X-højdekanaler tabt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekodiert die vollständige Erweiterungsschicht in unterstützten Dolby Vision Profile 7-Videos. Benötigt mehr GPU-Leistung und Arbeitsspeicher und kann zu Rucklern führen. Bei der FEL-Wiedergabe gehen Dolby Atmos-Audioobjekte und der Ton der DTS:X-Höhenkanäle verloren."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αποκωδικοποιεί το πλήρες επίπεδο βελτίωσης σε υποστηριζόμενα βίντεο Dolby Vision Profile 7. Χρησιμοποιεί περισσότερους πόρους GPU και περισσότερη μνήμη και ενδέχεται να προκαλεί κομπιάσματα. Κατά την αναπαραγωγή FEL χάνονται τα ηχητικά αντικείμενα Dolby Atmos και ο ήχος των καναλιών ύψους DTS:X."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodifica la capa de mejora completa en vídeos Dolby Vision Profile 7 compatibles. Usa más recursos de GPU y memoria y puede causar tirones. Durante la reproducción FEL se pierden los objetos de audio de Dolby Atmos y el audio de altura de DTS:X."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "لایهٔ بهبود کامل را در ویدیوهای پشتیبانی‌شدهٔ Dolby Vision Profile 7 رمزگشایی می‌کند. از توان پردازشی GPU و حافظهٔ بیشتری استفاده می‌کند و ممکن است باعث مکث‌های کوتاه در پخش شود. هنگام پخش FEL، اشیای صوتی Dolby Atmos و صدای کانال‌های ارتفاعی DTS:X از دست می‌روند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekoodaa koko parannuskerroksen tuetuissa Dolby Vision Profile 7 -videoissa. Käyttää enemmän GPU-resursseja ja muistia ja saattaa aiheuttaa nykimistä. FEL-toistossa menetetään Dolby Atmos -ääniobjektit ja DTS:X-korkeuskanavien ääni."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Décode la couche d’amélioration complète des vidéos Dolby Vision Profile 7 prises en charge. Utilise davantage de ressources GPU et de mémoire et peut entraîner des saccades. La lecture FEL entraîne la perte des objets audio Dolby Atmos et du son des canaux de hauteur DTS:X."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מפענח את שכבת השיפור המלאה בסרטוני Dolby Vision Profile 7 נתמכים. צורך יותר משאבי GPU וזיכרון ועלול לגרום לקרטועים. במהלך ניגון FEL אובייקטי השמע של Dolby Atmos והשמע מערוצי הגובה של DTS:X אובדים."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समर्थित Dolby Vision Profile 7 वीडियो की पूरी एन्हांसमेंट लेयर डिकोड करें। इससे GPU और मेमोरी का इस्तेमाल बढ़ता है और प्लेबैक अटक सकता है। FEL प्लेबैक के दौरान Dolby Atmos के ऑडियो ऑब्जेक्ट और DTS:X का हाइट ऑडियो उपलब्ध नहीं रहते।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekodirajte puni sloj poboljšanja u podržanim videozapisima Dolby Vision Profile 7. Koristi više resursa GPU-a i memorije te može uzrokovati zastajkivanje. Pri reprodukciji FEL sadržaja gube se zvučni objekti Dolby Atmos i visinski zvuk DTS:X."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A teljes javítóréteg dekódolása a támogatott Dolby Vision Profile 7-videókban. Több GPU-erőforrást és memóriát használ, és akadozást okozhat. FEL-lejátszáskor elvesznek a Dolby Atmos hangobjektumai és a DTS:X magassági hangjai."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekode seluruh lapisan peningkatan pada video Dolby Vision Profile 7 yang didukung. Menggunakan lebih banyak sumber daya GPU dan memori, serta dapat menyebabkan pemutaran tersendat. Saat pemutaran FEL, objek audio Dolby Atmos dan audio ketinggian DTS:X hilang."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodifica l'intero livello di miglioramento nei video Dolby Vision Profile 7 supportati. Utilizza più risorse della GPU e memoria e può causare scatti. Durante la riproduzione FEL si perdono gli oggetti audio Dolby Atmos e l'audio in altezza DTS:X."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対応するDolby Vision Profile 7動画の拡張レイヤー全体をデコードします。GPUとメモリの使用量が増え、再生がカクつく場合があります。FEL再生中はDolby Atmosの音声オブジェクトとDTS:Xのハイト音声が失われます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "지원되는 Dolby Vision Profile 7 동영상의 전체 향상 레이어를 디코딩합니다. GPU와 메모리를 더 많이 사용하며 재생이 끊길 수 있습니다. FEL 재생 시 Dolby Atmos 오브젝트와 DTS:X 높이 채널 오디오가 손실됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nyahkod keseluruhan lapisan peningkatan dalam video Dolby Vision Profile 7 yang disokong. Menggunakan lebih banyak sumber GPU dan memori serta mungkin menyebabkan main balik tersekat-sekat. Semasa main balik FEL, objek Dolby Atmos dan audio saluran ketinggian DTS:X hilang."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekoder hele forbedringslaget i støttede Dolby Vision Profile 7-videoer. Bruker mer GPU-kapasitet og minne og kan gi hakking. Under FEL-avspilling går Dolby Atmos-objekter og DTS:X-høydelyd tapt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodeer de volledige verbeteringslaag in ondersteunde Dolby Vision Profile 7-video's. Gebruikt meer GPU-capaciteit en geheugen en kan haperingen veroorzaken. Bij FEL-weergave gaan Dolby Atmos-objecten en DTS:X-hoogteaudio verloren."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekoduj pełną warstwę rozszerzającą w obsługiwanych filmach Dolby Vision Profile 7. Wykorzystuje więcej zasobów GPU i pamięci oraz może powodować zacinanie się odtwarzania. Podczas odtwarzania FEL tracone są obiekty Dolby Atmos i dźwięk z kanałów wysokościowych DTS:X."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodifica a camada de aprimoramento completa em vídeos Dolby Vision Profile 7 compatíveis. Usa mais recursos de GPU e memória e pode causar engasgos na reprodução. Na reprodução FEL, os objetos Dolby Atmos e o áudio de altura DTS:X são perdidos."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Decodifică întregul strat de îmbunătățire din videoclipurile Dolby Vision Profile 7 compatibile. Folosește mai multe resurse GPU și mai multă memorie și poate cauza sacadări. La redarea FEL se pierd obiectele audio Dolby Atmos și sunetul canalelor de înălțime DTS:X."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Декодировать полный слой улучшения в поддерживаемых видео Dolby Vision Profile 7. Требует больше ресурсов GPU и памяти и может вызывать рывки при воспроизведении. При воспроизведении FEL теряются аудиообъекты Dolby Atmos и звук высотных каналов DTS:X."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekódovať celú vylepšujúcu vrstvu v podporovaných videách Dolby Vision Profile 7. Využíva viac výkonu GPU a viac pamäte a môže spôsobovať trhanie obrazu. Pri prehrávaní FEL sa strácajú zvukové objekty Dolby Atmos a zvuk výškových kanálov DTS:X."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekodira celotno izboljševalno plast v podprtih videoposnetkih Dolby Vision Profile 7. Porabi več virov GPU in pomnilnika ter lahko povzroči zatikanje. Pri predvajanju FEL se izgubijo zvočni objekti Dolby Atmos in zvok višinskih kanalov DTS:X."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dekodira ceo sloj poboljšanja u podržanim Dolby Vision Profile 7 video-snimcima. Koristi više resursa GPU-a i memorije i može izazvati zastajkivanje. Pri FEL reprodukciji gube se Dolby Atmos zvučni objekti i zvuk visinskih kanala DTS:X."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avkoda hela förbättringslagret i Dolby Vision Profile 7-videor som stöds. Använder fler GPU-resurser och mer minne och kan orsaka hackig uppspelning. Vid FEL-uppspelning går Dolby Atmos-ljudobjekt och ljudet i DTS:X-höjdkanalerna förlorade."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ถอดรหัสเลเยอร์เสริมแบบเต็มในวิดีโอ Dolby Vision Profile 7 ที่รองรับ ใช้ทรัพยากร GPU และหน่วยความจำมากขึ้น และอาจมีอาการกระตุก ขณะเล่น FEL จะสูญเสียออบเจ็กต์เสียง Dolby Atmos และเสียงมิติความสูงของ DTS:X"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desteklenen Dolby Vision Profile 7 videolarında tam iyileştirme katmanının kodunu çözer. Daha fazla GPU kaynağı ve bellek kullanır ve takılmalara neden olabilir. FEL oynatımı sırasında Dolby Atmos ses nesneleri ve DTS:X yükseklik kanallarındaki sesler kaybolur."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Декодувати повний шар покращення в підтримуваних відео Dolby Vision Profile 7. Використовує більше ресурсів GPU та пам’яті й може спричиняти ривки під час відтворення. Під час відтворення FEL втрачаються звукові об’єкти Dolby Atmos і звук висотних каналів DTS:X."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Giải mã toàn bộ lớp tăng cường trong các video Dolby Vision Profile 7 được hỗ trợ. Dùng nhiều tài nguyên GPU và bộ nhớ hơn, có thể gây giật hình. Khi phát FEL, các đối tượng âm thanh Dolby Atmos và âm thanh từ các kênh trên cao của DTS:X sẽ bị mất."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "解码受支持的 Dolby Vision Profile 7 视频中的完整增强层。会使用更多 GPU 资源和内存，并可能出现卡顿。FEL 播放会丢失 Dolby Atmos 音频对象和 DTS:X 高度声道音频。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "解碼支援的 Dolby Vision Profile 7 影片中的完整增強層。會使用更多 GPU 資源和記憶體，並可能出現卡頓。FEL 播放會遺失 Dolby Atmos 音訊物件和 DTS:X 高度聲道音訊。"
           }
         }
       }
@@ -266307,6 +266969,7 @@
       }
     },
     "Direct Play (Plozzigen)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -273810,6 +274473,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Dolby Audio"
+          }
+        }
+      }
+    },
+    "Dolby Vision FEL (experimental)" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (تجريبي)"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (експериментално)"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimental)"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimentální)"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimentel)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimentell)"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (πειραματικό)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimental)"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (آزمایشی)"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (kokeellinen)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (expérimental)"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (ניסיוני)"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (प्रायोगिक)"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimentalno)"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (kísérleti)"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimental)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (sperimentale)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL（試験的）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (실험적 기능)"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimen)"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimentell)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimenteel)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperymentalne)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimental)"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimental)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (экспериментально)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimentálne)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (poskusno)"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (eksperimentalno)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (experimentellt)"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (ทดลอง)"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (deneysel)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (експериментальна функція)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL (thử nghiệm)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL（实验性）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dolby Vision FEL（實驗性）"
           }
         }
       }

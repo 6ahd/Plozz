@@ -259,27 +259,34 @@ private struct PlaybackSourceMenuPresentation: ViewModifier {
 
     #if os(tvOS)
     private var tvOSPresentation: some View {
-        ZStack(alignment: .topLeading) {
-            Color.black.opacity(0.001)
-                .ignoresSafeArea()
-                .contentShape(Rectangle())
-                .onTapGesture { state.isPresented = false }
+        GeometryReader { geometry in
+            let margin: CGFloat = 32
+            let width = min(PlaybackSourceMenuMetrics.panelWidth(for: state.page),
+                            max(0, geometry.size.width - margin * 2))
+            let height = min(panelHeight, max(0, geometry.size.height - margin * 2))
+            ZStack(alignment: .topLeading) {
+                Color.black.opacity(0.001)
+                    .contentShape(Rectangle())
+                    .onTapGesture { state.isPresented = false }
 
-            panel()
-                .offset(
-                    x: state.triggerFrame.minX,
-                    y: state.triggerFrame.minY - panelHeight - 12
-                )
+                panel(maxHeight: height, maxWidth: width)
+                    .offset(
+                        x: min(max(margin, state.triggerFrame.minX), geometry.size.width - width - margin),
+                        y: min(max(margin, state.triggerFrame.minY - height - 12),
+                               geometry.size.height - height - margin)
+                    )
+            }
         }
         .ignoresSafeArea()
         .presentationBackground(.clear)
     }
     #endif
 
-    private func panel(maxHeight: CGFloat = 620) -> some View {
+    private func panel(maxHeight: CGFloat = 620, maxWidth: CGFloat = 800) -> some View {
         PlaybackSourceMenuPanel(
             page: $state.page,
             maxHeight: maxHeight,
+            maxWidth: maxWidth,
             sources: sources,
             selectedSourceID: selectedSourceID,
             offlineSourceAccountIDs: offlineSourceAccountIDs,
@@ -330,7 +337,12 @@ struct PlaybackSourceMenuPanel: View {
     @Binding var page: PlaybackSourceMenuButtonPage
     /// Ceiling imposed by the room available on the trigger's chosen side.
     /// Past this the rows scroll rather than the panel running off screen.
+    #if os(tvOS)
+    var maxHeight: CGFloat = 820
+    #else
     var maxHeight: CGFloat = 620
+    #endif
+    var maxWidth: CGFloat = 800
     let sources: [MediaSourceRef]
     let selectedSourceID: String?
     var offlineSourceAccountIDs: Set<String> = []
@@ -359,8 +371,8 @@ struct PlaybackSourceMenuPanel: View {
     var body: some View {
         panelContent
             #if os(tvOS)
-            .frame(width: 620)
-            .frame(height: panelHeight, alignment: .top)
+            .frame(width: min(PlaybackSourceMenuMetrics.panelWidth(for: page), maxWidth))
+            .frame(height: min(panelHeight, maxHeight), alignment: .top)
             // Page content swaps immediately; only the glass container morphs.
             .animation(nil, value: page)
             // tvOS presents the panel bare inside a full-screen cover, so it has
@@ -423,6 +435,8 @@ struct PlaybackSourceMenuPanel: View {
                     .padding(14)
             }
             .scrollIndicators(.hidden)
+            // A shorter page must not inherit the outgoing page's native offset.
+            .id(page)
         }
         #else
         // Pages slide horizontally as you drill in/out. The column scrolls
@@ -1098,6 +1112,12 @@ private struct PlaybackSourceMenuContentHeightKey: PreferenceKey {
 #endif
 
 private enum PlaybackSourceMenuMetrics {
+    #if os(tvOS)
+    static func panelWidth(for page: PlaybackSourceMenuButtonPage) -> CGFloat {
+        page == .versions ? 800 : 620
+    }
+    #endif
+
     static func panelHeight(
         page: PlaybackSourceMenuButtonPage,
         sourceCount: Int,
@@ -1119,7 +1139,7 @@ private enum PlaybackSourceMenuMetrics {
         case .servers:
             return min(max(CGFloat(sourceCount) * 104 + 94, 250), 700)
         case .versions:
-            return min(max(CGFloat(versionCount) * 142 + 94, 300), 700)
+            return min(max(CGFloat(versionCount) * 190 + 94, 360), 820)
         }
         #else
         return 620

@@ -84,11 +84,6 @@ targets:
       - path: App/Resources/LibTrueHDNotices.txt
       - path: App/Resources/LibTrueHDLicense.txt
       - path: App/Resources/LibTrueHDApacheLicense.txt
-      - path: App/Resources/LibDTSXNotices.txt
-      - path: App/Resources/LibDTSXLicense.txt
-      - path: App/Resources/LibDTSXLgplLicense.txt
-      - path: App/Resources/LibDTSXGplLicense.txt
-      - path: App/Resources/LibDTSXLgpl21License.txt
     info:
       path: App/Resources/Info.plist
       properties:
@@ -346,11 +341,6 @@ targets:
       - path: App/Resources/LibTrueHDNotices.txt
       - path: App/Resources/LibTrueHDLicense.txt
       - path: App/Resources/LibTrueHDApacheLicense.txt
-      - path: App/Resources/LibDTSXNotices.txt
-      - path: App/Resources/LibDTSXLicense.txt
-      - path: App/Resources/LibDTSXLgplLicense.txt
-      - path: App/Resources/LibDTSXGplLicense.txt
-      - path: App/Resources/LibDTSXLgpl21License.txt
     info:
       path: App/PlozziOS/Info.plist
       properties:
