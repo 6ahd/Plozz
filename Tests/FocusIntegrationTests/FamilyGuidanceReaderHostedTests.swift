@@ -6,7 +6,7 @@ import XCTest
 
 @MainActor
 final class FamilyGuidanceReaderHostedTests: XCTestCase {
-    func testCommonSenseIconKeepsTransparentBackgroundAndThemeAppropriateCheckmark() throws {
+    func testFamilyGuidanceSymbolIsNeutralAndKeepsItsBackgroundTransparent() throws {
         for (palette, light) in [(ThemePalette.light, true), (.dark, false), (.pureBlack, false)] {
             for scheme in [ColorScheme.light, .dark] {
                 let renderer = ImageRenderer(content:
@@ -16,23 +16,26 @@ final class FamilyGuidanceReaderHostedTests: XCTestCase {
                 )
                 renderer.scale = 1
                 let image = try XCTUnwrap(renderer.uiImage)
-                let hole = try pixel(image, x: 64, y: 48)
-                XCTAssertEqual(hole[3], 0, "The artwork must show through the circle, including in light mode.")
-                let check = try pixel(image, x: 61, y: 78)
-                XCTAssertGreaterThan(check[3], 240)
-                for channel in 0..<3 {
-                    if light {
-                        XCTAssertLessThan(check[channel], 80, "Light mode needs a dark checkmark, not a dark plate.")
-                    } else {
-                        XCTAssertGreaterThan(check[channel], 240, "Dark themes retain the white checkmark.")
+                XCTAssertEqual(try pixel(image, x: 0, y: 0)[3], 0)
+                let expectedAlpha = Int(UIColor(palette.primaryText).cgColor.alpha * 255)
+                var opaqueSamples = 0
+                for y in stride(from: 4, to: 128, by: 8) {
+                    for x in stride(from: 4, to: 128, by: 8) {
+                        let sample = try pixel(image, x: x, y: y)
+                        guard Int(sample[3]) >= expectedAlpha - 5 else { continue }
+                        opaqueSamples += 1
+                        for channel in 0..<3 {
+                            if light {
+                                XCTAssertLessThan(sample[channel], 80)
+                            } else {
+                                XCTAssertGreaterThan(sample[channel], 220)
+                            }
+                        }
                     }
                 }
-                let ring = try pixel(image, x: 18, y: 64)
-                XCTAssertGreaterThan(Int(ring[1]), Int(ring[0]) + 50)
-                XCTAssertGreaterThan(Int(ring[1]), Int(ring[2]) + 50)
-                XCTAssertGreaterThan(ring[3], 240, "Preserve the brand's green ring.")
+                XCTAssertGreaterThan(opaqueSamples, 8, "The native family symbol must actually render.")
                 let attachment = XCTAttachment(image: image)
-                attachment.name = "common-sense-light-\(light)-scheme-\(scheme)"
+                attachment.name = "family-guidance-light-\(light)-scheme-\(scheme)"
                 attachment.lifetime = .keepAlways
                 add(attachment)
             }

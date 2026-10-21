@@ -9,9 +9,9 @@ final class FamilyGuidanceRemoteTests: XCTestCase {
         XCTAssertTrue(age.isHittable)
         XCTAssertTrue(age.label.contains("recommended age 14"))
         XCTAssertFalse(age.label.contains("5"))
-        let icon = age.images["CommonSenseMedia"].firstMatch
-        XCTAssertEqual(icon.frame.width, 32, accuracy: 0.5)
-        XCTAssertEqual(icon.frame.height, 32, accuracy: 0.5)
+        XCTAssertGreaterThanOrEqual(age.frame.height, 36)
+        XCTAssertLessThanOrEqual(age.frame.height, 40)
+        XCTAssertFalse(age.images["CommonSenseMedia"].exists)
         XCTAssertTrue(app.staticTexts["94%"].exists)
         XCTAssertTrue(app.staticTexts["88%"].exists)
         XCTAssertFalse(app.staticTexts["8.0"].exists)

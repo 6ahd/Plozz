@@ -218,7 +218,9 @@ public enum PlozzAttributions {
                 "The default subtitle typeface is Atkinson Hyperlegible, © 2020 "
                 + "Braille Institute of America, Inc., chosen for its legibility from "
                 + "a distance. UI accent type uses Bungee by David Jonathan Ross. "
-                + "Both are used under the SIL Open Font License 1.1.",
+                + "Media badges use Outfit by The Outfit Project Authors "
+                + "(https://github.com/Outfitio/Outfit-Fonts). "
+                + "These fonts are used under the SIL Open Font License 1.1.",
             licenses: [.init("OFL-1.1", family: .ofl)]
         ),
         PlozzAttribution(

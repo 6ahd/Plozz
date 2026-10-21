@@ -55,18 +55,27 @@ public struct RatingsBadgeRow: View {
 public struct FamilyGuidanceAgeBadge: View {
     private let age: Double
     @Environment(\.locale) private var locale
+    @Environment(\.themePalette) private var palette
+    @ScaledMetric(relativeTo: .subheadline) private var mobileScale: CGFloat = 1
 
     public init(age: Double) {
         self.age = age
     }
 
     public var body: some View {
-        HStack(spacing: 7) {
-            FamilyGuidanceIcon(size: iconSize)
+        HStack(spacing: 7 * badgeScale) {
+            FamilyGuidanceIcon(size: iconSize * 0.8)
+                .frame(width: iconSize, height: iconSize)
             Text(verbatim: age.formatted(.number.locale(locale).precision(.fractionLength(0...1))) + "+")
                 .font(valueFont)
                 .monospacedDigit()
                 .plozzForeground(.primary)
+        }
+        .padding(.horizontal, 9 * badgeScale)
+        .padding(.vertical, 4 * badgeScale)
+        .overlay {
+            RoundedRectangle(cornerRadius: 7 * badgeScale, style: .continuous)
+                .strokeBorder(palette.primaryText.opacity(0.55), lineWidth: badgeScale)
         }
         .fixedSize(horizontal: true, vertical: false)
         .accessibilityElement(children: .ignore)
@@ -76,9 +85,17 @@ public struct FamilyGuidanceAgeBadge: View {
 
     private var iconSize: CGFloat {
         #if os(iOS)
-        24
+        20 * badgeScale
         #else
-        32
+        28
+        #endif
+    }
+
+    private var badgeScale: CGFloat {
+        #if os(iOS)
+        mobileScale
+        #else
+        1
         #endif
     }
 

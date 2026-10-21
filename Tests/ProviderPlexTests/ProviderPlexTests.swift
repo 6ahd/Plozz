@@ -1324,9 +1324,7 @@ final class PlexProviderMappingTests: XCTestCase {
         let item = try await provider.item(id: "77")
         XCTAssertEqual(item.officialRating, "PG-13")
         XCTAssertEqual(item.genres, ["Sci-Fi", "Adventure"])
-        // 4K + HDR10 (from smpte2084 transfer) + Dolby Atmos. Dolby badges group
-        // first, so Atmos sits before the HDR10 pill.
-        XCTAssertEqual(item.technicalBadges.map(\.label), ["4K", "Dolby Atmos", "HDR10"])
+        XCTAssertEqual(item.technicalBadges.map(\.label), ["4K", "HDR10", "Dolby Digital+", "Dolby Atmos"])
         XCTAssertEqual(item.mediaInfo?.video?.isInterlaced, true)
         // RT critic rendered as a percentage; IMDb audience stays 0–10 (one decimal).
         XCTAssertEqual(item.ratings.first(where: { $0.source == .rottenTomatoes })?.displayValue, "83%")
@@ -1550,11 +1548,10 @@ final class PlexProviderMappingTests: XCTestCase {
         XCTAssertEqual(item.mediaInfo?.dynamicRangeBadges.map(\.label), ["Dolby Vision", "HDR10"])
         XCTAssertTrue(labels.contains("Dolby Atmos"),
                       "Atmos must be picked up from Media-level audioProfile, got \(labels)")
-        XCTAssertFalse(labels.contains("Dolby Digital+"),
-                       "Atmos supersedes Dolby Digital+ when both apply, got \(labels)")
-        // Final ordering: 4K · Dolby Vision · Dolby Atmos · HDR10 (Dolby logos
-        // adjacent, HDR pill after).
-        XCTAssertEqual(labels, ["4K", "Dolby Vision", "Dolby Atmos", "HDR10"])
+        XCTAssertTrue(labels.contains("Dolby Digital+"),
+                      "The codec and spatial capability describe the same stream, got \(labels)")
+        XCTAssertEqual(item.technicalBadges.first(where: { $0.label == "Dolby Digital+" })?.detail, "5.1")
+        XCTAssertEqual(labels, ["4K", "Dolby Vision", "HDR10", "Dolby Digital+", "Dolby Atmos"])
     }
 
     func testMediaLevelFallbackDetectsAtmosFromAudioProfile() async throws {
@@ -1578,7 +1575,7 @@ final class PlexProviderMappingTests: XCTestCase {
         let labels = item.technicalBadges.map(\.label)
         XCTAssertEqual(item.mediaInfo?.dynamicRangeBadges.map(\.label), ["Dolby Vision", "HDR10"])
         XCTAssertTrue(labels.contains("Dolby Atmos"))
-        XCTAssertEqual(labels, ["4K", "Dolby Vision", "Dolby Atmos", "HDR10"])
+        XCTAssertEqual(labels, ["4K", "Dolby Vision", "HDR10", "Dolby Digital+", "Dolby Atmos"])
     }
 
     func testItemFallsBackToMediaLevelFactsWithoutStreams() async throws {
@@ -1611,7 +1608,7 @@ final class PlexProviderMappingTests: XCTestCase {
         // only emits the coarse `videoProfile="main 10"` plus the Media-level
         // `audioProfile`. We can't prove HDR from "main 10" alone, but we also
         // must not lie and say SDR; Atmos must still come through. Result:
-        // "4K · Dolby Atmos" with no range pill at all.
+        // Resolution and audio with no range badge at all.
         let stub = StubHTTPClient()
         stub.stub(pathSuffix: "/library/metadata/95", json: """
         {"MediaContainer":{"Metadata":[
@@ -1631,7 +1628,7 @@ final class PlexProviderMappingTests: XCTestCase {
                       "Atmos must come through media-level audioProfile, got \(labels)")
         XCTAssertFalse(labels.contains("SDR"),
                        "Coarse fallback must not assert SDR with no HDR evidence, got \(labels)")
-        XCTAssertEqual(labels, ["4K", "Dolby Atmos"])
+        XCTAssertEqual(labels, ["4K", "Dolby Digital+", "Dolby Atmos"])
     }
 
     func testItemsPagePassesContainerParamsAndType() async throws {
@@ -1771,7 +1768,7 @@ final class PlexProviderMappingTests: XCTestCase {
         let children = try await provider.children(of: "s1")
         XCTAssertEqual(children.count, 1)
         let labels = children[0].technicalBadges.map(\.label)
-        XCTAssertEqual(labels, ["4K", "Dolby Vision", "Dolby Atmos", "HDR10"],
+        XCTAssertEqual(labels, ["4K", "Dolby Vision", "HDR10", "Dolby Digital+", "Dolby Atmos"],
                        "DoVi/HDR10/Atmos must all survive the /children path; got \(labels)")
     }
 

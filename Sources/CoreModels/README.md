@@ -161,15 +161,16 @@ facts remain absent, and these source facts do not claim a playback mode or
 active output format. Optional `MediaSourceMetadata.audioLanguages` keeps older
 cached payloads readable and also survives synthesized edition versions.
 The playback-choice dialog reuses the detail page's per-version badges, adding
-video-codec, full audio-format and localized audio-language chips. Unlike the
-compact hero summary, it keeps the underlying codec alongside spatial audio
-(for example, Dolby TrueHD and Dolby Atmos), retaining reported source-channel
-counts alongside spatial formats. Companion text omits those badge
+video-codec, full audio-format and localized audio-language chips. Both the hero
+and picker keep the underlying codec alongside spatial audio (for example,
+Dolby TrueHD and Dolby Atmos), attaching reported source-channel counts to the
+codec rather than implying an Atmos height-speaker layout. Picture badges
+precede audio. Series summaries select the audio facts from one source, never
+joining another file's channel count to the winning codec. Companion text omits those badge
 facts, retaining edition/source quality, size, bit depth and bitrate/runtime.
 The smaller badges sit below the release filename and wrap for narrow widths
 and Dynamic Type. The dialog uses native rounded rectangle buttons rather than
-capsules. Every version picker shares `CoreUI.MediaVersionChoiceButton`; the
-detail hero's compact summary badges remain unchanged.
+capsules. Every version picker shares `CoreUI.MediaVersionChoiceButton`.
 Audio-language chips list reported languages, not an assertion that no other
 languages exist. Providers can supplement stream language codes with explicitly
 named source-description languages via `MediaSourceDisplayName.declaredAudioLanguages`.

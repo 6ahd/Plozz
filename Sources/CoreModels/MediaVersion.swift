@@ -286,7 +286,9 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
     /// A compact audio badge label, e.g. `Atmos`, `7.1`, `5.1`, `Stereo`.
     /// Prefers the authoritative `sourceMetadata` audio classification.
     public var audioLabel: String? {  // l10n:content — brand/format name (Atmos, channel layout), never translated
-        if let sourceMetadata, let headline = sourceMetadata.audioBadges.first {
+        if let sourceMetadata, let headline = sourceMetadata.audioBadges.first(where: {
+            $0.label == "Dolby Atmos" || $0.label == "DTS:X"
+        }) ?? sourceMetadata.audioBadges.first {
             return headline.label
         }
         if let profile = audioProfile, profile.lowercased().contains("atmos") { return "Atmos" }
@@ -431,20 +433,21 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
             let codec = PlaybackDiagnostics.friendlyCodecName(video?.codec ?? version.videoCodec)
             var formats = version.technicalBadges
             for fact in version.audioFormatLabel?.components(separatedBy: " + ") ?? [] {
-                guard !formats.contains(where: { $0.label == fact || $0.accessibilityText == fact }) else { continue }
+                guard !formats.contains(where: {
+                    $0.label == fact || $0.accessibilityText == fact || $0.detail == fact
+                }) else { continue }
                 if let index = formats.firstIndex(where: { fact.hasPrefix($0.label + " ") }) {
                     formats[index].detail = String(fact.dropFirst(formats[index].label.count + 1))
                 } else {
-                    // Keep the underlying codec alongside spatial audio, unlike the compact hero summary.
                     let style: MediaBadge.Style = fact.hasPrefix("Dolby ") ? .dolby
-                        : fact.hasPrefix("DTS") ? .dts : .spec
-                    let badge = MediaBadge(fact, style: style)
-                    if style == .dolby, let index = formats.lastIndex(where: { $0.style == .dolby }) {
-                        formats.insert(badge, at: index + 1)
-                    } else {
-                        formats.append(badge)
+                        : fact.hasPrefix("DTS") ? .dts : .audio
+                    var badge = MediaBadge(fact, style: style)
+                    if let channels = version.audioChannelLabel, fact.hasSuffix(" " + channels) {
+                        badge.label = String(fact.dropLast(channels.count + 1))
+                        badge.detail = channels
                     }
-                    formats.removeAll { $0.style == .spec && fact.hasSuffix(" " + $0.label) }
+                    formats.removeAll { $0.style == .audio && fact.hasSuffix(" " + $0.label) }
+                    formats.append(badge)
                 }
             }
             if let codec, !formats.contains(where: { $0.label == codec }) {
@@ -463,7 +466,9 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
                 version.bitrateLabel,
                 version.durationLabel
             ].compactMap { $0 }).filter { !titleFacts.contains($0) }
-            let representedFacts = Set(formats.flatMap { [$0.label, $0.accessibilityText] } + languages)
+            let representedFacts = Set(formats.flatMap {
+                [$0.label, $0.accessibilityText] + [$0.detail].compactMap { $0 }
+            } + languages)
             supplementalFactsWithoutBadges = supplementalFacts
                 .filter { $0 != languages.joined(separator: ", ") }
                 .flatMap { $0.components(separatedBy: " + ") }
@@ -490,16 +495,21 @@ public struct MediaVersion: Codable, Hashable, Identifiable, Sendable {
         let audio = sourceMetadata?.audio
         let codec = audio?.codec ?? audioCodec
         let format = PlaybackDiagnostics.friendlyAudioName(codec: codec, profile: audio?.profile ?? audioProfile)
-        let layout = audio?.channelLayout?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let channels = layout?.isEmpty == false ? layout : TrackLabeling.audioFormatHint(
-            codec: nil, channels: audio?.channels ?? audioChannels, isAtmos: false
-        )
+        let channels = audioChannelLabel
         if format == "Dolby Atmos" || format == "DTS:X" {
             let base = PlaybackDiagnostics.friendlyCodecName(codec)
             return [base == format ? nil : base, format, channels].compactMap { $0 }.joined(separator: " + ")
         }
         let parts = [format, channels].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    private var audioChannelLabel: String? {
+        let audio = sourceMetadata?.audio
+        let layout = audio?.channelLayout?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return layout?.isEmpty == false ? layout : TrackLabeling.audioFormatHint(
+            codec: nil, channels: audio?.channels ?? audioChannels, isAtmos: false
+        )
     }
 
     /// A coarse quality score used to order versions and pick a default. Driven

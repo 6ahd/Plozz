@@ -263,13 +263,13 @@ final class EmbyProviderParityTests: XCTestCase {
         XCTAssertEqual(request.item.studios, ["Emby Studio"])
         XCTAssertEqual(
             request.item.technicalBadges.map(\.label),
-            ["4K", "Dolby Vision", "Dolby TrueHD", "HDR10"]
+            ["4K", "Dolby Vision", "HDR10", "Dolby TrueHD"]
         )
         XCTAssertEqual(request.sourceMetadata?.video?.dolbyVisionProfile, 8)
         XCTAssertEqual(request.sourceMetadata?.video?.videoRangeType, "DOVIWithHDR10")
         XCTAssertEqual(
             request.item.versions.first?.technicalBadges.map(\.label),
-            ["4K", "Dolby Vision", "Dolby TrueHD", "HDR10"]
+            ["4K", "Dolby Vision", "HDR10", "Dolby TrueHD"]
         )
         XCTAssertEqual(
             request.item.versions.last?.technicalBadges.map(\.label),

@@ -530,9 +530,19 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   the player (`FeaturePlayback`'s in-player Style screen), not via a shared
   Settings card.
 - **Cast & metadata cards** — `CastRowView` and friends, used by Home /
-  detail. Common Sense marks keep a transparent background in every theme;
-  the palette selects dark checkmark ink in Light and white ink in dark themes,
-  preserving the green ring and the existing optical size.
+  detail. Family guidance uses the native monochrome parent-and-child symbol.
+  Its inline age badge has a thin, softly rounded outline around both the symbol
+  and age. The smaller symbol is inset within its original slot without enlarging
+  the badge or changing the age text. Full Common Sense Media attribution remains
+  in the guidance panel and accessibility label. No Common Sense logo artwork is bundled.
+- **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
+  license), filled picture badges, and outlined audio capsules with attached
+  channel segments. Format names are ordinary text, not vendor logo drawings.
+  Resolution and picture precede audio; codec and spatial capability may both
+  describe one stream. Representative audio keeps the codec, channels and
+  capability from one source instead of combining incompatible files' facts.
+  Missing facts remain missing; filenames do not invent HDR or audio badges.
+  Compact metadata badges follow the surrounding text's Dynamic Type scale.
 - **Detail information focus** — the tvOS About/Ratings/Information band uses
   native focus with at most 2% growth and 6pt of expansion per edge, leaving
   clearance in its 18pt gutters. Focused read-only cards and card buttons draw
