@@ -759,11 +759,10 @@ struct FamilyGuidanceIcon: View {
     @Environment(\.themePalette) private var palette
 
     var body: some View {
-        Image(systemName: "figure.and.child.holdinghands")
-            .symbolRenderingMode(.monochrome)
+        Image(palette.isLight ? "CommonSenseMediaOnLight" : "CommonSenseMedia", bundle: .module)
+            .renderingMode(.original)
             .resizable()
             .scaledToFit()
-            .foregroundStyle(palette.primaryText)
             .frame(width: size, height: size)
             .accessibilityHidden(true)
     }

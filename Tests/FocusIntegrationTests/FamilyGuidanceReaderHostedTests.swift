@@ -6,7 +6,7 @@ import XCTest
 
 @MainActor
 final class FamilyGuidanceReaderHostedTests: XCTestCase {
-    func testFamilyGuidanceSymbolIsNeutralAndKeepsItsBackgroundTransparent() throws {
+    func testFamilyGuidanceMarkKeepsItsColorAndUsesThePaletteContrastVariant() throws {
         for (palette, light) in [(ThemePalette.light, true), (.dark, false), (.pureBlack, false)] {
             for scheme in [ColorScheme.light, .dark] {
                 let renderer = ImageRenderer(content:
@@ -17,13 +17,18 @@ final class FamilyGuidanceReaderHostedTests: XCTestCase {
                 renderer.scale = 1
                 let image = try XCTUnwrap(renderer.uiImage)
                 XCTAssertEqual(try pixel(image, x: 0, y: 0)[3], 0)
-                let expectedAlpha = Int(UIColor(palette.primaryText).cgColor.alpha * 255)
-                var opaqueSamples = 0
+                var greenSamples = 0
+                var checkSamples = 0
                 for y in stride(from: 4, to: 128, by: 8) {
                     for x in stride(from: 4, to: 128, by: 8) {
                         let sample = try pixel(image, x: x, y: y)
-                        guard Int(sample[3]) >= expectedAlpha - 5 else { continue }
-                        opaqueSamples += 1
+                        guard sample[3] > 240 else { continue }
+                        if Int(sample[1]) > Int(sample[0]) + 30,
+                           Int(sample[1]) > Int(sample[2]) + 30 {
+                            greenSamples += 1
+                            continue
+                        }
+                        checkSamples += 1
                         for channel in 0..<3 {
                             if light {
                                 XCTAssertLessThan(sample[channel], 80)
@@ -33,7 +38,8 @@ final class FamilyGuidanceReaderHostedTests: XCTestCase {
                         }
                     }
                 }
-                XCTAssertGreaterThan(opaqueSamples, 8, "The native family symbol must actually render.")
+                XCTAssertGreaterThan(greenSamples, 8, "The original green ring must render without tinting.")
+                XCTAssertGreaterThan(checkSamples, 8, "The check must contrast with the app palette, not the system scheme.")
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "family-guidance-light-\(light)-scheme-\(scheme)"
                 attachment.lifetime = .keepAlways

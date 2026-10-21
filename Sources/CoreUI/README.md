@@ -530,11 +530,12 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   the player (`FeaturePlayback`'s in-player Style screen), not via a shared
   Settings card.
 - **Cast & metadata cards** — `CastRowView` and friends, used by Home /
-  detail. Family guidance uses the native monochrome parent-and-child symbol.
-  Its inline age badge has a thin, softly rounded outline around both the symbol
-  and age. The smaller symbol is inset within its original slot without enlarging
-  the badge or changing the age text. Full Common Sense Media attribution remains
-  in the guidance panel and accessibility label. No Common Sense logo artwork is bundled.
+  detail. Family guidance uses the Common Sense circle/check artwork, with a
+  palette-selected light/dark variant shared by the inline age and guidance panel.
+  The inline mark is 22 points on TV and 20 Dynamic Type-scaled points on mobile,
+  without an extra frame or padding. Age text matches neighboring review scores'
+  medium weight. Full Common Sense Media attribution remains in the guidance
+  panel and accessibility label; the decorative mark is hidden from VoiceOver.
 - **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
   license), filled resolution badges, and matching outlined capsules for dynamic
   range and audio. Dynamic-range capsules add a subtle 5% foreground tint

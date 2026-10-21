@@ -211,29 +211,43 @@ final class MediaBadgeSizingTests: XCTestCase {
         }
     }
 
-    func testFamilySymbolHasClearanceInsideTheUnchangedBadgeFrame() throws {
+    func testFamilyGuidanceBadgeUsesCompactUnframedLayout() throws {
         #if os(iOS)
-        let iconSlot = 20
+        let iconSlot: CGFloat = 20
+        let font = Font.subheadline.weight(.medium)
         #else
-        let iconSlot = 28
+        let iconSlot: CGFloat = 22
+        let font = Font.system(size: 23, weight: .medium)
         #endif
-        let renderer = ImageRenderer(content: FamilyGuidanceAgeBadge(age: 14)
-            .environment(\.themePalette, .dark)
-            .environment(\.dynamicTypeSize, .large))
-        renderer.scale = 1
-        let image = try XCTUnwrap(renderer.uiImage?.cgImage)
-        XCTAssertEqual(Double(image.height), Double(iconSlot + 8), accuracy: 1)
-        let pixels = try rgbaPixels(in: image)
-        let symbolRows = (0..<image.height).filter { y in
-            (9..<(9 + iconSlot)).contains { x in
-                pixels[(y * image.width + x) * 4 + 3] > 200
+        for locale in [Locale(identifier: "en_US"), Locale(identifier: "fr_FR")] {
+            for age in [14.0, 14.5] {
+                let badge = FamilyGuidanceAgeBadge(age: age)
+                    .environment(\.themePalette, .dark)
+                    .environment(\.locale, locale)
+                    .environment(\.dynamicTypeSize, .large)
+                let text = Text(verbatim: age.formatted(
+                    .number.locale(locale).precision(.fractionLength(0...1))
+                ) + "+")
+                    .font(font)
+                    .monospacedDigit()
+                    .environment(\.dynamicTypeSize, .large)
+                let textSize = size(of: text)
+                let badgeSize = size(of: badge)
+                XCTAssertEqual(badgeSize.width, iconSlot + 7 + textSize.width, accuracy: 0.5)
+                XCTAssertEqual(badgeSize.height, max(iconSlot, textSize.height), accuracy: 0.5)
+
+                let renderer = ImageRenderer(content: badge)
+                renderer.scale = 1
+                let image = try XCTUnwrap(renderer.uiImage?.cgImage)
+                let pixels = try rgbaPixels(in: image)
+                for y in [0, image.height - 1] {
+                    for x in 0..<image.width {
+                        XCTAssertEqual(pixels[(y * image.width + x) * 4 + 3], 0,
+                                       "The inline source mark must not acquire another outer frame.")
+                    }
+                }
             }
         }
-        let firstRow = try XCTUnwrap(symbolRows.first)
-        let lastRow = try XCTUnwrap(symbolRows.last)
-        XCTAssertLessThanOrEqual(lastRow - firstRow + 1, Int(ceil(Double(iconSlot) * 0.8)))
-        XCTAssertGreaterThanOrEqual(firstRow, 6)
-        XCTAssertGreaterThanOrEqual(image.height - lastRow - 1, 6)
     }
 
     private func rgbaPixels(in image: CGImage) throws -> [UInt8] {
