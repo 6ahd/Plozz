@@ -4,7 +4,7 @@ import CryptoKit
 import Foundation
 
 actor IPTVClient {
-    private static let playlistCatalogScope = "playlist-v4"
+    private static let playlistCatalogScope = "playlist-v5"
     let credential: IPTVCredential
     private let http: IPTVHTTP
     private let artworkSecrets: [String]
@@ -113,7 +113,10 @@ actor IPTVClient {
             // Freshness controls revalidation, not availability of committed data.
             // Missing or old-schema catalogues must still finish their first import.
             if !force, let committedAt = try catalogCommittedAt(scope) {
-                if Date().timeIntervalSince(committedAt) >= 1_800, refresh == nil,
+                let needsGuideDiscovery = try credential.mode == .playlist
+                    && !credential.automaticallyDiscoversGuides && credential.explicitGuideURLs.isEmpty
+                    && catalog.state(Self.playlistCatalogScope) == nil
+                if needsGuideDiscovery || Date().timeIntervalSince(committedAt) >= 1_800, refresh == nil,
                    refreshRetryAfter[scope].map({ $0 <= Date() }) != false {
                     startRefresh(library, scope: scope, background: true)
                 }
@@ -193,7 +196,10 @@ actor IPTVClient {
     }
 
     private func catalogCommittedAt(_ scope: String) throws -> Date? {
-        guard let raw = try catalog.state(scope), let time = TimeInterval(raw), time.isFinite else { return nil }
+        // v4 channels remain usable while the retired guide opt-out is refreshed in the background.
+        var raw = try catalog.state(scope)
+        if raw == nil, scope == Self.playlistCatalogScope { raw = try catalog.state("playlist-v4") }
+        guard let raw, let time = TimeInterval(raw), time.isFinite else { return nil }
         return Date(timeIntervalSince1970: time)
     }
 
@@ -387,7 +393,7 @@ actor IPTVClient {
             progress(IPTVImportProgress(stage: .playlist, entries: count))
             // Addresses are kept in a sealed catalogue record, never plaintext state.
             let guides = credential.explicitGuideURLs.isEmpty
-                ? (credential.automaticallyDiscoversGuides ? result.declaredGuideURLs : []) : credential.explicitGuideURLs
+                ? result.declaredGuideURLs : credential.explicitGuideURLs
             for (index, guide) in guides.prefix(32).enumerated() {
                 try catalog.insert(IPTVRecord(
                     item: MediaItem(id: String(format: "guide:%02d", index), title: "", kind: .unknown),

@@ -338,7 +338,7 @@ final class IPTVIntegrationTests: XCTestCase {
                 item: MediaItem(id: "movie:saved", title: "Saved movie", kind: .movie, libraryID: "movies"),
                 streamURL: URL(string: "https://provider.test/movie/saved.mp4")
             ))
-            try saved.setState("playlist-v4", String(Date().addingTimeInterval(-3_600).timeIntervalSince1970))
+            try saved.setState("playlist-v5", String(Date().addingTimeInterval(-3_600).timeIntervalSince1970))
         }
         let started = expectation(description: "Expired playlist refresh started")
         let readable = expectation(description: "Saved channel and delivery remain available during refresh")
@@ -542,7 +542,7 @@ final class IPTVIntegrationTests: XCTestCase {
                 item: MediaItem(id: "live:saved", title: "Saved", kind: .video, libraryID: "live"),
                 streamURL: URL(string: "https://provider.test/live/saved.ts"), isLive: true
             ))
-            try saved.setState("playlist-v4", String(Date().addingTimeInterval(-3_600).timeIntervalSince1970))
+            try saved.setState("playlist-v5", String(Date().addingTimeInterval(-3_600).timeIntervalSince1970))
         }
         let client = try IPTVClient(credential: credential, directory: root, configuration: configuration())
         addTeardownBlock { await client.cancel() }

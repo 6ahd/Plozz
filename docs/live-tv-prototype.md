@@ -200,6 +200,16 @@ login parameters are not inferred, and authentication failures, rate limits,
 network failures and cancellation do not trigger a protocol retry. The saved
 account uses the detected protocol, including when reopening its connection.
 
+The basic form includes **EPG URL (optional)**. Leave it blank to use the
+provider's guide automatically; a custom URL takes priority. Additional guide
+URLs and authentication remain under **Advanced options**. The old discovery
+toggle is no longer shown or honored, including for existing sources. Its
+serialized value remains compatible with older clients. Previously opted-out
+URL accounts keep their saved channels while one background catalogue refresh
+recovers playlist-declared guides; failures retain the saved catalogue and
+normal retry backoff. Old imported-file accounts whose guide addresses were
+never retained require a replacement file or a custom guide URL.
+
 Xtream and playlist playback follow provider-issued HTTP(S) redirects to
 delivery servers automatically, including changing hosts/ports and URLs carrying
 account credentials. No provider domain or delivery IP is hardcoded, and no
@@ -311,7 +321,7 @@ date/offset validation. Programme-only feeds can supply exact channel IDs withou
 invented display names or relaxed station matching. Referenced IDs and declared
 channels share the channel/text budgets; later declarations still provide names
 and conflicting duplicate declarations remain invalid.
-Playlist and imported-file accounts without an explicit or enabled playlist-declared
+Playlist and imported-file accounts without an explicit or playlist-declared
 guide immediately report no guide capability. Both platforms show "No program
 guide available" and skip guide warmup and browsing requests instead of showing
 "Loading guide...". Channels remain playable. Configured feeds and Xtream retain
@@ -449,8 +459,8 @@ after authentication/import and persistence succeed. A removed account,
 changed credential revision or switched profile invalidates an in-flight form.
 
 Existing legacy sources remain intact. Their details offer **Connect as IPTV
-account** for URL sources, preserving the name, URL, guide order and discovery
-choice. This is additive, not an automatic migration: disable the old source
+account** for URL sources, preserving the name, URL and guide order.
+This is additive, not an automatic migration: disable the old source
 after connecting to avoid duplicate channels. Existing source approvals,
 favorites and manual guide mappings are not silently reassigned. Legacy source
 editors and encrypted imported-file archives retain their existing bounds and

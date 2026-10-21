@@ -155,7 +155,7 @@ final class IPTVPerformanceProbeTests: XCTestCase {
                         key: credential.catalogKey
                     )
                     try catalog.setState(
-                        "playlist-v4", String(Date().addingTimeInterval(-3_600).timeIntervalSince1970)
+                        "playlist-v5", String(Date().addingTimeInterval(-3_600).timeIntervalSince1970)
                     )
                 }
                 let foreground = Task { @MainActor in

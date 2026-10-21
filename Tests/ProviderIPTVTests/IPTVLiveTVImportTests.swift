@@ -121,7 +121,7 @@ final class IPTVLiveTVImportTests: XCTestCase {
             let saved = try IPTVCatalog(
                 url: root.appendingPathComponent(credential.identity.uuidString + ".sqlite"), key: credential.catalogKey
             )
-            try saved.setState("playlist-v4", String(Date().addingTimeInterval(-3_600).timeIntervalSince1970))
+            try saved.setState("playlist-v5", String(Date().addingTimeInterval(-3_600).timeIntervalSince1970))
         }
         let provider = try IPTVProvider(
             context: .init(session: session, accountID: "account", credentialRevision: .init(),

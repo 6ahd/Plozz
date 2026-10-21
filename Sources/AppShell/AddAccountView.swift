@@ -131,7 +131,6 @@ struct AddAccountView: View {
                 guideAddress: initialIPTVPlaylist?.guideURLs.first?.absoluteString ?? "",
                 guideURLs: initialIPTVPlaylist?.guideURLs ?? [],
                 reconnecting: reconnectingIPTV,
-                discoversPlaylistGuides: initialIPTVPlaylist?.discoversPlaylistGuides ?? true,
                 onAuthenticated: onIPTVAuthenticated, onCancel: navigateBackToChooser
             )
         case .mediaShare:

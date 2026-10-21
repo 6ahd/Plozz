@@ -89,10 +89,13 @@ session persistence.
   catalog. Blank/comment-only responses without a playlist header, invalid content
   such as a web page, and playlists containing only unusable entries still fail
   setup without creating an account. Imported files remain device-local snapshots.
-- **IPTV setup keeps optional configuration behind a disclosure.** Playlist
-  authentication, guides, and request headers live under Advanced options;
-  required Xtream credentials stay in Connection. Existing advanced settings
-  start expanded, and collapsing never clears or disables them. The HTTP warning
+- **IPTV setup discovers guides automatically.** The basic form exposes one
+  optional EPG URL; leaving it empty uses the provider's guide. Custom guide URLs
+  keep priority and are never overwritten by automatic discovery. There is no
+  separate discovery toggle, including when reconnecting an old account.
+  Playlist authentication, additional guides, and request headers live under
+  Advanced options; required Xtream credentials stay in Connection. Existing
+  advanced settings start expanded, and collapsing never clears or disables them. The HTTP warning
   appears only for an entered playlist/server or guide address using HTTP.
   Form controls share body typography and contained settings-row focus styling;
   only Connect and Cancel use the shared action-pill style. Section headings and

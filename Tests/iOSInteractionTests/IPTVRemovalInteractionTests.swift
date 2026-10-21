@@ -112,7 +112,7 @@ final class IPTVRemovalInteractionTests: XCTestCase {
         buttons.firstMatch.tap()
         waitForCount(fields, 0)
         XCTAssertEqual(app.state, .runningForeground)
-        XCTAssertTrue(app.textFields["Guide URL (optional)"].exists)
+        XCTAssertTrue(app.textFields["EPG URL (optional)"].exists)
     }
 
     private func waitForCount(_ query: XCUIElementQuery, _ count: Int) {
