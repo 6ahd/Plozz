@@ -95,10 +95,32 @@ These are interoperability references, not dependencies or copied implementation
 This is not full feature parity with those players. UDP/RTP/RTSP, local stream
 paths, fractional channel numbers, provider-specific catch-up templates and
 time shifts, Kodi inputstream/DRM properties, and browser-based stream extraction
-are not enabled by accepting M3U metadata. Google Drive must return the actual
-public file: sign-in, quota, or confirmation HTML is not a playlist, and imports
-do not reuse browser cookies or bypass access warnings.
+are not enabled by accepting M3U metadata.
+
+`GoogleDrivePlaylistURL` maps Google's HTTPS file viewer/share links (`/file/d/`,
+including `/file/u/<account>/d/`, and `/open?id=`) and legacy `/uc?id=` downloads
+to `drive.usercontent.google.com/download`. Account import, authentication,
+refresh and standalone playlist loading use the same resolver. The original
+saved address and channel identities are unchanged; origin-scoped account
+headers are not forwarded to the download host, and redirect policies are not
+relaxed. Resource keys and explicitly supplied confirmation parameters are
+preserved. Unknown hosts/routes, ambiguous identifiers and unrecognized query
+parameters are left untouched.
+
+Drive must still return the actual public file: sign-in, quota, or confirmation
+HTML is not a playlist. Imports do not reuse browser cookies, scrape HTML forms,
+add confirmation grants or bypass access warnings. File imports use the same
+M3U parser and need no Drive-specific handling.
 
 Regression coverage lives in `LiveTVPlaylistParserTests` and `ProviderIPTVTests`,
 including a synthetic 6,185,484-byte file import, URL import without opening
 media streams, and rollback when HLS is discovered after staged entries.
+`GoogleDrivePlaylistURLTests`, `LiveTVSourceLoaderTests` and
+`IPTVGoogleDriveTests` cover Drive URL forms, header isolation, refresh,
+conditional requests and HTML refusals. The latter also has an opt-in live
+comparison: place captured M3Us and a JSON array of `{ "name": "...", "url":
+"https://...", "file": "sample.m3u" }` records in
+`.build/iptv-drive-corpus/manifest.json`, then run `ProviderIPTVTests`. It compares
+local-file, account-URL and standalone-URL channel imports without fetching
+streams, artwork or guides. Without that ignored manifest, it skips network
+access. Never commit captured playlists or their credentials.

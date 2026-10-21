@@ -143,7 +143,8 @@ public actor LiveTVSourceLoader: LiveTVIndexedSourceLoading {
         for attempt in 0..<3 {
           do {
             try Task.checkCancellation()
-            var request = URLRequest(url: url)
+            let requestURL = parsesPlaylist ? GoogleDrivePlaylistURL.downloadURL(for: url) : url
+            var request = URLRequest(url: requestURL)
             request.timeoutInterval = 120
             request.setValue("gzip, identity", forHTTPHeaderField: "Accept-Encoding")
             if let cached {
