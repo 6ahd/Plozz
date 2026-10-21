@@ -1257,7 +1257,11 @@ public final class ItemDetailViewModel {
                     () async -> Result<MediaItem, Error> in
                     do {
                         try Task.checkCancellation()
-                        return .success(try await provider.playbackItem(id: item.id))
+                        return .success(try await PlaybackPreparationDiagnostics.capture(
+                            provider: provider.kind, operation: .detailVersions
+                        ) {
+                            try await provider.playbackItem(id: item.id)
+                        })
                     } catch {
                         return .failure(error)
                     }
@@ -1265,13 +1269,21 @@ public final class ItemDetailViewModel {
                 resolved = try result.get()
             } else {
                 try Task.checkCancellation()
-                resolved = try await provider.playbackItem(id: item.id)
+                resolved = try await PlaybackPreparationDiagnostics.capture(
+                    provider: provider.kind, operation: .detailVersions
+                ) {
+                    try await provider.playbackItem(id: item.id)
+                }
             }
             guard !Task.isCancelled, token == nil || enrichmentGeneration == token,
                   isCurrentSource(generation: generation, itemID: item.id, accountID: accountID),
                   var detail = state.value else { return false }
             guard resolved.id == item.id, resolved.kind == item.kind,
                   resolved.sourceAccountID == nil || resolved.sourceAccountID == accountID else {
+                PlaybackPreparationDiagnostics.identityFailure(
+                    provider: provider.kind, operation: .detailVersions, expectedID: item.id,
+                    expectedKind: item.kind, expectedAccountID: accountID, resolved: resolved
+                )
                 PlozzLog.playback.error("Detail version inventory did not match the requested source.")
                 if playbackInventoryState.retryingItemIDs.contains(item.id) {
                     playbackInventoryRetryError = StreamingQualityError.sourceUnavailable.userMessage
@@ -2335,7 +2347,11 @@ public final class ItemDetailViewModel {
         do {
             let full: MediaItem
             if provider.playbackInventoryRequiresEnrichment {
-                full = try await provider.playbackItem(id: episode.id)
+                full = try await PlaybackPreparationDiagnostics.capture(
+                    provider: provider.kind, operation: .episodeVersions
+                ) {
+                    try await provider.playbackItem(id: episode.id)
+                }
             } else {
                 full = try await provider.item(id: episode.id)
             }
@@ -2343,6 +2359,10 @@ public final class ItemDetailViewModel {
                   isCurrentSource(generation: generation, itemID: itemID, accountID: accountID) else { return nil }
             guard full.id == episode.id, full.kind == .episode,
                   full.sourceAccountID == nil || full.sourceAccountID == accountID else {
+                PlaybackPreparationDiagnostics.identityFailure(
+                    provider: provider.kind, operation: .episodeVersions, expectedID: episode.id,
+                    expectedKind: .episode, expectedAccountID: accountID, resolved: full
+                )
                 PlozzLog.playback.error("Episode version inventory did not match the requested source.")
                 if playbackInventoryState.retryingItemIDs.contains(episode.id) {
                     playbackInventoryRetryError = StreamingQualityError.sourceUnavailable.userMessage

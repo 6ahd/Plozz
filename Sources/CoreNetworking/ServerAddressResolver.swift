@@ -133,7 +133,9 @@ public final class ServerAddressResolver: Sendable {
                             try await Task.sleep(for: .milliseconds(300))
                         }
                         try Task.checkCancellation()
-                        try await probe(address)
+                        try await HTTPResponseDiagnostics.$route.withValue(.serverDiscovery) {
+                            try await probe(address)
+                        }
                         return address
                     } catch is CancellationError {
                         throw CancellationError()
