@@ -85,16 +85,8 @@ private struct TopShelfStylePreview: View {
                 HStack(spacing: width * 0.025) {
                     ForEach(0..<5, id: \.self) { index in
                         RoundedRectangle(cornerRadius: width * 0.02)
-                            .fill(.white.opacity(index == 2 ? 0.9 : 0.24))
-                            .overlay {
-                                if index == 2 {
-                                    Image("PlozzLogo")
-                                        .renderingMode(.original)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: height * 0.10, height: height * 0.10)
-                                }
-                            }
+                            .fill(.white.opacity(index == 2 ? 1 : 0.24))
+                            .scaleEffect(index == 2 ? 1.12 : 1)
                     }
                 }
                 .padding(width * 0.025)

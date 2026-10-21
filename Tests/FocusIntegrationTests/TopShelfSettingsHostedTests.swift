@@ -101,7 +101,6 @@ final class TopShelfSettingsHostedTests: XCTestCase {
     }
 
     func testHomeScreenIconLoadsAsATemplateAtSettingsSizes() throws {
-        XCTAssertNotNil(UIImage(named: "PlozzLogo"), "Style previews use the real app logo in their focused tile")
         let icon = try XCTUnwrap(UIImage(named: "TopShelfIcon"))
         let white = icon.withTintColor(.white, renderingMode: .alwaysOriginal)
         let format = UIGraphicsImageRendererFormat()
