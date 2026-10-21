@@ -245,7 +245,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let audioKeyline = app.staticTexts["Audio"].frame.minX
         for label in [
             "Preferred audio language", "Set separately for movies, TV shows & anime",
-            "Remember audio per series", "TrueHD Atmos and DTS:X", "Autoplay & Up Next"
+            "Remember audio per series", "Spatial audio", "Autoplay & Up Next"
         ] {
             let text = app.staticTexts[label].firstMatch
             XCTAssertTrue(text.exists, label)
