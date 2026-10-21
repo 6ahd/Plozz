@@ -7,6 +7,15 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+On tvOS, **Everyone → Top Shelf** reuses the native left/right `SettingsStepper`
+for Continue Watching and Recently Added counts (4 by default, 1–20 each).
+`TopShelfSettingsModel` owns one device-local preference shared across Plozz
+profiles, excluded from profile transfer and sync. Household settings require an
+adult profile; changing these counts never broadens the shelf's content access.
+The page explains how top-row apps appear on the Apple TV Home Screen. The
+default-on **Show Top Shelf** switch clears published media when disabled and
+hides the count controls while retaining both counts for re-enabling.
+
 Playback > Advanced also contains **Dolby Vision FEL (experimental)** on TV,
 iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
 device-wide external-player choice. It applies to new built-in on-demand sessions

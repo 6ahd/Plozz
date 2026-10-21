@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Shared constants and deep-link helpers that bridge the main app and the Top
 /// Shelf extension. Both targets compile this file.
@@ -135,8 +136,13 @@ public enum TopShelfStore {
     /// a plain atomic write can fail with a "no permission" / "no such file"
     /// error. Creating the directory (and falling back to a non-atomic write)
     /// makes the first publish succeed.
-    public static func save(_ snapshot: TopShelfSnapshot) {
-        guard let directory = snapshotDirectoryURL, let url = snapshotURL else { return }
+    @discardableResult
+    public static func save(_ snapshot: TopShelfSnapshot) -> Bool {
+        guard let directory = snapshotDirectoryURL, let url = snapshotURL else {
+            Logger(subsystem: "com.plozz.app", category: "top-shelf")
+                .error("Unable to save the Top Shelf snapshot; App Group storage is unavailable.")
+            return false
+        }
         do {
             try FileManager.default.createDirectory(
                 at: directory,
@@ -154,8 +160,11 @@ public enum TopShelfStore {
                 // in some sandboxed container states; retry with a direct write.
                 try data.write(to: url)
             }
+            return true
         } catch {
-            // Best-effort: a failed publish simply leaves the previous shelf.
+            Logger(subsystem: "com.plozz.app", category: "top-shelf")
+                .error("Unable to save the Top Shelf snapshot; keeping the previous shelf.")
+            return false
         }
     }
 

@@ -17,6 +17,21 @@ container, where the Top Shelf extension reads it.
   pruning. Always writes (even empty) so a freshly-signed-out state clears
   the shelf.
 
+Top Shelf preferences are device-local and shared by Plozz profiles. Settings →
+Everyone → Top Shelf explains the Apple TV Home Screen placement, offers a
+default-on **Show Top Shelf** switch, and exposes independent Continue Watching and Recently Added
+counts, each defaulting to 4 with a 1–20 range. The app applies the limits before
+resolving artwork, without changing provider order, content identity, library
+visibility, or the active profile's artwork policy. Editing either count
+republishes current Home content, cancels superseded artwork work, and notifies
+tvOS after a successful snapshot write. Short feeds are not padded.
+Turning Top Shelf off writes an empty snapshot immediately, including without a
+loaded Home model, and hides the count controls without erasing their values.
+Publication commits and settings changes are serialized on the main actor;
+generation checks reject suspended artwork from before a settings change or a
+newer publication, including a quick off/on cycle. Disabled publication does not
+resolve artwork. The extension returns no media for the empty snapshot.
+
 ## Invariants
 
 - **App Group container is the only side-channel.** No network, no
@@ -24,8 +39,9 @@ container, where the Top Shelf extension reads it.
 - **No secrets in the snapshot.** Item ids and artwork URLs only — tokens
   for token-protected art are scoped to a refresh strategy outside this
   module.
-- **`CoreModels` only imported by the app, not the extension.** Don't add
-  imports above `Foundation` to `TopShelfSnapshot` / `TopShelfStore`.
+- **`CoreModels` only imported by the app, not the extension.** The snapshot
+  and store stay independent of domain models and UI; the store uses OSLog
+  only to report write failures.
 - **Idempotent.** Republishing the same snapshot is cheap and side-effect
   free.
 

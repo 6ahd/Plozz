@@ -118,6 +118,7 @@ public enum SettingsRoute: Hashable {
     case parentalPINSetup
     /// The household's Parental PIN settings (Everyone › Parental PIN).
     case parentalPIN
+    case topShelf
     case servers
     case myLibraries
     case appearance
@@ -158,7 +159,7 @@ extension SettingsRoute {
     func access(activeProfileID: String, isKids: Bool, isParentalSealed: Bool) -> SettingsRouteAccess {
         guard isKids else { return .allowed }
         switch self {
-        case .profile, .servers, .server, .parentalPIN,
+        case .profile, .servers, .server, .parentalPIN, .topShelf,
              .metadata, .metadataDiagnostics, .seerr, .seerUserPicker,
              .syncSetup, .syncTroubleshooting:
             return .adultProfile

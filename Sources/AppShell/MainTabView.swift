@@ -23,6 +23,7 @@ import WetrakrService
 import AniListService
 import MALService
 import LastFmService
+import TopShelfKit
 
 /// Keep the typed environment dependency stable across Settings redraws.
 @MainActor
@@ -291,6 +292,22 @@ struct MainTabView: View {
                 .task(id: screenshotDirector.request) {
                     guard screenshotDirector.request != nil else { return }
                     onRequireHome()
+                }
+        }
+    }
+
+    /// Remains mounted while Settings is open, even when Home's view is not.
+    private struct TopShelfSettingsObserver: View {
+        let runtime: HomeTabRuntime
+
+        var body: some View {
+            Color.clear
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+                .onChange(of: TopShelfSettingsModel.shared.settings, initial: true) { _, settings in
+                    TopShelfPublisher.settingsDidChange(settings)
+                    guard settings.isEnabled else { return }
+                    runtime.homeViewModel.existingValue(forKey: runtime.scopeKey)?.publishCurrentContent()
                 }
         }
     }
@@ -1808,6 +1825,9 @@ struct MainTabView: View {
                 screenshotDirector: homeRuntime.screenshotDirector,
                 onRequireHome: requireHomeDestination
             )
+        }
+        .background {
+            TopShelfSettingsObserver(runtime: homeRuntime)
         }
         .onChange(of: resolvedRailSelection) { _, _ in
             guard navigationStyle != .tabBar else { return }
