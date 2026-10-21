@@ -100,17 +100,60 @@ final class IPTVHTTP: Sendable {
         guideDiagnostic?.received(response)
         receivedResponse?(response)
         guard (200...299).contains(response.statusCode) else {
-            bytes.task.cancel()
+            defer { bytes.task.cancel() }
+            if redirects.scope == .playback, method == "GET", response.statusCode == 503,
+               response.mimeType?.lowercased() == "application/json",
+               try await Self.isConnectionLimit(bytes: bytes, response: response) {
+                throw AppError.conflict
+            }
             if response.statusCode == 401 || response.statusCode == 403 { throw IPTVError.authentication }
             if (300...399).contains(response.statusCode) { throw LiveTVSourceImportError.redirectBlocked }
             if response.statusCode == 404 { throw AppError.notFound }
             if response.statusCode == 405 || response.statusCode == 501 { throw IPTVError.unsupported }
-            if response.statusCode == 429 {
-                throw AppError.rateLimited(retryAfter: response.value(forHTTPHeaderField: "Retry-After").flatMap(Double.init))
+            if response.statusCode == 429 || (response.statusCode == 509 && redirects.scope == .playback) {
+                throw AppError.rateLimited(retryAfter: HTTPDate.retryAfter(response.value(forHTTPHeaderField: "Retry-After")))
             }
             throw IPTVError.httpStatus(response.statusCode)
         }
         return (bytes, response)
+    }
+
+    private static func isConnectionLimit(bytes: URLSession.AsyncBytes, response: HTTPURLResponse) async throws -> Bool {
+        guard response.expectedContentLength <= 4_096 else { return false }
+        return try await withTaskCancellationHandler {
+            try await withThrowingTaskGroup(of: Bool.self) { group in
+                group.addTask {
+                    var data = Data()
+                    do {
+                        for try await byte in bytes {
+                            guard data.count < 4_096 else { return false }
+                            data.append(byte)
+                        }
+                    } catch {
+                        try Task.checkCancellation()
+                        // The known HTTP refusal remains authoritative if its optional body is unavailable.
+                        return false
+                    }
+                    struct Refusal: Decodable { let error: String }
+                    do {
+                        let refusal = try JSONDecoder().decode(Refusal.self, from: data)
+                        return refusal.error.localizedCaseInsensitiveContains("maximum connection limits")
+                    } catch is DecodingError {
+                        return false
+                    }
+                }
+                group.addTask {
+                    try await Task.sleep(for: .seconds(1))
+                    return false
+                }
+                defer { group.cancelAll(); bytes.task.cancel() }
+                let limited = try await group.next() ?? false
+                try Task.checkCancellation()
+                return limited
+            }
+        } onCancel: {
+            bytes.task.cancel()
+        }
     }
 }
 

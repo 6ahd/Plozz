@@ -122,6 +122,9 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
     public var optimisticTargets: [WatchMutationTarget]
     /// Optional durable Trakt mirror, drained once (idempotency-keyed).
     public var trakt: TraktScrobbleIntent?
+    /// Pending partial playback for Trakt only; separate from completed-watch
+    /// mirrors so it cannot mark an episode watched on another tracker.
+    public var traktProgress: TraktScrobbleIntent?
     /// Whether the Trakt mirror still needs writing (cleared on success).
     public var traktPending: Bool
     /// Whether the Simkl mirror still needs writing (cleared on success).
@@ -210,6 +213,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
         clearResume: Bool = false,
         targets: [WatchMutationTarget],
         trakt: TraktScrobbleIntent? = nil,
+        traktProgress: TraktScrobbleIntent? = nil,
         attempts: Int = 0,
         episodeOrigin: EpisodeOrigin? = nil,
         expansionPending: Bool = false,
@@ -236,6 +240,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
         self.targets = targets
         self.optimisticTargets = targets
         self.trakt = trakt
+        self.traktProgress = traktProgress
         self.traktPending = trakt != nil
         self.simklPending = simklPending ?? (trakt != nil)
         self.wetrakrPending = wetrakrPending ?? false
@@ -259,7 +264,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, capturedAt, canonicalMediaID, seasonNumber, episodeNumber
-        case resumePosition, played, clearResume, targets, optimisticTargets, trakt, traktPending
+        case resumePosition, played, clearResume, targets, optimisticTargets, trakt, traktProgress, traktPending
         case simklPending, anilistPending, malPending
         case wetrakrPending, wetrakrAccountIdentity, wetrakrCapturedAt, wetrakrIdempotencyKey
         case attempts, episodeOrigin, expansionPending, appliedTargetIDs, expansionStartedAt, identities, kind
@@ -345,6 +350,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
             forKey: .optimisticTargets
         ) ?? targets
         trakt = try container.decodeIfPresent(TraktScrobbleIntent.self, forKey: .trakt)
+        traktProgress = try container.decodeIfPresent(TraktScrobbleIntent.self, forKey: .traktProgress)
         traktPending = try container.decodeIfPresent(Bool.self, forKey: .traktPending) ?? (trakt != nil)
         simklPending = try container.decodeIfPresent(Bool.self, forKey: .simklPending) ?? false
         wetrakrPending = try container.decodeIfPresent(Bool.self, forKey: .wetrakrPending) ?? false
@@ -411,6 +417,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
         try container.encode(targets, forKey: .targets)
         try container.encode(optimisticTargets, forKey: .optimisticTargets)
         try container.encodeIfPresent(trakt, forKey: .trakt)
+        try container.encodeIfPresent(traktProgress, forKey: .traktProgress)
         try container.encode(traktPending, forKey: .traktPending)
         try container.encode(simklPending, forKey: .simklPending)
         try container.encode(wetrakrPending, forKey: .wetrakrPending)
@@ -517,7 +524,7 @@ public struct WatchMutation: Codable, Hashable, Sendable, Identifiable {
     /// Whether every server target AND all tracker mirrors are done **and** no
     /// cross-server twin expansion is still owed — safe to prune.
     public var isFullyApplied: Bool {
-        targets.isEmpty && !traktPending && !simklPending && !wetrakrPending && !anilistPending && !malPending && !expansionPending
+        targets.isEmpty && !traktPending && traktProgress == nil && !simklPending && !wetrakrPending && !anilistPending && !malPending && !expansionPending
     }
 
     // MARK: - Canonical id

@@ -83,7 +83,7 @@ particular hostname, filename extension, or MIME type.
 | HLS master/media and low-latency directives | Kept out of the channel catalogue. URL loaders can treat recognized playable HLS as one stream; local manifest files are not channel lists. |
 | Channel metadata | `tvg-id`, `tvg-name`, `tvg-chno`, `tvg-logo`, country/language, semicolon groups, and persistent `EXTGRP` are supported. `channel-id`, `channel-number`, and `logo` fill absent primary metadata. Guide aliases do not change saved channel identities. |
 | Request headers | Inline attributes, quoted/unquoted `EXTVLCOPT`, and percent-encoded pipe suffixes retain their existing precedence and entry scoping. Authentication headers require the account-backed path; invalid headers and credential-bearing redirects remain restricted. |
-| Guide declarations | Both `url-tvg` and `x-tvg-url`, multiple guides, and relative URLs are supported. |
+| Guide declarations | `url-tvg`, `x-tvg-url`, and `tvg-url`, multiple guides, and relative URLs are supported. |
 
 Compatibility was compared with [VLC's M3U importer](https://github.com/videolan/vlc/blob/master/modules/demux/playlist/m3u.c)
 and [HLS detection](https://github.com/videolan/vlc/blob/master/modules/demux/hls/HLSManager.cpp),

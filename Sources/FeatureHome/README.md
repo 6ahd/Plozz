@@ -5,6 +5,14 @@ fallback when the user's server has no attached trailer.
 
 ## Responsibility
 
+Home Continue Watching failures use the existing Details / Try Again actions on
+TV (including focus-following layouts), iPhone and iPad. The report follows the
+same failed source as the visible error and retains bounded, task-scoped HTTP,
+decoding, paging and transport evidence. Retry/success clears stale reports;
+cancelled or superseded requests cannot publish diagnostics into another load.
+Reports contain provider and route categories, never account identifiers,
+server addresses, credentials, media IDs/titles or response bodies.
+
 Playback inventory failures on automatically selected TV sources use the existing
 untried-account failover before constructing a player. Every replacement still
 loads authoritative inventory; explicit selections, cancellation and revoked
@@ -397,6 +405,14 @@ and omitted from the current picker rather than blocking a confirmed primary.
   The outer focus host and Recommended content both break out at the trailing
   edge so artwork reaches the screen edge; headers and grids retain their safe
   margins, including the custom pinned rail's foreground inset. Home is unchanged.
+  The mode container, Showcase details and row headings, scan banner, and visible
+  grid-card surfaces share one keyline across Recommended, Browse, Collections,
+  and Playlists. There is no grid-only sidebar offset. Both grid implementations
+  use `cardRowLeadingPadding`, as Home rows do, to compensate for invisible
+  borderless-card margins rather than aligning padded slots. Framed cards align
+  their outer surface. Switching pages must not move or resize the navigation.
+  Focus changes a tab's contrast, not its size, preserving the container's even
+  6pt inner padding. Pressed feedback remains unchanged.
   Sort sits on that same top navigation line alongside Filter and file browsing.
   Filter and Sort form a compact pair. Alphabet navigation stays on the
   scrolling rail; there is no separate Jump to letter button.

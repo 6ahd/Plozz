@@ -2,6 +2,106 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "id": "release/060",
+      "version": "2026.10.21",
+      "marketingVersion": "2026.9.25",
+      "build": 60,
+      "releasedAt": "2026-10-21",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            "Sync unfinished playback to Trakt when returning from a supported external player."
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Simpler IPTV setup with automatic guides and priority for your custom guide URL.",
+            "Fewer repeat downloads when loading large IPTV guides.",
+            "Clearer IPTV errors for connection limits and invalid streams.",
+            "Less duplicate Plozz Channels sync data, with clearer schedule and upload-size details.",
+            "More useful troubleshooting details when Continue Watching cannot load.",
+            "Refreshed picture and audio badges with clearer channel details.",
+            "Native Liquid Glass PIN buttons on iOS and tvOS 26+.",
+            {
+              "text": "Aligned library tabs and content, with even padding around focused tabs.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Family guidance age ratings scale better with larger text.",
+              "platforms": ["iOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            "Continue Watching failing on some Plex servers or with multiple editions of a title.",
+            "Some watched titles not reaching Trakt when server metadata is incomplete.",
+            "Live TV giving up on recovery after interruptions during long viewing sessions.",
+            "IPTV playback staying blocked after a temporary provider limit expires.",
+            "Missing programs from IPTV guides using alternate channel IDs or time-zone formats.",
+            "Missing Xtream programs when a custom guide link no longer exists.",
+            "Watchlist removal showing an unfinished status instead of a confirmation.",
+            {
+              "text": "Incorrect watch progress when Native Player's video length differs from the server's runtime.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Cramped profile appearance and PIN setup pages.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "release/059.5",
+      "version": "2026.10.20",
+      "marketingVersion": "2026.9.25",
+      "build": "59.5",
+      "releasedAt": "2026-10-20",
+      "sections": [
+        {
+          "category": "New",
+          "items": [
+            {
+              "text": "Turn Top Shelf on or off and choose 1–20 Continue Watching and Recently Added items for each section.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Choose a full-screen Top Shelf with artwork, title details, and separate Play and More Info actions.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        },
+        {
+          "category": "Updated",
+          "items": [
+            "Faster preparation of poster previews while browsing.",
+            {
+              "text": "Clearer format badges and roomier version menus, with a smaller Choose a version heading.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "items": [
+            {
+              "text": "Blank menus when going back after scrolling through versions.",
+              "platforms": ["tvOS"]
+            },
+            {
+              "text": "Top Shelf opening the wrong title or failing silently when its original server is unavailable.",
+              "platforms": ["tvOS"]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "release/059.3",
       "version": "2026.10.20",
       "marketingVersion": "2026.9.25",

@@ -15,6 +15,71 @@ import XCTest
 final class NativeLibraryRefreshHostedTests: XCTestCase {
     private var savedProviders = MetadataProviderSettings.default
 
+    func testLibraryHeaderShowcaseAndEveryGridShareVisibleLeadingEdge() async throws {
+        continueAfterFailure = false
+        for navigationInset: CGFloat in [64, 0] {
+            for focusStyle: CardFocusStyle in [.system, .highlight] {
+                for cardStyle: CardStyle in [.borderless, .framed] {
+                    let provider = RefreshLibraryProvider(
+                        kind: .jellyfin, supportsModes: true, recommendationHub: true
+                    )
+                    let name = "LibraryKeyline.\(UUID())"
+                    let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+                    defer { defaults.removePersistentDomain(forName: name) }
+                    let model = LibraryBrowseViewModel(
+                        provider: provider, containerID: "library", containerKind: .movie, defaults: defaults
+                    )
+                    await model.loadRecommendationsIfNeeded()
+                    try await withLibrary(
+                        model: model, focusStyle: focusStyle, cardStyle: cardStyle, navigationInset: navigationInset
+                    ) { root, window in
+                        let owner = try XCTUnwrap(window.rootViewController as? LibraryFocusFixtureController)
+                        let header = try XCTUnwrap(self.findController(NativeLibraryHeaderController.self, in: owner))
+                        let focus = try XCTUnwrap(UIFocusSystem.focusSystem(for: window))
+                        let controls = self.focusItems(in: header.host.view).sorted {
+                            (NavigationRowFocusRequester.frame(of: $0, relativeTo: window)?.minX ?? .infinity)
+                                < (NavigationRowFocusRequester.frame(of: $1, relativeTo: window)?.minX ?? .infinity)
+                        }
+                        XCTAssertEqual(controls.count, model.availableContentModes.count)
+                        let firstControl = try XCTUnwrap(controls.first)
+                        let originalFrame = try XCTUnwrap(
+                            NavigationRowFocusRequester.frame(of: firstControl, relativeTo: window)
+                        )
+                        let keyline = originalFrame.minX - 6
+                        for mode: LibraryContentMode in [.recommended, .titles, .collections, .playlists, .recommended] {
+                            let index = try XCTUnwrap(model.availableContentModes.firstIndex(of: mode))
+                            owner.target = controls[index]
+                            focus.requestFocusUpdate(to: owner)
+                            focus.updateFocusIfNeeded()
+                            XCTAssertTrue(focus.focusedItem === controls[index])
+                            owner.target = nil
+                            await model.setContentMode(mode)
+                            try await Task.sleep(for: .milliseconds(300))
+                            window.layoutIfNeeded()
+                            XCTAssertTrue(focus.focusedItem === controls[index])
+                            let controlFrame = try XCTUnwrap(
+                                NavigationRowFocusRequester.frame(of: firstControl, relativeTo: window)
+                            )
+                            XCTAssertEqual(controlFrame, originalFrame, "Navigation must not move or resize.")
+                            let item = try XCTUnwrap(mode == .recommended
+                                ? model.recommendationState.value?.first?.items.first : model.item(at: 0))
+                            let source = try XCTUnwrap(self.findSource(item.stablePresentationID, in: root))
+                            let artwork = try XCTUnwrap(source.reference?.geometry(in: window)?.frame)
+                            let visibleLeading = artwork.minX - (cardStyle == .framed ? PlozzMetrics.standard.cardInset : 0)
+                            let context = "\(mode) inset=\(navigationInset) focus=\(focusStyle) card=\(cardStyle)"
+                            print("LIBRARY_KEYLINE \(context) header=\(keyline) visibleCard=\(visibleLeading)")
+                            if navigationInset > 0, focusStyle == .system, cardStyle == .borderless {
+                                self.capture(window, name: "library-keyline-\(mode)", drawsHierarchy: true)
+                            }
+                            XCTAssertEqual(visibleLeading, keyline, accuracy: 1,
+                                           "\(context): measure the visible card, not its padded layout slot.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     func testTraversalDiagnosticsRecordNativeFocusWithoutAddingAFocusTarget() async throws {
         let model = LibraryBrowseViewModel(
             provider: RefreshLibraryProvider(), containerID: "library", containerKind: .series
@@ -1823,6 +1888,7 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
         model: LibraryBrowseViewModel,
         title: Text = Text("Library"),
         focusStyle: CardFocusStyle = .system,
+        cardStyle: CardStyle = .borderless,
         palette: ThemePalette = .dark,
         captions: CardCaptionSettings = .default,
         scanStatus: ShareScanStatusModel = ShareScanStatusModel(),
@@ -1840,11 +1906,12 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
             rootView:
                 LibraryBrowseView(viewModel: model, title: title, onSelect: onSelect)
                 .environment(\.plozzCardFocusStyle, focusStyle)
-                .environment(\.plozzCardStyle, .borderless)
+                .environment(\.plozzCardStyle, cardStyle)
                 .environment(\.themePalette, palette)
                 .environment(\.plozzCardCaptionSettings, captions)
                 .environment(scanStatus)
                 .environment(\.plozzNavigationContentInset, navigationInset)
+                .environment(\.plozzPinnedSidebarActive, navigationInset > 0)
                 .preferredColorScheme(palette.isLight ? .light : .dark)
                 .transientStatusOverlay(presenter: presenter, palette: palette)
         )

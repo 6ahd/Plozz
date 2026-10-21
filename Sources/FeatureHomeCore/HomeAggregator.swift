@@ -40,6 +40,7 @@ public struct HomeAggregator: Sendable {
         public var content: UnmergedContent
         public var loadingRows: Set<HomeRowKind>
         public var failures: [HomeRowKind: AppError]
+        public var continueWatchingDiagnostic: LibraryLoadDiagnostic? = nil
     }
 
     /// Loads and merges Continue Watching, Recently Added, and Libraries across
@@ -234,6 +235,7 @@ public struct HomeAggregator: Sendable {
         var libraries: [AggregatedLibrary] = []
         var completed: Set<HomeRowKind> = []
         var failures: [HomeRowKind: AppError] = [:]
+        var continueWatchingDiagnostic: LibraryLoadDiagnostic?
     }
 
     /// Bounded account-level fan-out for Home aggregation so launch-time network
@@ -352,7 +354,7 @@ public struct HomeAggregator: Sendable {
 
     private enum Response: Sendable {
         case libraries(Int, Result<[MediaLibrary], AppError>)
-        case feed(Int, Feed, Result<[MediaItem], AppError>)
+        case feed(Int, Feed, Result<[MediaItem], AppError>, LibraryLoadDiagnostic?)
         case library(String, LibraryHomeRowKind, Result<[LibrarySection], AppError>)
         case server([HomeRowID: Result<[MediaItem], AppError>])
     }
@@ -521,14 +523,23 @@ public struct HomeAggregator: Sendable {
                         case let .failure(error):
                             perAccount[index].failures[.libraries] = error
                             if scopedAccounts.contains(index) {
+                                if error != .cancelled {
+                                    perAccount[index].continueWatchingDiagnostic = .init(
+                                        provider: accounts[index].provider.kind, operation: .homeContinueWatching,
+                                        failures: [.init(section: .browse, error: error)]
+                                    )
+                                }
                                 for kind in [HomeRowKind.continueWatching, .recentlyAdded] {
                                     perAccount[index].completed.insert(kind)
                                     perAccount[index].failures[kind] = error
                                 }
                             }
                         }
-                    case let .feed(index, feed, result):
+                    case let .feed(index, feed, result, diagnostic):
                         perAccount[index].completed.insert(feed.row)
+                        if feed == .continueWatching {
+                            perAccount[index].continueWatchingDiagnostic = diagnostic
+                        }
                         switch result {
                         case let .success(items):
                             switch feed {
@@ -626,7 +637,10 @@ public struct HomeAggregator: Sendable {
                         Progress(
                             content: content,
                             loadingRows: Set(HomeRowKind.allCases).subtracting(publishedRows),
-                            failures: failures
+                            failures: failures,
+                            continueWatchingDiagnostic: publishedRows.contains(.continueWatching)
+                                ? perAccount.first { $0.failures[.continueWatching] != nil }?.continueWatchingDiagnostic
+                                : nil
                         ))
                 }
                 PlozzLog.boot("HomeAgg.fanout accounts=\(accounts.count) ms=\(elapsedMS(from: started, to: clock.now))")
@@ -659,50 +673,74 @@ public struct HomeAggregator: Sendable {
         case let .feed(index, feed, libraryIDs):
             let resolved = accounts[index]
             let provider = resolved.provider
-            return .feed(index, feed, await fetch(feed.row.rawValue, from: resolved) {
-                let items: [MediaItem]
-                switch feed {
-                case .continueWatching:
-                    if visibility.mergesNextUpRows {
-                        items = try await provider.continueWatching(
-                            limit: continueWatchingLimit, inLibraries: libraryIDs
+            let operation: @Sendable () async -> Result<[MediaItem], AppError> = {
+                await fetch(feed.row.rawValue, from: resolved) {
+                    let items: [MediaItem]
+                    switch feed {
+                    case .continueWatching:
+                        if visibility.mergesNextUpRows {
+                            items = try await provider.continueWatching(
+                                limit: continueWatchingLimit, inLibraries: libraryIDs
+                            )
+                        } else if let row = visibility.rowCustomization?.availableServerRows.first(where: {
+                            $0.accountID == resolved.account.id && $0.section.kind == .continueWatching
+                        }) {
+                            items = try await provider.serverHomeItems(
+                                section: row.section, limit: continueWatchingLimit,
+                                excludingLibraryIDs: excludedLibraries(visibility, accountID: resolved.account.id)
+                            )
+                        } else {
+                            items = try await provider.homeContinueWatching(
+                                limit: continueWatchingLimit, inLibraries: libraryIDs,
+                                separateNextUp: visibility.separatesNextUp
+                                    || visibility.rowCustomization?.resolvedDefaults?
+                                        .fallbackAccountIDs.contains(resolved.account.id) == true
+                            )
+                        }
+                        try Task.checkCancellation()
+                        let playable = items.filter {
+                            $0.kind == .movie || $0.kind == .episode || $0.kind == .video
+                        }
+                        await onContinueWatching(
+                            resolved.account.id,
+                            policy.curated(playable.map { $0.taggingSource(resolved.account.id) })
                         )
-                    } else if let row = visibility.rowCustomization?.availableServerRows.first(where: {
-                        $0.accountID == resolved.account.id && $0.section.kind == .continueWatching
-                    }) {
-                        items = try await provider.serverHomeItems(
-                            section: row.section, limit: continueWatchingLimit,
-                            excludingLibraryIDs: excludedLibraries(visibility, accountID: resolved.account.id)
-                        )
-                    } else {
-                        items = try await provider.homeContinueWatching(
-                            limit: continueWatchingLimit, inLibraries: libraryIDs,
-                            separateNextUp: visibility.separatesNextUp
-                                || visibility.rowCustomization?.resolvedDefaults?
-                                    .fallbackAccountIDs.contains(resolved.account.id) == true
-                        )
+                    case .latest:
+                        items = try await provider.latest(limit: latestLimit, inLibraries: libraryIDs)
+                    case .watchlist:
+                        items = try await (provider as? any WatchlistProviding)?.watchlist() ?? []
                     }
                     try Task.checkCancellation()
-                    let playable = items.filter {
-                        $0.kind == .movie || $0.kind == .episode || $0.kind == .video
+                    let identities = feed == .watchlist
+                        ? [:]
+                        : await seriesIdentities[index].resolve(items, provider: provider)
+                    return stampSeriesProviderIDs(identities, onto: items).map {
+                        $0.taggingSource(resolved.account.id)
                     }
-                    await onContinueWatching(
-                        resolved.account.id,
-                        policy.curated(playable.map { $0.taggingSource(resolved.account.id) })
+                }
+            }
+            guard feed == .continueWatching else {
+                return .feed(index, feed, await operation(), nil)
+            }
+            let captured = await HTTPResponseDiagnostics.capture {
+                try await HTTPResponseDiagnostics.$route.withValue(.continueWatching) {
+                    try await operation().get()
+                }
+            }
+            let result = captured.result.mapError { ($0 as? AppError) ?? .unknown("") }
+            var diagnostic: LibraryLoadDiagnostic?
+            if case let .failure(error) = result, error != .cancelled {
+                diagnostic = .init(provider: provider.kind, operation: .homeContinueWatching, failures: [
+                    .init(
+                        section: .continueWatching, error: error, responses: captured.responses,
+                        paging: captured.paging, transport: captured.transport, http: captured.http
                     )
-                case .latest:
-                    items = try await provider.latest(limit: latestLimit, inLibraries: libraryIDs)
-                case .watchlist:
-                    items = try await (provider as? any WatchlistProviding)?.watchlist() ?? []
+                ])
+                if let diagnostic {
+                    PlozzLog.app.error("Home Continue Watching failed: \(diagnostic.supportText)")
                 }
-                try Task.checkCancellation()
-                let identities = feed == .watchlist
-                    ? [:]
-                    : await seriesIdentities[index].resolve(items, provider: provider)
-                return stampSeriesProviderIDs(identities, onto: items).map {
-                    $0.taggingSource(resolved.account.id)
-                }
-            })
+            }
+            return .feed(index, feed, result, diagnostic)
         case let .library(index, library, kind):
             let resolved = accounts[index]
             return .library(library.key, kind, await fetch(kind.rawValue, from: resolved) {

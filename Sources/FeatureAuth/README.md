@@ -79,6 +79,20 @@ session persistence.
   than invalidating every provider and losing active Silo grants.
 - **Tokens NEVER leave the Keychain.** Never written to `UserDefaults`,
   never logged. `AccountStore` is split-storage by design.
+- **IPTV cache cleanup uses the complete household inventory.** Background
+  maintenance runs at startup and after account mutations on both platforms.
+  It preserves disabled/profile-unselected accounts and fails closed on missing,
+  malformed, or unreadable credentials or a missing household account record.
+  An explicitly persisted empty list is distinct from a record that has not yet
+  been promoted from the per-user Keychain. tvOS maintenance does not use a per-user
+  Keychain fallback to authorize deletion. Removed/replaced catalogues are reclaimed
+  only after their final SQLite connection closes and a fresh inventory confirms
+  that no saved account references them. Unowned legacy cache files need a 24-hour
+  grace period; recent setup files remain protected until sign-in is persisted.
+  Maintenance only scans the IPTV cache directory, never imported playlist
+  snapshots in Application Support, watch state, or sync data. Saved journals are
+  recovered through SQLite off the main thread, with busy readers left intact;
+  failed/cancelled imports also reclaim journals after rollback.
 - **Pure state machine.** `SessionStateMachine` has no I/O — all side
   effects live in the services it produces events for.
 - **Provider-appropriate sign-in.** Jellyfin uses Quick Connect or password,
@@ -98,10 +112,13 @@ session persistence.
   catalog. Blank/comment-only responses without a playlist header, invalid content
   such as a web page, and playlists containing only unusable entries still fail
   setup without creating an account. Imported files remain device-local snapshots.
-- **IPTV setup keeps optional configuration behind a disclosure.** Playlist
-  authentication, guides, and request headers live under Advanced options;
-  required Xtream credentials stay in Connection. Existing advanced settings
-  start expanded, and collapsing never clears or disables them. The HTTP warning
+- **IPTV setup discovers guides automatically.** The basic form exposes one
+  optional EPG URL; leaving it empty uses the provider's guide. Custom guide URLs
+  keep priority and are never overwritten by automatic discovery. There is no
+  separate discovery toggle, including when reconnecting an old account.
+  Playlist authentication, additional guides, and request headers live under
+  Advanced options; required Xtream credentials stay in Connection. Existing
+  advanced settings start expanded, and collapsing never clears or disables them. The HTTP warning
   appears only for an entered playlist/server or guide address using HTTP.
   Form controls share body typography and contained settings-row focus styling;
   only Connect and Cancel use the shared action-pill style. Section headings and

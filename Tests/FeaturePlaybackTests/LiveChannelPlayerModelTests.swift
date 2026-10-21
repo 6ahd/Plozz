@@ -1127,6 +1127,79 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertEqual(model.phase, .playing)
     }
 
+    func testSustainedAdvancingPlaybackRestoresAutomaticRetunes() async {
+        let clock = LiveTestClock()
+        let engine = LiveEngineSpy()
+        let model = makeModel(engine: engine, clock: clock)
+        defer { model.stop() }
+        await model.start()
+        for tick in 0..<3 {
+            clock.now = Double(tick) * 20
+            engine.onLiveSourceReset?()
+            await model.requestRetune()?.value
+        }
+        model.refreshFromEngine()
+        for _ in 0..<300 {
+            clock.now += 1
+            engine.liveSnapshot.position += 1
+            model.refreshFromEngine()
+        }
+        engine.onLiveSourceReset?()
+        await model.requestRetune()?.value
+        XCTAssertTrue(engine.loadedURLs.allSatisfy { $0 == engine.loadedURLs.first })
+        XCTAssertEqual(engine.liveLoads, 5)
+        XCTAssertEqual(model.phase, .playing)
+        XCTAssertEqual(model.manualRetryCount, 0)
+    }
+
+    func testPauseInactivityBufferingAndSeekingDiscardHealthyRecoveryCredit() async {
+        for interruption in ["pause", "inactive", "buffering", "seek"] {
+            let clock = LiveTestClock()
+            let engine = LiveEngineSpy()
+            let model = makeModel(engine: engine, clock: clock)
+            defer { model.stop() }
+            await model.start()
+            for tick in 0..<3 {
+                clock.now = Double(tick) * 20
+                engine.onLiveSourceReset?()
+                await model.requestRetune()?.value
+            }
+            model.refreshFromEngine()
+            for _ in 0..<299 {
+                clock.now += 1
+                engine.liveSnapshot.position += 1
+                model.refreshFromEngine()
+            }
+            switch interruption {
+            case "pause":
+                model.togglePlayPause()
+                model.togglePlayPause()
+            case "inactive":
+                model.handleScenePhase(.inactive)
+                model.handleScenePhase(.active)
+            case "buffering":
+                engine.liveSnapshot.phase = .rebuffering
+                model.refreshFromEngine()
+                engine.liveSnapshot.phase = .playing
+            default:
+                engine.liveSnapshot.behindLiveSeconds = 40
+                model.refreshFromEngine()
+                XCTAssertTrue(model.canGoLive)
+                await model.goLive()
+                XCTAssertEqual(engine.goLiveCount, 1)
+            }
+            for _ in 0..<2 {
+                clock.now += 1
+                engine.liveSnapshot.position += 1
+                model.refreshFromEngine()
+            }
+            engine.onLiveSourceReset?()
+            XCTAssertNil(model.requestRetune(), interruption)
+            XCTAssertEqual(model.phase, .failed(.recoveryExhausted), interruption)
+            XCTAssertEqual(engine.liveLoads, 4, interruption)
+        }
+    }
+
     func testSourceResetWhilePausedWaitsForUserResume() async {
         let engine = LiveEngineSpy()
         let model = makeModel(engine: engine)

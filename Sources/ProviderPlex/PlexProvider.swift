@@ -230,13 +230,15 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
         ContinueWatchingDiagnostics.emit(line)
     }
 
-    /// The best resume feed this server will give us, and which one it was.
+    /// The shared Home/library resume feed, and which endpoint supplied it.
     ///
-    /// Only a *failure* falls through to the next candidate. An empty hub is a
-    /// real answer — a viewer genuinely part-way through nothing — and must not be
+    /// Only an initial endpoint/response compatibility failure falls through.
+    /// Authentication, throttling, transport and paging failures propagate.
+    /// An empty hub is a real answer — a viewer genuinely part-way through
+    /// nothing — and must not be
     /// second-guessed by re-asking a feed that would happily invent a row out of
     /// dismissed titles.
-    private func resumeFeed(limit: Int) async throws -> ([PlexMetadata], String) {
+    func resumeFeed(limit: Int) async throws -> ([PlexMetadata], String) {
         do {
             return (try await client.continueWatchingHub(limit: limit, itemsVariant: true), "/hubs/continueWatching/items")
         } catch let cancellation as CancellationError {
@@ -245,7 +247,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
             throw AppError.cancelled
         } catch let pagingFailure as PlexClient.ResumeFeedPagingFailure {
             throw pagingFailure.underlying
-        } catch {
+        } catch AppError.notFound, AppError.invalidResponse, AppError.decoding {
             try Task.checkCancellation()
             PlozzLog.networking.error("Plex Continue Watching items unavailable; trying the plain hub")
         }
@@ -257,7 +259,7 @@ public struct PlexProvider: MediaProvider, AuthenticatedHTTPOriginProviding, Ser
             throw AppError.cancelled
         } catch let pagingFailure as PlexClient.ResumeFeedPagingFailure {
             throw pagingFailure.underlying
-        } catch {
+        } catch AppError.notFound, AppError.invalidResponse, AppError.decoding {
             try Task.checkCancellation()
             PlozzLog.networking.error("Plex Continue Watching hub unavailable; falling back to /library/onDeck")
         }

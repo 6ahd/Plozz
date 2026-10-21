@@ -11,6 +11,7 @@ public enum HTTPResponseDiagnostics {
         public let responses: [ResponseDecodingDiagnostic]
         public let paging: [LibraryPagingDiagnostic]
         public let transport: [ResponseTransportDiagnostic]
+        public let http: [ResponseStatusDiagnostic]
 
         public var isCancelled: Bool {
             guard case .failure(let error) = result else { return false }
@@ -28,12 +29,12 @@ public enum HTTPResponseDiagnostics {
         let recorder = Recorder()
         return await $recorder.withValue(recorder) {
             do {
-                return CapturedResult(result: .success(try await operation()), responses: [], paging: [], transport: [])
+                return CapturedResult(result: .success(try await operation()), responses: [], paging: [], transport: [], http: [])
             } catch {
                 let evidence = recorder.snapshot()
                 return CapturedResult(
                     result: .failure(error), responses: evidence.responses, paging: evidence.paging,
-                    transport: evidence.transport
+                    transport: evidence.transport, http: evidence.http
                 )
             }
         }
@@ -41,6 +42,11 @@ public enum HTTPResponseDiagnostics {
 
     public static func recordPagingFailure(_ diagnostic: LibraryPagingDiagnostic) {
         recorder?.append(diagnostic)
+    }
+
+    public static func recordHTTPFailure(status: Int) {
+        guard !(200...299).contains(status) else { return }
+        recorder?.append(ResponseStatusDiagnostic(route: route, httpStatus: status))
     }
 
     public static func recordTransportFailure(_ error: URLError) {
@@ -68,6 +74,7 @@ public enum HTTPResponseDiagnostics {
         private var responses: [ResponseDecodingDiagnostic] = []
         private var paging: [LibraryPagingDiagnostic] = []
         private var transport: [ResponseTransportDiagnostic] = []
+        private var http: [ResponseStatusDiagnostic] = []
 
         func append(_ response: ResponseDecodingDiagnostic) {
             lock.lock()
@@ -91,11 +98,19 @@ public enum HTTPResponseDiagnostics {
         }
 
         func snapshot() -> (
-            responses: [ResponseDecodingDiagnostic], paging: [LibraryPagingDiagnostic], transport: [ResponseTransportDiagnostic]
+            responses: [ResponseDecodingDiagnostic], paging: [LibraryPagingDiagnostic],
+            transport: [ResponseTransportDiagnostic], http: [ResponseStatusDiagnostic]
         ) {
             lock.lock()
             defer { lock.unlock() }
-            return (responses, paging, transport)
+            return (responses, paging, transport, http)
+        }
+
+        func append(_ diagnostic: ResponseStatusDiagnostic) {
+            lock.lock()
+            defer { lock.unlock() }
+            http.append(diagnostic)
+            if http.count > 4 { http.removeFirst() }
         }
     }
 }

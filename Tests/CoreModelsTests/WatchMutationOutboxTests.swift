@@ -888,6 +888,123 @@ final class WatchOutboxStaleWriteTests: XCTestCase {
 
 // MARK: - Trakt mirror idempotency
 
+final class WatchOutboxTraktProgressTests: XCTestCase {
+    private func progress(_ percentage: Double, at time: Date = Date()) -> WatchMutation {
+        WatchMutation(
+            capturedAt: time, canonicalMediaID: "imdb:tt1",
+            resumePosition: percentage * 10, targets: [target("server", "movie")],
+            traktProgress: TraktScrobbleIntent(
+                kind: .movie, title: "Movie", year: nil, seasonNumber: nil,
+                episodeNumber: nil, providerIDs: ["Imdb": "tt1"], progress: percentage
+            )
+        )
+    }
+
+    func testPartialProgressPersistsAndRetriesWithoutHistoryMirrorsOrDuplicateServerWrites() async throws {
+        let applier = FakeWatchApplier()
+        applier.traktFails = true
+        applier.wetrakrAccountIdentity = "connected"
+        let store = InMemoryWatchMutationStore()
+        let reconciler = WatchStateReconciler(store: store, applier: applier)
+        await reconciler.enqueue(progress(50))
+        await reconciler.drain()
+        let pending = await reconciler.snapshot()
+        XCTAssertEqual(pending.pending.first?.traktProgress?.progress, 50)
+        XCTAssertEqual(pending.pending.first?.isFullyApplied, false)
+        XCTAssertEqual(pending.pending.first?.targets, [])
+        XCTAssertNil(pending.pending.first?.trakt)
+        XCTAssertEqual(pending.pending.first?.wetrakrPending, false)
+        let stored = try JSONDecoder().decode(WatchOutboxState.self, from: JSONEncoder().encode(pending))
+        XCTAssertEqual(stored, pending)
+        try store.save(stored)
+        applier.traktFails = false
+        let restored = WatchStateReconciler(store: store, applier: applier)
+        await restored.drain()
+        await restored.drain()
+        XCTAssertEqual(applier.traktScrobbles.map(\.progress), [50])
+        XCTAssertEqual(applier.resumeWrites.count, 1)
+        XCTAssertTrue(applier.playedWrites.isEmpty)
+        XCTAssertTrue(applier.simklScrobbles.isEmpty)
+        XCTAssertTrue(applier.anilistScrobbles.isEmpty)
+        XCTAssertTrue(applier.malScrobbles.isEmpty)
+        XCTAssertTrue(applier.wetrakrWrites.isEmpty)
+        let final = await restored.snapshot()
+        XCTAssertTrue(final.pending.isEmpty)
+        XCTAssertTrue(final.appliedTrakt.isEmpty)
+    }
+
+    func testLaterSameDayProgressCompletionAndRewatchAreNotSuppressed() async {
+        let applier = FakeWatchApplier()
+        let reconciler = WatchStateReconciler(store: InMemoryWatchMutationStore(), applier: applier)
+        let time = Date()
+        for (index, percentage) in [50.0, 80, 100, 20].enumerated() {
+            var mutation = progress(percentage, at: time.addingTimeInterval(Double(index)))
+            if percentage == 100 {
+                mutation.trakt = mutation.traktProgress
+                mutation.traktPending = true
+                mutation.traktProgress = nil
+                mutation.played = true
+                mutation.resumePosition = nil
+                mutation.clearResume = true
+            }
+            await reconciler.enqueue(mutation)
+            await reconciler.drain()
+        }
+        XCTAssertEqual(applier.traktScrobbles.map(\.progress), [50, 80, 100, 20])
+        let state = await reconciler.snapshot()
+        XCTAssertEqual(state.appliedTrakt.count, 1)
+        XCTAssertTrue(state.pending.isEmpty)
+    }
+
+    func testNewerProgressWinsAndLaterNonProgressActionsDiscardPendingPause() {
+        let old = progress(50)
+        let newer = progress(80, at: old.capturedAt.addingTimeInterval(1))
+        XCTAssertEqual(WatchStateReconciler.coalesce(existing: old, incoming: newer).traktProgress?.progress, 80)
+        for action in ["complete", "unwatch", "dismiss", "in-app-resume"] {
+            var mutation = newer
+            mutation.traktProgress = nil
+            switch action {
+            case "complete":
+                mutation.played = true
+                mutation.trakt = newer.traktProgress
+                mutation.trakt?.progress = 100
+                mutation.traktPending = true
+            case "unwatch": mutation.played = false
+            case "dismiss": mutation.resumePosition = nil; mutation.clearResume = true
+            default: break
+            }
+            XCTAssertNil(WatchStateReconciler.coalesce(existing: old, incoming: mutation).traktProgress)
+        }
+    }
+
+    func testEarlierUndeliveredCompletionIsPreservedAlongsideNewPartialWatch() async {
+        let applier = FakeWatchApplier()
+        let reconciler = WatchStateReconciler(store: InMemoryWatchMutationStore(), applier: applier)
+        let partial = progress(30)
+        var complete = playedMutation(
+            capturedAt: partial.capturedAt.addingTimeInterval(-1),
+            targets: partial.targets, trakt: partial.traktProgress
+        )
+        complete.trakt?.progress = 100
+        await reconciler.enqueue(complete)
+        await reconciler.enqueue(partial)
+        await reconciler.drain()
+        XCTAssertEqual(applier.traktScrobbles.map(\.progress), [100, 30])
+        XCTAssertEqual(applier.simklScrobbles.map(\.progress), [100])
+        XCTAssertEqual(applier.anilistScrobbles.map(\.progress), [100])
+        XCTAssertEqual(applier.malScrobbles.map(\.progress), [100])
+    }
+
+    func testLegacyOutboxDoesNotInventPausedPlayback() throws {
+        let mutation = playedMutation(capturedAt: Date(), targets: [])
+        let data = try JSONEncoder().encode(mutation)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertNil(object["traktProgress"])
+        let decoded = try JSONDecoder().decode(WatchMutation.self, from: data)
+        XCTAssertNil(decoded.traktProgress)
+    }
+}
+
 final class WatchOutboxTraktTests: XCTestCase {
     private func intent() -> TraktScrobbleIntent {
         TraktScrobbleIntent(kind: .movie, title: "Dune", year: 2021, seasonNumber: nil, episodeNumber: nil, providerIDs: ["imdb": "tt1160419"], progress: 100)

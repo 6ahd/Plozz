@@ -446,6 +446,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   List drag reordering retains system feedback without a second app vibration.
   Watchlist actions acknowledge the press immediately with a light tap and stay
   silent on success; an error haptic accompanies a failed save and rollback.
+  Their shared toast uses "Added to Watchlist" / "Removed from Watchlist" for
+  the optimistic local change, not lingering progress wording. A failed save
+  replaces that confirmation with "Couldn't update Watchlist".
   Manual watched actions retain the immediate tap and separate confirmation of
   durable outbox acceptance, not eventual server synchronization.
   Favorites confirm successful writes. Capture asynchronous completion haptics
