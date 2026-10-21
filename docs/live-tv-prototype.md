@@ -740,8 +740,9 @@ is no prior in-memory history to migrate on the first updated launch.
   native button sizes rather than custom circular controls. The native search
   text field, category heading and tile grid share one content keyline; category
   columns and rows use the same gap. Only the timeline guide uses edge bleed.
-  On narrow guides, More holds Multiviews and Now so the profile action remains
-  visible without shrinking toolbar buttons.
+  On narrow guides, More holds Multiviews and Now without shrinking toolbar
+  buttons. The iPhone's channel-guide subpage omits the profile action, which
+  remains on its Categories page; iPad and wide sidebar layouts retain it.
   Apple TV reserves 384 points for categories on wide layouts and 320 on narrower
   sidebar layouts, without shrinking category text. Mobile sidebars use
   200, 224, or 272 points according to available width.

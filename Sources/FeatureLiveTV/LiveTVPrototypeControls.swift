@@ -133,6 +133,8 @@ struct PrototypeBrowseToolbar: View {
 }
 
 #if os(iOS)
+import UIKit
+
 struct PrototypeTouchBrowseToolbar: ToolbarContent {
     @Bindable var model: LiveTVPrototypeModel
     let isSearching: Bool
@@ -200,7 +202,9 @@ struct PrototypeTouchBrowseToolbar: ToolbarContent {
             }
             .labelStyle(.iconOnly)
             .disabled(isDisabled)
-            accessory
+            if showsDirectory || hasSidebar || UIDevice.current.userInterfaceIdiom != .phone {
+                accessory
+            }
         }
     }
 }

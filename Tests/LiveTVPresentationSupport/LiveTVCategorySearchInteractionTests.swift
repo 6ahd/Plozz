@@ -1,5 +1,9 @@
 import XCTest
 
+#if os(iOS)
+import UIKit
+#endif
+
 @MainActor
 final class LiveTVCategorySearchInteractionTests: XCTestCase {
     #if os(iOS)
@@ -102,16 +106,23 @@ final class LiveTVCategorySearchInteractionTests: XCTestCase {
             XCTAssertTrue(sidebar.exists)
             XCTAssertEqual(sidebar.frame.minX, originalX, accuracy: 1)
             XCTAssertLessThan(sidebar.frame.maxX, channel("Arena One", in: app).frame.minX)
+            #if os(iOS)
+            XCTAssertTrue(app.navigationBars.buttons["live-tv-profile"].isHittable)
+            #endif
         } else {
             #if os(iOS)
             let profile = app.navigationBars.buttons["live-tv-profile"]
-            XCTAssertTrue(profile.isHittable, app.debugDescription)
-            XCTAssertLessThanOrEqual(profile.frame.maxX, app.frame.maxX)
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                XCTAssertFalse(profile.exists, app.debugDescription)
+            } else {
+                XCTAssertTrue(profile.isHittable, app.debugDescription)
+            }
             app.buttons["live-tv-guide-actions"].tap()
             XCTAssertTrue(app.buttons["live-tv-multiview-favorites"].exists)
             app.buttons["live-tv-guide-now"].tap()
             app.buttons["live-tv-categories"].tap()
             XCTAssertTrue(tile.waitForExistence(timeout: 5))
+            XCTAssertTrue(profile.isHittable)
             XCTAssertFalse(channel("Arena One", in: app).exists)
             XCTAssertFalse(app.keyboards.firstMatch.exists)
             #endif
@@ -168,6 +179,11 @@ final class LiveTVCategorySearchInteractionTests: XCTestCase {
     func testBackFromSearchPreservesTheUnfilteredGuide() {
         let app = launchSearch(guideFirst: true)
         defer { app.terminate() }
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            XCTAssertFalse(app.navigationBars.buttons["live-tv-profile"].exists)
+        }
+        #endif
         let field = searchField(in: app)
         field.typeText("sports")
         XCTAssertTrue(app.buttons["live-tv-search-category-Sports"].waitForExistence(timeout: 5))
@@ -180,6 +196,11 @@ final class LiveTVCategorySearchInteractionTests: XCTestCase {
         XCTAssertTrue(field.waitForNonExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(channel("Daily News", in: app).waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["live-tv-search-category-Sports"].exists)
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            XCTAssertFalse(app.navigationBars.buttons["live-tv-profile"].exists)
+        }
+        #endif
     }
 
     private func launch(guideFirst: Bool = false, failsLoading: Bool = false) -> XCUIApplication {
