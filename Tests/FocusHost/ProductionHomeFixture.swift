@@ -215,6 +215,7 @@ private struct ProductionHomeContent: View {
                             }
                         }
                     )
+                    .modifier(NavigationRailRootContentInset())
                     .navigationDestination(for: LibraryDetailRoute.self) { route in
                         detailPage(for: route.item)
                     }
@@ -240,6 +241,7 @@ private struct ProductionHomeContent: View {
                         onPlayItem: { _ in },
                         onSelectLibrary: { _ in }
                     )
+                    .modifier(NavigationRailRootContentInset())
                     .navigationDestination(for: MediaItem.self) { item in
                         detailPage(for: item)
                     }

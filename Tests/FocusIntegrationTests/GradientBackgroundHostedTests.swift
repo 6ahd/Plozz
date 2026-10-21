@@ -442,6 +442,20 @@ final class GradientBackgroundHostedTests: XCTestCase {
         let inactive = try pixel(capture(window), at: CGPoint(x: 600, y: 400))
         XCTAssertLessThan(abs(inactive[0] - inactive[2]), 15, "Hidden Home must drop its artwork tint.")
         XCTAssertNotEqual(card.cardBackgroundColor, tintedCard)
+
+        let restoreToken = UUID()
+        let session = TVDetailEntranceSession()
+        DetailTransitionNavigation.beginSourceRestore(in: window, token: restoreToken, session: session)
+        defer { DetailTransitionNavigation.endSourceRestore(token: restoreToken) }
+        state.visible = true
+        try await Task.sleep(for: .seconds(DetailEntranceTiming().reverse + 0.04))
+        let returned = try pixel(capture(window), at: CGPoint(x: 600, y: 400))
+        XCTAssertNil(fill.layer.animation(forKey: "gradientPalette"),
+                     "Native cards must not continue a stock-to-artwork fade after returning.")
+        for (actual, expected) in zip(returned, red) {
+            XCTAssertEqual(actual, expected, accuracy: 2,
+                           "Returning Home must restore its palette before the transition cover lifts.")
+        }
     }
 
     private func capture(_ window: UIWindow) throws -> UIImage {

@@ -479,6 +479,7 @@ struct HomeTab: View {
         let _ = PlozzBodyRate.tick("HomeTab")
         NavigationStack(path: $path) {
             rootContent
+            .modifier(NavigationRailRootContentInset())
             .navigationDestination(for: MediaLibrary.self) { library in
                 libraryBrowse(for: library)
             }

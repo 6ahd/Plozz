@@ -211,18 +211,31 @@ final class DetailReturnFocusRemoteTests: XCTestCase {
     }
 
     func testRepeatedDetailVisitsReturnToTheSelectedHomeCard() {
+        checkRepeatedDetailVisits(showcase: false)
+    }
+
+    func testShowcaseAcceptsDirectionsAfterReturningWithoutLosingPosition() {
+        checkRepeatedDetailVisits(showcase: true)
+    }
+
+    private func checkRepeatedDetailVisits(showcase: Bool) {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "com.thatcube.Plozz.FocusHost")
         app.launchArguments = ["--production-home-fixture", "--pinned-home"]
+        if showcase { app.launchArguments.append("--immersive-home") }
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["Production Home ready"].waitForExistence(timeout: 30))
-        let hero = app.buttons["home-hero-action-row"]
-        XCTAssertTrue(hero.waitForExistence(timeout: 20))
-        XCTAssertTrue(hero.hasFocus)
+        if showcase {
+            assertFocused("Fixture movie 0", in: app)
+        } else {
+            let hero = app.buttons["home-hero-action-row"]
+            XCTAssertTrue(hero.waitForExistence(timeout: 20))
+            XCTAssertTrue(hero.hasFocus)
+            XCUIRemote.shared.press(.down)
+            Thread.sleep(forTimeInterval: 1)
+        }
         XCTAssertFalse(app.buttons["Navigation"].isEnabled, "Navigation must start closed while Home receives focus.")
-        XCUIRemote.shared.press(.down)
-        Thread.sleep(forTimeInterval: 1)
         XCUIRemote.shared.press(.down)
         Thread.sleep(forTimeInterval: 1)
         assertFocused("Fixture movie 24", in: app)
@@ -231,8 +244,11 @@ final class DetailReturnFocusRemoteTests: XCTestCase {
         assertFocused("Fixture movie 26", in: app)
         for visit in 0..<5 {
             if visit == 3 { XCUIRemote.shared.press(.left) }
-            let title = visit < 3 ? "Fixture movie 26" : "Fixture movie 25"
+            let index = visit < 3 ? 26 : 25
+            let title = "Fixture movie \(index)"
             assertFocused(title, in: app)
+            let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch
+            let before = focused.frame
             XCUIRemote.shared.press(.select)
             let opened = app.staticTexts["Detail fixture \(title)"].waitForExistence(timeout: 10)
             if !opened {
@@ -244,6 +260,15 @@ final class DetailReturnFocusRemoteTests: XCTestCase {
             XCTAssertTrue(opened)
             Thread.sleep(forTimeInterval: 2)
             XCUIRemote.shared.press(.menu)
+            assertFocused(title, in: app)
+            let returned = focused.frame
+            XCTAssertEqual(returned.minX, before.minX, accuracy: 2)
+            XCTAssertEqual(returned.minY, before.minY, accuracy: 2)
+            XCTAssertEqual(returned.width, before.width, accuracy: 2)
+            XCTAssertEqual(returned.height, before.height, accuracy: 2)
+            XCUIRemote.shared.press(.right)
+            assertFocused("Fixture movie \(index + 1)", in: app)
+            XCUIRemote.shared.press(.left)
             assertFocused(title, in: app)
             XCTAssertFalse(app.buttons["Navigation"].isEnabled)
         }
