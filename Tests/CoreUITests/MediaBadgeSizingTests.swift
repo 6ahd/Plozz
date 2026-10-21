@@ -119,7 +119,7 @@ final class MediaBadgeSizingTests: XCTestCase {
             MediaBadge("Dolby Atmos", style: .dolby)
         ]
         let row = size(of: MediaBadgeRow(badges: example).fixedSize())
-        XCTAssertEqual(row.width, 294, accuracy: 8)
+        XCTAssertEqual(row.width, 310, accuracy: 8)
         XCTAssertEqual(row.height, 26, accuracy: 0.5)
         for channels in ["5.1", "7.1"] {
             let plain = size(of: MediaBadgeChip(badge: MediaBadge("Dolby Digital+", style: .dolby)))
@@ -137,7 +137,7 @@ final class MediaBadgeSizingTests: XCTestCase {
         let first = MediaBadge("4K", style: .prominent)
         let second = MediaBadge("Dolby Vision", style: .dolby)
         let width = 100 + 16 + size(of: MediaBadgeChip(badge: first)).width
-            + 8 + size(of: MediaBadgeChip(badge: second)).width
+            + 12 + size(of: MediaBadgeChip(badge: second)).width
         let row = WrappingHStackLayout(spacing: 16, lineSpacing: 8) {
             Color.white.frame(width: 100, height: 30)
             MediaBadgeChip(badge: first)
@@ -145,6 +145,117 @@ final class MediaBadgeSizingTests: XCTestCase {
         }
         XCTAssertEqual(size(of: row.fixedSize()).width, width, accuracy: 0.5)
         XCTAssertEqual(size(of: row.frame(width: width - 1)).height, 64, accuracy: 0.5)
+    }
+
+    func testRatingIconsUseFourPointGapsWithoutChangingTheirSize() {
+        #if os(iOS)
+        let iconSize: CGFloat = 20
+        let font = Font.subheadline.weight(.medium)
+        #else
+        let iconSize: CGFloat = 24
+        let font = Font.system(size: 23, weight: .medium)
+        #endif
+        for source in RatingSource.allCases {
+            let rating = ExternalRating(source: source, value: 84, scale: .percent)
+            let icon = size(of: RatingSourceIcon(rating: rating, size: iconSize))
+            let value = size(of: Text(rating.displayValue).font(font).monospacedDigit()
+                .environment(\.dynamicTypeSize, .large))
+            let actual = size(of: RatingBadge(rating: rating)
+                .environment(\.horizontalSizeClass, .regular)
+                .environment(\.dynamicTypeSize, .large))
+            XCTAssertEqual(actual.width, icon.width + 4 + value.width, accuracy: 0.5, "\(source)")
+            XCTAssertEqual(actual.height, max(icon.height, value.height), accuracy: 0.5, "\(source)")
+        }
+    }
+
+    func testBadgeCategoriesUseTheirOwnGapsAndKeepFactsSeparated() {
+        let views: [AnyView] = [
+            AnyView(FamilyGuidanceAgeBadge(age: 14)),
+            AnyView(RatingBadge(rating: .init(source: .imdb, value: 8.2, scale: .outOfTen))),
+            AnyView(RatingBadge(rating: .init(source: .rottenTomatoes, value: 91, scale: .percent))),
+            AnyView(MediaBadgeChip(badge: .init("PG-13", style: .rating))),
+            AnyView(MediaBadgeChip(badge: .init("4K", style: .prominent))),
+            AnyView(MediaBadgeChip(badge: .init("Dolby Vision", style: .dolby))),
+            AnyView(MediaBadgeChip(badge: .init("Dolby Digital+", style: .dolby, detail: "5.1")))
+        ]
+        let gaps: [CGFloat] = [14, 14, 14, 12, 12, 12, 12]
+        for scale: CGFloat in [0.75, 1, 1.5] {
+            for index in views.indices {
+                let next = (index + 1) % views.count
+                let first = size(of: views[index]
+                    .environment(\.mediaBadgeScale, scale).environment(\.dynamicTypeSize, .large))
+                let second = size(of: views[next]
+                    .environment(\.mediaBadgeScale, scale).environment(\.dynamicTypeSize, .large))
+                let row = WrappingHStackLayout(spacing: 16, lineSpacing: 8) {
+                    Color.white.frame(width: 100, height: 30)
+                    views[index]
+                    views[next]
+                }
+                .environment(\.mediaBadgeScale, scale)
+                .environment(\.dynamicTypeSize, .large)
+                let width = 100 + 16 + first.width + max(gaps[index], gaps[next]) * scale + second.width
+                XCTAssertEqual(size(of: row.fixedSize()).width, width, accuracy: 0.5, "\(index), \(scale)")
+                XCTAssertEqual(
+                    size(of: row.frame(width: width - 1)).height,
+                    max(30, first.height) + 8 + second.height, accuracy: 0.5, "\(index), \(scale)"
+                )
+            }
+        }
+    }
+
+    func testCompactBadgeGapsDoNotDependOnResolutionOrCapsuleHeight() {
+        for scale: CGFloat in [0.75, 1, 1.5] {
+            for badge in badges {
+                let first = MetadataMediaBadgeChip(badge: badge)
+                let second = MetadataMediaBadgeChip(badge: .init("HDR10", style: .hdr))
+                let expected = size(of: first.environment(\.mediaBadgeScale, scale)
+                    .environment(\.dynamicTypeSize, .large)).width
+                    + 12 * scale + size(of: second.environment(\.mediaBadgeScale, scale)
+                        .environment(\.dynamicTypeSize, .large)).width
+                let row = WrappingHStackLayout(spacing: 16) { first; second }
+                    .environment(\.mediaBadgeScale, scale)
+                    .environment(\.dynamicTypeSize, .large)
+                    .fixedSize()
+                XCTAssertEqual(size(of: row).width, expected, accuracy: 0.5, "\(badge.label), \(scale)")
+            }
+        }
+    }
+
+    func testRatingsOnlyRowUsesFourteenPointGaps() {
+        let ratings: [ExternalRating] = [
+            .init(source: .imdb, value: 8.2, scale: .outOfTen),
+            .init(source: .tmdb, value: 8, scale: .outOfTen),
+            .init(source: .rottenTomatoes, value: 91, scale: .percent)
+        ]
+        let expected = HStack(spacing: 14) {
+            FamilyGuidanceAgeBadge(age: 14)
+            ForEach(ratings) { RatingBadge(rating: $0) }
+        }.fixedSize()
+        let actual = RatingsBadgeRow(ratings: ratings, familyGuidanceAge: 14).fixedSize()
+        XCTAssertEqual(size(of: actual).width, size(of: expected).width, accuracy: 0.5)
+        XCTAssertEqual(size(of: actual).height, size(of: expected).height, accuracy: 0.5)
+    }
+
+    func testVersionPickerGapsStayIndependentOfArtworkAndTextScale() {
+        for (scale, gap): (CGFloat, CGFloat) in [(1.7, 12), (0.85, 8)] {
+            for textSize in [DynamicTypeSize.large, .accessibility3] {
+                let first = MetadataMediaBadgeChip(
+                    badge: .init("4K", style: .prominent), adjacentSpacing: gap
+                )
+                let second = MetadataMediaBadgeChip(
+                    badge: .init("English | +1", style: .audio), adjacentSpacing: gap
+                )
+                let expected = size(of: HStack(spacing: gap) { first; second }
+                    .environment(\.mediaBadgeScale, scale)
+                    .environment(\.dynamicTypeSize, textSize).fixedSize())
+                let actual = WrappingHStackLayout(spacing: 99, lineSpacing: 6) { first; second }
+                    .environment(\.mediaBadgeScale, scale)
+                    .environment(\.dynamicTypeSize, textSize)
+                XCTAssertEqual(size(of: actual.fixedSize()).width, expected.width, accuracy: 0.5)
+                XCTAssertEqual(size(of: actual.fixedSize()).height, expected.height, accuracy: 0.5)
+                XCTAssertGreaterThan(size(of: actual.frame(width: expected.width - 1)).height, expected.height)
+            }
+        }
     }
 
     func testBalancingRowsRetainsAdjacentSpacing() {
@@ -163,22 +274,38 @@ final class MediaBadgeSizingTests: XCTestCase {
         XCTAssertEqual(size(of: row(balanced: true)).height, 88, accuracy: 0.5)
     }
 
-    func testRangeCapsulesUseFifteenPercentFillWhileAudioStaysClear() throws {
-        let rangeBadges = [
+    func testFractionalBadgeWidthsDoNotWrapAtTheirNaturalWidth() {
+        let row = WrappingHStackLayout(spacing: 14, lineSpacing: 8) {
+            ForEach([10.1, 10.2, 10.3, 10.4], id: \.self) { width in
+                Color.white.frame(width: width, height: 20)
+            }
+        }
+        XCTAssertEqual(size(of: row.fixedSize()).width, 83, accuracy: 0.5)
+        XCTAssertEqual(size(of: row.fixedSize()).height, 20, accuracy: 0.5)
+        XCTAssertEqual(size(of: row.frame(width: 82)).height, 48, accuracy: 0.5)
+    }
+
+    func testVideoCapsulesUseFifteenPercentFillWhileAudioAndLanguagesStayClear() throws {
+        let videoBadges = [
             MediaBadge("Dolby Vision", style: .dolby),
             MediaBadge("HDR10", style: .hdr),
             MediaBadge("HDR10+", style: .hdr),
             MediaBadge("HDR", style: .hdr),
             MediaBadge("HLG", style: .hdr),
-            MediaBadge("SDR", style: .sdr)
+            MediaBadge("SDR", style: .sdr),
+            MediaBadge("HEVC", style: .spec),
+            MediaBadge("H.264", style: .spec),
+            MediaBadge("AV1", style: .spec)
         ]
         let audioBadges = [
             MediaBadge("Dolby Atmos", style: .dolby),
             MediaBadge("DTS:X", style: .dts),
-            MediaBadge("AAC", style: .audio)
+            MediaBadge("AAC", style: .audio),
+            MediaBadge("English | +1", style: .audio),
+            MediaBadge("French", style: .audio)
         ]
         for palette in [ThemePalette.dark, .pureBlack, .light] {
-            for badge in rangeBadges + audioBadges + [MediaBadge("4K", style: .prominent)] {
+            for badge in videoBadges + audioBadges + [MediaBadge("4K", style: .prominent)] {
                 let renderer = ImageRenderer(content: MediaBadgeChip(badge: badge)
                     .environment(\.themePalette, palette))
                 renderer.scale = 1
@@ -219,6 +346,29 @@ final class MediaBadgeSizingTests: XCTestCase {
             add(attachment)
         }
     }
+
+    #if os(iOS)
+    func testMixedMetadataBadgeGapsTrackDynamicTypeTogether() {
+        let rating = RatingBadge(rating: .init(source: .imdb, value: 8.2, scale: .outOfTen))
+        let age = FamilyGuidanceAgeBadge(age: 14)
+        let resolution = MetadataMediaBadgeChip(badge: .init("4K", style: .prominent))
+        let range = MetadataMediaBadgeChip(badge: .init("Dolby Vision", style: .dolby))
+        for textSize in [DynamicTypeSize.xSmall, .large, .xxxLarge, .accessibility3] {
+            let traits = UITraitCollection(preferredContentSizeCategory: textSize.plozzContentSizeCategory)
+            let standardTraits = UITraitCollection(preferredContentSizeCategory: .large)
+            let textScale = UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: traits).pointSize
+                / UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: standardTraits).pointSize
+            let row = WrappingHStackLayout(spacing: 16) { age; rating; resolution; range }
+                .environment(\.dynamicTypeSize, textSize).fixedSize()
+            let expected = HStack(spacing: 14 * textScale) {
+                age
+                rating
+                HStack(spacing: 12 * textScale) { resolution; range }
+            }.environment(\.dynamicTypeSize, textSize).fixedSize()
+            XCTAssertEqual(size(of: row).width, size(of: expected).width, accuracy: 0.5, "\(textSize)")
+        }
+    }
+    #endif
 
     func testFamilyGuidanceBadgeUsesCompactUnframedLayout() throws {
         #if os(iOS)

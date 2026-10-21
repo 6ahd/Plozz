@@ -51,7 +51,7 @@ public struct MediaBadge: Hashable, Sendable, Identifiable {
     public enum Style: String, Sendable, Hashable {
         /// Content certification, separate from picture and audio capabilities.
         case rating
-        /// Other technical facts, including video codecs and language labels.
+        /// Other technical facts, including video codecs.
         case spec
         /// Resolution.
         case prominent
@@ -63,7 +63,7 @@ public struct MediaBadge: Hashable, Sendable, Identifiable {
         case dolby
         /// DTS audio.
         case dts
-        /// Other audio formats or a standalone channel layout.
+        /// Other audio formats, audio languages, or a standalone channel layout.
         case audio
     }
 

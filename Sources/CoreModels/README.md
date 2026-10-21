@@ -164,8 +164,10 @@ The playback-choice dialog reuses the detail page's per-version badges, adding
 video-codec, full audio-format and localized audio-language chips. Both the hero
 and picker keep the underlying codec alongside spatial audio (for example,
 Dolby TrueHD and Dolby Atmos), attaching reported source-channel counts to the
-codec rather than implying an Atmos height-speaker layout. Picture badges
-precede audio. Series summaries select the audio facts from one source, never
+codec rather than implying an Atmos height-speaker layout. Picture badges,
+including the picker's video codec, precede audio formats and languages.
+Language badges belong to the audio family rather than generic technical specs.
+Series summaries select the audio facts from one source, never
 joining another file's channel count to the winning codec. Companion text omits those badge
 facts, retaining edition/source quality, size, bit depth and bitrate/runtime.
 The smaller badges sit below the release filename and wrap for narrow widths
