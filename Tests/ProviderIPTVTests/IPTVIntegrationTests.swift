@@ -1392,7 +1392,8 @@ final class IPTVFixture: URLProtocol, @unchecked Sendable {
     }
 
     override class func canInit(with request: URLRequest) -> Bool {
-        ["provider.test", "cdn.test"].contains(request.url?.host ?? "")
+        ["provider.test", "cdn.test", "drive.google.com", "drive.usercontent.google.com"]
+            .contains(request.url?.host ?? "")
     }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {

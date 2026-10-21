@@ -128,7 +128,7 @@ public struct MediaVersionChoiceButton: View {
 
     private var badgeSpacing: CGFloat {
         #if os(tvOS)
-        12
+        MetadataBadgeSpacing.betweenBadges
         #else
         8
         #endif
@@ -136,12 +136,16 @@ public struct MediaVersionChoiceButton: View {
 
     private var formatBadges: some View {
         ForEach(presentation.formatBadges) { badge in
-            MetadataMediaBadgeChip(badge: badge)
+            versionBadge(badge)
         }
     }
 
+    private func versionBadge(_ badge: MediaBadge) -> some View {
+        MetadataMediaBadgeChip(badge: badge, adjacentSpacing: badgeSpacing)
+    }
+
     private func languageBadge(_ label: String, languages: [String]) -> some View { // l10n:content - language names already resolved for the current locale.
-        MetadataMediaBadgeChip(badge: MediaBadge(label))
+        versionBadge(MediaBadge(label, style: .audio))
             .accessibilityLabel(Text(verbatim: languages.joined(separator: ", ")))
     }
 }

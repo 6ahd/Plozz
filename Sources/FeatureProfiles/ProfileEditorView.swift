@@ -810,7 +810,7 @@ public struct ProfileEditorView: View {
     // MARK: Colors
 
     private var colorSection: some View {
-        // Fixed 8-wide grid so rows are always even (32 colours = 4 clean rows),
+        // Fixed 8-wide grid so rows are always even (40 colours = 5 clean rows),
         // rather than an adaptive grid that leaves a ragged last row.
         let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 8)
         let emojiMode = avatarMode == .emoji
@@ -840,72 +840,26 @@ public struct ProfileEditorView: View {
     /// The "no colour" option for emoji avatars — a theme neutral disc that maps
     /// to `emojiColorIndex == nil`.
     private var neutralSwatch: some View {
-        let isSelected = emojiColorIndex == nil
-        let diameter: CGFloat = 42
-        return Button {
+        ColorSwatchButton(
+            title: "Neutral background", color: .gray.opacity(0.35), foreground: .white,
+            isSelected: emojiColorIndex == nil, unselectedSymbol: "slash.circle"
+        ) {
             emojiColorIndex = nil
-        } label: {
-            Circle()
-                .fill(Color.gray.opacity(0.35))
-                .frame(width: diameter, height: diameter)
-                .overlay { Circle().strokeBorder(palette.cardBorder, lineWidth: 1) }
-                .overlay {
-                    if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 18, weight: .heavy))
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
-                    } else {
-                        Image(systemName: "slash.circle")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(palette.secondaryText)
-                    }
-                }
         }
-        .plozzCardFocusButtonStyle(
-            CircularSelectionButtonStyle(diameter: diameter), cornerRadius: diameter / 2,
-            contentSuppliesProjection: true
-        )
-        .plozzCircularFocusStyle()
-        .accessibilityLabel(Text("Neutral background"))
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private func colorSwatch(_ index: Int, emojiMode: Bool) -> some View {
         // In emoji mode the colour choice writes emojiColorIndex; for symbols it
         // writes colorIndex.
         let isSelected = emojiMode ? (emojiColorIndex == index) : (index == colorIndex)
-        let diameter: CGFloat = 42
-        return Button {
+        return ColorSwatchButton(
+            title: ProfileTileColor.accessibilityName(forIndex: index),
+            color: ProfileTileColor.color(forIndex: index),
+            foreground: ProfileTileColor.legibleForeground(forIndex: index),
+            isSelected: isSelected
+        ) {
             if emojiMode { emojiColorIndex = index } else { colorIndex = index }
-        } label: {
-            Circle()
-                .fill(ProfileTileColor.color(forIndex: index))
-                .frame(width: diameter, height: diameter)
-                // Hairline so pale swatches still read against the surface.
-                .overlay { Circle().strokeBorder(palette.cardBorder, lineWidth: 1) }
-                // A swatch IS its content, so the selected mark sits centred on
-                // it (the standard colour-picker idiom) rather than in a corner
-                // like the symbol/photo tiles. Shadow keeps the white check
-                // legible on the paler swatches.
-                .overlay {
-                    if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 18, weight: .heavy))
-                            // Legible on any swatch (dark check on white/pale,
-                            // white check on dark).
-                            .foregroundStyle(ProfileTileColor.legibleForeground(forIndex: index))
-                            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
-                    }
-                }
         }
-        .plozzCardFocusButtonStyle(
-            CircularSelectionButtonStyle(diameter: diameter), cornerRadius: diameter / 2,
-            contentSuppliesProjection: true
-        )
-        .plozzCircularFocusStyle()
-        .accessibilityLabel(Text(ProfileTileColor.accessibilityName(forIndex: index)))
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     // MARK: Photos
@@ -1683,34 +1637,14 @@ fileprivate struct IOSProfileColorSection: View {
 fileprivate struct IOSProfileNeutralSwatch: View {
     @Binding var emojiColorIndex: Int?
 
-    @Environment(\.themePalette) private var palette
-
     var body: some View {
-        let isSelected = emojiColorIndex == nil
-        let diameter: CGFloat = 44
-        Button {
+        ColorSwatchButton(
+            title: "Neutral background", color: .gray.opacity(0.35), foreground: .white,
+            isSelected: emojiColorIndex == nil, unselectedSymbol: "slash.circle"
+        ) {
             emojiColorIndex = nil
-        } label: {
-            Circle()
-                .fill(Color.gray.opacity(0.35))
-                .frame(width: diameter, height: diameter)
-                .overlay {
-                    if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 17, weight: .heavy))
-                            .foregroundStyle(.white)
-                    } else {
-                        Image(systemName: "slash.circle")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(palette.secondaryText)
-                    }
-                }
-                .overlay(IOSProfileSwatchRing(isSelected: isSelected))
-                .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("Neutral background"))
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .frame(maxWidth: .infinity, minHeight: 44)
     }
 }
 
@@ -1722,26 +1656,15 @@ fileprivate struct IOSProfileColorSwatch: View {
 
     var body: some View {
         let isSelected = emojiMode ? (emojiColorIndex == index) : (index == colorIndex)
-        let diameter: CGFloat = 44
-        Button {
+        ColorSwatchButton(
+            title: ProfileTileColor.accessibilityName(forIndex: index),
+            color: ProfileTileColor.color(forIndex: index),
+            foreground: ProfileTileColor.legibleForeground(forIndex: index),
+            isSelected: isSelected
+        ) {
             if emojiMode { emojiColorIndex = index } else { colorIndex = index }
-        } label: {
-            Circle()
-                .fill(ProfileTileColor.color(forIndex: index))
-                .frame(width: diameter, height: diameter)
-                .overlay {
-                    if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 17, weight: .heavy))
-                            .foregroundStyle(ProfileTileColor.legibleForeground(forIndex: index))
-                    }
-                }
-                .overlay(IOSProfileSwatchRing(isSelected: isSelected))
-                .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(ProfileTileColor.accessibilityName(forIndex: index)))
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .frame(maxWidth: .infinity, minHeight: 44)
     }
 }
 
@@ -1977,19 +1900,6 @@ fileprivate struct IOSProfileSelectionRing: View {
     }
 }
 
-fileprivate struct IOSProfileSwatchRing: View {
-    let isSelected: Bool
-
-    @Environment(\.themePalette) private var palette
-
-    var body: some View {
-        Circle().strokeBorder(
-            isSelected ? palette.accent : palette.cardBorder,
-            lineWidth: isSelected ? 3 : 1
-        )
-    }
-}
-
 fileprivate struct IOSProfileSectionHeader: View {
     let text: LocalizedStringResource
 
@@ -2032,38 +1942,4 @@ fileprivate func iOSProfileSymbolAccessibilityName(_ symbol: String) -> String {
 
 #endif
 
-#if os(tvOS)
-
-/// Circular focus treatment for the symbol / colour selection tiles: the app's
-/// shared liquid-glass halo (`plozzFocusHalo`) blooming around the round tile on
-/// focus, with a small press dip. Owning focus in a `ButtonStyle` (plus
-/// `.focusEffectDisabled()` at the call site) means the ONLY focus visual is our
-/// halo — no clipped white tvOS platter, which was the old grid's ugly-focus bug.
-private struct CircularSelectionButtonStyle: ButtonStyle {
-    let diameter: CGFloat
-
-    func makeBody(configuration: Configuration) -> some View {
-        TileBody(configuration: configuration, diameter: diameter)
-    }
-
-    private struct TileBody: View {
-        let configuration: ButtonStyle.Configuration
-        let diameter: CGFloat
-        @Environment(\.isFocused) private var isFocused
-        @Environment(\.plozzCardFocusStyle) private var focusStyle
-
-        var body: some View {
-            configuration.label
-                .plozzFocusHalo(
-                    cornerRadius: diameter / 2,
-                    focusScale: PlozzTheme.Metrics.mediumFocusedCardScale,
-                    isFocused: isFocused
-                )
-                .scaleEffect(configuration.isPressed && !focusStyle.usesSystemEffect ? 0.96 : 1)
-                .animation(focusStyle.usesSystemEffect ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
-        }
-    }
-}
-
-#endif
 #endif

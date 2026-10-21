@@ -35,8 +35,7 @@ actor IPTVClient {
 
     private func reclaimJournalOnce() {
         guard !didReclaimJournal else { return }
-        didReclaimJournal = true
-        catalog.reclaimJournal()
+        didReclaimJournal = catalog.reclaimJournal()
     }
 
     init(
@@ -48,9 +47,10 @@ actor IPTVClient {
             + [credential.password].filter { !$0.isEmpty }
         self.progress = progress
         http = IPTVHTTP(configuration: configuration, sensitiveValues: [credential.password])
-        let directory = directory ?? FileManager.default.urls(
-            for: credential.mode == .file ? .applicationSupportDirectory : .cachesDirectory, in: .userDomainMask
-        )[0].appendingPathComponent("IPTVCatalogs", isDirectory: true)
+        let directory = directory ?? (credential.mode == .file
+            ? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("IPTVCatalogs", isDirectory: true)
+            : IPTVCatalogStorage.cacheDirectory)
         catalog = try IPTVCatalog(
             url: directory.appendingPathComponent(credential.identity.uuidString + ".sqlite"),
             key: credential.catalogKey
@@ -69,7 +69,8 @@ actor IPTVClient {
             return
         }
         if credential.mode == .playlist {
-            let (bytes, response) = try await http.bytes(url: credential.address, headers: credential.headers)
+            let url = GoogleDrivePlaylistURL.downloadURL(for: credential.address)
+            let (bytes, response) = try await http.bytes(url: url, headers: credential.headers(for: url))
             defer { bytes.task.cancel() }
             var parser = M3UPlaylistParser(
                 baseURL: response.url ?? credential.address, permitsAuthenticationHeaders: true
@@ -238,7 +239,10 @@ actor IPTVClient {
         diagnostic?.advance(to: credential.mode == .playlist ? .playlist
             : library == "movies" ? .movies : library == "series" ? .series : .channels)
         try catalog.beginImport()
-        defer { catalog.discardImport() }
+        defer {
+            catalog.discardImport()
+            didReclaimJournal = false
+        }
         if credential.mode == .playlist {
             try await importPlaylist()
         } else {
@@ -339,7 +343,8 @@ actor IPTVClient {
             origin = credential.address
             bytes = nil
         } else {
-            let response = try await http.bytes(url: credential.address, headers: credential.headers)
+            let url = GoogleDrivePlaylistURL.downloadURL(for: credential.address)
+            let response = try await http.bytes(url: url, headers: credential.headers(for: url))
             bytes = response.0
             origin = response.1.url ?? credential.address
         }

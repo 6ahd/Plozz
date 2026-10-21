@@ -267,9 +267,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than
-  the light watch-status marks. Watched mode uses an inset count tile and a white
-  completed circle with a dark check. Unwatched mode uses a white triangle for
-  unnumbered titles and a flush count tile with a curved bottom-left corner.
+  the watch-status marks. Counts independently use an inset Floating tile or a
+  flush Attached tile with a curved bottom-left corner. Watched marks use a colored
+  completed circle with a contrasting check; unwatched marks use a colored triangle.
   The count tile's top-right corner stays square; only the artwork clips its
   outer corner and shadow. Native poster and library-card overlay hosts apply
   that clipping at the full artwork bounds, not at the badge's own bounds.
@@ -277,7 +277,17 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   tile has 12pt side padding and is 52pt tall; floating-tile spacing is unchanged.
   Floating marks have density-scaled clearance (16pt at standard TV size).
   Touch sizes and artwork radii remain proportionate. Episode cards and the
-  watch-indicator Settings swatches reuse the same light check badge and flag.
+  watch-indicator Settings previews reuse the same check badge and flag.
+  Their middle poster represents an in-progress series with three remaining
+  episodes. Its shared count badge follows the live count toggle and independent
+  Attached/Floating preference while progress stays visible. Count style crosses
+  native hosting boundaries, controls overlay placement, and invalidates both
+  native poster bitmap caches.
+  `MediaWatchIndicatorStyle` owns the eight opaque watch-mark colors and contrasting
+  check colors; white is the default. The profile preference crosses native
+  hosting boundaries and participates in both native poster bitmap cache keys.
+  `ColorSwatchButton` shares circular selection marks, accessibility and existing
+  platform focus treatment between the watch palette and avatar color choices.
   Positive exact library counts take priority; unknown counts retain the
   existing watched/unwatched style. Completed containers retain its completion
   behavior. Movies, episodes, ownership/request marks and spoiler protection
@@ -555,24 +565,34 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   detail. Family guidance uses the Common Sense circle/check artwork, with a
   palette-selected light/dark variant shared by the inline age and guidance panel.
   The inline mark retains its original 32 points on TV and 24 Dynamic Type-scaled
-  points on mobile, with a 4-point scaled gap to the age and no extra frame or
-  padding. Age text matches neighboring review scores'
-  medium weight. Full Common Sense Media attribution remains in the guidance
+  points on mobile. TV uses a 1-point optical overlap of the transparent insets,
+  keeping the visible mark close to its age; mobile retains its
+  4-point scaled gap. Neither adds an outer frame or padding. Age text matches
+  neighboring review scores' medium weight. Review icons use the same 4-point
+  scaled icon-to-value gap.
+  Full Common Sense Media attribution remains in the guidance
   panel and accessibility label; the decorative mark is hidden from VoiceOver.
 - **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
   license), filled resolution badges, and matching outlined capsules for dynamic
-  range and audio. Dynamic-range capsules add a 15% foreground tint
-  (white in dark themes, dark in light themes); audio stays clear with attached
-  channel segments. Format names are ordinary text, not vendor logo drawings.
+  range and audio. Video-codec and dynamic-range capsules add a 15% foreground
+  tint (white in dark themes, dark in light themes); audio formats and language
+  capsules stay clear, with channel segments attached to their audio codec.
+  Only resolution receives a solid fill. Format names are ordinary text, not vendor logo drawings.
   Refined compact uses 22-point resolution badges and 26-point other technical
   badges with 15-point main text, short display
   names (DV, DD+, DD, TrueHD, Atmos), and full source names in accessibility.
   Mobile metadata wrappers retain an 18-point baseline height for both.
   Resolution padding is 6 points; capsule outer padding is 8 points, with
   4 points on either side of the channel divider and 7 after the channels.
-  Adjacent technical badges use an 8-point scaled gap without tightening the
-  surrounding ratings/facts or grouping badges into an unbreakable row.
-  Resolution and picture precede audio; codec and spatial capability may both
+  Review scores and age recommendations use a 14-point scaled gap; certificates
+  and formats use 12 points. Category boundaries use the larger adjacent gap.
+  Compact wrappers scale that gap with the surrounding text, not the individual
+  format's artwork height. Inline and wrapped metadata share this spacing without
+  tightening year/runtime separation or grouping badges into an unbreakable row.
+  Version pickers keep their independently enlarged artwork and use fixed gaps
+  (12 points on TV, 8 on mobile) in both inline and wrapped badge rows.
+  Resolution, picture range, and video codec precede audio formats and languages;
+  audio codec and spatial capability may both
   describe one stream. Representative audio keeps the codec, channels and
   capability from one source instead of combining incompatible files' facts.
   Missing facts remain missing; filenames do not invent HDR or audio badges.
@@ -690,7 +710,7 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   The inverse mask's outer eraser extends beyond the allocated raster, including
   the extra row/column at fractional sizes. Artwork uses committed view bounds;
   Browse aligns its view and bitmap to the same physical pixels at 1x and 2x.
-  Ordinary watch flags/check badges use opaque white; episode-count tiles keep
+  Ordinary watch flags/check badges use the profile's opaque color; episode-count tiles keep
   their dark fill and white text.
   This keeps lazy-row estimation out of the expensive rendering path without
   adding another observable loading state to the row.
