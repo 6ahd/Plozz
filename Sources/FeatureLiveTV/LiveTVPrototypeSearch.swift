@@ -46,6 +46,7 @@ struct PrototypeSearchHeader: View {
 
 private struct PrototypeMobileSearchField: UIViewRepresentable {
     @Binding var query: String
+    @Environment(\.locale) private var locale
     let focusRequest: Int
     let dismissRequest: Int
     let submit: () -> Void
@@ -55,7 +56,6 @@ private struct PrototypeMobileSearchField: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UISearchTextField {
         let field = UISearchTextField()
-        field.placeholder = String(localized: "Search")
         field.autocapitalizationType = .none
         field.autocorrectionType = .no
         field.returnKeyType = .search
@@ -67,6 +67,8 @@ private struct PrototypeMobileSearchField: UIViewRepresentable {
 
     func updateUIView(_ field: UISearchTextField, context: Context) {
         context.coordinator.parent = self
+        let placeholder = LocalizedStringResource("Search", locale: locale)
+        field.placeholder = String(localized: placeholder) // l10n:content - UIKit boundary, refreshed with the current environment locale.
         if field.text != query { field.text = query }
         if dismissRequest > context.coordinator.dismissRequest {
             context.coordinator.dismissRequest = dismissRequest

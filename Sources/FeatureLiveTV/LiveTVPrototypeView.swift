@@ -470,7 +470,9 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     accessory: topBarAccessory
                 )
             }
-            .navigationTitle(usesCategoryDirectory(layout) || layout.sidebarWidth > 0 ? "Live TV" : "")
+            .navigationTitle(
+                usesCategoryDirectory(layout) || layout.sidebarWidth > 0 ? Text("Live TV") : Text(verbatim: "")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(expanded ? .hidden : .visible, for: .navigationBar)
             .toolbarBackground(.hidden, for: .navigationBar)

@@ -167,6 +167,43 @@ final class LiveTVGuideRowLayoutTests: XCTestCase {
     }
 
     #if os(iOS)
+    func testMobileSearchPlaceholderUpdatesWithTheAppLocale() async throws {
+        let header = PrototypeSearchHeader(
+            query: .constant("Arena"), channelCount: 5, category: nil, focusRequest: 0,
+            browse: {}, close: {}, focusChanged: { _ in }
+        )
+        let host = UIHostingController(rootView: header.environment(\.locale, Locale(identifier: "en")))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = host
+        window.isHidden = false
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        func searchField(in view: UIView) -> UISearchTextField? {
+            if let field = view as? UISearchTextField { return field }
+            return view.subviews.lazy.compactMap { searchField(in: $0) }.first
+        }
+        func waitForPlaceholder(_ expected: String) async throws -> UISearchTextField {
+            for _ in 0..<100 {
+                window.layoutIfNeeded()
+                if let field = searchField(in: host.view), field.placeholder == expected { return field }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            let field = try XCTUnwrap(searchField(in: host.view))
+            XCTAssertEqual(field.placeholder, expected)
+            return field
+        }
+        let field = try await waitForPlaceholder("Search")
+        host.rootView = header.environment(\.locale, Locale(identifier: "nl"))
+        let translated = try await waitForPlaceholder("Zoeken")
+        XCTAssertTrue(translated === field, "Changing language must update the existing native field")
+        XCTAssertEqual(translated.text, "Arena")
+        host.rootView = header.environment(\.locale, Locale(identifier: "en"))
+        let restored = try await waitForPlaceholder("Search")
+        XCTAssertTrue(restored === field)
+    }
+
     func testCategoriesUseAvailableSpaceInsteadOfDeviceFamily() {
         for size in [CGSize(width: 732, height: 600), CGSize(width: 820, height: 1_180)] {
             let layout = PrototypePreviewLayout(size: size, showsCategories: true)
