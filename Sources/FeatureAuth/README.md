@@ -192,6 +192,9 @@ the source verifies current protection and requires its PIN before content acces
 neither old credentials nor an in-flight response can authorize it. Hiding libraries
 within an enabled source does not waive authentication. Separate Plozz Profile Locks
 and Kids Profile exit gates are unchanged.
+Both profile pickers use this same source membership for their lock indicators,
+including before a profile is selected; a disabled Plex source alone does not
+mark a Silo, Jellyfin, or other non-Plex profile as locked.
 
 `AppRuntime.AutomaticSignInStore` retains one session in a non-synchronizable,
 ThisDeviceOnly Keychain item (per Apple TV system user). It stores authenticated

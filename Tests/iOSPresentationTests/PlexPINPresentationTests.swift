@@ -56,12 +56,16 @@ final class PlexPINPresentationTests: XCTestCase {
             return "FIXTURE-CLOUD"
         }
         app.plexHomeUsers.plexServerTokenResolve = { _, _, _ in "FIXTURE-SERVER" }
+        XCTAssertFalse(app.accountsProviders.profileShowsPINLock(
+            try XCTUnwrap(app.profiles.profiles.first { $0.id == disabled.id })
+        ))
         app.selectProfile(disabled.id)
         XCTAssertNil(app.plexHomeUsers.pendingPlexPINRequest)
         XCTAssertTrue(app.accountsProviders.activeAccountIDs.isEmpty)
         XCTAssertNil(app.accountsProviders.tokenResolver("plex"))
 
         app.setAccount("plex", enabled: true, for: disabled.id)
+        XCTAssertTrue(app.accountsProviders.profileShowsPINLock(app.profiles.activeProfile))
         XCTAssertEqual(app.plexHomeUsers.pendingPlexPINRequest?.accountID, "plex")
         XCTAssertNil(app.accountsProviders.provider(forAccountID: "plex"))
         await app.plexHomeUsers.waitForPlexPINRequirementCheck()
@@ -70,6 +74,7 @@ final class PlexPINPresentationTests: XCTestCase {
         XCTAssertEqual(app.accountsProviders.tokenResolver("plex"), "FIXTURE-SERVER")
 
         app.setAccount("plex", enabled: false, for: disabled.id)
+        XCTAssertFalse(app.accountsProviders.profileShowsPINLock(app.profiles.activeProfile))
         XCTAssertNil(app.plexHomeUsers.pendingPlexPINRequest)
         XCTAssertNil(app.plexHomeUsers.plexDiscoverTokens.token(for: "plex"))
         XCTAssertNil(app.accountsProviders.tokenResolver("plex"))

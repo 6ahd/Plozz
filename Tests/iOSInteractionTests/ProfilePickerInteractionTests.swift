@@ -83,6 +83,7 @@ final class ProfilePickerInteractionTests: XCTestCase {
         app.launchArguments = ["--profile-selection-fixture"]
         app.launch()
         XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons["Protected"].value as? String, "Profile Lock")
         let pickerTitleHeight = app.staticTexts["Who’s watching?"].frame.height
         app.buttons["Protected"].tap()
         XCTAssertTrue(app.staticTexts["Plex PIN"].waitForExistence(timeout: 5), app.debugDescription)
@@ -119,6 +120,34 @@ final class ProfilePickerInteractionTests: XCTestCase {
         let result = app.staticTexts["fixture-selection-result"]
         XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 8), app.debugDescription)
         XCTAssertEqual(result.label, "Selected")
+    }
+
+    func testDisabledPlexSourceDoesNotAdvertiseOrAskForPIN() {
+        app.launchArguments = ["--profile-selection-fixture", "--disabled-plex-source"]
+        app.launch()
+        let profile = app.buttons["Protected"]
+        XCTAssertTrue(profile.waitForExistence(timeout: 10))
+        XCTAssertEqual(profile.value as? String ?? "", "")
+        profile.tap()
+        let result = app.staticTexts["fixture-selection-result"]
+        XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 5))
+        XCTAssertEqual(result.label, "Selected")
+        XCTAssertFalse(app.buttons["1"].exists)
+        XCTAssertFalse(app.staticTexts["Plex PIN"].exists)
+    }
+
+    func testDisabledPlexSourceStillAdvertisesAndRequiresMatchingLocalPIN() {
+        app.launchArguments = ["--profile-selection-fixture", "--disabled-plex-source", "--matched-plex-pin"]
+        app.launch()
+        let profile = app.buttons["Protected"]
+        XCTAssertTrue(profile.waitForExistence(timeout: 10))
+        XCTAssertEqual(profile.value as? String, "Profile Lock")
+        profile.tap()
+        enterPIN(["2", "4", "6", "8"])
+        XCTAssertTrue(app.staticTexts["fixture-selection-result"].wait(
+            for: \.isHittable, toEqual: true, timeout: 5
+        ))
+        XCTAssertFalse(app.staticTexts["Plex PIN"].exists)
     }
 
     func testLocalToPlexAndBackRequiresTheLocalPINAgain() throws {

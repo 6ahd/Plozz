@@ -91,7 +91,10 @@ struct ProfileSelectionInteractionFixture: View {
             protected.lock = ProfileLock.make(pin: "2468", matchesPlexPIN: true, iterations: 1)
         }
         profiles.update(protected)
-        profiles.setActiveAccountIDs(["plex"], for: protected.id)
+        profiles.setActiveAccountIDs(
+            ProcessInfo.processInfo.arguments.contains("--disabled-plex-source") ? [] : ["plex"],
+            for: protected.id
+        )
         if ProcessInfo.processInfo.arguments.contains("--local-profile") {
             var local = profiles.add(name: "Local", avatarSymbol: "star.fill", colorIndex: 2)
             local.lock = ProfileLock.make(pin: "1357", iterations: 1)

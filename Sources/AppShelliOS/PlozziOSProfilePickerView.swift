@@ -79,7 +79,8 @@ struct PlozziOSProfileSelectionView: View {
                 onCancel: onCancel,
                 identityNamespace: profileIdentity,
                 selectedProfileID: selectedProfileID,
-                isCovered: presentsAuthorization
+                isCovered: presentsAuthorization,
+                showsPINLock: appModel.accountsProviders.profileShowsPINLock
             )
             .allowsHitTesting(!presentsAuthorization && selectedProfileID == nil)
             .accessibilityHidden(presentsAuthorization)
@@ -136,6 +137,7 @@ struct PlozziOSProfilePickerView: View {
     var identityNamespace: Namespace.ID?
     var selectedProfileID: String?
     var isCovered = false
+    var showsPINLock: (Profile) -> Bool = { $0.showsPINLock }
 
     @State private var isEditing = false
     @State private var route: Route?
@@ -174,6 +176,7 @@ struct PlozziOSProfilePickerView: View {
 
                         PlozziOSProfilePickerGrid(
                             profiles: profiles, layout: layout,
+                            showsPINLock: showsPINLock,
                             canManage: manager != nil, isEditing: isEditing,
                             startsDuringPresentation: onCancel != nil,
                             identityNamespace: identityNamespace ?? localIdentityNamespace,
@@ -269,6 +272,7 @@ struct PlozziOSProfilePickerLayout {
 private struct PlozziOSProfilePickerGrid: View {
     let profiles: [Profile]
     let layout: PlozziOSProfilePickerLayout
+    let showsPINLock: (Profile) -> Bool
     let canManage: Bool
     let isEditing: Bool
     let startsDuringPresentation: Bool
@@ -288,6 +292,7 @@ private struct PlozziOSProfilePickerGrid: View {
             spacing: 24
         ) {
             ForEach(Array(profiles.enumerated()), id: \.element.id) { position, profile in
+                let showsLock = showsPINLock(profile)
                 let identity = PINProfileTransition(
                     profileID: isCovered ? "retained-\(profile.id)" : profile.id,
                     namespace: identityNamespace
@@ -296,7 +301,7 @@ private struct PlozziOSProfilePickerGrid: View {
                     if isEditing, canManage { onEdit(profile) } else { onSelect(profile) }
                 } label: {
                     PlozziOSProfilePickerTile(title:
-                        ProfileNameLabel(profile: profile)
+                        ProfileNameLabel(profile: profile, showsLock: showsLock)
                             .matchedGeometryEffect(
                                 id: identity.nameID, in: identity.namespace, properties: .position
                             )
@@ -315,7 +320,7 @@ private struct PlozziOSProfilePickerGrid: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(profile.name)
-                .accessibilityValue(profile.showsPINLock ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
+                .accessibilityValue(showsLock ? Text(ProfileLockCopy.title) : Text(verbatim: ""))
                 .accessibilityIdentifier("profile-picker-\(profile.id)")
                 .accessibilityHint(isEditing
                     ? "Opens this profile’s settings" : "Switches to this profile")

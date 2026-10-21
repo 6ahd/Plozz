@@ -2,6 +2,22 @@ import XCTest
 @testable import CoreModels
 
 final class ProfileLockPresentationTests: XCTestCase {
+    func testPickerLockOnlyIncludesEnabledPlexSourcesButAlwaysIncludesLocalLock() {
+        var profile = Profile(name: "Viewer").settingHomeUserBinding(
+            .init(homeUserID: "viewer", name: "Viewer", requiresPIN: true), forPlexAccount: "plex"
+        )
+        XCTAssertTrue(profile.showsPINLock, "Setup summaries retain configured protection.")
+        XCTAssertFalse(profile.showsPINLock(activePlexAccountIDs: []))
+        XCTAssertFalse(profile.showsPINLock(activePlexAccountIDs: ["other-plex"]))
+        XCTAssertTrue(profile.showsPINLock(activePlexAccountIDs: ["plex"]))
+        profile = profile.settingHomeUserBinding(
+            .init(homeUserID: "other", name: "Other", requiresPIN: false), forPlexAccount: "other-plex"
+        )
+        XCTAssertFalse(profile.showsPINLock(activePlexAccountIDs: ["other-plex"]))
+        profile.lock = ProfileLock.make(pin: "1234", matchesPlexPIN: true, iterations: 1)
+        XCTAssertTrue(profile.showsPINLock(activePlexAccountIDs: []))
+    }
+
     func testLocalPlexCombinedAndUnprotectedLockHints() {
         var profile = Profile(name: "Viewer")
         XCTAssertFalse(profile.showsPINLock)

@@ -243,13 +243,18 @@ public struct Profile: Codable, Hashable, Identifiable, Sendable {
         return plexHomeUserBindings?.values.contains { $0.requiresPIN == true } ?? false
     }
 
-    /// Configured protection, not current authorization or source enablement.
-    /// Live Plex authorization still checks the server.
+    /// Configured protection for setup summaries. Pickers must use the
+    /// source-aware overload; live Plex authorization still checks the server.
     public var showsPINLock: Bool {
-        if isLocked { return true }
         var accountIDs = Set(plexHomeUserBindings?.keys.map { $0 } ?? [])
         if let plexHomeUserAccountID { accountIDs.insert(plexHomeUserAccountID) }
-        return accountIDs.contains { homeUserBinding(forPlexAccount: $0)?.requiresPIN == true }
+        return showsPINLock(activePlexAccountIDs: accountIDs)
+    }
+
+    public func showsPINLock(activePlexAccountIDs: Set<String>) -> Bool {
+        isLocked || activePlexAccountIDs.contains {
+            homeUserBinding(forPlexAccount: $0)?.requiresPIN == true
+        }
     }
 
     /// Revision used for conflict resolution, including an immediate baseline for

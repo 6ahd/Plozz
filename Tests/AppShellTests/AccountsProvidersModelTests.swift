@@ -177,6 +177,43 @@ final class AccountsProvidersModelTests: XCTestCase {
     // covered end-to-end via ServerToggleTests through AppState), driving them
     // through the same injected profilesModel/accountStore seams.
 
+    func testPickerLockUsesEachProfilesResolvedPlexSources() throws {
+        let (model, store, profiles) = try makeModel(accountIDs: [])
+        try store.add(account(id: "plex", host: "plex.example", provider: .plex), token: "fixture")
+        try store.add(account(id: "silo", host: "silo.example", provider: .silo), token: "fixture")
+        store.setActiveAccountIDs(["plex", "silo"])
+        var target = profiles.add(name: "Silo")
+        target = target.settingHomeUserBinding(
+            .init(homeUserID: "protected", name: "Viewer", requiresPIN: true), forPlexAccount: "plex"
+        )
+        profiles.update(target)
+        model.reloadAccounts()
+        XCTAssertNotEqual(profiles.activeProfileID, target.id)
+        XCTAssertTrue(model.profileShowsPINLock(target), "An unset subset inherits household sources.")
+
+        profiles.setActiveAccountIDs(["silo"], for: target.id)
+        XCTAssertFalse(model.profileShowsPINLock(target), "Inactive picker tiles use their own source choice.")
+        profiles.setActiveAccountIDs([], for: target.id)
+        XCTAssertFalse(model.profileShowsPINLock(target))
+        profiles.setActiveAccountIDs(["plex", "silo"], for: target.id)
+        XCTAssertTrue(model.profileShowsPINLock(target), "Re-enabling Plex restores its lock hint.")
+        profiles.setActiveAccountIDs(["gone"], for: target.id)
+        XCTAssertTrue(model.profileShowsPINLock(target), "Match activation's entirely stale subset fallback.")
+        profiles.select(target.id)
+        model.reloadAccounts()
+        XCTAssertEqual(model.activeAccountIDs, Set(model.activeAccountIDs(forProfile: target.id)))
+
+        profiles.setActiveAccountIDs(["gone", "silo"], for: target.id)
+        XCTAssertFalse(model.profileShowsPINLock(target), "A surviving non-Plex source prevents fallback.")
+        profiles.setActiveAccountIDs(["plex"], for: target.id)
+        try store.remove(id: "plex")
+        model.reloadAccounts()
+        XCTAssertFalse(model.profileShowsPINLock(target), "A removed source cannot ask for a PIN.")
+        target.lock = ProfileLock.make(pin: "1234", matchesPlexPIN: true, iterations: 1)
+        profiles.update(target)
+        XCTAssertTrue(model.profileShowsPINLock(target), "Local locks remain independent of Plex enablement.")
+    }
+
     /// (a) An explicit EMPTY choice is honored — "watch nothing" / master toggle
     /// off — and must NOT be silently re-expanded to the household-global set.
     func testReloadHonorsExplicitEmptyChoice() throws {

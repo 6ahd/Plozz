@@ -74,6 +74,11 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   Local PIN verification does not block the UI executor, and cancellation or a
   changed profile/lock invalidates an in-flight result. Switching away expires
   local unlock proof on both platforms; returning requires the PIN again.
+  Picker lock badges and accessibility values use each profile's enabled Plex
+  sources, with the same stale-account fallback as activation. A saved binding
+  to a disabled or removed source does not advertise a PIN gate. A separate
+  local Profile Lock remains visible regardless of source enablement. Setup
+  transfer summaries describe configured protection rather than local admission.
 - Mobile Plex identity selection explains playback and watchlist ownership in
   its scrolling content. Whole-row buttons show pending work immediately;
   verification, Retry/Cancel, and confirmed PIN entry stay in that chooser.
