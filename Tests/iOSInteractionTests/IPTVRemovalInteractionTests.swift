@@ -67,7 +67,10 @@ final class IPTVRemovalInteractionTests: XCTestCase {
     }
 
     func testSourceSwitchUsesAnActionLabelInBothStates() {
-        app.launchArguments = ["--source-retry-fixture", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchArguments = [
+            "--source-retry-fixture", "--allow-source-changes",
+            "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
+        ]
         app.launch()
         let details = app.buttons["live-tv-source-details-source"]
         XCTAssertTrue(details.waitForExistence(timeout: 10), app.debugDescription)

@@ -186,10 +186,11 @@ private struct SourceRetryFixture: View {
     @State private var loader: Loader
 
     init() {
-        let store = Store()
+        let allowsChanges = ProcessInfo.processInfo.arguments.contains("--allow-source-changes")
+        let store = Store(allowsChanges: allowsChanges)
         let loader = Loader()
         _loader = State(initialValue: loader)
-        _sources = State(initialValue: LiveTVSourceManagementModel(store: store, canMutate: { false }))
+        _sources = State(initialValue: LiveTVSourceManagementModel(store: store, canMutate: { allowsChanges }))
         _imports = State(initialValue: LiveTVPrototypeImportModel(
             configuration: store.load(), loader: loader
         ))
@@ -221,13 +222,23 @@ private struct SourceRetryFixture: View {
         .task { await imports.reload(into: catalog) }
     }
 
-    private struct Store: LiveTVSourcesStoring {
+    private final class Store: LiveTVSourcesStoring, @unchecked Sendable {
+        private let lock = NSLock()
+        private let allowsChanges: Bool
+        private var configuration = LiveTVSourcesConfiguration(playlists: [.init(
+            id: "source", name: "Test playlist", playlistURL: URL(string: "https://example.test/list.m3u")!
+        )])
+
+        init(allowsChanges: Bool) { self.allowsChanges = allowsChanges }
+
         func load() -> LiveTVSourcesConfiguration {
-            .init(playlists: [.init(
-                id: "source", name: "Test playlist", playlistURL: URL(string: "https://example.test/list.m3u")!
-            )])
+            lock.withLock { configuration }
         }
-        func save(_ configuration: LiveTVSourcesConfiguration) throws { throw LiveTVSourcesStoreError.saveFailed }
+
+        func save(_ configuration: LiveTVSourcesConfiguration) throws {
+            guard allowsChanges else { throw LiveTVSourcesStoreError.saveFailed }
+            lock.withLock { self.configuration = configuration }
+        }
     }
 
     private actor Loader: LiveTVSourceLoading {
