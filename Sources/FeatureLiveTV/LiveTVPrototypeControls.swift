@@ -146,7 +146,6 @@ struct PrototypeTouchBrowseToolbar: ToolbarContent {
     let search: () -> Void
     let filters: () -> Void
     var multiviews: (() -> Void)?
-    let goToNow: () -> Void
     let cancelSelection: (() -> Void)?
     let accessory: AnyView?
 
@@ -178,26 +177,9 @@ struct PrototypeTouchBrowseToolbar: ToolbarContent {
                 Button("Filters", systemImage: "line.3.horizontal.decrease", action: filters)
                     .accessibilityValue(Text(verbatim: model.category ?? ""))
                     .accessibilityIdentifier("live-tv-category")
-                if !hasSidebar && !showsDirectory {
-                    Menu {
-                        if let multiviews {
-                            Button("Multiviews", systemImage: "rectangle.split.2x2", action: multiviews)
-                                .accessibilityIdentifier("live-tv-multiview-favorites")
-                        }
-                        if !isSearching {
-                            Button(action: goToNow) {
-                                Label {
-                                    Text("Now", comment: "Guide button that scrolls the timeline back to the programmes airing now.")
-                                } icon: {
-                                    Image(systemName: "arrow.right.and.line.vertical.and.arrow.left")
-                                }
-                            }
-                            .accessibilityIdentifier("live-tv-guide-now")
-                        }
-                    } label: {
-                        Label("More", systemImage: "ellipsis")
-                    }
-                    .accessibilityIdentifier("live-tv-guide-actions")
+                if !hasSidebar && !showsDirectory, let multiviews {
+                    Button("Multiviews", systemImage: "rectangle.split.2x2", action: multiviews)
+                        .accessibilityIdentifier("live-tv-multiview-favorites")
                 }
             }
             .labelStyle(.iconOnly)

@@ -117,9 +117,13 @@ final class LiveTVCategorySearchInteractionTests: XCTestCase {
             } else {
                 XCTAssertTrue(profile.isHittable, app.debugDescription)
             }
-            app.buttons["live-tv-guide-actions"].tap()
-            XCTAssertTrue(app.buttons["live-tv-multiview-favorites"].exists)
-            app.buttons["live-tv-guide-now"].tap()
+            XCTAssertFalse(app.buttons["live-tv-guide-actions"].exists)
+            XCTAssertFalse(app.buttons["live-tv-guide-now"].exists)
+            app.navigationBars.buttons["live-tv-multiview-favorites"].tap()
+            let close = app.buttons["live-tv-close-sheet"]
+            XCTAssertTrue(close.waitForExistence(timeout: 5))
+            close.tap()
+            XCTAssertTrue(close.waitForNonExistence(timeout: 5))
             app.buttons["live-tv-categories"].tap()
             XCTAssertTrue(tile.waitForExistence(timeout: 5))
             XCTAssertTrue(profile.isHittable)

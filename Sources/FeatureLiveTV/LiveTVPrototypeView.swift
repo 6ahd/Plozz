@@ -466,7 +466,6 @@ public struct LiveTVPrototypeView<PlayerContent: View>: View {
                     search: { if isSearching { closeSearch() } else { openSearch() } },
                     filters: { sheet = .filters },
                     multiviews: multiviewSelection == nil ? { sheet = .multiviewFavorites } : nil,
-                    goToNow: { nowRequest += 1 },
                     cancelSelection: multiviewSelection == nil ? nil : finishMultiviewSelection,
                     accessory: topBarAccessory
                 )
