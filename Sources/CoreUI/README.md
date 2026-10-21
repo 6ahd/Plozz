@@ -331,6 +331,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   digits keep their original circular size and Delete spans two columns at the
   same height. Mobile activation retains haptic feedback. Reduce Transparency
   and older OS versions retain the previous shared keypad fallback and exact key sizes.
+  Mobile PIN headings use native Title 2 bold, matching the profile picker.
+  The shared scaffold keeps this typography consistent across PIN flows;
+  tvOS retains its larger viewing-distance heading.
   The detail information band retains its darker 40%-opaque surface.
   Compact mobile detail metadata and actions reveal the page gradient instead
   of covering it with a solid rectangle; Gradient Off and Reduce Transparency

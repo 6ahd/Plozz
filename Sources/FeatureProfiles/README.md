@@ -57,6 +57,12 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   launch keeps that identity stable through PIN entry and cancellation.
   Cancelling a PIN returns to the retained picker, not Home. Authorization
   still belongs to the existing profile/Plex models.
+  Initial Plex verification stays on the selected tile with a native progress
+  indicator; the confirmed PIN or verification error then crossfades in without
+  sliding the whole backdrop. Profile positions stay stable through selection
+  and cancellation, while profile details still reflect live edits. Cancelling
+  verification keeps the picker open; an unprotected Plex user completes without
+  briefly showing a PIN page. Once a gate opens it remains through chained steps.
 - **Visible mobile entrance.** Launch waits for native presentation to finish;
   the cancellable in-app switcher starts during presentation instead of adding
   another pause afterward. Overlapping 450 ms native smooth springs use a subtle

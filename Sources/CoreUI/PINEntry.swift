@@ -36,7 +36,7 @@ enum PINMetrics {
     static let nameFont: Font = .title3.weight(.semibold)
     static let proseMaxWidth: CGFloat = 720
     #else
-    static let titleFont: Font = .largeTitle.bold()
+    static let titleFont: Font = .title2.weight(.bold)
     static let subtitleFont: Font = .body
     static let nameFont: Font = .headline
     static let proseMaxWidth: CGFloat = .infinity

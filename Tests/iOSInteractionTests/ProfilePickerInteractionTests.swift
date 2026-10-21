@@ -83,8 +83,13 @@ final class ProfilePickerInteractionTests: XCTestCase {
         app.launchArguments = ["--profile-selection-fixture"]
         app.launch()
         XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 10))
+        let pickerTitleHeight = app.staticTexts["Who’s watching?"].frame.height
         app.buttons["Protected"].tap()
         XCTAssertTrue(app.staticTexts["Enter your Plex PIN"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertEqual(
+            app.staticTexts["pin-entry-title"].frame.height, pickerTitleHeight, accuracy: 1,
+            "The PIN heading must match the profile picker's native title size."
+        )
         try assertHomeIsCovered()
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 5), app.debugDescription)
@@ -111,6 +116,62 @@ final class ProfilePickerInteractionTests: XCTestCase {
         let result = app.staticTexts["fixture-selection-result"]
         XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 8), app.debugDescription)
         XCTAssertEqual(result.label, "Selected")
+    }
+
+    func testPlexVerificationKeepsTheSelectedTileInPlaceUntilPINEntry() throws {
+        app.launchArguments = ["--profile-selection-fixture", "--slow-plex-check"]
+        app.launch()
+        let profile = app.buttons["Protected"]
+        XCTAssertTrue(profile.waitForExistence(timeout: 10))
+        let originalFrame = profile.frame
+        profile.tap()
+        XCTAssertTrue(verifyingProfile.waitForExistence(timeout: 2), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Who’s watching?"].exists)
+        XCTAssertFalse(app.otherElements["pin-requirement-check"].exists)
+        XCTAssertFalse(app.buttons["1"].exists)
+        XCTAssertFalse(app.buttons["Alex"].isEnabled)
+        XCTAssertFalse(app.buttons["profile-picker-edit"].isEnabled)
+        XCTAssertEqual(profile.frame.midX, originalFrame.midX, accuracy: 1)
+        XCTAssertEqual(profile.frame.midY, originalFrame.midY, accuracy: 1)
+        try assertHomeIsCovered()
+        XCTAssertTrue(app.staticTexts["Enter your Plex PIN"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["profile-picker-close"].exists)
+        XCTAssertEqual(app.buttons.matching(identifier: "Cancel").count, 1)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(profile.wait(for: \.isEnabled, toEqual: true, timeout: 5))
+        XCTAssertEqual(profile.frame.midX, originalFrame.midX, accuracy: 1)
+        XCTAssertEqual(profile.frame.midY, originalFrame.midY, accuracy: 1)
+        try assertHomeIsCovered()
+    }
+
+    func testCancellingPlexVerificationReturnsToPickerWithoutALatePIN() throws {
+        app.launchArguments = ["--profile-selection-fixture", "--slow-plex-check"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 10))
+        app.buttons["Protected"].tap()
+        XCTAssertTrue(verifyingProfile.waitForExistence(timeout: 2), app.debugDescription)
+        app.buttons["profile-picker-close"].tap()
+        XCTAssertTrue(app.buttons["Alex"].wait(for: \.isEnabled, toEqual: true, timeout: 5))
+        XCTAssertFalse(app.staticTexts["Enter your Plex PIN"].waitForExistence(timeout: 6))
+        try assertHomeIsCovered()
+        app.buttons["Alex"].tap()
+        XCTAssertTrue(app.staticTexts["fixture-selection-result"].wait(for: \.isHittable, toEqual: true, timeout: 5))
+    }
+
+    func testUnprotectedPlexVerificationCompletesWithoutAPINPage() throws {
+        app.launchArguments = [
+            "--profile-selection-fixture", "--slow-plex-check", "--unprotected-plex-check"
+        ]
+        app.launch()
+        XCTAssertTrue(app.buttons["Protected"].waitForExistence(timeout: 10))
+        app.buttons["Protected"].tap()
+        XCTAssertTrue(verifyingProfile.waitForExistence(timeout: 2), app.debugDescription)
+        XCTAssertFalse(app.buttons["1"].exists)
+        XCTAssertFalse(app.otherElements["pin-requirement-check"].exists)
+        try assertHomeIsCovered()
+        XCTAssertTrue(app.staticTexts["fixture-selection-result"].wait(for: \.isHittable, toEqual: true, timeout: 8))
+        XCTAssertEqual(app.staticTexts["fixture-selection-result"].label, "Selected")
+        XCTAssertFalse(app.staticTexts["Enter your Plex PIN"].exists)
     }
 
     func testLaunchPickerCancellationStaysInsideSelectionUntilAnotherProfileIsChosen() throws {
@@ -206,6 +267,10 @@ final class ProfilePickerInteractionTests: XCTestCase {
         let result = app.staticTexts["fixture-selection-result"]
         XCTAssertTrue(result.wait(for: \.isHittable, toEqual: true, timeout: 8), app.debugDescription)
         XCTAssertEqual(result.label, "Selected")
+    }
+
+    private var verifyingProfile: XCUIElement {
+        app.buttons.matching(NSPredicate(format: "value == %@", "Loading")).firstMatch
     }
 
     private func assertHomeIsCovered(file: StaticString = #filePath, line: UInt = #line) throws {

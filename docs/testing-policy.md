@@ -454,6 +454,9 @@ profile-to-Plex PIN sequencing, launch selection retention, and choosing again
 after cancellation targets a locked fallback. Existing profile locks and Plex
 requests must leave the picker visible until a profile is explicitly tapped;
 choosing another profile must not show the old target's PIN.
+Slow Plex verification stays on the selected tile without changing its position
+or showing a full-page checking interstitial. Cancellation must suppress late
+PIN presentation; confirmed unprotected users complete without a PIN page.
 A contrasting Home backdrop must stay covered
 and untappable until selection completes. Fixtures disable sync and use only
 synthetic host-sandbox profiles and in-memory Plex credentials.

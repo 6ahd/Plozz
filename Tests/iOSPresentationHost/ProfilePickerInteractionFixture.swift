@@ -109,12 +109,14 @@ struct ProfileSelectionInteractionFixture: View {
             preconditionFailure("Could not create synthetic account: \(error)")
         }
         let model = PlozziOSAppModel(accountStore: accounts, profileStore: store)
+        let slowCheck = ProcessInfo.processInfo.arguments.contains("--slow-plex-check")
+        let isProtected = !ProcessInfo.processInfo.arguments.contains("--unprotected-plex-check")
         model.plexHomeUsers.plexHomeUsersFetch = { _, _ in
-            try await Task.sleep(for: .milliseconds(350))
-            return [PlexHomeUser(id: "protected", name: "Protected", requiresPIN: true)]
+            try await Task.sleep(for: slowCheck ? .seconds(5) : .milliseconds(350))
+            return [PlexHomeUser(id: "protected", name: "Protected", requiresPIN: isProtected)]
         }
         model.plexHomeUsers.plexHomeUserSwitch = { _, pin, _, _ in
-            guard pin == "2468" else { throw URLError(.userAuthenticationRequired) }
+            guard pin == (isProtected ? "2468" : nil) else { throw URLError(.userAuthenticationRequired) }
             return "FIXTURE-CLOUD"
         }
         model.plexHomeUsers.plexServerTokenResolve = { _, _, _ in "FIXTURE-SERVER" }
