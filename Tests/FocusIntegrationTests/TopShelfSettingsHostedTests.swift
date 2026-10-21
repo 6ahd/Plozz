@@ -76,6 +76,16 @@ final class TopShelfSettingsHostedTests: XCTestCase {
         ] {
             XCTAssertTrue(text.localizedCaseInsensitiveContains(label), "Missing settings copy \(label): \(text)")
         }
+        let toggleTitle = try XCTUnwrap(request.results?.first {
+            $0.topCandidates(1).first?.string == "Show Top Shelf"
+        })
+        let description = try XCTUnwrap(request.results?.first {
+            $0.topCandidates(1).first?.string.hasPrefix("Place Plozz") == true
+        })
+        XCTAssertLessThan(description.boundingBox.maxY, toggleTitle.boundingBox.minY,
+                          "The description belongs beneath the toggle title, not above the control.")
+        XCTAssertEqual(description.boundingBox.minX, toggleTitle.boundingBox.minX, accuracy: 0.01,
+                       "The description should align with the toggle title inside its label.")
         let attachment = XCTAttachment(image: image)
         attachment.name = "Top Shelf device-wide settings"
         attachment.lifetime = .keepAlways

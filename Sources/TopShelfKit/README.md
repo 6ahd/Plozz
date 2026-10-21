@@ -21,7 +21,8 @@ container, where the Top Shelf extension reads it.
 
 Top Shelf preferences are device-local and shared by Plozz profiles. Settings →
 Everyone → Top Shelf explains the Apple TV Home Screen placement, offers a
-default-on **Show Top Shelf** switch, and exposes independent Continue Watching and Recently Added
+default-on **Show Top Shelf** switch with its explanation beneath the label, and
+exposes independent Continue Watching and Recently Added
 counts, each defaulting to 4 with a 1–20 range. The app applies the limits before
 resolving artwork, without changing provider order, content identity, library
 visibility, or the active profile's artwork policy. Editing either count

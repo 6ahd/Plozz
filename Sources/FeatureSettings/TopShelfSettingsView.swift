@@ -10,13 +10,17 @@ struct TopShelfSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
                 SettingsPageHeader("Top Shelf", subtitle: "Applies to everyone on this device.")
-                Text("Place Plozz in the top row of your Apple TV Home Screen to see Continue Watching and Recently Added titles above the app icons.")
-                    .font(SettingsRowMetrics.helperFont)
-                    .plozzForeground(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
                 SettingsControlGroup {
-                    Toggle("Show Top Shelf", isOn: $model.settings.isEnabled)
-                        .accessibilityIdentifier("top-shelf-enabled")
+                    Toggle(isOn: $model.settings.isEnabled) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Show Top Shelf")
+                            Text("Place Plozz in the top row of your Apple TV Home Screen to see Continue Watching and Recently Added titles above the app icons.")
+                                .font(SettingsRowMetrics.helperFont)
+                                .settingsRowSecondary()
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .accessibilityIdentifier("top-shelf-enabled")
                 }
                 if model.settings.isEnabled {
                     TopShelfStylePicker(usesFullScreen: $model.settings.usesFullScreen)
