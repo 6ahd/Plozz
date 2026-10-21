@@ -117,6 +117,13 @@ Provider-supported idempotency would be needed to eliminate that failure window.
 Older app versions must be upgraded to honor coordination.
 
 History sync is outbound; server resume state remains server-owned.
+Completed external-player callbacks use the same durable watch outbox as
+in-app playback. A connected movie/episode with insufficient identifiers is not
+considered delivered: the outbox reloads the original server item (and its series
+for episodes) under the same profile/server-user authorization before retrying.
+It never guesses a title match. Still-unidentifiable watches remain pending,
+with a safe diagnostic, without undoing successful server watched-state writes.
+Disconnected integrations and unsupported container kinds remain no-ops.
 
 ## Where to look first
 

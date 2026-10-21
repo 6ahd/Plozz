@@ -170,6 +170,35 @@ final class TraktScrobblerNetworkTests: XCTestCase {
         XCTAssertTrue(http.sentPaths.isEmpty, "No token → must not hit the network")
     }
 
+    func testDurableMissingIdentityThrowsWithoutSendingARequest() async {
+        let http = RecordingHTTPClient()
+        let scrobbler = makeScrobbler(http: http, tokens: validTokens())
+        var missingEpisodeNumbers = episode()
+        missingEpisodeNumbers.episodeNumber = nil
+        for item in [movie(imdb: nil), episode(tvdb: nil), missingEpisodeNumbers] {
+            do {
+                try await scrobbler.scrobbleResult(item: item, progress: 100, event: .stop)
+                XCTFail("Missing identity must not be acknowledged as delivered")
+            } catch {
+                XCTAssertEqual(error as? TraktScrobbleError, .unidentifiableItem)
+            }
+        }
+        XCTAssertTrue(http.sentPaths.isEmpty)
+    }
+
+    func testDisconnectedMissingIdentityAndUnsupportedTargetsRemainNoOps() async throws {
+        let http = RecordingHTTPClient()
+        let disconnected = makeScrobbler(http: http, tokens: nil)
+        try await disconnected.scrobbleResult(item: movie(imdb: nil), progress: 100, event: .stop)
+        let connected = makeScrobbler(http: http, tokens: validTokens())
+        for kind in [MediaItemKind.series, .season, .folder] {
+            let item = MediaItem(id: "container", title: "Container", kind: kind)
+            try await connected.scrobbleResult(item: item, progress: 100, event: .stop)
+        }
+        try await connected.scrobbleResult(item: movie(imdb: nil), progress: 50, event: .progress)
+        XCTAssertTrue(http.sentPaths.isEmpty)
+    }
+
     func testProgressEventIsNotScrobbled() async {
         let http = RecordingHTTPClient()
         http.stubEmpty(pathSuffix: "/scrobble/start")

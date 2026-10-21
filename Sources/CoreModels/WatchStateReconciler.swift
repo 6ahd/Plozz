@@ -27,6 +27,8 @@ public protocol WatchMutationApplying: Sendable {
     func removeFromContinueWatching(on target: WatchMutationTarget, capturedAt: Date) async throws
     /// Mirrors a finished watch to Trakt.
     func scrobbleTrakt(_ intent: TraktScrobbleIntent) async throws
+    /// The original server item remains available after its watched write succeeds.
+    func scrobbleTrakt(_ intent: TraktScrobbleIntent, source: WatchMutationTarget?) async throws
     /// Mirrors a finished watch to Simkl.
     func scrobbleSimkl(_ intent: TraktScrobbleIntent) async throws
     var wetrakrAccountIdentity: String? { get }
@@ -55,6 +57,9 @@ public extension WatchMutationApplying {
         try await setPlayed(played, on: target)
     }
     func expandTargets(for mutation: WatchMutation) async -> WatchTargetExpansion { .none }
+    func scrobbleTrakt(_ intent: TraktScrobbleIntent, source: WatchMutationTarget?) async throws {
+        try await scrobbleTrakt(intent)
+    }
     func scrobbleSimkl(_ intent: TraktScrobbleIntent) async throws {}
     var wetrakrAccountIdentity: String? { nil }
     func scrobbleWetrakr(
@@ -865,7 +870,7 @@ public actor WatchStateReconciler {
                 FanoutDiagnostics.emit("drain.trakt canonical=\(mutation.canonicalMediaID) -> skip(already applied this day)")
             } else {
                 do {
-                    try await applier.scrobbleTrakt(intent)
+                    try await applier.scrobbleTrakt(intent, source: mutation.optimisticTargets.first)
                     state.appliedTrakt[key] = now()
                     mutation.traktPending = false
                     FanoutDiagnostics.emit("drain.trakt canonical=\(mutation.canonicalMediaID) -> applied")
