@@ -163,7 +163,7 @@ final class MediaBadgeSizingTests: XCTestCase {
         XCTAssertEqual(size(of: row(balanced: true)).height, 88, accuracy: 0.5)
     }
 
-    func testRangeCapsulesUseFivePercentFillWhileAudioStaysClear() throws {
+    func testRangeCapsulesUseFifteenPercentFillWhileAudioStaysClear() throws {
         let rangeBadges = [
             MediaBadge("Dolby Vision", style: .dolby),
             MediaBadge("HDR10", style: .hdr),
@@ -186,7 +186,7 @@ final class MediaBadgeSizingTests: XCTestCase {
                 let pixels = try rgbaPixels(in: image)
                 let fillAlpha = Double(pixels[(3 * image.width + image.width / 2) * 4 + 3])
                 let foregroundAlpha = Double(UIColor(palette.primaryText).cgColor.alpha) * 255
-                let opacity = badge.style == .prominent ? 1.0 : badge.isAudio ? 0 : 0.05
+                let opacity = badge.style == .prominent ? 1.0 : badge.isAudio ? 0 : 0.15
                 XCTAssertEqual(fillAlpha, foregroundAlpha * opacity, accuracy: 1, badge.label)
                 XCTAssertEqual(image.height, badge.style == .prominent ? 22 : 26, badge.label)
                 if badge.style != .prominent {

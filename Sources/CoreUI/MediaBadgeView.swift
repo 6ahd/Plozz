@@ -140,7 +140,7 @@ public struct MediaBadgeChip: View {
         }
         .foregroundStyle(palette.primaryText)
         .frame(height: 26 * scale)
-        .background(badge.isAudio ? Color.clear : palette.primaryText.opacity(0.05))
+        .background(badge.isAudio ? Color.clear : palette.primaryText.opacity(0.15))
         .clipShape(Capsule())
         .overlay {
             Capsule().strokeBorder(palette.primaryText.opacity(0.72), lineWidth: scale)

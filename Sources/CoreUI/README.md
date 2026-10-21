@@ -558,7 +558,7 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   panel and accessibility label; the decorative mark is hidden from VoiceOver.
 - **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
   license), filled resolution badges, and matching outlined capsules for dynamic
-  range and audio. Dynamic-range capsules add a subtle 5% foreground tint
+  range and audio. Dynamic-range capsules add a 15% foreground tint
   (white in dark themes, dark in light themes); audio stays clear with attached
   channel segments. Format names are ordinary text, not vendor logo drawings.
   Refined compact uses 22-point resolution badges and 26-point other technical
