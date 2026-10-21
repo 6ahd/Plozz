@@ -3,6 +3,7 @@ import CoreSecureStore
 import FeatureAuth
 import Foundation
 import XCTest
+import TopShelfKit
 @testable import AppRuntime
 @testable import AppShell
 
@@ -87,6 +88,33 @@ final class AppAdmissionIntegrationTests: XCTestCase {
         XCTAssertFalse(harness.state.pendingStandaloneLiveTVEntry)
         XCTAssertEqual(harness.state.state, .onboarding(.selectingServer, canReturnToApp: false))
         XCTAssertEqual(harness.profiles.activeProfile.name, "Me")
+    }
+
+    func testTopShelfDetailsWaitForAdmissionWithoutBecomingAPlayRequest() throws {
+        let harness = try makeHarness()
+        harness.state.handle(url: TopShelf.itemDeepLink(id: "1", accountID: "plex", action: .details))
+        let request = try XCTUnwrap(harness.state.pendingPlay.request)
+        XCTAssertEqual(request.reference, .init(id: "1", accountID: "plex", action: .details))
+        XCTAssertFalse(harness.state.canEnterApp)
+        XCTAssertEqual(harness.state.pendingPlay.request, request)
+    }
+
+    func testTopShelfNewActionSupersedesEvenTheSameItemAndConsumesOnlyOnce() throws {
+        let harness = try makeHarness()
+        let pending = harness.state.pendingPlay
+        harness.state.handle(url: TopShelf.itemDeepLink(id: "1", accountID: "plex"))
+        let play = try XCTUnwrap(pending.request)
+        harness.state.handle(url: TopShelf.itemDeepLink(id: "1", accountID: "plex", action: .details))
+        let details = try XCTUnwrap(pending.request)
+        XCTAssertNotEqual(play.id, details.id)
+        XCTAssertFalse(pending.consume(play))
+        XCTAssertEqual(pending.request, details)
+        harness.state.handle(url: TopShelf.itemDeepLink(id: "1", accountID: "jellyfin", action: .details))
+        let otherAccount = try XCTUnwrap(pending.request)
+        XCTAssertFalse(pending.consume(details))
+        XCTAssertTrue(pending.consume(otherAccount))
+        XCTAssertFalse(pending.consume(otherAccount))
+        XCTAssertNil(pending.request)
     }
 
     func testPlexReconnectPreservesLegacyAccountProfileBindingsAndLibrarySelections() throws {
