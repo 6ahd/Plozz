@@ -71,7 +71,9 @@ art gets a neutral background. Episode titles, summaries and guest cast respect
 spoiler protection. Protected summaries show only the series name and season/episode
 number instead of leaving the native full-screen text area blank; missing
 identifiers fall back to the safe episode label, never the
-real episode title or synopsis. Only the selected style's artwork is resolved. Preview cards in
+real episode title or synopsis. Ratings also honor the independent hide-until-watched
+preference, using Home watch state rather than provider detail state.
+Only the selected style's artwork is resolved. Preview cards in
 Settings are schematic illustrations, never a second copy of profile media.
 Old settings and snapshots without a layout flag keep their poster presentation.
 

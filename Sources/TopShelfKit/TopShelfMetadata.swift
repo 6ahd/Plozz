@@ -53,9 +53,11 @@ enum TopShelfMetadata {
         append("Director", Array(people.filter { $0.kind?.lowercased() == "director" }.prefix(2).map { Optional($0.name) }))
         let studios = metadata.studios.isEmpty ? item.studios : metadata.studios
         append("Studio", Array(studios.prefix(2).map(Optional.some)))
-        let ratings = metadata.ratings.isEmpty && !metadata.usesProviderRatings ? item.ratings : metadata.ratings
-        append("Ratings", ratings.filter { $0.value.isFinite && $0.value >= 0 && $0.value <= $0.scale.maximum }
-            .sorted { $0.sortRank < $1.sortRank }.prefix(3).map { "\($0.displayName) \($0.displayValue)" })
+        if !spoilerSettings.shouldHideRatings(for: item) {
+            let ratings = metadata.ratings.isEmpty && !metadata.usesProviderRatings ? item.ratings : metadata.ratings
+            append("Ratings", ratings.filter { $0.value.isFinite && $0.value >= 0 && $0.value <= $0.scale.maximum }
+                .sorted { $0.sortRank < $1.sortRank }.prefix(3).map { "\($0.displayName) \($0.displayValue)" })
+        }
         snapshot.namedAttributes = attributes
     }
 

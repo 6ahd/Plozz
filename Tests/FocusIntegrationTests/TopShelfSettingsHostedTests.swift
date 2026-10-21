@@ -71,11 +71,12 @@ final class TopShelfSettingsHostedTests: XCTestCase {
         let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         for label in [
             "Top Shelf", "Show Top Shelf", "Continue Watching", "Recently Added",
-            "Applies to everyone on this device.", "top row", "Apple TV Home Screen", "above the app icons.",
+            "top row", "Apple TV Home Screen", "above the app icons.",
             "Posters", "Full Screen"
         ] {
             XCTAssertTrue(text.localizedCaseInsensitiveContains(label), "Missing settings copy \(label): \(text)")
         }
+        XCTAssertFalse(text.contains("Applies to everyone on this device."))
         let toggleTitle = try XCTUnwrap(request.results?.first {
             $0.topCandidates(1).first?.string == "Show Top Shelf"
         })

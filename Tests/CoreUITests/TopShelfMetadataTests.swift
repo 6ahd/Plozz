@@ -121,6 +121,21 @@ final class TopShelfMetadataTests: XCTestCase {
         XCTAssertEqual(metadata(item).mediaOptions, [])
     }
 
+    func testHiddenRatingsUseHomeWatchStateIndependentlyOfEpisodeTextProtection() {
+        var item = MediaItem(id: "1", title: "Example", kind: .movie)
+        var details = item
+        details.isPlayed = true
+        details.ratings = [.init(source: .imdb, value: 8.5, scale: .outOfTen)]
+        let preferences = SpoilerSettings(hideRatingsUntilWatched: true)
+        let ratings = [TopShelfSnapshot.NamedAttribute(name: "Ratings", values: ["IMDb 8.5"])]
+
+        XCTAssertEqual(metadata(item, details: details, spoilers: preferences).namedAttributes, [])
+        XCTAssertEqual(metadata(item, details: details).namedAttributes, ratings)
+        item.isPlayed = true
+        details.isPlayed = false
+        XCTAssertEqual(metadata(item, details: details, spoilers: preferences).namedAttributes, ratings)
+    }
+
     @MainActor
     func testDetailLookupsAreFullscreenOnlyLimitedAndDeduplicatedByAccount() async throws {
         let first = MediaItem(id: "1", title: "One", kind: .movie, sourceAccountID: "plex")

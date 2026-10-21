@@ -9,7 +9,7 @@ struct TopShelfSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SettingsFormMetrics.controlSpacing) {
-                SettingsPageHeader("Top Shelf", subtitle: "Applies to everyone on this device.")
+                SettingsPageHeader("Top Shelf")
                 SettingsControlGroup {
                     Toggle(isOn: $model.settings.isEnabled) {
                         VStack(alignment: .leading, spacing: 6) {

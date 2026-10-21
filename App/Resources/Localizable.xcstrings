@@ -338375,6 +338375,226 @@
         }
       }
     },
+    "Full Screen" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ملء الشاشة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Цял екран"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pantalla completa"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Celá obrazovka"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fuld skærm"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vollbild"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Πλήρης οθόνη"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pantalla completa"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تمام‌صفحه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koko näyttö"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plein écran"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מסך מלא"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "पूरी स्क्रीन"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cijeli zaslon"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Teljes képernyő"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Layar Penuh"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schermo intero"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "フルスクリーン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "전체 화면"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Skrin Penuh"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fullskjerm"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Volledig scherm"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pełny ekran"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tela cheia"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ecran complet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Во весь экран"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Celá obrazovka"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Celoten zaslon"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ceo ekran"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Helskärm"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เต็มหน้าจอ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tam ekran"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "На весь екран"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toàn màn hình"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "全屏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "全螢幕"
+          }
+        }
+      }
+    },
     "Full guide" : {
       "localizations" : {
         "ar" : {
@@ -525459,6 +525679,226 @@
         }
       }
     },
+    "Place Plozz in the top row of your Apple TV Home Screen to see Continue Watching and Recently Added titles above the app icons." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ضع Plozz في الصف العلوي من شاشة Apple TV الرئيسية لرؤية محتوى «متابعة المشاهدة» و«المضاف حديثًا» فوق أيقونات التطبيقات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Поставете Plozz в най-горния ред на началния екран на Apple TV, за да виждате заглавията от „Продължете да гледате“ и „Наскоро добавени“ над иконите на приложенията."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posa Plozz a la fila superior de la pantalla d’inici de l’Apple TV per veure els títols de «Continua mirant» i «Afegits recentment» a sobre de les icones de les aplicacions."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Umístěte Plozz do horní řady na ploše Apple TV, aby se nad ikonami aplikací zobrazily tituly z oddílů „Pokračovat ve sledování“ a „Nedávno přidané“."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Placer Plozz i den øverste række på hjemmeskærmen på Apple TV for at se titler fra »Se videre« og »Nyligt tilføjet« over appsymbolerne."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Platziere Plozz in der obersten Reihe des Home-Bildschirms deines Apple TV, um Titel aus „Weiterschauen“ und „Neu hinzugefügt“ oberhalb der App-Symbole zu sehen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Τοποθετήστε το Plozz στην επάνω σειρά της οθόνης Αφετηρίας του Apple TV για να βλέπετε τίτλους από τις ενότητες «Συνέχεια παρακολούθησης» και «Πρόσφατες προσθήκες» πάνω από τα εικονίδια των εφαρμογών."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Coloca Plozz en la fila superior de la pantalla de inicio del Apple TV para ver los títulos de «Seguir viendo» y «Añadidos recientemente» encima de los iconos de las apps."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "برای دیدن عنوان‌های بخش‌های «ادامهٔ تماشا» و «اخیراً اضافه شده» در بالای نمادهای برنامه‌ها، Plozz را در ردیف بالای صفحهٔ اصلی Apple TV قرار دهید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Siirrä Plozz Apple TV:n Koti-valikon ylimmälle riville, niin näet osioiden ”Jatka katsomista” ja ”Viimeksi lisätyt” nimikkeet sovelluskuvakkeiden yläpuolella."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Placez Plozz sur la rangée supérieure de l’écran d’accueil de votre Apple TV pour voir les titres des sections « Reprendre la lecture » et « Ajouts récents » au-dessus des icônes des apps."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "העבירו את Plozz לשורה העליונה במסך הבית של Apple TV כדי לראות כותרים מהקטגוריות ״המשך צפייה״ ו״נוספו לאחרונה״ מעל סמלי האפליקציות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ऐप आइकॉन के ऊपर “देखना जारी रखें” और “हाल ही में जोड़े गए” सेक्शन में मौजूद कॉन्टेंट देखने के लिए Plozz को अपने Apple TV की होम स्क्रीन की सबसे ऊपर वाली पंक्ति में रखें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Postavite Plozz u gornji red početnog zaslona uređaja Apple TV kako bi se iznad ikona aplikacija prikazivali naslovi iz odjeljaka „Nastavi gledati” i „Nedavno dodano”."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Helyezze a Plozz alkalmazást az Apple TV főképernyőjének legfelső sorába, hogy az alkalmazások ikonjai felett megjelenjenek a „Megtekintés folytatása” és a „Nemrég hozzáadott” szakaszok tartalmai."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tempatkan Plozz di baris teratas Layar Utama Apple TV untuk melihat tayangan dari “Lanjutkan Menonton” dan “Baru Ditambahkan” di atas ikon aplikasi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posiziona Plozz nella prima riga della schermata Home di Apple TV per vedere i titoli di «Continua a guardare» e «Aggiunti di recente» sopra le icone delle app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「続きを観る」と「最近追加」の作品をアプリのアイコンの上に表示するには、PlozzをApple TVのホーム画面の最上段に配置してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apple TV 홈 화면의 맨 위 줄에 Plozz를 배치하면 앱 아이콘 위에 ‘시청 중인 콘텐츠’와 ‘최근 추가’ 항목이 표시됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Letakkan Plozz pada baris paling atas Skrin Utama Apple TV anda untuk melihat tajuk dalam “Teruskan Menonton” dan “Ditambah Baru-baru Ini” di atas ikon aplikasi."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plasser Plozz i øverste rad på Hjem-skjermen på Apple TV for å se titler fra «Se videre» og «Nylig lagt til» over appikonene."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plaats Plozz in de bovenste rij van het beginscherm van je Apple TV om titels uit ‘Verder kijken’ en ‘Onlangs toegevoegd’ boven de appsymbolen te zien."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Umieść Plozz w górnym rzędzie na ekranie początkowym Apple TV, aby nad ikonami aplikacji wyświetlały się tytuły z sekcji „Oglądaj dalej” i „Ostatnio dodane”."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Coloque o Plozz na primeira fileira da Tela de Início da Apple TV para ver os títulos de “Continuar assistindo” e “Adicionados recentemente” acima dos ícones dos apps."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plasează Plozz în rândul de sus al ecranului principal de pe Apple TV pentru a vedea titlurile din „Continuă vizionarea” și „Adăugate recent” deasupra pictogramelor aplicațiilor."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Поместите Plozz в верхний ряд на экране «Домой» Apple TV, чтобы над значками приложений отображались материалы из разделов «Продолжить просмотр» и «Недавно добавленные»."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Presuňte Plozz do horného radu na ploche Apple TV, aby sa nad ikonami aplikácií zobrazovali tituly zo sekcií „Pokračovať v sledovaní“ a „Nedávno pridané“."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Premakni Plozz v zgornjo vrstico začetnega zaslona Apple TV, da se nad ikonami aplikacij prikažejo naslovi iz razdelkov »Nadaljuj z gledanjem« in »Nedavno dodano«."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Premesti Plozz u gornji red na početnom ekranu Apple TV uređaja da bi se iznad ikona aplikacija prikazivali naslovi iz odeljaka „Nastavi gledanje“ i „Nedavno dodato“."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Placera Plozz på den översta raden på hemskärmen på Apple TV för att se titlar från ”Fortsätt titta” och ”Nyligen tillagda” ovanför appsymbolerna."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "วาง Plozz ไว้ในแถวบนสุดของหน้าจอโฮมของ Apple TV เพื่อดูรายการใน “ดูต่อ” และ “เพิ่มล่าสุด” เหนือไอคอนแอป"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uygulama simgelerinin üzerinde “İzlemeye devam et” ve “Son eklenenler” bölümlerindeki içerikleri görmek için Plozz’u Apple TV ana ekranının en üst sırasına yerleştirin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Розмістіть Plozz у верхньому ряду головного екрана Apple TV, щоб бачити вміст розділів «Продовжити перегляд» і «Нещодавно додані» над значками програм."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Đặt Plozz ở hàng trên cùng của Màn hình chính Apple TV để xem các nội dung trong mục “Xem tiếp” và “Mới thêm” phía trên các biểu tượng ứng dụng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "将 Plozz 放在 Apple TV 主屏幕的最上方一行，即可在 App 图标上方看到“继续观看”和“最近添加”中的内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "將 Plozz 放在 Apple TV 主畫面的最上方一列，即可在 App 圖像上方看到「繼續觀看」和「最近新增」中的內容。"
+          }
+        }
+      }
+    },
     "Placement" : {
       "comment" : "Subtitle layout setting label for where the secondary subtitle track appears relative to the primary track.",
       "localizations" : {
@@ -549021,6 +549461,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Постер"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Áp phích"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "海报"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "海報"
+          }
+        }
+      }
+    },
+    "Posters" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ملصقات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Плакати"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pòsters"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakáty"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakater"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αφίσες"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pósteres"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "پوسترها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Julisteet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Affiches"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כרזות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "पोस्टर"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakati"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakátok"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ポスター"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "포스터"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poster"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakater"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posters"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakaty"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pôsteres"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afișe"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постеры"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plagáty"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plakati"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posteri"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Affischer"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "โปสเตอร์"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posterler"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Постери"
           }
         },
         "vi" : {
@@ -686084,6 +686744,226 @@
         }
       }
     },
+    "Show Top Shelf" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "إظهار Top Shelf"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Показване на Top Shelf"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mostra Top Shelf"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zobrazit Top Shelf"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vis Top Shelf"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Top Shelf anzeigen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Εμφάνιση Top Shelf"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mostrar Top Shelf"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نمایش Top Shelf"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Näytä Top Shelf"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afficher Top Shelf"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הצגת Top Shelf"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Top Shelf दिखाएं"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prikaži Top Shelf"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Top Shelf megjelenítése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tampilkan Top Shelf"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mostra Top Shelf"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Top Shelfを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Top Shelf 표시"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tunjukkan Top Shelf"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vis Top Shelf"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toon Top Shelf"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pokaż Top Shelf"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mostrar Top Shelf"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afișează Top Shelf"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Показывать Top Shelf"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zobraziť Top Shelf"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prikaži Top Shelf"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prikaži Top Shelf"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Visa Top Shelf"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แสดง Top Shelf"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Top Shelf’i göster"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Показувати Top Shelf"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hiển thị Top Shelf"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "显示 Top Shelf"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "顯示 Top Shelf"
+          }
+        }
+      }
+    },
     "Show Up Next card" : {
       "localizations" : {
         "ar" : {
@@ -742399,6 +743279,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "播放時滑動即可快速前後移動，放開後立即繼續播放──速度更快，但不慎的滑動可能會改變播放位置。"
+          }
+        }
+      }
+    },
+    "Swipe up on the Apple TV Home Screen to open the full-screen view. Continue Watching appears first, followed by Recently Added." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "اسحب لأعلى على جهاز التحكم لفتح العرض بملء الشاشة من شاشة Apple TV الرئيسية. تظهر «متابعة المشاهدة» أولًا، ثم «المضاف حديثًا»."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Плъзнете нагоре по дистанционното, за да отворите изгледа на цял екран от началния екран на Apple TV. Първо се показва „Продължете да гледате“, а след това — „Наскоро добавени“."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A la pantalla d’inici de l’Apple TV, llisca el dit cap amunt al comandament per obrir la vista a pantalla completa. Primer es mostra «Continua mirant» i després «Afegits recentment»."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na ploše Apple TV přejeďte na ovladači směrem nahoru a otevřete tak zobrazení na celé obrazovce. Nejprve se zobrazí „Pokračovat ve sledování“ a poté „Nedávno přidané“."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Stryg op på fjernbetjeningen, når du er på hjemmeskærmen på Apple TV, for at åbne fuldskærmsvisningen. »Se videre« vises først, efterfulgt af »Nyligt tilføjet«."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wische auf der Fernbedienung nach oben, um auf dem Home-Bildschirm von Apple TV die Vollbildansicht zu öffnen. „Weiterschauen“ erscheint zuerst, gefolgt von „Neu hinzugefügt“."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Στην οθόνη Αφετηρίας του Apple TV, σαρώστε προς τα πάνω στο τηλεχειριστήριο για να ανοίξετε την προβολή πλήρους οθόνης. Η ενότητα «Συνέχεια παρακολούθησης» εμφανίζεται πρώτη και ακολουθεί η ενότητα «Πρόσφατες προσθήκες»."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "En la pantalla de inicio del Apple TV, desliza hacia arriba en el mando para abrir la vista a pantalla completa. Primero aparece «Seguir viendo» y después «Añadidos recientemente»."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "در صفحهٔ اصلی Apple TV، انگشتتان را روی کنترل از راه دور به بالا بکشید تا نمای تمام‌صفحه باز شود. ابتدا «ادامهٔ تماشا» و سپس «اخیراً اضافه شده» نمایش داده می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pyyhkäise kaukosäätimen kosketuspinnalla ylöspäin Apple TV:n Koti-valikossa avataksesi koko näytön näkymän. Ensin näkyy ”Jatka katsomista” ja sitten ”Viimeksi lisätyt”."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Depuis l’écran d’accueil de l’Apple TV, balayez vers le haut sur la télécommande pour ouvrir la vue en plein écran. La section « Reprendre la lecture » apparaît en premier, suivie de la section « Ajouts récents »."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "במסך הבית של Apple TV, החליקו כלפי מעלה בשלט כדי לפתוח את התצוגה במסך מלא. תחילה מופיע ״המשך צפייה״ ולאחריו ״נוספו לאחרונה״."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apple TV की होम स्क्रीन पर पूरी स्क्रीन वाला दृश्य खोलने के लिए रिमोट पर ऊपर की ओर स्वाइप करें। पहले “देखना जारी रखें” और उसके बाद “हाल ही में जोड़े गए” दिखाई देते हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na početnom zaslonu uređaja Apple TV prijeđite prstom prema gore po dodirnoj površini daljinskog upravljača da biste otvorili prikaz preko cijelog zaslona. Prvo se prikazuje „Nastavi gledati”, a zatim „Nedavno dodano”."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Az Apple TV főképernyőjén legyintsen felfelé a távirányítón a teljes képernyős nézet megnyitásához. Először a „Megtekintés folytatása”, majd a „Nemrég hozzáadott” jelenik meg."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Di Layar Utama Apple TV, usap ke atas pada remote untuk membuka tampilan layar penuh. “Lanjutkan Menonton” ditampilkan terlebih dahulu, diikuti “Baru Ditambahkan”."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dalla schermata Home di Apple TV, scorri verso l’alto sul telecomando per aprire la vista a schermo intero. Viene mostrata prima la sezione «Continua a guardare», poi «Aggiunti di recente»."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apple TVのホーム画面で、リモコンのタッチ面を上にスワイプすると、フルスクリーン表示が開きます。「続きを観る」が最初に表示され、次に「最近追加」が表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apple TV 홈 화면에서 리모컨의 터치 표면을 위로 쓸어올려 전체 화면 보기를 여세요. ‘시청 중인 콘텐츠’가 먼저 표시되고 ‘최근 추가’가 이어서 표시됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pada Skrin Utama Apple TV, leret ke atas pada alat kawalan jauh untuk membuka paparan skrin penuh. “Teruskan Menonton” dipaparkan dahulu, diikuti oleh “Ditambah Baru-baru Ini”."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "På Hjem-skjermen på Apple TV sveiper du opp på fjernkontrollen for å åpne fullskjermvisningen. «Se videre» vises først, etterfulgt av «Nylig lagt til»."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veeg op het beginscherm van je Apple TV omhoog op de afstandsbediening om de weergave op volledig scherm te openen. ‘Verder kijken’ verschijnt eerst, gevolgd door ‘Onlangs toegevoegd’."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na ekranie początkowym Apple TV przesuń palcem w górę na pilocie, aby otworzyć widok pełnoekranowy. Najpierw pojawi się sekcja „Oglądaj dalej”, a następnie „Ostatnio dodane”."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na Tela de Início da Apple TV, deslize para cima no controle remoto para abrir a visualização em tela cheia. “Continuar assistindo” aparece primeiro, seguido de “Adicionados recentemente”."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pe ecranul principal de pe Apple TV, glisează în sus pe telecomandă pentru a deschide vizualizarea pe tot ecranul. Mai întâi apare „Continuă vizionarea”, apoi „Adăugate recent”."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "На экране «Домой» Apple TV проведите пальцем вверх по сенсорной поверхности пульта, чтобы открыть полноэкранный режим. Сначала отображается раздел «Продолжить просмотр», затем — «Недавно добавленные»."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keď ste na ploche Apple TV, potiahnite prstom nahor po diaľkovom ovládači, čím otvoríte zobrazenie na celú obrazovku. Najprv sa zobrazí sekcia „Pokračovať v sledovaní“, potom „Nedávno pridané“."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na začetnem zaslonu Apple TV podrsaj navzgor po daljinskem upravljalniku, da odpreš celozaslonski prikaz. Najprej se prikaže »Nadaljuj z gledanjem«, nato pa »Nedavno dodano«."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Na početnom ekranu Apple TV uređaja prevuci prstom nagore po daljinskom upravljaču da otvoriš prikaz preko celog ekrana. Prvo se prikazuje „Nastavi gledanje“, a zatim „Nedavno dodato“."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Svep uppåt på fjärrkontrollen när du är på hemskärmen på Apple TV för att öppna helskärmsvyn. ”Fortsätt titta” visas först, följt av ”Nyligen tillagda”."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ขณะอยู่ที่หน้าจอโฮมของ Apple TV ให้ปัดขึ้นบนรีโมทเพื่อเปิดมุมมองเต็มหน้าจอ โดย “ดูต่อ” จะแสดงก่อน ตามด้วย “เพิ่มล่าสุด”"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tam ekran görünümünü açmak için Apple TV ana ekranındayken kumandada parmağınızı yukarı kaydırın. Önce “İzlemeye devam et”, ardından “Son eklenenler” gösterilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "На головному екрані Apple TV проведіть пальцем угору по пульту, щоб відкрити повноекранний перегляд. Спочатку відображається розділ «Продовжити перегляд», а потім — «Нещодавно додані»."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khi ở Màn hình chính Apple TV, vuốt lên trên bề mặt cảm ứng của điều khiển từ xa để mở chế độ xem toàn màn hình. Mục “Xem tiếp” xuất hiện trước, tiếp theo là “Mới thêm”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "当 Apple TV 显示主屏幕时，在遥控器上向上轻扫即可打开全屏视图。首先显示“继续观看”，随后是“最近添加”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "當 Apple TV 顯示主畫面時，在遙控器上向上滑動即可開啟全螢幕檢視。首先顯示「繼續觀看」，接著是「最近新增」。"
           }
         }
       }
@@ -854728,6 +855828,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "USB"
+          }
+        }
+      }
+    },
+    "Unable to Open Title" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تعذّر فتح المحتوى"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Заглавието не може да се отвори"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No es pot obrir el títol"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Titul nelze otevřít"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Titlen kan ikke åbnes"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Titel kann nicht geöffnet werden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αδυναμία ανοίγματος τίτλου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No se puede abrir el título"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "باز کردن این عنوان ممکن نیست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nimikettä ei voida avata"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossible d’ouvrir ce titre"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לא ניתן לפתוח את הכותר"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "कॉन्टेंट नहीं खोला जा सका"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije moguće otvoriti naslov"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A tartalom nem nyitható meg"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak Dapat Membuka Tayangan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Impossibile aprire il titolo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "作品を開けません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "콘텐츠를 열 수 없음"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tidak Dapat Membuka Kandungan"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan ikke åpne tittelen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kan titel niet openen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nie można otworzyć tytułu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Não foi possível abrir o título"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Titlul nu a putut fi deschis"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не удалось открыть видео"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Titul sa nepodarilo otvoriť"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Naslova ni mogoče odpreti"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nije moguće otvoriti naslov"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kunde inte öppna titeln"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ไม่สามารถเปิดรายการได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "İçerik açılamıyor"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Не вдалося відкрити відео"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Không thể mở nội dung"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "无法打开内容"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "無法開啟內容"
           }
         }
       }
