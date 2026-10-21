@@ -196,7 +196,7 @@ public struct MediaBadgeChip: View {
 }
 
 extension MediaBadge {
-    var compactDisplayLabel: String {
+    var compactDisplayLabel: String {  // l10n:content - technical format/codec names and standard abbreviations
         switch label {
         case "Dolby Vision": "DV"
         case "Dolby Digital+": "DD+"
