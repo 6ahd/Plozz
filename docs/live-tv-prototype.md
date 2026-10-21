@@ -207,7 +207,9 @@ toggle is no longer shown or honored, including for existing sources. Its
 serialized value remains compatible with older clients. Previously opted-out
 URL accounts keep their saved channels while one background catalogue refresh
 recovers playlist-declared guides; failures retain the saved catalogue and
-normal retry backoff. Old imported-file accounts whose guide addresses were
+normal retry backoff. Once discovery finishes, the active guide rechecks source
+authorization and warms the recovered listings without requiring another source
+reload. Old imported-file accounts whose guide addresses were
 never retained require a replacement file or a custom guide URL.
 
 Xtream and playlist playback follow provider-issued HTTP(S) redirects to
@@ -293,6 +295,8 @@ native listings are retained. Working explicit guides remain preferred. If an
 explicit Xtream guide returns HTTP 404, other configured guides are tried in
 order before one attempt at the account's standard `xmltv.php` for uncovered
 channels. A default URL already in the configured list is not requested again.
+Its successful partial or empty result is retained rather than treated as a
+missing endpoint.
 This recovery does not fan out into per-channel native API requests, does not
 apply to playlist/file accounts, and does not replace a working but empty guide.
 An unavailable endpoint is not retried once per remaining channel in the batch.

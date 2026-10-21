@@ -1011,6 +1011,42 @@ final class IPTVIntegrationTests: XCTestCase {
         XCTAssertFalse(IPTVFixture.state.requests.contains { $0.url?.query?.contains("get_simple_data_table") == true })
     }
 
+    func testConfiguredStandardGuidePreservesSuccessfulPartialAndEmptyCoverageAfterAnother404() async throws {
+        for hasListing in [true, false] {
+            IPTVFixture.state.reset()
+            let missing = try XCTUnwrap(URL(string: "https://cdn.test/missing.xml"))
+            var components = try XCTUnwrap(URLComponents(string: "https://provider.test/prefix/xmltv.php"))
+            components.queryItems = [
+                .init(name: "username", value: "fixture-user"), .init(name: "password", value: "fixture-password")
+            ]
+            let standard = try XCTUnwrap(components.url)
+            IPTVFixture.state.handler = { request in
+                if request.url == missing { return (404, [:], Data()) }
+                if request.url == standard { return (200, [:], Data("<tv/>".utf8)) }
+                if request.url?.query?.contains("action=get_live_streams") == true {
+                    return (200, [:], Data(#"[{"stream_id":10,"name":"News"},{"stream_id":11,"name":"Sports"}]"#.utf8))
+                }
+                return try Self.xtream(request)
+            }
+            let provider = try await makeXtreamGuideProvider(
+                guideURL: missing, additionalGuideURLs: [standard]
+            ) { _, url, _, from, to in
+                XCTAssertEqual(url, standard)
+                return hasListing
+                    ? [.init(id: "recovered", channelID: "live:10", title: "Recovered", startDate: from, endDate: to)]
+                    : []
+            }
+            let programmes = try await provider.liveTVGuide(
+                channelIDs: ["live:10", "live:11"],
+                from: Date(timeIntervalSince1970: 100), to: Date(timeIntervalSince1970: 500)
+            )
+            XCTAssertEqual(programmes.map(\.title), hasListing ? ["Recovered"] : [])
+            XCTAssertEqual(IPTVFixture.state.requests.filter { $0.url == standard }.count, 1)
+            XCTAssertFalse(IPTVFixture.state.requests.contains { $0.url?.query?.contains("get_simple_data_table") == true })
+            await provider.teardown()
+        }
+    }
+
     func testMissingGuideReuseIsScopedToRefreshAndClientAndNeverMasksCancellation() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

@@ -8,6 +8,9 @@ public protocol ServerLiveTVProviding: Sendable {
     func liveTVAvailability() async throws -> ServerLiveTVAvailability
     /// Explicit source refreshes must not reuse an adapter's still-fresh channel catalog.
     func refreshLiveTVAvailability() async throws -> ServerLiveTVAvailability
+    /// Complete already-started startup guide discovery after publishing saved channels.
+    /// Returns nil when no capability update is needed; must not start another catalog download.
+    func completeLiveTVGuideDiscovery() async throws -> Bool?
     func liveTVChannels() async throws -> [ServerLiveTVChannel]
     /// A window of at most 48 hours and 2,000 provider-local channel IDs.
     /// Prefer visible channels: some servers expose only per-channel/day EPG
@@ -22,6 +25,7 @@ public protocol ServerLiveTVProviding: Sendable {
 
 public extension ServerLiveTVProviding {
     func cachedLiveTVCatalog() async throws -> ServerLiveTVCatalogSnapshot? { nil }
+    func completeLiveTVGuideDiscovery() async throws -> Bool? { nil }
 
     func refreshLiveTVAvailability() async throws -> ServerLiveTVAvailability {
         try await liveTVAvailability()

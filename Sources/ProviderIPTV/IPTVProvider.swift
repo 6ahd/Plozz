@@ -267,6 +267,10 @@ public final class IPTVProvider: MediaProvider, CapabilityReporting, MediaSortFi
         return try await liveTVAvailability()
     }
 
+    public func completeLiveTVGuideDiscovery() async throws -> Bool? {
+        try await client.completeGuideDiscovery()
+    }
+
     public func liveTVChannels() async throws -> [ServerLiveTVChannel] {
         try await client.liveChannels()
     }
@@ -368,6 +372,7 @@ public final class IPTVProvider: MediaProvider, CapabilityReporting, MediaSortFi
         }
         var result: [ServerLiveTVProgramme] = []
         var covered = Set<String>()
+        var successfulURLs = Set<URL>()
         let credential = await client.credential
         let canRecoverMissingGuide = credential.mode == .xtream && !credential.explicitGuideURLs.isEmpty
         var missingGuide = false
@@ -380,6 +385,7 @@ public final class IPTVProvider: MediaProvider, CapabilityReporting, MediaSortFi
                 )
                 result += programmes
                 covered.formUnion(programmes.map(\.channelID))
+                successfulURLs.insert(url)
             } catch AppError.notFound where canRecoverMissingGuide {
                 missingGuide = true
             }
@@ -387,9 +393,9 @@ public final class IPTVProvider: MediaProvider, CapabilityReporting, MediaSortFi
         let remaining = channels.filter { !covered.contains($0.id) }
         if missingGuide, !remaining.isEmpty {
             try Task.checkCancellation()
-            guard let fallback = try await client.xtreamGuideURL(), !urls.contains(fallback) else {
-                throw AppError.notFound
-            }
+            guard let fallback = try await client.xtreamGuideURL() else { throw AppError.notFound }
+            if successfulURLs.contains(fallback) { return result }
+            guard !urls.contains(fallback) else { throw AppError.notFound }
             // Use one whole-guide endpoint, never a per-channel recovery fan-out.
             diagnostics.fallback(.unavailable, channels: remaining.count)
             result += try await loadXMLTVGuide(

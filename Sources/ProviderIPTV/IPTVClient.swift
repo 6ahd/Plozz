@@ -14,6 +14,8 @@ actor IPTVClient {
     private var refreshHasBackgroundOwner = false
     private var refreshRetryAfter: [String: Date] = [:]
     private var refreshWaiters: [UUID: CheckedContinuation<Void, Error>] = [:]
+    private let awaitsLegacyGuideDiscovery: Bool
+    private var guideDiscoveryResult: Result<Void, Error>?
     private var authenticatedAt: Date?
     private var liveExtension = "ts"
     private var cachedGuide: (url: URL, data: Data, expires: Date)?
@@ -53,6 +55,9 @@ actor IPTVClient {
             url: directory.appendingPathComponent(credential.identity.uuidString + ".sqlite"),
             key: credential.catalogKey
         )
+        awaitsLegacyGuideDiscovery = try credential.mode == .playlist
+            && !credential.automaticallyDiscoversGuides && credential.explicitGuideURLs.isEmpty
+            && catalog.state(Self.playlistCatalogScope) == nil
     }
 
     func authenticate() async throws {
@@ -168,6 +173,9 @@ actor IPTVClient {
                 PlozzLog.networking.error("IPTV catalogue refresh failed reason=\(reason)")
                 HandoffDiagnostics.emit("IPTV catalogRefresh failed reason=\(reason) elapsed=\(started.duration(to: .now))")
                 result = .failure(error)
+            }
+            if awaitsLegacyGuideDiscovery, scope == Self.playlistCatalogScope {
+                guideDiscoveryResult = result
             }
             self.refresh = nil
             self.refreshScope = nil
@@ -631,6 +639,18 @@ actor IPTVClient {
     func hasGuideSource() async throws -> Bool {
         if credential.mode == .xtream || !credential.explicitGuideURLs.isEmpty { return true }
         try await ensureCatalog("live")
+        return try catalog.count(where: "kind = ?", values: [MediaItemKind.unknown.rawValue]) > 0
+    }
+
+    func completeGuideDiscovery() async throws -> Bool? {
+        guard awaitsLegacyGuideDiscovery else { return nil }
+        if refresh != nil, refreshScope == Self.playlistCatalogScope {
+            try await waitForRefresh()
+        } else {
+            guard let guideDiscoveryResult else { return nil }
+            try guideDiscoveryResult.get()
+        }
+        try Task.checkCancellation()
         return try catalog.count(where: "kind = ?", values: [MediaItemKind.unknown.rawValue]) > 0
     }
 
