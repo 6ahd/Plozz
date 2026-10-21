@@ -38,11 +38,12 @@ public struct WrappingHStackLayout: Layout {
         subviews: Subviews,
         cache: inout Void
     ) -> CGSize {
+        // Match makeRows' addition order so rounding cannot wrap a row at its own natural width.
         let naturalWidth = subviews.indices.reduce(CGFloat.zero) {
             partial, index in
             partial
-                + subviews[index].sizeThatFits(.unspecified).width
                 + (index == subviews.startIndex ? 0 : spacing(before: index, subviews: subviews))
+                + subviews[index].sizeThatFits(.unspecified).width
         }
         let maxWidth = finiteWidth(
             from: proposal.width,

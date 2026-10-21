@@ -69,7 +69,8 @@ actor IPTVClient {
             return
         }
         if credential.mode == .playlist {
-            let (bytes, response) = try await http.bytes(url: credential.address, headers: credential.headers)
+            let url = GoogleDrivePlaylistURL.downloadURL(for: credential.address)
+            let (bytes, response) = try await http.bytes(url: url, headers: credential.headers(for: url))
             defer { bytes.task.cancel() }
             var parser = M3UPlaylistParser(
                 baseURL: response.url ?? credential.address, permitsAuthenticationHeaders: true
@@ -342,7 +343,8 @@ actor IPTVClient {
             origin = credential.address
             bytes = nil
         } else {
-            let response = try await http.bytes(url: credential.address, headers: credential.headers)
+            let url = GoogleDrivePlaylistURL.downloadURL(for: credential.address)
+            let response = try await http.bytes(url: url, headers: credential.headers(for: url))
             bytes = response.0
             origin = response.1.url ?? credential.address
         }
