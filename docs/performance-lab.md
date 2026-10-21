@@ -101,6 +101,15 @@ badges, and changing playback progress. Each sample uses cold geometry. The
 distinct-bitmap counter exposes redundant synchronous rendering separately from
 wall/CPU time; `native-poster-composition` covers source artwork, not this path.
 
+`poster-preview-admission` exercises the shared preview gate used by media rows
+and mobile Home. It visits overlapping 16-item look-ahead windows three times per
+position, traversing 181 posters forward and backward for each of Jellyfin,
+Emby, Plex, and TMDB URL shapes. Every sample verifies the complete nearest-first
+queue of 1,448 previews; counters distinguish 70,584 candidate visits from actual
+URL comparisons. This isolates synchronous admission/URL work, without network
+requests, image decoding, UI layout, or a claim about the duration of a reported
+device hang.
+
 ## Native Home navigation attribution
 
 For focus/scroll lag rather than isolated work counts, run the production Home
