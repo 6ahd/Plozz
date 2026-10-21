@@ -378,6 +378,11 @@ final class MediaBadgeSizingTests: XCTestCase {
         let iconSlot: CGFloat = 32
         let font = Font.system(size: 23, weight: .medium)
         #endif
+        #if os(tvOS)
+        let iconGap: CGFloat = -1
+        #else
+        let iconGap: CGFloat = 4
+        #endif
         for locale in [Locale(identifier: "en_US"), Locale(identifier: "fr_FR")] {
             for age in [14.0, 14.5] {
                 let badge = FamilyGuidanceAgeBadge(age: age)
@@ -392,7 +397,7 @@ final class MediaBadgeSizingTests: XCTestCase {
                     .environment(\.dynamicTypeSize, .large)
                 let textSize = size(of: text)
                 let badgeSize = size(of: badge)
-                XCTAssertEqual(badgeSize.width, iconSlot + 4 + textSize.width, accuracy: 0.5)
+                XCTAssertEqual(badgeSize.width, iconSlot + iconGap + textSize.width, accuracy: 0.5)
                 XCTAssertEqual(badgeSize.height, max(iconSlot, textSize.height), accuracy: 0.5)
 
                 let renderer = ImageRenderer(content: badge)
@@ -408,6 +413,35 @@ final class MediaBadgeSizingTests: XCTestCase {
             }
         }
     }
+
+    #if os(tvOS)
+    func testFamilyGuidanceMarkStaysVisuallyCloseToItsAge() throws {
+        for palette in [ThemePalette.dark, .light] {
+            let renderer = ImageRenderer(content: FamilyGuidanceAgeBadge(age: 11)
+                .environment(\.themePalette, palette)
+                .environment(\.locale, Locale(identifier: "en_US"))
+                .environment(\.dynamicTypeSize, .large))
+            renderer.scale = 4
+            let image = try XCTUnwrap(renderer.uiImage?.cgImage)
+            let pixels = try rgbaPixels(in: image)
+            let iconEnd = Int(32 * renderer.scale)
+            func hasInk(at x: Int) -> Bool {
+                (0..<image.height).contains { y in
+                    pixels[(y * image.width + x) * 4 + 3] > 127
+                }
+            }
+            let markEdge = try XCTUnwrap((0..<iconEnd).last(where: hasInk))
+            let ageEdge = try XCTUnwrap((iconEnd..<image.width).first(where: hasInk))
+            let visualGap = CGFloat(ageEdge - markEdge - 1) / renderer.scale
+            XCTAssertGreaterThanOrEqual(visualGap, 4)
+            XCTAssertLessThanOrEqual(visualGap, 6)
+            let attachment = XCTAttachment(image: UIImage(cgImage: image, scale: renderer.scale, orientation: .up))
+            attachment.name = palette.isLight ? "common-sense-age-light" : "common-sense-age-dark"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+    #endif
 
     private func rgbaPixels(in image: CGImage) throws -> [UInt8] {
         var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)

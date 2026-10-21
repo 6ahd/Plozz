@@ -56,7 +56,7 @@ public struct FamilyGuidanceAgeBadge: View {
     }
 
     public var body: some View {
-        HStack(spacing: MetadataBadgeSpacing.iconToValue * badgeScale) {
+        HStack(spacing: iconToAgeSpacing) {
             FamilyGuidanceIcon(size: iconSize)
             Text(verbatim: age.formatted(.number.locale(locale).precision(.fractionLength(0...1))) + "+")
                 .font(valueFont)
@@ -71,6 +71,15 @@ public struct FamilyGuidanceAgeBadge: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Common Sense Media, recommended age \(age, format: .number.precision(.fractionLength(0...1))) and older")
         .accessibilityIdentifier("family-guidance-age-badge")
+    }
+
+    private var iconToAgeSpacing: CGFloat {
+        #if os(tvOS)
+        // Compensate the artwork's trailing inset without resizing the mark.
+        -1
+        #else
+        MetadataBadgeSpacing.iconToValue * badgeScale
+        #endif
     }
 
     private var iconSize: CGFloat {

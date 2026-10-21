@@ -552,9 +552,11 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   detail. Family guidance uses the Common Sense circle/check artwork, with a
   palette-selected light/dark variant shared by the inline age and guidance panel.
   The inline mark retains its original 32 points on TV and 24 Dynamic Type-scaled
-  points on mobile, with a 4-point scaled gap to the age and no extra frame or
-  padding. Age text matches neighboring review scores'
-  medium weight. Review icons use the same 4-point scaled icon-to-value gap.
+  points on mobile. TV uses a 1-point optical overlap of the transparent insets,
+  keeping the visible mark close to its age; mobile retains its
+  4-point scaled gap. Neither adds an outer frame or padding. Age text matches
+  neighboring review scores' medium weight. Review icons use the same 4-point
+  scaled icon-to-value gap.
   Full Common Sense Media attribution remains in the guidance
   panel and accessibility label; the decorative mark is hidden from VoiceOver.
 - **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
