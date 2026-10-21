@@ -55,13 +55,14 @@ public struct RatingsBadgeRow: View {
 public struct FamilyGuidanceAgeBadge: View {
     private let age: Double
     @Environment(\.locale) private var locale
+    @ScaledMetric(relativeTo: .subheadline) private var mobileScale: CGFloat = 1
 
     public init(age: Double) {
         self.age = age
     }
 
     public var body: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 4 * badgeScale) {
             FamilyGuidanceIcon(size: iconSize)
             Text(verbatim: age.formatted(.number.locale(locale).precision(.fractionLength(0...1))) + "+")
                 .font(valueFont)
@@ -76,17 +77,25 @@ public struct FamilyGuidanceAgeBadge: View {
 
     private var iconSize: CGFloat {
         #if os(iOS)
-        24
+        24 * badgeScale
         #else
         32
         #endif
     }
 
+    private var badgeScale: CGFloat {
+        #if os(iOS)
+        mobileScale
+        #else
+        1
+        #endif
+    }
+
     private var valueFont: Font {
         #if os(iOS)
-        .subheadline.weight(.semibold)
+        .subheadline.weight(.medium)
         #else
-        .system(size: 23, weight: .semibold)
+        .system(size: 23, weight: .medium)
         #endif
     }
 }

@@ -549,9 +549,31 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   the player (`FeaturePlayback`'s in-player Style screen), not via a shared
   Settings card.
 - **Cast & metadata cards** — `CastRowView` and friends, used by Home /
-  detail. Common Sense marks keep a transparent background in every theme;
-  the palette selects dark checkmark ink in Light and white ink in dark themes,
-  preserving the green ring and the existing optical size.
+  detail. Family guidance uses the Common Sense circle/check artwork, with a
+  palette-selected light/dark variant shared by the inline age and guidance panel.
+  The inline mark retains its original 32 points on TV and 24 Dynamic Type-scaled
+  points on mobile, with a 4-point scaled gap to the age and no extra frame or
+  padding. Age text matches neighboring review scores'
+  medium weight. Full Common Sense Media attribution remains in the guidance
+  panel and accessibility label; the decorative mark is hidden from VoiceOver.
+- **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
+  license), filled resolution badges, and matching outlined capsules for dynamic
+  range and audio. Dynamic-range capsules add a 15% foreground tint
+  (white in dark themes, dark in light themes); audio stays clear with attached
+  channel segments. Format names are ordinary text, not vendor logo drawings.
+  Refined compact uses 22-point resolution badges and 26-point other technical
+  badges with 15-point main text, short display
+  names (DV, DD+, DD, TrueHD, Atmos), and full source names in accessibility.
+  Mobile metadata wrappers retain an 18-point baseline height for both.
+  Resolution padding is 6 points; capsule outer padding is 8 points, with
+  4 points on either side of the channel divider and 7 after the channels.
+  Adjacent technical badges use an 8-point scaled gap without tightening the
+  surrounding ratings/facts or grouping badges into an unbreakable row.
+  Resolution and picture precede audio; codec and spatial capability may both
+  describe one stream. Representative audio keeps the codec, channels and
+  capability from one source instead of combining incompatible files' facts.
+  Missing facts remain missing; filenames do not invent HDR or audio badges.
+  Compact metadata badges follow the surrounding text's Dynamic Type scale.
 - **Detail information focus** — the tvOS About/Ratings/Information band uses
   native focus with at most 2% growth and 6pt of expansion per edge, leaving
   clearance in its 18pt gutters. Focused read-only cards and card buttons draw

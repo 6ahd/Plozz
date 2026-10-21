@@ -4,7 +4,7 @@ import CryptoKit
 import Foundation
 
 actor IPTVClient {
-    private static let playlistCatalogScope = "playlist-v4"
+    private static let playlistCatalogScope = "playlist-v5"
     let credential: IPTVCredential
     private let http: IPTVHTTP
     private let artworkSecrets: [String]
@@ -14,9 +14,21 @@ actor IPTVClient {
     private var refreshHasBackgroundOwner = false
     private var refreshRetryAfter: [String: Date] = [:]
     private var refreshWaiters: [UUID: CheckedContinuation<Void, Error>] = [:]
+    private let awaitsLegacyGuideDiscovery: Bool
+    private var guideDiscoveryResult: Result<Void, Error>?
     private var authenticatedAt: Date?
     private var liveExtension = "ts"
     private var cachedGuide: (url: URL, data: Data, expires: Date)?
+    private var guideCacheExpiry: Task<Void, Never>?
+    private var guideCacheGeneration = UUID()
+    var cachedGuideByteCount: Int { cachedGuide?.data.count ?? 0 }
+    private final class GuideRefreshState {
+        weak var scope: ServerLiveTVGuideRefreshScope?
+        var missingURLs = Set<URL>()
+
+        init(scope: ServerLiveTVGuideRefreshScope) { self.scope = scope }
+    }
+    private var guideRefreshes: [ObjectIdentifier: GuideRefreshState] = [:]
     private let progress: @Sendable (IPTVImportProgress) -> Void
     var pendingCatalogRequestCount: Int { refreshWaiters.count }
     private var didReclaimJournal = false
@@ -43,6 +55,9 @@ actor IPTVClient {
             url: directory.appendingPathComponent(credential.identity.uuidString + ".sqlite"),
             key: credential.catalogKey
         )
+        awaitsLegacyGuideDiscovery = try credential.mode == .playlist
+            && !credential.automaticallyDiscoversGuides && credential.explicitGuideURLs.isEmpty
+            && catalog.state(Self.playlistCatalogScope) == nil
     }
 
     func authenticate() async throws {
@@ -103,7 +118,10 @@ actor IPTVClient {
             // Freshness controls revalidation, not availability of committed data.
             // Missing or old-schema catalogues must still finish their first import.
             if !force, let committedAt = try catalogCommittedAt(scope) {
-                if Date().timeIntervalSince(committedAt) >= 1_800, refresh == nil,
+                let needsGuideDiscovery = try credential.mode == .playlist
+                    && !credential.automaticallyDiscoversGuides && credential.explicitGuideURLs.isEmpty
+                    && catalog.state(Self.playlistCatalogScope) == nil
+                if needsGuideDiscovery || Date().timeIntervalSince(committedAt) >= 1_800, refresh == nil,
                    refreshRetryAfter[scope].map({ $0 <= Date() }) != false {
                     startRefresh(library, scope: scope, background: true)
                 }
@@ -156,6 +174,9 @@ actor IPTVClient {
                 HandoffDiagnostics.emit("IPTV catalogRefresh failed reason=\(reason) elapsed=\(started.duration(to: .now))")
                 result = .failure(error)
             }
+            if awaitsLegacyGuideDiscovery, scope == Self.playlistCatalogScope {
+                guideDiscoveryResult = result
+            }
             self.refresh = nil
             self.refreshScope = nil
             self.refreshHasBackgroundOwner = false
@@ -183,7 +204,10 @@ actor IPTVClient {
     }
 
     private func catalogCommittedAt(_ scope: String) throws -> Date? {
-        guard let raw = try catalog.state(scope), let time = TimeInterval(raw), time.isFinite else { return nil }
+        // v4 channels remain usable while the retired guide opt-out is refreshed in the background.
+        var raw = try catalog.state(scope)
+        if raw == nil, scope == Self.playlistCatalogScope { raw = try catalog.state("playlist-v4") }
+        guard let raw, let time = TimeInterval(raw), time.isFinite else { return nil }
         return Date(timeIntervalSince1970: time)
     }
 
@@ -377,7 +401,7 @@ actor IPTVClient {
             progress(IPTVImportProgress(stage: .playlist, entries: count))
             // Addresses are kept in a sealed catalogue record, never plaintext state.
             let guides = credential.explicitGuideURLs.isEmpty
-                ? (credential.automaticallyDiscoversGuides ? result.declaredGuideURLs : []) : credential.explicitGuideURLs
+                ? result.declaredGuideURLs : credential.explicitGuideURLs
             for (index, guide) in guides.prefix(32).enumerated() {
                 try catalog.insert(IPTVRecord(
                     item: MediaItem(id: String(format: "guide:%02d", index), title: "", kind: .unknown),
@@ -598,7 +622,7 @@ actor IPTVClient {
 
     func guideURLs() async throws -> [URL] {
         if !credential.explicitGuideURLs.isEmpty { return credential.explicitGuideURLs }
-        if credential.mode == .xtream { return [try endpoint(file: "xmltv.php")] }
+        if let url = try xtreamGuideURL() { return [url] }
         try await ensureCatalog("live")
         let guides = try catalog.records(where: "kind = ?", values: [MediaItemKind.unknown.rawValue], order: "id", limit: 32)
             .compactMap(\.streamURL)
@@ -608,9 +632,25 @@ actor IPTVClient {
         return guides
     }
 
+    func xtreamGuideURL() throws -> URL? {
+        credential.mode == .xtream ? try endpoint(file: "xmltv.php") : nil
+    }
+
     func hasGuideSource() async throws -> Bool {
         if credential.mode == .xtream || !credential.explicitGuideURLs.isEmpty { return true }
         try await ensureCatalog("live")
+        return try catalog.count(where: "kind = ?", values: [MediaItemKind.unknown.rawValue]) > 0
+    }
+
+    func completeGuideDiscovery() async throws -> Bool? {
+        guard awaitsLegacyGuideDiscovery else { return nil }
+        if refresh != nil, refreshScope == Self.playlistCatalogScope {
+            try await waitForRefresh()
+        } else {
+            guard let guideDiscoveryResult else { return nil }
+            try guideDiscoveryResult.get()
+        }
+        try Task.checkCancellation()
         return try catalog.count(where: "kind = ?", values: [MediaItemKind.unknown.rawValue]) > 0
     }
 
@@ -631,6 +671,31 @@ actor IPTVClient {
     }
 
     func guideData(from url: URL) async throws -> Data {
+        try Task.checkCancellation()
+        guideRefreshes = guideRefreshes.filter { $0.value.scope != nil }
+        let refresh: GuideRefreshState?
+        if let scope = ServerLiveTVGuideRefreshScope.current {
+            let key = ObjectIdentifier(scope)
+            let state = guideRefreshes[key] ?? GuideRefreshState(scope: scope)
+            guideRefreshes[key] = state
+            refresh = state
+        } else {
+            refresh = nil
+        }
+        if refresh?.missingURLs.contains(url) == true {
+            IPTVGuideDiagnostics.request?.reuseMissingGuide()
+            throw AppError.notFound
+        }
+        do {
+            return try await downloadGuideData(from: url)
+        } catch AppError.notFound {
+            try Task.checkCancellation()
+            refresh?.missingURLs.insert(url)
+            throw AppError.notFound
+        }
+    }
+
+    private func downloadGuideData(from url: URL) async throws -> Data {
         if let cachedGuide, cachedGuide.url == url, cachedGuide.expires > Date() {
             IPTVGuideDiagnostics.request?.cacheHit(bytes: cachedGuide.data.count)
             return cachedGuide.data
@@ -655,15 +720,46 @@ actor IPTVClient {
         let maxAge = directives.first { $0.hasPrefix("max-age=") }
             .flatMap { Double($0.dropFirst(8).trimmingCharacters(in: CharacterSet(charactersIn: "\""))) }
         let duration = min(60, maxAge.flatMap { $0.isFinite ? max(0, $0) : nil } ?? 60)
-        if data.count <= 16 * 1_024 * 1_024, !directives.contains("no-store"), !directives.contains("no-cache") {
-            cachedGuide = (url, data, Date().addingTimeInterval(duration))
-        } else { cachedGuide = nil }
+        clearGuideCache()
+        if duration > 0, !directives.contains("no-store"), !directives.contains("no-cache") {
+            do {
+                let retained = data.count <= 16 * 1_024 * 1_024
+                    ? data : try TemporaryMappedData.store(data)
+                cachedGuide = (url, retained, Date().addingTimeInterval(duration))
+                let generation = guideCacheGeneration
+                guideCacheExpiry = Task { [weak self] in
+                    do { try await Task.sleep(for: .seconds(duration)) }
+                    catch is CancellationError { return }
+                    catch {
+                        PlozzLog.networking.error("IPTV guide cache expiry wait failed")
+                    }
+                    await self?.expireGuideCache(generation: generation)
+                }
+            } catch let error as NSError where error.domain == NSPOSIXErrorDomain {
+                // Caching is optional; a spool failure must not discard a valid downloaded guide.
+                PlozzLog.networking.error("IPTV guide cache backing failed code=\(error.code)")
+            }
+        }
+        try Task.checkCancellation()
         return data
+    }
+
+    private func expireGuideCache(generation: UUID) {
+        guard generation == guideCacheGeneration else { return }
+        clearGuideCache()
+    }
+
+    private func clearGuideCache() {
+        guideCacheExpiry?.cancel()
+        guideCacheExpiry = nil
+        guideCacheGeneration = UUID()
+        cachedGuide = nil
     }
 
     func cancel() {
         refresh?.cancel()
-        cachedGuide = nil
+        clearGuideCache()
+        guideRefreshes.removeAll()
         http.cancel()
     }
 

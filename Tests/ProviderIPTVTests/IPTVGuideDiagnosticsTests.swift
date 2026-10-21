@@ -152,6 +152,34 @@ final class IPTVGuideDiagnosticsTests: XCTestCase {
         XCTAssertTrue(entries.contains { $0.contains("operations=2000 omitted=1994 fallbackEmpty=2000") })
     }
 
+    func testRepeatedMissingExplicitGuideReportsReusedFailureWithoutInventingRequests() async throws {
+        let provider = try await provider(explicit: true)
+        IPTVFixture.state.reset()
+        IPTVFixture.state.handler = { _ in (404, ["Content-Type": "text/html"], Data()) }
+        let since = Date()
+        await ServerLiveTVGuideRefreshScope.$current.withValue(.init()) {
+            for _ in 0..<2 {
+                do {
+                    _ = try await load(provider)
+                    XCTFail("Missing override and missing fallback must stay failed")
+                } catch { XCTAssertEqual(error as? AppError, .notFound) }
+            }
+        }
+        let log = report(since: since)
+        XCTAssertEqual(IPTVFixture.state.requests.count, 2)
+        XCTAssertTrue(log.contains("requests=0 http=unknown response=unknown bytes=0"))
+        XCTAssertTrue(log.contains("reusedFailure=true"))
+        XCTAssertTrue(log.contains("fallbackUnavailable=1"))
+        XCTAssertFalse(log.contains("get_simple_data_table"))
+        for secret in ["provider.test", "private-user", "private-password", "private-token"] {
+            XCTAssertFalse(log.contains(secret), secret)
+        }
+        IPTVFixture.state.handler = { _ in (200, [:], Data("<tv/>".utf8)) }
+        _ = try await ServerLiveTVGuideRefreshScope.$current.withValue(.init()) { try await load(provider) }
+        XCTAssertEqual(IPTVFixture.state.requests.count, 3, "The next refresh retries the preferred override immediately")
+        await provider.teardown()
+    }
+
     private func load(_ provider: IPTVProvider) async throws -> [ServerLiveTVProgramme] {
         try await provider.liveTVGuide(channelIDs: ["live:10"],
             from: Date(timeIntervalSince1970: 100), to: Date(timeIntervalSince1970: 500))

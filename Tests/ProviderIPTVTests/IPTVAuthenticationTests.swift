@@ -125,7 +125,7 @@ final class IPTVAuthenticationTests: XCTestCase {
             ("#EXTM3U", true, true, true),
             ("#EXTM3U", true, false, true),
             ("#EXTM3U x-tvg-url=\"https://provider.test/guide.xml\"", false, true, true),
-            ("#EXTM3U x-tvg-url=\"https://provider.test/guide.xml\"", false, false, false),
+            ("#EXTM3U x-tvg-url=\"https://provider.test/guide.xml\"", false, false, true),
             ("#EXTM3U x-tvg-url=\"https://other.test/guide.xml\"", false, true, true)
         ]
         for mode in [IPTVCredential.Mode.playlist, .file] {

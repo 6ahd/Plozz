@@ -5313,6 +5313,226 @@
         }
       }
     },
+    "%@ of encoded data is pending upload." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هناك %@ من البيانات المُرمَّزة بانتظار الرفع."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Кодирани данни с размер %@ изчакват качване."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hi ha %@ de dades codificades pendents de pujar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kódovaná data o velikosti %@ čekají na nahrání."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kodede data afventer upload."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kodierte Daten im Umfang von %@ warten auf den Upload."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Κωδικοποιημένα δεδομένα μεγέθους %@ αναμένουν μεταφόρτωση."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hay %@ de datos codificados pendientes de subir."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "داده‌های کدگذاری‌شده به حجم %@ در انتظار بارگذاری هستند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ koodattua dataa odottaa lähettämistä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il reste %@ de données encodées à envoyer."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "נתונים מקודדים בנפח %@ ממתינים להעלאה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ एन्कोड किया गया डेटा अपलोड होने की प्रतीक्षा में है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kodirani podaci veličine %@ čekaju prijenos."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kódolt adat vár feltöltésre."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ data terenkode menunggu diunggah."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dati codificati in attesa di caricamento: %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@のエンコード済みデータがアップロード待ちです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "인코딩된 데이터 %@의 업로드가 대기 중입니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ data yang dikodkan sedang menunggu muat naik."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kodede data venter på opplasting."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ aan gecodeerde gegevens wacht op upload."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ zakodowanych danych oczekuje na przesłanie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Há %@ de dados codificados aguardando envio."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ de date codificate așteaptă încărcarea."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Закодированные данные объёмом %@ ожидают отправки."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kódovaných údajov čaká na nahratie."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kodiranih podatkov čaka na nalaganje."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kodiranih podataka čeka otpremanje."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kodade data väntar på uppladdning."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ข้อมูลที่แปลงรูปแบบแล้วขนาด %@ กำลังรออัปโหลด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ kodlanmış veri yüklenmeyi bekliyor."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Закодовані дані обсягом %@ очікують на передавання."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dữ liệu đã tuần tự hóa có dung lượng %@ đang chờ tải lên."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "有 %@ 的已编码数据等待上传。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "有 %@ 的已編碼資料等待上傳。"
+          }
+        }
+      }
+    },
     "%@ rating %@" : {
       "comment" : "Accessibility label for one rating badge in a ratings row. %@ is the rating source name, and the second %@ is the displayed score.",
       "localizations" : {
@@ -273595,6 +273815,7 @@
     },
     "Dolby" : {
       "comment" : "Brand label shown inside Dolby media badges before the specific format word such as Vision, Atmos, or Digital Plus.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -290228,6 +290449,226 @@
         }
       }
     },
+    "EPG URL (optional)" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "رابط EPG (اختياري)"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL адрес за EPG (по избор)"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL de l'EPG (opcional)"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (volitelné)"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG-URL (valgfri)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG-URL (optional)"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (προαιρετικό)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL de EPG (opcional)"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "نشانی EPG (اختیاری)"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG-osoite (valinnainen)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (facultative)"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כתובת EPG (לא חובה)"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL (वैकल्पिक)"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL (neobavezno)"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL (nem kötelező)"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (opsional)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (facoltativo)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL（任意）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL(선택 사항)"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (pilihan)"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG-URL (valgfritt)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG-URL (optioneel)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Adres URL EPG (opcjonalnie)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL do EPG (opcional)"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (opțional)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (необязательно)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (voliteľné)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (izbirno)"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL (opciono)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG-URL (valfri)"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL ของ EPG (ไม่บังคับ)"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL'si (isteğe bağlı)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (необов'язково)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL EPG (không bắt buộc)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL（可选）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "EPG URL（選填）"
+          }
+        }
+      }
+    },
     "EXTERNAL" : {
       "comment" : "Visible badge on a tvOS subtitle track row marking a sidecar or downloaded subtitle instead of an embedded track.",
       "localizations" : {
@@ -297952,6 +298393,7 @@
     },
     "Enabled" : {
       "comment" : "Toggle label in iOS library Home settings that decides whether a library is shown on Home and in library browsing.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -325700,6 +326142,7 @@
       }
     },
     "Find guides in playlist" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -344768,6 +345211,7 @@
       }
     },
     "Guide URL (optional)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -541769,6 +542213,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Plex 登入會找出所有連結至你帳號的伺服器。"
+          }
+        }
+      }
+    },
+    "Plozz Channels schedules" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جداول Plozz Channels"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Програмни графици на Plozz Channels"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Graelles de Plozz Channels"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programy Plozz Channels"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programplaner for Plozz Channels"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sendepläne von Plozz Channels"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Προγράμματα Plozz Channels"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programaciones de Plozz Channels"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جدول‌های پخش Plozz Channels"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels -ohjelma-aikataulut"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grilles de programmes Plozz Channels"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לוחות השידורים של Plozz Channels"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels की समय-सारिणियाँ"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rasporedi za Plozz Channels"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A Plozz Channels műsorrendjei"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jadwal Plozz Channels"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palinsesti di Plozz Channels"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channelsの放送スケジュール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels 편성표"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jadual Plozz Channels"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programplaner for Plozz Channels"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programmaschema's van Plozz Channels"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ramówki Plozz Channels"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grades de programação do Plozz Channels"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grile de programe Plozz Channels"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Расписания Plozz Channels"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programové plány Plozz Channels"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sporedi Plozz Channels"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rasporedi za Plozz Channels"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programscheman för Plozz Channels"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผังรายการของ Plozz Channels"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels yayın akışları"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Розклади Plozz Channels"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lịch phát Plozz Channels"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels 节目表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels 節目表"
+          }
+        }
+      }
+    },
+    "Plozz Channels schedules include the library items needed to keep generated channels aligned across devices. Downloaded IPTV guides are not included." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تتضمن جداول Plozz Channels عناصر المكتبة اللازمة لإبقاء القنوات المُنشأة متزامنة بين الأجهزة. ولا تتضمن أدلة برامج IPTV التي تم تنزيلها."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Програмните графици на Plozz Channels включват елементите от медиатеката, необходими за синхронизиране на генерираните канали между устройствата. Изтеглените програмни справочници за IPTV не са включени."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les graelles de Plozz Channels inclouen els elements de la biblioteca necessaris per mantenir els canals generats sincronitzats entre dispositius. No s'hi inclouen les guies de programació IPTV descarregades."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programy Plozz Channels obsahují položky knihovny potřebné k zachování synchronizace vygenerovaných kanálů mezi zařízeními. Stažené programové přehledy IPTV nejsou zahrnuty."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programplaner for Plozz Channels indeholder de bibliotekselementer, der er nødvendige for at holde genererede kanaler synkroniseret på tværs af enheder. Downloadede IPTV-programguider er ikke inkluderet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die Sendepläne von Plozz Channels enthalten die Mediathekseinträge, die benötigt werden, um generierte Kanäle geräteübergreifend synchron zu halten. Heruntergeladene IPTV-Programmführer sind nicht enthalten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Τα προγράμματα Plozz Channels περιλαμβάνουν τα στοιχεία της βιβλιοθήκης που απαιτούνται για να παραμένουν συγχρονισμένα τα δημιουργημένα κανάλια σε όλες τις συσκευές. Οι οδηγοί προγράμματος IPTV που έχουν ληφθεί δεν περιλαμβάνονται."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Las programaciones de Plozz Channels incluyen los elementos de la biblioteca necesarios para mantener los canales generados sincronizados entre dispositivos. No se incluyen las guías de programación IPTV descargadas."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جدول‌های پخش Plozz Channels شامل موارد موجود در کتابخانه هستند که برای همگام نگه داشتن کانال‌های تولیدشده در دستگاه‌های مختلف لازم‌اند. راهنماهای برنامهٔ IPTV که بارگیری شده‌اند، در آن‌ها گنجانده نمی‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels -ohjelma-aikataulut sisältävät kirjastokohteet, joita tarvitaan luotujen kanavien pitämiseen synkronoituina eri laitteilla. Ladatut IPTV-ohjelmaoppaat eivät sisälly niihin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les grilles de programmes Plozz Channels incluent les éléments de la bibliothèque nécessaires pour maintenir la synchronisation des chaînes générées entre les appareils. Les guides de programmes IPTV téléchargés ne sont pas inclus."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "לוחות השידורים של Plozz Channels כוללים את פריטי הספרייה הדרושים כדי שהערוצים שנוצרו יישארו מסונכרנים בין המכשירים. מדריכי תוכניות IPTV שהורדו אינם כלולים."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels की समय-सारिणियों में लाइब्रेरी के वे आइटम शामिल हैं जो बनाए गए चैनलों को सभी डिवाइस पर सिंक में रखने के लिए ज़रूरी हैं। डाउनलोड की गई IPTV कार्यक्रम गाइड शामिल नहीं हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rasporedi za Plozz Channels uključuju stavke iz knjižnice potrebne za usklađivanje generiranih kanala na svim uređajima. Preuzeti programski vodiči za IPTV nisu uključeni."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A Plozz Channels műsorrendjei tartalmazzák azokat a könyvtárelemeket, amelyek a létrehozott csatornák eszközök közötti szinkronban tartásához szükségesek. A letöltött IPTV-műsorújságokat nem tartalmazzák."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jadwal Plozz Channels mencakup item pustaka yang diperlukan agar saluran yang dibuat tetap sinkron di semua perangkat. Panduan program IPTV yang diunduh tidak disertakan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "I palinsesti di Plozz Channels includono gli elementi della libreria necessari per mantenere sincronizzati i canali generati tra i dispositivi. Le guide ai programmi IPTV scaricate non sono incluse."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channelsの放送スケジュールには、生成されたチャンネルをデバイス間で同期するために必要なライブラリ項目が含まれます。ダウンロードしたIPTV番組表は含まれません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels 편성표에는 생성된 채널을 기기 간에 동기화하는 데 필요한 라이브러리 항목이 포함됩니다. 다운로드한 IPTV 프로그램 가이드는 포함되지 않습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jadual Plozz Channels merangkumi item pustaka yang diperlukan untuk memastikan saluran yang dijana kekal selaras merentas peranti. Panduan program IPTV yang dimuat turun tidak disertakan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programplanene for Plozz Channels inneholder bibliotekelementene som trengs for å holde genererte kanaler synkronisert på tvers av enheter. Nedlastede IPTV-programguider er ikke inkludert."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De programmaschema's van Plozz Channels bevatten de bibliotheekitems die nodig zijn om gegenereerde kanalen op alle apparaten gesynchroniseerd te houden. Gedownloade IPTV-gidsen zijn niet inbegrepen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ramówki Plozz Channels zawierają elementy biblioteki potrzebne do utrzymania synchronizacji wygenerowanych kanałów między urządzeniami. Pobrane przewodniki po programach IPTV nie są uwzględniane."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "As grades de programação do Plozz Channels incluem os itens da biblioteca necessários para manter os canais gerados sincronizados entre os dispositivos. Os guias de programação de IPTV baixados não estão incluídos."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grilele de programe Plozz Channels includ elementele din bibliotecă necesare pentru a menține canalele generate sincronizate între dispozitive. Ghidurile de programe IPTV descărcate nu sunt incluse."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Расписания Plozz Channels включают элементы медиатеки, необходимые для синхронизации созданных каналов между устройствами. Загруженные телегиды IPTV в них не входят."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programové plány Plozz Channels obsahujú položky knižnice potrebné na synchronizáciu vygenerovaných kanálov medzi zariadeniami. Stiahnuté programové prehľady IPTV nie sú zahrnuté."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sporedi Plozz Channels vključujejo elemente knjižnice, potrebne za sinhronizacijo ustvarjenih kanalov med napravami. Preneseni programski vodniki IPTV niso vključeni."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rasporedi za Plozz Channels uključuju stavke biblioteke potrebne za usklađivanje generisanih kanala na svim uređajima. Preuzeti programski vodiči za IPTV nisu uključeni."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Programscheman för Plozz Channels innehåller de biblioteksobjekt som behövs för att hålla genererade kanaler synkroniserade mellan enheter. Hämtade IPTV-programguider ingår inte."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผังรายการของ Plozz Channels รวมรายการในคลังที่จำเป็นเพื่อให้ช่องที่สร้างขึ้นตรงกันในทุกอุปกรณ์ โดยไม่รวมผังรายการ IPTV ที่ดาวน์โหลดไว้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels yayın akışları, oluşturulan kanalları cihazlar arasında eşzamanlı tutmak için gereken arşiv öğelerini içerir. İndirilen IPTV program rehberleri dahil değildir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Розклади Plozz Channels містять елементи медіатеки, потрібні для синхронізації згенерованих каналів між пристроями. Завантажені телегіди IPTV не включено."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lịch phát Plozz Channels bao gồm các mục thư viện cần thiết để giữ cho các kênh được tạo đồng bộ giữa các thiết bị. Không bao gồm các lịch chương trình IPTV đã tải xuống."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels 节目表包含让生成的频道在不同设备间保持同步所需的媒体库项目。不包含已下载的 IPTV 节目指南。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plozz Channels 節目表包含讓產生的頻道在不同裝置間保持同步所需的媒體庫項目。不包含已下載的 IPTV 節目指南。"
           }
         }
       }
@@ -784270,6 +785154,226 @@
         }
       }
     },
+    "The provider returned a data document instead of a video stream." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أعاد المزوّد مستند بيانات بدلًا من بث فيديو."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът върна документ с данни вместо видеопоток."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor ha retornat un document de dades en lloc d'un flux de vídeo."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel vrátil datový dokument místo videostreamu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen returnerede et datadokument i stedet for en videostream."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat ein Datendokument statt eines Videostreams zurückgegeben."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος επέστρεψε ένα έγγραφο δεδομένων αντί για ροή βίντεο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor ha devuelto un documento de datos en lugar de un flujo de vídeo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده به‌جای جریان ویدیو، یک سند داده برگرداند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja palautti data-asiakirjan videovirran sijaan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur a renvoyé un document de données au lieu d'un flux vidéo."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק החזיר מסמך נתונים במקום זרם וידאו."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता ने वीडियो स्ट्रीम के बजाय डेटा दस्तावेज़ लौटाया।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj je vratio podatkovni dokument umjesto videostreama."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató videofolyam helyett egy adatdokumentumot küldött vissza."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan dokumen data, bukan streaming video."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore ha restituito un documento di dati anziché un flusso video."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダから動画ストリームではなくデータドキュメントが返されました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공업체가 동영상 스트림 대신 데이터 문서를 반환했습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan dokumen data dan bukannya strim video."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren returnerte et datadokument i stedet for en videostrøm."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De aanbieder heeft een gegevensdocument geretourneerd in plaats van een videostream."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca zwrócił dokument z danymi zamiast strumienia wideo."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor retornou um documento de dados em vez de um fluxo de vídeo."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul a returnat un document de date în locul unui flux video."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер вернул документ с данными вместо видеопотока."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ vrátil dátový dokument namiesto videostreamu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik je vrnil podatkovni dokument namesto videopretoka."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder je vratio dokument sa podacima umesto video-strima."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören returnerade ett datadokument i stället för en videoström."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการส่งเอกสารข้อมูลกลับมาแทนสตรีมวิดีโอ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı, video akışı yerine bir veri belgesi döndürdü."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер повернув документ із даними замість відеопотоку."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp trả về tài liệu chứa dữ liệu thay vì luồng video."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商返回了数据文档，而非视频流。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商傳回了資料文件，而非影片串流。"
+          }
+        }
+      }
+    },
     "The provider returned a server error (HTTP %@)." : {
       "localizations" : {
         "ar" : {
@@ -784707,6 +785811,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "供應商傳回伺服器錯誤（HTTP %@）。請稍後再試一次。"
+          }
+        }
+      }
+    },
+    "The provider returned a web page instead of a video stream." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أعاد المزوّد صفحة ويب بدلًا من بث فيديو."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът върна уеб страница вместо видеопоток."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor ha retornat una pàgina web en lloc d'un flux de vídeo."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel vrátil webovou stránku místo videostreamu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen returnerede en webside i stedet for en videostream."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat eine Webseite statt eines Videostreams zurückgegeben."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος επέστρεψε μια ιστοσελίδα αντί για ροή βίντεο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor ha devuelto una página web en lugar de un flujo de vídeo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده به‌جای جریان ویدیو، یک صفحهٔ وب برگرداند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja palautti verkkosivun videovirran sijaan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur a renvoyé une page web au lieu d'un flux vidéo."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק החזיר דף אינטרנט במקום זרם וידאו."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता ने वीडियो स्ट्रीम के बजाय वेब पेज लौटाया।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj je vratio web-stranicu umjesto videostreama."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató videofolyam helyett egy weboldalt küldött vissza."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan halaman web, bukan streaming video."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore ha restituito una pagina web anziché un flusso video."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "プロバイダから動画ストリームではなくWebページが返されました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공업체가 동영상 스트림 대신 웹페이지를 반환했습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan halaman web dan bukannya strim video."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren returnerte en nettside i stedet for en videostrøm."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De aanbieder heeft een webpagina geretourneerd in plaats van een videostream."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca zwrócił stronę internetową zamiast strumienia wideo."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor retornou uma página da web em vez de um fluxo de vídeo."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul a returnat o pagină web în locul unui flux video."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер вернул веб-страницу вместо видеопотока."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ vrátil webovú stránku namiesto videostreamu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik je vrnil spletno stran namesto videopretoka."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder je vratio veb-stranicu umesto video-strima."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören returnerade en webbsida i stället för en videoström."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการส่งหน้าเว็บกลับมาแทนสตรีมวิดีโอ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı, video akışı yerine bir web sayfası döndürdü."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер повернув вебсторінку замість відеопотоку."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp trả về trang web thay vì luồng video."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商返回了网页，而非视频流。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商傳回了網頁，而非影片串流。"
+          }
+        }
+      }
+    },
+    "The provider returned an empty video response." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "أعاد المزوّد استجابة فيديو فارغة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Доставчикът върна празен отговор на заявката за видео."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveïdor ha retornat una resposta de vídeo buida."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovatel vrátil prázdnou odpověď na požadavek na video."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Udbyderen returnerede et tomt svar på videoanmodningen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Anbieter hat eine leere Antwort auf die Videoanfrage zurückgegeben."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ο πάροχος επέστρεψε κενή απόκριση βίντεο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El proveedor ha devuelto una respuesta de vídeo vacía."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ارائه‌دهنده پاسخ ویدیویی خالی برگرداند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Palveluntarjoaja palautti tyhjän vastauksen videopyyntöön."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Le fournisseur a renvoyé une réponse vidéo vide."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הספק החזיר תגובת וידאו ריקה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्रदाता ने खाली वीडियो प्रतिक्रिया लौटाई।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pružatelj je vratio prazan odgovor na zahtjev za video."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A szolgáltató üres választ küldött vissza a videokérésre."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan respons video kosong."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Il fornitore ha restituito una risposta vuota alla richiesta video."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "動画リクエストに対するプロバイダの応答が空でした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "제공업체가 빈 동영상 응답을 반환했습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penyedia mengembalikan respons video yang kosong."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverandøren returnerte et tomt svar på videoforespørselen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De aanbieder heeft een leeg antwoord op het videoverzoek geretourneerd."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dostawca zwrócił pustą odpowiedź wideo."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O provedor retornou uma resposta de vídeo vazia."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Furnizorul a returnat un răspuns video gol."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер вернул пустой ответ на запрос видео."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poskytovateľ vrátil prázdnu odpoveď na požiadavku na video."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponudnik je na zahtevo za video vrnil prazen odgovor."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Provajder je vratio prazan odgovor na zahtev za video."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leverantören returnerade ett tomt svar på videoförfrågan."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ผู้ให้บริการส่งการตอบกลับที่ว่างเปล่าสำหรับคำขอวิดีโอ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sağlayıcı boş bir video yanıtı döndürdü."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Провайдер повернув порожню відповідь на запит відео."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nhà cung cấp trả về phản hồi trống cho yêu cầu video."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "提供商返回了空的视频响应。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "供應商傳回了空白的影片回應。"
           }
         }
       }
@@ -873449,6 +874993,7 @@
       }
     },
     "Use guides declared by the playlist" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -876089,6 +877634,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "在所有內容中使用相同的字幕外觀，或為直播電視選擇獨立外觀。"
+          }
+        }
+      }
+    },
+    "Use this source" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استخدام هذا المصدر"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Използване на този източник"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utilitza aquesta font"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Používat tento zdroj"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brug denne kilde"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Diese Quelle verwenden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χρήση αυτής της πηγής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar esta fuente"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استفاده از این منبع"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Käytä tätä lähdettä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Utiliser cette source"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שימוש במקור הזה"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "इस स्रोत का उपयोग करें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi ovaj izvor"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A forrás használata"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan sumber ini"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa questa sorgente"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このソースを使用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 소스 사용"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gunakan sumber ini"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bruk denne kilden"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deze bron gebruiken"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Używaj tego źródła"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usar esta fonte"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Folosește această sursă"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Использовать этот источник"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Používať tento zdroj"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uporabi ta vir"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Koristi ovaj izvor"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Använd den här källan"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ใช้แหล่งข้อมูลนี้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu kaynağı kullan"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Використовувати це джерело"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dùng nguồn này"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用此来源"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用此來源"
           }
         }
       }
@@ -908559,6 +910324,7 @@
     },
     "X" : {
       "comment" : "The letter shown as the suffix in the custom DTS:X audio-format badge. This is part of the DTS:X brand mark and should stay as the letter X.",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

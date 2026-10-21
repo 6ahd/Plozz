@@ -170,6 +170,16 @@ without pretending a sample count measures frame smoothness.
 | `diagnostics` | 10,000 operation attempts with recording disabled/enabled, plus 100 bounded snapshot encodes. Measures recorder and event-time serialization overhead without starting Sentry or creating uploads. |
 | `network` | `catalog-cached-refresh`: 1,000-channel loopback M3U import with a 100-ms header delay, then an expired-catalog refresh held while three cached reads complete. Verifies one refresh and actual replacement visibility. Cold/cached foreground timings are separate counters; whole-cycle wall time includes setup, controlled waiting and settling. No external playlist or stream links are fetched. |
 
+`live-tv-schedule-sync` uses the real automatic planner for 4,000 films and five
+distinct channels, then changes only genre/studio spelling. It measures retained
+snapshot records while checking that published broadcasts are preserved.
+`live-tv-schedule-capture` captures 12,000 items, advances the published horizon
+five times, then changes the inputs; full encoding count must fall without
+suppressing that final change. Neither scenario measures CloudKit delivery.
+`guide-large-batches` downloads a generated 23.8 MB, 48,000-programme XMLTV file
+for two 2,000-channel batches. Request/byte reductions must preserve all 32,000
+requested rows; parse count is separate. It uses loopback, not a real provider.
+
 `collection-discovery` runs the production Jellyfin collection provider over
 356 native collections, with 5-ms synthetic request latency. The fixture retains
 10,000 library slots and sparse membership data to expose accidental fanout, but

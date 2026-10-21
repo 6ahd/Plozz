@@ -17,6 +17,14 @@ extension LiveTVPrototypeImportModel {
     func reloadServerGuidesResult(
         channelIDs: [String], from: Date, to: Date, into model: LiveTVPrototypeModel, force: Bool
     ) async -> ReloadResult {
+        await ServerLiveTVGuideRefreshScope.$current.withValue(ServerLiveTVGuideRefreshScope()) {
+            await reloadServerGuideBatches(channelIDs: channelIDs, from: from, to: to, into: model, force: force)
+        }
+    }
+
+    private func reloadServerGuideBatches(
+        channelIDs: [String], from: Date, to: Date, into model: LiveTVPrototypeModel, force: Bool
+    ) async -> ReloadResult {
         var seen = Set<String>()
         let requestedIDs = channelIDs.filter { seen.insert($0).inserted && serverChannelReferences[$0] != nil }
         guard !requestedIDs.isEmpty else { return .completed }

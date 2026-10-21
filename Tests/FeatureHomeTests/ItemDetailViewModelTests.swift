@@ -1386,7 +1386,7 @@ final class ItemDetailViewModelTests: XCTestCase {
         XCTAssertEqual(provider.supplementalProbeCount, 1)
         XCTAssertEqual(
             vm.state.value?.item.technicalBadges.map(\.label),
-            ["Dolby Atmos"]
+            ["Dolby Digital+", "Dolby Atmos"]
         )
     }
 
@@ -1434,7 +1434,7 @@ final class ItemDetailViewModelTests: XCTestCase {
         XCTAssertEqual(vm.state.value?.item.versions.first?.audioProfile, "Dolby Atmos")
         XCTAssertEqual(
             vm.state.value?.item.versions.first?.technicalBadges.map { $0.label },
-            ["4K", "Dolby Vision", "Dolby Atmos"]
+            ["4K", "Dolby Vision", "Dolby Digital+", "Dolby Atmos"]
         )
     }
 
@@ -3376,7 +3376,7 @@ final class ItemDetailViewModelTests: XCTestCase {
 
         let enriched = await vm.enrichEpisodeBadgesIfNeeded(sparse)
         XCTAssertEqual(enriched?.technicalBadges.map(\.label),
-                       ["4K", "Dolby Vision", "Dolby Atmos", "HDR10"],
+                       ["4K", "Dolby Vision", "HDR10", "Dolby Digital+", "Dolby Atmos"],
                        "Focused episode must badge from the full fetch's real metadata")
         XCTAssertEqual(
             vm.seasonEpisodes["s1"]?.first?.technicalBadges.map(\.label),

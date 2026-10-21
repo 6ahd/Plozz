@@ -1814,6 +1814,7 @@ final class LiveChannelPlayerModel {
     }
 
     private func stageSeek(to requested: TimeInterval, window: LiveSeekableWindow) {
+        retuneBudget.interruptHealthyPlayback()
         let target = Self.windowSeekTarget(requested, window: window)
         pendingSeekRequest = window.upperBound - target <= Self.liveEdgeTolerance ? .liveEdge : .position(target)
         let behind = max(0, window.upperBound - target)
@@ -1832,6 +1833,7 @@ final class LiveChannelPlayerModel {
 
     private func commitSeek(generation: Int) async {
         guard generation == attemptGeneration, activeSeekID == nil else { return }
+        retuneBudget.interruptHealthyPlayback()
         let owner = UUID()
         activeSeekID = owner
         defer { if activeSeekID == owner { activeSeekID = nil } }
@@ -2183,6 +2185,7 @@ final class LiveChannelPlayerModel {
     }
 
     private func loadAttempt() async {
+        retuneBudget.interruptHealthyPlayback()
         guard !stopped, !isSuspended, networkBlock == nil else {
             needsForegroundLoad = true
             return
@@ -2279,6 +2282,14 @@ final class LiveChannelPlayerModel {
     }
 
     func refreshFromEngine() {
+        var healthyPosition: TimeInterval?
+        defer {
+            if let healthyPosition {
+                retuneBudget.observeHealthyPlayback(position: healthyPosition, uptime: uptime())
+            } else {
+                retuneBudget.interruptHealthyPlayback()
+            }
+        }
         refreshExternalContinuation()
         trackState.refreshStyle(engine: engine)
         guard networkBlock == nil else { return }
@@ -2387,6 +2398,10 @@ final class LiveChannelPlayerModel {
         }
         idleSleepGuard.keepAwake(phase == .playing && isVisible && sceneIsActive && !continuesExternally)
         reportSessionActivity(position: snapshot.position)
+        if phase == .playing, snapshot.firstFrameReady,
+           activeSeekID == nil, pendingSeekRequest == nil {
+            healthyPosition = snapshot.position
+        }
     }
 
     private var isScheduledSource: Bool {
@@ -2456,6 +2471,7 @@ final class LiveChannelPlayerModel {
     private func sourceNeedsRetune(generation: Int? = nil) {
         guard generation.map({ $0 == attemptGeneration }) ?? true,
               !stopped, !phase.isInterrupted else { return }
+        retuneBudget.interruptHealthyPlayback()
         if !pendingSourceReset {
             diagnostics.event(.sourceReset, attempt: attemptCount)
             pendingSourceReset = true
@@ -2501,6 +2517,7 @@ final class LiveChannelPlayerModel {
     }
 
     private func cancelRecovery() {
+        retuneBudget.interruptHealthyPlayback()
         recoveryGeneration += 1
         recoveryTask?.cancel()
         recoveryTask = nil
