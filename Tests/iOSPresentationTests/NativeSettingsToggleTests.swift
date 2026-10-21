@@ -67,11 +67,13 @@ final class NativeSettingsToggleTests: XCTestCase {
                 let control = try XCTUnwrap(switches.first)
                 XCTAssertFalse(control.isOn)
                 let text = try captureText(
-                    window, name: "fel-settings-\(Int(width))-\(scheme)", technicalWords: ["DTS:X"]
+                    window, name: "fel-settings-\(Int(width))-\(scheme)"
                 )
-                for label in ["FEL", "experimental", "GPU", "memory", "Dolby Atmos", "DTS:X"] {
+                for label in ["FEL", "experimental", "memory", "stutter", "turns off overhead sound"] {
                     XCTAssertTrue(text.contains(label), "The setting and tradeoff must be visible: \(text)")
                 }
+                XCTAssertFalse(text.contains("Dolby Atmos"), text)
+                XCTAssertFalse(text.contains("DTS:X"), text)
                 control.setOn(true, animated: false)
                 control.sendActions(for: .valueChanged)
                 try await settle(window)

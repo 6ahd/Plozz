@@ -160,6 +160,10 @@ struct PresentationHostApp: App {
                 TouchFeedbackFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--rotation-player-fixture") {
                 PlayerRotationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--plex-user-chooser-fixture") {
+                PlexUserChooserInteractionFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--profile-selection-fixture") {
+                ProfileSelectionInteractionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--profile-picker-fixture") {
                 ProfilePickerInteractionFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--downloads-interaction-fixture") {

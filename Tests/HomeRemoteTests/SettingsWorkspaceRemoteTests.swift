@@ -245,7 +245,7 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         let audioKeyline = app.staticTexts["Audio"].frame.minX
         for label in [
             "Preferred audio language", "Set separately for movies, TV shows & anime",
-            "Remember audio per series", "TrueHD Atmos and DTS:X", "Autoplay & Up Next"
+            "Remember audio per series", "Spatial audio", "Autoplay & Up Next"
         ] {
             let text = app.staticTexts[label].firstMatch
             XCTAssertTrue(text.exists, label)
@@ -607,6 +607,14 @@ final class SettingsWorkspaceRemoteTests: XCTestCase {
         XCTAssertLessThan(heading.frame.height, 90, "The editor heading must stay on one line.")
         XCTAssertGreaterThan(heading.frame.width, 200)
         let done = app.buttons["Done"]
+        let back = pageBack("settings-workspace-back", in: app)
+        let revert = app.buttons["Revert All Changes"]
+        for action in [back, revert] {
+            XCTAssertEqual(action.frame.midY, done.frame.midY, accuracy: 1,
+                           "All profile editor actions must share one center-aligned row.")
+        }
+        XCTAssertTrue(app.textFields["profile-name-input"].exists)
+        XCTAssertFalse(revert.isEnabled)
         // Cross into the editor column before the single-column vertical navigation helper.
         XCUIRemote.shared.press(.right)
         try focus(done, in: app)

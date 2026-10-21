@@ -38,9 +38,11 @@ final class PlaybackSettingsHostedTests: XCTestCase {
         }
         try await Task.sleep(for: .milliseconds(400))
         let text = try visibleText(in: window, attachment: "FEL advanced playback setting")
-        for label in ["FEL", "experimental", "GPU", "memory", "Dolby Atmos", "DTS:X"] {
+        for label in ["FEL", "experimental", "memory", "stutter", "turns off overhead sound"] {
             XCTAssertTrue(text.contains(label), "The setting and tradeoff must be visible: \(text)")
         }
+        XCTAssertFalse(text.contains("Dolby Atmos"), text)
+        XCTAssertFalse(text.contains("DTS:X"), text)
         XCTAssertFalse(playback.settings.dolbyVisionFELEnabled)
     }
 
@@ -178,6 +180,7 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                 if offset >= bottom { break }
             }
             for label in [
+                "Spatial audio", "supported tracks", "compatible equipment", "Turn off if playback stutters",
                 "Version selection", "Choose on first play", "Ask every time", "Choose automatically",
                 "Remember series version choices",
                 "Skip intros, credits", "Set each marker separately", "Use community markers",
@@ -185,6 +188,8 @@ final class PlaybackSettingsHostedTests: XCTestCase {
             ] {
                 XCTAssertTrue(visible.contains(label), "Missing inline control \(label): \(visible)")
             }
+            XCTAssertFalse(visible.contains("TrueHD Atmos"), visible)
+            XCTAssertFalse(visible.contains("DTS:X"), visible)
             if separate {
                 for label in ["Intros", "Credits", "Recaps", "Previews", "Commercials"] {
                     XCTAssertTrue(visible.contains(label), "Missing inline per-kind control \(label)")
