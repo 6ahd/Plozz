@@ -1822,7 +1822,8 @@ final class PlozziOSAppModel {
                 item: result.item, position: result.position, watchedPercent: result.watchedPercent,
                 primaryAccountID: result.item.sourceAccountID,
                 additionalSources: identityIndex.identitySnapshotStore.current.sourceRefs(for: result.item),
-                crossServerSync: settings.playback.settings.syncWatchAcrossServers
+                crossServerSync: settings.playback.settings.syncWatchAcrossServers,
+                reportTraktProgress: true
               )?.bindingServerScope(accountsProviders.watchMutationServerScope) else { return }
         mutation.id = result.id
         mutation.capturedAt = result.reportedAt
@@ -2049,7 +2050,7 @@ final class PlozziOSAppModel {
                 try await trakt.scrobbleResult(
                     item: intent.makeScrobbleItem(),
                     progress: intent.progress,
-                    event: .stop
+                    event: intent.playbackEvent
                 )
             },
             applySimkl: { intent in

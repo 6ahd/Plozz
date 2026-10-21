@@ -19,6 +19,7 @@ final class IPTVGuideDiagnostics {
         private var response: IPTVSetupDiagnostic.Response?
         private var bytes = 0
         private var cached = false
+        private var reusedFailure = false
 
         func requesting() {
             lock.withLock {
@@ -39,6 +40,7 @@ final class IPTVGuideDiagnostics {
 
         func consumed(_ count: Int) { lock.withLock { bytes += count } }
         func parsing() { lock.withLock { stage = .parse } }
+        func reuseMissingGuide() { lock.withLock { reusedFailure = true } }
         func cacheHit(bytes: Int) {
             lock.withLock {
                 cached = true
@@ -56,6 +58,7 @@ final class IPTVGuideDiagnostics {
                     + " response=\(response?.rawValue ?? "unknown") bytes=\(bytes) cached=\(cached)"
                     + " rows=\(rows.map(String.init) ?? "unknown") reason=\(failure?.reason.rawValue ?? "none")"
                     + " networkCode=\(failure?.networkCode.map(String.init) ?? "unknown")"
+                    + " reusedFailure=\(reusedFailure)"
                     + " elapsedMs=\(IPTVGuideDiagnostics.milliseconds(since: started))"
             }
         }

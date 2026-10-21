@@ -36,6 +36,7 @@ public enum ProfileSettingsTransfer {
     ///  - `com.plozz.syncSetup.enabled` (the sync flag itself — must not propagate)
     ///  - `com.plozz.musicAvailability` (a per-device capability, not a preference)
     ///  - `com.plozz.deviceExternalPlayer` (shared by viewers on this device only)
+    ///  - `com.plozz.deviceTopShelf` (shared Top Shelf preferences on this Apple TV only)
     public static let transferableBaseKeys: [String] = [
         "com.plozz.appTheme",
         ThemeSettingsStore.gradientStorageKey,
@@ -45,6 +46,8 @@ public enum ProfileSettingsTransfer {
         ArtworkSettingsStore.storageKey,
         "com.plozz.watchStatusIndicator",
         WatchStatusIndicatorSettingsStore.episodeCountStorageKey,
+        WatchStatusIndicatorSettingsStore.episodeCountStyleStorageKey,
+        WatchStatusIndicatorSettingsStore.colorStorageKey,
         "com.plozz.nightShift",
         "com.plozz.playbackSettings",
         "com.plozz.playback.preferredVersions",

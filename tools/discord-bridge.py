@@ -87,11 +87,21 @@ HEADER = "<!-- plozz-discord "
 START = "<!-- plozz-discord-content:start -->"
 END = "<!-- plozz-discord-content:end -->"
 FOOTER = "plozz-discord:v1:"
+RESOLUTION_HEADER = "<!-- plozz-testflight-resolution:v1 "
+RESOLUTION_PLATFORMS = ("tvOS", "iOS")
 SNOWFLAKE = re.compile(r"[1-9][0-9]{0,19}")
 
 
 class BridgeError(RuntimeError):
     pass
+
+
+class APIError(BridgeError):
+    def __init__(self, service, method, status, code=None):
+        self.status = status
+        self.code = code
+        detail = f", code {code}" if type(code) is int else ""
+        super().__init__(f"{service} {method} failed (HTTP {status}{detail}).")
 
 
 def snowflake(value):
@@ -140,7 +150,7 @@ class API:
                     return json.loads(raw) if raw else None
             except HTTPError as error:
                 # A 429 explicitly rejects the request. Ambiguous writes are never retried.
-                raw = error.read() if error.code == 429 else b""
+                raw = error.read()
                 error.close()
                 if error.code == 429 and attempt < 2:
                     try:
@@ -154,7 +164,12 @@ class API:
                 if method == "GET" and error.code in (502, 503, 504) and attempt < 2:
                     time.sleep(2 ** attempt)
                     continue
-                raise BridgeError(f"{self.service} {method} failed (HTTP {error.code}).") from None
+                try:
+                    details = json.loads(raw)
+                except (ValueError, UnicodeError):
+                    details = {}
+                code = details.get("code") if isinstance(details, dict) else None
+                raise APIError(self.service, method, error.code, code) from None
             except (URLError, TimeoutError, OSError):
                 raise BridgeError(f"{self.service} {method} transport failed; no ambiguous write was retried.") from None
         raise BridgeError(f"{self.service} retry budget exhausted.")
@@ -356,6 +371,31 @@ def require_public_notices(channels):
             raise BridgeError(f"Forum {identifier} is missing the public-mirroring notice; no reports were processed.")
 
 
+def require_channel_permissions(discord, channel, required):
+    member = discord.call("GET", f"/guilds/{GUILD}/members/{BOT}")
+    role_ids = {GUILD, *member["roles"]}
+    permissions = 0
+    for role in discord.call("GET", f"/guilds/{GUILD}/roles"):
+        if role["id"] in role_ids:
+            permissions |= int(role["permissions"])
+    if permissions & (1 << 3):
+        return
+    overwrites = channel.get("permission_overwrites", [])
+    for selected in (
+        [item for item in overwrites if item["type"] == 0 and item["id"] == GUILD],
+        [item for item in overwrites if item["type"] == 0 and item["id"] in role_ids - {GUILD}],
+        [item for item in overwrites if item["type"] == 1 and item["id"] == BOT],
+    ):
+        allow = deny = 0
+        for item in selected:
+            allow |= int(item["allow"])
+            deny |= int(item["deny"])
+        permissions = (permissions & ~deny) | allow
+    missing = [name for name, bit in required.items() if not permissions & (1 << bit)]
+    if missing:
+        raise BridgeError(f"Plozz bot lacks permissions in channel {channel['id']}: " + ", ".join(missing))
+
+
 def thread_created(thread_id):
     milliseconds = (int(snowflake(thread_id)) >> 22) + 1420070400000
     return datetime.fromtimestamp(milliseconds / 1000, timezone.utc)
@@ -493,6 +533,62 @@ def comment_order(comment):
     return created, comment["id"]
 
 
+def release_resolution(comment, number):
+    if comment.get("user", {}).get("login") != GITHUB_BOT:
+        return None
+    line = (comment.get("body") or "").split("\n", 1)[0]
+    if not line.startswith(RESOLUTION_HEADER):
+        return None
+    try:
+        if not line.endswith(" -->"):
+            raise ValueError()
+        value = json.loads(line[len(RESOLUTION_HEADER):-4])
+        if not isinstance(value, dict) or set(value) != {"issue", "commit", "platforms", "deliveries", "status"}:
+            raise ValueError()
+        if type(value["issue"]) is not int or value["issue"] != number:
+            raise ValueError()
+        if not isinstance(value["commit"], str) or not re.fullmatch(r"[0-9a-f]{40}", value["commit"]):
+            raise ValueError()
+        platforms = value["platforms"]
+        if (
+            not isinstance(platforms, list) or not platforms
+            or any(p not in RESOLUTION_PLATFORMS for p in platforms)
+            or len(set(platforms)) != len(platforms)
+        ):
+            raise ValueError()
+        deliveries = value["deliveries"]
+        if not isinstance(deliveries, dict) or not set(deliveries) <= set(platforms):
+            raise ValueError()
+        if value["status"] not in ("awaiting_release", "delivered"):
+            raise ValueError()
+        if value["status"] == "delivered" and set(deliveries) != set(platforms):
+            raise ValueError()
+        for delivery in deliveries.values():
+            if not isinstance(delivery, dict) or set(delivery) != {"build", "version", "tag", "source"}:
+                raise ValueError()
+            if any(not isinstance(v, str) for v in delivery.values()):
+                raise ValueError()
+            if (
+                not re.fullmatch(r"[0-9]+(?:\.[0-9]+){0,2}", delivery["build"])
+                or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", delivery["version"])
+                or not re.fullmatch(r"release/[0-9]+(?:\.[0-9]+){0,2}", delivery["tag"])
+                or not re.fullmatch(r"[0-9a-f]{40}", delivery["source"])
+            ):
+                raise ValueError()
+        return value
+    except (ValueError, TypeError, KeyError):
+        raise BridgeError(f"Issue #{number} has invalid bot-owned TestFlight resolution metadata.") from None
+
+
+def latest_release_resolution(index, number):
+    result = None
+    for comment in index.comments:
+        if comment.get("issue_url") == f"https://api.github.com/repos/{REPO}/issues/{number}":
+            if value := release_resolution(comment, number):
+                result = value
+    return result
+
+
 class GitHubIndex:
     def __init__(self, github):
         self.api = github
@@ -579,10 +675,15 @@ def discord_upsert(discord, thread, messages, key, embed):
     if existing:
         old = existing[0]["embeds"][0]
         if all(old.get(k) == v for k, v in embed.items()):
-            return
+            return True
     if thread.get("thread_metadata", {}).get("locked"):
         print(f"WARNING: thread {thread['id']} is locked; GitHub-to-Discord updates remain pending.")
-        return
+        return False
+    if thread.get("thread_metadata", {}).get("archived"):
+        updated = discord.call("PATCH", f"/channels/{snowflake(thread['id'])}", {"archived": False})
+        if not isinstance(updated, dict) or updated.get("thread_metadata", {}).get("archived") is not False:
+            raise BridgeError("Discord did not confirm that the thread was unarchived; no message was changed.")
+        thread["thread_metadata"]["archived"] = False
     payload = {"embeds": [embed], "allowed_mentions": {"parse": [], "replied_user": False}}
     path = f"/channels/{thread['id']}/messages"
     if existing:
@@ -594,6 +695,7 @@ def discord_upsert(discord, thread, messages, key, embed):
             "enforce_nonce": True,
         })
         messages.append(discord.call("POST", path, payload))
+    return True
 
 
 def discord_chunks(body):
@@ -618,8 +720,12 @@ def sync_github_replies(discord, thread, messages, index, number):
         if comment.get("issue_url") != f"https://api.github.com/repos/{REPO}/issues/{number}":
             continue
         if comment.get("user", {}).get("login") == GITHUB_BOT:
-            continue
-        body = comment.get("body") or "(Empty GitHub comment.)"
+            if not release_resolution(comment, number):
+                continue
+            # Only the human-readable receipt is copied; the bot-owned marker stays on GitHub.
+            body = comment["body"].partition("\n")[2].lstrip()
+        else:
+            body = comment.get("body") or "(Empty GitHub comment.)"
         chunks = discord_chunks(body)
         prefix = f"comment:{comment['id']}:"
         previous_parts = [
@@ -630,11 +736,70 @@ def sync_github_replies(discord, thread, messages, index, number):
         ]
         count = max(len(chunks), max(previous_parts, default=-1) + 1)
         for part in range(count):
-            discord_upsert(discord, thread, messages, prefix + str(part), {
+            if not discord_upsert(discord, thread, messages, prefix + str(part), {
                 "title": f"GitHub #{number} - {comment['user']['login']}"[:256],
                 "url": f"https://github.com/{REPO}/issues/{number}#issuecomment-{comment['id']}",
                 "description": chunks[part] if part < len(chunks) else "(Removed by a GitHub comment edit.)",
-            })
+            }):
+                return False
+    return True
+
+
+def sync_issue_to_discord(discord, thread, messages, index, number):
+    issue = index.issues[number]
+    was_archived = thread.get("thread_metadata", {}).get("archived", False)
+    try:
+        sent = discord_upsert(discord, thread, messages, f"issue:{number}", {
+            "title": f"GitHub #{number} - {issue['state'].capitalize()}",
+            "url": f"https://github.com/{REPO}/issues/{number}",
+            "description": "This post and its replies are mirrored to this public GitHub issue. "
+                "The forum's default reaction counts as a vote; duplicate posts share one unique-voter total.",
+        })
+        sent = sync_github_replies(discord, thread, messages, index, number) and sent
+        resolution = latest_release_resolution(index, number)
+        delivered = resolution and resolution["status"] == "delivered"
+        if (
+            sent and delivered and issue["state"] == "closed" and issue.get("state_reason") == "completed"
+            and os.environ.get("TESTFLIGHT_RESOLUTION_ENABLED") == "true"
+        ):
+            current = index.api.call("GET", f"/repos/{REPO}/issues/{number}")
+            if current["state"] == "closed" and current.get("state_reason") == "completed":
+                was_archived = True
+    finally:
+        if was_archived and not thread.get("thread_metadata", {}).get("archived"):
+            updated = discord.call("PATCH", f"/channels/{snowflake(thread['id'])}", {"archived": True})
+            if not isinstance(updated, dict) or updated.get("thread_metadata", {}).get("archived") is not True:
+                raise BridgeError("Discord did not confirm archival; the post remains pending.")
+            thread.setdefault("thread_metadata", {})["archived"] = True
+
+
+def sync_release_resolutions(discord, github, *, publish=False):
+    """Deliver existing resolution records without report classification or model calls."""
+    channels = inspect_discord(discord)
+    require_public_notices(channels)
+    for channel in channels.values():
+        require_channel_permissions(discord, channel, {
+            "View Channel": 10, "Embed Links": 14, "Read Message History": 16,
+            "Manage Threads": 34, "Send Messages in Threads": 38,
+        })
+    index = GitHubIndex(github)
+    failures = []
+    for identifier, record in index.reports.items():
+        number = record["number"]
+        try:
+            if not latest_release_resolution(index, number):
+                continue
+            thread = discord.call("GET", f"/channels/{identifier}")
+            if thread.get("guild_id") != GUILD or thread.get("parent_id") not in FORUMS or thread.get("type") != 11:
+                raise BridgeError("A resolution's Discord mapping no longer identifies a public support post.")
+            messages = thread_messages(discord, identifier)
+            print(f"Thread {identifier}: {'synchronize' if publish else 'would synchronize'} release status for #{number}")
+            if publish:
+                sync_issue_to_discord(discord, thread, messages, index, number)
+        except BridgeError as error:
+            failures.append(f"Thread {identifier}: {error}")
+    if failures:
+        raise BridgeError("\n".join(failures))
 
 
 def sync(discord, github, matcher, channels, since, dry_run=False):
@@ -645,18 +810,27 @@ def sync(discord, github, matcher, channels, since, dry_run=False):
     if missing:
         raise BridgeError("Previously linked threads are no longer visible or predate the notice timestamp; refusing incomplete vote totals.")
     totals = {}
+    unavailable_votes = set()
     failures = []
     for thread in threads:
         try:
             messages = thread_messages(discord, thread["id"])
+            record = index.reports.get(thread["id"])
             starter = next((m for m in messages if m["id"] == thread["id"]), None)
             if starter is None:
-                raise BridgeError("The forum starter message is missing; no issue was created.")
-            if starter.get("author", {}).get("bot"):
+                try:
+                    starter = discord.call("GET", f"/channels/{thread['id']}/messages/{thread['id']}")
+                except APIError as error:
+                    if error.status != 404 or error.code != 10008:
+                        raise
+                    print(f"WARNING: thread {thread['id']}'s starter was deleted; preserving its last imported report and votes.")
+                    if not record:
+                        continue
+                    unavailable_votes.add(record["number"])
+            if starter and starter.get("author", {}).get("bot"):
                 continue
-            if starter.get("type", 0) not in (0, 19):
+            if starter and starter.get("type", 0) not in (0, 19):
                 raise BridgeError("Unsupported forum starter message type.")
-            record = index.reports.get(thread["id"])
             label = FORUMS[thread["parent_id"]]
             number = record["number"] if record else matcher.match(
                 {"title": thread["name"], "content": starter.get("content", ""), "kind": label},
@@ -667,30 +841,26 @@ def sync(discord, github, matcher, channels, since, dry_run=False):
                 continue
             if number is None:
                 number = index.create(thread, starter, label)
-            else:
+            elif starter:
                 index.upsert(number, "report", source_content(thread, starter, True), thread["id"], starter["id"])
             for message in messages:
-                if message["id"] == starter["id"] or message.get("author", {}).get("bot") or message.get("type", 0) not in (0, 19):
+                if message["id"] == thread["id"] or message.get("author", {}).get("bot") or message.get("type", 0) not in (0, 19):
                     continue
                 index.upsert(number, "reply", source_content(thread, message), thread["id"], message["id"])
-            supporters = voters(discord, thread["id"], starter, channels[thread["parent_id"]])
-            aggregate = totals.setdefault(number, {"users": set(), "threads": []})
-            aggregate["users"].update(supporters)
-            aggregate["threads"].append(thread["id"])
-            issue = index.issues[number]
-            discord_upsert(discord, thread, messages, f"issue:{number}", {
-                "title": f"GitHub #{number} - {issue['state'].capitalize()}",
-                "url": f"https://github.com/{REPO}/issues/{number}",
-                "description": "This post and its replies are mirrored to this public GitHub issue. "
-                    "The forum's default reaction counts as a vote; duplicate posts share one unique-voter total.",
-            })
-            sync_github_replies(discord, thread, messages, index, number)
+            if starter:
+                supporters = voters(discord, thread["id"], starter, channels[thread["parent_id"]])
+                aggregate = totals.setdefault(number, {"users": set(), "threads": []})
+                aggregate["users"].update(supporters)
+                aggregate["threads"].append(thread["id"])
+            sync_issue_to_discord(discord, thread, messages, index, number)
             print(f"Thread {thread['id']}: synchronized with issue #{number}")
         except BridgeError as error:
             failures.append(f"Thread {thread['id']}: {error}")
     # A failed source must never make a partial voter set look like the complete count.
     if not failures and not dry_run:
         for number, aggregate in totals.items():
+            if number in unavailable_votes:
+                continue
             links = "\n".join(f"- [Discord post]({message_link(t, t)})" for t in aggregate["threads"])
             index.upsert(number, "votes",
                 f"### Discord votes: {len(aggregate['users'])}\n\n"

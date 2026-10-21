@@ -1318,7 +1318,11 @@ public struct HomeView: View {
     private func rowView(_ row: HomeRow, reservesLoadingFocus: Bool = false) -> some View {
         if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty,
            row.kind != .continueWatching || liveTV.recentChannels.isEmpty {
-            rowFailureView(title: Text(row.title), error: failure)
+            rowFailureView(
+                title: Text(row.title), error: failure,
+                report: row.kind == .continueWatching
+                    ? viewModel.continueWatchingDiagnostic.map(PlaybackDiagnosticReport.library) : nil
+            )
         } else {
             homeRowContent(row, reservesLoadingFocus: reservesLoadingFocus)
         }
@@ -1368,7 +1372,8 @@ public struct HomeView: View {
     }
 
     private func rowFailureView(
-        title: Text, error: AppError, onFocusEntered: (() -> Void)? = nil
+        title: Text, error: AppError, report: PlaybackDiagnosticReport? = nil,
+        onFocusEntered: (() -> Void)? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: metrics.sectionTitleSpacing) {
             title
@@ -1376,6 +1381,7 @@ public struct HomeView: View {
                 .padding(.horizontal, PlozzTheme.Metrics.screenPadding)
             ContentStateView<Bool, EmptyView>(
                 state: .failed(error),
+                errorReport: report,
                 onRetry: { Task { await viewModel.load(showLoadingState: false) } }
             ) { _ in EmptyView() }
             .frame(height: metrics.posterHeight)
@@ -1597,7 +1603,12 @@ public struct HomeView: View {
         case .home(let row):
             if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty,
                row.kind != .continueWatching || liveTV.recentChannels.isEmpty {
-                rowFailureView(title: Text(row.title), error: failure, onFocusEntered: reporter.entered)
+                rowFailureView(
+                    title: Text(row.title), error: failure,
+                    report: row.kind == .continueWatching
+                        ? viewModel.continueWatchingDiagnostic.map(PlaybackDiagnosticReport.library) : nil,
+                    onFocusEntered: reporter.entered
+                )
             } else {
                 switch row.kind {
                 case .continueWatching:

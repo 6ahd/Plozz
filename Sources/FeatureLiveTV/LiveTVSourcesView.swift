@@ -612,7 +612,7 @@ private struct LiveTVPlaylistSourceDetails: View {
                         get: { source.isEnabled },
                         set: { model.setPlaylistEnabled(source.id, enabled: $0) }
                     )) {
-                        Label("Enabled", systemImage: "antenna.radiowaves.left.and.right")
+                        Label("Use this source", systemImage: "antenna.radiowaves.left.and.right")
                     }
                     .accessibilityIdentifier("live-tv-source-enabled-\(source.id)")
                     LiveTVSourceApprovalControl(
@@ -725,44 +725,42 @@ private struct LiveTVPlaylistGuideSettings: View {
         if let source = model.configuration.playlists.first(where: { $0.id == sourceID }) {
             LiveTVSettingsPage(title: "Guide options") {
                 LiveTVSourceMutationMessage(issue: model.mutationIssue)
-                SettingsSectionGroup {
-                    Toggle(isOn: Binding(
-                        get: { source.discoversPlaylistGuides },
-                        set: { model.setGuidePolicy(sourceID, discovers: $0) }
-                    )) {
-                        Label("Use guides declared by the playlist", systemImage: "wand.and.stars")
-                    }
-                    if let imports {
-                        if let failure = imports.guideDiscoveryFailures[source.id] {
-                            InlineErrorMessage(Text(failure.userDescription))
-                            .font(.caption)
-                        }
-                        if imports.supportsDurableCatalog,
-                           !source.guideURLs.isEmpty || imports.guideSources.contains(where: { $0.playlistSourceID == sourceID }) {
-                            SettingsPageLink {
-                                LiveTVGuideMappingView(
-                                    imports: imports, sourceID: sourceID, authorize: model.ensureCanMutate
-                                )
-                            } label: {
-                                SettingsRowLabel(icon: "link", title: "Correct guide mapping", trailing: {
-                                    LiveTVSourceChevron()
-                                })
+                if let imports {
+                    let canReviewMappings = imports.supportsDurableCatalog
+                        && (!source.guideURLs.isEmpty || imports.guideSources.contains(where: { $0.playlistSourceID == sourceID }))
+                    let reviews = imports.identityReviews[sourceID] ?? []
+                    if imports.guideDiscoveryFailures[source.id] != nil || canReviewMappings || !reviews.isEmpty {
+                        SettingsSectionGroup {
+                            if let failure = imports.guideDiscoveryFailures[source.id] {
+                                InlineErrorMessage(Text(failure.userDescription))
+                                    .font(.caption)
                             }
-                            .buttonStyle(SettingsFocusButtonStyle(size: .contained))
-                            .accessibilityIdentifier("live-tv-guide-mapping-\(sourceID)")
-                        }
-                        if let reviews = imports.identityReviews[sourceID], !reviews.isEmpty {
-                            SettingsPageLink {
-                                LiveTVIdentityReviewView(
-                                    imports: imports, sourceID: sourceID, authorize: model.ensureCanMutate
-                                )
-                            } label: {
-                                SettingsRowLabel(
-                                    icon: "person.crop.rectangle.badge.questionmark", title: "Review channel identities",
-                                    trailing: { Text(reviews.count, format: .number).settingsRowSecondary() }
-                                )
+                            if canReviewMappings {
+                                SettingsPageLink {
+                                    LiveTVGuideMappingView(
+                                        imports: imports, sourceID: sourceID, authorize: model.ensureCanMutate
+                                    )
+                                } label: {
+                                    SettingsRowLabel(icon: "link", title: "Correct guide mapping", trailing: {
+                                        LiveTVSourceChevron()
+                                    })
+                                }
+                                .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                                .accessibilityIdentifier("live-tv-guide-mapping-\(sourceID)")
                             }
-                            .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                            if !reviews.isEmpty {
+                                SettingsPageLink {
+                                    LiveTVIdentityReviewView(
+                                        imports: imports, sourceID: sourceID, authorize: model.ensureCanMutate
+                                    )
+                                } label: {
+                                    SettingsRowLabel(
+                                        icon: "person.crop.rectangle.badge.questionmark", title: "Review channel identities",
+                                        trailing: { Text(reviews.count, format: .number).settingsRowSecondary() }
+                                    )
+                                }
+                                .buttonStyle(SettingsFocusButtonStyle(size: .contained))
+                            }
                         }
                     }
                 }
@@ -871,7 +869,7 @@ private struct LiveTVServerSourceDetails: View {
                         get: { source.isEnabled },
                         set: { model.setServerEnabled(source.id, enabled: $0) }
                     )) {
-                        Label("Enabled", systemImage: "server.rack")
+                        Label("Use this source", systemImage: "server.rack")
                     }
                     .accessibilityIdentifier("live-tv-source-enabled-\(source.id)")
                     SettingsPageLink {

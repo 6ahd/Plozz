@@ -84,6 +84,7 @@ public final class ExternalPlaybackRuntime {
         let duration: TimeInterval?
         let createdAt: Date
         var position: TimeInterval?
+        var progress: Double?
         var returnedAt: Date?
         var failed = false
     }
@@ -320,7 +321,18 @@ public final class ExternalPlaybackRuntime {
                       Self.digest(played) == pending.mediaURLDigest else {
                     throw ExternalPlayerError.invalidCallback
                 }
-                if let duration = pending.duration, position > duration + 5 {
+                if pending.player == .nativePlayer {
+                    let progressValues = values.filter { $0.name == "progress" }
+                    guard progressValues.count <= 1 else { throw ExternalPlayerError.invalidCallback }
+                    if let reported = progressValues.first {
+                        guard let progress = reported.value.flatMap(Double.init),
+                              progress.isFinite, (0...1).contains(progress) else {
+                            throw ExternalPlayerError.invalidCallback
+                        }
+                        pending.progress = progress
+                    }
+                }
+                if pending.progress == nil, let duration = pending.duration, position > duration + 5 {
                     throw ExternalPlayerError.invalidCallback
                 }
                 pending.position = position
@@ -382,9 +394,14 @@ public final class ExternalPlaybackRuntime {
             }
             item = item.taggingSource(account.account.id)
             let duration = pending.duration ?? item.runtime.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
-            if let duration, position > duration + 5 { throw ExternalPlayerError.invalidCallback }
-            let boundedPosition = duration.map { min(position, max(0, $0)) } ?? position
-            let percent = WatchProgressMath.watchedPercent(
+            if pending.progress == nil, let duration, position > duration + 5 {
+                throw ExternalPlayerError.invalidCallback
+            }
+            // Native Player measures the actual file; catalog runtimes can describe
+            // a different edition. Infuse and older receipts retain the runtime fallback.
+            let boundedPosition = pending.progress != nil
+                ? position : duration.map { min(position, max(0, $0)) } ?? position
+            let percent = pending.progress.map { $0 * 100 } ?? WatchProgressMath.watchedPercent(
                 position: boundedPosition, engineDuration: duration ?? 0, itemRuntime: nil
             )
             // The durable outbox owns retries and cross-server/tracker convergence.

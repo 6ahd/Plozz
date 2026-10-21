@@ -1146,14 +1146,17 @@ public final class LibraryBrowseViewModel {
         var failedServers: [MediaServer] = []
         func record(
             _ error: Error, section: LibraryLoadDiagnostic.Section,
-            responses: [ResponseDecodingDiagnostic], transport: [ResponseTransportDiagnostic]
+            responses: [ResponseDecodingDiagnostic], paging: [LibraryPagingDiagnostic],
+            transport: [ResponseTransportDiagnostic], http: [ResponseStatusDiagnostic]
         ) {
             let underlying = LibrarySourceFailure.underlying(error)
             let mapped = (underlying as? AppError) ?? .unknown(underlying.localizedDescription)
             for server in failureServers(for: error) where !failedServers.contains(server) {
                 failedServers.append(server)
             }
-            failures.append(.init(section: section, error: mapped, responses: responses, transport: transport))
+            failures.append(.init(
+                section: section, error: mapped, responses: responses, paging: paging, transport: transport, http: http
+            ))
         }
         switch watchingResult.result {
         case .success(let items):
@@ -1167,7 +1170,8 @@ public final class LibraryBrowseViewModel {
                 ))
             }
         case .failure(let error):
-            record(error, section: .continueWatching, responses: watchingResult.responses, transport: watchingResult.transport)
+            record(error, section: .continueWatching, responses: watchingResult.responses, paging: watchingResult.paging,
+                   transport: watchingResult.transport, http: watchingResult.http)
             sections += previousSections.filter { $0.id == "continueWatching" }
         }
         switch hubResult.result {
@@ -1189,7 +1193,8 @@ public final class LibraryBrowseViewModel {
                 )
             }
         case .failure(let error):
-            record(error, section: .recommendations, responses: hubResult.responses, transport: hubResult.transport)
+            record(error, section: .recommendations, responses: hubResult.responses, paging: hubResult.paging,
+                   transport: hubResult.transport, http: hubResult.http)
             sections += previousSections.filter { $0.id.hasPrefix("hub:") }
         }
         switch latestResult.result {
@@ -1203,7 +1208,8 @@ public final class LibraryBrowseViewModel {
                 ))
             }
         case .failure(let error):
-            record(error, section: .recentlyAdded, responses: latestResult.responses, transport: latestResult.transport)
+            record(error, section: .recentlyAdded, responses: latestResult.responses, paging: latestResult.paging,
+                   transport: latestResult.transport, http: latestResult.http)
             sections += previousSections.filter { $0.id == "recentlyAdded" }
         }
         let firstError = failures.first?.error
@@ -1267,7 +1273,7 @@ public final class LibraryBrowseViewModel {
         let diagnostic = LibraryLoadDiagnostic(provider: provider.kind, operation: .libraryBrowse, failures: [
             .init(
                 section: section, error: mapped, responses: captured?.responses ?? [],
-                paging: captured?.paging ?? [], transport: captured?.transport ?? []
+                paging: captured?.paging ?? [], transport: captured?.transport ?? [], http: captured?.http ?? []
             )
         ])
         queryPresentation.failureDiagnostic = diagnostic

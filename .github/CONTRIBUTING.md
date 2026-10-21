@@ -53,9 +53,31 @@ The pushed commit should create GitHub's built-in "added a commit that reference
 this issue" timeline entry. A PR reference alone is not a substitute. Do not post
 a separate issue comment just to link the commit.
 
-Use `Fixes #123` (or the fully qualified equivalent) only when the commit fully
-resolves the issue and automatic closure on landing in the default branch is
-intended. Otherwise use the non-closing `Refs` form.
+For app fixes and features, use the non-closing `Refs` form: merging a fix is not
+delivery. Keep GitHub and linked Discord reports open until the affected
+platforms are available to external TestFlight testers. Do not use GitHub's
+`Fixes`, `Closes`, or `Resolves` keywords in commits or PR descriptions for these
+reports.
+
+When the entire report is resolved, add a final commit-trailer block declaring
+the affected platforms (exactly `tvOS`, `iOS`, or `tvOS,iOS`):
+
+```text
+Fix episode detail entry
+
+Refs #177
+
+TestFlight-Fix: #177 [tvOS]
+```
+
+Use one trailer per fully resolved issue; partial work keeps only `Refs`.
+`iOS` includes iPhone and iPad. The hosted watcher records an `awaiting release`
+status and, after verifying tagged source and external TestFlight availability,
+publishes build-specific comments and closes both reports. It does not infer
+resolution from commit subjects or ask an LLM. A reopened issue requires a new
+fixing-commit declaration. See [delivery-gated issue resolution](../docs/discord-bridge.md#delivery-gated-issue-resolution)
+for activation, retries, and limitations. Non-app work that does not ship through
+TestFlight remains a maintainer-managed closure.
 
 ## Building & running
 

@@ -1,5 +1,6 @@
 import XCTest
 import CoreModels
+import CoreNetworking
 @testable import FeatureHome
 
 /// Verifies the instant-launch behaviour: `HomeViewModel` hydrates the last
@@ -221,6 +222,56 @@ final class HomeViewModelSnapshotHydrationTests: XCTestCase {
         XCTAssertFalse(home.isRefreshing)
     }
 
+    func testContinueWatchingDetailsFollowFailureAndClearAfterRecovery() async throws {
+        for kind in [ProviderKind.plex, .jellyfin, .emby] {
+            for merged in [true, false] {
+                let provider = FakeMediaProvider(allItems: [], kind: kind)
+                provider.continueWatchingError = .invalidResponse
+                provider.continueWatchingGate = {
+                    HTTPResponseDiagnostics.recordHTTPFailure(status: 503)
+                }
+                let visibility = HomeLibraryVisibility(mergeLibrariesOnHome: merged)
+                let home = HomeViewModel(
+                    accounts: [resolved(provider, accountID: "private-account")],
+                    layoutStore: InMemoryHomeLayoutStore(), currentVisibility: { visibility }
+                )
+                await home.load()
+                let diagnostic = try XCTUnwrap(home.continueWatchingDiagnostic)
+                XCTAssertEqual(diagnostic.provider, kind)
+                XCTAssertEqual(diagnostic.operation, .homeContinueWatching)
+                XCTAssertEqual(diagnostic.failures.first?.error, home.rowFailures[.continueWatching])
+                XCTAssertEqual(diagnostic.failures.first?.http, [.init(route: .continueWatching, httpStatus: 503)])
+                XCTAssertFalse(diagnostic.supportText.contains("private-account"))
+
+                provider.continueWatchingError = nil
+                await home.load(showLoadingState: false)
+                XCTAssertNil(home.continueWatchingDiagnostic)
+                XCTAssertNil(home.rowFailures[.continueWatching])
+            }
+        }
+    }
+
+    func testContinueWatchingDetailsMatchFirstFailedAccountNotFirstAccount() async throws {
+        let healthy = FakeMediaProvider(allItems: [], kind: .jellyfin)
+        let failed = FakeMediaProvider(allItems: [], kind: .plex)
+        failed.continueWatchingError = .decoding
+        let later = FakeMediaProvider(allItems: [], kind: .emby)
+        later.continueWatchingError = .unauthorized
+        let home = HomeViewModel(
+            accounts: [resolved(healthy, accountID: "healthy"), resolved(failed, accountID: "failed"),
+                       resolved(later, accountID: "later")],
+            layoutStore: InMemoryHomeLayoutStore()
+        )
+        await home.load()
+        XCTAssertEqual(home.rowFailures[.continueWatching], .decoding)
+        XCTAssertEqual(home.continueWatchingDiagnostic?.provider, .plex)
+        XCTAssertEqual(home.continueWatchingDiagnostic?.failures.first?.error, .decoding)
+        failed.continueWatchingError = .cancelled
+        later.continueWatchingError = nil
+        await home.load(showLoadingState: false)
+        XCTAssertNil(home.continueWatchingDiagnostic, "Cancellation must not create a shareable failure report.")
+    }
+
     func testResumeFailureWaitsForReconciledContentBeforePublication() async throws {
         for merged in [true, false] {
             for healthyCount in [0, 4] {
@@ -254,6 +305,7 @@ final class HomeViewModelSnapshotHydrationTests: XCTestCase {
                 XCTAssertTrue(home.loadingRows.contains(.continueWatching))
                 XCTAssertNil(home.rowFailures[.continueWatching],
                              "Publishing a failure before its usable cards tears down the loading focus target.")
+                XCTAssertNil(home.continueWatchingDiagnostic)
                 let row = try XCTUnwrap(HomeRow.rows(
                     for: try XCTUnwrap(home.state.value), isLibraryVisible: { _ in true },
                     loadingRows: home.loadingRows, failures: home.rowFailures
@@ -267,6 +319,8 @@ final class HomeViewModelSnapshotHydrationTests: XCTestCase {
                                (0..<healthyCount).map { "resume-\($0)" })
                 XCTAssertEqual(home.rowFailures[.continueWatching], .serverUnreachable,
                                "Retain the source failure; only an empty settled row presents its error.")
+                XCTAssertEqual(home.continueWatchingDiagnostic?.provider, .jellyfin)
+                XCTAssertEqual(home.continueWatchingDiagnostic?.failures.first?.error, .serverUnreachable)
                 XCTAssertTrue(home.loadingRows.isEmpty)
                 let settledRow = try XCTUnwrap(HomeRow.rows(
                     for: try XCTUnwrap(home.state.value), isLibraryVisible: { _ in true },

@@ -5,6 +5,7 @@ public struct ResponseDecodingDiagnostic: Equatable, Sendable {
     public enum Route: String, Sendable {
         case movieRecommendations, libraryHubs, other
         case collectionCandidates, collectionLibraryScope, collectionMembers
+        case continueWatching, continueWatchingItems, continueWatchingHub, onDeck
     }
     public enum Payload: String, Sendable { case empty, object, array, scalar, nonJSON }
     public enum Reason: String, Sendable { case missingKey, wrongType, nullValue, corruptedData, other }
@@ -73,10 +74,14 @@ public struct ResponseDecodingDiagnostic: Equatable, Sendable {
 }
 
 public struct LibraryPagingDiagnostic: Equatable, Sendable {
-    public enum Stage: String, Sendable { case collectionCandidates, libraryScope, collectionMembers }
+    public enum Stage: String, Sendable {
+        case collectionCandidates, libraryScope, collectionMembers
+        case continueWatchingItems, continueWatchingHub, onDeck
+    }
     public enum Reason: String, Sendable {
         case negativeTotal, emptyID, duplicateInPage, emptyBeforeTotal, nonAdvancing, nonPrefixOverlap
         case unexpectedItemType, itemsPastEnd
+        case changedTotal, sizeMismatch, offsetMismatch, repeatedItem, contradictoryMore
     }
     public let stage: Stage
     public let reason: Reason
@@ -103,8 +108,18 @@ public struct ResponseTransportDiagnostic: Equatable, Sendable {
     }
 }
 
+public struct ResponseStatusDiagnostic: Equatable, Sendable {
+    public let route: ResponseDecodingDiagnostic.Route
+    public let httpStatus: Int
+
+    public init(route: ResponseDecodingDiagnostic.Route, httpStatus: Int) {
+        self.route = route
+        self.httpStatus = httpStatus
+    }
+}
+
 public struct LibraryLoadDiagnostic: Equatable, Sendable {
-    public enum Operation: String, Sendable { case libraryRecommendations, libraryBrowse }
+    public enum Operation: String, Sendable { case libraryRecommendations, libraryBrowse, homeContinueWatching }
     public enum Section: String, Sendable {
         case continueWatching, recommendations, recentlyAdded
         case browse, collections, playlists, collectionMembers, playlistMembers
@@ -127,17 +142,19 @@ public struct LibraryLoadDiagnostic: Equatable, Sendable {
         public let responses: [ResponseDecodingDiagnostic]
         public let paging: [LibraryPagingDiagnostic]
         public let transport: [ResponseTransportDiagnostic]
+        public let http: [ResponseStatusDiagnostic]
 
         public init(
             section: Section, error: AppError,
             responses: [ResponseDecodingDiagnostic] = [], paging: [LibraryPagingDiagnostic] = [],
-            transport: [ResponseTransportDiagnostic] = []
+            transport: [ResponseTransportDiagnostic] = [], http: [ResponseStatusDiagnostic] = []
         ) {
             self.section = section
             self.error = error
             self.responses = Array(responses.suffix(4))
             self.paging = Array(paging.suffix(4))
             self.transport = Array(transport.suffix(4))
+            self.http = Array(http.suffix(4))
         }
     }
 
@@ -177,6 +194,10 @@ public struct LibraryLoadDiagnostic: Equatable, Sendable {
             for (requestIndex, request) in failure.transport.enumerated() {
                 let key = "\(prefix).transport_\(requestIndex)"
                 fields += ["\(key).route=\(request.route.rawValue)", "\(key).url_error_code=\(request.urlErrorCode)"]
+            }
+            for (requestIndex, request) in failure.http.enumerated() {
+                let key = "\(prefix).http_\(requestIndex)"
+                fields += ["\(key).route=\(request.route.rawValue)", "\(key).status=\(request.httpStatus)"]
             }
         }
         return fields.joined(separator: "\n")

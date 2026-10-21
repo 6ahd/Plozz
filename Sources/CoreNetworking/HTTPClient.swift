@@ -179,6 +179,7 @@ public struct URLSessionHTTPClient: HTTPClient {
 
     public func send(_ endpoint: Endpoint, baseURL: URL) async throws -> (Data, HTTPURLResponse) {
         let (data, http) = try await sendRaw(endpoint, baseURL: baseURL)
+        HTTPResponseDiagnostics.recordHTTPFailure(status: http.statusCode)
         switch http.statusCode {
         case 200...299:
             return (data, http)

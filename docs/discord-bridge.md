@@ -26,7 +26,9 @@ variable, a public-posting notice, and the workflow on `main`.
   IDs breaking ties; editing an older comment does not move it to the end.
   A failed send stops later replies to that thread from overtaking it. Long
   comments are split without dropping content. Bot imports do not bounce between
-  services. The bridge never closes or reopens a GitHub issue.
+  services. Ordinary report mirroring never closes or reopens a GitHub issue.
+  The separate delivery watcher below closes explicitly declared fixes only
+  after external TestFlight availability.
 - Other channels, private threads, bot-created posts, and posts created before
   the published activation timestamp are excluded.
 
@@ -47,8 +49,9 @@ visibly; they do not silently create duplicates or choose another model.
 
 The configured server and forum IDs are in `tools/discord-bridge.py`. The bot needs
 View Channels, Read Message History, Send Messages in Threads, and Embed Links in
-both forums, plus Message Content Intent. Administrator, Presence Intent, and
-Server Members Intent are unnecessary. Set each forum's default reaction to
+both forums, plus Message Content Intent. Delivery-gated archival additionally
+needs Manage Threads in these two forums, not across the server.
+Administrator, Presence Intent, and Server Members Intent are unnecessary. Set each forum's default reaction to
 thumbs-up for a consistent voting affordance.
 
 Repository Actions secrets:
@@ -145,10 +148,19 @@ voter set as a complete total. Check failed Actions runs rather than repeatedly
 rerunning a job without reading its error.
 
 Locked Discord threads retain inbound synchronization but defer outbound updates
-with a warning until unlocked. No Manage Threads permission is used. Posting a
-GitHub reply to an unlocked archived thread may unarchive it. Previously linked
-threads that disappear cause a visible failure rather than silently reducing
-their vote counts.
+with a warning until unlocked; the bridge never removes a moderator's lock.
+An unlocked archived thread is temporarily unarchived only when a message needs
+to change, then archived again, including after an edit fails. This avoids
+Discord rejecting edits to archived messages and preserves the post's prior
+state. Thread-management permission is required for these transitions.
+Previously linked threads that disappear cause a visible failure rather than
+silently reducing their vote counts.
+
+If Discord explicitly confirms that a starter message was deleted, the bridge
+logs a warning and retains the last imported report and vote total. Existing
+linked replies and outbound status can still synchronize. It never recreates a
+deleted starter or creates a new report from an empty thread. Access failures
+are not treated as deletions.
 
 Deletions are not propagated between services. For sensitive content, remove or
 edit the Discord source first, then remove every GitHub copy and any mirrored
@@ -239,4 +251,88 @@ this workflow, not `fastlane beta`.
 ```bash
 python3 -m unittest discover -s tools/tests -p 'test_*discord*.py'
 actionlint .github/workflows/testflight-discord.yml
+```
+
+## Delivery-gated issue resolution
+
+**TestFlight issue resolutions** is a separate scheduled GitHub Actions workflow
+on GitHub-hosted Ubuntu runners. It runs approximately every 15 minutes and on
+published releases. It uses no Copilot/LLM, local session, local daemon, or
+self-hosted runner. It does not run inside Fastlane, delay a release, rebuild
+anything, or change App Store Connect. Ordinary new-report matching remains a
+separate hosted bridge operation.
+
+Use the [commit trailer](../.github/CONTRIBUTING.md#commit-issue-references) only
+when an issue is fully resolved. A non-closing `Refs #123` alone never enrolls an
+issue. The watcher reads declarations from `main` and verified available release
+tags, so an intentionally distributed branch release is supported too. Tagged
+code is never executed.
+
+For each declaration it:
+
+1. Leaves the issue open and records `awaiting release`, with a bot-owned comment
+   identifying the fixing commit and affected platforms.
+2. Verifies actual external availability using the same read-only Apple checks
+   as build announcements. A published GitHub release and matching tagged
+   catalog must also exist; the fixing commit must be an ancestor of that exact
+   source. Uploads, internal builds, pending review, and unrelated tags do not
+   qualify.
+3. Records the first **observed and verified** delivered build for each affected
+   platform. Partial availability is reported but does not close the issue.
+   Numeric dotted builds remain distinct. A build disappearing later does not
+   erase its recorded delivery history, but closing still requires a qualifying
+   currently available build on every affected platform.
+4. Posts a new build-specific delivery comment, closes GitHub as completed, then
+   mirrors that comment and archives every already-linked Discord report.
+   Archival is not deletion or locking: history remains accessible, and a new
+   reply can reopen an unlocked Discord post.
+
+GitHub comments hold durable delivery receipts; Discord bot footers retain
+message identity. A retry does not create another delivery notification. Each
+platform keeps its own build number if Apple releases them separately. A human
+reopen is respected: the same declaration cannot close the issue again; add a
+new trailer on the actual follow-up fix. Competing nonancestor declarations,
+malformed metadata, and recognized Git reverts fail closed. After withdrawing
+an implementation, remove its `awaiting release` label; a replacement needs a
+new complete-fix declaration. As with any explicit resolution marker, maintainers
+must not leave a declaration claiming a fix that subsequent changes undo.
+
+The watcher deliberately does not guess historical first-fixed builds, inspect
+arbitrary commit wording, or bulk reopen/close older issues. There are no
+automatic enrollments for the issue audit that preceded this workflow.
+
+### Activation
+
+The watcher reuses the existing `TESTFLIGHT_ASC_*` read-only Apple credentials,
+`DISCORD_BOT_TOKEN`, and `TESTFLIGHT_DISCORD_MIN_BUILD`; it never receives
+`COPILOT_GITHUB_TOKEN`. Its job-scoped GitHub token gets `issues: write`.
+
+1. Give the existing bot **Manage Threads** in `bugs` and `feature-requests`,
+   alongside its existing view, history, embed, and thread-send permissions.
+   Administrator and Manage Channels are not needed.
+2. Merge the reviewed workflow to `main`. Run it manually in `check` mode to
+   verify source/Apple data, forum notices, effective permissions, and proposed
+   actions without posting, labeling, archiving, or closing anything.
+3. Set repository variable `TESTFLIGHT_RESOLUTION_ENABLED=true` and run `sync`.
+   `DISCORD_BRIDGE_ENABLED=true` and both public notices remain prerequisites
+   for Discord updates. Disable the resolution variable to stop automatic
+   GitHub closure and delivery-based Discord archival.
+
+Live checks always execute scripts from `main`, not a manually selected branch
+or release tag. Push-triggered tests use no secrets. Resolution delivery and
+ordinary report mirroring share an Actions concurrency group to prevent races,
+but release announcements and the local archive/upload lane remain independent.
+Discord delivery does not require new-report matching or a model call; it can
+retry even when ordinary report classification is failing.
+
+Failures remain visible in Actions. A GitHub close can succeed while a Discord
+send/archive is pending; the next run retries the Discord work without another
+GitHub closure or notification. Locked posts remain pending rather than having
+their locks removed. Keep bot-owned resolution comments and message footers
+intact; removing these durable records can prevent recovery or permit a replay.
+
+```bash
+python3 -m unittest discover -s tools/tests -p 'test_*discord*.py'
+python3 -m unittest discover -s tools/tests -p 'test_testflight_resolutions.py'
+actionlint .github/workflows/discord-bridge.yml .github/workflows/testflight-discord.yml .github/workflows/testflight-resolutions.yml
 ```

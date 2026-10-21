@@ -21,6 +21,9 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
   and hit target. Palette resolution lives here, not in Foundation-only `CoreModels`.
 - `ProfileTileColor` — the colour palette and the deterministic
   `colorIndex → Color` resolution used by avatar / tile / picker.
+  Avatar choices reuse CoreUI's `ColorSwatchButton`, also used by watch-indicator
+  settings. The 40-color avatar palette, TV grid, mobile compact row/full palette
+  sheet, and neutral emoji option remain independent of the watch-mark palette.
 - `ProfileNameLabel` — shared picker and summary name with an inline lock
   for a Plozz Profile Lock or a configured PIN-protected Plex Home binding.
   The indicator and VoiceOver value describe configured protection, not temporary

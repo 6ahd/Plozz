@@ -1,3 +1,4 @@
+import CoreModels
 import Foundation
 
 /// Case-insensitive HTTP header helpers shared by the range/probe logic.

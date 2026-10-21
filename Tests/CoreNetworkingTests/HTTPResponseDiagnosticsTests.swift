@@ -172,6 +172,60 @@ final class HTTPResponseDiagnosticsTests: XCTestCase {
         XCTAssertEqual(captured.transport, [.init(route: .collectionLibraryScope, urlErrorCode: -1001)])
     }
 
+    func testHTTPStatusesAreBoundedAndRecoveredFailuresAreDiscarded() async throws {
+        let captured = await HTTPResponseDiagnostics.capture { () async throws -> Int in
+            HTTPResponseDiagnostics.$route.withValue(.continueWatchingItems) {
+                for _ in 0..<7 { HTTPResponseDiagnostics.recordHTTPFailure(status: 503) }
+                HTTPResponseDiagnostics.recordHTTPFailure(status: 200)
+            }
+            throw AppError.invalidResponse
+        }
+        XCTAssertEqual(captured.http, Array(repeating: .init(route: .continueWatchingItems, httpStatus: 503), count: 4))
+        let report = LibraryLoadDiagnostic(provider: .plex, operation: .homeContinueWatching, failures: [
+            .init(section: .continueWatching, error: .unknown("private-token"), http: captured.http)
+        ])
+        XCTAssertTrue(report.supportText.contains("operation=homeContinueWatching"))
+        XCTAssertTrue(report.supportText.contains("http_0.route=continueWatchingItems"))
+        XCTAssertTrue(report.supportText.contains("http_0.status=503"))
+        XCTAssertFalse(report.supportText.contains("http_4"))
+        XCTAssertFalse(report.supportText.contains("private-token"))
+        let recovered = await HTTPResponseDiagnostics.capture {
+            HTTPResponseDiagnostics.recordHTTPFailure(status: 500)
+            return 1
+        }
+        XCTAssertTrue(recovered.http.isEmpty)
+    }
+
+    func testURLSessionHTTPFailureRetainsStatusWithoutChangingErrorMapping() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StatusFailureURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let captured = await HTTPResponseDiagnostics.capture {
+            try await HTTPResponseDiagnostics.$route.withValue(.continueWatchingHub) {
+                try await URLSessionHTTPClient(session: session).decode(
+                    Envelope.self, from: Endpoint(path: "/private-path"),
+                    baseURL: URL(string: "https://private-host.invalid")!
+                )
+            }
+        }
+        guard case .failure(let error) = captured.result else { return XCTFail("Expected HTTP failure") }
+        XCTAssertEqual(error as? AppError, .invalidResponse)
+        XCTAssertEqual(captured.http, [.init(route: .continueWatchingHub, httpStatus: 503)])
+    }
+
+    private final class StatusFailureURLProtocol: URLProtocol {
+        override class func canInit(with request: URLRequest) -> Bool { true }
+        override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+        override func startLoading() {
+            let response = HTTPURLResponse(url: request.url!, statusCode: 503, httpVersion: nil, headerFields: nil)!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: Data("private response".utf8))
+            client?.urlProtocolDidFinishLoading(self)
+        }
+        override func stopLoading() {}
+    }
+
     private final class TransportFailureURLProtocol: URLProtocol {
         override class func canInit(with request: URLRequest) -> Bool { true }
         override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }

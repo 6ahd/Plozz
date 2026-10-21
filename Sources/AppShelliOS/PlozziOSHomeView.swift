@@ -2284,11 +2284,13 @@ private struct PlozziOSHomeRowFailure: View {
     let title: Text
     let error: AppError
     let viewModel: HomeViewModel
+    var report: PlaybackDiagnosticReport? = nil
 
     var body: some View {
         PlozziOSMediaSection(title: title) {
             ContentStateView<Bool, EmptyView>(
                 state: .failed(error),
+                errorReport: report,
                 onRetry: { Task { await viewModel.load(showLoadingState: false) } }
             ) { _ in EmptyView() }
             .frame(minHeight: 220)
@@ -2319,7 +2321,11 @@ private struct PlozziOSHomeRowView: View {
     var body: some View {
         Group {
             if let failure = row.failure, row.items.isEmpty, row.libraries.isEmpty, liveChannels.isEmpty {
-                PlozziOSHomeRowFailure(title: Text(row.title), error: failure, viewModel: viewModel)
+                PlozziOSHomeRowFailure(
+                    title: Text(row.title), error: failure, viewModel: viewModel,
+                    report: row.kind == .continueWatching
+                        ? viewModel.continueWatchingDiagnostic.map(PlaybackDiagnosticReport.library) : nil
+                )
             } else if row.kind == .libraries, row.loadingPlaceholderCount == 0 {
                 PlozziOSMediaSection(title: Text(row.title)) {
                     libraryRow

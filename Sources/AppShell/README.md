@@ -42,6 +42,12 @@ registry.
 
 ## Invariants
 
+- **Top Shelf actions retain their intent and owner.** Play opens the title then
+  starts playback; More Info opens the same detail/episode-context destination
+  without playback. Requests wait for signed-in admission and route through the
+  active Home stack. Account-qualified links cannot fall back to another server,
+  and cancellation or a superseding request rejects stale resolutions.
+
 - **Missing sources are a recoverable route state.** Home, Watchlist, Search,
   library and series-context destinations show an unavailable state when their
   library provider no longer resolves. External Watchlist/Search details remain

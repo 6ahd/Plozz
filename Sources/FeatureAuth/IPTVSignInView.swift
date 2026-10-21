@@ -13,13 +13,11 @@ public struct IPTVSignInView: View {
     public init(
         deviceID: String, address: String = "", name: String = "", guideAddress: String = "",
         guideURLs: [URL] = [], reconnecting: UserSession? = nil, initialMode: IPTVCredential.Mode = .playlist,
-        discoversPlaylistGuides: Bool = true,
         onAuthenticated: @escaping (UserSession) throws -> Void, onCancel: @escaping () -> Void
     ) {
         let model = IPTVAuthViewModel(
             deviceID: deviceID, address: address, name: name, guideAddress: guideAddress,
             guideURLs: guideURLs, reconnecting: reconnecting, initialMode: initialMode,
-            discoversPlaylistGuides: discoversPlaylistGuides,
             onAuthenticated: onAuthenticated
         )
         _model = State(initialValue: model)
@@ -104,6 +102,7 @@ private struct IPTVConnectionFields: View {
                 if model.mode == .xtream {
                     IPTVLoginFields(username: $model.username, password: $model.password)
                 }
+                IPTVAddressField(title: "EPG URL (optional)", value: $model.guideAddress)
                 Button {
                     showsAdvanced.toggle()
                 } label: {
@@ -238,12 +237,6 @@ private struct IPTVAdvancedFields: View {
     @Bindable var model: IPTVAuthViewModel
     var body: some View {
         SettingsSectionGroup("Program guides") {
-            if model.mode != .xtream {
-                Toggle(isOn: $model.discoversPlaylistGuides) {
-                    Text("Find guides in playlist").font(.body)
-                }
-            }
-            IPTVAddressField(title: "Guide URL (optional)", value: $model.guideAddress)
             ForEach($model.additionalGuides) { $guide in
                 IPTVAddressField(title: "Additional guide URL", value: $guide.address)
                 Button(role: .destructive) { [id = guide.id] in

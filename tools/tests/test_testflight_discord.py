@@ -345,7 +345,7 @@ class PermissionTests(unittest.TestCase):
         for bit in (10, 11, 14, 16):
             discord = Discord()
             discord.permissions &= ~(1 << bit)
-            with self.subTest(bit=bit), self.assertRaisesRegex(APP.Error, "lacks announcement permissions"):
+            with self.subTest(bit=bit), self.assertRaisesRegex(APP.Error, "lacks permissions in channel"):
                 APP.inspect_channel(discord)
 
     def test_channel_denial_and_member_allow_use_discord_precedence(self):

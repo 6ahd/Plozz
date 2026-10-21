@@ -62,6 +62,8 @@ class GitHub:
         return copy.deepcopy(self.comments if path.endswith("/comments") else self.issues)
 
     def call(self, method, path, data=None):
+        if method == "GET":
+            return copy.deepcopy(next(i for i in self.issues if i["number"] == int(path.rsplit("/", 1)[1])))
         self.writes.append((method, path, copy.deepcopy(data)))
         if method == "POST" and path.endswith("/issues"):
             created = issue(
@@ -110,10 +112,15 @@ class Discord:
             if path.endswith("/threads/archived/public"):
                 return {"threads": [], "has_more": False}
             identifier = path.split("/")[2]
+            if path == f"/channels/{identifier}":
+                return copy.deepcopy(next(t for t in self.threads if t["id"] == identifier))
             if path.endswith("/messages"):
                 return sorted(copy.deepcopy(self.messages[identifier]), key=lambda m: int(m["id"]), reverse=True)
             if "/messages/" in path and "/reactions/" not in path:
-                return copy.deepcopy(next(m for m in self.messages[identifier] if m["id"] == path.split("/")[-1]))
+                found = next((m for m in self.messages[identifier] if m["id"] == path.split("/")[-1]), None)
+                if found is None:
+                    raise BRIDGE.APIError("Discord", "GET", 404, 10008)
+                return copy.deepcopy(found)
             if "/reactions/" in path:
                 if self.fail_votes:
                     raise BRIDGE.BridgeError("Reaction request failed.")
@@ -121,6 +128,10 @@ class Discord:
             raise AssertionError(path)
         self.writes.append((method, path, copy.deepcopy(data)))
         identifier = path.split("/")[2]
+        if method == "PATCH" and path == f"/channels/{identifier}":
+            obj = next(t for t in self.threads if t["id"] == identifier)
+            obj["thread_metadata"].update(data)
+            return copy.deepcopy(obj)
         if method == "POST" and path.endswith("/threads"):
             self.next_id += 1
             created = thread(str(self.next_id), parent_id=identifier, name=data["name"])
@@ -341,9 +352,66 @@ class SynchronizationTests(unittest.TestCase):
     def test_missing_starter_does_not_become_empty_successful_issue(self):
         discord, github = Discord(), GitHub()
         discord.messages[THREAD] = []
-        with self.assertRaisesRegex(BRIDGE.BridgeError, "starter message is missing"):
-            synchronize(discord, github)
+        synchronize(discord, github)
         self.assertEqual(github.writes, [])
+
+    def test_deleted_linked_starter_keeps_report_votes_and_reply_sync(self):
+        discord, github = Discord(), GitHub()
+        synchronize(discord, github)
+        report = copy.deepcopy(github.issues[0])
+        votes = copy.deepcopy(records(github, "votes")[0])
+        discord.messages[THREAD] = [m for m in discord.messages[THREAD] if m["id"] != THREAD]
+        discord.messages[THREAD].append(message(REPLY, "New information"))
+        synchronize(discord, github)
+        self.assertEqual(github.issues[0], report)
+        self.assertEqual(records(github, "votes")[0], votes)
+        self.assertIn("New information", records(github, "reply")[0]["body"])
+
+    def test_missing_starter_access_failure_does_not_mean_deleted(self):
+        discord, github = Discord(), GitHub()
+        discord.messages[THREAD] = []
+        original = discord.call
+
+        def inaccessible(method, path, data=None, query=None):
+            if path == f"/channels/{THREAD}/messages/{THREAD}":
+                raise BRIDGE.APIError("Discord", "GET", 403, 50001)
+            return original(method, path, data, query)
+
+        with patch.object(discord, "call", side_effect=inaccessible):
+            with self.assertRaisesRegex(BRIDGE.BridgeError, "HTTP 403"):
+                synchronize(discord, github)
+        self.assertEqual(github.writes, [])
+
+    def test_archived_status_edits_unarchive_then_restore_the_thread(self):
+        discord, github = Discord(), GitHub()
+        synchronize(discord, github)
+        discord.threads[0]["thread_metadata"]["archived"] = True
+        github.issues[0]["state"] = "closed"
+        discord.writes.clear()
+        synchronize(discord, github)
+        self.assertEqual(discord.writes[0], ("PATCH", f"/channels/{THREAD}", {"archived": False}))
+        self.assertEqual(discord.writes[-1], ("PATCH", f"/channels/{THREAD}", {"archived": True}))
+        self.assertTrue(discord.threads[0]["thread_metadata"]["archived"])
+        discord.writes.clear()
+        synchronize(discord, github)
+        self.assertEqual(discord.writes, [])
+
+    def test_archived_thread_is_restored_after_a_failed_message_edit(self):
+        discord, github = Discord(), GitHub()
+        synchronize(discord, github)
+        discord.threads[0]["thread_metadata"]["archived"] = True
+        github.issues[0]["state"] = "closed"
+        original = discord.call
+
+        def fail_edit(method, path, data=None, query=None):
+            if method == "PATCH" and "/messages/" in path:
+                raise BRIDGE.BridgeError("Message edit failed")
+            return original(method, path, data, query)
+
+        with patch.object(discord, "call", side_effect=fail_edit):
+            with self.assertRaisesRegex(BRIDGE.BridgeError, "Message edit failed"):
+                synchronize(discord, github)
+        self.assertTrue(discord.threads[0]["thread_metadata"]["archived"])
 
     def test_later_report_can_match_an_issue_created_earlier_in_same_run(self):
         discord, github = Discord([thread(), thread(SECOND)]), GitHub()
@@ -516,6 +584,20 @@ class CopilotTests(unittest.TestCase):
 
 
 class APITests(unittest.TestCase):
+    def test_discord_error_code_is_reported_without_response_content(self):
+        api = BRIDGE.API("Discord", "test-only", write=True)
+        api.opener = Mock()
+        api.opener.open.side_effect = HTTPError(
+            "https://discord.com/api/v10/channels/123", 400, "error", {},
+            io.BytesIO(b'{"code":50083,"message":"private response details"}'),
+        )
+        with self.assertRaises(BRIDGE.APIError) as caught:
+            api.call("PATCH", "/channels/123", {"archived": False})
+        self.assertEqual(caught.exception.code, 50083)
+        self.assertIn("code 50083", str(caught.exception))
+        self.assertNotIn("private response details", str(caught.exception))
+        self.assertEqual(api.opener.open.call_count, 1)
+
     def test_read_only_mode_and_cross_origin_paths_are_rejected_before_io(self):
         api = BRIDGE.API("GitHub", "test-only")
         api.opener = Mock()

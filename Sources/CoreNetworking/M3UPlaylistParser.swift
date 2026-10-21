@@ -273,7 +273,7 @@ public struct M3UPlaylistParser: Sendable {
             if !hasPlaylistStart, directive == "#EXTM3U" {
                 hasPlaylistStart = true
                 let attributes = parser.parseAttributes(String(line.dropFirst("#EXTM3U".count)))
-                for key in ["url-tvg", "x-tvg-url"] {
+                for key in ["url-tvg", "x-tvg-url", "tvg-url"] {
                     for address in (attributes[key] ?? "").split(separator: ",") {
                         if let url = parser.supportedURL(
                             address.trimmingCharacters(in: .whitespacesAndNewlines), relativeTo: parser.baseURL

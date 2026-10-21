@@ -1083,7 +1083,7 @@ let package = Package(
         ),
         .testTarget(
             name: "FeatureLiveTVCoreTests",
-            dependencies: ["CoreModels", "FeatureLiveTVCore"]
+            dependencies: ["CoreModels", "FeatureLiveTVCore", "TestSupportPerformance"]
         ),
         .testTarget(
             name: "FeatureLiveTVTests",

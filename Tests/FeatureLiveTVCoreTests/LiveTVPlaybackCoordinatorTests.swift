@@ -423,6 +423,34 @@ final class LiveTVPlaybackCoordinatorTests: XCTestCase {
         await fixture.preparation.close()
     }
 
+    func testVisibleIPTVRetryReleasesTheRefusedLeaseAndOpensANewOne() async throws {
+        for error in [AppError.rateLimited(retryAfter: 10), .conflict] {
+            let first = try CoordinatorFixtureLease("one", iptv: true)
+            let second = try CoordinatorFixtureLease("one", iptv: true)
+            let fixture = CoordinatorFixture(kind: .iptv, replies: [
+                "one": [.init(lease: first), .init(lease: second)]
+            ])
+            let opened = await fixture.coordinator.watch("one").value
+            XCTAssertTrue(opened)
+            let oldID = try XCTUnwrap(fixture.preparation.current?.id)
+            let report = LiveChannelFailureReport(failure: .engine(error))
+            fixture.coordinator.playbackFailed(oldID, report: report)
+            XCTAssertEqual(fixture.coordinator.watchFailure?.playbackFailure, report)
+            XCTAssertNil(fixture.preparation.current)
+            let retried = await fixture.coordinator.watch("one").value
+            XCTAssertTrue(retried)
+            XCTAssertNotEqual(fixture.preparation.current?.id, oldID)
+            XCTAssertNil(fixture.preparation.playbackFailure)
+            let opens = await fixture.provider.opens
+            let oldCloses = await first.closeCalls
+            let currentCloses = await second.closeCalls
+            XCTAssertEqual(opens, ["one", "one"])
+            XCTAssertEqual(oldCloses, 1)
+            XCTAssertEqual(currentCloses, 0)
+            await fixture.preparation.close()
+        }
+    }
+
     func testNativePresentationSurvivesZapsButRetiredDismissalCannotAffectReplacement() async throws {
         let fixture = CoordinatorFixture(replies: [
             "one": [.init(lease: try CoordinatorFixtureLease("one"))],

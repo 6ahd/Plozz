@@ -447,21 +447,19 @@ public actor LiveTVIndexedCache {
             try Task.checkCancellation()
             guard let playlist = try playlist(source: source) else { continue }
             var guides = LiveTVConfiguredSources.guides(for: source)
-            if source.discoversPlaylistGuides {
-                let records: [DiscoveredGuideRecord] = try readPartitioned("discovered." + source.id)
-                let identity = LiveTVChannelIdentity(key: try identityKey())
-                var seen = Set<URL>()
-                for url in playlist.declaredGuideURLs where seen.insert(url).inserted {
-                    guard guides.count < 32,
-                          !source.guideURLs.contains(where: { LiveTVPlaylistSource.guideURLsShareIdentity($0, url) }),
-                          LiveTVPlaylistSource.isSupportedURL(url) else { continue }
-                    let exact = identity.fingerprint(url.absoluteString)
-                    let stable = try discoveredGuideStableFingerprint(url: url, identity: identity)
-                    for record in records where record.fingerprint == exact || record.stableFingerprint == stable {
-                        guides.append(.init(
-                            id: record.id, name: source.name, url: url, provider: LiveTVGuideSource.provider(for: url)
-                        ))
-                    }
+            let records: [DiscoveredGuideRecord] = try readPartitioned("discovered." + source.id)
+            let identity = LiveTVChannelIdentity(key: try identityKey())
+            var seen = Set<URL>()
+            for url in playlist.declaredGuideURLs where seen.insert(url).inserted {
+                guard guides.count < 32,
+                      !source.guideURLs.contains(where: { LiveTVPlaylistSource.guideURLsShareIdentity($0, url) }),
+                      LiveTVPlaylistSource.isSupportedURL(url) else { continue }
+                let exact = identity.fingerprint(url.absoluteString)
+                let stable = try discoveredGuideStableFingerprint(url: url, identity: identity)
+                for record in records where record.fingerprint == exact || record.stableFingerprint == stable {
+                    guides.append(.init(
+                        id: record.id, name: source.name, url: url, provider: LiveTVGuideSource.provider(for: url)
+                    ))
                 }
             }
             let db = try database()

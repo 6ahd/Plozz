@@ -58,7 +58,6 @@ struct AddServerView: View {
                         $0.session(token: appModel.accountStore.token(for: $0.id) ?? "")
                     },
                     initialMode: initialIPTVMode,
-                    discoversPlaylistGuides: initialIPTVPlaylist?.discoversPlaylistGuides ?? true,
                     onAuthenticated: {
                         guard appModel.profiles.activeProfileID == initialProfileID,
                               initialIPTVAccount.map({ previous in

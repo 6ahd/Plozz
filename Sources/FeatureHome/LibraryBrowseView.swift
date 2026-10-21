@@ -80,21 +80,23 @@ public struct LibraryBrowseView: View {
     /// Custom pinned-sidebar clearance. Native top/sidebar styles publish zero.
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
     @Environment(\.plozzNavigationStyle) private var navigationStyle
-    /// Per-profile card presentation. Decides how far a grid card insets its
-    /// artwork, which is what the banner's edges have to match.
+    /// Align the visible card surface, not its invisible layout margins.
     @Environment(\.plozzCardStyle) private var cardStyle
     @Environment(\.plozzCardFocusStyle) private var focusStyle
     /// App-wide media-share scan/enrich status (optional so previews/tests that
     /// don't inject it don't crash). Feeds the banner under this library's title.
     @Environment(ShareScanStatusModel.self) private var shareScanStatus: ShareScanStatusModel?
 
-    /// Library roots need a little more separation than Home rails: large focused
-    /// posters bloom toward the pinned icons, so the base sidebar inset alone
-    /// leaves them visually touching.
     private var contentLeadingPadding: CGFloat {
-        HomeLayout.horizontalPadding
-            + navigationContentInset
-            + (navigationContentInset > 0 ? 16 : 0)
+        HomeLayout.horizontalPadding + navigationContentInset
+    }
+
+    private var gridLeadingPadding: CGFloat {
+        metrics.cardRowLeadingPadding(contentLeadingPadding, cardStyle: cardStyle)
+    }
+
+    private var gridTrailingPadding: CGFloat {
+        metrics.cardRowLeadingPadding(HomeLayout.horizontalPadding, cardStyle: cardStyle)
     }
 
     private var isEntryContentPending: Bool {
@@ -434,7 +436,7 @@ public struct LibraryBrowseView: View {
         NativeLibraryGrid(
             viewModel: viewModel, total: total, generation: generation,
             spoilerSettings: spoilerSettings,
-            leadingInset: contentLeadingPadding, trailingInset: HomeLayout.horizontalPadding,
+            leadingInset: gridLeadingPadding, trailingInset: gridTrailingPadding,
             scrollTarget: nativeScrollTarget,
             hidesScrollIndicator: isRailVisible,
             header: scanBanner,
@@ -504,8 +506,8 @@ public struct LibraryBrowseView: View {
                         }
 
                     }
-                    .padding(.leading, contentLeadingPadding)
-                    .padding(.trailing, HomeLayout.horizontalPadding)
+                    .padding(.leading, gridLeadingPadding)
+                    .padding(.trailing, gridTrailingPadding)
                     .padding(.bottom, PlozzTheme.Metrics.screenVerticalPadding)
                     .focusSection()
                     .id(viewModel.contentMode)
@@ -630,10 +632,8 @@ public struct LibraryBrowseView: View {
     /// growing. Renders nothing for a server-backed library or an idle share, and
     /// does its own status lookup so progress ticks never reach the poster grid.
     ///
-    /// Horizontally it lines up with the poster ARTWORK below it, not the grid's
-    /// column edges: a card insets its artwork inside its own surface, so matching
-    /// only the grid padding left the banner overhanging every poster by that
-    /// inset. Vertically it takes an equal, generous gap on both sides — the first
+    /// Horizontally it shares the header and visible card-surface keyline.
+    /// Vertically it takes an equal, generous gap on both sides — the first
     /// grid row scales up on focus (``mediumFocusedCardScale``) and would
     /// otherwise crowd the banner's lower edge.
     @ViewBuilder
@@ -643,16 +643,10 @@ public struct LibraryBrowseView: View {
                 status: shareScanStatus,
                 shareID: viewModel.sourceServerID
             )
-            .padding(.leading, contentLeadingPadding + posterArtworkInset)
-            .padding(.trailing, HomeLayout.horizontalPadding + posterArtworkInset)
+            .padding(.leading, contentLeadingPadding)
+            .padding(.trailing, HomeLayout.horizontalPadding)
             .padding(.vertical, Self.scanBannerVerticalGap)
         }
-    }
-
-    /// How far a grid card insets its artwork inside its own footprint, so the
-    /// banner can sit flush with the posters in either card style.
-    private var posterArtworkInset: CGFloat {
-        cardStyle == .framed ? metrics.cardInset : metrics.borderlessCardSideMargin
     }
 
     /// Equal breathing room above and below the banner, on top of the stack's own
@@ -799,7 +793,7 @@ private struct LibraryContentSegmentStyle: ButtonStyle {
                             ? (colorScheme == .dark ? Color.white : .black)
                             : palette.primaryText.opacity(isSelected ? 0.18 : 0))
                 }
-                .scaleEffect(configuration.isPressed ? 0.97 : (isFocused ? 1.04 : 1))
+                .scaleEffect(configuration.isPressed ? 0.97 : 1)
                 .animation(.easeOut(duration: 0.16), value: isFocused)
                 .animation(.easeOut(duration: 0.16), value: isSelected)
                 .animation(.easeOut(duration: 0.12), value: configuration.isPressed)

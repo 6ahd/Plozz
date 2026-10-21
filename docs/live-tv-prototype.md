@@ -15,6 +15,11 @@ For past failures, attempted repairs and related tests, see the short
 [IPTV troubleshooting history](iptv-history.md). It is historical context,
 not a specification.
 
+For the reliability-first hardening priorities and explicitly deferred feature
+gaps, see [Live TV reliability](live-tv-reliability.md). It records finite
+provider cooldowns, safe connection-limit errors, controlled rolling-playback
+results, and remaining real-provider/long-session coverage gaps.
+
 ## Diagnosing disappearing sources
 
 **Send to Developer** automatically includes a structured Live TV source journal
@@ -195,6 +200,18 @@ login parameters are not inferred, and authentication failures, rate limits,
 network failures and cancellation do not trigger a protocol retry. The saved
 account uses the detected protocol, including when reopening its connection.
 
+The basic form includes **EPG URL (optional)**. Leave it blank to use the
+provider's guide automatically; a custom URL takes priority. Additional guide
+URLs and authentication remain under **Advanced options**. The old discovery
+toggle is no longer shown or honored, including for existing sources. Its
+serialized value remains compatible with older clients. Previously opted-out
+URL accounts keep their saved channels while one background catalogue refresh
+recovers playlist-declared guides; failures retain the saved catalogue and
+normal retry backoff. Once discovery finishes, the active guide rechecks source
+authorization and warms the recovered listings without requiring another source
+reload. Old imported-file accounts whose guide addresses were
+never retained require a replacement file or a custom guide URL.
+
 Xtream and playlist playback follow provider-issued HTTP(S) redirects to
 delivery servers automatically, including changing hosts/ports and URLs carrying
 account credentials. No provider domain or delivery IP is hardcoded, and no
@@ -274,7 +291,14 @@ need reimporting to recover previously discarded metadata.
 Explicit XMLTV guides are ordered, with separate first-guide-origin headers;
 Xtream otherwise uses its native guide API, falling back to its `xmltv.php`
 for channels with empty, malformed or unsupported API listings. Successful
-native listings are retained. Explicit guides bypass that fallback selection.
+native listings are retained. Working explicit guides remain preferred. If an
+explicit Xtream guide returns HTTP 404, other configured guides are tried in
+order before one attempt at the account's standard `xmltv.php` for uncovered
+channels. A default URL already in the configured list is not requested again.
+Its successful partial or empty result is retained rather than treated as a
+missing endpoint.
+This recovery does not fan out into per-channel native API requests, does not
+apply to playlist/file accounts, and does not replace a working but empty guide.
 An unavailable endpoint is not retried once per remaining channel in the batch.
 Authentication failures, rate limits, transport failures and ordinary server
 errors remain visible rather than triggering another request path; a failed
@@ -284,7 +308,24 @@ Each guide is requested at its declared address without copying the playlist's
 query credentials. Account headers stay scoped to their configured origin;
 the standalone source loader does not share cookies or stored HTTP credentials.
 Guide redirects retain their existing transport safeguards.
-Playlist and imported-file accounts without an explicit or enabled playlist-declared
+Confirmed XMLTV 404s are reused only within the current provider's refresh,
+across its channel/window batches. Every new refresh can retry immediately;
+neither another account nor a later refresh inherits those failures. Diagnostics
+distinguish a reused failure from a new HTTP request. Successful document caching
+retains one account-scoped response per provider instance for at most 60 seconds,
+honoring shorter max-age, no-cache and no-store. Bodies up to 16 MiB remain in
+memory; larger permitted bodies (up to the existing 256 MiB download limit) use an unlinked temporary
+file mapping. Expiry and teardown release the cache without requiring another
+request. This avoids downloading a large guide again for each channel batch;
+matching and parsing still run separately for each batch. Initial download
+assembly still uses Data. Backing failures are logged and leave a valid response
+uncached rather than failing its guide import.
+XMLTV accepts compact and colon-separated numeric timezone offsets, with strict
+date/offset validation. Programme-only feeds can supply exact channel IDs without
+invented display names or relaxed station matching. Referenced IDs and declared
+channels share the channel/text budgets; later declarations still provide names
+and conflicting duplicate declarations remain invalid.
+Playlist and imported-file accounts without an explicit or playlist-declared
 guide immediately report no guide capability. Both platforms show "No program
 guide available" and skip guide warmup and browsing requests instead of showing
 "Loading guide...". Channels remain playable. Configured feeds and Xtream retain
@@ -422,8 +463,8 @@ after authentication/import and persistence succeed. A removed account,
 changed credential revision or switched profile invalidates an in-flight form.
 
 Existing legacy sources remain intact. Their details offer **Connect as IPTV
-account** for URL sources, preserving the name, URL, guide order and discovery
-choice. This is additive, not an automatic migration: disable the old source
+account** for URL sources, preserving the name, URL and guide order.
+This is additive, not an automatic migration: disable the old source
 after connecting to avoid duplicate channels. Existing source approvals,
 favorites and manual guide mappings are not silently reassigned. Legacy source
 editors and encrypted imported-file archives retain their existing bounds and
@@ -978,6 +1019,11 @@ an oversized broad catalogue reports a preparation error instead of silently
 omitting part of the library. Metadata-poor libraries may therefore have fewer
 themed channels, but do not require manual recipes.
 
+Automatic recipe revisions reuse an existing snapshot when all immutable inputs
+match, rather than duplicating them for a metadata-only recipe change. Published
+revisions and their boundaries are never rewritten. This prevents new redundant
+payloads; it does not migrate or delete previously published duplicate snapshots.
+
 The opt-in is stored per profile on this device and defaults to Off. Disabling
 it stops automatic discovery and removes generated channels from playback and
 the guide without deleting their saved identities or any custom channel/IPTV
@@ -1451,6 +1497,11 @@ generated schedule, not video files. Authenticated IPTV accounts use the normal
 account-descriptor and credential-transfer paths; their disk-backed catalogues
 and downloaded guides remain local. The imported files mentioned below belong
 to the older playlist-source transfer path, not the newer IPTV account catalogue.
+The sync breakdown separates **Plozz Channels schedules** (definitions and
+immutable inputs) from **Live TV preferences**, and reports pending-upload bytes
+separately from all locally retained payloads. These are encoded record bytes,
+not measured CloudKit storage or wire traffic. Unchanged acknowledged records
+are not re-uploaded on every capture.
 For genuinely empty onboarding and separate cloud-restoration tests, use the
 [cloud-enabled first-user cases](per-branch-builds.md#cloud-enabled-first-user-cases)
 rather than resetting the normal app or disabling sync.
@@ -1511,6 +1562,10 @@ Full reloads retain the existing per-channel ledger and verified-deletion rules.
 Portable library schedule validation, snapshot assembly/encoding and merge
 planning run on a serial worker actor using immutable inputs. Prepared exports
 are reused during capture instead of rebuilding schedules on the main actor.
+Definition-only changes, such as advancing the published guide horizon, are
+revalidated but reuse the same encoded snapshot records. Changed snapshot
+contents or a different profile require a fresh export; matching UUIDs alone
+are insufficient.
 Consent, source changes, acknowledgements and definition publication remain
 main-actor-owned. Every worker result is checked against the current profile,
 account epoch and consent revision; definition publication also rechecks the
@@ -1688,6 +1743,13 @@ They are observations, not a playlist validator or a new retry policy. A child
 404 remains available even if AVFoundation replaces it with a generic failure;
 an earlier recovered request does not become the terminal error.
 
+For live root GETs, the relay also recognizes HTML/JSON/XML document signatures
+or an empty body from its existing 16-byte prefix. A recognized non-video
+response fails without opening a second origin request, preserving the actual
+HTTP status and a fixed body classification in the error shown to the user.
+It does not infer authorization failure. Unknown prefixes, HEAD, byte ranges,
+opaque HLS children and on-demand delivery keep their existing behavior.
+
 These reports never include URLs, hosts, IPs, channel names, response bodies,
 raw headers, native descriptions, or native error-log comments. Local copying
 does not enable telemetry; the existing consent-generation, report-count, and
@@ -1724,7 +1786,13 @@ timeshift controls disable rather than promising unavailable rewind.
 
 The host subscribes to `liveSourceReset` before loading. A fixed public channel
 reopens the same URL, with one automatic retune in flight, at least 20 seconds
-between automatic attempts and at most three per channel-viewing session.
+between automatic attempts and at most three before recovery is exhausted.
+Five minutes of continuously observed playing state with a presented frame and
+an advancing playhead replenishes that allowance. Pause, inactivity, buffering,
+seeking, a new load, backward/nonfinite clocks or more than five seconds without
+observed progress discard the healthy interval; elapsed wall time alone does
+not count. This clock observation only qualifies recovery credit, never changes
+the engine's published playback phase or starts a periodic retune.
 Duplicate signals coalesce, pause/inactivity defers recovery, and exhaustion is
 visible. Two manual retries remain available; they do not replenish automatic
 recovery's budget. Startup is bounded at 30 seconds and sustained activity/stall

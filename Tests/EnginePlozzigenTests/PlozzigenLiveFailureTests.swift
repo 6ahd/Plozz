@@ -168,6 +168,32 @@ final class PlozzigenLiveFailureTests: XCTestCase {
         )), .decoding)
     }
 
+    func testNonVideoRefreshKeepsItsBodyClassificationAfterASuccessfulManifest() throws {
+        let diagnostics = PlaybackFailureDiagnostics()
+        let attempt = try XCTUnwrap(diagnostics.begin(
+            layer: .liveEngine, content: .live, captureForPresentation: true
+        ))
+        let delivery = try XCTUnwrap(diagnostics.begin(
+            layer: .iptvProxy, content: .live, captureForPresentation: true
+        ))
+        delivery.fail(stage: .body, reason: .invalidResponse, httpStatus: 200, format: .html)
+        var root = PlaybackDeliveryEvidence.Request(
+            sequence: 1, resource: .root, method: .get, startedMilliseconds: 0
+        )
+        root.format = .hls
+        root.outcome = .complete
+        PlozzigenLiveFailure.record(
+            .init(kind: .nativeItemFailed, message: "private"),
+            attempt: attempt, stage: .playback,
+            evidence: .init(delivery: .init(root: root)), deliveryDiagnostic: delivery.diagnostic
+        )
+        XCTAssertEqual(attempt.diagnostic?.format, .html)
+        XCTAssertEqual(attempt.diagnostic?.httpStatus, 200)
+        XCTAssertEqual(attempt.diagnostic?.evidence?.delivery?.root?.format, .hls)
+        let report = LiveChannelFailureReport(failure: .engine(.invalidResponse), diagnostic: attempt.diagnostic)
+        XCTAssertEqual(report.message, PlaybackFailureDiagnostic.Format.html.nonVideoMessage)
+    }
+
     func testUnknownKindsAndDomainsCannotLeakLocatorsIntoDiagnosticFields() {
         let secret = "https://example.invalid/live?token=fixture-secret"
         let info = PlaybackErrorInfo(

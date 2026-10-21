@@ -12,6 +12,20 @@ workspace's full-width destination layout, like subtitle styling. Their
 two-column content must not be squeezed into the ordinary centered Settings
 column. The stack retains the narrower parent page and its focus on return.
 
+On tvOS, **Everyone → Top Shelf** reuses the native left/right `SettingsStepper`
+for Continue Watching and Recently Added counts (4 by default, 1–20 each).
+`TopShelfSettingsModel` owns one device-local preference shared across Plozz
+profiles, excluded from profile transfer and sync. Household settings require an
+adult profile; changing these counts never broadens the shelf's content access.
+The page explains how top-row apps appear on the Apple TV Home Screen. The
+default-on **Show Top Shelf** switch clears published media when disabled and
+hides the count controls while retaining both counts for re-enabling.
+The category uses a monochrome Home Screen icon with the shelf highlighted.
+Posters / Full Screen reuse the shared `PreviewCard` focus and selection style
+with schematic Home Screen previews. A slightly larger solid-white tile marks
+the focused app, without an icon. Posters stays the default; full-screen explains
+tvOS's swipe-up expansion and retains the same two item limits.
+
 Playback > Advanced also contains **Dolby Vision FEL (experimental)** on TV,
 iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
 device-wide external-player choice. It applies to new built-in on-demand sessions
@@ -54,6 +68,14 @@ Callbacks expire after 24 hours; a new playback intent supersedes older returns.
 VLC/custom app links do not update Plozz watch progress. Once another app has
 accepted a handoff, Plozz cannot detect arbitrary playback failures inside it;
 supported error callbacks show the existing error without fabricating progress.
+Native Player's optional `progress` fraction must be finite and within 0...1.
+When present, it determines completion and its returned position is not clamped
+to a possibly missing or inaccurate catalog runtime. Without that fraction,
+existing runtime-based validation/calculation remains, including for Infuse.
+The fraction survives receipt restoration; malformed or duplicate values are
+rejected before watch state changes.
+Supported partial returns also queue their percentage to Trakt as paused
+playback; completion retains the existing watched-history reporting.
 `ExternalPlayerSettingsModel` owns the unnamespaced device key, excluded from
 profile transfer. The active profile's old choice migrates once; later profile
 switches or sync never overwrite the device selection. `PlaybackSettings` reads
@@ -255,7 +277,17 @@ watch history and planning-list behavior are documented in
 - `CardAppearanceControls` — the independent **Show unwatched episode count**
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing
-  its watched/unwatched style.
+  its watched/unwatched style. Both previews show a sample count on the
+  in-progress series when enabled; toggling it updates the previews immediately
+  without removing the separate watched check or unwatched flag examples.
+  **Episode count style** offers Attached or Floating while counts are enabled;
+  it is profile-scoped, transfers with the profile, and never changes watch marks.
+  Turning counts off retains the style. Existing profiles keep their previous
+  placement on upgrade; both previews then follow this independent choice.
+  The eight watch-mark colors appear as one horizontal swatch row below the
+  indicator previews. White remains the default; changes update the previews
+  immediately and persist/transfer per profile. Narrow mobile layouts scroll
+  horizontally instead of wrapping or shrinking the 44pt controls.
 - `SettingsView` / `SettingsWorkspace` — tvOS shows one centered page at a time.
   The root contains profile identity and the category list, without a preview pane.
   Categories and ordinary descendants share `SettingsFormMetrics.pageWidth`;

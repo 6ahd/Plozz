@@ -123,12 +123,22 @@ final class VersionPickerPresentationTests: XCTestCase {
                 request.recognitionLanguages = ["en-US"]
                 request.usesLanguageCorrection = false
                 request.minimumTextHeight = 0.001
-                try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
-                let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
-                    .joined(separator: " ").uppercased()
-                XCTAssertTrue(text.contains("ENGLISH"), text)
-                XCTAssertEqual(text.contains("FRENCH"), expands, text)
-                XCTAssertEqual(text.contains("+1"), !expands, text)
+                let cgImage = try XCTUnwrap(image.cgImage)
+                var recognized: [String] = []
+                // Wide captures downsample small labels; overlapping strips keep whole words readable.
+                for x in stride(from: 0, to: cgImage.width, by: 512) {
+                    let region = CGRect(
+                        x: x, y: 0, width: min(1_024, cgImage.width - x), height: cgImage.height
+                    )
+                    let strip = try XCTUnwrap(cgImage.cropping(to: region))
+                    try VNImageRequestHandler(cgImage: strip).perform([request])
+                    recognized += (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+                }
+                let text = recognized.joined(separator: " ").uppercased()
+                let context = "\(width)/\(typeSize)/selected:\(selected): \(text)"
+                XCTAssertTrue(text.contains("ENGLISH"), context)
+                XCTAssertEqual(text.contains("FRENCH"), expands, context)
+                XCTAssertEqual(text.contains("+1"), !expands, context)
             }
         }
     }
