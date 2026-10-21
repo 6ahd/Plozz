@@ -62,7 +62,7 @@ public struct FamilyGuidanceAgeBadge: View {
     }
 
     public var body: some View {
-        HStack(spacing: 7 * badgeScale) {
+        HStack(spacing: 4 * badgeScale) {
             FamilyGuidanceIcon(size: iconSize)
             Text(verbatim: age.formatted(.number.locale(locale).precision(.fractionLength(0...1))) + "+")
                 .font(valueFont)
@@ -77,9 +77,9 @@ public struct FamilyGuidanceAgeBadge: View {
 
     private var iconSize: CGFloat {
         #if os(iOS)
-        20 * badgeScale
+        24 * badgeScale
         #else
-        22
+        32
         #endif
     }
 

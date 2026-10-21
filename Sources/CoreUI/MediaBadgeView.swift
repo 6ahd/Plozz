@@ -52,7 +52,7 @@ public struct MetadataMediaBadgeChip: View {
 
     private var compactScale: CGFloat {
         #if os(iOS)
-        18 / 26
+        18 / (badge.style == .prominent ? 22 : 26)
         #else
         0.75
         #endif
@@ -95,7 +95,7 @@ public struct MediaBadgeChip: View {
                 formatLabel
                     .foregroundStyle(palette.backgroundBase)
                     .padding(.horizontal, 6 * scale)
-                    .frame(height: 26 * scale)
+                    .frame(height: (badge.style == .prominent ? 22 : 26) * scale)
                     .background(palette.primaryText, in:
                         RoundedRectangle(cornerRadius: 6 * scale, style: .continuous))
             }

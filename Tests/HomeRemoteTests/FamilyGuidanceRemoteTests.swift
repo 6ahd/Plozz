@@ -8,8 +8,8 @@ final class FamilyGuidanceRemoteTests: XCTestCase {
         let age = app.descendants(matching: .any)["family-guidance-age-badge"].firstMatch
         XCTAssertTrue(age.isHittable)
         XCTAssertEqual(age.label, "Common Sense Media, recommended age 14 and older")
-        XCTAssertGreaterThanOrEqual(age.frame.height, 23)
-        XCTAssertLessThanOrEqual(age.frame.height, 30)
+        XCTAssertGreaterThanOrEqual(age.frame.height, 32)
+        XCTAssertLessThanOrEqual(age.frame.height, 34)
         XCTAssertTrue(app.staticTexts["94%"].exists)
         XCTAssertTrue(app.staticTexts["88%"].exists)
         XCTAssertFalse(app.staticTexts["8.0"].exists)

@@ -532,8 +532,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
 - **Cast & metadata cards** — `CastRowView` and friends, used by Home /
   detail. Family guidance uses the Common Sense circle/check artwork, with a
   palette-selected light/dark variant shared by the inline age and guidance panel.
-  The inline mark is 22 points on TV and 20 Dynamic Type-scaled points on mobile,
-  without an extra frame or padding. Age text matches neighboring review scores'
+  The inline mark retains its original 32 points on TV and 24 Dynamic Type-scaled
+  points on mobile, with a 4-point scaled gap to the age and no extra frame or
+  padding. Age text matches neighboring review scores'
   medium weight. Full Common Sense Media attribution remains in the guidance
   panel and accessibility label; the decorative mark is hidden from VoiceOver.
 - **Media badges** — Porcelain uses Outfit typography (bundled with its SIL OFL
@@ -541,8 +542,10 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   range and audio. Dynamic-range capsules add a subtle 5% foreground tint
   (white in dark themes, dark in light themes); audio stays clear with attached
   channel segments. Format names are ordinary text, not vendor logo drawings.
-  Refined compact uses 26-point badges with 15-point main text, short display
+  Refined compact uses 22-point resolution badges and 26-point other technical
+  badges with 15-point main text, short display
   names (DV, DD+, DD, TrueHD, Atmos), and full source names in accessibility.
+  Mobile metadata wrappers retain an 18-point baseline height for both.
   Resolution padding is 6 points; capsule outer padding is 8 points, with
   4 points on either side of the channel divider and 7 after the channels.
   Adjacent technical badges use an 8-point scaled gap without tightening the

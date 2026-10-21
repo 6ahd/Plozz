@@ -19,7 +19,11 @@ final class MediaBadgeSizingTests: XCTestCase {
         MediaBadge("Dolby TrueHD", style: .dolby, detail: "7.1"),
         MediaBadge("DTS:X", style: .dts),
         MediaBadge("5.1", style: .audio),
-        MediaBadge("1080p", style: .prominent)
+        MediaBadge("1440p", style: .prominent),
+        MediaBadge("1080p", style: .prominent),
+        MediaBadge("720p", style: .prominent),
+        MediaBadge("SD", style: .prominent),
+        MediaBadge("HEVC", style: .spec)
     ]
 
     private func size(of view: some View) -> CGSize {
@@ -28,9 +32,9 @@ final class MediaBadgeSizingTests: XCTestCase {
         )
     }
 
-    private var metadataScale: CGFloat {
+    private func metadataScale(for badge: MediaBadge) -> CGFloat {
         #if os(iOS)
-        18 / 26
+        18 / (badge.style == .prominent ? 22 : 26)
         #else
         0.75
         #endif
@@ -43,12 +47,12 @@ final class MediaBadgeSizingTests: XCTestCase {
             let compact = size(of: MetadataMediaBadgeChip(badge: badge)
                 .environment(\.dynamicTypeSize, .large))
             let expected = size(of: MediaBadgeChip(badge: badge)
-                .environment(\.mediaBadgeScale, metadataScale)
+                .environment(\.mediaBadgeScale, metadataScale(for: badge))
                 .environment(\.dynamicTypeSize, .large))
             XCTAssertEqual(compact.width, expected.width, accuracy: 0.5, badge.label)
             // Small system fonts use optical spacing, not a linear transform of larger glyphs.
             XCTAssertLessThan(compact.width, original.width, badge.label)
-            XCTAssertEqual(compact.height, original.height * metadataScale, accuracy: 1, badge.label)
+            XCTAssertEqual(compact.height, original.height * metadataScale(for: badge), accuracy: 1, badge.label)
         }
     }
 
@@ -58,7 +62,7 @@ final class MediaBadgeSizingTests: XCTestCase {
             .environment(\.mediaBadgeScale, 0.8)
             .environment(\.dynamicTypeSize, .large))
         let expected = size(of: MediaBadgeChip(badge: badge)
-            .environment(\.mediaBadgeScale, 0.8 * metadataScale)
+            .environment(\.mediaBadgeScale, 0.8 * metadataScale(for: badge))
             .environment(\.dynamicTypeSize, .large))
         XCTAssertEqual(reduced.width, expected.width, accuracy: 0.5)
         XCTAssertEqual(reduced.height, expected.height, accuracy: 0.5)
@@ -73,9 +77,14 @@ final class MediaBadgeSizingTests: XCTestCase {
         }
     }
 
-    func testTechnicalBadgesShareHeightAndKeepChannelsInsideTheBadge() {
+    func testResolutionIs22PointsWhileOtherTechnicalBadgesKeepTheirHeight() {
         for badge in badges {
-            XCTAssertEqual(size(of: MediaBadgeChip(badge: badge)).height, 26, accuracy: 0.5, badge.label)
+            for scale: CGFloat in [0.75, 1, 1.5] {
+                let expectedHeight: CGFloat = badge.style == .prominent ? 22 : 26
+                let actual = size(of: MediaBadgeChip(badge: badge)
+                    .environment(\.mediaBadgeScale, scale))
+                XCTAssertEqual(actual.height, expectedHeight * scale, accuracy: 0.5, badge.label)
+            }
         }
         let plain = size(of: MediaBadgeChip(badge: MediaBadge("Dolby TrueHD", style: .dolby)))
         let channels = size(of: MediaBadgeChip(badge: MediaBadge("Dolby TrueHD", style: .dolby, detail: "7.1")))
@@ -179,7 +188,7 @@ final class MediaBadgeSizingTests: XCTestCase {
                 let foregroundAlpha = Double(UIColor(palette.primaryText).cgColor.alpha) * 255
                 let opacity = badge.style == .prominent ? 1.0 : badge.isAudio ? 0 : 0.05
                 XCTAssertEqual(fillAlpha, foregroundAlpha * opacity, accuracy: 1, badge.label)
-                XCTAssertEqual(image.height, 26, badge.label)
+                XCTAssertEqual(image.height, badge.style == .prominent ? 22 : 26, badge.label)
                 if badge.style != .prominent {
                     XCTAssertEqual(pixels[(3 * image.width + 1) * 4 + 3], 0, badge.label)
                 }
@@ -213,10 +222,10 @@ final class MediaBadgeSizingTests: XCTestCase {
 
     func testFamilyGuidanceBadgeUsesCompactUnframedLayout() throws {
         #if os(iOS)
-        let iconSlot: CGFloat = 20
+        let iconSlot: CGFloat = 24
         let font = Font.subheadline.weight(.medium)
         #else
-        let iconSlot: CGFloat = 22
+        let iconSlot: CGFloat = 32
         let font = Font.system(size: 23, weight: .medium)
         #endif
         for locale in [Locale(identifier: "en_US"), Locale(identifier: "fr_FR")] {
@@ -233,7 +242,7 @@ final class MediaBadgeSizingTests: XCTestCase {
                     .environment(\.dynamicTypeSize, .large)
                 let textSize = size(of: text)
                 let badgeSize = size(of: badge)
-                XCTAssertEqual(badgeSize.width, iconSlot + 7 + textSize.width, accuracy: 0.5)
+                XCTAssertEqual(badgeSize.width, iconSlot + 4 + textSize.width, accuracy: 0.5)
                 XCTAssertEqual(badgeSize.height, max(iconSlot, textSize.height), accuracy: 0.5)
 
                 let renderer = ImageRenderer(content: badge)
