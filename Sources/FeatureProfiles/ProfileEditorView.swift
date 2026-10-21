@@ -138,7 +138,9 @@ public struct ProfileEditorView: View {
     @State private var photoCandidates: [ProfilePhotoCandidate] = []
     @State private var showDiscardConfirmation = false
     @State private var showDeleteConfirmation = false
-    @FocusState private var nameFieldFocused: Bool
+    #if os(tvOS)
+    @Environment(\.settingsPageBackButton) private var backButton
+    #endif
 
     fileprivate enum AvatarMode: Hashable { case symbol, emoji, photo }
 
@@ -382,16 +384,15 @@ public struct ProfileEditorView: View {
         }
     }
 
-    /// Title + the trailing actions. In auto-save mode: **Done** (just close —
+    /// In auto-save mode: **Done** (just close —
     /// everything is already saved) + **Revert All Changes** (one press restores
     /// exactly how the profile was when you opened it). In explicit-Save mode
     /// (new profile / first-run): **Cancel** + **Save**. Scrolls with the page.
     private var headerRow: some View {
         HStack(alignment: .center, spacing: 20) {
-            // Delete lives here as a prominent, icon-only destructive action
-            // (only for profiles that can be removed — never the primary one),
-            // so it's discoverable without cluttering the picker and can't be
-            // hit while scrolling. It always confirms first.
+            if let backButton {
+                backButton.fixedSize()
+            }
             if canDelete, onDelete != nil {
                 deleteButton
             }
@@ -399,46 +400,30 @@ public struct ProfileEditorView: View {
             if autoSaves {
                 Button("Revert All Changes", action: revertAll)
                     .plozzGlassPillButton()
-                    .focusEffectDisabled()
                     .disabled(!isDirty)
                 Button("Done", action: onCancel)
                     .plozzGlassPillButton(isSelected: true)
-                    .focusEffectDisabled()
             } else {
                 Button("Cancel", action: attemptCancel)
                     .plozzGlassPillButton()
-                    .focusEffectDisabled()
                 Button(isEditing ? "Save" : "Create", action: save)
                     .plozzGlassPillButton(isSelected: true)
-                    .focusEffectDisabled()
                     .disabled(!canSave)
             }
         }
+        .controlSize(.regular)
+        .focusSection()
     }
 
-    /// Icon-only destructive trash button for the header. A red glyph on a
-    /// circular chip wearing the shared focus halo (same treatment as the
-    /// avatar tiles), so it reads as destructive and focuses consistently.
     private var deleteButton: some View {
-        let diameter: CGFloat = 60
-        return Button {
+        Button(role: .destructive) {
             showDeleteConfirmation = true
         } label: {
-            ZStack {
-                Circle().fill(palette.cardSurface)
-                Image(systemName: "trash")
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(.red)
-            }
-            .frame(width: diameter, height: diameter)
-            .overlay { Circle().strokeBorder(palette.cardBorder, lineWidth: 1) }
+            Label("Delete Profile", systemImage: "trash")
         }
-        .plozzCardFocusButtonStyle(
-            CircularSelectionButtonStyle(diameter: diameter), cornerRadius: diameter / 2,
-            contentSuppliesProjection: true
-        )
-        .plozzCircularFocusStyle()
-        .accessibilityLabel(Text("Delete Profile"))
+        .labelStyle(.iconOnly)
+        .plozzGlassPillButton(shape: .circle)
+        .buttonBorderShape(.circle)
     }
 
     #endif
@@ -550,6 +535,7 @@ public struct ProfileEditorView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 40) {
                 SettingsPageHeader(Text(isEditing ? "Edit Profile" : "New Profile"))
+                    .environment(\.settingsPageBackButton, nil)
                 headerRow
                 nameSection
                 avatarSection
@@ -566,34 +552,7 @@ public struct ProfileEditorView: View {
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             sectionHeader("Name")
-            TextField("Profile name", text: $name)
-                .textContentType(.name)
-                .autocorrectionDisabled()
-                .font(.title3)
-                // tvOS gives a focused text field its own bright (near-white)
-                // capsule + focus ring, so on focus the text must go DARK to stay
-                // readable; unfocused it sits on our themed container and uses the
-                // theme's primary text.
-                .foregroundStyle(nameFieldFocused ? Color.black : palette.primaryText)
-                .focused($nameFieldFocused)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 18)
-                .background {
-                    // A visible themed input container so the field never
-                    // disappears into the page (on Pure Black's pure black a bare
-                    // TextField shows nothing but the typed text). On focus we
-                    // fade it out and let tvOS's own focus capsule + ring be the
-                    // single focus treatment — otherwise our fill/border fights
-                    // the system one (double outline, white-on-white text).
-                    RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.control, style: .continuous)
-                        .fill(palette.cardSurface)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.control, style: .continuous)
-                                .strokeBorder(palette.cardBorder, lineWidth: 1)
-                        }
-                        .opacity(nameFieldFocused ? 0 : 1)
-                }
-                .animation(.easeOut(duration: 0.16), value: nameFieldFocused)
+            ProfileNameField(name: $name)
         }
     }
 
@@ -1047,6 +1006,28 @@ public struct ProfileEditorView: View {
     }
 }
 
+private struct ProfileNameField: View {
+    @Binding var name: String
+
+    var body: some View {
+        #if os(tvOS)
+        field
+        #else
+        SettingsSectionGroup {
+            field
+        }
+        #endif
+    }
+
+    private var field: some View {
+        TextField("Profile name", text: $name)
+            .textContentType(.name)
+            .autocorrectionDisabled()
+            .accessibilityLabel(Text("Profile name"))
+            .accessibilityIdentifier("profile-name-input")
+    }
+}
+
 #if os(iOS)
 
 // MARK: - iOS touch layout
@@ -1182,28 +1163,10 @@ fileprivate struct IOSProfilePreviewSection: View {
 fileprivate struct IOSProfileNameSection: View {
     @Binding var name: String
 
-    @Environment(\.themePalette) private var palette
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             IOSProfileSectionHeader(text: "Name")
-            TextField("Profile name", text: $name)
-                .textContentType(.name)
-                .autocorrectionDisabled()
-                .font(.title3)
-                .foregroundStyle(palette.primaryText)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .frame(minHeight: 44)
-                .background {
-                    RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.control, style: .continuous)
-                        .fill(palette.cardSurface)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.control, style: .continuous)
-                                .strokeBorder(palette.cardBorder, lineWidth: 1)
-                        }
-                }
-                .accessibilityLabel(Text("Profile name"))
+            ProfileNameField(name: $name)
         }
     }
 }

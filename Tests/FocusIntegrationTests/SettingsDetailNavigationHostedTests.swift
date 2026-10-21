@@ -356,6 +356,49 @@ final class SettingsDetailNavigationHostedTests: XCTestCase {
         }
     }
 
+    func testProfileEditorActionsShareOneNativeControlRow() async throws {
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            for reduceTransparency in [false, true] {
+                for autoSave in [false, true] {
+                    try await withProfileDestination(
+                        .profileAppearance(profileID: "controls"), direction: direction
+                    ) {
+                        ProfileEditorView(
+                            editingProfile: Profile(id: "controls", name: "Sample profile"),
+                            canDelete: true, onSave: { _ in },
+                            onLiveChange: autoSave ? { _ in } : nil,
+                            ownsFullScreen: false, onDelete: {}, onCancel: {}
+                        )
+                        .environment(\.plozzReduceTransparency, reduceTransparency)
+                    } inspect: { window in
+                        let labels = try self.captureLabels(
+                            window, name: "profile-controls-\(direction)-opaque-\(reduceTransparency)-autosave-\(autoSave)"
+                        )
+                        let action = try self.label(autoSave ? "Done" : "Save", in: labels)
+                        let controls = try self.focusItems(in: window).map {
+                            try XCTUnwrap(NavigationRowFocusRequester.frame(of: $0, relativeTo: window))
+                        }.filter { abs($0.midY - action.midY) < 8 }
+                        XCTAssertEqual(
+                            controls.count, autoSave ? 3 : 4,
+                            "Back, Delete and Done/Cancel/Save must share one row; unchanged Revert is disabled."
+                        )
+                        let trash = try XCTUnwrap(controls.min { $0.width < $1.width })
+                        XCTAssertGreaterThanOrEqual(trash.width, 44)
+                        XCTAssertGreaterThanOrEqual(trash.height, 44)
+                        for frame in controls {
+                            XCTAssertEqual(frame.midY, trash.midY, accuracy: 1)
+                            XCTAssertTrue(window.bounds.insetBy(dx: 40, dy: 0).contains(frame))
+                        }
+                        let ordered = controls.sorted { $0.minX < $1.minX }
+                        for pair in zip(ordered, ordered.dropFirst()) {
+                            XCTAssertLessThan(pair.0.maxX, pair.1.minX, "Action hit targets must not overlap.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func withProfileDestination<Content: View>(
         _ route: SettingsRoute, direction: LayoutDirection,
         @ViewBuilder content: () -> Content, inspect: (UIWindow) throws -> Void

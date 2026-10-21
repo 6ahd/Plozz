@@ -47,6 +47,14 @@ household multi-user UI on top of `CoreModels.ProfileStore`.
 - **Profile-aware everywhere.** Any feature reading per-user state
   (settings, watched, recommendations) must scope through the active
   profile id from `CoreModels.ProfilesModel`.
+- **Native editor controls.** On tvOS, the scrollable editor keeps its title
+  separate from one center-aligned row of Back, Delete, and save/revert actions.
+  The navigation owner still supplies Back and its focus-restoration behavior.
+  Actions use native glass, with the shared reduced-transparency/older-OS fallback;
+  Delete is an icon-only destructive button and still requires confirmation.
+  Both platforms share a native name field without custom fills or focus colors.
+  Mobile uses `SettingsSectionGroup`; tvOS keeps its system field surface without
+  a second container. Mobile actions stay in the native toolbar.
 
 ## Where to look first
 
