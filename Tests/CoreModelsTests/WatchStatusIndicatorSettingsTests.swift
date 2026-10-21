@@ -86,6 +86,32 @@ final class WatchStatusIndicatorSettingsStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testEveryColorPersistsWithoutChangingOtherIndicatorPreferences() {
+        let defaults = makeDefaults()
+        let store = WatchStatusIndicatorSettingsStore(defaults: defaults, namespace: "colors")
+        let model = WatchStatusIndicatorSettingsModel(store: store)
+        model.indicator = .watched
+        model.showsUnwatchedEpisodeCount = false
+        XCTAssertEqual(WatchIndicatorColor.allCases.count, 8)
+        for color in WatchIndicatorColor.allCases {
+            model.color = color
+            XCTAssertEqual(WatchStatusIndicatorSettingsModel(store: store).color, color)
+            XCTAssertEqual(store.load(), .watched)
+            XCTAssertFalse(store.loadShowsUnwatchedEpisodeCount())
+        }
+    }
+
+    func testUnknownColorFallsBackToWhiteWithinItsProfile() {
+        let defaults = makeDefaults()
+        defaults.set("future-color", forKey: "com.plozz.watchIndicatorColor.alice")
+        let alice = WatchStatusIndicatorSettingsStore(defaults: defaults, namespace: "alice")
+        let bob = WatchStatusIndicatorSettingsStore(defaults: defaults, namespace: "bob")
+        bob.saveColor(.purple)
+        XCTAssertEqual(alice.loadColor(), .white)
+        XCTAssertEqual(bob.loadColor(), .purple)
+    }
+
+    @MainActor
     func testColorIsProfileScopedAndTransferable() {
         let defaults = makeDefaults()
         let alice = WatchStatusIndicatorSettingsStore(defaults: defaults, namespace: "alice")

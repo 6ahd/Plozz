@@ -278,6 +278,10 @@ watch history and planning-list behavior are documented in
   toggle lives beside Watched Indicator on both platforms. It defaults on,
   persists per profile, and transfers/syncs with that profile without changing
   its watched/unwatched style.
+  The eight watch-mark colors appear as one horizontal swatch row below the
+  indicator previews. White remains the default; changes update the previews
+  immediately and persist/transfer per profile. Narrow mobile layouts scroll
+  horizontally instead of wrapping or shrinking the 44pt controls.
 - `SettingsView` / `SettingsWorkspace` — tvOS shows one centered page at a time.
   The root contains profile identity and the category list, without a preview pane.
   Categories and ordinary descendants share `SettingsFormMetrics.pageWidth`;

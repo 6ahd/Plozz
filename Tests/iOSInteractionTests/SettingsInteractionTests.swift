@@ -101,6 +101,48 @@ final class SettingsInteractionTests: XCTestCase {
         XCTAssertFalse(app.buttons["Huge"].exists)
     }
 
+    func testWatchIndicatorColorsStayInOneRowAndSelectionSurvivesNavigation() {
+        launch()
+        app.buttons["appearance-cards"].tap()
+        XCTAssertTrue(app.navigationBars["Cards"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["appearance-cards"].waitForNonExistence(timeout: 5))
+        let white = app.buttons["watch-indicator-color-white"]
+        reveal(white, fullyVisible: true)
+        XCTAssertTrue(white.isSelected)
+        let colors = ["white", "blue", "green", "yellow", "orange", "red", "pink", "purple"]
+        let buttons = colors.map { app.buttons["watch-indicator-color-\($0)"] }
+        XCTAssertEqual(app.buttons.matching(NSPredicate(
+            format: "identifier BEGINSWITH %@", "watch-indicator-color-"
+        )).count, 8)
+        let y = white.frame.midY
+        for button in buttons {
+            XCTAssertEqual(button.frame.midY, y, accuracy: 1, "The palette must never wrap.")
+            XCTAssertGreaterThanOrEqual(button.frame.width, 44)
+            XCTAssertGreaterThanOrEqual(button.frame.height, 44)
+        }
+        let blue = buttons[1]
+        blue.tap()
+        XCTAssertTrue(blue.isSelected)
+        XCTAssertFalse(white.isSelected)
+        let purple = buttons[7]
+        if !purple.isHittable {
+            let rail = app.scrollViews.containing(.button, identifier: "watch-indicator-color-blue").firstMatch
+            rail.swipeLeft()
+        }
+        XCTAssertTrue(purple.isHittable)
+        purple.tap()
+        XCTAssertTrue(purple.isSelected)
+        XCTAssertFalse(blue.isSelected)
+        capture("watch-color-purple")
+        app.navigationBars.buttons["BackButton"].tap()
+        XCTAssertTrue(app.buttons["appearance-cards"].waitForExistence(timeout: 5))
+        app.buttons["appearance-cards"].tap()
+        XCTAssertTrue(app.navigationBars["Cards"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["appearance-cards"].waitForNonExistence(timeout: 5))
+        reveal(purple, fullyVisible: true)
+        XCTAssertTrue(purple.isSelected, "Returning must restore the selection and reveal it on the rail.")
+    }
+
     func testDisplaySizeIsLastInCardsAndRemainsAnIndependentMenu() {
         launch()
         XCTAssertFalse(app.buttons["appearance-display-size"].exists)

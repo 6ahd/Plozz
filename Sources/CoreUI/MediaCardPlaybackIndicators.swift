@@ -373,10 +373,10 @@ enum NativePosterIndicators: View, Equatable {
     }
 }
 
-enum MediaWatchIndicatorStyle {
+public enum MediaWatchIndicatorStyle {
     /// The badge and flag fill. Fixed sRGB values rather than system colours so
     /// the mark looks the same in every theme and appearance.
-    static func fill(_ color: WatchIndicatorColor) -> Color {
+    public static func fill(_ color: WatchIndicatorColor) -> Color {
         switch color {
         case .white: .white
         case .blue: Color(red: 0.04, green: 0.52, blue: 1.0)
@@ -390,7 +390,7 @@ enum MediaWatchIndicatorStyle {
     }
 
     /// The check glyph over `fill(_:)`: dark on the light fills, white otherwise.
-    static func foreground(_ color: WatchIndicatorColor) -> Color {
+    public static func foreground(_ color: WatchIndicatorColor) -> Color {
         switch color {
         case .white, .yellow, .orange, .green: Color(white: 0.13)
         case .blue, .red, .pink, .purple: .white

@@ -267,8 +267,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
 - **Unwatched episode counts** — a default-on profile preference replaces the
   top-right watch-status mark with a number on series/season cards.
   Episode counts use charcoal tiles with white digits so they stay quieter than
-  the light watch-status marks. Watched mode uses an inset count tile and a white
-  completed circle with a dark check. Unwatched mode uses a white triangle for
+  the watch-status marks. Watched mode uses an inset count tile and a colored
+  completed circle with a contrasting check. Unwatched mode uses a colored triangle for
   unnumbered titles and a flush count tile with a curved bottom-left corner.
   The count tile's top-right corner stays square; only the artwork clips its
   outer corner and shadow. Native poster and library-card overlay hosts apply
@@ -277,7 +277,12 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   tile has 12pt side padding and is 52pt tall; floating-tile spacing is unchanged.
   Floating marks have density-scaled clearance (16pt at standard TV size).
   Touch sizes and artwork radii remain proportionate. Episode cards and the
-  watch-indicator Settings swatches reuse the same light check badge and flag.
+  watch-indicator Settings previews reuse the same check badge and flag.
+  `MediaWatchIndicatorStyle` owns the eight opaque watch-mark colors and contrasting
+  check colors; white is the default. The profile preference crosses native
+  hosting boundaries and participates in both native poster bitmap cache keys.
+  `ColorSwatchButton` shares circular selection marks, accessibility and existing
+  platform focus treatment between the watch palette and avatar color choices.
   Positive exact library counts take priority; unknown counts retain the
   existing watched/unwatched style. Completed containers retain its completion
   behavior. Movies, episodes, ownership/request marks and spoiler protection
@@ -690,7 +695,7 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   The inverse mask's outer eraser extends beyond the allocated raster, including
   the extra row/column at fractional sizes. Artwork uses committed view bounds;
   Browse aligns its view and bitmap to the same physical pixels at 1x and 2x.
-  Ordinary watch flags/check badges use opaque white; episode-count tiles keep
+  Ordinary watch flags/check badges use the profile's opaque color; episode-count tiles keep
   their dark fill and white text.
   This keeps lazy-row estimation out of the expensive rendering path without
   adding another observable loading state to the row.

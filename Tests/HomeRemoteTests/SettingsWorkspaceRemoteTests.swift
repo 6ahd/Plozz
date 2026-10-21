@@ -2,6 +2,36 @@ import XCTest
 
 @MainActor
 final class SettingsWorkspaceRemoteTests: XCTestCase {
+    func testWatchIndicatorColorRailSupportsDirectionalSelectionAndExit() throws {
+        #if targetEnvironment(simulator)
+        let app = try launchSettings(style: "tabBar")
+        defer { app.terminate() }
+        try focus(section("appearance", in: app), in: app)
+        XCUIRemote.shared.press(.select)
+        try focus(app.buttons["settings-page-cards"], in: app)
+        XCUIRemote.shared.press(.select)
+        let colors = ["white", "blue", "green", "yellow", "orange", "red", "pink", "purple"]
+        let white = app.buttons["watch-indicator-color-white"]
+        try focus(white, in: app)
+        for (index, color) in colors.enumerated() {
+            let button = app.buttons["watch-indicator-color-\(color)"]
+            if index > 0 { XCUIRemote.shared.press(.right) }
+            XCTAssertTrue(hasFocus(button), "Right must traverse the colour row in order.")
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(button.isSelected)
+            XCTAssertTrue(hasFocus(button), "Selecting a colour must not replace its focus target.")
+        }
+        capture("watch-color-purple", in: app)
+        XCUIRemote.shared.press(.down)
+        XCTAssertFalse(hasFocus(app.buttons["watch-indicator-color-purple"]))
+        try focus(white, in: app)
+        XCUIRemote.shared.press(.up)
+        XCTAssertFalse(hasFocus(white), "The colour row must allow returning to the indicator previews.")
+        #else
+        throw XCTSkip("Never changes appearance preferences on a physical device.")
+        #endif
+    }
+
     func testSwitchingFromPinnedSidebarKeepsNavigationSettingsResponsive() throws {
         try exerciseSidebarSwitch(from: "rail")
     }
