@@ -475,6 +475,8 @@ public struct AppShellWatchMutationApplier: WatchMutationAuthorizationEnforcing 
 }
 
 extension TraktScrobbleIntent {
+    public var playbackEvent: PlaybackEvent { progress < 100 ? .pause : .stop }
+
     /// Rebuilds a minimal `MediaItem` carrying just the fields a Trakt scrobble body
     /// needs (kind, ids, season/episode, title/year), so the durable intent can be
     /// replayed without retaining the original item.

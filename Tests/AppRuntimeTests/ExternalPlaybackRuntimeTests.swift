@@ -578,10 +578,100 @@ final class NativePlayerTraktDeliveryTests: XCTestCase {
             _ = try await returnPlayback(fixture, to: probe.reconciler, position: 600, progress: fraction)
             await probe.reconciler.drain()
             let requests = await probe.http.requests
-            XCTAssertEqual(requests.count, finished ? 1 : 0)
+            let hasProgress = fraction != "0.0000"
+            XCTAssertEqual(requests.map(\.path), hasProgress ? [finished ? "/scrobble/stop" : "/scrobble/pause"] : [])
+            if hasProgress {
+                let json = try payload(requests)
+                XCTAssertEqual(json["progress"] as? Double, finished ? 100 : try XCTUnwrap(Double(fraction)) * 100)
+            }
             XCTAssertEqual(fixture.playedWrites, finished ? [true] : [])
             XCTAssertEqual(fixture.resumeWrites, finished ? [0] : [600])
         }
+    }
+
+    func testPartialReturnsSendPausedProgressForSupportedPlayersAndProviders() async throws {
+        for player in [ExternalPlayer.nativePlayer, .infuse] {
+            for provider in [ProviderKind.jellyfin, .emby, .plex] {
+                for kind in [MediaItemKind.movie, .episode] {
+                    let fixture = fixture(provider: provider, kind: kind)
+                    defer { fixture.cleanup() }
+                    fixture.selection.player = player
+                    fixture.item.runtime = 1200
+                    let probe = delivery(fixture)
+                    _ = try await returnPlayback(fixture, to: probe.reconciler, position: 600, progress: "0.5000")
+                    await probe.reconciler.drain()
+                    let requests = await probe.http.requests
+                    XCTAssertEqual(requests.map(\.path), ["/scrobble/pause"])
+                    let json = try payload(requests)
+                    XCTAssertEqual(json["progress"] as? Double, 50)
+                    XCTAssertTrue(fixture.playedWrites.isEmpty)
+                    XCTAssertEqual(fixture.resumeWrites, [600])
+                    let state = await probe.reconciler.snapshot()
+                    XCTAssertTrue(state.pending.isEmpty)
+                    XCTAssertTrue(state.appliedTrakt.isEmpty, "Partial playback must not suppress later completion")
+                }
+            }
+        }
+    }
+
+    func testPartialProgressRecoversEpisodeIdentityAfterRelaunchWithoutRepeatingResumeWrite() async throws {
+        let fixture = fixture(kind: .episode)
+        defer { fixture.cleanup() }
+        fixture.item.providerIDs = [:]
+        fixture.item.seriesID = "show"
+        let probe = delivery(fixture)
+        _ = try await returnPlayback(fixture, to: probe.reconciler, position: 600, progress: "0.5")
+        await probe.reconciler.drain()
+        let pending = await probe.reconciler.snapshot()
+        XCTAssertEqual(pending.pending.first?.traktProgress?.progress, 50)
+        XCTAssertEqual(fixture.resumeWrites, [600])
+        XCTAssertTrue(fixture.playedWrites.isEmpty)
+        let stored = try JSONDecoder().decode(WatchOutboxState.self, from: JSONEncoder().encode(pending))
+        try probe.store.save(stored)
+        fixture.series = MediaItem(id: "show", title: "Fixture show", kind: .series, providerIDs: ["Tvdb": "12345"])
+        let restored = WatchStateReconciler(store: probe.store, applier: probe.applier)
+        await restored.drain()
+        let requests = await probe.http.requests
+        XCTAssertEqual(requests.map(\.path), ["/scrobble/pause"])
+        let json = try payload(requests)
+        XCTAssertEqual(json["progress"] as? Double, 50)
+        let show = try XCTUnwrap(json["show"] as? [String: Any])
+        XCTAssertEqual((show["ids"] as? [String: Any])?["tvdb"] as? Int, 12345)
+        XCTAssertEqual(fixture.resumeWrites, [600])
+        let final = await restored.snapshot()
+        XCTAssertTrue(final.pending.isEmpty)
+    }
+
+    func testPartialProgressWaitsForOriginalProfileAndServerUser() async throws {
+        for changeProfile in [false, true] {
+            let fixture = fixture()
+            defer { fixture.cleanup() }
+            let probe = delivery(fixture)
+            _ = try await returnPlayback(fixture, to: probe.reconciler, position: 600, progress: "0.5")
+            if changeProfile { fixture.profileID = "other" } else { fixture.userID = "other" }
+            await probe.reconciler.drain()
+            let blockedRequests = await probe.http.requests
+            XCTAssertTrue(blockedRequests.isEmpty)
+            let blocked = await probe.reconciler.snapshot()
+            XCTAssertEqual(blocked.pending.first?.traktProgress?.progress, 50)
+            fixture.profileID = "profile"
+            fixture.userID = "user"
+            await probe.reconciler.drain()
+            let requests = await probe.http.requests
+            XCTAssertEqual(requests.map(\.path), ["/scrobble/pause"])
+        }
+    }
+
+    func testOrdinaryPlaybackCheckpointsDoNotQueuePausedExternalProgress() throws {
+        let fixture = fixture()
+        defer { fixture.cleanup() }
+        let mutation = try XCTUnwrap(WatchMutationFactory.playbackStop(
+            item: fixture.item, position: 600, watchedPercent: 50,
+            primaryAccountID: "account", crossServerSync: false
+        ))
+        XCTAssertEqual(mutation.resumePosition, 600)
+        XCTAssertNil(mutation.traktProgress)
+        XCTAssertNil(mutation.trakt)
     }
 
     func testMissingIDsRemainPendingAndRecoverWithoutRepeatingServerWrite() async throws {
@@ -731,7 +821,7 @@ final class NativePlayerTraktDeliveryTests: XCTestCase {
             resolveProvider: { _ in provider },
             applyTrakt: { intent in
                 try await scrobbler.scrobbleResult(
-                    item: intent.makeScrobbleItem(), progress: intent.progress, event: .stop
+                    item: intent.makeScrobbleItem(), progress: intent.progress, event: intent.playbackEvent
                 )
             },
             applySimkl: { _ in }, applyAniList: { _ in }, applyMAL: { _ in }
@@ -746,7 +836,7 @@ final class NativePlayerTraktDeliveryTests: XCTestCase {
     ) async throws -> ExternalPlaybackCompletion? {
         let launched = try await fixture.launch()
         XCTAssertTrue(launched)
-        XCTAssertEqual(fixture.opened.first?.scheme, "nativeplayer")
+        XCTAssertEqual(fixture.opened.first?.scheme, fixture.selection.player == .infuse ? "infuse" : "nativeplayer")
         XCTAssertTrue(fixture.runtime.receive(try fixture.callback(position: String(position), progress: progress)))
         let scope = WatchMutationServerScope(
             profile: Profile(id: fixture.profileID, name: "Fixture"), accounts: [fixture.account]
@@ -756,7 +846,7 @@ final class NativePlayerTraktDeliveryTests: XCTestCase {
             completion = result
             var mutation = try XCTUnwrap(WatchMutationFactory.playbackStop(
                 item: result.item, position: result.position, watchedPercent: result.watchedPercent,
-                primaryAccountID: result.item.sourceAccountID, crossServerSync: false
+                primaryAccountID: result.item.sourceAccountID, crossServerSync: false, reportTraktProgress: true
             )?.bindingServerScope(scope))
             mutation.id = result.id
             mutation.capturedAt = result.reportedAt

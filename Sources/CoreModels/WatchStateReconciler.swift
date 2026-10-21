@@ -515,6 +515,7 @@ public actor WatchStateReconciler {
             // media servers are being set unwatched, so carrying the older tracker
             // intent would permanently diverge Trakt/Simkl/AniList/MAL.
             merged.trakt = nil
+            merged.traktProgress = nil
             merged.traktPending = false
             merged.simklPending = false
             merged.wetrakrPending = false
@@ -879,6 +880,18 @@ public actor WatchStateReconciler {
                     // keep pending; retry next drain
                     FanoutDiagnostics.emit("drain.trakt canonical=\(mutation.canonicalMediaID) -> THROW(\(error)) -> still pending")
                 }
+            }
+        }
+
+        try await WatchMutationDeliveryAuthorization.check()
+        if let progress = mutation.traktProgress {
+            do {
+                try await applier.scrobbleTrakt(progress, source: mutation.optimisticTargets.first)
+                mutation.traktProgress = nil
+                FanoutDiagnostics.emit("drain.traktProgress -> applied")
+            } catch {
+                try await WatchMutationDeliveryAuthorization.check()
+                FanoutDiagnostics.emit("drain.traktProgress -> failed; still pending")
             }
         }
 

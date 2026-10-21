@@ -60,6 +60,8 @@ to a possibly missing or inaccurate catalog runtime. Without that fraction,
 existing runtime-based validation/calculation remains, including for Infuse.
 The fraction survives receipt restoration; malformed or duplicate values are
 rejected before watch state changes.
+Supported partial returns also queue their percentage to Trakt as paused
+playback; completion retains the existing watched-history reporting.
 `ExternalPlayerSettingsModel` owns the unnamespaced device key, excluded from
 profile transfer. The active profile's old choice migrates once; later profile
 switches or sync never overwrite the device selection. `PlaybackSettings` reads
