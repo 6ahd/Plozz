@@ -9,6 +9,60 @@ import XCTest
 
 @MainActor
 final class PlaybackSettingsHostedTests: XCTestCase {
+    func testSkipControlsRevealAutomaticTimingAndHideConfigurationWhenDisabled() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let suite = "SkipSettingsTV-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let playback = PlaybackSettingsModel(store: PlaybackSettingsStore(defaults: defaults))
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        window.rootViewController = UIHostingController(rootView:
+            ScrollView {
+                SkipMarkerSettingsControl(model: playback)
+                    .frame(width: SettingsFormMetrics.pageWidth)
+                    .padding(40)
+            }
+            .toggleStyle(SettingsSwitchToggleStyle())
+            .environment(\.themePalette, .dark)
+            .environment(\.locale, Locale(identifier: "en_US"))
+            .background(.black)
+        )
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+            defaults.removePersistentDomain(forName: suite)
+        }
+        try await Task.sleep(for: .milliseconds(400))
+        let manual = try visibleText(in: window, attachment: "skip-settings-TV-manual")
+        XCTAssertTrue(manual.contains("Show skip button"), manual)
+        XCTAssertFalse(manual.contains("Skip after"), manual)
+        for label in ["Enable skipping", "Movies", "TV Shows", "Anime"] {
+            XCTAssertTrue(manual.contains(label), manual)
+        }
+        playback.settings.setConfiguredSkipMode(.autoDelay)
+        playback.settings.setSkipAutomaticDelay(30)
+        try await Task.sleep(for: .milliseconds(200))
+        let automatic = try visibleText(in: window, attachment: "skip-settings-TV-automatic")
+        XCTAssertTrue(automatic.contains("Skip automatically"), automatic)
+        XCTAssertTrue(automatic.contains("Skip after"), automatic)
+        XCTAssertTrue(automatic.contains("30 seconds"), automatic)
+        playback.settings.setSkipAutomaticDelay(0)
+        try await Task.sleep(for: .milliseconds(500))
+        let immediate = try visibleText(in: window, attachment: "skip-settings-TV-immediate")
+        XCTAssertTrue(immediate.contains("Immediately"), immediate)
+        playback.settings.setSkipMarkersEnabled(false)
+        try await Task.sleep(for: .milliseconds(200))
+        let disabled = try visibleText(in: window, attachment: "skip-settings-TV-disabled")
+        XCTAssertTrue(disabled.contains("Enable skipping"), disabled)
+        for label in ["Behavior", "Skip after", "Movies", "Set each marker separately", "Use community markers"] {
+            XCTAssertFalse(disabled.contains(label), disabled)
+        }
+    }
+
     func testAdvancedPlaybackShowsFELControlAndAudioTradeoff() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })
@@ -184,7 +238,8 @@ final class PlaybackSettingsHostedTests: XCTestCase {
             for label in [
                 "Version selection", "Choose on first play", "Ask every time", "Choose automatically",
                 "Remember series version choices",
-                "Skip intros, credits", "Set each marker separately", "Use community markers",
+                "Skip intros, credits", "Enable skipping", "Movies", "TV Shows", "Anime",
+                "Show skip button", "Set each marker separately", "Use community markers",
                 "Video buffer", "Live TV buffer", "Automatic", "temporary storage",
                 "adds live delay", "Spatial audio", "height channel support",
                 "TrueHD Atmos", "DTS:X", "Apple spatial audio", "lossy"

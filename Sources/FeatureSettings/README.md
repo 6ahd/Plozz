@@ -59,6 +59,19 @@ Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
 
+**Skip intros, credits & more** uses one profile-scoped master switch on both
+platforms. Turning it off hides configuration without clearing behavior, timing,
+content selections, per-marker overrides, or community-marker consent. Behavior
+chooses a manual skip button or automatic skipping; only automatic behavior
+reveals **Skip after**, from Immediately through 30 seconds in one-second steps.
+The default delayed skip remains five seconds. Movies, TV Shows, and Anime can
+be enabled independently, using the existing audio/subtitle content classifier.
+Disabling a category suppresses skip prompts and automatic skips, not the
+independent Up Next or autoplay preferences. Advanced per-marker choices retain
+independent Off/manual/automatic behavior and timing. Existing saved modes,
+including mixed immediate/delayed marker overrides, migrate without changing
+their playback behavior.
+
 The **Spatial audio (height channel support)** switch is available on tvOS 26 and later. Its
 profile-scoped `trueHDAtmosEnabled` preference defaults on, preserves saved Off
 choices and travels through profile transfer. It applies to new supported

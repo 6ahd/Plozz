@@ -833,35 +833,9 @@ struct PlaybackDetailView: View {
                 title: "Skip intros, credits & more",
                 description: "Show a Skip button, or skip automatically, during intros, credits, recaps, previews and commercials.",
             ) {
-                SkipModeControl(
-                    baseMode: $playback.settings.skipIntros,
-                    perKindEnabled: perKindSkipBinding,
-                    kindMode: { skipModeBinding(for: $0) },
-                    useCommunityMarkers: $playback.settings.useCommunityMarkers
-                )
+                SkipMarkerSettingsControl(model: playback)
             }
         ]
-    }
-
-    /// On seeds every kind with the current mode, so turning it on changes
-    /// nothing until a kind is set; off returns every kind to the one mode.
-    private var perKindSkipBinding: Binding<Bool> {
-        Binding(
-            get: { !playback.settings.skipModeOverrides.isEmpty },
-            set: { on in
-                let base = playback.settings.skipIntros
-                playback.settings.skipModeOverrides = on
-                    ? Dictionary(uniqueKeysWithValues: MediaSegment.Kind.skippable.map { ($0, base) })
-                    : [:]
-            }
-        )
-    }
-
-    private func skipModeBinding(for kind: MediaSegment.Kind) -> Binding<SkipIntrosMode> {
-        Binding(
-            get: { playback.settings.skipMarkerModes.mode(for: kind) },
-            set: { playback.settings.skipModeOverrides[kind] = $0 }
-        )
     }
 
     private var skipIntervalRows: [SettingsSplitRow] {
@@ -1038,55 +1012,6 @@ private struct DescribedSegmentedPicker<Option: Hashable>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .animation(.easeInOut(duration: 0.18), value: describedOption)
-    }
-}
-
-/// The "Skip intros, credits & more" control: one Off / On / Auto (delay) / Auto
-/// (instant) picker for every kind of marker, with its explanation directly
-/// beneath, or, set separately, a ``SeparateSettingRow`` per kind. Community
-/// markers are one switch below.
-private struct SkipModeControl: View {
-    @Binding var baseMode: SkipIntrosMode
-    @Binding var perKindEnabled: Bool
-    let kindMode: (MediaSegment.Kind) -> Binding<SkipIntrosMode>
-    @Binding var useCommunityMarkers: Bool
-
-    var body: some View {
-        SettingsControlRows(nonTVSpacing: 32) {
-            if !perKindEnabled {
-                DescribedSegmentedPicker(
-                    options: SkipIntrosMode.allCases,
-                    selection: $baseMode,
-                    title: { $0.title },
-                    detail: { $0.detail }
-                )
-                .transition(.opacity)
-            }
-
-            SettingsRevealSection(isOn: $perKindEnabled, masterLabel: "Set each marker separately") {
-                ForEach(MediaSegment.Kind.skippable, id: \.self) { kind in
-                    SeparateSettingRow(
-                        title: kind.settingsTitle,
-                        hint: kind.settingsHint,
-                        // Four segments don't fit beside a name column.
-                        namePlacement: .above,
-                        options: SkipIntrosMode.allCases,
-                        selection: kindMode(kind),
-                        optionTitle: { $0.title },
-                        detail: { $0.detail }
-                    )
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle("Use community markers", isOn: $useCommunityMarkers)
-                Text("When your server has no intro or credits marker, Plozz looks one up on IntroDB and TheIntroDB, sending them the title’s IMDb or TMDB ID.")
-                    .settingsHelperText()
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .animation(.easeInOut(duration: 0.22), value: perKindEnabled)
     }
 }
 
