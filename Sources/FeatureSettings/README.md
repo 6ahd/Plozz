@@ -136,6 +136,10 @@ watch history and planning-list behavior are documented in
   movie/episode cards on TV, iPhone and iPad. Play remains the default for fresh
   and existing profiles. The choice uses the existing profile-scoped Home settings
   store and profile transfer; it does not change artwork or Live TV shortcuts.
+  On Apple TV this setting controls the center button only; the remote's
+  Play/Pause button always starts the focused Continue Watching movie or episode.
+  Short helper text below the control explains the shortcut without promising
+  immediate playback.
   Continue Watching offers three native preview choices: Artwork + logo,
   Thumbnail, and Poster. Simple fabricated illustrations distinguish a backdrop
   with an overlaid logo, an unbranded scene, and portrait poster artwork without

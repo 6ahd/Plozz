@@ -403,6 +403,11 @@ final class HomeRowArrangementHostedTests: XCTestCase {
                 XCTAssertTrue(text.contains(String(localized: action.displayName)), text)
                 XCTAssertEqual(store.load().continueWatchingAction, action)
                 #if os(tvOS)
+                XCTAssertTrue(text.contains("Play/Pause always plays the selected item."), text)
+                XCTAssertLessThan(
+                    try self.y("Play/Pause", in: lines), try self.y("Continue Watching action", in: lines),
+                    "The explanation belongs below the selection control."
+                )
                 let label = try XCTUnwrap(lines.first { $0.0.contains("Continue Watching action") }).1
                 let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
                 XCTAssertNotNil(self.focusableItem(at: point, in: window))

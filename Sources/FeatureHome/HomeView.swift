@@ -1340,6 +1340,7 @@ public struct HomeView: View {
                 playsOnSelect: row.playsOnSelect(continueWatchingAction: visibility.continueWatchingAction),
                 showsResumeChip: true,
                 liveChannels: liveTV.recentChannels,
+                onPlay: onPlayItem,
                 onSelect: row.playsOnSelect(continueWatchingAction: visibility.continueWatchingAction)
                     ? onPlayItem : onSelectItem
             )
@@ -1631,6 +1632,7 @@ public struct HomeView: View {
                         showsResumeChip: true,
                         liveChannels: liveTV.recentChannels,
                         onLiveChannelFocused: reporter.focusedLiveChannel,
+                        onPlay: onPlayItem,
                         onSelect: row.playsOnSelect(continueWatchingAction: visibility.continueWatchingAction)
                             ? onPlayItem : onSelectItem
                     )

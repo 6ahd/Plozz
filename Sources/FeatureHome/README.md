@@ -115,6 +115,10 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   entries and every TV Home layout. It persists and transfers with the profile.
   Artwork, progress overlays, context menus and Live TV tuning are unchanged.
   Library Recommended rows retain their existing detail navigation.
+  On Apple TV, the remote's center button follows this choice, while Play/Pause
+  always starts the focused Continue Watching item through the normal playback
+  path. Play/Pause never opens details, including when **Open details** is selected.
+  Normal resume/restart and version-choice prompts still apply.
   It uses the provider's combined resume/next-episode feed without changing the
   preset, library exclusions, or other row choices. Separate Next Up rows are
   neither requested nor presented while merged; the arranger omits them rather

@@ -140,6 +140,7 @@ public struct MediaRowView: View {
     /// the moment it takes focus, which is the symptom this exists to prevent.
     private var focusLiftAllowance: CGFloat { 28 }
     private let onSelect: (MediaItem) -> Void
+    private let onPlay: ((MediaItem) -> Void)?
     /// When `true`, selecting a card starts playback immediately, so its cards
     /// show the resume chip (play glyph + progress bar + time). Threaded to
     /// `PosterCardView.playsOnSelect`.
@@ -212,6 +213,7 @@ public struct MediaRowView: View {
         showsResumeChip: Bool = false,
         liveChannels: [HomeLiveTVChannel] = [],
         onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
+        onPlay: ((MediaItem) -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.init(
@@ -242,6 +244,7 @@ public struct MediaRowView: View {
             showsResumeChip: showsResumeChip,
             liveChannels: liveChannels,
             onLiveChannelFocused: onLiveChannelFocused,
+            onPlay: onPlay,
             onSelect: onSelect
         )
     }
@@ -274,6 +277,7 @@ public struct MediaRowView: View {
         showsResumeChip: Bool = false,
         liveChannels: [HomeLiveTVChannel] = [],
         onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
+        onPlay: ((MediaItem) -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.title = title
@@ -314,6 +318,7 @@ public struct MediaRowView: View {
         self.pendingRemovalIDs = pendingRemovalIDs
         self.playsOnSelect = playsOnSelect
         self.showsResumeChip = showsResumeChip
+        self.onPlay = onPlay
         self.onSelect = onSelect
         // Every derived table is built from the DEDUPED array, never from the
         // caller's. Building them from the original left indices pointing at
@@ -774,7 +779,12 @@ public struct MediaRowView: View {
     @ViewBuilder
     private func tappableCard(for item: MediaItem) -> some View {
         #if os(tvOS)
-        card(for: item)
+        if let onPlay {
+            card(for: item)
+                .onPlayPauseCommand { onPlay(item) }
+        } else {
+            card(for: item)
+        }
         #else
         Button { onSelect(item) } label: { card(for: item) }
             // Plain, so the card keeps its own colours and chrome.

@@ -245,11 +245,19 @@ struct ContinueWatchingActionControl: View {
                 }
             }
             #else
-            ViewCustomizationRow(
-                id: "continue-watching-action", title: "Continue Watching action",
-                value: selection.displayName, detail: selection.detail
-            ) {
-                visibility.setContinueWatchingAction(selection == .play ? .openDetails : .play)
+            VStack(alignment: .leading, spacing: 12) {
+                ViewCustomizationRow(
+                    id: "continue-watching-action", title: "Continue Watching action",
+                    value: selection.displayName, detail: selection.detail
+                ) {
+                    visibility.setContinueWatchingAction(selection == .play ? .openDetails : .play)
+                }
+                #if os(tvOS)
+                Text("Play/Pause always plays the selected item.")
+                    .settingsHelperText()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("continue-watching-remote-help")
+                #endif
             }
             #endif
         }

@@ -12,6 +12,11 @@ Detailed keeps the existing play/progress/text overlay; Progress only uses the
 shared white progress bar without that overlay. Other cards are unaffected.
 The previously stored portrait-only preference is retained.
 
+`MediaRowView.onPlay` optionally gives each media card a tvOS Play/Pause shortcut,
+independent of Select and without preparing a detail transition. Home Continue
+Watching supplies its existing playback callback for either selection preference.
+Other rows, loading placeholders and Live TV cards retain their own behavior.
+
 Continue Watching portrait cards reuse `PosterCardView`. Detailed adds a reflected
 extension 10% of the complete 2:3 poster's height (half the previous extension).
 Only this band gradually blurs as it darkens;

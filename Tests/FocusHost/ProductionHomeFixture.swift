@@ -199,6 +199,8 @@ private struct ProductionHomeContent: View {
     @Binding var libraryPath: NavigationPath
     let isPinned: Bool
     var isActive = true
+    @State private var playbackCount = 0
+    @State private var lastPlayedID = ""
     private var isLibrarySequence: Bool {
         ProcessInfo.processInfo.arguments.contains("--library-detail-sequence")
     }
@@ -237,7 +239,10 @@ private struct ProductionHomeContent: View {
                             : (ProcessInfo.processInfo.arguments.contains("--native-sidebar-home")
                                 ? .sidebar : .default),
                         onSelectItem: { item in withCinematicDetailNavigation(for: item) { path.append(item) } },
-                        onPlayItem: { _ in },
+                        onPlayItem: { item in
+                            playbackCount += 1
+                            lastPlayedID = item.id
+                        },
                         onSelectLibrary: { _ in }
                     )
                     .navigationDestination(for: MediaItem.self) { item in
@@ -250,6 +255,18 @@ private struct ProductionHomeContent: View {
         .mediaItemActionHandler(
             ProcessInfo.processInfo.arguments.contains("--home-menu-control") ? fixture.actions : nil
         )
+        .overlay(alignment: .bottomTrailing) {
+            if ProcessInfo.processInfo.arguments.contains("--continue-watching-action-probe") {
+                VStack {
+                    Text(verbatim: "\(playbackCount):\(lastPlayedID)")
+                        .accessibilityIdentifier("home-playback-probe")
+                    Text(verbatim: "\(path.count)")
+                        .accessibilityIdentifier("home-detail-depth-probe")
+                }
+                .font(.caption2)
+                .allowsHitTesting(false)
+            }
+        }
     }
 
     private func detailPage(for item: MediaItem) -> some View {
@@ -348,6 +365,14 @@ private final class ProductionHomeState {
         visibility.setContinueWatchingShowsSeriesArtwork(
             !ProcessInfo.processInfo.arguments.contains("--episode-home-artwork")
         )
+        if ProcessInfo.processInfo.arguments.contains("--continue-watching-action-probe") {
+            visibility.setContinueWatchingAction(
+                ProcessInfo.processInfo.arguments.contains("--continue-watching-open-details") ? .openDetails : .play
+            )
+            visibility.setContinueWatchingLayout(
+                ProcessInfo.processInfo.arguments.contains("--continue-watching-posters") ? .portrait : .landscape
+            )
+        }
         let libraryRows = ProcessInfo.processInfo.arguments.contains("--progressive-library-rows")
         visibility.setMergeLibrariesOnHome(!libraryRows)
         for row in HomeGlobalRow.allCases {
