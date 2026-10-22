@@ -103,6 +103,9 @@ private struct PlayerChapterButton: View {
     }
 
     private var cardWidth: CGFloat {
+        if !showsArtwork {
+            return max(metrics.castCardWidth, contentInset * 2 + metrics.castNameSize * 6)
+        }
         let imageHeight = max(44, metrics.cardHeight - metrics.castVerticalInset * 2
             - metrics.castNameSize * 1.5 - metrics.captionSize * 1.5 - 16)
         return imageHeight * 16 / 9 + 24
@@ -113,8 +116,7 @@ private struct PlayerChapterButton: View {
     }
 
     private var cornerRadius: CGFloat {
-        if metrics.isVertical { return metrics.panelCornerRadius - 6 }
-        return showsArtwork ? metrics.panelCornerRadius : metrics.contentPadding
+        metrics.isVertical ? metrics.panelCornerRadius - 6 : metrics.panelCornerRadius
     }
 
     var body: some View {
@@ -167,7 +169,7 @@ private struct PlayerChapterButton: View {
             caption
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(contentInset)
-                .frame(width: cardWidth, alignment: .leading)
+                .frame(width: cardWidth, height: metrics.cardHeight, alignment: .leading)
         }
     }
 

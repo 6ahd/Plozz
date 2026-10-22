@@ -81,9 +81,11 @@ On tvOS, iPhone, and iPad, **Chapters** joins the bottom player tabs only when t
 server metadata or the playing file supplies usable chapter positions. Individual
 chapter cards use Cast's shared over-video glass, focus treatment, and reduced-effects
 fallback without an enclosing panel. Their leading edges align with the player tabs;
-artwork cards fill the panel height. When no chapters have thumbnails, portrait rows
-show left-aligned text without an artwork placeholder, and wide layouts use compact
-text-only glass cards within the same stable player stage. Mixed-thumbnail lists
+horizontal cards match Cast and Info's panel height and corner radius. When no chapters
+have thumbnails, portrait rows show left-aligned text without an artwork placeholder,
+and wide layouts vertically center that text in narrow, full-height glass cards.
+Text-only cards use Cast's width with a minimum text allowance on small screens;
+cards with thumbnails retain their wider artwork layout. Mixed-thumbnail lists
 retain aligned artwork slots. Chapter titles and start times share one leading text
 edge with corner-aware inner padding. They show titles (or numbered chapter labels),
 start times, available server thumbnails, and the current chapter. On portrait iOS,

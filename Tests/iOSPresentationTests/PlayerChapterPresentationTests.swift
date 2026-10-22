@@ -228,13 +228,13 @@ final class PlayerChapterPresentationTests: XCTestCase {
         }
         let player = PlayerViewModel(provider: ChapterPresentationProvider(), itemID: "fixture")
         await player.load()
-        player.controls.duration = 600
+        player.controls.duration = 7_200
         for size in [CGSize(width: 320, height: 568), .init(width: 568, height: 320), .init(width: 1024, height: 768)] {
             for (reduced, hasArtwork) in [(false, false), (true, false), (false, true), (true, true)] {
                 let probe = ChapterLayoutProbe()
                 player.controls.infoCard.chapters = [
                     .init(start: 0, title: "Opening"), .init(start: 180, title: "The journey"),
-                    .init(start: 360, imageURL: hasArtwork ? URL(string: "https://chapters.invalid/still.jpg") : nil)
+                    .init(start: 4_910, imageURL: hasArtwork ? URL(string: "https://chapters.invalid/still.jpg") : nil)
                 ]
                 let host = UIHostingController(rootView:
                     MobileChapterFixture(player: player, size: size, probe: probe)
@@ -263,7 +263,7 @@ final class PlayerChapterPresentationTests: XCTestCase {
                 recognition.recognitionLanguages = ["en-US"]
                 try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([recognition])
                 let text = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-                for expected in ["Chapters", "Opening", "The journey", "Chapter 3"] {
+                for expected in ["Chapters", "Opening", "The journey", "Chapter 3", "1:21:50"] {
                     XCTAssertTrue(text.localizedCaseInsensitiveContains(expected), "Missing chapter content: \(text)")
                 }
                 for (title, time) in [("Opening", "0:00"), ("The journey", "3:00")] {
@@ -293,7 +293,16 @@ final class PlayerChapterPresentationTests: XCTestCase {
                                 "The timestamp must stay comfortably inside the rounded bottom corner."
                             )
                         } else {
-                            XCTAssertLessThan((1 - titleBox.maxY) * size.height - probe.panelFrame.minY, inset * 2)
+                            let captionTop = (1 - titleBox.maxY) * size.height
+                            let captionBottom = (1 - timeBox.minY) * size.height
+                            XCTAssertEqual((captionTop + captionBottom) / 2, probe.panelFrame.midY, accuracy: 4,
+                                           "Text-only captions must be centered in the full-height horizontal card.")
+                            let nextTitle = try XCTUnwrap(recognition.results?.first {
+                                $0.topCandidates(1).first?.string == "The journey"
+                            }?.boundingBox)
+                            let cardWidth = (nextTitle.minX - titleBox.minX) * size.width - metrics.columnSpacing
+                            XCTAssertLessThan(cardWidth, metrics.cardHeight,
+                                              "Text-only cards must be narrow rectangles, not thumbnail-width tiles.")
                         }
                     }
                 }

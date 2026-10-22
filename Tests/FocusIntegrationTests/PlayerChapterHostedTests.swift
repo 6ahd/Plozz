@@ -55,11 +55,13 @@ final class PlayerChapterHostedTests: XCTestCase {
             driver.requestFocus?(.chapter(180))
             try await waitUntil { driver.observedFocus == .chapter(180) }
             let focused = try XCTUnwrap(UIFocusSystem.focusSystem(for: window)?.focusedItem)
-            if hasArtwork {
-                XCTAssertGreaterThanOrEqual(focused.frame.height, PlayerCardMetrics.tv.cardHeight - 1)
-            } else {
-                XCTAssertLessThan(focused.frame.height, PlayerCardMetrics.tv.cardHeight / 2,
-                                  "Text-only chapter cards must not reserve an empty image area.")
+            XCTAssertGreaterThanOrEqual(focused.frame.height, PlayerCardMetrics.tv.cardHeight - 1,
+                                        "Every horizontal chapter card must fill the shared player stage.")
+            XCTAssertLessThanOrEqual(focused.frame.height, PlayerCardMetrics.tv.cardHeight * 1.10 + 1)
+            if !hasArtwork {
+                XCTAssertGreaterThanOrEqual(focused.frame.width, PlayerCardMetrics.tv.castCardWidth - 1)
+                XCTAssertLessThanOrEqual(focused.frame.width, PlayerCardMetrics.tv.castCardWidth * 1.10 + 1,
+                                        "Text-only cards must use Cast's narrow width, not reserve thumbnail space.")
             }
             for time in [179.9, 180, 359.9, 360] {
                 model.currentSeconds = time
@@ -91,7 +93,10 @@ final class PlayerChapterHostedTests: XCTestCase {
                 let titleBox = try XCTUnwrap(recognition.results?.first {
                     $0.topCandidates(1).first?.string == "Opening"
                 }?.boundingBox)
-                XCTAssertLessThan((1 - titleBox.maxY) * window.bounds.height - driver.panelFrame.minY, inset * 2)
+                let captionTop = (1 - titleBox.maxY) * window.bounds.height
+                let captionBottom = (1 - timeBox.minY) * window.bounds.height
+                XCTAssertEqual((captionTop + captionBottom) / 2, driver.panelFrame.midY, accuracy: 4,
+                               "Text-only captions must be centered in the full-height horizontal card.")
             }
             let attachment = XCTAttachment(image: image)
             attachment.name = "Chapter cards \(hasArtwork ? "mixed" : "text") - \(reducedGlass ? "reduced" : "native glass")"

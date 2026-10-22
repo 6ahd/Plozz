@@ -35,7 +35,7 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
             let metrics = PlayerCardMetrics.resolved(forWidth: size.width, height: size.height)
             for mode in ["native", "frosted", "reduced-transparency"] {
                 for backdrop in [Color(red: 0.12, green: 0.40, blue: 0.65), Color(red: 0.65, green: 0.25, blue: 0.12)] {
-                    var reference: [UInt8] = []
+                    var reference: [[UInt8]] = []
                     var referenceFrame = CGRect.zero
                     for (chapters, artwork) in [(false, false), (true, false), (true, true)] {
                         model.infoCard.chapters = (0..<20).map {
@@ -63,26 +63,34 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
                         let frame = probe.frame
                         XCTAssertEqual(frame.width, size.width - 48, accuracy: 1)
                         XCTAssertEqual(frame.height, metrics.cardHeight, accuracy: 1)
-                        let sampleY: CGFloat
+                        let samplePositions: [CGFloat]
                         if metrics.isVertical {
-                            sampleY = frame.minY + metrics.castRowHeight / 2
-                        } else if chapters && !artwork {
-                            sampleY = frame.minY + metrics.contentPadding + metrics.castNameSize
+                            samplePositions = [frame.minY + metrics.castRowHeight / 2]
                         } else {
-                            sampleY = frame.midY
+                            samplePositions = [
+                                frame.minY + metrics.panelCornerRadius,
+                                frame.midY,
+                                frame.maxY - metrics.panelCornerRadius
+                            ]
                         }
-                        let surface = try pixels(image, rect: CGRect(
-                            x: frame.minX + 4, y: sampleY - 2, width: 4, height: 4
-                        ))
+                        let surface = try samplePositions.map { sampleY in
+                            try pixels(image, rect: CGRect(
+                                x: frame.minX + 4, y: sampleY - 2, width: 4, height: 4
+                            ))
+                        }
                         if chapters {
                             XCTAssertEqual(frame, referenceFrame)
-                            for channel in 0..<3 {
-                                let mean = stride(from: channel, to: surface.count, by: 4)
-                                    .reduce(0.0) { $0 + Double(surface[$1]) } / Double(surface.count / 4)
-                                let expected = stride(from: channel, to: reference.count, by: 4)
-                                    .reduce(0.0) { $0 + Double(reference[$1]) } / Double(reference.count / 4)
-                                XCTAssertEqual(mean, expected, accuracy: 12,
-                                               "Chapters must use Cast's \(mode) material, not a flat button fill.")
+                            for sample in samplePositions.indices {
+                                let actual = surface[sample]
+                                let cast = reference[sample]
+                                for channel in 0..<3 {
+                                    let mean = stride(from: channel, to: actual.count, by: 4)
+                                        .reduce(0.0) { $0 + Double(actual[$1]) } / Double(actual.count / 4)
+                                    let expected = stride(from: channel, to: cast.count, by: 4)
+                                        .reduce(0.0) { $0 + Double(cast[$1]) } / Double(cast.count / 4)
+                                    XCTAssertEqual(mean, expected, accuracy: 12,
+                                                   "Chapters must match Cast's \(mode) surface along the full card height.")
+                                }
                             }
                         } else {
                             reference = surface
