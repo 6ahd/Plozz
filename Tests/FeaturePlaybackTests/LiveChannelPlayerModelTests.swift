@@ -1033,6 +1033,64 @@ final class LiveChannelPlayerModelTests: XCTestCase {
         XCTAssertEqual(model.phase, .failed(.bufferingTimedOut))
     }
 
+    func testStartupTimeoutAllowsTheSelectedCushionButStillExpires() async {
+        for buffer in LivePlaybackBuffer.allCases {
+            let clock = LiveTestClock()
+            let engine = LiveEngineSpy()
+            engine.liveStartupBuffer = buffer
+            engine.liveSnapshot.firstFrameReady = false
+            let model = makeModel(engine: engine, clock: clock)
+            defer { model.stop() }
+            await model.start()
+            let deadline = 30 + (buffer.seconds ?? 0)
+            clock.now = deadline - 0.01
+            model.refreshFromEngine()
+            XCTAssertEqual(model.phase, .loading, buffer.rawValue)
+            clock.now = deadline
+            model.refreshFromEngine()
+            XCTAssertEqual(model.phase, .failed(.startupTimedOut), buffer.rawValue)
+            XCTAssertEqual(engine.stopCount, 1)
+        }
+    }
+
+    func testIntentionalCushionUsesTheEngineSafeEdgeWithoutChangingAutomatic() async {
+        let engine = LiveEngineSpy()
+        engine.liveStartupBuffer = .fortyFiveSeconds
+        engine.liveSnapshot.seekableRange = 0...100
+        engine.liveSnapshot.position = 55
+        engine.liveSnapshot.behindLiveSeconds = 45
+        engine.liveSnapshot.isAtLiveEdge = true
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        XCTAssertTrue(model.isAtLiveEdge)
+        XCTAssertFalse(model.canGoLive)
+        engine.liveSnapshot.isAtLiveEdge = false
+        engine.liveSnapshot.behindLiveSeconds = 60
+        model.refreshFromEngine()
+        XCTAssertFalse(model.isAtLiveEdge)
+        XCTAssertTrue(model.canGoLive)
+        engine.liveStartupBuffer = .automatic
+        engine.liveSnapshot.isAtLiveEdge = true
+        model.refreshFromEngine()
+        XCTAssertFalse(model.isAtLiveEdge, "Automatic retains the existing time-shift policy.")
+    }
+
+    func testExplicitCushionDoesNotPublishANonFiniteDistance() async {
+        let engine = LiveEngineSpy()
+        engine.liveStartupBuffer = .thirtySeconds
+        let model = makeModel(engine: engine)
+        defer { model.stop() }
+        await model.start()
+        engine.liveSnapshot.behindLiveSeconds = nil
+        engine.liveSnapshot.isAtLiveEdge = false
+        for position in [-Double.infinity, Double.nan] {
+            engine.liveSnapshot.position = position
+            model.refreshFromEngine()
+            XCTAssertEqual(model.behindLiveSeconds, 0)
+        }
+    }
+
     func testTerminalEngineErrorIsNotMistakenForBuffering() async {
         let engine = LiveEngineSpy()
         let model = makeModel(engine: engine)
@@ -1704,6 +1762,7 @@ private struct LiveFullscreenHarness: View {
 
 @MainActor
 final class LiveEngineSpy: LiveChannelEngine {
+    var liveStartupBuffer: LivePlaybackBuffer = .automatic
     var livePlaybackFailureDiagnostic: PlaybackFailureDiagnostic?
     var isCapturingLiveFailureDiagnostic = false
     let outputView = UIView()

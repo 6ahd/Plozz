@@ -1013,18 +1013,21 @@ final class PlayerViewModelEOFTests: XCTestCase {
         }
     }
 
-    func testFELPreferenceReachesInitialAndHandoffLoads() async throws {
+    func testSpatialAndFELPreferencesReachInitialAndHandoffLoads() async throws {
         for enabled in [false, true] {
             let (viewModel, engine, _) = makeViewModel(
-                playbackSettings: .init(dolbyVisionFELEnabled: enabled)
+                playbackSettings: .init(trueHDAtmosEnabled: enabled, dolbyVisionFELEnabled: enabled)
             )
             await viewModel.load()
             XCTAssertEqual(engine.lastLoadedRequest?.dolbyVisionFELEnabled, enabled)
+            XCTAssertEqual(engine.lastLoadedRequest?.trueHDAtmosEnabled, enabled)
             var handoff = try XCTUnwrap(engine.lastLoadedRequest)
             handoff.dolbyVisionFELEnabled = !enabled
+            handoff.trueHDAtmosEnabled = !enabled
             await viewModel.handoffPlayResolved(handoff, engineKind: .native, startPosition: 10)
             XCTAssertEqual(engine.loadCount, 2)
             XCTAssertEqual(engine.lastLoadedRequest?.dolbyVisionFELEnabled, enabled)
+            XCTAssertEqual(engine.lastLoadedRequest?.trueHDAtmosEnabled, enabled)
             await viewModel.stop()
         }
     }

@@ -34,6 +34,46 @@ final class NativeSettingsToggleTests: XCTestCase {
         try await verifyNativeSwitch(grouped: false)
     }
 
+    func testBufferControlsShowIndependentDeviceSelectionsAtPhoneAndTabletWidths() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        let suite = "BufferSettingsHosted-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+            defaults.removePersistentDomain(forName: suite)
+        }
+        for width: CGFloat in [390, 834] {
+            PlaybackReadAheadStore(defaults: defaults).save(.automatic)
+            LivePlaybackBufferStore(defaults: defaults).save(.automatic)
+            window.frame = CGRect(x: 0, y: 0, width: width, height: 900)
+            window.rootViewController = UIHostingController(rootView:
+                List {
+                    PlaybackReadAheadControl(defaults: defaults)
+                    LivePlaybackBufferControl(defaults: defaults)
+                }
+                .environment(\.themePalette, .dark)
+                .environment(\.locale, Locale(identifier: "en_US"))
+            )
+            window.makeKeyAndVisible()
+            try await settle(window)
+            let initial = try captureText(window, name: "automatic-buffers-\(Int(width))")
+            XCTAssertTrue(initial.contains("Video buffer"), initial)
+            XCTAssertTrue(initial.contains("Live TV buffer"), initial)
+            XCTAssertTrue(initial.contains("Automatic"), initial)
+            PlaybackReadAheadStore(defaults: defaults).save(.oneMinute)
+            LivePlaybackBufferStore(defaults: defaults).save(.thirtySeconds)
+            try await settle(window)
+            let selected = try captureText(window, name: "selected-buffers-\(Int(width))")
+            XCTAssertTrue(selected.contains("1 minute"), selected)
+            XCTAssertTrue(selected.contains("30 seconds"), selected)
+        }
+    }
+
     func testAdvancedPlaybackFELUsesNativeSwitchAndPersistsOnlyTheActiveProfile() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive })

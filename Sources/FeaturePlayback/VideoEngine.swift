@@ -264,6 +264,9 @@ public protocol VideoEngine: AnyObject {
     /// Selectable subtitle tracks for the active stream.
     var subtitleTracks: [MediaTrack] { get }
 
+    /// Embedded container chapters on the same timeline as `seek(to:)`.
+    var chapters: [MediaChapter] { get }
+
     /// The id of the audio track the engine is *actually* decoding right now,
     /// when the engine can report it authoritatively (AetherEngine publishes its
     /// resolved `activeAudioTrackIndex`, which may differ from the container's
@@ -317,6 +320,10 @@ public protocol VideoEngine: AnyObject {
     /// longer leaves the menu empty. Engines whose tracks are known synchronously
     /// at load never fire it. Invoked on the main actor.
     var onTracksChanged: (@MainActor () -> Void)? { get set }
+
+    /// Optional metadata can arrive after playback starts. Never fired for a
+    /// stopped or superseded load.
+    var onChaptersChanged: (@MainActor () -> Void)? { get set }
 
     /// Fired when an engine publishes fresh source facts from its own probe.
     /// The owner must treat these as authoritative over provider metadata.
@@ -406,6 +413,12 @@ public extension VideoEngine {
     /// the owner falls back to the container `isDefault` heuristic. Engines that
     /// publish a resolved active-track index (AetherEngine) override this.
     var currentAudioTrackID: Int? { nil }
+
+    var chapters: [MediaChapter] { [] }
+    var onChaptersChanged: (@MainActor () -> Void)? {
+        get { nil }
+        set {}
+    }
 
     /// Default: native (`AVPlayer`) engines have no separate telemetry — the
     /// sampler reads the access log. Engines without an `AVPlayer` override this.

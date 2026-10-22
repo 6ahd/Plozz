@@ -233,10 +233,8 @@ let package = Package(
         // life.
         //
         // The current fork retains that correction and exports the engine dynamically.
-        // Keep the Dolby Vision traits, but exclude TrueHDObjectAudio,
-        // DTSXObjectAudio and the measurement-only TrueHDReferenceRender.
-        // Height-channel conversion is not compiled; ordinary audio decoding
-        // and E-AC-3/JOC stream-copy remain available.
+        // Enable production spatial conversion, never the measurement-only
+        // TrueHDReferenceRender. Runtime eligibility and profile choice still apply.
         // Progressive segment delivery remains off.
         // Both apps embed the engine framework and its dependency notices.
         //
@@ -248,14 +246,15 @@ let package = Package(
         // bridge; the engine's legacy SMB URL product is not linked.
         .package(
             url: "https://github.com/brandomoore/AetherEngine",
-            revision: "86af70ddfe7bcde27e06356dc7aa81e8997d43c4",
+            revision: "32f5c5b24c6c1e63c8f036020af8a49dc9d76570",
             traits: [
+                "TrueHDObjectAudio", "DTSXObjectAudio",
                 "DualLayerDolbyVision", "DolbyVisionStillReshaping",
             ]
         ),
         // NOTE: FFmpegBuild (FFmpeg n8.1.x decode-only) and LibDovi (Dolby Vision
         // RPU parser) are transitive dependencies — AetherEngine declares and
-        // consumes them. LibTrueHD is not linked without TrueHDObjectAudio.
+        // consumes them, along with LibTrueHD for TrueHDObjectAudio.
         // The retired hybrid-engine target needed
         // direct FFmpegBuild/LibDovi declarations; current Plozz targets do not
         // consume those products. AetherEngine owns their version alignment.
@@ -1191,7 +1190,8 @@ let package = Package(
                 "TestSupportNetworking",
                 "TestSupportPerformance",
                 .product(name: "AetherEngine", package: "AetherEngine"),
-            ]
+            ],
+            resources: [.copy("Fixtures")]
         ),
     ],
     // Pin Swift 5 language mode: bumping tools-version to 6.0 (required for the

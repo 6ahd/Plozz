@@ -44,6 +44,13 @@ first-class backends; co-equal with `ProviderJellyfin`.
   rewrites the stored admin account's token; per-user tokens live in a
   short-lived override map.
 
+## Playback chapters
+
+Playback detail requests opt into `includeChapters=1` and carry the server's
+item-level chapter starts, titles, and optional images in `PlaybackRequest`.
+Millisecond offsets become seconds; missing and invalid starts are omitted.
+Ordinary browsing requests do not add this chapter query.
+
 ## Episode identity and order
 
 Full item metadata requests include GUIDs and preferences. The series'

@@ -20,6 +20,7 @@ struct PlaybackDiagnosticsOverlay: View {
 
     @Environment(\.themePalette) private var palette
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
 
     @ViewBuilder
     var body: some View {
@@ -313,6 +314,12 @@ struct PlaybackDiagnosticsOverlay: View {
             } else {
                 row(LocalizedStringResource("Buffer", comment: "Playback diagnostics label for the player's buffered media and buffer health."), bufferStatusText(d.bufferStatusFacts))
                 optionalRow(LocalizedStringResource("Engine buffer", comment: "Playback diagnostics label for media buffered ahead by the playback engine."), PlaybackDiagnostics.formatBuffer(d.engineBufferedSecondsAhead))
+            }
+            if let cache = d.sessionCache {
+                let format = ByteCountFormatStyle(style: .binary, allowedUnits: [.mb, .gb], spellsOutZero: false)
+                    .locale(locale)
+                row("Playback cache",
+                    "\(cache.residentBytes.formatted(format)) / \(cache.effectiveBudgetBytes.formatted(format))")
             }
             optionalRow(LocalizedStringResource("Stalls", comment: "Playback diagnostics label for the count of playback stalls."), d.stallCount.map(String.init) ?? PlaybackDiagnostics.placeholder)
             row(LocalizedStringResource("Dropped", comment: "Playback diagnostics label for dropped video frames."), "\(d.droppedFramesText) frames")

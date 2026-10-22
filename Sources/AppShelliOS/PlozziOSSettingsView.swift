@@ -2054,6 +2054,7 @@ struct PlozziOSPlaybackSettingsView: View {
                 onShowAdvanced: { showsAdvancedStreaming = true }
             )
             PlaybackReadAheadControl()
+            LivePlaybackBufferControl()
             if UIDevice.current.userInterfaceIdiom == .phone {
                 SettingsSectionGroup {
                     Picker("Player orientation", selection: $model.settings.orientation) {
