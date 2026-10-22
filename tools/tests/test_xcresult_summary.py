@@ -120,12 +120,21 @@ class ResultSummaryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.splitlines(), ["CoreUITests", "FeatureProfilesTests"])
 
-    def run_reaped_driver(self, value, *, finalizes=True):
+    def run_reaped_driver(self, value, *, finalizes=True, build_exit=0, manifests=1):
         self.write(value)
         binaries = self.root / "bin"
         binaries.mkdir()
         commands = {
             "xcodebuild": """#!/bin/bash
+printf '%s\\n' "$*" >> "$FIXTURE_ROOT/calls.log"
+if [[ "$1" == "build-for-testing" ]]; then
+  if [[ "$FIXTURE_BUILD_EXIT" != "0" ]]; then exit "$FIXTURE_BUILD_EXIT"; fi
+  mkdir -p "$FIXTURE_ROOT/derived/Build/Products"
+  for ((i=0; i<FIXTURE_MANIFESTS; i++)); do
+    touch "$FIXTURE_ROOT/derived/Build/Products/Fixture_appletvsimulator-$i.xctestrun"
+  done
+  exit 0
+fi
 while [[ $# -gt 0 ]]; do
   if [[ "$1" == "-resultBundlePath" ]]; then
     shift
@@ -164,7 +173,10 @@ PLOZZ_VERDICT_GRACE=0
 PLOZZ_RESULT_TIMEOUT=4
 POLL_SECS=1
 EXPECTED_BUNDLES=1
-""" + kill_tree + "\n" + helpers + '\n_xcb_once "$FIXTURE_ROOT/main.log" -scheme Fixture\n'
+""" + kill_tree + "\n" + helpers + (
+            '\n_xcb_once "$FIXTURE_ROOT/main.log" -scheme Fixture '
+            '-only-testing:FeatureProfilesTests\n'
+        )
         process = subprocess.Popen(
             ["/bin/bash", "-c", script], cwd=ROOT, text=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -172,6 +184,8 @@ EXPECTED_BUNDLES=1
                 **os.environ, "PATH": f"{binaries}:{os.environ['PATH']}",
                 "FIXTURE_ROOT": str(self.root), "FIXTURE_SUMMARY": str(self.path),
                 "FIXTURE_FINALIZES": "1" if finalizes else "0",
+                "FIXTURE_BUILD_EXIT": str(build_exit),
+                "FIXTURE_MANIFESTS": str(manifests),
             },
         )
         try:
@@ -201,6 +215,30 @@ EXPECTED_BUNDLES=1
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("xcresult: Passed", result.stdout)
         self.assertIn("xcresult is readable", result.stderr)
+        calls = (self.root / "calls.log").read_text().splitlines()
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(calls[0].startswith("build-for-testing -scheme Fixture"))
+        self.assertTrue(calls[1].startswith("test-without-building -xctestrun "))
+        self.assertNotIn("-scheme", calls[1])
+        self.assertNotIn("-derivedDataPath", calls[1])
+        self.assertIn("-only-testing:FeatureProfilesTests", calls[1])
+
+    def test_build_failure_never_runs_stale_tests(self):
+        result = self.run_reaped_driver(summary(), build_exit=65)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(len((self.root / "calls.log").read_text().splitlines()), 1)
+
+    def test_missing_manifest_fails_closed(self):
+        result = self.run_reaped_driver(summary(), manifests=0)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("found 0", (self.root / "main.log").read_text())
+        self.assertEqual(len((self.root / "calls.log").read_text().splitlines()), 1)
+
+    def test_ambiguous_manifests_fail_closed(self):
+        result = self.run_reaped_driver(summary(), manifests=2)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("found 2", (self.root / "main.log").read_text())
+        self.assertEqual(len((self.root / "calls.log").read_text().splitlines()), 1)
 
     def test_result_finalization_timeout_does_not_pass(self):
         result = self.run_reaped_driver(summary(result="unknown"), finalizes=False)

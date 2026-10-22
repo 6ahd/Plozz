@@ -194,10 +194,13 @@ final class MediaBadgeSizingTests: XCTestCase {
                 .environment(\.mediaBadgeScale, scale)
                 .environment(\.dynamicTypeSize, .large)
                 let width = 100 + 16 + first.width + max(gaps[index], gaps[next]) * scale + second.width
-                XCTAssertEqual(size(of: row.fixedSize()).width, width, accuracy: 0.5, "\(index), \(scale)")
+                let naturalSize = size(of: row.fixedSize())
+                XCTAssertEqual(naturalSize.width, width, accuracy: 0.5, "\(index), \(scale)")
+                // Separately hosted badges round independently; constrain the measured row instead.
                 XCTAssertEqual(
-                    size(of: row.frame(width: width - 1)).height,
-                    max(30, first.height) + 8 + second.height, accuracy: 0.5, "\(index), \(scale)"
+                    size(of: row.frame(width: naturalSize.width - 1)).height,
+                    max(30, first.height) + 8 + second.height, accuracy: 0.5,
+                    "\(index), \(scale), measured width \(naturalSize.width), summed width \(width)"
                 )
             }
         }

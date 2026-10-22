@@ -18,23 +18,25 @@ deployment or automatic retries. Normal suites skip those opt-in probes.
 The old runner looped `xcodebuild test` **once per test target** — 23 separate
 build + simulator-install + launch cycles. Since the tests themselves execute in
 well under a minute of CPU, ~all the wall-clock was 23× compile + simulator
-orchestration. The runner now does **one** `xcodebuild test` against the
-always-present `Plozz-Package` scheme:
-- **Full sweep:** `xcodebuild test -scheme Plozz-Package` (no `-only-testing`).
-- **Subset:** `-scheme Plozz-Package -only-testing:<Suite>` for each selected suite.
-- **Single suite with a materialised native `<Suite>` scheme:** used directly (rare
-  locally — SPM publishes per-*module* schemes like `CoreModels`, not
-  `CoreModelsTests`, and module schemes are not test-configured — so single-suite
-  runs normally also go through `Plozz-Package -only-testing`).
+orchestration. The runner now builds once with `xcodebuild build-for-testing`,
+then runs `test-without-building -xctestrun` against the generated manifest:
+- **Full sweep:** build `Plozz-Package`, then run every test bundle.
+- **Known subset:** generate a scoped scheme containing just the requested test
+  targets, so only their dependency subtrees build.
+- **Other selectors:** build `Plozz-Package` and preserve each `-only-testing`
+  selector in the manifest-driven test invocation.
 
-`Plozz-Package` is the only test-capable scheme, so build-once relies on the
-existing self-heal: a stray generated `Plozz.xcodeproj` shadows the Swift package
+The test invocation does not reopen a scheme or SwiftPM workspace. This avoids
+Xcode 27 invalidating package test-bundle blueprints during a mid-run package
+graph refresh. Build failure, a missing manifest, or multiple matching manifests
+fail closed rather than selecting potentially stale test products.
+
+Build-once relies on the existing self-heal: a stray generated `Plozz.xcodeproj` shadows the Swift package
 and blocks `Plozz-Package`; the runner moves it aside when needed and restores it
 on exit.
 
-`-only-testing` filters which suites **run**, not what is **built** — a subset run
-still compiles the full test graph once. The win is collapsing 23 build +
-orchestration cycles into **one**, not compiling less.
+`-only-testing` alone filters which suites **run**, not what is **built**; scoped
+schemes additionally reduce compilation for known subsets.
 
 **Flake guard:** if the single run reports specific failed suite bundles, each is
 retried **once** in isolation; a suite only fails if it fails twice. A build/compile
