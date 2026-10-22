@@ -830,8 +830,7 @@ struct PlaybackDetailView: View {
         [
             SettingsSplitRow(
                 id: "skip-intros-mode",
-                title: "Skip intros, credits & more",
-                description: "Show a Skip button, or skip automatically, during intros, credits, recaps, previews and commercials.",
+                title: "Skip intros, credits & more"
             ) {
                 SkipMarkerSettingsControl(model: playback)
             }

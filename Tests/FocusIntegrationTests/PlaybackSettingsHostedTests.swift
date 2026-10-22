@@ -240,6 +240,7 @@ final class PlaybackSettingsHostedTests: XCTestCase {
                 "Remember series version choices",
                 "Skip intros, credits", "Enable skipping", "Movies", "TV Shows", "Anime",
                 "Show skip button", "Set each marker separately", "Use community markers",
+                "From IntroDB", "your server has none", "Shares",
                 "Video buffer", "Live TV buffer", "Automatic", "temporary storage",
                 "adds live delay", "Spatial audio", "height channel support",
                 "TrueHD Atmos", "DTS:X", "Apple spatial audio", "lossy"
@@ -251,6 +252,8 @@ final class PlaybackSettingsHostedTests: XCTestCase {
             }
             XCTAssertFalse(visible.contains("Turn off if playback stutters"), visible)
             XCTAssertFalse(visible.contains("Applies to new playback sessions"), visible)
+            XCTAssertFalse(visible.contains("Show a Skip button, or skip automatically"), visible)
+            XCTAssertFalse(visible.contains("When your server has no intro or credits marker"), visible)
             XCTAssertTrue(playback.settings.trueHDAtmosEnabled)
             if separate {
                 for label in ["Intros", "Credits", "Recaps", "Previews", "Commercials"] {

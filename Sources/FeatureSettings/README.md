@@ -70,7 +70,9 @@ Disabling a category suppresses skip prompts and automatic skips, not the
 independent Up Next or autoplay preferences. Advanced per-marker choices retain
 independent Off/manual/automatic behavior and timing. Existing saved modes,
 including mixed immediate/delayed marker overrides, migrate without changing
-their playback behavior.
+their playback behavior. Community-marker attribution and identifier sharing
+appear as a short caption attached to its switch, without a separate section
+footer.
 
 The **Spatial audio (height channel support)** switch is available on tvOS 26 and later. Its
 profile-scoped `trueHDAtmosEnabled` preference defaults on, preserves saved Off

@@ -73,11 +73,13 @@ private struct SkipMarkerConfiguration: View {
                     SkipMarkerRuleControls(model: model, kind: kind)
                 }
             }
-            Toggle("Use community markers", isOn: $model.settings.useCommunityMarkers)
-                .accessibilityIdentifier("skip-community-markers")
-            Text("When your server has no intro or credits marker, Plozz looks one up on IntroDB and TheIntroDB, sending them the title’s IMDb or TMDB ID.")
-                .settingsHelperText()
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle("Use community markers", isOn: $model.settings.useCommunityMarkers)
+                    .accessibilityIdentifier("skip-community-markers")
+                Text("From IntroDB and TheIntroDB when your server has none. Shares IMDb/TMDB IDs.")
+                    .settingsHelperText()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

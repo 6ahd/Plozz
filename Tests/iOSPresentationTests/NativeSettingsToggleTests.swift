@@ -73,9 +73,11 @@ final class NativeSettingsToggleTests: XCTestCase {
             XCTAssertEqual(listedSwitches(in: window).count, 6)
             let automatic = try captureText(window, name: "skip-settings-automatic-\(Int(width))")
             for label in ["Enable skipping", "Behavior", "Skip automatically", "Skip after", "12 seconds",
-                          "Movies", "TV Shows", "Anime", "Set each marker separately"] {
+                          "Movies", "TV Shows", "Anime", "Set each marker separately",
+                          "Use community markers", "From IntroDB", "your server has none", "Shares"] {
                 XCTAssertTrue(automatic.contains(label), "Missing \(label): \(automatic)")
             }
+            XCTAssertFalse(automatic.contains("When your server has no intro or credits marker"), automatic)
             let stepper = try XCTUnwrap(firstStepper(in: window))
             stepper.value += stepper.stepValue
             stepper.sendActions(for: .valueChanged)
