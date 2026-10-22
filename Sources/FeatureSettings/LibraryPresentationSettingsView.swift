@@ -33,13 +33,6 @@ public struct LibraryPresentationSettingsView: View {
 
     public var body: some View {
         HomeEditorPage(title: Text("Customize Libraries"), showsHeader: true) {
-            #if os(tvOS)
-            SettingsSectionGroup("Recommended") {
-                HeroLogoSizeControl(
-                    size: $model.settings.logoSize, surface: .showcase, showsLibraryPreview: true
-                )
-            }
-            #endif
             HomeEditorLink {
                 LibraryNavigationSettingsView(model: model)
             } label: {
@@ -49,10 +42,18 @@ public struct LibraryPresentationSettingsView: View {
                     titleSymbol: "arrow.up.arrow.down"
                 )
             }
-            Text("Recommended Rows")
+            .accessibilityIdentifier("library-navigation-settings")
+            #if os(tvOS)
+            SettingsSectionGroup("Recommended Page") {
+                HeroLogoSizeControl(
+                    size: $model.settings.logoSize, surface: .showcase, showsLibraryPreview: true
+                )
+            }
+            #endif
+            Text("Recommended Page Rows")
                 .font(.headline)
                 .padding(.top)
-            Text("Choose a library to arrange or hide its rows.")
+            Text("Choose a library to arrange or hide rows on its Recommended page.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             libraryChoices
@@ -88,7 +89,7 @@ public struct LibraryPresentationSettingsView: View {
                 }
             }
             if libraries.isEmpty, discovery.failures.isEmpty {
-                Text("No libraries with recommendations are available.")
+                Text("No libraries with a Recommended page are available.")
                     .foregroundStyle(.secondary)
             }
             if !discovery.failures.isEmpty {
@@ -163,7 +164,7 @@ struct LibraryRecommendedRowsSettingsView: View {
 
     var body: some View {
         HomeEditorPage(title: library.library.displayName, showsHeader: true) {
-            Text("Recommended Rows").font(.headline)
+            Text("Recommended Page Rows").font(.headline)
             switch state {
             case .idle, .loading:
                 ProgressView()
@@ -215,7 +216,7 @@ struct LibraryRecommendedRowsSettingsView: View {
                     model.settings.recommendedRows[address] = updated
                 }
             )
-            Text("Changes apply only to this library, not Home.")
+            Text("Changes apply only to this library's Recommended page, not Home.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Button("Reset Rows") { model.settings.recommendedRows.removeValue(forKey: address) }
