@@ -306,6 +306,16 @@ public final class HomeLibraryVisibilityModel {
         visibility.continueWatchingPlaybackDetails
     }
 
+    public var continueWatchingAction: ContinueWatchingAction {
+        visibility.continueWatchingAction
+    }
+
+    public func setContinueWatchingAction(_ action: ContinueWatchingAction) {
+        guard visibility.continueWatchingAction != action else { return }
+        visibility.continueWatchingAction = action
+        store.save(visibility)
+    }
+
     public func setContinueWatchingPlaybackDetails(_ details: ContinueWatchingPlaybackDetails) {
         guard visibility.continueWatchingPlaybackDetails != details else { return }
         visibility.continueWatchingPlaybackDetails = details

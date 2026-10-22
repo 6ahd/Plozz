@@ -2,7 +2,7 @@
 
 Plozz uses two playback engines, automatically selected per-item based on
 container, codecs, and subtitle requirements. The goal is maximum format coverage
-with the best possible quality (Dolby Vision, Atmos, full-timeline seek).
+with the best possible quality (Dolby Vision, spatial audio, full-timeline seek).
 
 ## Media-share disc images
 
@@ -244,23 +244,25 @@ fixes, corrected software resume/seek timelines, transport-intent preservation
 during rebuilds, and blocking engine work moved off Swift's cooperative pool.
 Changing speed while paused now leaves the session paused until `play()`.
 E-AC-3 JOC stream copies advertise object audio in the HLS master, including
-untagged tracks. FFmpegBuild **3.7.x** fixes dependent-substream Atmos signaling;
+untagged tracks. FFmpegBuild **3.7.x** fixes dependent-substream spatial signaling;
 LibDovi remains **2.1.x**. The earlier 7.36.0 integration used LibTrueHD **2.3.x** and
-LibDTSX **1.0.1**. Upstream 7.36.0 added DTS:X object rendering, corrected spatial
-speaker positions and a tvOS Atmos output activator for receivers that need it.
+LibDTSX **1.0.1**. Upstream 7.36.0 added another object-audio rendering path, corrected
+spatial speaker positions and a tvOS spatial-output activator for receivers that need it.
 It also includes live-replay recovery, software-video recovery after a screen lock,
 and the intervening 7.35.x playback fixes; these are upstream changes, not new
 Plozz-specific implementations. The current pin uses FFmpegBuild **3.9.0**
 and LibDovi **2.1.x**; its optional LibTrueHD **3.0.0** dependency is disabled
 in Plozz, and LibDTSX is removed. It also includes
-single-connection Atmos-probe safeguards and system-composited Dolby Vision
+single-connection spatial-audio probe safeguards and system-composited Dolby Vision
 held pictures. The fork retains the persistent HTTP body-reader isolation
 correction from its previous integration.
+
+### Spatial audio
 
 **Height-channel conversion is disabled on every platform.** On-demand load
 options explicitly use `objectAudioRendering = .off`, and the engine's two
 optional conversion traits are excluded at build time. The former
-**TrueHD Atmos and DTS:X** switch and request property have been removed.
+**Spatial audio** conversion switch and request property have been removed.
 Decoding an older or transferred profile ignores its `trueHDAtmosEnabled` key;
 subsequent settings saves omit it without resetting other preferences.
 
@@ -378,10 +380,12 @@ layer is discarded.
 
 FEL decodes both layers with VideoToolbox and reconstructs the picture with Metal.
 It adds GPU/memory work and uses the sample-buffer playback path, not AVPlayer.
-E-AC-3 Atmos therefore loses its objects, and the native/HLS TrueHD Atmos and
-DTS:X height conversion does not run. The separate audio preference is preserved,
-so non-FEL titles still receive their configured audio behavior. These tradeoffs
-are stated next to the switch.
+Audio still plays as decoded channel-based PCM, including TrueHD and DTS tracks.
+The FEL route also reduces an E-AC-3/JOC soundtrack to its channel presentation,
+without the spatial information preserved by native playback. That remaining
+tradeoff is why the helper still says FEL turns off overhead sound, even though
+optional height-channel conversion is now disabled app-wide. Non-FEL titles keep
+their ordinary audio paths, including native E-AC-3/JOC spatial playback.
 
 Upstream documents measured Dolby Vision metadata consumption on tvOS, but not
 on iOS/iPadOS. Enabling the option is not evidence that a particular file took
@@ -572,11 +576,11 @@ Native handles content the server has already prepared:
 | Feature | Plozzigen | Native |
 |---------|-----------|--------|
 | Dolby Vision | ✅ (Profile 5/8) | ✅ (if server delivers DV) |
-| Dolby Atmos | ✅ (E-AC-3 JOC stream-copy only) | ✅ (if stream has E-AC3 JOC) |
+| Directly compatible spatial audio | ✅ (E-AC-3 JOC stream-copy on the native path; FEL uses channel PCM) | ✅ (if stream has E-AC-3 JOC) |
 | HDR10 / HLG | ✅ | ✅ |
 | Full-timeline seek | ✅ | ✅ (if not live transcode) |
 | PGS subtitles | ❌ | ❌ |
-| TrueHD / DTS:X height conversion | ❌ (optional engine features excluded) | ❌ |
+| Spatial audio conversion with heights | ❌ (optional engine features excluded) | ❌ |
 | DTS bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 | TrueHD bitstream | ❌ (channel audio uses FLAC/E-AC-3 bridge) | ❌ |
 
@@ -605,7 +609,7 @@ handle Plex content correctly. The prior engine's experimental branches are
 preserved under `preserve/remux-*` git tags for reference but are not used.
 
 AetherEngine was adopted because it solves the exact same problem (MKV → AVPlayer
-with DoVi + Atmos + seeking) with a battle-tested pipeline. Plozz wraps it via
+with Dolby Vision, spatial audio and seeking) with a battle-tested pipeline. Plozz wraps it via
 the `PlozzigenVideoEngine` adapter conforming to the `VideoEngine` protocol.
 
 An earlier libmpv-backed `EngineMPV` engine (routed via `.hybrid`) was also

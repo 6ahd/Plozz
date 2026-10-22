@@ -123,7 +123,7 @@ available when you want them.
 - **Surround audio** — TrueHD and DTS soundtracks use compatible channel
   playback, without their original height positioning. Dolby Digital Plus
   streams keep their native playback path.
-  [Compatibility details](docs/playback-engines.md#dependency-version).
+  [Compatibility details](docs/playback-engines.md#spatial-audio).
 - **Change versions without leaving the player** — switch between files or
   editions on the active server on Apple TV, iPhone, and iPad. Keep your
   playback position, pause state, speed, quality limit, and matching audio and

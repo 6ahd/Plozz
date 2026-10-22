@@ -24,6 +24,12 @@ language every other module speaks.
   plus the neutral `SubtitleColor` / `SubtitleEdgeStyle` / `SubtitleMode` primitives.
 - Profiles persistence contract: `ProfilePersisting`, `ProfileStore`,
   `ProfilesModel`, plus the Plex Home-user mapping (`PlexHomeUser`).
+- Local PIN proof is in-memory and bound to the current verifier and selection.
+  `ProfilesModel` clears it whenever the active profile changes, including
+  deletion/sync fallbacks. Manual entry to another locked profile requires fresh
+  proof; opting into startup sign-in remains a separate, startup-only exception.
+  Profile Lock verification keeps its full stored derivation cost off the UI
+  executor; callers must recheck request, selection generation and lock afterward.
 - `EpisodeCountBadgeStyle` is an independent, profile-scoped appearance preference.
   On first load, `WatchStatusIndicatorSettingsStore` preserves the legacy
   watch-mode-derived style (watched: floating, unwatched: attached), then persists
@@ -258,6 +264,9 @@ survive reload, profile switching, and transfer.
 Synced artwork/label-setting deletions consume their one-time legacy import
 even for profiles not yet loaded on this device. The separate `.migrated` store
 markers remain device-local and never enter profile transfer snapshots.
+Once migrated, loading these stores is read-only. Subtitle appearance model
+hydration likewise does not save or broadcast its loaded values: profile
+activation must not re-persist unchanged preferences on the main actor.
 
 ## Device-local playback buffering
 

@@ -89,11 +89,17 @@ public final class PlaybackVersionChoiceModel {
         try Task.checkCancellation()
         guard owner == id, isCurrent() else { throw CancellationError() }
         if local == nil {
-            let resolved = try await provider.playbackItem(id: opened.id)
+            let resolved = try await PlaybackPreparationDiagnostics.capture(provider: provider.kind, operation: .versions) {
+                try await provider.playbackItem(id: opened.id)
+            }
             try Task.checkCancellation()
             guard owner == id, isCurrent() else { throw CancellationError() }
             guard resolved.id == opened.id, resolved.kind == opened.kind,
                   resolved.sourceAccountID == nil || resolved.sourceAccountID == opened.sourceAccountID else {
+                PlaybackPreparationDiagnostics.identityFailure(
+                    provider: provider.kind, operation: .versions, expectedID: opened.id,
+                    expectedKind: opened.kind, expectedAccountID: opened.sourceAccountID, resolved: resolved
+                )
                 PlozzLog.playback.error("Version details did not match the requested title.")
                 throw AppError.invalidResponse
             }
@@ -130,11 +136,19 @@ public final class PlaybackVersionChoiceModel {
                 && (item.sources[index].kind == nil || item.sources[index].kind == item.kind) {
                 let source = item.sources[index]
                 do {
-                    let alternate = try await provider.playbackItem(id: source.itemID)
+                    let alternate = try await PlaybackPreparationDiagnostics.capture(
+                        provider: provider.kind, operation: .alternateVersions
+                    ) {
+                        try await provider.playbackItem(id: source.itemID)
+                    }
                     try Task.checkCancellation()
                     guard owner == id, isCurrent() else { throw CancellationError() }
                     guard alternate.id == source.itemID, alternate.kind == item.kind,
                           alternate.sourceAccountID == nil || alternate.sourceAccountID == source.accountID else {
+                        PlaybackPreparationDiagnostics.identityFailure(
+                            provider: provider.kind, operation: .alternateVersions, expectedID: source.itemID,
+                            expectedKind: item.kind, expectedAccountID: source.accountID, resolved: alternate
+                        )
                         PlozzLog.playback.error("Version details did not match the alternate source.")
                         throw AppError.invalidResponse
                     }

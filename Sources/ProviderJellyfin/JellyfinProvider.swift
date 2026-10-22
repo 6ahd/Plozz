@@ -691,15 +691,36 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
             do {
                 let inventory = try await client.playbackSourceInventory(userID: session.userID, itemID: id)
                 try Task.checkCancellation()
-                try validateStreamingDecision(inventory)
+                do {
+                    try validateStreamingDecision(inventory)
+                } catch {
+                    HTTPResponseDiagnostics.recordValidationFailure(
+                        .serverRejected, route: .playbackInventory, sourceCount: inventory.MediaSources.count
+                    )
+                    throw error
+                }
                 let ids = inventory.MediaSources.compactMap(\.Id)
                 guard !ids.isEmpty, ids.count == inventory.MediaSources.count,
                       ids.allSatisfy({ !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }),
-                      Set(ids).count == ids.count else { throw AppError.invalidResponse }
+                      Set(ids).count == ids.count else {
+                    let reason: ResponseValidationDiagnostic.Reason
+                    if inventory.MediaSources.isEmpty { reason = .emptySources }
+                    else if ids.count != inventory.MediaSources.count { reason = .missingSourceID }
+                    else if ids.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+                        reason = .blankSourceID
+                    } else { reason = .duplicateSourceID }
+                    HTTPResponseDiagnostics.recordValidationFailure(
+                        reason, route: .playbackInventory, sourceCount: inventory.MediaSources.count
+                    )
+                    throw AppError.invalidResponse
+                }
                 // Placeholder item streams must not overwrite the real first
                 // source's language, codec, or quality facts.
                 let sources = inventory.MediaSources.filter { !Self.isUnavailablePlaceholder($0, itemID: id) }
                 guard !sources.isEmpty else {
+                    HTTPResponseDiagnostics.recordValidationFailure(
+                        .unavailablePlaceholder, route: .playbackInventory, sourceCount: inventory.MediaSources.count
+                    )
                     PlozzLog.playback.error("The server returned an unavailable-source placeholder.")
                     throw StreamingQualityError.noStreams
                 }

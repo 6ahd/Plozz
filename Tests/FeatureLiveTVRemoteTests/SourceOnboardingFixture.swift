@@ -232,6 +232,7 @@ private struct SetupCardsFixture: View {
             createChannel: { selectedAction = "library" }
         )
         .frame(width: arguments.contains("--setup-compact") ? 720 : nil)
+        .settingsPageBackground()
         .environment(\.layoutDirection, arguments.contains("--rtl") ? .rightToLeft : .leftToRight)
         .environment(\.themePalette, arguments.contains("--light") ? .light : .dark)
         .environment(\.colorScheme, arguments.contains("--light") ? .light : .dark)

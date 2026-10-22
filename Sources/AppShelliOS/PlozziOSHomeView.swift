@@ -2355,10 +2355,10 @@ private struct PlozziOSHomeRowView: View {
                     items: row.items,
                     style: cardStyle,
                     appModel: appModel,
-                    // Continue Watching is a resume affordance: pressing it should
-                    // carry on watching, which is what tvOS already did. The
-                    // context menu still reaches the detail page.
-                    interaction: row.kind == .continueWatching ? .play : .openDetail,
+                    interaction: row.playsOnSelect(
+                        continueWatchingAction: appModel.settings.homeVisibility.continueWatchingAction
+                    ) ? .play : .openDetail,
+                    showsResumeChip: row.kind == .continueWatching,
                     prefetchesArtwork: row.kind == .continueWatching,
                     pendingRemovalIDs: pendingWatchlistRemovalIDs,
                     loadingPlaceholderCount: row.kind == .watchlist
@@ -2443,6 +2443,7 @@ struct PlozziOSHomeMediaRail: View {
     /// from the card's shape — a landscape rail is a presentation choice, not a
     /// promise that the row is Continue Watching.
     var interaction: PlozziOSRailInteraction = .openDetail
+    var showsResumeChip: Bool = false
     /// Continue Watching opts in because its backdrop + logo composition costs
     /// more than an ordinary card. Keeping this scoped avoids warming every Home
     /// rail at launch when per-library rows are enabled.
@@ -2485,6 +2486,7 @@ struct PlozziOSHomeMediaRail: View {
                                 item: item,
                                 isLandscape: style == .landscape,
                                 interaction: interaction,
+                                showsResumeChip: showsResumeChip,
                                 showsSeriesArtwork: showsSeriesArtwork,
                                 isPendingRemoval: pendingRemovalIDs.contains(
                                     item.stablePresentationID
@@ -2729,6 +2731,7 @@ struct PlozziOSHomeMediaCard: View {
     let item: MediaItem
     let isLandscape: Bool
     var interaction: PlozziOSRailInteraction = .openDetail
+    var showsResumeChip: Bool = false
     var showsSeriesArtwork: Bool = false
     var isPendingRemoval: Bool = false
     let provider: (any MediaProvider)?
@@ -2738,8 +2741,7 @@ struct PlozziOSHomeMediaCard: View {
     var body: some View {
         let playsDirectly = interaction == .play && railPlay != nil && item.isPlayableNow
         Group {
-            // A Continue Watching card resumes; every other rail opens detail.
-            // Playing needs a handler installed by the page that owns the player,
+            // Direct play needs a handler installed by the page that owns the player,
             // and an item that is actually playable — a discovery/request stub has
             // nothing to run — so both fall back to the detail push rather than
             // opening a broken player.
@@ -2796,7 +2798,7 @@ struct PlozziOSHomeMediaCard: View {
             // The chip is requested explicitly rather than riding an implicit
             // "landscape means playable" rule, so presentation and behaviour stay
             // independently controlled.
-            showsResumeChip: isLandscape || interaction == .play,
+            showsResumeChip: showsResumeChip || isLandscape || interaction == .play,
             downloadState: liveDownloadRecord?.badgeState,
             // No visible "…" while browsing: the actions people actually reach for
             // live on the detail page, which is far more discoverable than a tiny

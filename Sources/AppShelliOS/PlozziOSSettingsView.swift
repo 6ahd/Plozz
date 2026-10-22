@@ -169,7 +169,7 @@ struct PlozziOSSettingsView: View {
         Binding<PlexHomeUsersModel.PlexPINRequest?>
     {
         Binding(
-            get: { appModel.plexHomeUsers.pendingPlexPINRequest },
+            get: { appModel.plexPINRequestForAppPresentation },
             set: { request in
                 if request == nil {
                     appModel.plexHomeUsers.dismissPlexPINIfPresented()
@@ -1584,111 +1584,6 @@ private struct PlozziOSShareScanSection: View {
             return Text(date, format: .relative(presentation: .named))
         }
         return Text("Never")
-    }
-}
-
-struct PlozziOSPlexHomeUserSettingsView: View {
-    let appModel: PlozziOSAppModel
-    let account: Account
-    @State private var users: [PlexHomeUser] = []
-    @State private var isLoading = false
-
-    var body: some View {
-        List {
-            SettingsSectionGroup("Account owner") {
-                let owner = users.first(where: \.isAdmin)
-                userButton(
-                    name: owner?.name ?? (account.userName.isEmpty ? "Plex Account Owner" : account.userName),
-                    avatarURL: owner?.avatarURL,
-                    requiresPIN: owner?.requiresPIN ?? false,
-                    user: owner
-                )
-                .disabled(owner == nil)
-            }
-
-            SettingsSectionGroup("Home users") {
-                if isLoading {
-                    HStack {
-                        ProgressView()
-                        Text("Loading Plex Home…")
-                    }
-                } else if users.isEmpty {
-                    Text("No additional Plex Home users were found.")
-                        .plozzForeground(.secondary)
-                } else {
-                    ForEach(users.filter { !$0.isAdmin }) { user in
-                        userButton(
-                            name: user.name,
-                            avatarURL: user.avatarURL,
-                            requiresPIN: user.requiresPIN,
-                            user: user
-                        )
-                    }
-                }
-            } footer: {
-                Text("PIN-protected users must unlock when their Plozz profile becomes active.")
-            }
-        }
-        .settingsPageSurface()
-        .navigationTitle("Plex User")
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            isLoading = true
-            users = await appModel.plexHomeUsers.plexHomeUsers(
-                forAccountID: account.id
-            )
-            isLoading = false
-        }
-    }
-
-    private func userButton(
-        name: String,
-        avatarURL: URL?,
-        requiresPIN: Bool,
-        user: PlexHomeUser?
-    ) -> some View {
-        Button {
-            appModel.plexHomeUsers.setPlexHomeUserForActiveProfile(
-                accountID: account.id,
-                user: user
-            )
-        } label: {
-            HStack(spacing: 12) {
-                AsyncImage(url: avatarURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable()
-                        .plozzForeground(.secondary)
-                }
-                .frame(width: 40, height: 40)
-                .clipShape(Circle())
-
-                Text(name)
-                    .foregroundStyle(.primary)
-                if requiresPIN {
-                    Image(systemName: "lock.fill")
-                        .font(.caption)
-                        .plozzForeground(.secondary)
-                }
-                Spacer()
-                if isSelected(user) {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(.tint)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func isSelected(_ user: PlexHomeUser?) -> Bool {
-        let binding = appModel.profiles.activeProfile.homeUserBinding(
-            forPlexAccount: account.id
-        )
-        if let user {
-            return binding?.homeUserID == user.id || (binding == nil && user.isAdmin)
-        }
-        return binding == nil
     }
 }
 

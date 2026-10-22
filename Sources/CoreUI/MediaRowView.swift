@@ -140,6 +140,7 @@ public struct MediaRowView: View {
     /// the moment it takes focus, which is the symptom this exists to prevent.
     private var focusLiftAllowance: CGFloat { 28 }
     private let onSelect: (MediaItem) -> Void
+    private let onPlay: ((MediaItem) -> Void)?
     /// When `true`, selecting a card starts playback immediately, so its cards
     /// show the resume chip (play glyph + progress bar + time). Threaded to
     /// `PosterCardView.playsOnSelect`.
@@ -172,7 +173,6 @@ public struct MediaRowView: View {
     private let itemByID: [String: MediaItem]
 
     @Environment(\.plozzMetrics) private var metrics
-    @Environment(\.themePalette) private var palette
     @State private var activity = MediaRowActivity()
     /// The card focus was on when this row's page was covered — see `isCovered`.
     @State private var coveredFocusID: String?
@@ -212,6 +212,7 @@ public struct MediaRowView: View {
         showsResumeChip: Bool = false,
         liveChannels: [HomeLiveTVChannel] = [],
         onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
+        onPlay: ((MediaItem) -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.init(
@@ -242,6 +243,7 @@ public struct MediaRowView: View {
             showsResumeChip: showsResumeChip,
             liveChannels: liveChannels,
             onLiveChannelFocused: onLiveChannelFocused,
+            onPlay: onPlay,
             onSelect: onSelect
         )
     }
@@ -274,6 +276,7 @@ public struct MediaRowView: View {
         showsResumeChip: Bool = false,
         liveChannels: [HomeLiveTVChannel] = [],
         onLiveChannelFocused: ((HomeLiveTVChannel) -> Void)? = nil,
+        onPlay: ((MediaItem) -> Void)? = nil,
         onSelect: @escaping (MediaItem) -> Void
     ) {
         self.title = title
@@ -314,6 +317,7 @@ public struct MediaRowView: View {
         self.pendingRemovalIDs = pendingRemovalIDs
         self.playsOnSelect = playsOnSelect
         self.showsResumeChip = showsResumeChip
+        self.onPlay = onPlay
         self.onSelect = onSelect
         // Every derived table is built from the DEDUPED array, never from the
         // caller's. Building them from the original left indices pointing at
@@ -525,6 +529,7 @@ public struct MediaRowView: View {
                                     } else {
                                         loadingPlaceholder
                                             .frame(width: cardSlotWidth)
+                                            .opacity(episodeEntry == nil ? 1 : 0)
                                     }
                                 }
                             }
@@ -594,6 +599,14 @@ public struct MediaRowView: View {
                     }
                     .onPreferenceChange(MediaRowEntryLayoutKey.self) { layout in
                         acceptEntryLayout(layout, using: proxy)
+                    }
+                    .onChange(of: episodeEntry?.phase) { _, _ in
+                        acceptEntryLayout(entryLayout, using: proxy)
+                    }
+                    .onChange(of: episodeEntry?.isEnabled) { _, enabled in
+                        guard enabled == true else { return }
+                        applyInitialFocus(using: proxy)
+                        acceptEntryLayout(entryLayout, using: proxy)
                     }
                     .onChange(of: entryPlaceholderFocused) { _, focused in
                         if focused {
@@ -774,7 +787,12 @@ public struct MediaRowView: View {
     @ViewBuilder
     private func tappableCard(for item: MediaItem) -> some View {
         #if os(tvOS)
-        card(for: item)
+        if let onPlay {
+            card(for: item)
+                .onPlayPauseCommand { onPlay(item) }
+        } else {
+            card(for: item)
+        }
         #else
         Button { onSelect(item) } label: { card(for: item) }
             // Plain, so the card keeps its own colours and chrome.
@@ -850,6 +868,10 @@ public struct MediaRowView: View {
         // is `landscapeWidth + 2 * cardInset` — pin to that so `cardSpacing`
         // is a real gap and adjacent cards never overlap at rest.
         let card = content
+            // Hide only the card drawing: the lazy stack and target measurement
+            // must remain live while the transparent loading overlay is present.
+            .opacity(showsEntryPlaceholder ? 0 : 1)
+            .accessibilityHidden(showsEntryPlaceholder)
             .frame(width: cardSlotWidth)
             .id(item.stablePresentationID)
             .background {
@@ -1027,9 +1049,6 @@ public struct MediaRowView: View {
         .padding(.top, layoutMetrics.railTopClearanceOffset)
         .padding(.bottom, layoutMetrics.railBottomClearanceOffset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        // Cover the drawing without masking the real scroller: SwiftUI can
-        // otherwise discard its lazy children before their target is realized.
-        .background(palette.backgroundBase)
         // Focus lift and halo deliberately overflow this viewport, just like
         // the real episode cards. The overlay must not crop them at its edge.
         .focusSectionIf(true)
@@ -1047,10 +1066,9 @@ public struct MediaRowView: View {
         guard episodeEntry != nil, !activity.focusEngaged else { return }
         if entryLayout != layout { entryLayout = layout }
         guard episodeEntry?.phase == .ready,
-              let target = gateTarget, itemIDSet.contains(target), !isCovered,
-              episodeEntry?.isEnabled != false else { return }
+              let target = gateTarget, itemIDSet.contains(target), !isCovered else { return }
         if MediaRowEpisodeEntryPolicy.targetReady(target, layout: layout) {
-            guard pendingEntryHandoff else { return }
+            guard pendingEntryHandoff, episodeEntry?.isEnabled != false else { return }
             // The real target is already laid out. Remove the loading leaf and
             // assign its replacement in one update, not after focusing a neighbor.
             pendingEntryHandoff = false
@@ -1210,7 +1228,9 @@ public struct MediaRowView: View {
     /// runloop tick so SwiftUI has installed the focusable cards before we move
     /// focus onto one.
     private func applyInitialFocus(using proxy: ScrollViewProxy) {
-        guard !isCovered, episodeEntry?.isEnabled != false else { return }
+        guard !isCovered else { return }
+        // Entrance gates restrict focus, not the unfocused episode preview.
+        if initialFocusID != nil, episodeEntry?.isEnabled == false { return }
         if episodeEntry != nil, initialFocusID != nil,
            !activity.didApplyInitialFocus, showsEntryPlaceholder {
             activity.didApplyInitialFocus = true

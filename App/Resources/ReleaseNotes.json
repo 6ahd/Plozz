@@ -111,7 +111,7 @@
         {
           "category": "New",
           "items": [
-            "Try experimental Dolby Vision FEL decoding for supported Profile 7 videos in Playback > Advanced. Off by default; uses more GPU and memory and loses Dolby Atmos objects and DTS:X height audio."
+            "Try experimental Dolby Vision FEL decoding for supported Profile 7 videos in Playback > Advanced. Off by default; uses more GPU and memory and plays channel-based audio without spatial objects or height positioning."
           ]
         },
         {
@@ -142,11 +142,11 @@
               "platforms": ["tvOS"]
             },
             {
-              "text": "Some supported DTS:X tracks losing height audio at playback start on tvOS 26+.",
+              "text": "Some supported spatial soundtracks losing height audio at playback start on tvOS 26+.",
               "platforms": ["tvOS"]
             },
             {
-              "text": "Distortion in loud passages of supported DTS:X height-audio tracks on tvOS 26+.",
+              "text": "Distortion in loud passages of some supported spatial soundtracks on tvOS 26+.",
               "platforms": ["tvOS"]
             }
           ]
@@ -222,11 +222,11 @@
             "IPTV playlists recognize more logo, channel-number and guide-ID fields.",
             "Software-played live streams start closer to the live broadcast.",
             {
-              "text": "Updated TrueHD Atmos detection and rendering on supported Apple TVs.",
+              "text": "Updated lossless spatial-audio detection and rendering on supported Apple TVs.",
               "platforms": ["tvOS"]
             },
             {
-              "text": "DTS:X object audio uses compatible standard layouts; other layouts use channel audio.",
+              "text": "An additional spatial-audio decoding path uses compatible standard layouts; other layouts use channel audio.",
               "platforms": ["tvOS"]
             },
             {
@@ -397,7 +397,7 @@
               "platforms": ["tvOS"]
             },
             {
-              "text": "On tvOS 26+, TrueHD Atmos heights use the surround mix; unsupported DTS:X mixes play in 7.1.",
+              "text": "On tvOS 26+, one lossless spatial-audio path derives heights from the surround mix; unsupported spatial mixes play in 7.1.",
               "platforms": ["tvOS"]
             }
           ]
@@ -477,7 +477,7 @@
               "platforms": ["iOS"]
             },
             {
-              "text": "Missed TrueHD Atmos tracks and surround choices with unlabelled audio on tvOS 26+.",
+              "text": "Missed lossless spatial tracks and surround choices with unlabelled audio on tvOS 26+.",
               "platforms": ["tvOS"]
             },
             "TrueHD playback failing after a seek or audio-track change.",
@@ -806,7 +806,7 @@
               "platforms": ["tvOS"]
             },
             {
-              "text": "DTS:X height audio on supported Apple TV setups running tvOS 26 or later.",
+              "text": "Height audio from additional supported spatial soundtracks on Apple TV setups running tvOS 26 or later.",
               "platforms": ["tvOS"]
             },
             {
@@ -888,7 +888,7 @@
               "platforms": ["tvOS"]
             },
             {
-              "text": "TrueHD Atmos receiver activation, brief sound loss after seeking, and incorrect surround or overhead sound placement.",
+              "text": "Spatial-audio receiver activation, brief sound loss after seeking, and incorrect surround or overhead sound placement.",
               "platforms": ["tvOS"]
             },
             "Some redirected IPTV streams repeatedly restarting instead of continuing.",
@@ -970,7 +970,7 @@
           "category": "New",
           "items": [
             {
-              "text": "TrueHD Atmos overhead audio on compatible equipment with tvOS 26 or later, enabled by default in Settings > Playback.",
+              "text": "Overhead spatial audio on compatible equipment with tvOS 26 or later, enabled by default in Settings > Playback.",
               "platforms": ["tvOS"]
             }
           ]

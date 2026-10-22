@@ -129681,6 +129681,226 @@
         }
       }
     },
+    "All channels" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "كل القنوات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Всички канали"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tots els canals"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Všechny kanály"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alle kanaler"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alle Kanäle"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Όλα τα κανάλια"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todos los canales"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "همهٔ کانال‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kaikki kanavat"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toutes les chaînes"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "כל הערוצים"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "सभी चैनल"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Svi kanali"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Minden csatorna"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Semua saluran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tutti i canali"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "すべてのチャンネル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "모든 채널"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Semua saluran"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alle kanaler"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alle zenders"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wszystkie kanały"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todos os canais"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toate canalele"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Все каналы"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Všetky kanály"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vsi kanali"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Svi kanali"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alla kanaler"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ทุกช่อง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tüm kanallar"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Усі канали"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tất cả các kênh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "全部频道"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "所有頻道"
+          }
+        }
+      }
+    },
     "All channels are hidden" : {
       "localizations" : {
         "ar" : {
@@ -167395,6 +167615,226 @@
         }
       }
     },
+    "Browsing" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "التصفح"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Преглеждане"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navegació"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Procházení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navigation"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navigation"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Περιήγηση"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navegación"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selaaminen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navigation"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "עיון"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ब्राउज़िंग"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pregledavanje"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tallózás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penelusuran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navigazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ブラウズ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "탐색"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pelayaran"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navigering"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bladeren"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Przeglądanie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navegação"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Navigare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Навигация"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prehliadanie"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Brskanje"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pregledanje"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bläddring"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การเลือกดู"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gezinme"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Навігація"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Duyệt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "浏览"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "瀏覽"
+          }
+        }
+      }
+    },
     "Budgets cap on-disk caches; lowering a budget evicts immediately." : {
       "localizations" : {
         "ar" : {
@@ -178060,6 +178500,226 @@
         }
       }
     },
+    "Center button action" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "وظيفة الزر الأوسط"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Действие на централния бутон"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acció del botó central"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Akce prostředního tlačítka"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Midterknappens funktion"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktion der mittleren Taste"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ενέργεια κεντρικού κουμπιού"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acción del botón central"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "عملکرد دکمهٔ وسط"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keskipainikkeen toiminto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Action du bouton central"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פעולת הכפתור המרכזי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "बीच वाले बटन का कार्य"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Radnja središnjeg gumba"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Középső gomb művelete"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tindakan tombol tengah"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Azione del tasto centrale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "中央ボタンの動作"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "가운데 버튼 동작"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tindakan butang tengah"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Handling for midtknappen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Actie van de middelste knop"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Działanie środkowego przycisku"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ação do botão central"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acțiunea butonului central"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Действие центральной кнопки"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Akcia stredného tlačidla"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dejanje sredinskega gumba"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Radnja srednjeg dugmeta"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mittenknappens funktion"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การทำงานของปุ่มกลาง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Orta düğme eylemi"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Дія центральної кнопки"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chức năng nút giữa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "中央按钮操作"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "中央按鈕動作"
+          }
+        }
+      }
+    },
     "Centre" : {
       "comment" : "Value label in subtitle horizontal-offset controls when the text is centered.",
       "localizations" : {
@@ -182012,6 +182672,7 @@
       }
     },
     "Channel history is separate from movie and episode progress. Jellyfin and Emby can play channels from a configured Live TV server. Plex currently supports channels and guide listings, not playback." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -182227,6 +182888,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "頻道觀看紀錄與電影及單集進度分開。Jellyfin 和 Emby 可播放已設定直播電視伺服器中的頻道。Plex 目前支援頻道與節目表，但不支援播放。"
+          }
+        }
+      }
+    },
+    "Channel history is separate from movie and episode progress. Jellyfin, Emby, and Plex can play channels from a configured Live TV server." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سجل القنوات منفصل عن تقدّم مشاهدة الأفلام والحلقات. يمكن لـ Jellyfin وEmby وPlex تشغيل القنوات من خادم بث تلفزيوني مباشر تم إعداده."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Историята на каналите е отделна от напредъка при гледане на филми и епизоди. Jellyfin, Emby и Plex могат да възпроизвеждат канали от конфигуриран сървър за телевизия на живо."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L'historial de canals és independent del progrés de visualització de pel·lícules i episodis. Jellyfin, Emby i Plex poden reproduir canals d'un servidor de televisió en directe configurat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Historie kanálů je oddělená od průběhu sledování filmů a epizod. Jellyfin, Emby a Plex mohou přehrávat kanály z nakonfigurovaného serveru živého televizního vysílání."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanalhistorikken er adskilt fra afspilningsstatus for film og episoder. Jellyfin, Emby og Plex kan afspille kanaler fra en konfigureret live-tv-server."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Der Kanalverlauf ist vom Wiedergabefortschritt bei Filmen und Folgen getrennt. Jellyfin, Emby und Plex können Kanäle von einem eingerichteten Live-TV-Server wiedergeben."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Το ιστορικό καναλιών είναι ξεχωριστό από την πρόοδο παρακολούθησης ταινιών και επεισοδίων. Τα Jellyfin, Emby και Plex μπορούν να αναπαράγουν κανάλια από έναν διαμορφωμένο διακομιστή ζωντανής τηλεόρασης."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El historial de canales es independiente del progreso de reproducción de películas y episodios. Jellyfin, Emby y Plex pueden reproducir canales de un servidor de televisión en directo configurado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "سابقهٔ کانال‌ها از پیشرفت تماشای فیلم‌ها و قسمت‌ها جداست. Jellyfin، Emby و Plex می‌توانند کانال‌های یک سرور پخش زندهٔ تلویزیونیِ پیکربندی‌شده را پخش کنند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanavahistoria on erillään elokuvien ja jaksojen katselun etenemisestä. Jellyfin, Emby ja Plex voivat toistaa kanavia määritetyltä live-TV-palvelimelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L'historique des chaînes est distinct de la progression de lecture des films et épisodes. Jellyfin, Emby et Plex peuvent lire les chaînes d'un serveur de télévision en direct configuré."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "היסטוריית הערוצים נפרדת מהתקדמות הצפייה בסרטים ובפרקים. Jellyfin, Emby ו-Plex יכולים להפעיל ערוצים משרת טלוויזיה בשידור חי שהוגדר."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "चैनलों का इतिहास फ़िल्मों और एपिसोड को देखने की प्रगति से अलग है। Jellyfin, Emby और Plex कॉन्फ़िगर किए गए लाइव टीवी सर्वर से चैनल चला सकते हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Povijest kanala odvojena je od napretka gledanja filmova i epizoda. Jellyfin, Emby i Plex mogu reproducirati kanale s konfiguriranog poslužitelja za TV uživo."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A csatornaelőzmények elkülönülnek a filmek és epizódok lejátszási előrehaladásától. A Jellyfin, az Emby és a Plex egy beállított élőtévé-kiszolgálóról tud csatornákat lejátszani."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Riwayat saluran terpisah dari progres pemutaran film dan episode. Jellyfin, Emby, dan Plex dapat memutar saluran dari server siaran TV langsung yang telah dikonfigurasi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La cronologia dei canali è separata dall'avanzamento di riproduzione di film ed episodi. Jellyfin, Emby e Plex possono riprodurre canali da un server TV in diretta configurato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "チャンネルの履歴は、映画やエピソードの視聴の進行状況とは別に保存されます。Jellyfin、Emby、Plexでは、設定済みのライブテレビサーバーからチャンネルを再生できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "채널 기록은 영화 및 에피소드의 시청 진행 상황과 별도로 저장됩니다. Jellyfin, Emby, Plex는 설정된 라이브 TV 서버의 채널을 재생할 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sejarah saluran berasingan daripada kemajuan tontonan filem dan episod. Jellyfin, Emby dan Plex boleh memainkan saluran daripada pelayan TV langsung yang telah dikonfigurasikan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanalhistorikken er atskilt fra avspillingsfremdriften for filmer og episoder. Jellyfin, Emby og Plex kan spille av kanaler fra en konfigurert server for direktesendt TV."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De kanaalgeschiedenis staat los van de kijkvoortgang van films en afleveringen. Jellyfin, Emby en Plex kunnen kanalen afspelen vanaf een ingestelde server voor live-tv."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Historia kanałów jest niezależna od postępu oglądania filmów i odcinków. Jellyfin, Emby i Plex mogą odtwarzać kanały ze skonfigurowanego serwera telewizji na żywo."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O histórico de canais é separado do progresso de reprodução de filmes e episódios. Jellyfin, Emby e Plex podem reproduzir canais de um servidor de TV ao vivo configurado."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istoricul canalelor este separat de progresul vizionării filmelor și episoadelor. Jellyfin, Emby și Plex pot reda canale de pe un server de televiziune în direct configurat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "История каналов хранится отдельно от прогресса просмотра фильмов и серий. Jellyfin, Emby и Plex могут воспроизводить каналы с настроенного сервера прямого телевещания."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "História kanálov je oddelená od priebehu sledovania filmov a epizód. Jellyfin, Emby a Plex môžu prehrávať kanály z nakonfigurovaného servera živého televízneho vysielania."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zgodovina kanalov je ločena od napredka pri ogledu filmov in epizod. Jellyfin, Emby in Plex lahko predvajajo kanale iz nastavljenega strežnika za televizijo v živo."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istorija kanala je odvojena od napretka gledanja filmova i epizoda. Jellyfin, Emby i Plex mogu da reprodukuju kanale sa podešenog servera za TV uživo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanalhistoriken är separat från uppspelningsförloppet för filmer och avsnitt. Jellyfin, Emby och Plex kan spela upp kanaler från en konfigurerad server för direktsänd TV."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ประวัติช่องแยกจากความคืบหน้าในการรับชมภาพยนตร์และตอนต่าง ๆ Jellyfin, Emby และ Plex สามารถเล่นช่องจากเซิร์ฟเวอร์ทีวีสดที่ตั้งค่าไว้ได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kanal geçmişi, film ve bölüm izleme ilerlemesinden ayrıdır. Jellyfin, Emby ve Plex, yapılandırılmış bir canlı TV sunucusundaki kanalları oynatabilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Історія каналів зберігається окремо від прогресу перегляду фільмів і серій. Jellyfin, Emby та Plex можуть відтворювати канали з налаштованого сервера прямого телемовлення."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lịch sử kênh được lưu tách biệt với tiến độ xem phim và tập phim. Jellyfin, Emby và Plex có thể phát các kênh từ máy chủ truyền hình trực tiếp đã được cấu hình."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "频道历史记录与电影和各集节目的观看进度分开保存。Jellyfin、Emby 和 Plex 可以播放已配置的电视直播服务器上的频道。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "頻道歷史記錄與電影和各集節目的觀看進度分開儲存。Jellyfin、Emby 和 Plex 可以播放已設定的電視直播伺服器上的頻道。"
           }
         }
       }
@@ -256156,6 +257037,7 @@
       }
     },
     "Decode the full enhancement layer in supported Dolby Vision Profile 7 videos. Uses more GPU and memory and may stutter. FEL playback loses Dolby Atmos objects and DTS:X height audio." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -353653,6 +354535,7 @@
       }
     },
     "Hear overhead sound from supported TrueHD Atmos and DTS:X tracks on compatible equipment, using lossy conversion. If playback stutters or seeking is slow, try turning this off. Those tracks will still play, but without height positioning. Dolby Digital Plus Atmos is unaffected. Applies to new playback sessions." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -354089,6 +354972,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "透過有損轉換，在相容設備上聆聽支援的 TrueHD Atmos 音軌所呈現的頭頂音效。若播放卡頓或跳轉到其他播放位置時反應緩慢，請嘗試關閉此選項。這些音軌仍會播放聲音，但不再具有 Atmos 的高度定位效果。Dolby Digital Plus Atmos 不受影響。僅對新開始的播放生效。"
+          }
+        }
+      }
+    },
+    "Hear overhead sound from supported tracks on compatible equipment. Turn off if playback stutters." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استمع إلى صوت من الأعلى مع المسارات المدعومة والمعدات المتوافقة. عطّل هذا الخيار إذا تقطّع التشغيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чуйте звук отгоре от поддържани аудиописти със съвместимо оборудване. Изключете при накъсване на възпроизвеждането."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escolta so des de dalt amb pistes admeses i equips compatibles. Desactiva-ho si la reproducció va a batzegades."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poslouchejte zvuk shora z podporovaných stop na kompatibilním zařízení. Vypněte, pokud se přehrávání trhá."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hør lyd ovenfra fra understøttede lydspor på kompatibelt udstyr. Slå fra, hvis afspilningen hakker."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Höre Klang von oben mit unterstützten Tonspuren und kompatiblen Geräten. Schalte dies aus, wenn die Wiedergabe ruckelt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ακούστε ήχο από πάνω με υποστηριζόμενα κομμάτια ήχου και συμβατό εξοπλισμό. Απενεργοποιήστε το αν η αναπαραγωγή κολλάει."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Escucha sonido desde arriba con pistas y equipos compatibles. Desactívalo si la reproducción da tirones."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "با ترک‌های صوتی پشتیبانی‌شده و تجهیزات سازگار، صدا را از بالا بشنوید. اگر پخش تکه‌تکه شد، این گزینه را خاموش کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kuule ääntä yläpuoleltasi tuetuilla ääniraidoilla ja yhteensopivilla laitteilla. Poista käytöstä, jos toisto nykii."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Entendez le son au-dessus de vous avec des pistes et un équipement compatibles. Désactivez cette option si la lecture saccade."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "צליל מלמעלה ברצועות נתמכות ובציוד תואם. יש לכבות אם הניגון מקרטע."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समर्थित ऑडियो ट्रैक और संगत उपकरण पर ऊपर से आती आवाज़ सुनें। प्लेबैक रुक-रुककर चलने लगे तो इसे बंद करें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Čujte zvuk odozgo uz podržane zvučne zapise i kompatibilnu opremu. Isključite ako reprodukcija zastajkuje."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hallj felülről érkező hangot támogatott hangsávokkal és kompatibilis eszközökkel. Kapcsold ki, ha akadozik a lejátszás."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dengarkan suara dari atas dengan trek yang didukung dan perangkat yang kompatibel. Matikan jika pemutaran tersendat."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ascolta suoni dall’alto con tracce e dispositivi compatibili. Disattiva se la riproduzione va a scatti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対応する音声トラックと機器で、頭上からの音を楽しめます。再生がカクつく場合はオフにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "지원되는 오디오 트랙과 호환 기기로 머리 위에서 들리는 소리를 즐기세요. 재생이 끊기면 꺼 주세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dengar bunyi dari atas dengan trek yang disokong dan peralatan yang serasi. Matikan jika main balik tersekat-sekat."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hør lyd ovenfra fra støttede lydspor på kompatibelt utstyr. Slå av hvis avspillingen hakker."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hoor geluid van boven met ondersteunde audiotracks en geschikte apparatuur. Schakel dit uit als het afspelen hapert."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usłysz dźwięk z góry dzięki obsługiwanym ścieżkom i zgodnemu sprzętowi. Wyłącz, jeśli odtwarzanie się zacina."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ouça sons vindos de cima com faixas e equipamentos compatíveis. Desative se a reprodução ficar entrecortada."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Auzi sunet de deasupra cu piste acceptate și echipamente compatibile. Dezactivează dacă redarea sacadează."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Звук сверху в поддерживаемых дорожках на совместимом оборудовании. Выключите, если воспроизведение идёт рывками."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Počúvajte zvuk zhora z podporovaných stôp na kompatibilnom zariadení. Vypnite, ak sa prehrávanie zasekáva."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poslušajte zvok od zgoraj s podprtimi zvočnimi stezami in združljivo opremo. Izklopite, če se predvajanje zatika."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Čujte zvuk odozgo uz podržane audio-zapise i kompatibilnu opremu. Isključite ako reprodukcija zastajkuje."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hör ljud ovanifrån med ljudspår som stöds och kompatibel utrustning. Stäng av om uppspelningen hackar."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ฟังเสียงจากด้านบนด้วยแทร็กเสียงที่รองรับและอุปกรณ์ที่เข้ากันได้ ปิดหากการเล่นกระตุก"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desteklenen ses parçaları ve uyumlu ekipmanla yukarıdan gelen sesleri duyun. Oynatma takılırsa kapatın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Звук згори в підтримуваних доріжках на сумісному обладнанні. Вимкніть, якщо відтворення йде ривками."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nghe âm thanh từ phía trên với bản âm thanh được hỗ trợ và thiết bị tương thích. Tắt nếu phát bị giật."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用兼容设备播放受支持的音轨，感受来自上方的声音。播放卡顿时请关闭。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用相容設備播放支援的音軌，感受來自上方的聲音。播放不順時請關閉。"
           }
         }
       }
@@ -407554,6 +408657,227 @@
         }
       }
     },
+    "Live TV from Jellyfin, Emby, or Plex." : {
+      "comment" : "Media-server setup choice for live channels from a configured server. Separate from generated channels using the user's media library.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بث تلفزيوني مباشر من Jellyfin أو Emby أو Plex."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Телевизия на живо от Jellyfin, Emby или Plex."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Televisió en directe de Jellyfin, Emby o Plex."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Živé televizní vysílání přes Jellyfin, Emby nebo Plex."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-tv fra Jellyfin, Emby eller Plex."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-TV über Jellyfin, Emby oder Plex."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ζωντανή τηλεόραση από Jellyfin, Emby ή Plex."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Televisión en directo de Jellyfin, Emby o Plex."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تلویزیون زنده از Jellyfin، Emby یا Plex."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-TV:tä Jellyfinin, Embyn tai Plexin kautta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Télévision en direct via Jellyfin, Emby ou Plex."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "טלוויזיה בשידור חי מ-Jellyfin, מ-Emby או מ-Plex."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jellyfin, Emby या Plex से लाइव टीवी।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV uživo putem Jellyfina, Embyja ili Plexa."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Élő tévé a Jellyfin, az Emby vagy a Plex használatával."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Siaran TV langsung dari Jellyfin, Emby, atau Plex."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV in diretta da Jellyfin, Emby o Plex."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jellyfin、Emby、Plexからライブテレビを視聴。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jellyfin, Emby 또는 Plex의 라이브 TV."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV langsung daripada Jellyfin, Emby atau Plex."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Direktesendt TV fra Jellyfin, Emby eller Plex."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-tv via Jellyfin, Emby of Plex."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Telewizja na żywo z serwera Jellyfin, Emby lub Plex."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV ao vivo do Jellyfin, Emby ou Plex."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Televiziune în direct de la Jellyfin, Emby sau Plex."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Прямой телеэфир через Jellyfin, Emby или Plex."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Živé televízne vysielanie z Jellyfin, Emby alebo Plex."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Televizija v živo prek strežnika Jellyfin, Emby ali Plex."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TV uživo preko servera Jellyfin, Emby ili Plex."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Direktsänd TV från Jellyfin, Emby eller Plex."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ทีวีสดจาก Jellyfin, Emby หรือ Plex"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Jellyfin, Emby veya Plex üzerinden canlı TV."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Прямий телеефір через Jellyfin, Emby або Plex."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Truyền hình trực tiếp từ Jellyfin, Emby hoặc Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "通过 Jellyfin、Emby 或 Plex 观看电视直播。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "透過 Jellyfin、Emby 或 Plex 觀看電視直播。"
+          }
+        }
+      }
+    },
     "Live TV is paused for Low Data Mode. Use an unrestricted connection to resume." : {
       "localizations" : {
         "ar" : {
@@ -407990,6 +409314,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "尚未設定直播電視"
+          }
+        }
+      }
+    },
+    "Live TV opens to" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صفحة بدء البث التلفزيوني المباشر"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Начален изглед на телевизията на живо"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La TV en directe s’obre a"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výchozí zobrazení živého vysílání"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Startvisning for live-tv"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Startansicht für Live TV"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αρχική προβολή ζωντανής τηλεόρασης"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La TV en directo se abre en"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صفحهٔ آغازین تلویزیون زنده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suoran TV:n aloitusnäkymä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La TV en direct s’ouvre sur"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "תצוגת הפתיחה של טלוויזיה בשידור חי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "लाइव टीवी की शुरुआती स्क्रीन"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Početni prikaz TV-a uživo"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Élő TV kezdőnézete"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tampilan awal TV Langsung"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La TV in diretta si apre su"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ライブTVの開始画面"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "라이브 TV 시작 화면"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Paparan awal TV Langsung"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Startvisning for direktesendt TV"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Startweergave van live-tv"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Widok początkowy telewizji na żywo"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tela inicial da TV ao vivo"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vizualizarea inițială pentru TV în direct"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Начальный экран прямого эфира"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Úvodné zobrazenie živého vysielania"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Začetni prikaz TV v živo"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Početni prikaz TV-a uživo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Startvy för live-tv"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "หน้าที่เปิดเมื่อเข้าสู่ทีวีสด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Canlı TV başlangıç görünümü"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Початковий екран ТБ наживо"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Trang mặc định của TV trực tiếp"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "直播电视初始页面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "直播電視起始頁面"
           }
         }
       }
@@ -443197,6 +444741,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "類似《%@》的電影"
+          }
+        }
+      }
+    },
+    "More picture detail for supported Dolby Vision Profile 7 videos. Uses more memory, may stutter, and turns off overhead sound." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تفاصيل صورة أكثر لفيديوهات Dolby Vision Profile 7 المدعومة. يستهلك ذاكرة أكثر، وقد يسبب تقطّع التشغيل، ويوقف الصوت القادم من الأعلى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Повече детайли в картината за поддържани видеа с Dolby Vision Profile 7. Използва повече памет, може да накъсва и изключва звука отгоре."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Més detall d'imatge als vídeos Dolby Vision Profile 7 admesos. Fa servir més memòria, pot causar salts i desactiva el so des de dalt."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Více detailů obrazu u podporovaných videí Dolby Vision Profile 7. Využívá více paměti, může způsobit trhání přehrávání a vypíná zvuk shora."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Flere billeddetaljer i understøttede Dolby Vision Profile 7-videoer. Bruger mere hukommelse, kan få afspilningen til at hakke og slår lyd ovenfra fra."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mehr Bilddetails für unterstützte Dolby Vision Profile 7-Videos. Benötigt mehr Speicher, kann Ruckeln verursachen und schaltet den Klang von oben aus."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Περισσότερη λεπτομέρεια εικόνας σε υποστηριζόμενα βίντεο Dolby Vision Profile 7. Χρησιμοποιεί περισσότερη μνήμη, μπορεί να προκαλέσει κολλήματα στην αναπαραγωγή και απενεργοποιεί τον ήχο από πάνω."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Más detalle de imagen en vídeos Dolby Vision Profile 7 compatibles. Usa más memoria, puede dar tirones y desactiva el sonido desde arriba."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "جزئیات تصویر بیشتر برای ویدیوهای پشتیبانی‌شدهٔ Dolby Vision Profile 7. حافظهٔ بیشتری مصرف می‌کند، ممکن است پخش تکه‌تکه شود و صدای بالاسری را خاموش می‌کند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Enemmän kuvan yksityiskohtia tuetuissa Dolby Vision Profile 7 -videoissa. Käyttää enemmän muistia, voi aiheuttaa nykimistä ja poistaa yläpuolelta kuuluvan äänen käytöstä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plus de détails d’image pour les vidéos Dolby Vision Profile 7 compatibles. Utilise plus de mémoire, peut provoquer des saccades et désactive le son venant d’en haut."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "יותר פרטים בתמונה בסרטוני Dolby Vision Profile 7 נתמכים. משתמש ביותר זיכרון, עלול לגרום לקרטועים בניגון ומכבה את הצליל מלמעלה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "समर्थित Dolby Vision Profile 7 वीडियो की तस्वीर में अधिक बारीकियाँ। अधिक मेमोरी इस्तेमाल होती है, प्लेबैक रुक-रुककर चल सकता है और ऊपर से आने वाली आवाज़ बंद हो जाती है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Više detalja slike u podržanim videozapisima Dolby Vision Profile 7. Troši više memorije, može uzrokovati zastajkivanje i isključuje zvuk odozgo."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Több képrészlet a támogatott Dolby Vision Profile 7 videókban. Több memóriát használ, akadozást okozhat, és kikapcsolja a felülről érkező hangot."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lebih banyak detail gambar untuk video Dolby Vision Profile 7 yang didukung. Menggunakan lebih banyak memori dan menonaktifkan suara dari atas. Pemutaran dapat tersendat."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Più dettagli d’immagine nei video Dolby Vision Profile 7 supportati. Usa più memoria, può causare scatti e disattiva i suoni dall’alto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "対応するDolby Vision Profile 7動画の映像をより細かく再現します。メモリ使用量が増え、再生がカクつく場合があります。頭上からの音はオフになります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "지원되는 Dolby Vision Profile 7 영상의 세부 묘사를 높입니다. 메모리를 더 사용하고 재생이 끊길 수 있으며, 머리 위에서 들리는 소리는 꺼집니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lebih banyak perincian gambar untuk video Dolby Vision Profile 7 yang disokong. Menggunakan lebih banyak memori dan mematikan bunyi dari atas. Main balik mungkin tersekat-sekat."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Flere bildedetaljer i støttede Dolby Vision Profile 7-videoer. Bruker mer minne, kan gi hakking og slår av lyd ovenfra."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Meer beelddetail voor ondersteunde Dolby Vision Profile 7-video’s. Gebruikt meer geheugen, kan haperingen veroorzaken en schakelt geluid van boven uit."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Więcej szczegółów obrazu w obsługiwanych filmach Dolby Vision Profile 7. Zużywa więcej pamięci, może powodować zacięcia i wyłącza dźwięk z góry."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mais detalhes de imagem em vídeos Dolby Vision Profile 7 compatíveis. Usa mais memória, pode deixar a reprodução entrecortada e desativa os sons vindos de cima."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mai multe detalii de imagine pentru videoclipurile Dolby Vision Profile 7 acceptate. Folosește mai multă memorie, poate sacada și dezactivează sunetul de deasupra."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Больше деталей изображения в поддерживаемых видео Dolby Vision Profile 7. Использует больше памяти и отключает звук сверху. Воспроизведение может идти рывками."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Viac detailov obrazu v podporovaných videách Dolby Vision Profile 7. Využíva viac pamäte, môže spôsobovať zasekávanie a vypína zvuk zhora."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Več podrobnosti slike v podprtih videih Dolby Vision Profile 7. Porabi več pomnilnika, lahko povzroči zatikanje in izklopi zvok od zgoraj."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Više detalja slike u podržanim Dolby Vision Profile 7 video-zapisima. Koristi više memorije, može izazvati zastajkivanje i isključuje zvuk odozgo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fler bilddetaljer i Dolby Vision Profile 7-videor som stöds. Använder mer minne, kan få uppspelningen att hacka och stänger av ljud ovanifrån."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เพิ่มรายละเอียดภาพสำหรับวิดีโอ Dolby Vision Profile 7 ที่รองรับ ใช้หน่วยความจำมากขึ้น อาจกระตุก และปิดเสียงจากด้านบน"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desteklenen Dolby Vision Profile 7 videolarında daha fazla görüntü ayrıntısı sağlar. Daha fazla bellek kullanır, oynatmada takılmalara neden olabilir ve yukarıdan gelen sesleri kapatır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Більше деталей зображення в підтримуваних відео Dolby Vision Profile 7. Використовує більше пам’яті та вимикає звук згори. Відтворення може йти ривками."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Thêm chi tiết hình ảnh cho video Dolby Vision Profile 7 được hỗ trợ. Dùng nhiều bộ nhớ hơn và tắt âm thanh từ phía trên. Quá trình phát có thể bị giật."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "为受支持的 Dolby Vision Profile 7 视频呈现更多画面细节。占用更多内存，可能卡顿，并会关闭上方声效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "為支援的 Dolby Vision Profile 7 影片呈現更多畫面細節。使用更多記憶體，可能播放不順，並會關閉上方音效。"
           }
         }
       }
@@ -503400,6 +505164,226 @@
         }
       }
     },
+    "Open detail page" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "فتح صفحة التفاصيل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Отваряне на страницата с подробности"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Obre la pàgina de detalls"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otevřít stránku s podrobnostmi"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Åbn detaljeside"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detailseite öffnen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Άνοιγμα σελίδας λεπτομερειών"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abrir página de detalles"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "باز کردن صفحهٔ جزئیات"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Avaa tietosivu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ouvrir la page de détails"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "פתיחת דף הפרטים"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "विवरण पेज खोलें"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvori stranicu s pojedinostima"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Részletes adatlap megnyitása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka halaman detail"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apri pagina dei dettagli"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "詳細ページを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "상세 페이지 열기"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buka halaman butiran"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Åpne detaljside"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Detailpagina openen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otwórz stronę szczegółów"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Abrir página de detalhes"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deschide pagina cu detalii"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Открыть страницу сведений"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvoriť stránku s podrobnosťami"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odpri stran s podrobnostmi"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otvori stranicu sa detaljima"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Öppna detaljsidan"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เปิดหน้ารายละเอียด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ayrıntı sayfasını aç"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Відкрити сторінку відомостей"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mở trang chi tiết"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "打开详情页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "開啟詳細資訊頁面"
+          }
+        }
+      }
+    },
     "Open family guidance" : {
       "localizations" : {
         "ar" : {
@@ -539134,7 +541118,6 @@
     },
     "Plex PIN" : {
       "comment" : "Navigation title for the iOS screen where the user enters a Plex Home PIN.",
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -670188,6 +672171,446 @@
         }
       }
     },
+    "Selecting a movie or episode on Home opens its detail page." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يؤدي اختيار فيلم أو حلقة في الرئيسية إلى فتح صفحة التفاصيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Избирането на филм или епизод в „Начало“ отваря страницата му с подробности."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seleccionar una pel·lícula o un episodi a Inici n'obre la pàgina de detalls."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výběrem filmu nebo epizody na kartě Domů otevřete stránku s podrobnostmi."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du vælger en film eller et afsnit på fanen Hjem, åbnes detaljesiden."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wenn du unter Start einen Film oder eine Folge auswählst, wird die zugehörige Detailseite geöffnet."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η επιλογή μιας ταινίας ή ενός επεισοδίου στην καρτέλα Αρχική ανοίγει τη σελίδα λεπτομερειών."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Al seleccionar una película o un episodio en Inicio, se abre su página de detalles."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "با انتخاب فیلم یا قسمت در زبانهٔ خانه، صفحهٔ جزئیات آن باز می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elokuvan tai jakson valitseminen Koti-välilehdellä avaa sen tietosivun."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sélectionner un film ou un épisode dans l’onglet Accueil ouvre sa page de détails."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "בחירת סרט או פרק בלשונית בית פותחת את דף הפרטים שלו."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "होम पर कोई फ़िल्म या एपिसोड चुनने से उसका विवरण पेज खुलता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odabirom filma ili epizode na stranici Početna otvara se stranica s pojedinostima."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ha filmet vagy epizódot választasz a Kezdőlapon, megnyílik a részletes adatlapja."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memilih film atau episode di Beranda akan membuka halaman detailnya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selezionando un film o un episodio nella Home si apre la sua pagina dei dettagli."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ホームで映画やエピソードを選択すると、詳細ページが開きます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "홈에서 영화나 에피소드를 선택하면 상세 페이지가 열립니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memilih filem atau episod di Laman Utama membuka halaman butirannya."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du velger en film eller episode på Hjem, åpnes detaljsiden."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Als je een film of aflevering op het tabblad Start selecteert, wordt de detailpagina geopend."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wybranie filmu lub odcinka na karcie „Strona główna” otwiera jego stronę szczegółów."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selecionar um filme ou episódio na aba Início abre sua página de detalhes."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selectarea unui film sau episod din fila Acasă deschide pagina sa cu detalii."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "При выборе фильма или эпизода на вкладке «Главная» открывается страница сведений о нём."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výberom filmu alebo epizódy na karte Domov otvoríte stránku s podrobnosťami."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izbira filma ali epizode na zavihku Domov odpre stran s podrobnostmi."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izbor filma ili epizode na kartici Početna otvara stranicu sa detaljima."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "När du väljer en film eller ett avsnitt på fliken Hem öppnas dess detaljsida."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การเลือกภาพยนตร์หรือตอนในหน้าแรกจะเปิดหน้ารายละเอียดของรายการนั้น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ana Sayfa'da bir film veya bölüm seçmek, ilgili ayrıntı sayfasını açar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Вибір фільму або епізоду на сторінці «Головна» відкриває сторінку відомостей про нього."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chọn phim hoặc tập phim trên Trang chủ sẽ mở trang chi tiết của mục đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在首页选择电影或单集时打开其详情页。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在首頁選取電影或單集時，開啟其詳細資訊頁面。"
+          }
+        }
+      }
+    },
+    "Selecting a movie or episode on Home starts playback." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يؤدي اختيار فيلم أو حلقة في الرئيسية إلى بدء التشغيل."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Избирането на филм или епизод в „Начало“ стартира възпроизвеждането."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Seleccionar una pel·lícula o un episodi a Inici inicia la reproducció."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výběrem filmu nebo epizody na kartě Domů spustíte přehrávání."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du vælger en film eller et afsnit på fanen Hjem, starter afspilningen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wenn du unter Start einen Film oder eine Folge auswählst, beginnt die Wiedergabe."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η επιλογή μιας ταινίας ή ενός επεισοδίου στην καρτέλα Αρχική ξεκινά την αναπαραγωγή."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Al seleccionar una película o un episodio en Inicio, comienza la reproducción."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "با انتخاب فیلم یا قسمت در زبانهٔ خانه، پخش شروع می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elokuvan tai jakson valitseminen Koti-välilehdellä aloittaa toiston."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sélectionner un film ou un épisode dans l’onglet Accueil lance la lecture."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "בחירת סרט או פרק בלשונית בית מתחילה את ההפעלה."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "होम पर कोई फ़िल्म या एपिसोड चुनने से प्लेबैक शुरू होता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odabirom filma ili epizode na stranici Početna započinje reprodukcija."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ha filmet vagy epizódot választasz a Kezdőlapon, elindul a lejátszás."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memilih film atau episode di Beranda akan memulai pemutaran."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selezionando un film o un episodio nella Home si avvia la riproduzione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ホームで映画やエピソードを選択すると、再生が始まります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "홈에서 영화나 에피소드를 선택하면 재생이 시작됩니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memilih filem atau episod di Laman Utama memulakan main balik."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du velger en film eller episode på Hjem, starter avspillingen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Als je een film of aflevering op het tabblad Start selecteert, begint het afspelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wybranie filmu lub odcinka na karcie „Strona główna” rozpoczyna odtwarzanie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selecionar um filme ou episódio na aba Início inicia a reprodução."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Selectarea unui film sau episod din fila Acasă pornește redarea."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "При выборе фильма или эпизода на вкладке «Главная» начинается воспроизведение."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Výberom filmu alebo epizódy na karte Domov spustíte prehrávanie."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izbira filma ali epizode na zavihku Domov zažene predvajanje."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izbor filma ili epizode na kartici Početna pokreće reprodukciju."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "När du väljer en film eller ett avsnitt på fliken Hem startar uppspelningen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การเลือกภาพยนตร์หรือตอนในหน้าแรกจะเริ่มเล่น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ana Sayfa'da bir film veya bölüm seçmek oynatmayı başlatır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Вибір фільму або епізоду на сторінці «Головна» запускає відтворення."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chọn phim hoặc tập phim trên Trang chủ sẽ bắt đầu phát."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在首页选择电影或单集时开始播放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在首頁選取電影或單集時，開始播放。"
+          }
+        }
+      }
+    },
     "Send Diagnostics" : {
       "comment" : "Section header on the iOS diagnostics screen for manually sending crash and recent-activity diagnostics.",
       "localizations" : {
@@ -728497,6 +730920,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Uzamsal Ses"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Просторове аудіо"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Âm thanh không gian"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空间音频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空間音訊"
+          }
+        }
+      }
+    },
+    "Spatial audio" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الصوت المكاني"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пространствен звук"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Àudio espacial"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorový zvuk"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rumlig lyd"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Räumliches Audio"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χωρικός ήχος"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio espacial"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صدای فضایی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tilaääni"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spatial"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שמע מרחבי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "स्थानिक ऑडियो"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorni zvuk"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Térbeli hang"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spasial"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spaziale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空間オーディオ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "공간 음향"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio ruang"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Romlig lyd"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ruimtelijke audio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dźwięk przestrzenny"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Áudio espacial"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spațial"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пространственное аудио"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Priestorový zvuk"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorski zvok"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorni zvuk"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rumsligt ljud"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เสียงเชิงพื้นที่"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uzamsal ses"
           }
         },
         "uk" : {
@@ -825751,6 +828394,226 @@
         }
       }
     },
+    "This profile changed. Choose it again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تم تغيير هذا الملف الشخصي. اختره مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Този профил е променен. Изберете го отново."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aquest perfil ha canviat. Torna'l a seleccionar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tento profil se změnil. Vyberte ho znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Denne profil er blevet ændret. Vælg den igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dieses Profil wurde geändert. Wähle es erneut aus."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Αυτό το προφίλ άλλαξε. Επιλέξτε το ξανά."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Este perfil ha cambiado. Vuelve a seleccionarlo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "این نمایه تغییر کرده است. دوباره آن را انتخاب کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tämä profiili on muuttunut. Valitse se uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ce profil a été modifié. Sélectionnez-le à nouveau."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "הפרופיל הזה השתנה. יש לבחור בו שוב."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "यह प्रोफ़ाइल बदल गई है। इसे फिर से चुनें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ovaj je profil promijenjen. Odaberite ga ponovno."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ez a profil megváltozott. Válaszd ki újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Profil ini telah berubah. Pilih lagi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Questo profilo è stato modificato. Selezionalo di nuovo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このプロファイルは変更されました。もう一度選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 프로필이 변경되었습니다. 다시 선택해 주세요."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Profil ini telah berubah. Pilih profil ini semula."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Denne profilen er endret. Velg den på nytt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dit profiel is gewijzigd. Selecteer het opnieuw."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ten profil został zmieniony. Wybierz go ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Este perfil foi alterado. Selecione-o novamente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Acest profil a fost modificat. Selectează-l din nou."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Этот профиль изменён. Выберите его снова."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tento profil sa zmenil. Vyberte ho znova."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ta profil je bil spremenjen. Izberite ga znova."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ovaj profil je promenjen. Izaberite ga ponovo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Den här profilen har ändrats. Välj den igen."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "โปรไฟล์นี้มีการเปลี่ยนแปลง โปรดเลือกอีกครั้ง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bu profil değişti. Yeniden seçin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Цей профіль змінено. Виберіть його знову."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hồ sơ này đã thay đổi. Hãy chọn lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此个人资料已更改。请重新选择。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此個人檔案已變更。請重新選取。"
+          }
+        }
+      }
+    },
     "This profile changed. Reopen Sync settings and try again." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -849663,6 +852526,7 @@
       }
     },
     "TrueHD Atmos and DTS:X" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -907673,6 +910537,226 @@
         }
       }
     },
+    "When tapping an item" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "عند النقر على عنصر"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "При докосване на елемент"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "En tocar un element"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Při klepnutí na položku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du trykker på et element"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beim Antippen eines Eintrags"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Κατά το πάτημα ενός στοιχείου"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Al tocar un elemento"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "هنگام ضربه زدن روی یک مورد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kohdetta napautettaessa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "En touchant un élément"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "בעת הקשה על פריט"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "किसी आइटम पर टैप करने पर"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pri dodiru stavke"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Elemre koppintáskor"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Saat mengetuk item"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Quando tocchi un elemento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "項目をタップしたとき"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "항목을 탭할 때"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Apabila mengetik item"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Når du trykker på et element"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Als je op een item tikt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Po stuknięciu elementu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ao tocar em um item"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La atingerea unui element"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "При нажатии на элемент"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pri klepnutí na položku"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ob dotiku elementa"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kada dodirnete stavku"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "När du trycker på ett objekt"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เมื่อแตะรายการ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bir öğeye dokunulduğunda"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Коли торкаєтеся елемента"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Khi chạm vào một mục"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "轻点项目时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "點一下項目時"
+          }
+        }
+      }
+    },
     "When you return to a partially-watched title, playback starts a little before where you left off. Set anywhere from 0 to 60 seconds." : {
       "localizations" : {
         "ar" : {
@@ -913404,6 +916488,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "你可以在「設定」中新增更多使用者設定檔。"
+          }
+        }
+      }
+    },
+    "You can also press Play/Pause %@ on your remote to play the focused item." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يمكنك أيضًا الضغط على زر تشغيل/إيقاف مؤقت %@ في جهاز التحكم لتشغيل العنصر المظلّل حاليًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Можете също да натиснете бутона Възпроизвеждане/Пауза %@ на дистанционното, за да възпроизведете маркирания елемент."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "També pots prémer el botó Reproducció/Pausa %@ del comandament per reproduir l'element ressaltat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýrazněnou položku můžete přehrát také stisknutím tlačítka Přehrát/Pozastavit %@ na ovladači."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan også trykke på knappen Afspil/Pause %@ på fjernbetjeningen for at afspille det fremhævede element."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kannst auch die Taste Wiedergabe/Pause %@ auf deiner Fernbedienung drücken, um den hervorgehobenen Eintrag abzuspielen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μπορείτε επίσης να πατήσετε Αναπαραγωγή/Παύση %@ στο τηλεχειριστήριο για να αναπαραγάγετε το επισημασμένο στοιχείο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "También puedes pulsar Reproducir/Pausa %@ en el mando para reproducir el elemento resaltado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "همچنین می‌توانید دکمهٔ پخش/مکث %@ روی کنترل را فشار دهید تا مورد برجسته‌شده پخش شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voit toistaa korostetun kohteen myös painamalla kaukosäätimen Toisto/Tauko-painiketta %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vous pouvez aussi appuyer sur Lecture/Pause %@ sur votre télécommande pour lire l'élément en surbrillance."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אפשר גם ללחוץ על הפעלה/השהיה %@ בשלט כדי להפעיל את הפריט המודגש."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "हाइलाइट किए गए आइटम को चलाने के लिए आप अपने रिमोट का चलाएं/विराम दें %@ बटन भी दबा सकते हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istaknutu stavku možete reproducirati i pritiskom na gumb Reproduciraj/Pauziraj %@ na daljinskom upravljaču."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A kiemelt elemet a távirányító Lejátszás/Szünet %@ gombjával is lejátszhatod."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anda juga dapat menekan tombol Putar/Jeda %@ pada remote untuk memutar item yang disorot."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puoi anche premere Riproduci/Pausa %@ sul telecomando per riprodurre l'elemento evidenziato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リモコンの再生/一時停止 %@ ボタンを押して、ハイライトされた項目を再生することもできます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "리모컨의 재생/일시 정지 %@ 버튼을 눌러 강조 표시된 항목을 재생할 수도 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anda juga boleh menekan Main/Jeda %@ pada alat kawalan jauh untuk memainkan item yang diserlahkan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan også trykke på Spill av/pause-knappen %@ på fjernkontrollen for å spille av det markerte elementet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je kunt ook op Afspelen/Pauze %@ op je afstandsbediening drukken om het gemarkeerde item af te spelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Możesz też nacisnąć przycisk Odtwórz/Pauza %@ na pilocie, aby odtworzyć wyróżniony element."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Você também pode pressionar Reproduzir/Pausar %@ no controle remoto para reproduzir o item em foco."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poți apăsa și Redare/Pauză %@ pe telecomandă pentru a reda elementul evidențiat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чтобы воспроизвести выделенный элемент, можно также нажать кнопку «Воспроизведение/Пауза» %@ на пульте."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýraznenú položku môžete prehrať aj stlačením tlačidla Prehrať/Pozastaviť %@ na ovládači."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Označeni element lahko predvajate tudi s pritiskom na gumb Predvajanje/Premor %@ na daljinskem upravljalniku."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istaknutu stavku možete pustiti i pritiskom na dugme Reprodukcija/Pauza %@ na daljinskom upravljaču."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan också trycka på Spela/Paus %@ på fjärrkontrollen för att spela upp det markerade objektet."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "คุณยังสามารถกดปุ่มเล่น/หยุดชั่วคราว %@ บนรีโมตเพื่อเล่นรายการที่ไฮไลต์อยู่ได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odaktaki öğeyi oynatmak için kumandanızdaki Oynat/Duraklat %@ düğmesine de basabilirsiniz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Щоб відтворити виділений елемент, можна також натиснути кнопку «Відтворення/пауза» %@ на пульті."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bạn cũng có thể nhấn nút Phát/Tạm dừng %@ trên điều khiển từ xa để phát mục đang được tô sáng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你也可以按遥控器上的播放/暂停 %@ 按钮来播放当前高亮显示的项目。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你也可以按遙控器上的播放/暫停 %@ 按鈕，播放目前反白顯示的項目。"
+          }
+        }
+      }
+    },
+    "You can also press Play/Pause on your remote to play the focused item." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يمكنك أيضًا الضغط على زر تشغيل/إيقاف مؤقت في جهاز التحكم لتشغيل العنصر المظلّل حاليًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Можете също да натиснете бутона Възпроизвеждане/Пауза на дистанционното, за да възпроизведете маркирания елемент."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "També pots prémer el botó Reproducció/Pausa del comandament per reproduir l'element ressaltat."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýrazněnou položku můžete přehrát také stisknutím tlačítka Přehrát/Pozastavit na ovladači."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan også trykke på knappen Afspil/Pause på fjernbetjeningen for at afspille det fremhævede element."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kannst auch die Taste Wiedergabe/Pause auf deiner Fernbedienung drücken, um den hervorgehobenen Eintrag abzuspielen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μπορείτε επίσης να πατήσετε Αναπαραγωγή/Παύση στο τηλεχειριστήριο για να αναπαραγάγετε το επισημασμένο στοιχείο."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "También puedes pulsar Reproducir/Pausa en el mando para reproducir el elemento resaltado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "همچنین می‌توانید دکمهٔ پخش/مکث روی کنترل را فشار دهید تا مورد برجسته‌شده پخش شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Voit toistaa korostetun kohteen myös painamalla kaukosäätimen Toisto/Tauko-painiketta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vous pouvez aussi appuyer sur Lecture/Pause sur votre télécommande pour lire l'élément en surbrillance."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אפשר גם ללחוץ על הפעלה/השהיה בשלט כדי להפעיל את הפריט המודגש."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "हाइलाइट किए गए आइटम को चलाने के लिए आप अपने रिमोट का चलाएं/विराम दें बटन भी दबा सकते हैं।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istaknutu stavku možete reproducirati i pritiskom na gumb Reproduciraj/Pauziraj na daljinskom upravljaču."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A kiemelt elemet a távirányító Lejátszás/Szünet gombjával is lejátszhatod."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anda juga dapat menekan tombol Putar/Jeda pada remote untuk memutar item yang disorot."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Puoi anche premere Riproduci/Pausa sul telecomando per riprodurre l'elemento evidenziato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リモコンの再生/一時停止ボタンを押して、ハイライトされた項目を再生することもできます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "리모컨의 재생/일시 정지 버튼을 눌러 강조 표시된 항목을 재생할 수도 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Anda juga boleh menekan Main/Jeda pada alat kawalan jauh untuk memainkan item yang diserlahkan."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan også trykke på Spill av/pause-knappen på fjernkontrollen for å spille av det markerte elementet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Je kunt ook op Afspelen/Pauze op je afstandsbediening drukken om het gemarkeerde item af te spelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Możesz też nacisnąć przycisk Odtwórz/Pauza na pilocie, aby odtworzyć wyróżniony element."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Você também pode pressionar Reproduzir/Pausar no controle remoto para reproduzir o item em foco."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Poți apăsa și Redare/Pauză pe telecomandă pentru a reda elementul evidențiat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Чтобы воспроизвести выделенный элемент, можно также нажать кнопку «Воспроизведение/Пауза» на пульте."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zvýraznenú položku môžete prehrať aj stlačením tlačidla Prehrať/Pozastaviť na ovládači."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Označeni element lahko predvajate tudi s pritiskom na gumb Predvajanje/Premor na daljinskem upravljalniku."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Istaknutu stavku možete pustiti i pritiskom na dugme Reprodukcija/Pauza na daljinskom upravljaču."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Du kan också trycka på Spela/Paus på fjärrkontrollen för att spela upp det markerade objektet."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "คุณยังสามารถกดปุ่มเล่น/หยุดชั่วคราวบนรีโมตเพื่อเล่นรายการที่ไฮไลต์อยู่ได้"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Odaktaki öğeyi oynatmak için kumandanızdaki Oynat/Duraklat düğmesine de basabilirsiniz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Щоб відтворити виділений елемент, можна також натиснути кнопку «Відтворення/пауза» на пульті."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bạn cũng có thể nhấn nút Phát/Tạm dừng trên điều khiển từ xa để phát mục đang được tô sáng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你也可以按遥控器上的播放/暂停按钮来播放当前高亮显示的项目。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "你也可以按遙控器上的播放/暫停按鈕，播放目前反白顯示的項目。"
           }
         }
       }
@@ -937677,12 +941201,6 @@
       "comment" : "Episode-count badge style: the numbered badge touches the top trailing corner of the poster.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Attached"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -937723,6 +941241,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Στην άκρη"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Attached"
           }
         },
         "es" : {
@@ -937905,12 +941429,6 @@
       "comment" : "Episode-count badge style: the numbered badge is inset from the poster edges.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Floating"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -937951,6 +941469,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Με περιθώριο"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Floating"
           }
         },
         "es" : {
@@ -938133,12 +941657,6 @@
       "comment" : "Settings control for choosing an attached or floating unwatched episode-count badge.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Episode count style"
-          }
-        },
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -938179,6 +941697,12 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Στυλ μετρητή επεισοδίων"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Episode count style"
           }
         },
         "es" : {
@@ -955572,7 +959096,7 @@
     },
     "liveTV.setup.server.detail" : {
       "comment" : "Media-server setup choice. Plex Live TV currently supplies guide listings, not live playback; this is separate from generated channels using a Plex media library.",
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

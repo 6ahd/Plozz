@@ -122,7 +122,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     public var audioLanguagePreference: AudioLanguagePreference
 
     /// Experimental Profile 7 FEL reconstruction. Off by default; applies to new
-    /// on-demand sessions and trades Atmos/height audio for the enhancement layer.
+    /// on-demand sessions and uses channel-based audio without spatial information.
     public var dolbyVisionFELEnabled: Bool
 
     /// Remember the chosen **audio language** per series: switching audio on any

@@ -219,6 +219,7 @@ struct LiveChannelOverlay: View {
             case .info: openCard(.info)
             case .onNow: openCard(.onNow)
             case .guide: openCard(.guide)
+            case .playback: toggleMenu(.playback)
             }
         }
         .onChange(of: channelID) { _, _ in resetScrub() }

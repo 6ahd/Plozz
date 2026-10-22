@@ -167,7 +167,6 @@ struct HomeSectionSettingsView: View {
                 choice.homeEditorSource.font(.subheadline).plozzForeground(.secondary)
             }
             if choice.id == .global(.continueWatching) {
-                ContinueWatchingNextUpControl(visibility: visibility)
                 ContinueWatchingArtworkPicker(style: Binding(
                     get: {
                         if visibility.continueWatchingLayout == .portrait { return .portraitPosters }
@@ -181,18 +180,12 @@ struct HomeSectionSettingsView: View {
                     }
                 ), playbackDetails: visibility.continueWatchingPlaybackDetails,
                    captions: cards.captions, isShowcase: previewsShowcase)
-                ContinueWatchingPlaybackDetailsControl(visibility: visibility)
-                CardCaptionViewChoices(
-                    view: .continueWatching,
-                    settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
-                    title: "Labels"
-                )
-                #if os(iOS)
-                .padding(.horizontal, 14)
-                .settingsGroupSurface(cornerRadius: 12)
+                #if os(tvOS)
+                SettingsControlGroup { presentationControls }
+                SettingsControlGroup { behaviorControls }
                 #else
-                .padding(SettingsFormMetrics.groupInset)
-                .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+                SettingsSectionGroup { presentationControls }
+                SettingsSectionGroup { behaviorControls }
                 #endif
             }
             Button("Remove section", role: .destructive) {
@@ -215,12 +208,68 @@ struct HomeSectionSettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var presentationControls: some View {
+        ContinueWatchingPlaybackDetailsControl(visibility: visibility)
+        CardCaptionViewChoices(
+            view: .continueWatching,
+            settings: Binding(get: { cards.captions }, set: { cards.captions = $0 }),
+            title: "Labels"
+        )
+    }
+
+    @ViewBuilder
+    private var behaviorControls: some View {
+        ContinueWatchingNextUpControl(visibility: visibility)
+        ContinueWatchingActionControl(visibility: visibility)
+    }
+
     private var previewsShowcase: Bool {
         #if os(tvOS)
         hero.settings.style == .followsFocus
         #else
         false
         #endif
+    }
+}
+
+struct ContinueWatchingActionControl: View {
+    let visibility: HomeLibraryVisibilityModel
+
+    var body: some View {
+        let selection = visibility.continueWatchingAction
+        Group {
+            #if os(iOS)
+            ViewCustomizationMenu(
+                id: "continue-watching-action", title: "When tapping an item",
+                value: selection.displayName, detail: selection.detail,
+                selection: Binding(
+                    get: { visibility.continueWatchingAction },
+                    set: { visibility.setContinueWatchingAction($0) }
+                )
+            ) {
+                ForEach(ContinueWatchingAction.allCases, id: \.self) { action in
+                    Text(action.displayName).tag(action)
+                }
+            }
+            #else
+            VStack(alignment: .leading, spacing: 12) {
+                ViewCustomizationRow(
+                    id: "continue-watching-action", title: "Center button action",
+                    value: selection.displayName, detail: selection.detail
+                ) {
+                    visibility.setContinueWatchingAction(selection == .play ? .openDetails : .play)
+                }
+                #if os(tvOS)
+                Text("You can also press Play/Pause \(Image(systemName: "playpause.circle.fill")) on your remote to play the focused item.")
+                    .settingsHelperText()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel("You can also press Play/Pause on your remote to play the focused item.")
+                    .accessibilityIdentifier("continue-watching-remote-help")
+                #endif
+            }
+            #endif
+        }
     }
 }
 
@@ -252,13 +301,6 @@ private struct ContinueWatchingPlaybackDetailsControl: View {
             }
             #endif
         }
-        #if os(iOS)
-        .padding(.horizontal, 14)
-        .settingsGroupSurface(cornerRadius: 12)
-        #else
-        .padding(SettingsFormMetrics.groupInset)
-        .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
-        #endif
     }
 }
 

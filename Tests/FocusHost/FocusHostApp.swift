@@ -24,6 +24,8 @@ struct FocusHostApp: App {
                 PlaybackReadAheadFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--iptv-organization-fixture") {
                 IPTVOrganizationFixture()
+            } else if ProcessInfo.processInfo.arguments.contains("--category-search-fixture") {
+                LiveTVCategorySearchFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--sync-erasure-fixture") {
                 SyncErasureRemoteFixture()
             } else if ProcessInfo.processInfo.arguments.contains("--preview-introduction-fixture") {

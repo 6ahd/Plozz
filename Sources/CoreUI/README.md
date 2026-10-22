@@ -12,6 +12,11 @@ Detailed keeps the existing play/progress/text overlay; Progress only uses the
 shared white progress bar without that overlay. Other cards are unaffected.
 The previously stored portrait-only preference is retained.
 
+`MediaRowView.onPlay` optionally gives each media card a tvOS Play/Pause shortcut,
+independent of Select and without preparing a detail transition. Home Continue
+Watching supplies its existing playback callback for either selection preference.
+Other rows, loading placeholders and Live TV cards retain their own behavior.
+
 Continue Watching portrait cards reuse `PosterCardView`. Detailed adds a reflected
 extension 10% of the complete 2:3 poster's height (half the previous extension).
 Only this band gradually blurs as it darkens;
@@ -189,8 +194,9 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Page titles and Back belong inside the scrolling content, not in a fixed
   header strip that shortens the viewport. `SettingsPageHeader` supplies their
   horizontal Back/title layout, not a separate pinned container. `SettingsBackButton`
-  selects the shared native bordered capsule while callers retain navigation and
-  focus ownership. The full-width header is a native focus section, so Up from
+  shows only the backward chevron in the shared native button, retaining the
+  localized Back accessibility label. Callers retain navigation and focus
+  ownership. The full-width header is a native focus section, so Up from
   right-aligned controls can reach the leading Back button. The full-screen subtitle editor is
   an explicit exception: its stationary heading sits above a scrolling tool pane.
   TV Settings categories and descendants share the centered
@@ -358,6 +364,15 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   digits keep their original circular size and Delete spans two columns at the
   same height. Mobile activation retains haptic feedback. Reduce Transparency
   and older OS versions retain the previous shared keypad fallback and exact key sizes.
+  Mobile PIN headings use native Title 2 bold, matching the profile picker.
+  The shared scaffold keeps this typography consistent across PIN flows;
+  tvOS retains its larger viewing-distance heading.
+  Mobile profile selection opts into `PINProfileTransition`: the profile's
+  avatar/name are the primary identity, with the PIN type in smaller text.
+  `PINEntryScaffold` retains this identity through live verification and errors;
+  it mounts the progressively revealed dial pad only after protection is
+  confirmed. Its portrait stack and landscape columns scroll at constrained
+  heights. Standalone PIN prompts and tvOS keep their existing presentation.
   The detail information band retains its darker 40%-opaque surface.
   Compact mobile detail metadata and actions reveal the page gradient instead
   of covering it with a solid rectangle; Gradient Off and Reduce Transparency
@@ -374,6 +389,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   clipping and text remain TVUIKit-owned.
   Text stays opaque and native focus geometry is unchanged. Gradient Off or
   Reduce Transparency restores both the solid band and solid card fills.
+- **Episode loading preview** — the tvOS entry overlay leaves gutters and caption
+  spacing transparent to the owning page, including artwork-tinted gradients.
+  Only the real cards' drawing is hidden while their lazy layout realizes the
+  entry target; no opaque rail-wide cover or second gradient is painted.
+  Detail entrance gates restrict focus, not preview alignment. Loaded episodes
+  replace the placeholder while Play retains focus, and a focused placeholder
+  still hands off only to its measured, on-screen target.
 - **App-owned dialogs** — `plozzSheet` owns one opaque, theme-aware surface:
   the native presentation background on iPhone/iPad, and the existing rounded
   overlay card over `PlozzDialogBackdrop` on tvOS. TV uses a clear native
@@ -798,6 +820,17 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Text appears only after resolution finds no usable logo (or there are no logo
   sources); cached logos still paint immediately. Completion is request-scoped,
   so a cancelled or missing logo for one title cannot reveal text for the next.
+- **Showcase logo contrast** — tvOS Showcase can lift dark coloured lettering
+  while preserving hue, saturation, white highlights, and transparency. Brightening
+  stops at the available colour headroom; it never mixes in white to force a
+  contrast target. A smaller useful improvement is preferred to washed-out colour,
+  and the original is retained when brightening would not help. The shared background
+  preparation pass measures dark ink separately and caches an optional corrected
+  bitmap alongside the original in the existing bounded logo caches. View updates
+  only select a bitmap against the leading page/ambient colour; there is no
+  per-frame pixel analysis, new artwork request, filter, or compositing layer.
+  Already-readable, bright, monochrome, strongly highlighted, and boxed logos
+  keep their existing treatment. Light mode, other heroes, and mobile are unchanged.
 - **Series artwork identity** — episode-backed cards normalize through
   `MetadataQuery.seriesScoped` before creating a series artwork subject. Child
   IDs and Plex episode GUIDs must not become show IDs. Explicit series IDs,

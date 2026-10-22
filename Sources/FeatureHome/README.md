@@ -19,6 +19,13 @@ loads authoritative inventory; explicit selections, cancellation and revoked
 presentation scope never fail over. An unavailable unselected edition is logged
 and omitted from the current picker rather than blocking a confirmed primary.
 
+The shared version gate and detail/episode inventory enrichment emit bounded,
+failure-only `plozz-preparation-1` records to Recent Activity. They identify the
+request stage, elapsed time, HTTP/network failure, safe decode field/type, and
+inventory validation reason. Identity checks name the mismatched dimension, not
+the item/account values. The existing Send Recent Activity action includes these
+records on both platforms; error dialogs, playback routing and timeouts are unchanged.
+
 - **Library browse failures** — Browse, Collections, Playlists and their member
   pages use the shared Details / Try Again actions on mobile and TV, including
   nonfatal later-page failures. `LibraryLoadDiagnostic` identifies the requested
@@ -103,6 +110,15 @@ and omitted from the current picker rather than blocking a confirmed primary.
   selecting the already active preset does nothing.
   **Merge Next Up rows** is a profile-scoped setting inside the **Continue Watching**
   section's configuration on every platform, alongside its artwork choice.
+  **Continue Watching action** chooses **Play** (the unchanged default) or
+  **Open details** for movie/episode cards on Home, including merged Next Up
+  entries and every TV Home layout. It persists and transfers with the profile.
+  Artwork, progress overlays, context menus and Live TV tuning are unchanged.
+  Library Recommended rows retain their existing detail navigation.
+  On Apple TV, the remote's center button follows this choice, while Play/Pause
+  always starts the focused Continue Watching item through the normal playback
+  path. Play/Pause never opens details, including when **Open details** is selected.
+  Normal resume/restart and version-choice prompts still apply.
   It uses the provider's combined resume/next-episode feed without changing the
   preset, library exclusions, or other row choices. Separate Next Up rows are
   neither requested nor presented while merged; the arranger omits them rather
@@ -435,6 +451,9 @@ and omitted from the current picker rather than blocking a confirmed primary.
   when it finishes for the still-current title, without requiring a focus round trip.
   Its title slot stays visually empty while the logo resolves; text appears only
   after no usable logo is found, never as a temporary title before the wordmark.
+  Dark coloured Showcase logos can select CoreUI's cached contrast lift against
+  the leading page colour, preserving hue, saturation, white highlights, and
+  the logo's geometry rather than whitening the lettering.
   Showcase gates lower rows only until the first row actually receives native
   focus, so an already-ready Discover row cannot win cold-start entry while
   Continue Watching is still realizing. Once entered, normal navigation and

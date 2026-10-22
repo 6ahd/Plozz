@@ -168,6 +168,43 @@ final class ProfileActionsPresentationTests: XCTestCase {
         }
     }
 
+    func testProfileEditorUsesNativeNameInput() async throws {
+        #if os(tvOS)
+        let sizes = [CGSize(width: 1920, height: 1080)]
+        #else
+        let sizes = [CGSize(width: 320, height: 568), CGSize(width: 768, height: 1024)]
+        #endif
+        for size in sizes {
+            for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+                let editor = ProfileEditorView(
+                    editingProfile: profile, canDelete: true,
+                    onSave: { _ in }, onDelete: {}, onCancel: {}
+                )
+                .environment(\.layoutDirection, direction)
+                try await withWindow(size: size, content: editor) { window in
+                    let field = try XCTUnwrap(self.textFields(in: window).first)
+                    XCTAssertEqual(field.text, "Sample profile")
+                    XCTAssertEqual(field.textContentType, .name)
+                    XCTAssertEqual(field.autocorrectionType, .no)
+                    XCTAssertGreaterThan(field.bounds.width, 150)
+                    XCTAssertTrue(window.bounds.contains(field.convert(field.bounds, to: window)))
+                    let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                        XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+                    }
+                    let attachment = XCTAttachment(image: image)
+                    attachment.name = "profile-native-input-\(Int(size.width))-\(direction)"
+                    attachment.lifetime = .keepAlways
+                    add(attachment)
+                }
+            }
+        }
+    }
+
+    private func textFields(in view: UIView) -> [UITextField] {
+        if let field = view as? UITextField { return [field] }
+        return view.subviews.flatMap { textFields(in: $0) }
+    }
+
     private var profile: Profile {
         Profile(id: "profile-presentation", name: "Sample profile", avatarSymbol: "person.fill")
     }
