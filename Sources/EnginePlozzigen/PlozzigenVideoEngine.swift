@@ -758,7 +758,6 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         return Self.onDemandLoadOptions(
             audioChannels: request.localRemuxSource?.sourceMetadata.audio?.channels
                 ?? request.sourceMetadata?.audio?.channels ?? 0,
-            trueHDAtmosEnabled: request.trueHDAtmosEnabled,
             dolbyVisionFELEnabled: request.dolbyVisionFELEnabled,
             outputPolicy: outputPolicy,
             readAhead: isLocalFile || request.suppressOrdinaryWatchReporting
@@ -768,7 +767,6 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     nonisolated static func onDemandLoadOptions(
         audioChannels: Int,
-        trueHDAtmosEnabled: Bool = PlaybackSettings.default.trueHDAtmosEnabled,
         dolbyVisionFELEnabled: Bool = PlaybackSettings.default.dolbyVisionFELEnabled,
         outputPolicy: LiveChannelOutputPolicy = .init(),
         readAhead: PlaybackReadAhead = .default
@@ -778,6 +776,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
             matchContentEnabled: true,
             audioBridgeMode: audioChannels > 6 ? .lossless : .surroundCompat
         )
+        options.objectAudioRendering = .off
         options.preferDualLayerDolbyVision = dolbyVisionFELEnabled
             && outputPolicy.isAudible && !outputPolicy.sharesAudioSession
             && !outputPolicy.suppressesDisplayMatching
@@ -790,15 +789,6 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         case .tenMinutes: options.forwardBufferSegments = 150
         case .maximumAvailable: options.forwardBufferSegments = 2_700
         }
-        #if os(tvOS)
-        if #available(tvOS 26.0, *), trueHDAtmosEnabled,
-           outputPolicy.isAudible, !outputPolicy.sharesAudioSession {
-            // This is an intermediate spatial bed, not a detected speaker inventory.
-            // Aether verifies 48 kHz TrueHD Atmos/DTS:X on native VOD, with a channel fallback.
-            // Shared live players and muted previews must not add spatial encoding work.
-            options.objectAudioRendering = .apac(.l714)
-        }
-        #endif
         applyLiveOutputPolicy(outputPolicy, to: &options)
         return options
     }

@@ -7,6 +7,22 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+Home hero, Showcase (TV), and Detail Page have independent profile-scoped **Logo size**
+controls. Each shows one local fictional-wordmark preview and a Small-to-Large
+adjustment with Reset to default. Thirteen stops span 0.5x to 1.5x, with finer
+adjustments around the unchanged 1x default, marked at the center. Previously
+saved intermediate sizes keep their exact scale until adjusted. TV reuses the
+shared Settings stepper's remote/focus behavior with minus/plus glyphs and a
+stepped range bar. Home and Showcase update their existing layout-choice previews
+live instead of adding a second preview to the size control. Detail Page retains
+its single 320-point-wide preview beside the adjustment and compact Reset action.
+The bar fills its control column; the detail preview matches that column's height
+and uses the shared group inset and inner corner radius for concentric spacing.
+Artwork shares the layout picker's backdrop: Showcase fades in from the right,
+while Home and detail previews use edge-to-edge artwork.
+Mobile keeps the native slider and stacked preview. No artwork lookup is needed
+for the preview.
+
 On tvOS, profile Appearance, Profile Lock setup, and Parental PIN setup use the
 workspace's full-width destination layout, like subtitle styling. Their
 two-column content must not be squeezed into the ordinary centered Settings
@@ -31,17 +47,18 @@ iPhone and iPad. This is a profile-scoped, default-off preference, unlike the
 device-wide external-player choice. It applies to new built-in on-demand sessions
 and travels through profile settings transfer. The helper explains the memory
 cost, possible stuttering and loss of overhead sound on the FEL route.
+Audio still plays, including TrueHD and DTS. The warning remains relevant after
+optional height conversion is removed: FEL also decodes otherwise directly
+compatible E-AC-3/JOC spatial audio to channel-based PCM.
 Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
 
-On tvOS 26+, Playback > **Spatial audio** controls lossy spatial conversion for
-eligible soundtracks, not directly compatible spatial audio. Feature descriptions
-use this neutral name; track metadata, diagnostics and legal notices retain their
-accurate format and dependency names. The `trueHDAtmosEnabled` preference and
-`truehd-atmos` row identity remain unchanged so saved choices and focus survive.
-The short helper covers supported tracks, compatible equipment and stuttering;
-the compatibility documentation retains conversion quality and session timing.
+The optional **Spatial audio** conversion switch and `trueHDAtmosEnabled`
+preference have been removed; old profile values cannot enable the excluded
+engine components. Ordinary channel audio and directly compatible spatial audio
+remain available. Feature descriptions use neutral spatial-audio wording; track
+metadata, diagnostics and legal notices retain accurate format and dependency names.
 See [spatial audio](../../docs/playback-engines.md#spatial-audio) for limitations.
 
 Playback > Advanced > External player is a device-only, default-off preference
@@ -100,6 +117,19 @@ watch history and planning-list behavior are documented in
 
 ## Responsibility
 
+- **Customize Libraries** lives in Screens & Navigation on TV and mobile.
+  Library Navigation comes first, including the first Down move from Back on TV.
+  The Recommended Page controls follow it; headings and helper copy name the
+  library's page explicitly rather than implying suggested settings.
+  The Libraries list opens each library's Recommended Page Rows editor.
+  The TV logo control reuses `HeroLogoSizeControl` with one Showcase preview.
+  Library tabs share an arrangement across the profile; each library separately
+  owns its Recommended row arrangement. Both editors use `LiftableReorderList`,
+  its Hidden divider, native focus/drag behavior, and scoped reset actions.
+  `LibraryPresentationLoading` connects the settings UI to the existing browse
+  and discovery pipeline through AppRuntime, without a feature-to-feature
+  dependency. Identity changes cancel pending discovery and replace row editors.
+  These choices never disable a library or alter its Home rows.
 - **Libraries** owns profile-wide library availability. Mobile Customize Home
   does not duplicate its Enabled controls: the Home editor manages section presentation,
   and Hero source selection uses the enabled library inventory. Discovering

@@ -23,6 +23,8 @@ public struct SettingsStepper<Value: Hashable>: View {
     private let label: LocalizedStringResource?
     private let subtitle: LocalizedStringResource?
     private let labelWidth: CGFloat
+    private let rangeLabels: (LocalizedStringResource, LocalizedStringResource)?
+    private let rangeMidpointLabel: LocalizedStringResource?
 
     @Environment(\.themePalette) private var palette
     @FocusState private var focusedButton: StepperButton?
@@ -44,11 +46,14 @@ public struct SettingsStepper<Value: Hashable>: View {
         label: LocalizedStringResource? = nil,
         subtitle: LocalizedStringResource? = nil,
         labelWidth: CGFloat = 240,
+        rangeLabels: (LocalizedStringResource, LocalizedStringResource)? = nil,
+        rangeMidpointLabel: LocalizedStringResource? = nil,
         title: @escaping (Value) -> LocalizedStringResource
     ) {
         self.init(options: options, selection: selection, compact: compact, wraps: wraps,
                   onFocusChange: onFocusChange, label: label, subtitle: subtitle,
-                  labelWidth: labelWidth, title: { Text(title($0)) })
+                  labelWidth: labelWidth, rangeLabels: rangeLabels, rangeMidpointLabel: rangeMidpointLabel,
+                  title: { Text(title($0)) })
     }
 
     /// A stepper whose values are formatted CONTENT rather than copy — playback
@@ -63,11 +68,14 @@ public struct SettingsStepper<Value: Hashable>: View {
         label: LocalizedStringResource? = nil,
         subtitle: LocalizedStringResource? = nil,
         labelWidth: CGFloat = 240,
+        rangeLabels: (LocalizedStringResource, LocalizedStringResource)? = nil,
+        rangeMidpointLabel: LocalizedStringResource? = nil,
         verbatimTitle: @escaping (Value) -> String
     ) {
         self.init(options: options, selection: selection, compact: compact, wraps: wraps,
                   onFocusChange: onFocusChange, label: label, subtitle: subtitle,
-                  labelWidth: labelWidth, title: { Text(verbatim: verbatimTitle($0)) })
+                  labelWidth: labelWidth, rangeLabels: rangeLabels, rangeMidpointLabel: rangeMidpointLabel,
+                  title: { Text(verbatim: verbatimTitle($0)) })
     }
 
     private init(
@@ -79,6 +87,8 @@ public struct SettingsStepper<Value: Hashable>: View {
         label: LocalizedStringResource?,
         subtitle: LocalizedStringResource?,
         labelWidth: CGFloat,
+        rangeLabels: (LocalizedStringResource, LocalizedStringResource)?,
+        rangeMidpointLabel: LocalizedStringResource?,
         title: @escaping (Value) -> Text
     ) {
         self.options = options
@@ -89,6 +99,8 @@ public struct SettingsStepper<Value: Hashable>: View {
         self.label = label
         self.subtitle = subtitle
         self.labelWidth = labelWidth
+        self.rangeLabels = rangeLabels
+        self.rangeMidpointLabel = rangeMidpointLabel
         self.title = title
     }
 
@@ -195,10 +207,21 @@ public struct SettingsStepper<Value: Hashable>: View {
     private var televisionButton: some View {
         Button { step(by: 1) } label: {
             if let label {
-                LabeledSettingRow(
-                    label, subtitle: subtitle, labelWidth: labelWidth, trailingAlignment: .trailing
-                ) {
-                    adjustmentValue
+                if compact && rangeLabels != nil {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(label).font(SettingsRowMetrics.titleFont)
+                        if let subtitle {
+                            Text(subtitle).font(SettingsRowMetrics.helperFont).settingsRowSecondary()
+                        }
+                        adjustmentValue
+                    }
+                    .padding(.horizontal, SettingsRowMetrics.verticalPadding(.primary) - SettingsRowMetrics.horizontalPadding)
+                } else {
+                    LabeledSettingRow(
+                        label, subtitle: subtitle, labelWidth: labelWidth, trailingAlignment: .trailing
+                    ) {
+                        adjustmentValue
+                    }
                 }
             } else {
                 adjustmentValue
@@ -219,15 +242,44 @@ public struct SettingsStepper<Value: Hashable>: View {
         .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: index)
     }
 
-    private var adjustmentValue: some View {
-        HStack(spacing: compact ? 12 : 16) {
-            adjustmentGlyph("minus", enabled: canDecrement)
-            value
-                .environment(\.layoutDirection, layoutDirection)
-            adjustmentGlyph("plus", enabled: canIncrement)
+    @ViewBuilder private var adjustmentValue: some View {
+        if let rangeLabels {
+            HStack(alignment: .top, spacing: 12) {
+                adjustmentGlyph("minus", enabled: canDecrement)
+                VStack(spacing: 0) {
+                    HStack(spacing: 4) {
+                        ForEach(options.indices, id: \.self) { position in
+                            Capsule()
+                                .fill(.primary.opacity(position <= index ? 1 : 0.2))
+                                .frame(height: 6)
+                        }
+                    }
+                    .frame(height: SettingsRowMetrics.minHeight(.secondary))
+                    HStack {
+                        Text(rangeLabels.0)
+                        Spacer()
+                        Text(rangeLabels.1)
+                    }
+                    .overlay {
+                        if let rangeMidpointLabel { Text(rangeMidpointLabel) }
+                    }
+                    .font(.caption)
+                }
+                adjustmentGlyph("plus", enabled: canIncrement)
+            }
+            .frame(minWidth: compact ? 300 : 380, maxWidth: compact ? .infinity : 380)
+            .environment(\.layoutDirection, .leftToRight)
+            .accessibilityHidden(true)
+        } else {
+            HStack(spacing: compact ? 12 : 16) {
+                adjustmentGlyph("minus", enabled: canDecrement)
+                value
+                    .environment(\.layoutDirection, layoutDirection)
+                adjustmentGlyph("plus", enabled: canIncrement)
+            }
+            // Keep the physical arrows consistent while the enclosing row follows RTL.
+            .environment(\.layoutDirection, .leftToRight)
         }
-        // Keep the physical arrows consistent while the enclosing row follows RTL.
-        .environment(\.layoutDirection, .leftToRight)
     }
 
     private func adjustmentGlyph(_ symbol: String, enabled: Bool) -> some View {

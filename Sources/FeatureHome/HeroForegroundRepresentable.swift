@@ -31,6 +31,7 @@ struct HeroForegroundRepresentable: UIViewRepresentable {
     /// shown; the SwiftUI hero snaps this to `false` on a page and back to `true`
     /// ~280ms later. The renderer mirrors it as an imperative alpha animation.
     let metadataVisible: Bool
+    var logoSize: HeroLogoSize = .default
     let width: CGFloat
     let height: CGFloat
 
@@ -38,6 +39,7 @@ struct HeroForegroundRepresentable: UIViewRepresentable {
 
     func makeUIView(context: Context) -> HeroForegroundUIView {
         let view = HeroForegroundUIView()
+        view.logoSize = logoSize
         view.semanticContentAttribute =
             context.environment.layoutDirection == .rightToLeft
             ? .forceRightToLeft
@@ -54,6 +56,7 @@ struct HeroForegroundRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: HeroForegroundUIView, context: Context) {
+        uiView.logoSize = logoSize
         uiView.semanticContentAttribute =
             context.environment.layoutDirection == .rightToLeft
             ? .forceRightToLeft

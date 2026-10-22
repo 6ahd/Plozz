@@ -48,6 +48,7 @@ public final class ProfileSettingsModel {
     /// plus the trailer mute preference.
     public var heroBackgroundModel: HeroBackgroundSettingsModel { heroModels.background }
     public var detailPageModel: DetailPageSettingsModel { heroModels.detailPage }
+    public var libraryPresentationModel: LibraryPresentationSettingsModel { heroModels.library }
     private var heroModels: HeroModels
     public private(set) var diagnosticsModel: DiagnosticsSettingsModel
     /// The full-screen music player's per-profile look + "show extra info"
@@ -118,6 +119,7 @@ public final class ProfileSettingsModel {
         themeMusicModel: ThemeMusicSettingsModel? = nil,
         heroBackgroundModel: HeroBackgroundSettingsModel? = nil,
         detailPageModel: DetailPageSettingsModel? = nil,
+        libraryPresentationModel: LibraryPresentationSettingsModel? = nil,
         diagnosticsModel: DiagnosticsSettingsModel? = nil,
         musicPlayerModel: MusicPlayerSettingsModel? = nil,
         homeLibraryVisibilityModel: HomeLibraryVisibilityModel? = nil,
@@ -137,7 +139,7 @@ public final class ProfileSettingsModel {
             || subtitlePolicyModel != nil || audioPolicyModel != nil
             || appLanguageModel != nil
             || themeModel != nil || themeMusicModel != nil || heroBackgroundModel != nil
-            || detailPageModel != nil
+            || detailPageModel != nil || libraryPresentationModel != nil
             || diagnosticsModel != nil
             || musicPlayerModel != nil || homeLibraryVisibilityModel != nil
             || uiDensityModel != nil || cardStyleModel != nil
@@ -163,6 +165,7 @@ public final class ProfileSettingsModel {
             themeMusicModel: themeMusicModel,
             heroBackgroundModel: heroBackgroundModel,
             detailPageModel: detailPageModel,
+            libraryPresentationModel: libraryPresentationModel,
             diagnosticsModel: diagnosticsModel,
             musicPlayerModel: musicPlayerModel,
             homeLibraryVisibilityModel: homeLibraryVisibilityModel,
@@ -251,6 +254,7 @@ public final class ProfileSettingsModel {
         let background: HeroBackgroundSettingsModel
         let themeMusic: ThemeMusicSettingsModel
         let detailPage: DetailPageSettingsModel
+        let library: LibraryPresentationSettingsModel
     }
 
     /// The single source of truth for constructing the per-profile sub-models: each
@@ -269,6 +273,7 @@ public final class ProfileSettingsModel {
         themeMusicModel: ThemeMusicSettingsModel? = nil,
         heroBackgroundModel: HeroBackgroundSettingsModel? = nil,
         detailPageModel: DetailPageSettingsModel? = nil,
+        libraryPresentationModel: LibraryPresentationSettingsModel? = nil,
         diagnosticsModel: DiagnosticsSettingsModel? = nil,
         musicPlayerModel: MusicPlayerSettingsModel? = nil,
         homeLibraryVisibilityModel: HomeLibraryVisibilityModel? = nil,
@@ -295,7 +300,10 @@ public final class ProfileSettingsModel {
                     store: HeroBackgroundSettingsStore(namespace: ns)
                 ),
                 themeMusic: themeMusicModel ?? ThemeMusicSettingsModel(store: ThemeMusicSettingsStore(namespace: ns)),
-                detailPage: detailPageModel ?? DetailPageSettingsModel(store: DetailPageSettingsStore(namespace: ns))
+                detailPage: detailPageModel ?? DetailPageSettingsModel(store: DetailPageSettingsStore(namespace: ns)),
+                library: libraryPresentationModel ?? LibraryPresentationSettingsModel(
+                    store: LibraryPresentationSettingsStore(namespace: ns)
+                )
             ),
             diagnosticsModel: diagnosticsModel ?? DiagnosticsSettingsModel(store: DiagnosticsSettingsStore(namespace: ns)),
             musicPlayerModel: musicPlayerModel ?? MusicPlayerSettingsModel(store: MusicPlayerSettingsStore(namespace: ns)),

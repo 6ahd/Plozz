@@ -396,10 +396,11 @@ struct DetailHeroView: View, Equatable {
 
     /// The nominal box handed to `HeroLogoArtwork`.
     ///
-    /// Shared with Home rather than derived from this page's own 620pt text
-    /// column, so the same show's wordmark is drawn at the same size on both
-    /// screens — see ``HeroLogoLayout``.
-    private var heroLogoBox: CGSize { HeroLogoLayout.box }
+    /// Shares Home's baseline without tying the independent detail preference
+    /// to this page's wider text column.
+    private var heroLogoBox: CGSize {
+        HeroLogoLayout.box(size: detailHeaderSettings?.settings.logoSize ?? .default)
+    }
 
     // MARK: - Visible item actions (discoverability)
 

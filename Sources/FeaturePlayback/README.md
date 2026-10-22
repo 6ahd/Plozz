@@ -138,7 +138,13 @@ compatibility and App Review risk. iOS/iPadOS controls are unchanged.
 
 Mobile transport buttons, timelines, and tabs use native **clear** Liquid Glass,
 without tint or a colored backing. Like AVKit video chrome, their symbols and
-progress remain white in both appearances. The controls scrim dims the video
+progress remain white in both appearances. Mobile Live TV's top presentation
+group contains only available Picture in Picture and AirPlay controls, with no
+separate Stop button. Pause/resume, player dismissal, and session cleanup retain
+their existing behavior. Playback options, track selection, and multiview sit
+at the bottom trailing edge above the timeline. Portrait keeps the title on its
+own row above those actions; track menus open upward without covering the seek
+bar. The controls scrim dims the video
 beneath the transport as well as the edge chrome, so white scenes remain legible
 without coloring the glass itself. Mobile Info, Cast, and Live TV Info/On Now/Guide
 cards use that same native media (`clear`) material, without a colored backing or an added border;
@@ -616,13 +622,14 @@ presentation state and detaches the old player.
   `PlayerViewModel` redacts before logging.
 
 Plozzigen's Audio **Processing** row samples Aether's active audio pipeline
-label, independently of source-video probe availability. `TRUEHD Atmos → APAC
-7.1.4` means the engine created the spatial-conversion pipeline; `TRUEHD → FLAC
-bridge` or `TRUEHD → EAC3 bridge` identifies ordinary channel processing instead.
+label, independently of source-video probe availability. `TRUEHD → FLAC
+bridge` or `TRUEHD → EAC3 bridge` identifies ordinary channel processing.
+The optional height-conversion features and their setting are removed; Plozz
+does not request APAC conversion, including for legacy enabled profiles.
 Stream-copy and software-decoding routes retain the engine's own labels.
 The row is unknown until the engine publishes a pipeline and follows track
 changes, fallbacks, and teardown. Do not infer it from the Atmos source badge,
-the setting, channel count, or requested bridge mode, or parse the label to make
+channel count or requested bridge mode, or parse the label to make
 playback decisions. **System output** reads `AVAudioSession.renderingMode`, and
 **Connection** reads fixed output-port types (HDMI, AirPlay, Bluetooth, etc.).
 Both refresh while diagnostics is open, on every playback engine. Unreported
@@ -630,16 +637,18 @@ values are omitted, never inferred from the source, channel count, settings, or
 an older sample. No personal device names or route identifiers are collected.
 Descriptive output labels are localized; format and connection brands such as
 Dolby Atmos and AirPlay remain verbatim in both layouts.
-APAC's 7.1.4 is an intermediate processing layout; the system's rendering mode
-is stronger evidence of delivery, but neither detects the physical speaker layout.
+The system's rendering mode does not detect the physical speaker layout.
 
 The TV diagnostics use three columns capped at 1280 points (two-thirds of a
 1920-point TV viewport), above the measured visible playback controls, including
 the Info/Cast tabs and cards. Format summaries combine related video/audio facts;
 system output includes the connection, while Processing remains separate.
-The buffer row labels player and engine measurements independently. HDR keeps
-the Dolby Vision profile and reported color/range facts rather than inferring
-compatibility from a profile number. Playback-health metrics, including zero
+The buffer row labels player and engine measurements independently. Both platforms
+use **Source** for the video format summary (for example, `Dolby Vision P7 · 10-bit`);
+server transcodes use **Stream** because those facts describe the current rendition.
+The summary retains reported color/range facts without inferring compatibility,
+FEL processing, or display output from the profile or bit depth. It does not label
+Profile 7 as a confirmed dual-layer decoding route. Playback-health metrics, including zero
 stalls/drops, memory, thermal state, and seeking, remain visible. Mobile retains
 its expanded, scrollable rows. Long filenames are
 limited to two lines on TV (the mobile sheet keeps the complete value). If a

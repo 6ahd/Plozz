@@ -134,6 +134,17 @@ extension View {
     }
 }
 
+private struct PlozziOSHeroLogoSizeKey: EnvironmentKey {
+    static let defaultValue = HeroLogoSize.default
+}
+
+private extension EnvironmentValues {
+    var plozziOSHeroLogoSize: HeroLogoSize {
+        get { self[PlozziOSHeroLogoSizeKey.self] }
+        set { self[PlozziOSHeroLogoSizeKey.self] = newValue }
+    }
+}
+
 enum PlozziOSPageLayout {
     static func horizontalInset(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
         sizeClass == .compact ? 22 : 36
@@ -169,11 +180,13 @@ enum PlozziOSPageLayout {
     /// wordmark still overhung the column and still dragged the hero's rows left.
     /// Pinning holds every logo wide enough to reach the column to the *same* drawn
     /// width, and returns the width it takes as height so no logo shrinks.
-    static func heroLogoBox(for style: HeroArtworkStyle) -> CGSize {
-        let column = heroLogoMaxWidth(for: style)
-        return HeroLogoFit.pinnedBox(
-            budget: CGSize(width: column, height: heroLogoMaxHeight(for: style)),
-            drawnWidth: column
+    static func heroLogoBox(
+        for style: HeroArtworkStyle, size: HeroLogoSize = .default,
+        availableWidth: CGFloat = .infinity
+    ) -> CGSize {
+        HeroLogoSizing.box(
+            for: style == .compactPortrait ? .compact : .regular,
+            size: size, availableWidth: availableWidth
         )
     }
 
@@ -479,6 +492,7 @@ struct PlozziOSDetailHeroSection: View {
                 presentsEpisodeStill: presentsEpisodeStill
             )
         }
+        .environment(\.plozziOSHeroLogoSize, appModel.settings.detailPage.settings.logoSize)
     }
 }
 
@@ -1728,6 +1742,7 @@ struct PlozziOSHomeHeroForeground: View {
         }
         // Width fill / alignment now come from the shared placement modifier.
         .multilineTextAlignment(style == .compactPortrait ? .center : .leading)
+        .environment(\.plozziOSHeroLogoSize, appModel.settings.hero.settings.logoSize)
     }
 
     @ViewBuilder
@@ -2525,6 +2540,8 @@ private struct PlozziOSHeroMetadata: View {
     }
 
     @Environment(\.themePalette) private var palette
+    @Environment(\.plozziOSHeroLogoSize) private var logoSize
+    @State private var availableWidth: CGFloat = 0
     let presentation: HeroPresentation
     let style: HeroArtworkStyle
     let mode: Mode
@@ -2618,7 +2635,11 @@ private struct PlozziOSHeroMetadata: View {
                         .lineLimit(2)
                         .accessibilityAddTraits(.isHeader)
                 } else {
-                    let logoBox = PlozziOSPageLayout.heroLogoBox(for: style)
+                    let logoBox = PlozziOSPageLayout.heroLogoBox(
+                        for: style, size: logoSize,
+                        availableWidth: availableWidth > 0
+                            ? availableWidth : PlozziOSPageLayout.heroLogoMaxWidth(for: style)
+                    )
                     HeroLogoArtwork(
                         references: presentation.logoReferences,
                         asyncFallbackURL: logoFallback,
@@ -2722,6 +2743,10 @@ private struct PlozziOSHeroMetadata: View {
                     )
                 }
             }
+        }
+        .frame(maxWidth: .infinity, alignment: style == .compactPortrait ? .center : .leading)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+            if width > 0 { availableWidth = width }
         }
     }
 

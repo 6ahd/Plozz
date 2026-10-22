@@ -378,8 +378,14 @@ struct HomeHeroSettingsView: View {
         @Bindable var hero = hero
         HomeEditorPage(title: pageTitle, showsHeader: true) {
             #if os(tvOS)
-            HomeLayoutPicker(layout: $hero.settings.style)
+            HomeLayoutPicker(
+                layout: $hero.settings.style,
+                homeLogoSize: hero.settings.logoSize, showcaseLogoSize: hero.settings.showcaseLogoSize
+            )
             if hero.settings.style == .followsFocus {
+                SettingsControlGroup {
+                    HeroLogoSizeControl(size: $hero.settings.showcaseLogoSize, surface: .showcase)
+                }
                 Toggle("Show ratings", isOn: $hero.settings.showsRatings)
                 if hero.settings.showsRatings {
                     Toggle("Show Common Sense age", isOn: $hero.settings.ratingPreferences.showsHeaderFamilyGuidance)

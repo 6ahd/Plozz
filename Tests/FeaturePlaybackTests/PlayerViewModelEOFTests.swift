@@ -993,20 +993,20 @@ final class PlayerViewModelEOFTests: XCTestCase {
         await viewModel.stop()
     }
 
-    func testTrueHDAtmosPreferenceReachesInitialAndHandoffLoads() async throws {
+    func testLegacyAudioSettingsPreserveTrackPreferencesAcrossHandoff() async throws {
         for enabled in [false, true] {
+            let settings = try JSONDecoder().decode(
+                PlaybackSettings.self, from: Data("{\"trueHDAtmosEnabled\":\(enabled)}".utf8)
+            )
             let (viewModel, engine, _) = makeViewModel(
-                playbackSettings: .init(trueHDAtmosEnabled: enabled)
+                playbackSettings: settings
             )
             await viewModel.load()
-            XCTAssertEqual(engine.lastLoadedRequest?.trueHDAtmosEnabled, enabled)
             var handoff = try XCTUnwrap(engine.lastLoadedRequest)
-            handoff.trueHDAtmosEnabled = !enabled
             handoff.preferredAudioLanguages = ["ja"]
             handoff.preferredAudioTrackID = 3
             await viewModel.handoffPlayResolved(handoff, engineKind: .native, startPosition: 10)
             XCTAssertEqual(engine.loadCount, 2)
-            XCTAssertEqual(engine.lastLoadedRequest?.trueHDAtmosEnabled, enabled)
             XCTAssertEqual(engine.lastLoadedRequest?.preferredAudioLanguages, ["ja"])
             XCTAssertEqual(engine.lastLoadedRequest?.preferredAudioTrackID, 3)
             await viewModel.stop()

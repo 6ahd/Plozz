@@ -93,6 +93,56 @@ final class CinematicDetailTransitionHostedTests: XCTestCase {
         XCTAssertFalse(DetailTransitionNavigation.isNavigationInputSuppressed)
     }
 
+    func testReturnRestoresFocusWhileTheReverseArtworkIsStillMoving() async throws {
+        final class FocusProbe: DetailTransitionFocusRequesting {
+            var request: (() -> Void)?
+            func requestFocus() -> Bool {
+                request?()
+                return true
+            }
+        }
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        fixture.model.source.prepare(for: fixture.model.item)
+        var timing = DetailEntranceTiming()
+        timing.reverse = 1
+        let session = TVDetailEntranceSession(timing: timing)
+        defer { session.finishImmediately() }
+        session.attach(to: fixture.window, enabled: true)
+        try await waitUntil { session.stage == .complete }
+        let probe = FocusProbe()
+        fixture.model.source.focusRequester = probe
+        var restored = false
+        var restoredDuringMotion = false
+        probe.request = {
+            restored = true
+            if let cover = self.overlays(in: fixture.window).first {
+                restoredDuringMotion = !(cover.cardContainer.layer.animationKeys() ?? []).isEmpty
+            }
+        }
+        session.close {}
+        try await waitUntil { restored }
+        XCTAssertTrue(restoredDuringMotion, "Source restoration must overlap the reverse animation, not start after it.")
+        XCTAssertTrue(session.blocksNavigation, "Preparing focus early must not release input during the animation.")
+        try await waitUntil { self.overlays(in: fixture.window).isEmpty }
+        XCTAssertFalse(session.blocksNavigation)
+        XCTAssertTrue(inputGuards(in: fixture.window).isEmpty)
+    }
+
+    func testReturnWithoutAnAttachedSessionKeepsNativeDismissal() {
+        let session = TVDetailEntranceSession()
+        var popped = false
+        var dismissed = false
+        session.close(pop: {
+            popped = true
+            return true
+        }) {
+            dismissed = true
+        }
+        XCTAssertTrue(dismissed)
+        XCTAssertFalse(popped, "A return without a cover must not suppress native navigation.")
+    }
+
     func testEpisodeRowEntersAfterControlsAndBeforeNavigationUnlocks() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }

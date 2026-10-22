@@ -402,6 +402,18 @@ private struct NavigationRailShellContent<Content: View>: View {
     }
 }
 
+/// A retained root keeps its geometry while the shell hides behind pushed pages.
+struct NavigationRailRootContentInset: ViewModifier {
+    @Environment(\.plozzPinnedSidebarActive) private var isPinned
+
+    func body(content: Content) -> some View {
+        content.environment(
+            \.plozzNavigationContentInset,
+            isPinned ? NavigationRailMetrics.contentInset : 0
+        )
+    }
+}
+
 struct NavigationRailPresentation: Equatable {
     let destination: NavigationRailDestination
     let chromeHidden: Bool

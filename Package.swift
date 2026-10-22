@@ -232,14 +232,11 @@ let package = Package(
         // a decoded end nor a source duration are not given a synthetic five-second
         // life.
         //
-        // The current fork retains that correction and exports the engine dynamically:
-        // LibDovi and LibTrueHD's Rust unwind personalities must stay separate
-        // from the host's Objective-C/C++ stack. Upstream 7.44.0 uses FFmpegBuild
-        // 3.9.x for DTS:X heights, removing LibDTSX from the dependency graph.
-        // LibDovi stays at 2.1.x and LibTrueHD at 3.0.x.
-        // Explicit traits preserve the formerly compiled-in features; the
-        // measurement-only TrueHDReferenceRender trait must remain excluded.
-        // Plozz opts tvOS 26+ on-demand playback into TrueHD Atmos and DTS:X rendering.
+        // The current fork retains that correction and exports the engine dynamically.
+        // Keep the Dolby Vision traits, but exclude TrueHDObjectAudio,
+        // DTSXObjectAudio and the measurement-only TrueHDReferenceRender.
+        // Height-channel conversion is not compiled; ordinary audio decoding
+        // and E-AC-3/JOC stream-copy remain available.
         // Progressive segment delivery remains off.
         // Both apps embed the engine framework and its dependency notices.
         //
@@ -253,13 +250,13 @@ let package = Package(
             url: "https://github.com/brandomoore/AetherEngine",
             revision: "86af70ddfe7bcde27e06356dc7aa81e8997d43c4",
             traits: [
-                "TrueHDObjectAudio", "DTSXObjectAudio",
                 "DualLayerDolbyVision", "DolbyVisionStillReshaping",
             ]
         ),
-        // NOTE: FFmpegBuild (FFmpeg n8.1.x decode-only), LibDovi (Dolby Vision
-        // RPU parser) and LibTrueHD are transitive dependencies — AetherEngine
-        // declares and consumes them. The retired hybrid-engine target needed
+        // NOTE: FFmpegBuild (FFmpeg n8.1.x decode-only) and LibDovi (Dolby Vision
+        // RPU parser) are transitive dependencies — AetherEngine declares and
+        // consumes them. LibTrueHD is not linked without TrueHDObjectAudio.
+        // The retired hybrid-engine target needed
         // direct FFmpegBuild/LibDovi declarations; current Plozz targets do not
         // consume those products. AetherEngine owns their version alignment.
 
