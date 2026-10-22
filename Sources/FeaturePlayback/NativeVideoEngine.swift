@@ -461,7 +461,7 @@ public final class NativeVideoEngine: VideoEngine {
                 for group in groups {
                     try Task.checkCancellation()
                     let titleItem = group.items.first { $0.commonKey == .commonKeyTitle }
-                    var title: String?
+                    var title: String? // l10n:content - embedded chapter title from the playing asset
                     do {
                         title = try await titleItem?.load(.stringValue)
                     } catch {

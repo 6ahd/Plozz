@@ -86,7 +86,10 @@ have thumbnails, portrait rows show left-aligned text without an artwork placeho
 and wide layouts vertically center that text in narrow, full-height glass cards.
 Text-only cards use Cast's width with a minimum text allowance on small screens;
 cards with thumbnails retain their wider artwork layout. Mixed-thumbnail lists
-retain aligned artwork slots. Chapter titles and start times share one leading text
+retain aligned artwork slots. On tvOS, artwork cards size their width from the
+measured caption so thumbnails have equal top and side insets; the thumbnail's
+continuous corner radius is the outer glass radius minus that inset.
+Chapter titles and start times share one leading text
 edge with corner-aware inner padding. They show titles (or numbered chapter labels),
 start times, available server thumbnails, and the current chapter. On portrait iOS,
 Cast and Chapters use the same tab-to-content gap as Info, with directional scroll

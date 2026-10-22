@@ -8,6 +8,69 @@ import XCTest
 
 @MainActor
 final class PlayerChapterHostedTests: XCTestCase {
+    func testArtworkCardsHaveEvenInsetsAndConcentricCorners() async throws {
+        try await waitUntil {
+            UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        let metrics = PlayerCardMetrics.tv
+        let inset = max(metrics.contentPadding, metrics.panelCornerRadius * 2 / 3)
+        let layout = PlayerChapterArtworkLayout(
+            height: metrics.cardHeight, inset: inset, cornerRadius: metrics.panelCornerRadius
+        )
+        let probe = ChapterArtworkProbe()
+        window.rootViewController = UIHostingController(rootView:
+            layout {
+                LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .clipShape(layout.thumbnailShape)
+                    .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { probe.artwork = $0 }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Chapter 12").font(metrics.castNameFont)
+                    Text("1:21:50").font(metrics.captionFont).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { probe.caption = $0 }
+            }
+            .background(PlayerOverVideoSurface(cornerRadius: metrics.panelCornerRadius, mediaGlass: true))
+            .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { probe.card = $0 }
+            .environment(\.colorScheme, .dark)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.black)
+        )
+        window.makeKeyAndVisible()
+        try await waitUntil { probe.caption.height > 0 }
+        XCTAssertEqual(probe.card.height, metrics.cardHeight, accuracy: 0.5)
+        XCTAssertEqual(probe.artwork.minX - probe.card.minX, inset, accuracy: 0.5)
+        XCTAssertEqual(probe.artwork.minY - probe.card.minY, inset, accuracy: 0.5)
+        XCTAssertEqual(probe.card.maxX - probe.artwork.maxX, inset, accuracy: 0.5)
+        XCTAssertEqual(probe.card.maxY - probe.caption.maxY, inset, accuracy: 0.5)
+        XCTAssertEqual(probe.caption.minX, probe.artwork.minX, accuracy: 0.5)
+        XCTAssertEqual(probe.caption.minY - probe.artwork.maxY, 8, accuracy: 0.5)
+        XCTAssertEqual(probe.artwork.width / probe.artwork.height, 16.0 / 9.0, accuracy: 0.005)
+        let radius = layout.thumbnailShape.cornerSize.width
+        XCTAssertEqual(probe.artwork.minX + radius, probe.card.minX + metrics.panelCornerRadius, accuracy: 0.5)
+        XCTAssertEqual(probe.artwork.minY + radius, probe.card.minY + metrics.panelCornerRadius, accuracy: 0.5)
+        let previousWidth = (metrics.cardHeight - metrics.castVerticalInset * 2
+            - metrics.castNameSize * 1.5 - metrics.captionSize * 1.5 - 16) * 16 / 9 + 24
+        XCTAssertGreaterThan(probe.card.width, previousWidth)
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = "TV chapter artwork with even padding and concentric corners"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     func testChapterCardsRenderAndNativeFocusSurvivesPlayheadUpdates() async throws {
         try await waitUntil {
             UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
@@ -119,6 +182,13 @@ private final class ChapterFocusDriver {
     var requestFocus: ((PlayerControls.FocusSlot) -> Void)?
     var observedFocus: PlayerControls.FocusSlot?
     var panelFrame: CGRect = .zero
+}
+
+@MainActor
+private final class ChapterArtworkProbe {
+    var card: CGRect = .zero
+    var artwork: CGRect = .zero
+    var caption: CGRect = .zero
 }
 
 private struct ChapterFocusFixture: View {

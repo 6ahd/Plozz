@@ -156,6 +156,17 @@ private struct PlayerChapterButton: View {
             .frame(height: metrics.castRowHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
         } else if showsArtwork {
+            #if os(tvOS)
+            let layout = PlayerChapterArtworkLayout(
+                height: metrics.cardHeight, inset: contentInset, cornerRadius: cornerRadius
+            )
+            layout {
+                thumbnail
+                    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                    .clipShape(layout.thumbnailShape)
+                caption
+            }
+            #else
             VStack(alignment: .leading, spacing: 8) {
                 thumbnail
                     .frame(width: cardWidth - contentInset * 2,
@@ -165,6 +176,7 @@ private struct PlayerChapterButton: View {
             }
             .padding(contentInset)
             .frame(width: cardWidth, height: metrics.cardHeight, alignment: .bottom)
+            #endif
         } else {
             caption
                 .fixedSize(horizontal: false, vertical: true)
@@ -207,4 +219,36 @@ private struct PlayerChapterButton: View {
         .accessibilityHidden(true)
     }
 }
+
+#if os(tvOS)
+/// Fits the artwork to the measured caption, rather than leaving an estimated top gutter.
+struct PlayerChapterArtworkLayout: Layout {
+    let height: CGFloat
+    let inset: CGFloat
+    let cornerRadius: CGFloat
+    private let spacing: CGFloat = 8
+
+    var thumbnailShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: max(0, cornerRadius - inset), style: .continuous)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+        let captionHeight = subviews[1].sizeThatFits(.unspecified).height
+        let artworkHeight = max(0, height - inset * 2 - spacing - captionHeight)
+        return CGSize(width: artworkHeight * 16 / 9 + inset * 2, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+        let width = bounds.width - inset * 2
+        subviews[0].place(
+            at: CGPoint(x: bounds.minX + inset, y: bounds.minY + inset), anchor: .topLeading,
+            proposal: ProposedViewSize(width: width, height: width * 9 / 16)
+        )
+        subviews[1].place(
+            at: CGPoint(x: bounds.minX + inset, y: bounds.maxY - inset), anchor: .bottomLeading,
+            proposal: ProposedViewSize(width: width, height: nil)
+        )
+    }
+}
+#endif
 #endif
