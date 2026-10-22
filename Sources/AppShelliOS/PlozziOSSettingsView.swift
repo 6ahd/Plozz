@@ -2025,27 +2025,6 @@ struct PlozziOSPlaybackSettingsView: View {
             .language($0.code)
         }
 
-    /// On seeds every kind with the current mode, so turning it on changes
-    /// nothing until a kind is set; off returns every kind to the one mode.
-    private var perKindSkipBinding: Binding<Bool> {
-        Binding(
-            get: { !model.settings.skipModeOverrides.isEmpty },
-            set: { on in
-                let base = model.settings.skipIntros
-                model.settings.skipModeOverrides = on
-                    ? Dictionary(uniqueKeysWithValues: MediaSegment.Kind.skippable.map { ($0, base) })
-                    : [:]
-            }
-        )
-    }
-
-    private func skipModeBinding(for kind: MediaSegment.Kind) -> Binding<SkipIntrosMode> {
-        Binding(
-            get: { model.settings.skipMarkerModes.mode(for: kind) },
-            set: { model.settings.skipModeOverrides[kind] = $0 }
-        )
-    }
-
     var body: some View {
         List {
             PlozziOSStreamingSettings(
@@ -2065,43 +2044,7 @@ struct PlozziOSPlaybackSettingsView: View {
                     .accessibilityIdentifier("playback-orientation")
                 }
             }
-            SettingsSectionGroup("Skip intros, credits & more") {
-                if model.settings.skipModeOverrides.isEmpty {
-                    Picker("Skip", selection: $model.settings.skipIntros) {
-                        ForEach(SkipIntrosMode.allCases, id: \.self) {
-                            Text($0.title).tag($0)
-                        }
-                    }
-                }
-                Toggle("Set each marker separately", isOn: perKindSkipBinding)
-                if !model.settings.skipModeOverrides.isEmpty {
-                    ForEach(MediaSegment.Kind.skippable, id: \.self) { kind in
-                        Picker(selection: skipModeBinding(for: kind)) {
-                            ForEach(SkipIntrosMode.allCases, id: \.self) {
-                                Text($0.title).tag($0)
-                            }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(kind.settingsTitle)
-                                if let hint = kind.settingsHint {
-                                    Text(hint)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
-                Toggle(isOn: $model.settings.useCommunityMarkers) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Use community markers")
-                        Text("Looks up missing markers on IntroDB and TheIntroDB using IMDb/TMDB IDs.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
+            SkipMarkerSettingsControl(model: model)
 
             SettingsSectionGroup("Skipping") {
                 Picker("Skip backward", selection: $model.settings.skipBackwardInterval) {
@@ -2185,7 +2128,7 @@ struct PlozziOSPlaybackSettingsView: View {
                     }
                 }
                 Toggle(
-                    "Remember audio per series",
+                    "Remember audio language per series",
                     isOn: $model.settings.rememberAudioTrackPerSeries
                 )
                 Toggle(

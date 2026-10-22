@@ -151,7 +151,13 @@ Behavioral references, not copied implementations:
 - [Jellyfin.XmlTv](https://github.com/jellyfin/Jellyfin.XmlTv/blob/6c8c302c8520e5f41cd51dd392ac631f97179d82/src/Jellyfin.XmlTv/XmlTvReader.cs)
   accepts reduced-precision dates and disables character checks in its XML
   reader. Plozz accepts minute precision but does not copy broad character
-  validation bypasses or guess repairs for malformed XML.
+  validation bypasses or guess repairs for malformed XML. Its text selection
+  now follows the same requested-language, untagged, first-usable fallback order
+  without retaining every translation.
+- [Tvheadend's XMLTV importer](https://github.com/tvheadend/tvheadend/blob/51ec612fa22c4c78b4697e4c262c943da9cbd6cc/src/epggrab/module/xmltv.c)
+  skips channel records without IDs and preserves language-tagged programme
+  text. Plozz likewise skips unusable channel declarations with diagnostic counts,
+  while retaining its XML/entity checks, resource budgets and exact identities.
 - The [XMLTV specification](https://github.com/XMLTV/xmltv/blob/f33601698cf1f1c7a67030b9ec2d3ad565421b5a/xmltv.dtd)
   allows shortened timestamps, optional channel declarations and multiple
   display names. Plozz already supports programme-only feeds and standard

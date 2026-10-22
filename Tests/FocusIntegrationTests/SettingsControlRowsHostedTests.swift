@@ -6,6 +6,57 @@ import XCTest
 
 @MainActor
 final class SettingsControlRowsHostedTests: XCTestCase {
+    func testConnectedGroupsKeepOuterCornersAndNarrowInternalGaps() throws {
+        for count in 1...3 {
+            for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+                let renderer = ImageRenderer(content:
+                    SettingsConnectedControlGroups {
+                        ForEach(0..<count, id: \.self) { _ in
+                            Color.clear.frame(height: 64)
+                        }
+                    }
+                    .frame(width: 320)
+                    .environment(\.layoutDirection, direction)
+                    .environment(\.themePalette, .dark)
+                    .environment(\.gradientBackgroundsEnabled, false)
+                )
+                let reference = ImageRenderer(content:
+                    VStack(spacing: 8) {
+                        ForEach(0..<count, id: \.self) { index in
+                            UnevenRoundedRectangle(
+                                topLeadingRadius: index == 0 ? 28 : 8,
+                                bottomLeadingRadius: index == count - 1 ? 28 : 8,
+                                bottomTrailingRadius: index == count - 1 ? 28 : 8,
+                                topTrailingRadius: index == 0 ? 28 : 8,
+                                style: .continuous
+                            )
+                            .fill(.white)
+                            .frame(width: 320, height: 96)
+                        }
+                    }
+                    .environment(\.layoutDirection, direction)
+                )
+                renderer.scale = 1
+                reference.scale = 1
+                let image = try XCTUnwrap(renderer.cgImage)
+                XCTAssertEqual(image.height, count * 96 + (count - 1) * 8)
+                let actual = try pixels(image)
+                let expected = try pixels(XCTUnwrap(reference.cgImage))
+                XCTAssertEqual(actual.count, expected.count)
+                let mismatches = stride(from: 3, to: min(actual.count, expected.count), by: 4).filter {
+                    (actual[$0] > 0) != (expected[$0] > 0)
+                }
+                let differences = mismatches.prefix(12).map {
+                    "\(($0 / 4) % image.width),\(($0 / 4) / image.width):\(actual[$0])/\(expected[$0])"
+                }
+                XCTAssertEqual(
+                    mismatches.count, 0,
+                    "\(count) groups, \(direction): \(differences). Expected 28pt outside and 8pt facing corners."
+                )
+            }
+        }
+    }
+
     func testEveryoneBadgeUsesTheProfileAvatarSizeAndCircularOutline() throws {
         for syncEnabled in [false, true] {
             for palette in [ThemePalette.dark, .light] {

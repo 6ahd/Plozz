@@ -72,6 +72,32 @@ Live playback, shared players and muted previews do not opt in.
 See [playback engines](../../docs/playback-engines.md#dolby-vision-fel) for eligibility
 and output limits.
 
+**Remember audio language per series** stores only the selected language, not a
+specific audio track or format. Its label needs no explanatory footer.
+
+On TV, related control groups can share one section heading through
+`SettingsConnectedControlGroups`: an 8pt gap and tighter 8pt facing corners keep
+them connected, while the section's outer corners retain the standard radius.
+Audio language controls share the first group and spatial audio the second.
+Autoplay switches share a group, separate from the Up Next card and its
+conditional timing control. These use the existing surfaces and native controls,
+without an enclosing card or changing the independent settings.
+
+**Skip intros, credits & more** uses one profile-scoped master switch on both
+platforms. Turning it off hides configuration without clearing behavior, timing,
+content selections, per-marker overrides, or community-marker consent. Behavior
+chooses a manual skip button or automatic skipping; only automatic behavior
+reveals **Skip after**, from Immediately through 30 seconds in one-second steps.
+The default delayed skip remains five seconds. Movies, TV Shows, and Anime can
+be enabled independently, using the existing audio/subtitle content classifier.
+Disabling a category suppresses skip prompts and automatic skips, not the
+independent Up Next or autoplay preferences. Advanced per-marker choices retain
+independent Off/manual/automatic behavior and timing. Existing saved modes,
+including mixed immediate/delayed marker overrides, migrate without changing
+their playback behavior. Community-marker attribution and identifier sharing
+appear as a short caption attached to its switch, without a separate section
+footer.
+
 The **Spatial audio (height channel support)** switch is available on tvOS 26 and later. Its
 profile-scoped `trueHDAtmosEnabled` preference defaults on, preserves saved Off
 choices and travels through profile transfer. It applies to new supported

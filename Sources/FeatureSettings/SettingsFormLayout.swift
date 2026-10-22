@@ -107,7 +107,10 @@ private struct SettingsFormRow: View {
             .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
             .accessibilityIdentifier("settings-group-\(row.id)")
         } else {
-            SettingsFormGroup(title: row.title, description: row.description, illustrated: row.hasIllustratedContent) {
+            SettingsFormGroup(
+                title: row.title, description: row.description,
+                illustrated: row.hasIllustratedContent, hasGroupedContent: row.hasGroupedContent
+            ) {
                 row.detail()
             }
             .accessibilityIdentifier("settings-group-\(row.id)")
@@ -119,6 +122,7 @@ struct SettingsFormGroup<Content: View>: View {
     let title: Text
     var description: Text?
     var illustrated = false
+    var hasGroupedContent = false
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -127,7 +131,11 @@ struct SettingsFormGroup<Content: View>: View {
                 .font(.headline)
                 .padding(.horizontal, SettingsFormMetrics.headingInset)
                 .accessibilityAddTraits(.isHeader)
-            SettingsControlGroup(illustrated: illustrated, content: content)
+            if hasGroupedContent {
+                content()
+            } else {
+                SettingsControlGroup(illustrated: illustrated, content: content)
+            }
             if let description {
                 description
                     .settingsHelperText()
@@ -141,6 +149,12 @@ struct SettingsFormGroup<Content: View>: View {
 struct SettingsControlGroup<Content: View>: View {
     var illustrated = false
     var dividerLeadingInset: CGFloat? = nil
+    var cornerRadii = RectangleCornerRadii(
+        topLeading: SettingsFormMetrics.groupCornerRadius,
+        bottomLeading: SettingsFormMetrics.groupCornerRadius,
+        bottomTrailing: SettingsFormMetrics.groupCornerRadius,
+        topTrailing: SettingsFormMetrics.groupCornerRadius
+    )
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -153,10 +167,35 @@ struct SettingsControlGroup<Content: View>: View {
         }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SettingsFormMetrics.groupInset)
-            .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
+            .settingsGroupSurface(cornerRadii: cornerRadii)
             .toggleStyle(SettingsSwitchToggleStyle(flushLeading: false))
             .environment(\.settingsFormRowsFlushLeading, false)
             .environment(\.settingsFormTextInset, SettingsRowMetrics.horizontalPadding)
+    }
+}
+
+struct SettingsConnectedControlGroups<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SettingsFormMetrics.connectedGroupSpacing) {
+            Group(subviews: content()) { groups in
+                ForEach(groups) { group in
+                    SettingsControlGroup(cornerRadii: .init(
+                        topLeading: group.id == groups.first?.id
+                            ? SettingsFormMetrics.groupCornerRadius : SettingsFormMetrics.connectedGroupInnerCornerRadius,
+                        bottomLeading: group.id == groups.last?.id
+                            ? SettingsFormMetrics.groupCornerRadius : SettingsFormMetrics.connectedGroupInnerCornerRadius,
+                        bottomTrailing: group.id == groups.last?.id
+                            ? SettingsFormMetrics.groupCornerRadius : SettingsFormMetrics.connectedGroupInnerCornerRadius,
+                        topTrailing: group.id == groups.first?.id
+                            ? SettingsFormMetrics.groupCornerRadius : SettingsFormMetrics.connectedGroupInnerCornerRadius
+                    )) {
+                        group
+                    }
+                }
+            }
+        }
     }
 }
 

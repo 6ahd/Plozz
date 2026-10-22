@@ -17,6 +17,15 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// asked for different settings per kind.
     public var skipModeOverrides: [MediaSegment.Kind: SkipIntrosMode]
 
+    public var skipMarkersEnabled: Bool
+    public var skipContentCategories: Set<ContentCategory>
+    public var skipAutomaticDelaySeconds: Int {
+        didSet { skipAutomaticDelaySeconds = Self.boundedSkipDelay(skipAutomaticDelaySeconds) }
+    }
+    public var skipAutomaticDelayOverrides: [MediaSegment.Kind: Int] {
+        didSet { skipAutomaticDelayOverrides = skipAutomaticDelayOverrides.mapValues(Self.boundedSkipDelay) }
+    }
+
     /// Whether to look up community markers (IntroDB, then TheIntroDB) for items
     /// whose server has no intro or credits marker. Sends the title's IMDb or TMDB
     /// id to those databases. The server's own markers always win.
@@ -158,6 +167,10 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     public init(
         skipIntros: SkipIntrosMode = .on,
         skipModeOverrides: [MediaSegment.Kind: SkipIntrosMode] = [:],
+        skipMarkersEnabled: Bool? = nil,
+        skipContentCategories: Set<ContentCategory> = Set(ContentCategory.allCases),
+        skipAutomaticDelaySeconds: Int? = nil,
+        skipAutomaticDelayOverrides: [MediaSegment.Kind: Int]? = nil,
         useCommunityMarkers: Bool = true,
         skipBackwardInterval: SkipInterval = .ten,
         skipForwardInterval: SkipInterval = .ten,
@@ -185,6 +198,15 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     ) {
         self.skipIntros = skipIntros
         self.skipModeOverrides = skipModeOverrides
+        self.skipMarkersEnabled = skipMarkersEnabled
+            ?? SkipMarkerModes(base: skipIntros, overrides: skipModeOverrides).fetchesMarkers
+        self.skipContentCategories = skipContentCategories
+        self.skipAutomaticDelaySeconds = Self.boundedSkipDelay(
+            skipAutomaticDelaySeconds ?? (skipIntros == .autoInstant ? 0 : 5)
+        )
+        self.skipAutomaticDelayOverrides = (skipAutomaticDelayOverrides
+            ?? skipModeOverrides.mapValues { $0 == .autoInstant ? 0 : (skipAutomaticDelaySeconds ?? 5) })
+            .mapValues(Self.boundedSkipDelay)
         self.useCommunityMarkers = useCommunityMarkers
         self.skipBackwardInterval = skipBackwardInterval
         self.skipForwardInterval = skipForwardInterval
@@ -215,7 +237,66 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
 
     /// The skip mode for each marker kind, as the player consumes them.
     public var skipMarkerModes: SkipMarkerModes {
-        SkipMarkerModes(base: skipIntros, overrides: skipModeOverrides)
+        guard skipMarkersEnabled else { return .allOff }
+        return SkipMarkerModes(
+            base: skipIntros, overrides: skipModeOverrides,
+            automaticDelay: TimeInterval(skipAutomaticDelaySeconds),
+            automaticDelayOverrides: skipAutomaticDelayOverrides.mapValues(TimeInterval.init)
+        )
+    }
+
+    public func skipMarkerModes(for category: ContentCategory) -> SkipMarkerModes {
+        skipContentCategories.contains(category) ? skipMarkerModes : .allOff
+    }
+
+    public mutating func setSkipMarkersEnabled(_ enabled: Bool) {
+        skipMarkersEnabled = enabled
+        if enabled, skipIntros == .off, skipModeOverrides.isEmpty { skipIntros = .on }
+    }
+
+    public func configuredSkipMode(for kind: MediaSegment.Kind? = nil) -> SkipIntrosMode {
+        kind.flatMap { skipModeOverrides[$0] } ?? skipIntros
+    }
+
+    public func configuredSkipDelay(for kind: MediaSegment.Kind? = nil) -> Int {
+        if configuredSkipMode(for: kind) == .autoInstant { return 0 }
+        return kind.flatMap { skipAutomaticDelayOverrides[$0] } ?? skipAutomaticDelaySeconds
+    }
+
+    public mutating func setConfiguredSkipMode(_ mode: SkipIntrosMode, for kind: MediaSegment.Kind? = nil) {
+        if let kind { skipModeOverrides[kind] = mode }
+        else { skipIntros = mode }
+    }
+
+    public mutating func setSkipAutomaticDelay(_ seconds: Int, for kind: MediaSegment.Kind? = nil) {
+        let seconds = Self.boundedSkipDelay(seconds)
+        let isAutomatic = configuredSkipMode(for: kind).isAutomatic
+        if let kind { skipAutomaticDelayOverrides[kind] = seconds }
+        else { skipAutomaticDelaySeconds = seconds }
+        if isAutomatic {
+            setConfiguredSkipMode(seconds == 0 ? .autoInstant : .autoDelay, for: kind)
+        }
+    }
+
+    public mutating func setSkipMarkersSeparately(_ enabled: Bool) {
+        if enabled {
+            skipModeOverrides = Dictionary(uniqueKeysWithValues: MediaSegment.Kind.skippable.map {
+                ($0, skipIntros)
+            })
+            skipAutomaticDelayOverrides = Dictionary(uniqueKeysWithValues: MediaSegment.Kind.skippable.map {
+                ($0, configuredSkipDelay())
+            })
+        } else {
+            skipModeOverrides = [:]
+            skipAutomaticDelayOverrides = [:]
+            if skipIntros == .off { skipMarkersEnabled = false }
+        }
+    }
+
+    public static let skipAutomaticDelayOptions = Array(0...30)
+
+    private static func boundedSkipDelay(_ value: Int) -> Int {
+        min(30, max(0, value))
     }
 
     /// Selectable values (seconds) for ``upNextLeadSeconds`` in Settings. A small,
@@ -230,6 +311,10 @@ public extension PlaybackSettings {
     private enum CodingKeys: String, CodingKey {
         case skipIntros
         case skipModeOverrides
+        case skipMarkersEnabled
+        case skipContentCategories
+        case skipAutomaticDelaySeconds
+        case skipAutomaticDelayOverrides
         case useCommunityMarkers
         case skipBackwardInterval
         case skipForwardInterval
@@ -292,6 +377,26 @@ public extension PlaybackSettings {
         self.skipModeOverrides = Dictionary(uniqueKeysWithValues: storedOverrides.compactMap { key, mode in
             MediaSegment.Kind(rawValue: key).flatMap { $0.isSkippable ? ($0, mode) : nil }
         })
+        self.skipMarkersEnabled = try container.decodeIfPresent(Bool.self, forKey: .skipMarkersEnabled)
+            ?? SkipMarkerModes(base: skipIntros, overrides: skipModeOverrides).fetchesMarkers
+        if let categories = try container.decodeIfPresent([String].self, forKey: .skipContentCategories) {
+            self.skipContentCategories = Set(categories.compactMap(ContentCategory.init(rawValue:)))
+        } else {
+            self.skipContentCategories = defaults.skipContentCategories
+        }
+        self.skipAutomaticDelaySeconds = Self.boundedSkipDelay(
+            try container.decodeIfPresent(Int.self, forKey: .skipAutomaticDelaySeconds)
+                ?? (skipIntros == .autoInstant ? 0 : 5)
+        )
+        if let delays = try container.decodeIfPresent([String: Int].self, forKey: .skipAutomaticDelayOverrides) {
+            self.skipAutomaticDelayOverrides = Dictionary(uniqueKeysWithValues: delays.compactMap { key, delay in
+                MediaSegment.Kind(rawValue: key).flatMap {
+                    $0.isSkippable ? ($0, Self.boundedSkipDelay(delay)) : nil
+                }
+            })
+        } else {
+            self.skipAutomaticDelayOverrides = skipModeOverrides.mapValues { $0 == .autoInstant ? 0 : 5 }
+        }
         self.useCommunityMarkers =
             (try? container.decodeIfPresent(Bool.self, forKey: .useCommunityMarkers))
             .flatMap { $0 } ?? defaults.useCommunityMarkers
@@ -378,6 +483,13 @@ public extension PlaybackSettings {
         try container.encode(
             Dictionary(uniqueKeysWithValues: skipModeOverrides.map { ($0.key.rawValue, $0.value) }),
             forKey: .skipModeOverrides
+        )
+        try container.encode(skipMarkersEnabled, forKey: .skipMarkersEnabled)
+        try container.encode(skipContentCategories.map(\.rawValue).sorted(), forKey: .skipContentCategories)
+        try container.encode(skipAutomaticDelaySeconds, forKey: .skipAutomaticDelaySeconds)
+        try container.encode(
+            Dictionary(uniqueKeysWithValues: skipAutomaticDelayOverrides.map { ($0.key.rawValue, $0.value) }),
+            forKey: .skipAutomaticDelayOverrides
         )
         try container.encode(useCommunityMarkers, forKey: .useCommunityMarkers)
         try container.encode(skipBackwardInterval, forKey: .skipBackwardInterval)
