@@ -6,11 +6,16 @@ public struct HeroLogoSizePreview: View {
     let size: HeroLogoSize
     let surface: HeroLogoSizing.Surface
     let layout: HeroLogoSizing.Layout
+    let cornerRadius: CGFloat
 
-    public init(size: HeroLogoSize, surface: HeroLogoSizing.Surface, layout: HeroLogoSizing.Layout) {
+    public init(
+        size: HeroLogoSize, surface: HeroLogoSizing.Surface, layout: HeroLogoSizing.Layout,
+        cornerRadius: CGFloat = PlozzTheme.Metrics.Radius.content
+    ) {
         self.size = size
         self.surface = surface
         self.layout = layout
+        self.cornerRadius = cornerRadius
     }
 
     private var mobile: Bool { layout == .compact || layout == .regular }
@@ -29,44 +34,37 @@ public struct HeroLogoSizePreview: View {
                 .clipped()
         }
         .aspectRatio(screen.width / screen.height, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: PlozzTheme.Metrics.Radius.content))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .accessibilityHidden(true)
         .allowsHitTesting(false)
     }
 
     private var scene: some View {
         let leading: CGFloat = mobile ? 22 : 144
-        let box = HeroLogoSizing.box(
-            for: layout, size: size, availableWidth: mobile ? screen.width - leading * 2 : .infinity
+        let wordmark = HeroLogoPreviewWordmark(
+            size: size, layout: layout, availableWidth: mobile ? screen.width - leading * 2 : .infinity
         )
-        let fitted = HeroLogoFit.fittedSize(
-            for: CGSize(width: 600, height: 110),
-            maxWidth: box.width, maxHeight: box.height,
-            coverage: 0.32, constrainsToBounds: layout.constrainsToBounds
-        )
+        let fitted = wordmark.fittedSize
         let baseline: CGFloat = mobile ? 205 : surface == .showcase ? 300 : 640
         let x = layout == .compact ? (screen.width - fitted.width) / 2 : leading
         return ZStack(alignment: .topLeading) {
-            Color(white: 0.06)
-            HomePreviewArtwork()
-                .frame(width: screen.width * 0.75, height: screen.height)
-                .offset(x: screen.width * 0.25)
-            LinearGradient(
-                colors: [.black.opacity(0.8), .clear],
-                startPoint: .leading, endPoint: .trailing
-            )
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.92)],
-                startPoint: .top, endPoint: .bottom
-            )
-            Text(verbatim: "NORTHSTAR")
-                .font(.system(size: 82, weight: .black, design: .serif))
-                .tracking(4)
-                .foregroundStyle(.white)
-                .fixedSize()
-                .frame(width: 600, height: 110)
-                .scaleEffect(fitted.width / 600, anchor: .topLeading)
-                .frame(width: fitted.width, height: fitted.height, alignment: .topLeading)
+            if mobile {
+                Color(white: 0.06)
+                HomePreviewArtwork()
+                    .frame(width: screen.width * 0.75, height: screen.height)
+                    .offset(x: screen.width * 0.25)
+                LinearGradient(
+                    colors: [.black.opacity(0.8), .clear],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.92)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            } else {
+                HomePreviewBackdrop(style: surface == .showcase ? .followsFocus : .carousel, size: screen)
+            }
+            wordmark
                 .offset(x: x, y: baseline - fitted.height)
             VStack(alignment: .leading, spacing: mobile ? 10 : 22) {
                 Capsule().fill(.white.opacity(0.5))
@@ -96,6 +94,31 @@ public struct HeroLogoSizePreview: View {
                 .offset(x: leading, y: surface == .showcase ? 640 : 980)
             }
         }
+    }
+}
+
+struct HeroLogoPreviewWordmark: View {
+    let size: HeroLogoSize
+    let layout: HeroLogoSizing.Layout
+    var availableWidth: CGFloat = .infinity
+
+    var fittedSize: CGSize {
+        let box = HeroLogoSizing.box(for: layout, size: size, availableWidth: availableWidth)
+        return HeroLogoFit.fittedSize(
+            for: CGSize(width: 600, height: 110), maxWidth: box.width, maxHeight: box.height,
+            coverage: 0.32, constrainsToBounds: layout.constrainsToBounds
+        )
+    }
+
+    var body: some View {
+        Text(verbatim: "NORTHSTAR")
+            .font(.system(size: 82, weight: .black, design: .serif))
+            .tracking(4)
+            .foregroundStyle(.white)
+            .fixedSize()
+            .frame(width: 600, height: 110)
+            .scaleEffect(fittedSize.width / 600, anchor: .topLeading)
+            .frame(width: fittedSize.width, height: fittedSize.height, alignment: .topLeading)
     }
 }
 #endif

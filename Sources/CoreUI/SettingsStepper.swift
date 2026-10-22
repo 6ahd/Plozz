@@ -24,6 +24,7 @@ public struct SettingsStepper<Value: Hashable>: View {
     private let subtitle: LocalizedStringResource?
     private let labelWidth: CGFloat
     private let rangeLabels: (LocalizedStringResource, LocalizedStringResource)?
+    private let rangeMidpointLabel: LocalizedStringResource?
 
     @Environment(\.themePalette) private var palette
     @FocusState private var focusedButton: StepperButton?
@@ -46,11 +47,13 @@ public struct SettingsStepper<Value: Hashable>: View {
         subtitle: LocalizedStringResource? = nil,
         labelWidth: CGFloat = 240,
         rangeLabels: (LocalizedStringResource, LocalizedStringResource)? = nil,
+        rangeMidpointLabel: LocalizedStringResource? = nil,
         title: @escaping (Value) -> LocalizedStringResource
     ) {
         self.init(options: options, selection: selection, compact: compact, wraps: wraps,
                   onFocusChange: onFocusChange, label: label, subtitle: subtitle,
-                  labelWidth: labelWidth, rangeLabels: rangeLabels, title: { Text(title($0)) })
+                  labelWidth: labelWidth, rangeLabels: rangeLabels, rangeMidpointLabel: rangeMidpointLabel,
+                  title: { Text(title($0)) })
     }
 
     /// A stepper whose values are formatted CONTENT rather than copy — playback
@@ -66,11 +69,13 @@ public struct SettingsStepper<Value: Hashable>: View {
         subtitle: LocalizedStringResource? = nil,
         labelWidth: CGFloat = 240,
         rangeLabels: (LocalizedStringResource, LocalizedStringResource)? = nil,
+        rangeMidpointLabel: LocalizedStringResource? = nil,
         verbatimTitle: @escaping (Value) -> String
     ) {
         self.init(options: options, selection: selection, compact: compact, wraps: wraps,
                   onFocusChange: onFocusChange, label: label, subtitle: subtitle,
-                  labelWidth: labelWidth, rangeLabels: rangeLabels, title: { Text(verbatim: verbatimTitle($0)) })
+                  labelWidth: labelWidth, rangeLabels: rangeLabels, rangeMidpointLabel: rangeMidpointLabel,
+                  title: { Text(verbatim: verbatimTitle($0)) })
     }
 
     private init(
@@ -83,6 +88,7 @@ public struct SettingsStepper<Value: Hashable>: View {
         subtitle: LocalizedStringResource?,
         labelWidth: CGFloat,
         rangeLabels: (LocalizedStringResource, LocalizedStringResource)?,
+        rangeMidpointLabel: LocalizedStringResource?,
         title: @escaping (Value) -> Text
     ) {
         self.options = options
@@ -94,6 +100,7 @@ public struct SettingsStepper<Value: Hashable>: View {
         self.subtitle = subtitle
         self.labelWidth = labelWidth
         self.rangeLabels = rangeLabels
+        self.rangeMidpointLabel = rangeMidpointLabel
         self.title = title
     }
 
@@ -208,6 +215,7 @@ public struct SettingsStepper<Value: Hashable>: View {
                         }
                         adjustmentValue
                     }
+                    .padding(.horizontal, SettingsRowMetrics.verticalPadding(.primary) - SettingsRowMetrics.horizontalPadding)
                 } else {
                     LabeledSettingRow(
                         label, subtitle: subtitle, labelWidth: labelWidth, trailingAlignment: .trailing
@@ -252,11 +260,14 @@ public struct SettingsStepper<Value: Hashable>: View {
                         Spacer()
                         Text(rangeLabels.1)
                     }
+                    .overlay {
+                        if let rangeMidpointLabel { Text(rangeMidpointLabel) }
+                    }
                     .font(.caption)
                 }
                 adjustmentGlyph("plus", enabled: canIncrement)
             }
-            .frame(width: compact ? 300 : 380)
+            .frame(minWidth: compact ? 300 : 380, maxWidth: compact ? .infinity : 380)
             .environment(\.layoutDirection, .leftToRight)
             .accessibilityHidden(true)
         } else {

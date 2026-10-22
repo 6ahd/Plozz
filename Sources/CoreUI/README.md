@@ -244,7 +244,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   Optional range labels replace the numeric display with a bounded track, retaining
   the same input owner, native focus styling, clamping, and accessibility actions.
 - **Hero logo size** — `HeroLogoSizing` supplies the existing default bounds and
-  eleven increasing layout steps for TV heroes, Showcase, and mobile heroes.
+  bounded layout sizing for TV heroes, Showcase, and mobile heroes, from half to
+  1.5 times the unchanged default with finer adjustment stops near default.
   Width/height ceilings preserve aspect ratio and available screen space. The
   local `HeroLogoSizePreview` uses the same sizing math and shared illustrated
   scenery; adjustments do not change logo cache keys or prepare another bitmap.

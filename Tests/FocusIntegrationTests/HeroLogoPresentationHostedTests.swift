@@ -39,7 +39,7 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         let fixture = try await makeFixture()
         defer { fixture.close() }
         for surface in [HeroLogoSizing.Surface.home, .showcase, .detail] {
-            for step in [0, 10] {
+            for step in [-10, 0, 10] {
                 let host = UIHostingController(rootView:
                     SettingsControlGroup {
                         HeroLogoSizeControl(size: .constant(HeroLogoSize(rawValue: step)), surface: surface)
@@ -66,10 +66,44 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         }
     }
 
+    func testTVPreviewArtworkMatchesLayoutCoverageAndFade() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        for surface in [HeroLogoSizing.Surface.home, .showcase, .detail] {
+            let host = UIHostingController(rootView:
+                HeroLogoSizePreview(
+                    size: .default, surface: surface, layout: surface == .showcase ? .showcase : .television
+                )
+                .frame(width: 640, height: 360)
+                .background(PreviewCardFrame())
+                .background(Color.black)
+            )
+            fixture.window.rootViewController = host
+            fixture.window.layoutIfNeeded()
+            let preview = try XCTUnwrap(findPreviewCard(in: host.view))
+            let frame = preview.convert(preview.bounds, to: fixture.window)
+            let pixels = try rgbaPixels(
+                in: fixture.window, rect: CGRect(x: frame.minX, y: frame.minY + 40, width: 640, height: 1)
+            )
+            let blue = (0..<640).map { Int(pixels[$0 * 4 + 2]) }
+            if surface == .showcase {
+                XCTAssertLessThan(try XCTUnwrap(blue[16..<210].max()), 35, "Keep the title side clear.")
+                XCTAssertGreaterThan(blue[340] - blue[210], 100, "Artwork should fade into the right side.")
+                let jumps = (145..<340).map { abs(blue[$0 + 1] - blue[$0]) }
+                XCTAssertLessThanOrEqual(try XCTUnwrap(jumps.max()), 4, "No hard vertical artwork edge.")
+            } else {
+                XCTAssertGreaterThan(
+                    try XCTUnwrap(blue[16..<300].min()), 100, "Fullscreen artwork must reach the left edge."
+                )
+            }
+        }
+    }
+
     func testCompactLogoCardKeepsNativeAdjustmentFocusWhileResizing() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }
         let model = SizingModel()
+        model.size = HeroLogoSize(rawValue: -10)
         let host = UIHostingController(rootView:
             SettingsControlGroup {
                 HeroLogoSizeControl(
@@ -92,12 +126,12 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         try await waitUntil { input.ownsHorizontalNavigationInput }
         let focused = try XCTUnwrap(system.focusedItem)
         let frame = focused.frame
-        XCTAssertLessThan(frame.width, 550, "Focus belongs to the control, not the full card.")
-        for step in 0...10 {
-            if step > 0 {
+        XCTAssertEqual(frame.width, 868, accuracy: 1, "No duplicate Home/Showcase preview beside the control.")
+        for (index, size) in HeroLogoSize.allSizes.enumerated() {
+            if index > 0 {
                 input.beginPress(.right)
                 input.stopRepeating()
-                try await waitUntil { model.size.rawValue == step }
+                try await waitUntil { model.size == size }
             }
             XCTAssertTrue(system.focusedItem === focused)
             XCTAssertEqual(system.focusedItem?.frame, frame)
@@ -109,6 +143,25 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         fixture.window.layoutIfNeeded()
         let card = try XCTUnwrap(findPreviewCard(in: host.view))
         XCTAssertLessThanOrEqual(card.bounds.height, 300)
+        let cardFrame = card.convert(card.bounds, to: fixture.window)
+        let focusFrame = try focusFrame(focused, in: fixture.window)
+        XCTAssertEqual(focusFrame.minY - cardFrame.minY, SettingsFormMetrics.groupInset, accuracy: 1)
+        XCTAssertEqual(cardFrame.maxX - focusFrame.maxX, SettingsFormMetrics.groupInset, accuracy: 1)
+        let trackStrip = CGRect(
+            x: focusFrame.minX + 14, y: focusFrame.minY + 64, width: focusFrame.width - 28, height: 24
+        ).integral
+        let pixels = try rgbaPixels(in: fixture.window, rect: trackStrip)
+        let columns = (0..<Int(trackStrip.width)).filter { x in
+            (0..<Int(trackStrip.height)).contains { y in
+                let offset = (y * Int(trackStrip.width) + x) * 4
+                return pixels[offset] < 210 && pixels[offset + 1] < 210 && pixels[offset + 2] < 210
+            }
+        }
+        XCTAssertLessThan(try XCTUnwrap(columns.first), 24)
+        XCTAssertGreaterThan(
+            try XCTUnwrap(columns.last), Int(trackStrip.width) - 24,
+            "The adjustment segments and end glyphs must fill the focused control."
+        )
         let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
             fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
         }
@@ -118,21 +171,137 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         add(attachment)
     }
 
+    func testLayoutPickerUpdatesOnlyTheSelectedLogo() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let model = SizingModel()
+        let host = LayoutFocusHost(rootView: LayoutSizingFixture(model: model))
+        fixture.window.rootViewController = host
+        try await waitUntil { adjustmentInput(in: host) != nil }
+        try await Task.sleep(for: .milliseconds(200))
+        fixture.window.layoutIfNeeded()
+        let input = try XCTUnwrap(adjustmentInput(in: host))
+        defer { input.stopRepeating() }
+        let system = try XCTUnwrap(UIFocusSystem(for: fixture.window))
+        host.target = try XCTUnwrap(focusItems(in: fixture.window).first { $0.frame.width > 800 })
+        system.requestFocusUpdate(to: host)
+        system.updateFocusIfNeeded()
+        try await waitUntil { input.ownsHorizontalNavigationInput }
+        host.target = nil
+        for style in HeroStyle.allCases {
+            model.layout = style
+            try await Task.sleep(for: .milliseconds(200))
+            fixture.window.layoutIfNeeded()
+            let picker = try XCTUnwrap(findPreviewCard(in: host.view, identifier: "logo-layout-picker-frame"))
+            let frame = picker.convert(picker.bounds, to: fixture.window)
+            let other: HeroStyle = style == .carousel ? .followsFocus : .carousel
+            let baseline = try layoutWordmarkBounds(style: style, pickerFrame: frame, in: fixture.window)
+            let otherBaseline = try layoutWordmarkBounds(style: other, pickerFrame: frame, in: fixture.window)
+            for _ in HeroLogoSize.default.position..<(HeroLogoSize.allSizes.count - 1) {
+                input.beginPress(.right)
+                input.stopRepeating()
+            }
+            try await Task.sleep(for: .milliseconds(200))
+            let large = try layoutWordmarkBounds(style: style, pickerFrame: frame, in: fixture.window)
+            XCTAssertEqual(large.width / baseline.width, 1.5, accuracy: 0.04)
+            XCTAssertEqual(large.maxY, baseline.maxY, accuracy: 2)
+            XCTAssertEqual(try layoutWordmarkBounds(style: other, pickerFrame: frame, in: fixture.window), otherBaseline)
+            attachPreview(in: fixture.window, name: "logo-layout-live-\(style)-large")
+            for _ in 1..<HeroLogoSize.allSizes.count {
+                input.beginPress(.left)
+                input.stopRepeating()
+            }
+            try await Task.sleep(for: .milliseconds(200))
+            let small = try layoutWordmarkBounds(style: style, pickerFrame: frame, in: fixture.window)
+            XCTAssertEqual(small.width / baseline.width, 0.5, accuracy: 0.04)
+            // The fictional text includes scaled font descent; trimmed real artwork is checked separately.
+            XCTAssertEqual(small.maxY, baseline.maxY, accuracy: 4)
+            XCTAssertEqual(try layoutWordmarkBounds(style: other, pickerFrame: frame, in: fixture.window), otherBaseline)
+            attachPreview(in: fixture.window, name: "logo-layout-live-\(style)-small")
+        }
+    }
+
+    private func attachPreview(in window: UIWindow, name: String) {
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    private func layoutWordmarkBounds(style: HeroStyle, pickerFrame: CGRect, in window: UIWindow) throws -> CGRect {
+        let inset = PlozzTheme.Metrics.Radius.inset
+        let cardWidth = (pickerFrame.width - 16) / 2
+        let scale = (cardWidth - inset * 2) / 1920
+        let x = pickerFrame.minX + inset + (style == .carousel ? 0 : cardWidth + 16)
+        let rect = CGRect(
+            x: x + 120 * scale, y: pickerFrame.minY + inset + (style == .carousel ? 400 : 100) * scale,
+            width: (style == .carousel ? 1200 : 800) * scale, height: (style == .carousel ? 270 : 165) * scale
+        ).integral
+        let pixels = try rgbaPixels(in: window, rect: rect)
+        var bounds = CGRect.null
+        for y in 0..<Int(rect.height) {
+            for x in 0..<Int(rect.width) {
+                let offset = (y * Int(rect.width) + x) * 4
+                if pixels[offset] > 225 && pixels[offset + 1] > 225 && pixels[offset + 2] > 225 {
+                    bounds = bounds.union(CGRect(x: x, y: y, width: 1, height: 1))
+                }
+            }
+        }
+        XCTAssertFalse(bounds.isNull, "The layout choice must contain a real preview wordmark.")
+        return bounds
+    }
+
     private func adjustmentInput(in root: UIViewController) -> (any SettingsAdjustmentRemoteInput)? {
         if let input = root as? any SettingsAdjustmentRemoteInput { return input }
         return root.children.lazy.compactMap { self.adjustmentInput(in: $0) }.first
     }
 
-    private func findPreviewCard(in view: UIView) -> UIView? {
-        if view.accessibilityIdentifier == "logo-preview-card-frame" { return view }
-        return view.subviews.lazy.compactMap { self.findPreviewCard(in: $0) }.first
+    private func focusFrame(_ item: any UIFocusItem, in window: UIWindow) throws -> CGRect {
+        var environment: (any UIFocusEnvironment)? = item
+        var coordinateSpace: (any UICoordinateSpace)?
+        while let current = environment {
+            if let container = current.focusItemContainer {
+                coordinateSpace = container.coordinateSpace
+                break
+            }
+            environment = current.parentFocusEnvironment
+        }
+        return try XCTUnwrap(coordinateSpace).convert(item.frame, to: window)
+    }
+
+    private func focusItems(in window: UIWindow) -> [any UIFocusItem] {
+        var containers: [any UIFocusItemContainer] = [window]
+        var seen = Set<ObjectIdentifier>()
+        var items: [ObjectIdentifier: any UIFocusItem] = [:]
+        while let container = containers.popLast() {
+            guard seen.insert(ObjectIdentifier(container)).inserted else { continue }
+            let frame = container.coordinateSpace.convert(window.bounds, from: window)
+            for item in container.focusItems(in: frame) {
+                if let child = item.focusItemContainer { containers.append(child) }
+                if let view = item as? UIView { containers.append(view) }
+                if item.canBecomeFocused, !(item is UIScrollView) {
+                    items[ObjectIdentifier(item)] = item
+                }
+            }
+        }
+        return Array(items.values)
+    }
+
+    private func findPreviewCard(in view: UIView, identifier: String = "logo-preview-card-frame") -> UIView? {
+        if view.accessibilityIdentifier == identifier { return view }
+        return view.subviews.lazy.compactMap { self.findPreviewCard(in: $0, identifier: identifier) }.first
     }
 
     private struct PreviewCardFrame: UIViewRepresentable {
+        var identifier = "logo-preview-card-frame"
+
         func makeUIView(context: Context) -> UIView {
             let view = UIView()
             view.isUserInteractionEnabled = false
-            view.accessibilityIdentifier = "logo-preview-card-frame"
+            view.accessibilityIdentifier = identifier
             return view
         }
 
@@ -153,7 +322,7 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
         for navigation in [NavigationStyle.rail, .tabBar] {
             var baseline: CGRect?
             var rowFrame: CGRect?
-            for step in [0, 10] {
+            for step in [-10, 0, 10] {
                 var settings = HeroSettings.default
                 settings.showcaseLogoSize = HeroLogoSize(rawValue: step)
                 fixture.window.rootViewController = UIHostingController(rootView:
@@ -174,7 +343,7 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(logo.minY, 0)
                 XCTAssertLessThan(logo.maxY + 100, row.minY, "Keep room for metadata above the pinned row.")
                 if let baseline, let rowFrame {
-                    XCTAssertEqual(logo.width / baseline.width, 1.5, accuracy: 0.02)
+                    XCTAssertEqual(logo.width / baseline.width, HeroLogoSize(rawValue: step).scale / 0.5, accuracy: 0.04)
                     XCTAssertEqual(logo.maxY, baseline.maxY, accuracy: 2)
                     XCTAssertEqual(row, rowFrame)
                 } else {
@@ -195,6 +364,48 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
     @Observable fileprivate final class SizingModel {
         var size = HeroLogoSize.default
         var resolutions = 0
+        var layout = HeroStyle.carousel
+        var homeSize = HeroLogoSize.default
+        var showcaseSize = HeroLogoSize.default
+    }
+
+    private struct LayoutSizingFixture: View {
+        let model: SizingModel
+
+        var body: some View {
+            VStack(spacing: 24) {
+                HomeLayoutPicker(
+                    layout: Binding(get: { model.layout }, set: { model.layout = $0 }),
+                    homeLogoSize: model.homeSize, showcaseLogoSize: model.showcaseSize
+                )
+                .background(PreviewCardFrame(identifier: "logo-layout-picker-frame"))
+                SettingsControlGroup {
+                    HeroLogoSizeControl(
+                        size: Binding(
+                            get: { model.layout == .carousel ? model.homeSize : model.showcaseSize },
+                            set: {
+                                if model.layout == .carousel { model.homeSize = $0 }
+                                else { model.showcaseSize = $0 }
+                            }
+                        ),
+                        surface: model.layout == .carousel ? .home : .showcase
+                    )
+                }
+                .background(PreviewCardFrame())
+            }
+            .frame(width: 900)
+            .environment(\.colorScheme, .dark)
+            .environment(\.themePalette, .dark)
+            .background(Color.black)
+        }
+    }
+
+    private final class LayoutFocusHost<Content: View>: UIHostingController<Content> {
+        weak var target: (any UIFocusEnvironment)?
+
+        override var preferredFocusEnvironments: [any UIFocusEnvironment] {
+            target.map { [$0] } ?? super.preferredFocusEnvironments
+        }
     }
 
     private struct SizingFixture: View {
@@ -494,6 +705,24 @@ final class HeroLogoPresentationHostedTests: XCTestCase {
 
     private func redBounds(in window: UIWindow) throws -> CGRect? {
         try colorBounds(in: window, channel: 0)
+    }
+
+    private func rgbaPixels(in window: UIWindow, rect: CGRect) throws -> [UInt8] {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.preferredRange = .standard
+        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+            XCTAssertTrue(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
+        }
+        let crop = try XCTUnwrap(image.cgImage?.cropping(to: rect))
+        var pixels = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixels, width: crop.width, height: crop.height, bitsPerComponent: 8,
+            bytesPerRow: crop.width * 4, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+        ))
+        context.draw(crop, in: CGRect(x: 0, y: 0, width: crop.width, height: crop.height))
+        return pixels
     }
 
     private func colorBounds(

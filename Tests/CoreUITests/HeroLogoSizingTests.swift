@@ -3,7 +3,7 @@ import XCTest
 @testable import CoreUI
 
 final class HeroLogoSizingTests: XCTestCase {
-    func testSmallPreservesExistingBoxesExactly() {
+    func testDefaultPreservesExistingBoxesExactly() {
         for layout in [HeroLogoSizing.Layout.television, .compact, .regular] {
             let budget = layout.budget
             XCTAssertEqual(
@@ -37,7 +37,7 @@ final class HeroLogoSizingTests: XCTestCase {
         }
     }
 
-    func testLargeTVWordmarksAreFiftyPercentWider() {
+    func testTVWordmarksUseTheSameDimensionalScaleAtEveryStop() {
         for layout in [HeroLogoSizing.Layout.television, .showcase] {
             func fitted(_ size: HeroLogoSize) -> CGSize {
                 let box = HeroLogoSizing.box(for: layout, size: size)
@@ -46,7 +46,11 @@ final class HeroLogoSizingTests: XCTestCase {
                     maxHeight: box.height, constrainsToBounds: layout.constrainsToBounds
                 )
             }
-            XCTAssertEqual(fitted(HeroLogoSize(rawValue: 10)).width / fitted(.default).width, 1.5, accuracy: 0.001)
+            let baseline = fitted(.default)
+            for size in HeroLogoSize.allSizes {
+                XCTAssertEqual(fitted(size).width / baseline.width, size.scale, accuracy: 0.001)
+                XCTAssertEqual(fitted(size).height / baseline.height, size.scale, accuracy: 0.001)
+            }
         }
     }
 }

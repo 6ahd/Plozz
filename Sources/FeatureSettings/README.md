@@ -9,11 +9,17 @@ and the single place caption customization lives.
 
 Home hero, Showcase (TV), and Detail Page have independent profile-scoped **Logo size**
 controls. Each shows one local fictional-wordmark preview and a Small-to-Large
-adjustment with Reset to default. Small preserves the existing size; there are
-eleven positions up to 1.5x, subject to each layout's safe bounds. TV reuses the
+adjustment with Reset to default. Thirteen stops span 0.5x to 1.5x, with finer
+adjustments around the unchanged 1x default, marked at the center. Previously
+saved intermediate sizes keep their exact scale until adjusted. TV reuses the
 shared Settings stepper's remote/focus behavior with minus/plus glyphs and a
-stepped range bar. TV groups contain a 320-point-wide preview beside the adjustment
-and a compact Reset action, rather than stacking a large preview above the controls.
+stepped range bar. Home and Showcase update their existing layout-choice previews
+live instead of adding a second preview to the size control. Detail Page retains
+its single 320-point-wide preview beside the adjustment and compact Reset action.
+The bar fills its control column; the detail preview matches that column's height
+and uses the shared group inset and inner corner radius for concentric spacing.
+Artwork shares the layout picker's backdrop: Showcase fades in from the right,
+while Home and detail previews use edge-to-edge artwork.
 Mobile keeps the native slider and stacked preview. No artwork lookup is needed
 for the preview.
 

@@ -22,17 +22,29 @@ public struct HeroLogoSizeControl: View {
         #endif
     }
 
+    private var position: Binding<Int> {
+        Binding(get: { size.position }, set: { size = HeroLogoSize.allSizes[$0] })
+    }
+
     public var body: some View {
         #if os(tvOS)
-        HStack(spacing: 24) {
-            HeroLogoSizePreview(size: size, surface: surface, layout: layout)
-                .frame(width: 320)
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: size)
+        HStack(spacing: SettingsFormMetrics.groupInset) {
+            if surface == .detail {
+                Color.clear
+                    .frame(width: 320)
+                    .overlay {
+                        HeroLogoSizePreview(size: size, surface: surface, layout: layout, cornerRadius: 0)
+                            .aspectRatio(16.0 / 9.0, contentMode: .fill)
+                            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: size)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: SettingsRowMetrics.formRowCornerRadius))
+            }
             VStack(alignment: .leading, spacing: 8) {
                 SettingsStepper(
-                    options: HeroLogoSize.allSizes, selection: $size, compact: true,
+                    options: Array(HeroLogoSize.allSizes.indices), selection: position, compact: true,
                     label: "Logo size", rangeLabels: ("Small", "Large"),
-                    title: { "\($0.rawValue + 1) of \(HeroLogoSize.allSizes.count)" }
+                    rangeMidpointLabel: "Default",
+                    title: { $0 == HeroLogoSize.default.position ? "Default" : "\($0 + 1) of \(HeroLogoSize.allSizes.count)" }
                 )
                 .accessibilityIdentifier("logo-size-adjustment")
                 Button("Reset") { size = .default }
@@ -42,10 +54,10 @@ public struct HeroLogoSizeControl: View {
                     .disabled(size == .default)
                     .accessibilityLabel(Text("Reset to default"))
                     .accessibilityIdentifier("logo-size-reset")
-                    .padding(.leading, SettingsRowMetrics.horizontalPadding)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .environment(\.settingsFormRowsFlushLeading, false)
         .accessibilityElement(children: .contain)
         #else
@@ -55,10 +67,10 @@ public struct HeroLogoSizeControl: View {
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: size)
             Slider(
                 value: Binding(
-                    get: { Double(size.rawValue) },
-                    set: { size = HeroLogoSize(rawValue: Int($0.rounded())) }
+                    get: { Double(position.wrappedValue) },
+                    set: { position.wrappedValue = Int($0.rounded()) }
                 ),
-                in: Double(HeroLogoSize.steps.lowerBound)...Double(HeroLogoSize.steps.upperBound),
+                in: 0...Double(HeroLogoSize.allSizes.count - 1),
                 step: 1
             ) {
                 Text("Logo size")
@@ -67,8 +79,11 @@ public struct HeroLogoSizeControl: View {
             } maximumValueLabel: {
                 Text("Large").font(.caption)
             }
-            .accessibilityValue(Text("\(size.rawValue + 1) of \(HeroLogoSize.allSizes.count)"))
+            .accessibilityValue(
+                size == .default ? Text("Default") : Text("\(size.position + 1) of \(HeroLogoSize.allSizes.count)")
+            )
             .accessibilityIdentifier("logo-size-adjustment")
+            Text("Default").font(.caption).frame(maxWidth: .infinity)
             Button("Reset to default") { size = .default }
                 .disabled(size == .default)
                 .accessibilityIdentifier("logo-size-reset")
