@@ -9,6 +9,7 @@ struct PlayerChapterPanel: View {
     @FocusState.Binding var focus: PlayerControls.FocusSlot?
     let onSelect: (MediaChapter) -> Void
     @Environment(\.playerCardMetrics) private var metrics
+    @State private var hasUserScrolled = false
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -17,9 +18,13 @@ struct PlayerChapterPanel: View {
                     FadingScrollView(
                         maxHeight: metrics.cardHeight,
                         fadeLength: metrics.contentPadding * 2,
-                        verticalContentInset: 0
+                        verticalContentInset: 0,
+                        fadesTop: hasUserScrolled
                     ) {
                         LazyVStack(spacing: 8) { chapters }
+                    }
+                    .onScrollPhaseChange { _, phase in
+                        if phase == .interacting { hasUserScrolled = true }
                     }
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {

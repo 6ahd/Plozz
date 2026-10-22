@@ -89,6 +89,8 @@ edge with corner-aware inner padding. They show titles (or numbered chapter labe
 start times, available server thumbnails, and the current chapter. On portrait iOS,
 Cast and Chapters use the same tab-to-content gap as Info, with directional scroll
 fades only at edges where more content remains.
+Opening Chapters positions the current chapter without fading that first visible
+row; its top fade activates only after a user scroll, not the initial automatic jump.
 Selecting a chapter closes the panel and uses the normal
 seek coordinator, preserving play/pause intent. Existing skip buttons and intro/
 credits controls are unchanged. Mobile tabs scroll horizontally when needed.

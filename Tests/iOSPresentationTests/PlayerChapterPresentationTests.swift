@@ -35,9 +35,13 @@ final class PlayerChapterPresentationTests: XCTestCase {
                 player.controls.currentSeconds = Double(chapterIndex) * 180 + 10
                 let probe = ChapterLayoutProbe()
                 let host = UIHostingController(rootView:
-                    MobileChapterFixture(player: player, size: size, probe: probe)
+                    MobileChapterFixture(
+                        player: player, size: size, probe: probe,
+                        backdrop: Color(red: 0.25, green: 0.45, blue: 0.65)
+                    )
                         .environment(\.colorScheme, .dark)
                         .environment(\.locale, Locale(identifier: "en_US"))
+                        .environment(\.plozzReduceTransparency, true)
                 )
                 host.safeAreaRegions = []
                 window.frame = CGRect(origin: .zero, size: size)
@@ -70,6 +74,16 @@ final class PlayerChapterPresentationTests: XCTestCase {
                 try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([recognition])
                 let text = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
                 XCTAssertTrue(text.contains("Scene \(chapterIndex + 1)"), "The current chapter must be visible on opening: \(text)")
+                if metrics.isVertical {
+                    func band(_ offset: CGFloat) -> CGRect {
+                        CGRect(x: size.width - 30, y: frame.minY + offset, width: 4, height: 2)
+                    }
+                    let backdrop = try brightestPixel(in: image, rect: band(-6))
+                    let top = try brightestPixel(in: image, rect: band(2))
+                    let interior = try brightestPixel(in: image, rect: band(23))
+                    XCTAssertGreaterThan(Double(backdrop) - Double(top), (Double(backdrop) - Double(interior)) * 0.85,
+                                         "Auto-positioning chapter \(chapterIndex + 1) must not fade its opening row.")
+                }
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "Overflowing chapters \(Int(size.width))x\(Int(size.height)) start \(chapterIndex + 1)"
                 attachment.lifetime = .keepAlways
@@ -162,9 +176,15 @@ final class PlayerChapterPresentationTests: XCTestCase {
                     let edge = try brightestPixel(in: scrolled, rect: band(2))
                     let middle = try brightestPixel(in: scrolled, rect: band(12))
                     let interior = try brightestPixel(in: scrolled, rect: band(23))
-                    XCTAssertGreaterThan(Int(edge), Int(middle) + 8)
-                    XCTAssertGreaterThan(Int(middle), Int(interior) + 8,
-                                         "Overflow must fade progressively rather than stop at a hard clip.")
+                    if panel == .chapters {
+                        XCTAssertGreaterThan(Double(backdrop) - Double(edge),
+                                             (Double(backdrop) - Double(interior)) * 0.85,
+                                             "Programmatic positioning is not a user scroll.")
+                    } else {
+                        XCTAssertGreaterThan(Int(edge), Int(middle) + 8)
+                        XCTAssertGreaterThan(Int(middle), Int(interior) + 8,
+                                             "Overflow must fade progressively rather than stop at a hard clip.")
+                    }
                     scroll.setContentOffset(.zero, animated: false)
                     try await Task.sleep(for: .milliseconds(300))
                     let restored = capture("\(panel) returned to top")
