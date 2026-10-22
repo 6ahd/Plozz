@@ -173,6 +173,7 @@ final class LiveTVSourcesRuntimeHostedTests: XCTestCase {
         NotificationCenter.default.post(name: .plozzLiveTVPortableStateDidApply, object: fixture.profileID)
         try await waitUntil {
             runtime.isCurrent && runtime.catalog.imports.configuration.servers == configuration.servers
+                && runtime.catalog.catalog.channels.count == 1
         }
         XCTAssertEqual(runtime.authorityID, identity)
         XCTAssertEqual(runtime.catalog.catalog.channels.count, 1)

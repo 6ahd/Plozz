@@ -120,7 +120,7 @@ class ResultSummaryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.splitlines(), ["CoreUITests", "FeatureProfilesTests"])
 
-    def run_reaped_driver(self, value, *, finalizes=True, build_exit=0, manifests=1):
+    def run_reaped_driver(self, value, *, finalizes=True, build_exit=0, manifests=1, filtered=True):
         self.write(value)
         binaries = self.root / "bin"
         binaries.mkdir()
@@ -162,20 +162,21 @@ sleep 30
         helpers = helpers.split("\n", 1)[1]
         kill_tree = "kill_tree() {" + runner.split("kill_tree() {", 1)[1].split("\n\n", 1)[0]
         script = """
+set -u
 PARALLEL=NO
-PACKAGE_RESOLUTION_ARGS=()
-LEAN_SETTINGS=()
+PACKAGE_RESOLUTION_ARGS=(-disableAutomaticPackageResolution)
+LEAN_SETTINGS=(ONLY_ACTIVE_ARCH=YES)
 PLOZZ_SIM_ID=fixture
 PLOZZ_DERIVED_DATA="$FIXTURE_ROOT/derived"
 PLOZZ_TEST_RESULTS_DIR="$FIXTURE_ROOT/results"
 PLOZZ_HANG_SECS=60
 PLOZZ_VERDICT_GRACE=0
-PLOZZ_RESULT_TIMEOUT=4
+PLOZZ_RESULT_TIMEOUT="$FIXTURE_RESULT_TIMEOUT"
 POLL_SECS=1
 EXPECTED_BUNDLES=1
 """ + kill_tree + "\n" + helpers + (
-            '\n_xcb_once "$FIXTURE_ROOT/main.log" -scheme Fixture '
-            '-only-testing:FeatureProfilesTests\n'
+            '\n_xcb_once "$FIXTURE_ROOT/main.log" -scheme Fixture'
+            + (' -only-testing:FeatureProfilesTests' if filtered else '') + '\n'
         )
         process = subprocess.Popen(
             ["/bin/bash", "-c", script], cwd=ROOT, text=True,
@@ -186,10 +187,11 @@ EXPECTED_BUNDLES=1
                 "FIXTURE_FINALIZES": "1" if finalizes else "0",
                 "FIXTURE_BUILD_EXIT": str(build_exit),
                 "FIXTURE_MANIFESTS": str(manifests),
+                "FIXTURE_RESULT_TIMEOUT": "15" if finalizes else "4",
             },
         )
         try:
-            stdout, stderr = process.communicate(timeout=15)
+            stdout, stderr = process.communicate(timeout=30)
             return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
         finally:
             try:
@@ -228,6 +230,15 @@ EXPECTED_BUNDLES=1
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(len((self.root / "calls.log").read_text().splitlines()), 1)
 
+    def test_full_matrix_runs_without_test_filters_under_nounset(self):
+        result = self.run_reaped_driver(summary(), filtered=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = (self.root / "calls.log").read_text().splitlines()
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(calls[1].startswith("test-without-building -xctestrun "))
+        self.assertNotIn("-only-testing", calls[1])
+        self.assertNotIn("-skip-testing", calls[1])
+
     def test_missing_manifest_fails_closed(self):
         result = self.run_reaped_driver(summary(), manifests=0)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -241,9 +252,10 @@ EXPECTED_BUNDLES=1
         self.assertEqual(len((self.root / "calls.log").read_text().splitlines()), 1)
 
     def test_result_finalization_timeout_does_not_pass(self):
-        result = self.run_reaped_driver(summary(result="unknown"), finalizes=False)
-        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        result = self.run_reaped_driver(summary(), finalizes=False)
+        self.assertEqual(result.returncode, 124, result.stdout + result.stderr)
         self.assertIn("xcresult did not finalize", result.stderr)
+        self.assertNotIn("xcresult: Passed", result.stdout)
 
 
 if __name__ == "__main__":

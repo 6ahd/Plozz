@@ -348,11 +348,11 @@ has_verdict() {
 _xcb_build_and_test() {
   local result_dir="$1"; shift
   local scheme="" previous="" arg
-  local test_filters=() manifests=()
+  local test_args=(-collect-test-diagnostics never) manifests=()
   for arg in "$@"; do
     if [[ "$previous" == "-scheme" ]]; then scheme="$arg"; fi
     case "$arg" in
-      -only-testing:*|-skip-testing:*) test_filters+=("$arg") ;;
+      -only-testing:*|-skip-testing:*) test_args+=("$arg") ;;
     esac
     previous="$arg"
   done
@@ -378,9 +378,8 @@ _xcb_build_and_test() {
   xcodebuild test-without-building -xctestrun "${manifests[0]}" \
     -destination "platform=tvOS Simulator,id=$PLOZZ_SIM_ID" \
     -parallel-testing-enabled "$PARALLEL" \
-    -collect-test-diagnostics never \
     -resultBundlePath "$result_dir/Test.xcresult" \
-    "${test_filters[@]}"
+    "${test_args[@]}"
 }
 
 # _xcb_once <log> <xcb-arg>...  -> runs one xcodebuild test invocation with a
@@ -459,8 +458,7 @@ _xcb_once() {
   # long after the build actually finished. kill_tree reaps tail -F + grep too.
   kill_tree "$tail_pid"
   wait "$tail_pid" 2>/dev/null || true
-  if [[ $hung -eq 1 ]] && ! has_verdict "$log" \
-     && [[ $(reported_bundles_count "$log") -eq 0 ]]; then
+  if [[ $hung -eq 1 ]]; then
     return 124
   fi
   echo "run-tests.sh: result bundle: $result_bundle"
@@ -471,7 +469,7 @@ _xcb_once() {
     return 1
   fi
   python3 tools/xcresult-summary.py verdict "$summary" || return 1
-  if [[ $reaped_after_verdict -eq 1 || $hung -eq 1 ]]; then
+  if [[ $reaped_after_verdict -eq 1 ]]; then
     [[ ${EXPECTED_BUNDLES:-0} -gt 0 ]] \
       && [[ $(reported_bundles_count "$log") -ge ${EXPECTED_BUNDLES} ]] && return 0
     echo "run-tests.sh: FAILURE — the interrupted run did not report every requested bundle." >&2

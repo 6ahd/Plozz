@@ -164,14 +164,18 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                 let image = DetailTransitionSnapshot.image(of: window)
                 let sample = try XCTUnwrap(image.cgImage?.cropping(to:
                     CGRect(x: 1900, y: 1000, width: 1, height: 1)))
-                var bytes = [UInt8](repeating: 0, count: 4)
-                try bytes.withUnsafeMutableBytes {
+                // Keep the snapshot's sub-byte precision when checking the tint threshold.
+                var components = [Float](repeating: 0, count: 4)
+                try components.withUnsafeMutableBytes {
                     let context = try XCTUnwrap(CGContext(
-                        data: $0.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
-                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                        data: $0.baseAddress, width: 1, height: 1, bitsPerComponent: 32, bytesPerRow: 16,
+                        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                            | CGBitmapInfo.floatComponents.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
                     ))
                     context.draw(sample, in: CGRect(x: 0, y: 0, width: 1, height: 1))
                 }
+                let bytes = components.map { Double($0) * 255 }
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "production-detail-gradient-\(kind)-\(phase)"
                 attachment.lifetime = .keepAlways
@@ -183,14 +187,14 @@ final class DetailTransitionVisualRegressionTests: XCTestCase {
                     XCTAssertFalse(fills.isEmpty)
                     XCTAssertTrue(fills.allSatisfy { !$0.isHidden && $0.layer.contents != nil },
                                   "Production detail cards must paint the shared gradient, not the flat fallback.")
-                    let tintDifference = Int(bytes[0]) - Int(bytes[2])
+                    let tintDifference = bytes[0] - bytes[2]
                     XCTAssertGreaterThan(kind == .movie ? tintDifference : -tintDifference, 8,
                                          "\(kind) must tint the information-band gutter, not just its hero image: \(bytes)")
                 } else {
                     var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
                     XCTAssertTrue(UIColor(ThemePalette.dark.informationSurface).getRed(&r, green: &g, blue: &b, alpha: &a))
                     for (actual, expected) in zip(bytes, [r, g, b, a]) {
-                        XCTAssertLessThanOrEqual(abs(Int(actual) - Int((expected * 255).rounded())), 2)
+                        XCTAssertLessThanOrEqual(abs(actual - Double((expected * 255).rounded())), 2)
                     }
                 }
             }
