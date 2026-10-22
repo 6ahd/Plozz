@@ -88,22 +88,22 @@ remain intact. Ordinary Home Next Up requests continue excluding resumable
 episodes. This does not bypass excluded libraries or change server-owned
 minimum-resume thresholds.
 
-Some compatible servers explicitly declare account-wide watch state through the
-`/System/Info/Public` extension `aiostreams.features.history`. This nonstandard
-capability identifies history that cannot be attributed to virtual catalogs.
-The decoder calls it `historyExtension` internally and preserves the exact server
-field through `CodingKeys`; this is not a standard Jellyfin/Emby capability.
-For that verified server identity, combined Continue Watching, resume-only Home,
-and account-wide native Resume/Next Up rows stay unfiltered even when some or all
-catalogs are disabled. Returned history is not stamped with an invented library.
-Catalog visibility still controls browsing and catalog-specific rows; active
-account, server-user, and profile boundaries remain unchanged.
-Ordinary Jellyfin/Emby retain library filtering. Empty feeds, display names,
-URLs, and advertised Jellyfin version numbers never enable this exception.
-Capability results are kept only for the current provider session; a missing
-endpoint retains ordinary scoping, while other failures and cancellation propagate.
-`JellyfinWatchHistoryScopeTests` covers the wire-key mapping, identity checks,
-library filtering, and provider-session capability lifetime.
+Library availability applies uniformly to combined Continue Watching, resume-only
+Home, and provider-style Resume/Next Up rows on Jellyfin and Emby. Disabled
+libraries do not contribute history. Scoped requests use the standard `ParentId`
+parameter and stamp the returned items with that library; `nil` scope retains the
+server-owned unscoped feed, while an empty scope makes no history requests.
+The synthetic Collections directory is never treated as a media library.
+This is separate from hiding a navigation tile or an individual Home row.
+
+No server-specific capability can override library availability, and an empty
+scoped feed never triggers an unscoped retry. A compatible server that cannot
+return library-scoped history may therefore show an empty row when libraries
+are disabled. History requests do not need a separate system-info probe.
+Account, server-user, and profile boundaries, independent-endpoint error handling,
+and cancellation remain unchanged. `JellyfinHistoryVisibilityTests` covers these
+scope rules for both providers, alongside the library-scoping and Home-layout
+suites.
 
 Home recommendations are opt-in individual rows on every platform. Their Home
 identity is the recommendation type and its occurrence within that type, not
