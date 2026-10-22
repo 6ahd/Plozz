@@ -179,6 +179,7 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
     /// Seconds of media buffered ahead of the current playback position.
     public var bufferedSecondsAhead: Double?
     public var engineBufferedSecondsAhead: Double?
+    public var sessionCache: EngineSessionCache?
     public var stallCount: Int?
     /// Cumulative dropped video frames reported by the access log.
     public var droppedVideoFrames: Int?
@@ -273,6 +274,7 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
         engineName: String? = nil,
         bufferedSecondsAhead: Double? = nil,
         engineBufferedSecondsAhead: Double? = nil,
+        sessionCache: EngineSessionCache? = nil,
         stallCount: Int? = nil,
         droppedVideoFrames: Int? = nil,
         frameRate: Double? = nil,
@@ -322,6 +324,7 @@ public struct PlaybackDiagnostics: Equatable, Sendable {
         self.engineName = engineName
         self.bufferedSecondsAhead = bufferedSecondsAhead
         self.engineBufferedSecondsAhead = engineBufferedSecondsAhead
+        self.sessionCache = sessionCache
         self.stallCount = stallCount
         self.droppedVideoFrames = droppedVideoFrames
         self.frameRate = frameRate

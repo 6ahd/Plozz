@@ -10,6 +10,10 @@ language every other module speaks.
 - The dual-provider abstraction: `MediaProvider` protocol, `ProviderKind`,
   `ProviderRegistry` / `ProviderResolving`, `ResolvedAccount`.
 - Cross-cutting UI state: `LoadState`, `AppError`.
+- `PlaybackReadAhead` and `LivePlaybackBuffer` are independent device-local
+  network/storage preferences, not profile settings. Both default to Automatic
+  and are excluded from profile transfer. `EngineSessionCache` carries active
+  temporary-cache usage and the engine's effective playback-safe budget.
 - `PlaybackDiagnosticReport` supplies privacy-safe failure Details for on-demand
   playback, Live TV and IPTV setup. Preserve typed reasons and numeric causes,
   distinguish preparation/opening/playback, and never export raw error text.

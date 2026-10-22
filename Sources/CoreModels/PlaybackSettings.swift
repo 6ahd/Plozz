@@ -121,6 +121,10 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
     /// `.original`, `false` → `.device`), migrated in the decoder below.
     public var audioLanguagePreference: AudioLanguagePreference
 
+    /// Spatial conversion for supported tvOS on-demand sessions. Keep the original
+    /// key so saved Off choices and transferred profile preferences survive.
+    public var trueHDAtmosEnabled: Bool
+
     /// Experimental Profile 7 FEL reconstruction. Off by default; applies to new
     /// on-demand sessions and uses channel-based audio without spatial information.
     public var dolbyVisionFELEnabled: Bool
@@ -165,6 +169,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         showUpNextCard: Bool = true,
         upNextLeadSeconds: Int = 30,
         audioLanguagePreference: AudioLanguagePreference = .original,
+        trueHDAtmosEnabled: Bool = true,
         dolbyVisionFELEnabled: Bool = false,
         rememberAudioTrackPerSeries: Bool = true,
         rememberSubtitleTrackPerSeries: Bool = true,
@@ -191,6 +196,7 @@ public struct PlaybackSettings: Codable, Equatable, Sendable {
         self.showUpNextCard = showUpNextCard
         self.upNextLeadSeconds = upNextLeadSeconds
         self.audioLanguagePreference = audioLanguagePreference
+        self.trueHDAtmosEnabled = trueHDAtmosEnabled
         self.dolbyVisionFELEnabled = dolbyVisionFELEnabled
         self.rememberAudioTrackPerSeries = rememberAudioTrackPerSeries
         self.rememberSubtitleTrackPerSeries = rememberSubtitleTrackPerSeries
@@ -242,6 +248,7 @@ public extension PlaybackSettings {
         case showUpNextCard
         case upNextLeadSeconds
         case audioLanguagePreference
+        case trueHDAtmosEnabled
         case dolbyVisionFELEnabled
         /// Legacy boolean predecessor of `audioLanguagePreference`, still read for
         /// migration (`true` → `.original`, `false` → `.device`).
@@ -267,8 +274,7 @@ public extension PlaybackSettings {
     /// `resumeRewindInterval` defaults to `.five` when absent — the maintainer
     /// wants the resume-rewind nudge on for upgrading installs too, not just fresh
     /// ones (`.off` is available for anyone who prefers exact resume).
-    /// The retired `trueHDAtmosEnabled` key is ignored, including in imported
-    /// profiles; height-channel conversion is no longer part of playback settings.
+    /// Spatial audio defaults on when absent, while an existing Off choice survives.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = PlaybackSettings.default
@@ -340,6 +346,9 @@ public extension PlaybackSettings {
         } else {
             self.audioLanguagePreference = defaults.audioLanguagePreference
         }
+        self.trueHDAtmosEnabled =
+            (try? container.decodeIfPresent(Bool.self, forKey: .trueHDAtmosEnabled))
+            .flatMap { $0 } ?? defaults.trueHDAtmosEnabled
         self.dolbyVisionFELEnabled =
             (try? container.decodeIfPresent(Bool.self, forKey: .dolbyVisionFELEnabled))
             .flatMap { $0 } ?? defaults.dolbyVisionFELEnabled
@@ -387,6 +396,7 @@ public extension PlaybackSettings {
         try container.encode(showUpNextCard, forKey: .showUpNextCard)
         try container.encode(upNextLeadSeconds, forKey: .upNextLeadSeconds)
         try container.encode(audioLanguagePreference, forKey: .audioLanguagePreference)
+        try container.encode(trueHDAtmosEnabled, forKey: .trueHDAtmosEnabled)
         try container.encode(dolbyVisionFELEnabled, forKey: .dolbyVisionFELEnabled)
         try container.encode(rememberAudioTrackPerSeries, forKey: .rememberAudioTrackPerSeries)
         try container.encode(rememberSubtitleTrackPerSeries, forKey: .rememberSubtitleTrackPerSeries)

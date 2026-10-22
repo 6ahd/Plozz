@@ -2346,7 +2346,13 @@ final class LiveChannelPlayerModel {
         } else {
             seekableWindow.map { $0.upperBound - snapshot.position }
         }
-        if let behind, behind.isFinite {
+        if pendingSeekTarget == nil, engine.liveStartupBuffer != .automatic,
+           let atLiveEdge = snapshot.isAtLiveEdge, let behind, behind.isFinite {
+            // The intentional cushion is part of the engine's safe live edge, not a user rewind.
+            isAtLiveEdge = atLiveEdge
+            if atLiveEdge, !userPaused { timeShifted = false }
+            behindLiveSeconds = atLiveEdge ? 0 : max(0, behind)
+        } else if let behind, behind.isFinite {
             // Back at the edge by any route ends the time shift.
             if !userPaused, behind <= Self.liveEdgeTolerance { timeShifted = false }
             isAtLiveEdge = !Self.isBehindLive(behind, timeShifted: timeShifted)
@@ -2524,7 +2530,8 @@ final class LiveChannelPlayerModel {
     }
 
     private func enforceStartupTimeout() {
-        guard uptime() - attemptStartedAt >= Self.startupTimeout else { return }
+        let timeout = Self.startupTimeout + (engine.liveStartupBuffer.seconds ?? 0)
+        guard uptime() - attemptStartedAt >= timeout else { return }
         fail(.startupTimedOut)
     }
 

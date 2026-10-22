@@ -1719,6 +1719,7 @@ public final class PlayerViewModel {
     ) async {
         endTemporarySpeedBoost()
         var request = request
+        request.trueHDAtmosEnabled = playbackSettings.trueHDAtmosEnabled
         request.dolbyVisionFELEnabled = playbackSettings.dolbyVisionFELEnabled
         dynamicRangeLoadGeneration &+= 1
         let rangeLoadGeneration = dynamicRangeLoadGeneration

@@ -151,7 +151,8 @@ struct LiveTVShellDestination: View {
                 makeEngine: {
                     library.makeEngine(
                         engine: try PlozzigenVideoEngine(
-                            authenticatedHTTPResolver: playback.authenticatedHTTPResolver
+                            authenticatedHTTPResolver: playback.authenticatedHTTPResolver,
+                            liveBufferPreference: { LivePlaybackBufferStore().load() }
                         ),
                         onCompleted: completeLibraryChannelPlayback
                     )
