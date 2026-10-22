@@ -472,9 +472,13 @@ compatibility; new account/file imports use the disk-backed path.
 
 Source setup appears only after the initial source reload, server enrollment,
 and library-catalog restoration have established that there are no channels.
-On iPhone and iPad, onboarding reveals the same full-page background as the
-guide instead of painting an inset Settings-colored panel. Source icons use the
-theme accent; server-enrollment status sits below a divider as secondary context.
+Onboarding reveals the same full-page background as the guide instead of painting
+an inset Settings-colored panel. On tvOS, the page owns the gradient behind the
+top navigation and source choices; empty setup has no video-legibility scrim.
+Source choices use the shared detail-card controls and page-aligned gradient
+surface, with solid fills when gradients or transparency are disabled.
+On iPhone and iPad, source icons use the theme accent; server-enrollment status
+sits below a divider as secondary context.
 Light, dark, black, and the gradient-background preference remain respected.
 Pending catalogs keep the page layout in place with non-focusable skeletons for
 the info artwork/text, category column, channel logos, and programme cells. They
