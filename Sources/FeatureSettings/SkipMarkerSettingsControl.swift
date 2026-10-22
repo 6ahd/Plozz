@@ -142,10 +142,10 @@ private struct SkipMarkerRuleControls: View {
                 SettingsStepper(
                     options: PlaybackSettings.skipAutomaticDelayOptions,
                     selection: delay, label: "Skip after",
-                    verbatimTitle: { seconds in
+                    textTitle: { seconds in
                         seconds == 0
-                            ? String(localized: LocalizedStringResource("Immediately", locale: locale))
-                            : Duration.seconds(seconds).formatted(.units(allowed: [.seconds], width: .wide).locale(locale))
+                            ? Text("Immediately")
+                            : Text(Duration.seconds(seconds), format: .units(allowed: [.seconds], width: .wide).locale(locale))
                     }
                 )
                 .accessibilityIdentifier("skip-delay-\(identifier)")

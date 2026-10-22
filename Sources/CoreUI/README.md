@@ -301,6 +301,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   `SettingsAdjustmentFocusScope` shares the player's horizontal input ownership,
   held-press cancellation, and navigation-rail protection. VoiceOver adjustment
   uses the same stepping operation. Mobile retains separate buttons.
+  Use `textTitle` for mixed localized labels and formatted values, such as
+  Immediately or a duration; do not resolve localized copy into `verbatimTitle`.
   Optional range labels replace the numeric display with a bounded track, retaining
   the same input owner, native focus styling, clamping, and accessibility actions.
 - **Hero logo size** — `HeroLogoSizing` supplies the existing default bounds and
