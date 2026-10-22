@@ -109,7 +109,13 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
             window.rootViewController = nil
             previous?.makeKeyAndVisible()
         }
-        for locale in ["en_US", "de_DE"] {
+        for (locale, language) in [("en_US", "en"), ("de_DE", "de")] {
+            let bundleURL = try XCTUnwrap(Bundle.main.url(forResource: language, withExtension: "lproj"))
+            let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+            let cacheLabel = bundle.localizedString(forKey: "Playback cache", value: nil, table: "Localizable")
+            if language != "en" {
+                XCTAssertNotEqual(cacheLabel, "Playback cache", "The cache label must be translated.")
+            }
             for hasCache in [true, false] {
                 var diagnostics = fixture(mode: .plozzigen)
                 diagnostics.sessionCache = hasCache
@@ -133,7 +139,7 @@ final class PlaybackDiagnosticsLocalizationTests: XCTestCase {
                 }
                 let text = try renderedText(XCTUnwrap(image.cgImage), locale: locale)
                 XCTAssertFalse(text.isEmpty, "Require the actual hosted diagnostics, not an empty snapshot.")
-                XCTAssertEqual(text.contains("Playback cache"), hasCache, text)
+                XCTAssertEqual(normalized(text).contains(normalized(cacheLabel)), hasCache, text)
                 if hasCache {
                     XCTAssertTrue(text.contains(locale == "en_US" ? "1.5" : "1,5"), text)
                     XCTAssertTrue(text.contains("0"), text)

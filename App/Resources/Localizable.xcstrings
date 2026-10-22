@@ -99467,6 +99467,226 @@
         }
       }
     },
+    "10 seconds" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 ثوانٍ"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 секунди"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 segons"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekund"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekunder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 Sekunden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 δευτερόλεπτα"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 segundos"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 ثانیه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekuntia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 secondes"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 שניות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 सेकंड"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekundi"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 másodperc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 detik"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 secondi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10秒"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10초"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 saat"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekunder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 seconden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekund"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 segundos"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 secunde"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 секунд"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekúnd"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekund"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekundi"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 sekunder"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 วินาที"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 saniye"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 секунд"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10 giây"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10秒"
+          }
+        }
+      }
+    },
     "1080p · 20 Mbps" : {
       "localizations" : {
         "ar" : {
@@ -100127,6 +100347,226 @@
         }
       }
     },
+    "20 seconds" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 ثانية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 секунди"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 segons"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekund"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekunder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 Sekunden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 δευτερόλεπτα"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 segundos"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 ثانیه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekuntia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 secondes"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 שניות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 सेकंड"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekundi"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 másodperc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 detik"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 secondi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20秒"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20초"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 saat"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekunder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 seconden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekund"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 segundos"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 de secunde"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 секунд"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekúnd"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekund"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekundi"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 sekunder"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 วินาที"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 saniye"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 секунд"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20 giây"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "20秒"
+          }
+        }
+      }
+    },
     "240p · 500 Kbps" : {
       "localizations" : {
         "ar" : {
@@ -100563,6 +101003,446 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "25 Mbps"
+          }
+        }
+      }
+    },
+    "30 seconds" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 ثانية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 секунди"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 segons"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekund"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekunder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 Sekunden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 δευτερόλεπτα"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 segundos"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 ثانیه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekuntia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 secondes"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 שניות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 सेकंड"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekundi"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 másodperc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 detik"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 secondi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30秒"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30초"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 saat"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekunder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 seconden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekund"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 segundos"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 de secunde"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 секунд"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekúnd"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekund"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekundi"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 sekunder"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 วินาที"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 saniye"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 секунд"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30 giây"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30秒"
+          }
+        }
+      }
+    },
+    "45 seconds" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 ثانية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 секунди"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 segons"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekund"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekunder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 Sekunden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 δευτερόλεπτα"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 segundos"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 ثانیه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekuntia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 secondes"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 שניות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 सेकंड"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekundi"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 másodperc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 detik"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 secondi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45秒"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45초"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 saat"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekunder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 seconden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekund"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 segundos"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 de secunde"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 секунд"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekúnd"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekund"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekundi"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 sekunder"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 วินาที"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 saniye"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 секунд"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45 giây"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "45秒"
           }
         }
       }
@@ -229259,6 +230139,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "延續劇情"
+          }
+        }
+      }
+    },
+    "Converts TrueHD Atmos and DTS:X to Apple spatial audio (lossy)." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يحوّل TrueHD Atmos وDTS:X إلى صوت Apple المكاني (بضغط فاقد)."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Преобразува TrueHD Atmos и DTS:X в пространствено аудио на Apple (със загуби)."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Converteix TrueHD Atmos i DTS:X en àudio espacial d’Apple (amb pèrdua)."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Převádí TrueHD Atmos a DTS:X na prostorový zvuk Apple (ztrátově)."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Konverterer TrueHD Atmos og DTS:X til rumlig lyd fra Apple (med tab)."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wandelt TrueHD Atmos und DTS:X in räumliches Audio von Apple um (verlustbehaftet)."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Μετατρέπει τα TrueHD Atmos και DTS:X σε χωρικό ήχο της Apple (με απώλειες)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Convierte TrueHD Atmos y DTS:X en audio espacial de Apple (con pérdida)."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHD Atmos و DTS:X را به صدای فضایی Apple تبدیل می‌کند (با اتلاف)."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Muuntaa TrueHD Atmos- ja DTS:X-äänen Applen tilaääneksi (häviöllinen muunnos)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Convertit TrueHD Atmos et DTS:X en audio spatial Apple (avec perte)."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ממיר TrueHD Atmos ו-DTS:X לשמע מרחבי של Apple (עם אובדן מידע)."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHD Atmos और DTS:X को Apple स्थानिक ऑडियो में बदलता है (हानिपूर्ण)।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pretvara TrueHD Atmos i DTS:X u Appleov prostorni zvuk (s gubicima)."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A TrueHD Atmos és DTS:X hangot Apple térbeli hanggá alakítja (veszteséges)."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mengonversi TrueHD Atmos dan DTS:X ke audio spasial Apple (lossy)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Converte TrueHD Atmos e DTS:X in audio spaziale Apple (con perdita di qualità)."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHD AtmosとDTS:XをAppleの空間オーディオに変換します（非可逆圧縮）。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHD Atmos와 DTS:X를 Apple 공간 음향으로 변환합니다(손실 압축)."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Menukar TrueHD Atmos dan DTS:X kepada audio ruang Apple (dengan kehilangan data)."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Konverterer TrueHD Atmos og DTS:X til Apples romtilpassede lyd (med tap)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zet TrueHD Atmos en DTS:X om naar ruimtelijke audio van Apple (met verlies)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Konwertuje TrueHD Atmos i DTS:X na dźwięk przestrzenny Apple (z kompresją stratną)."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Converte TrueHD Atmos e DTS:X em áudio espacial da Apple (com perdas)."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Convertește TrueHD Atmos și DTS:X în audio spațial Apple (cu pierderi)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Преобразует TrueHD Atmos и DTS:X в пространственное аудио Apple (с потерями)."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prevádza TrueHD Atmos a DTS:X na priestorový zvuk Apple (so stratou kvality)."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pretvori TrueHD Atmos in DTS:X v prostorski zvok družbe Apple (z izgubami)."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pretvara TrueHD Atmos i DTS:X u prostorni zvuk kompanije Apple (sa gubicima)."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Konverterar TrueHD Atmos och DTS:X till Apples rumsliga ljud (förlustkomprimerat)."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แปลง TrueHD Atmos และ DTS:X เป็นเสียงเชิงพื้นที่ของ Apple (แบบสูญเสียข้อมูล)"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "TrueHD Atmos ve DTS:X'i Apple uzamsal sesine dönüştürür (kayıplı)."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Перетворює TrueHD Atmos і DTS:X на просторове аудіо Apple (із втратами)."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Chuyển TrueHD Atmos và DTS:X thành âm thanh không gian của Apple (nén mất dữ liệu)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "将 TrueHD Atmos 和 DTS:X 转换为 Apple 空间音频（有损）。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "將 TrueHD Atmos 和 DTS:X 轉換為 Apple 空間音訊（有損）。"
           }
         }
       }
@@ -396310,6 +397410,7 @@
       }
     },
     "Larger buffers use more storage. Unavailable with Apple’s native player." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -396525,6 +397626,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "緩衝越大，使用的儲存空間越多。不適用於 Apple 內建播放器。"
+          }
+        }
+      }
+    },
+    "Larger buffers use more temporary storage. Duration depends on the video and available space. Unavailable with Apple’s native player." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "تستخدم المخازن المؤقتة الأكبر مساحة تخزين مؤقتة أكبر. تعتمد المدة على الفيديو والمساحة المتاحة. غير متاح مع مشغّل Apple الأصلي."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "По-големите буфери използват повече временно място за съхранение. Продължителността зависи от видеото и наличното място. Не е налично с вградения плейър на Apple."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les memòries intermèdies més grans ocupen més espai d’emmagatzematge temporal. La durada depèn del vídeo i de l’espai disponible. No està disponible amb el reproductor natiu d’Apple."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Větší vyrovnávací paměť zabírá více dočasného úložiště. Délka závisí na videu a dostupném místě. Není k dispozici s nativním přehrávačem Apple."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Større buffere bruger mere midlertidig lagerplads. Varigheden afhænger af videoen og den tilgængelige plads. Ikke tilgængelig med Apples indbyggede afspiller."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Größere Puffer benötigen mehr temporären Speicherplatz. Die Dauer hängt vom Video und dem verfügbaren Platz ab. Mit Apples nativem Player nicht verfügbar."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Οι μεγαλύτερες προσωρινές μνήμες χρησιμοποιούν περισσότερο προσωρινό χώρο αποθήκευσης. Η διάρκεια εξαρτάται από το βίντεο και τον διαθέσιμο χώρο. Δεν διατίθεται με το εγγενές πρόγραμμα αναπαραγωγής της Apple."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Los búferes más grandes utilizan más almacenamiento temporal. La duración depende del vídeo y del espacio disponible. No disponible con el reproductor nativo de Apple."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بافرهای بزرگ‌تر از فضای ذخیره‌سازی موقت بیشتری استفاده می‌کنند. مدت‌زمان بافر به ویدیو و فضای موجود بستگی دارد. با پخش‌کنندهٔ بومی Apple در دسترس نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suuremmat puskurit käyttävät enemmän tilapäistä tallennustilaa. Kesto riippuu videosta ja käytettävissä olevasta tilasta. Ei käytettävissä Applen natiivisoittimella."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Les mémoires tampons plus grandes utilisent davantage d’espace de stockage temporaire. La durée dépend de la vidéo et de l’espace disponible. Indisponible avec le lecteur natif d’Apple."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מאגרים גדולים יותר משתמשים בשטח אחסון זמני רב יותר. משך האגירה תלוי בווידאו ובשטח הזמין. לא זמין בנגן המובנה של Apple."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "बड़े बफ़र ज़्यादा अस्थायी स्टोरेज का उपयोग करते हैं। अवधि वीडियो और उपलब्ध जगह पर निर्भर करती है। Apple के मूल प्लेयर के साथ उपलब्ध नहीं है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veći međuspremnici zauzimaju više privremenog prostora za pohranu. Trajanje ovisi o videozapisu i dostupnom prostoru. Nije dostupno s Appleovim izvornim reproduktorom."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A nagyobb pufferek több ideiglenes tárhelyet használnak. Az időtartam a videótól és a rendelkezésre álló helytől függ. Az Apple natív lejátszójával nem érhető el."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer yang lebih besar menggunakan lebih banyak penyimpanan sementara. Durasi bergantung pada video dan ruang yang tersedia. Tidak tersedia dengan pemutar bawaan Apple."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "I buffer più grandi utilizzano più spazio di archiviazione temporaneo. La durata dipende dal video e dallo spazio disponibile. Non disponibile con il lettore nativo di Apple."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "バッファを大きくすると、一時ストレージの使用量が増えます。バッファに蓄えられる動画の長さは、動画と空き容量によって異なります。Appleの標準プレーヤーでは利用できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "버퍼가 클수록 임시 저장 공간을 더 많이 사용합니다. 버퍼 시간은 동영상과 사용 가능한 공간에 따라 달라집니다. Apple 기본 플레이어에서는 사용할 수 없습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penimbal yang lebih besar menggunakan lebih banyak storan sementara. Tempoh penimbal bergantung pada video dan ruang yang tersedia. Tidak tersedia dengan pemain terbina dalam Apple."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Større buffere bruker mer midlertidig lagringsplass. Bufferens varighet avhenger av videoen og tilgjengelig plass. Ikke tilgjengelig med Apples innebygde spiller."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grotere buffers gebruiken meer tijdelijke opslagruimte. De bufferduur hangt af van de video en de beschikbare ruimte. Niet beschikbaar met de ingebouwde speler van Apple."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Większe bufory zajmują więcej tymczasowej przestrzeni dyskowej. Długość bufora zależy od wideo i dostępnego miejsca. Niedostępne w natywnym odtwarzaczu Apple."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffers maiores usam mais armazenamento temporário. A duração do buffer depende do vídeo e do espaço disponível. Indisponível com o player nativo da Apple."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bufferele mai mari folosesc mai mult spațiu de stocare temporară. Durata depinde de conținutul video și de spațiul disponibil. Indisponibil cu playerul nativ Apple."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Буферы большего размера временно занимают больше места в хранилище. Длительность зависит от видео и свободного места. Недоступно во встроенном плеере Apple."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Väčšie vyrovnávacie pamäte dočasne zaberajú viac miesta v úložisku. Dĺžka závisí od videa a dostupného miesta. Nie je k dispozícii so vstavaným prehrávačom Apple."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Večji medpomnilniki uporabljajo več začasnega prostora za shranjevanje. Trajanje je odvisno od videoposnetka in razpoložljivega prostora. Ni na voljo z vgrajenim predvajalnikom družbe Apple."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veći baferi privremeno zauzimaju više prostora za skladištenje. Trajanje zavisi od videa i dostupnog prostora. Nije dostupno uz ugrađeni plejer kompanije Apple."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Större buffertar använder mer tillfälligt lagringsutrymme. Längden beror på videon och det tillgängliga utrymmet. Inte tillgängligt med Apples inbyggda spelare."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "บัฟเฟอร์ที่ใหญ่ขึ้นใช้พื้นที่จัดเก็บชั่วคราวมากขึ้น ระยะเวลาบัฟเฟอร์ขึ้นอยู่กับวิดีโอและพื้นที่ว่าง ใช้ไม่ได้กับตัวเล่นในตัวของ Apple"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Daha büyük arabellekler daha fazla geçici depolama alanı kullanır. Arabellek süresi, videoya ve kullanılabilir alana bağlıdır. Apple'ın yerleşik oynatıcısıyla kullanılamaz."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Більші буфери займають більше місця для тимчасового зберігання. Тривалість буфера залежить від відео та вільного місця. Недоступно у вбудованому програвачі Apple."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bộ đệm lớn hơn sử dụng nhiều dung lượng lưu trữ tạm thời hơn. Thời lượng bộ đệm phụ thuộc vào video và dung lượng trống. Không khả dụng với trình phát gốc của Apple."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "更大的缓冲区会占用更多临时存储空间。缓冲时长取决于视频和可用空间。使用 Apple 原生播放器时不可用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "較大的緩衝區會占用更多暫存空間。緩衝時間取決於影片和可用空間。無法搭配 Apple 原生播放器使用。"
           }
         }
       }
@@ -409754,6 +411075,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "直播電視存取遭拒"
+          }
+        }
+      }
+    },
+    "Live TV buffer" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "التخزين المؤقت للبث التلفزيوني المباشر"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Буфер за телевизия на живо"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memòria intermèdia de TV en directe"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyrovnávací paměť živé TV"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer til live-tv"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-TV-Puffer"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Προσωρινή μνήμη ζωντανής TV"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Búfer de TV en directo"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بافر تلویزیون زنده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suoran TV-lähetyksen puskuri"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mémoire tampon de la TV en direct"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מאגר לטלוויזיה בשידור חי"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "लाइव टीवी बफ़र"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Međuspremnik TV-a uživo"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Élő TV puffere"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer TV langsung"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer della TV in diretta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ライブTVのバッファ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "실시간 TV 버퍼"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Penimbal TV langsung"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer for direkte-TV"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Live-tv-buffer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bufor telewizji na żywo"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer de TV ao vivo"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer pentru TV în direct"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Буфер прямого эфира"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyrovnávacia pamäť živej TV"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Medpomnilnik TV v živo"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bafer za TV uživo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffert för direktsänd TV"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "บัฟเฟอร์ทีวีสด"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Canlı TV arabelleği"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Буфер прямого ефіру"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bộ đệm TV trực tiếp"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "直播电视缓冲"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "直播電視緩衝"
           }
         }
       }
@@ -445400,6 +446941,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "更多 App"
+          }
+        }
+      }
+    },
+    "More buffering can reduce interruptions, but adds live delay and may slow channel changes." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "قد تقلّل زيادة التخزين المؤقت من الانقطاعات، لكنها تزيد تأخير البث المباشر وقد تبطئ تبديل القنوات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "По-големият буфер може да намали прекъсванията, но увеличава забавянето спрямо ефира и може да забави смяната на канали."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Una memòria intermèdia més gran pot reduir les interrupcions, però afegeix retard al directe i pot alentir els canvis de canal."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Větší vyrovnávací paměť může omezit přerušování, ale zvyšuje zpoždění živého vysílání a může zpomalit přepínání kanálů."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mere buffering kan reducere afbrydelser, men øger forsinkelsen på live-tv og kan gøre kanalskift langsommere."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mehr Pufferung kann Unterbrechungen reduzieren, erhöht aber die Live-Verzögerung und kann Kanalwechsel verlangsamen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Η μεγαλύτερη προσωρινή μνήμη μπορεί να μειώσει τις διακοπές, αλλά αυξάνει την καθυστέρηση της ζωντανής μετάδοσης και μπορεί να επιβραδύνει την αλλαγή καναλιών."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Un búfer mayor puede reducir las interrupciones, pero añade retraso al directo y puede ralentizar los cambios de canal."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "بافر بیشتر می‌تواند وقفه‌ها را کاهش دهد، اما تأخیر پخش زنده را افزایش می‌دهد و ممکن است تعویض کانال را کندتر کند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Suurempi puskuri voi vähentää katkoksia, mutta lisää suoran lähetyksen viivettä ja voi hidastaa kanavanvaihtoa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Une mise en mémoire tampon plus importante peut réduire les interruptions, mais augmente le décalage du direct et peut ralentir les changements de chaîne."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "אגירה רבה יותר יכולה לצמצם קטיעות, אך מוסיפה השהיה לשידור החי ועלולה להאט את החלפת הערוצים."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ज़्यादा बफ़रिंग रुकावटें कम कर सकती है, लेकिन लाइव प्रसारण में देरी बढ़ाती है और चैनल बदलने में ज़्यादा समय लग सकता है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veći međuspremnik može smanjiti prekide, ali povećava kašnjenje prijenosa uživo i može usporiti promjenu kanala."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A nagyobb puffer csökkentheti a megszakításokat, de növeli az élő adás késleltetését, és lassíthatja a csatornaváltást."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Buffer yang lebih besar dapat mengurangi gangguan, tetapi menambah jeda siaran langsung dan dapat memperlambat perpindahan saluran."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Un buffer maggiore può ridurre le interruzioni, ma aumenta il ritardo della diretta e può rallentare i cambi di canale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "バッファを増やすと中断を減らせますが、ライブ配信の遅延が増え、チャンネルの切り替えに時間がかかる場合があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "버퍼를 늘리면 끊김을 줄일 수 있지만 실시간 방송 지연이 늘어나고 채널 전환이 느려질 수 있습니다."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lebih banyak penimbalan boleh mengurangkan gangguan, tetapi menambah kelewatan siaran langsung dan mungkin melambatkan pertukaran saluran."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mer bufring kan redusere avbrudd, men øker forsinkelsen på direktesendingen og kan gjøre kanalbytte tregere."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Meer buffering kan onderbrekingen verminderen, maar vergroot de vertraging bij live-tv en kan het wisselen van zenders vertragen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Większy bufor może ograniczyć przerwy, ale zwiększa opóźnienie transmisji na żywo i może spowolnić zmianę kanałów."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Um buffer maior pode reduzir interrupções, mas aumenta o atraso da transmissão ao vivo e pode tornar a troca de canais mais lenta."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Un buffer mai mare poate reduce întreruperile, dar mărește întârzierea transmisiei în direct și poate încetini schimbarea canalelor."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Увеличение буфера может сократить прерывания, но увеличивает задержку прямого эфира и может замедлить переключение каналов."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Väčšia vyrovnávacia pamäť môže obmedziť prerušovanie, ale zvyšuje oneskorenie živého vysielania a môže spomaliť prepínanie kanálov."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Večji medpomnilnik lahko zmanjša prekinitve, vendar poveča zakasnitev prenosa v živo in lahko upočasni menjavo kanalov."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veći bafer može smanjiti prekide, ali povećava kašnjenje prenosa uživo i može usporiti promenu kanala."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mer buffring kan minska avbrotten, men ökar fördröjningen i direktsändningen och kan göra kanalbyten långsammare."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "การเพิ่มบัฟเฟอร์อาจลดการสะดุด แต่เพิ่มความล่าช้าของการถ่ายทอดสดและอาจทำให้เปลี่ยนช่องช้าลง"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Daha fazla arabelleğe alma, kesintileri azaltabilir ancak canlı yayın gecikmesini artırır ve kanal geçişlerini yavaşlatabilir."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Більший буфер може зменшити переривання, але збільшує затримку прямого ефіру й може сповільнити перемикання каналів."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tăng bộ đệm có thể giảm gián đoạn nhưng làm tăng độ trễ của chương trình trực tiếp và có thể khiến việc chuyển kênh chậm hơn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "增加缓冲可减少播放中断，但会增加直播延迟，也可能减慢换台速度。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "增加緩衝可減少播放中斷，但會增加直播延遲，也可能減慢轉台速度。"
           }
         }
       }
@@ -534938,6 +536699,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "播放同步"
+          }
+        }
+      }
+    },
+    "Playback cache" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ذاكرة التخزين المؤقت للتشغيل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Кеш за възпроизвеждане"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Memòria cau de reproducció"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Mezipaměť přehrávání"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afspilningscache"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wiedergabecache"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Κρυφή μνήμη αναπαραγωγής"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Caché de reproducción"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "حافظهٔ نهان پخش"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Toiston välimuisti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cache de lecture"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "מטמון ניגון"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "प्लेबैक कैश"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Predmemorija reprodukcije"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lejátszási gyorsítótár"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cache pemutaran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cache di riproduzione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "再生キャッシュ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "재생 캐시"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cache main balik"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hurtigbuffer for avspilling"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Afspeelcache"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pamięć podręczna odtwarzania"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cache de reprodução"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cache de redare"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Кэш воспроизведения"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vyrovnávacia pamäť prehrávania"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Predpomnilnik predvajanja"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Keš reprodukcije"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uppspelningscache"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "แคชการเล่น"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oynatma önbelleği"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Кеш відтворення"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Bộ nhớ đệm khi phát"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "播放缓存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "播放快取"
           }
         }
       }
@@ -734906,6 +736887,226 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "空間音訊"
+          }
+        }
+      }
+    },
+    "Spatial audio (height channel support)" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "الصوت المكاني (دعم قنوات الارتفاع)"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пространствено аудио (поддръжка на височинни канали)"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Àudio espacial (compatibilitat amb canals d’altura)"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorový zvuk (podpora výškových kanálů)"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rumlig lyd (understøttelse af højdekanaler)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Räumliches Audio (Unterstützung für Höhenkanäle)"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Χωρικός ήχος (υποστήριξη καναλιών ύψους)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio espacial (compatibilidad con canales de altura)"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "صدای فضایی (پشتیبانی از کانال‌های ارتفاعی)"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tilaääni (korkeuskanavien tuki)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spatial (prise en charge des canaux de hauteur)"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "שמע מרחבי (תמיכה בערוצי גובה)"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "स्थानिक ऑडियो (ऊँचाई वाले चैनलों का समर्थन)"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorni zvuk (podrška za visinske kanale)"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Térbeli hang (magassági csatornák támogatása)"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spasial (dukungan saluran ketinggian)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spaziale (supporto dei canali di altezza)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空間オーディオ（ハイトチャンネル対応）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "공간 음향(높이 채널 지원)"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio ruang (sokongan saluran ketinggian)"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Romtilpasset lyd (støtte for høydekanaler)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ruimtelijke audio (ondersteuning voor hoogtekanalen)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dźwięk przestrzenny (obsługa kanałów wysokościowych)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Áudio espacial (suporte a canais de altura)"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Audio spațial (suport pentru canale de înălțime)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Пространственное аудио (поддержка высотных каналов)"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Priestorový zvuk (podpora výškových kanálov)"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorski zvok (podpora višinskim kanalom)"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prostorni zvuk (podrška za visinske kanale)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rumsligt ljud (stöd för höjdkanaler)"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "เสียงเชิงพื้นที่ (รองรับช่องเสียงด้านบน)"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uzamsal ses (yükseklik kanalı desteği)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Просторове аудіо (підтримка висотних каналів)"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Âm thanh không gian (hỗ trợ kênh âm thanh trên cao)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空间音频（支持高度声道）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空間音訊（支援高度聲道）"
           }
         }
       }
