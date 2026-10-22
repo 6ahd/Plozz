@@ -75,6 +75,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     public private(set) var furthestObservedPosition: TimeInterval = 0
     public private(set) var audioTracks: [MediaTrack] = []
     public private(set) var subtitleTracks: [MediaTrack] = []
+    public private(set) var chapters: [MediaChapter] = []
     private var sourceFormatCancellable: AnyCancellable?
     private var probePublicationGate = PlozzigenProbePublicationGate()
     private var liveAttemptGate = PlozzigenLiveAttemptGate()
@@ -279,6 +280,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     /// Fired after `syncTracks()` re-reads AetherEngine's async-published track
     /// lists, so the VM can repopulate its (otherwise-empty-at-load) options menu.
     public var onTracksChanged: (@MainActor () -> Void)?
+    public var onChaptersChanged: (@MainActor () -> Void)?
     public var onProbedSourceFactsChanged: (@MainActor (EngineProbedSourceFacts) -> Void)?
     /// Fired with AetherEngine's decoded subtitle cues (text + bitmap), mapped to
     /// Plozz's cue model, so the owned overlay draws them. This is the decoded
@@ -424,6 +426,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
         defer { finishOutputLoad(outputGeneration, policy: outputPolicy) }
         endLiveAttempt()
         let probeGeneration = probePublicationGate.beginLoad()
+        chapters = []
         sourceFormatCancellable?.cancel()
         sourceFormatCancellable = nil
         suppressFailureCallbackForForegroundReload = false
@@ -540,6 +543,10 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
                 generation: probeGeneration
             )
             beginObservingLateSourceFormatChanges(generation: probeGeneration)
+            chapters = MediaChapter.normalized(engine.mediaChapters.map {
+                MediaChapter(start: $0.startSeconds, title: $0.name)
+            }, duration: engine.duration)
+            onChaptersChanged?()
             engine.play()
             syncTracks()
         } catch {
@@ -568,6 +575,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
 
     public func loadLive(url: URL, httpHeaders: [String: String]) async {
         guard let outputGeneration = await beginOutputLoad() else { return }
+        chapters = []
         streamingFailure = nil
         liveScrubThumbnails = LiveHLSScrubThumbnails(playlistURL: url, headers: httpHeaders) { [weak self] in
             (self?.engine.currentAVPlayer?.currentItem?.accessLog()?.events.last?.uri).flatMap(URL.init(string:))
@@ -1091,6 +1099,7 @@ public final class PlozzigenVideoEngine: VideoEngine, LiveChannelEngine {
     }
 
     private func stopEngine(resetDisplayCriteria: Bool) {
+        chapters = []
         liveScrubThumbnails = nil
         bypassAudioTask?.cancel()
         bypassAudioTask = nil

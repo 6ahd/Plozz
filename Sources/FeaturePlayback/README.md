@@ -78,9 +78,11 @@ watchdog, periodic reload or engine-phase inference is added. See
 ## Player appearance
 
 On tvOS, iPhone, and iPad, **Chapters** joins the bottom player tabs only when the
-playback request supplies usable chapter positions. The shared card shows server
-titles (or numbered chapter labels), start times, available server thumbnails,
-and the current chapter. Selecting a chapter closes the card and uses the normal
+server metadata or the playing file supplies usable chapter positions. Individual
+chapter cards scroll without an enclosing glass panel, with viewport insets
+preserved when opening at the current chapter. They show titles (or numbered chapter
+labels), start times, available server thumbnails, and the current chapter.
+Selecting a chapter closes the panel and uses the normal
 seek coordinator, preserving play/pause intent. Existing skip buttons and intro/
 credits controls are unchanged. Mobile tabs scroll horizontally when needed.
 
@@ -88,9 +90,14 @@ Plex, Jellyfin, and Emby supply chapters through their existing playback metadat
 requests; Emby intro/credit markers are excluded. Invalid, duplicate, and
 out-of-duration positions are omitted. Missing thumbnails do not hide chapters.
 Existing episode spoiler protection also applies to chapter names and images.
-Chapters are not synthesized, fetched from external metadata services, or
-extracted from files locally: sources without server chapter metadata (including
-current offline playback) do not show the tab.
+Usable server chapters take precedence, preserving their titles and thumbnails.
+Otherwise, Plozzigen exposes container chapters from its existing file load (including
+MKV/MP4 over network shares and direct URLs); native playback asynchronously reads
+chapter metadata from the already authorized AVAsset, including local downloads.
+This does not add a second file probe or fetch chapter metadata from external
+services. Engine/load generation guards reject late results after replacement or
+stop. Files without chapters still have no tab. Title-relative DVD/Blu-ray chapters
+are not exposed by this container fallback.
 
 On tvOS, the shared Audio menu offers **Reduce Loud Sounds** and **Enhance
 Dialogue** when Apple TV reports support for the current output. These are

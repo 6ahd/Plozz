@@ -10,6 +10,62 @@ import UIKit
 
 @MainActor
 final class StreamingPlaybackTests: XCTestCase {
+    func testEmbeddedChaptersAppearAfterLoadWithoutServerMetadata() async {
+        let (model, engine, _) = make()
+        engine.loadChapters = [.init(start: 180, title: "From file"), .init(start: 0)]
+        await model.load()
+        XCTAssertEqual(model.controls.infoCard.chapters.map(\.start), [0, 180])
+        model.setPaused(true)
+        model.seekToChapter(engine.loadChapters[0])
+        await wait { engine.currentTime == 180 && !model.controls.isSeeking }
+        XCTAssertTrue(engine.isPaused)
+        await model.stop()
+    }
+
+    func testLateEmbeddedChaptersPreserveServerMetadataAndArtwork() async {
+        for serverHasChapters in [false, true] {
+            let (model, engine, provider) = make()
+            let server = MediaChapter(
+                start: 0, title: "Server title", imageURL: URL(string: "https://fixture.invalid/chapter.jpg")
+            )
+            await provider.setChapters(serverHasChapters ? [server] : [])
+            await model.load()
+            let embedded = [MediaChapter(start: 0, title: "File title"), .init(start: 90)]
+            engine.chapters = embedded
+            engine.onChaptersChanged?()
+            XCTAssertEqual(model.controls.infoCard.chapters, serverHasChapters ? [server] : embedded)
+            await model.stop()
+        }
+    }
+
+    func testUnusableServerChaptersAllowEmbeddedFallback() async {
+        let (model, engine, provider) = make()
+        await provider.setChapters([.init(start: -1), .init(start: 900)])
+        engine.loadChapters = [.init(start: 0, title: "File title")]
+        await model.load()
+        XCTAssertEqual(model.controls.infoCard.chapters, engine.loadChapters)
+        await model.stop()
+    }
+
+    func testOldChapterCallbacksCannotPublishAfterReloadOrStop() async {
+        let (model, engine, _) = make()
+        engine.loadChapters = [.init(start: 0), .init(start: 180)]
+        await model.load()
+        let outgoingCallback = engine.onChaptersChanged
+        engine.loadChapters = []
+        model.changeStreamingOptions(.init(quality: .sd480))
+        await wait { engine.positions.count == 2 && model.phase == .ready }
+        XCTAssertTrue(model.controls.infoCard.chapters.isEmpty)
+        engine.chapters = [.init(start: 60, title: "Stale")]
+        outgoingCallback?()
+        XCTAssertTrue(model.controls.infoCard.chapters.isEmpty)
+        let stoppedCallback = engine.onChaptersChanged
+        await model.stop()
+        stoppedCallback?()
+        XCTAssertTrue(model.controls.infoCard.chapters.isEmpty)
+        XCTAssertNil(engine.onChaptersChanged)
+    }
+
     func testChaptersReachControlsSeekThroughTransportAndClearOnStop() async {
         for paused in [false, true] {
             let (model, engine, provider) = make()
@@ -1292,6 +1348,8 @@ private final class QualityEngine: VideoEngine {
     var furthestObservedPosition: TimeInterval = 0
     var audioTracks: [MediaTrack] = []
     var subtitleTracks: [MediaTrack] = []
+    var chapters: [MediaChapter] = []
+    var loadChapters: [MediaChapter] = []
     var currentAudioTrackID: Int?
     var selectedSubtitleID: Int?
     var onPause: (@MainActor () -> Void)?
@@ -1302,6 +1360,7 @@ private final class QualityEngine: VideoEngine {
     var onFailure: (@MainActor (AppError) -> Void)?
     var onEnded: (@MainActor () -> Void)?
     var onTracksChanged: (@MainActor () -> Void)?
+    var onChaptersChanged: (@MainActor () -> Void)?
     var onProbedSourceFactsChanged: (@MainActor (EngineProbedSourceFacts) -> Void)?
     var onSubtitleCues: (@MainActor ([SubtitleCue]) -> Void)?
     var onSecondarySubtitleCues: (@MainActor ([SubtitleCue]) -> Void)?
@@ -1314,6 +1373,7 @@ private final class QualityEngine: VideoEngine {
         currentTime = startPosition
         audioTracks = request.audioTracks
         subtitleTracks = request.subtitleTracks
+        chapters = loadChapters
         currentAudioTrackID = request.streamingOptions?.audioTrack?.id ?? 3
         selectedSubtitleID = nil
         status = .ready

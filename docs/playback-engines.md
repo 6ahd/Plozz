@@ -107,6 +107,32 @@ After the final seek, the live test observes another 60 seconds and requires
 more than 58 seconds of playhead advancement. This is a bounded continued-playback
 check, not proof of complete-film playback or physical-device frame smoothness.
 
+## Embedded container chapters
+
+`VideoEngine.chapters` contains normalized chapter starts on the engine's ordinary
+seek timeline; `onChaptersChanged` publishes optional metadata that arrives after
+load. Plozzigen maps AetherEngine's `mediaChapters` after the normal source probe,
+including authenticated/custom-reader sources, without opening another reader.
+Native playback loads AVAsset chapter metadata off the startup path using the
+same asset and authorization as playback. It cancels and fences that task by load
+generation and current player item. Both engines clear chapters on replacement
+and stop; the player separately rejects outgoing-engine/load callbacks.
+
+Server chapters remain preferred over embedded metadata. This fallback reads
+container chapters, not disc-title-relative chapters or generated scene markers.
+Original six-second synthetic fixtures in `Tests/EnginePlozzigenTests/Fixtures`
+cover MP4/native, MP4/Plozzigen, MKV/Plozzigen, seeking, and replacement by a file
+without chapters. Generate them with:
+
+```sh
+cd Tests/EnginePlozzigenTests/Fixtures
+ffmpeg -f lavfi -i 'color=c=navy:s=160x90:r=10:d=6' -i chapters.ffmetadata \
+  -map 0:v -map_metadata 1 -map_chapters 1 -c:v libx264 -preset ultrafast \
+  -pix_fmt yuv420p -g 10 -movflags +faststart chapters.mp4
+ffmpeg -i chapters.mp4 -map 0:v -map_chapters 0 -c copy chapters.mkv
+ffmpeg -i chapters.mp4 -map 0:v -map_chapters -1 -c copy -movflags +faststart no-chapters.mp4
+```
+
 ## IPTV live streams
 
 The [IPTV troubleshooting history](iptv-history.md) links earlier routing,

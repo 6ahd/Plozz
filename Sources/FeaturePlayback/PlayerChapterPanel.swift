@@ -15,12 +15,17 @@ struct PlayerChapterPanel: View {
             ScrollView(metrics.isVertical ? .vertical : .horizontal, showsIndicators: false) {
                 if metrics.isVertical {
                     LazyVStack(spacing: 12) { chapters }
-                        .padding(metrics.contentPadding)
                 } else {
                     LazyHStack(spacing: metrics.columnSpacing) { chapters }
-                        .padding(metrics.contentPadding)
                 }
             }
+            #if os(tvOS)
+            .scrollClipDisabled()
+            #else
+            .scrollClipDisabled(false)
+            #endif
+            // Keep the inset outside the scroll target, including on first open.
+            .padding(metrics.contentPadding)
             .frame(height: metrics.cardHeight)
             .onAppear {
                 if let id = MediaChapter.currentID(
@@ -30,7 +35,6 @@ struct PlayerChapterPanel: View {
                 }
             }
         }
-        .modifier(PanelGlassBackground(cornerRadius: metrics.panelCornerRadius, mediaGlass: true))
         .accessibilityIdentifier("player-chapters")
     }
 

@@ -25,13 +25,13 @@ final class PlayerChapterHostedTests: XCTestCase {
 
         for reducedGlass in [false, true] {
             let model = PlayerControlsModel()
-            model.duration = 600
+            model.duration = 3_600
             model.currentSeconds = 100
             model.infoCard.chapters = [
                 .init(start: 0, title: "Opening"),
                 .init(start: 180, title: "The journey"),
                 .init(start: 360)
-            ]
+            ] + (3..<20).map { MediaChapter(start: Double($0) * 180) }
             let driver = ChapterFocusDriver()
             window.rootViewController = UIHostingController(rootView:
                 ChapterFocusFixture(model: model, driver: driver)

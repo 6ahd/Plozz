@@ -1192,7 +1192,8 @@ let package = Package(
                 "TestSupportNetworking",
                 "TestSupportPerformance",
                 .product(name: "AetherEngine", package: "AetherEngine"),
-            ]
+            ],
+            resources: [.copy("Fixtures")]
         ),
     ],
     // Pin Swift 5 language mode: bumping tools-version to 6.0 (required for the
