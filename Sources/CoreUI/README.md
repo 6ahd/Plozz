@@ -301,6 +301,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   `SettingsAdjustmentFocusScope` shares the player's horizontal input ownership,
   held-press cancellation, and navigation-rail protection. VoiceOver adjustment
   uses the same stepping operation. Mobile retains separate buttons.
+  Use `textTitle` for mixed localized labels and formatted values, such as
+  Immediately or a duration; do not resolve localized copy into `verbatimTitle`.
   Optional range labels replace the numeric display with a bounded track, retaining
   the same input owner, native focus styling, clamping, and accessibility actions.
 - **Hero logo size** — `HeroLogoSizing` supplies the existing default bounds and
@@ -321,6 +323,8 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   internal dividers. Grouped steppers inherit
   the same leading inset as their neighboring rows, with no extra resting chip.
   Mobile keeps its existing stack/native-list presentation.
+  `settingsGroupSurface(cornerRadii:)` shares the same paint and accessibility
+  fallbacks for [connected TV control groups](../FeatureSettings/README.md).
 - **Long Settings labels** — `LabeledSettingRow` preserves the aligned horizontal
   layout when it fits. On tvOS, longer copy switches to a wrapping label above
   its control rather than overlapping it or reducing the shared body font.

@@ -1889,11 +1889,14 @@ public final class PlayerViewModel {
         // not the segments, and a viewer with skipping and the Up Next card off
         // would otherwise leave the container reading a stale default.
         controls.upNextCard.autoPlayEnabled = playbackSettings.autoPlayNextEpisode
-        let modes = playbackSettings.skipMarkerModes
-        let wantsMarkers = modes.fetchesMarkers || playbackSettings.showUpNextCard
-        guard wantsMarkers else { return }
+        let category = request.map { ContentClassifier.classify($0.item).subtitleCategory } ?? .other
+        let modes = playbackSettings.skipMarkerModes(for: category)
         controls.skipModes = modes
         segmentsTask?.cancel()
+        segmentsTask = nil
+        controls.skipSegments.segments = []
+        let wantsMarkers = modes.fetchesMarkers || playbackSettings.showUpNextCard
+        guard wantsMarkers else { return }
         let provider = provider
         let itemID = itemID
         let looksUpCommunity = modes.fetchesMarkers && playbackSettings.useCommunityMarkers

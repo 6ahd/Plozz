@@ -597,7 +597,7 @@ struct PlaybackDetailView: View {
             if section == .subtitles { return subtitleRows }
             return [
                 SettingsSplitRow(id: "audio", title: "Audio") {
-                    SettingsControlRows {
+                    SettingsConnectedControlGroups {
                         ForEach(audioRows) { row in
                             VStack(alignment: .leading, spacing: SettingsFormMetrics.relatedControlSpacing) {
                                 row.detail()
@@ -607,12 +607,12 @@ struct PlaybackDetailView: View {
                             }
                         }
                     }
-                },
+                }.groupedContent(),
                 SettingsSplitRow(id: "autoplay-up-next", title: "Autoplay & Up Next") {
-                    SettingsControlRows {
+                    SettingsConnectedControlGroups {
                         ForEach(upNextRows) { $0.detail() }
                     }
-                }
+                }.groupedContent()
             ] + versionSelectionRows + readAheadRows + skipIntroRows + [
                 SettingsSplitRow(id: "seeking", title: "Seeking") {
                     SettingsControlRows {
@@ -780,8 +780,7 @@ struct PlaybackDetailView: View {
         var rows = [
             SettingsSplitRow(
                 id: "audio-defaults",
-                title: "Audio defaults",
-                description: "How Plozz picks the audio language when a title offers more than one — with optional per-content-type rules and per-series memory.",
+                title: "Audio defaults"
             ) {
                 SettingsControlRows(nonTVSpacing: 32) {
                     // Set separately, "Everything else" takes over the one
@@ -806,7 +805,7 @@ struct PlaybackDetailView: View {
                         }
                     }
 
-                    Toggle("Remember audio per series", isOn: $playback.settings.rememberAudioTrackPerSeries)
+                    Toggle("Remember audio language per series", isOn: $playback.settings.rememberAudioTrackPerSeries)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -830,38 +829,11 @@ struct PlaybackDetailView: View {
         [
             SettingsSplitRow(
                 id: "skip-intros-mode",
-                title: "Skip intros, credits & more",
-                description: "Show a Skip button, or skip automatically, during intros, credits, recaps, previews and commercials.",
+                title: "Skip intros, credits & more"
             ) {
-                SkipModeControl(
-                    baseMode: $playback.settings.skipIntros,
-                    perKindEnabled: perKindSkipBinding,
-                    kindMode: { skipModeBinding(for: $0) },
-                    useCommunityMarkers: $playback.settings.useCommunityMarkers
-                )
+                SkipMarkerSettingsControl(model: playback)
             }
         ]
-    }
-
-    /// On seeds every kind with the current mode, so turning it on changes
-    /// nothing until a kind is set; off returns every kind to the one mode.
-    private var perKindSkipBinding: Binding<Bool> {
-        Binding(
-            get: { !playback.settings.skipModeOverrides.isEmpty },
-            set: { on in
-                let base = playback.settings.skipIntros
-                playback.settings.skipModeOverrides = on
-                    ? Dictionary(uniqueKeysWithValues: MediaSegment.Kind.skippable.map { ($0, base) })
-                    : [:]
-            }
-        )
-    }
-
-    private func skipModeBinding(for kind: MediaSegment.Kind) -> Binding<SkipIntrosMode> {
-        Binding(
-            get: { playback.settings.skipMarkerModes.mode(for: kind) },
-            set: { playback.settings.skipModeOverrides[kind] = $0 }
-        )
     }
 
     private var skipIntervalRows: [SettingsSplitRow] {
@@ -971,18 +943,10 @@ struct PlaybackDetailView: View {
         [
             SettingsSplitRow(
                 id: "autoplay-next-episode",
-                title: "Autoplay",
-                description: "Play the next episode automatically.",
+                title: "Autoplay"
             ) {
                 SettingsControlRows(nonTVSpacing: 8) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Autoplay next episode", isOn: $playback.settings.autoPlayNextEpisode)
-                        Text(playback.settings.autoPlayNextEpisode
-                             ? "The next episode starts when one finishes."
-                             : "The player closes when an episode finishes.")
-                            .settingsHelperText()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    Toggle("Autoplay next episode", isOn: $playback.settings.autoPlayNextEpisode)
                     Toggle("Autoplay next playlist item", isOn: $playback.settings.autoPlayNextPlaylistItem)
                 }
             },
@@ -1038,55 +1002,6 @@ private struct DescribedSegmentedPicker<Option: Hashable>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .animation(.easeInOut(duration: 0.18), value: describedOption)
-    }
-}
-
-/// The "Skip intros, credits & more" control: one Off / On / Auto (delay) / Auto
-/// (instant) picker for every kind of marker, with its explanation directly
-/// beneath, or, set separately, a ``SeparateSettingRow`` per kind. Community
-/// markers are one switch below.
-private struct SkipModeControl: View {
-    @Binding var baseMode: SkipIntrosMode
-    @Binding var perKindEnabled: Bool
-    let kindMode: (MediaSegment.Kind) -> Binding<SkipIntrosMode>
-    @Binding var useCommunityMarkers: Bool
-
-    var body: some View {
-        SettingsControlRows(nonTVSpacing: 32) {
-            if !perKindEnabled {
-                DescribedSegmentedPicker(
-                    options: SkipIntrosMode.allCases,
-                    selection: $baseMode,
-                    title: { $0.title },
-                    detail: { $0.detail }
-                )
-                .transition(.opacity)
-            }
-
-            SettingsRevealSection(isOn: $perKindEnabled, masterLabel: "Set each marker separately") {
-                ForEach(MediaSegment.Kind.skippable, id: \.self) { kind in
-                    SeparateSettingRow(
-                        title: kind.settingsTitle,
-                        hint: kind.settingsHint,
-                        // Four segments don't fit beside a name column.
-                        namePlacement: .above,
-                        options: SkipIntrosMode.allCases,
-                        selection: kindMode(kind),
-                        optionTitle: { $0.title },
-                        detail: { $0.detail }
-                    )
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle("Use community markers", isOn: $useCommunityMarkers)
-                Text("When your server has no intro or credits marker, Plozz looks one up on IntroDB and TheIntroDB, sending them the title’s IMDb or TMDB ID.")
-                    .settingsHelperText()
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .animation(.easeInOut(duration: 0.22), value: perKindEnabled)
     }
 }
 

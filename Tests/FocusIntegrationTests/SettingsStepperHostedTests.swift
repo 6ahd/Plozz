@@ -1,4 +1,5 @@
 @testable import CoreUI
+@testable import FeatureSettings
 import Observation
 import SwiftUI
 import UIKit
@@ -6,6 +7,21 @@ import XCTest
 
 @MainActor
 final class SettingsStepperHostedTests: XCTestCase {
+    func testConnectedGroupsPreserveNativeAdjustmentAndFocusHandoff() async throws {
+        try await withStepper(connectedGroups: true) { model, input, window in
+            let system = try XCTUnwrap(UIFocusSystem(for: window))
+            let focused = try XCTUnwrap(system.focusedItem)
+            self.press(.right, input)
+            try await self.waitUntil { model.selection == 120 }
+            XCTAssertTrue(system.focusedItem === focused)
+            model.focusOther = true
+            try await self.waitUntil { system.focusedItem !== focused && !model.focused }
+            XCTAssertFalse(input.ownsHorizontalNavigationInput)
+            self.press(.left, input)
+            XCTAssertEqual(model.selection, 120)
+        }
+    }
+
     func testRangeTrackReusesBoundedAdjustmentAndNativeFocus() async throws {
         for direction in [LayoutDirection.leftToRight, .rightToLeft] {
             try await withStepper(direction: direction, showsTrack: true) { model, input, window in
@@ -94,6 +110,7 @@ final class SettingsStepperHostedTests: XCTestCase {
         wraps: Bool = false,
         direction: LayoutDirection = .leftToRight,
         showsTrack: Bool = false,
+        connectedGroups: Bool = false,
         body: (Model, any SettingsAdjustmentRemoteInput, UIWindow) async throws -> Void
     ) async throws {
         try await waitUntil {
@@ -104,7 +121,9 @@ final class SettingsStepperHostedTests: XCTestCase {
         let previous = scene.windows.first(where: \.isKeyWindow)
         let model = Model()
         let window = UIWindow(windowScene: scene)
-        let host = UIHostingController(rootView: Fixture(model: model, wraps: wraps, showsTrack: showsTrack)
+        let host = UIHostingController(rootView: Fixture(
+            model: model, wraps: wraps, showsTrack: showsTrack, connectedGroups: connectedGroups
+        )
             .environment(\.layoutDirection, direction))
         window.rootViewController = host
         window.makeKeyAndVisible()
@@ -145,10 +164,23 @@ final class SettingsStepperHostedTests: XCTestCase {
         @Bindable var model: Model
         let wraps: Bool
         let showsTrack: Bool
+        let connectedGroups: Bool
         @FocusState private var otherFocused: Bool
 
         var body: some View {
-            VStack(spacing: 50) {
+            Group {
+                if connectedGroups {
+                    SettingsConnectedControlGroups { controls }
+                } else {
+                    VStack(spacing: 50) { controls }
+                }
+            }
+            .frame(width: 900)
+            .onChange(of: model.focusOther) { _, value in otherFocused = value }
+        }
+
+        private var controls: some View {
+            Group {
                 SettingsStepper(
                     options: model.options, selection: $model.selection, compact: showsTrack, wraps: wraps,
                     onFocusChange: { model.focused = $0 }, label: "Seconds",
@@ -158,8 +190,6 @@ final class SettingsStepperHostedTests: XCTestCase {
                 )
                 Button("Next setting") {}.focused($otherFocused)
             }
-            .frame(width: 900)
-            .onChange(of: model.focusOther) { _, value in otherFocused = value }
         }
     }
 }

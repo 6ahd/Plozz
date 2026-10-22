@@ -244,6 +244,15 @@ theme-aware ink on the reduced-glass fallback.
 
 ## Skip-marker timeline
 
+Skip behavior resolves the profile's master enablement and Movies/TV Shows/Anime
+selection through the same content classifier used for audio and subtitles.
+Disabled categories do not present skip buttons, skip automatically, or request
+community markers. Server markers can still load for the independently enabled
+Up Next card. Each automatic marker uses its configured immediate or 1–30-second
+delay, including the credits-based Up Next countdown when autoplay is enabled.
+Countdown deadlines and rings share that duration and remain tied to playback
+time, preserving pause, seek-entry, dismissal and focus behavior.
+
 The on-demand and Live touch timelines keep the native glass surface continuous wherever
 segment cuts would strand tiny pieces. Each uses its measured track width, not
 orientation or device type: a cut needs enough room on both sides for the
