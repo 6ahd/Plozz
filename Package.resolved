@@ -50,7 +50,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/thatcube/SMBClient.git",
       "state" : {
-        "revision" : "2c383ad5e5a7b3063160f6a0d00190c57e295cc3"
+        "revision" : "5d5bceb6fa0833c98b0eecc676609c9476bd9423"
       }
     },
     {
