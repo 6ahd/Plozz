@@ -127,25 +127,23 @@ bound to that URL and validator; an expired URL or a later redirect fails
 rather than silently mixing representations. Retrying playback opens the
 stable DAV path afresh. Bounded sidecar reads use the same redirect policy.
 
-## AllDebrid setup and evidence limits
+## Hosted WebDAV compatibility and evidence limits
 
-The [official WebDAV guide](https://help.alldebrid.com/en/Alldebrid%20tools/webdav)
-and [rclone guide](https://help.alldebrid.com/en/faq/rclone-webdav) specify
-`https://webdav.debrid.it/`, a dedicated API key as the username, and any
-nonempty password. Use the username/password fields rather than the documented
-key-in-path alternative, so the key stays out of URLs. No AllDebrid-specific
-User-Agent, CDN allowlist or media-URL lifetime is assumed.
+Use the configured server's WebDAV root and credentials in the username/password
+fields. Some services issue a dedicated key as the username; follow the service's
+WebDAV authentication requirements. Prefer these fields to credential-bearing
+URLs when the service supports both forms. No service-specific User-Agent,
+CDN allowlist or media-URL lifetime is assumed.
 
-AllDebrid recommends rclone's generic WebDAV backend and conservative read-only
-streaming settings. Its API rate limits are not treated as WebDAV/media limits.
+Service API rate limits are not assumed to apply to WebDAV or media delivery.
 The generic [rclone range checks](https://github.com/rclone/rclone/blob/d369079a1448c487d09d85bfe11382e16ea4e345/lib/rest/headers.go#L87-L155)
 and [redirect handling](https://github.com/rclone/rclone/blob/d369079a1448c487d09d85bfe11382e16ea4e345/lib/rest/rest.go#L297-L361)
-are useful compatibility precedents, not observations of AllDebrid responses.
+are useful compatibility precedents, not observations of every hosted service.
 
-The AllDebrid regression fixtures are synthetic `URLProtocol` responses. They do not prove
-native AllDebrid ETag behavior, its redirect chain, real TLS/Basic/Digest
-interoperability, or the original reporter's playback outcome. Those still
-require a real-server retest.
+The validator and redirect regression fixtures use synthetic `URLProtocol`
+responses. They do not establish a particular hosted service's ETag behavior,
+redirect chain, real TLS/Basic/Digest interoperability, or a reported playback
+outcome. Those still require a real-server retest.
 
 ## Opt-in real-server checks
 

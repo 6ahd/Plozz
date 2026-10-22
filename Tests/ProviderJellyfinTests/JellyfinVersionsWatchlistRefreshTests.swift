@@ -227,7 +227,7 @@ final class JellyfinVersionsWatchlistRefreshTests: XCTestCase {
                 session.server.provider = kind
                 do {
                     _ = try await JellyfinProvider(session: session, http: stub).playbackItem(id: "i1")
-                    XCTFail("A negative add-on lookup must not open a player.")
+                    XCTFail("An unavailable-source placeholder must not open a player.")
                 } catch {
                     XCTAssertEqual(error as? StreamingQualityError, .noStreams)
                 }

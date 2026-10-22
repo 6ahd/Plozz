@@ -554,8 +554,8 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     /// so the only reliable way to attribute — and therefore Home-filter — items
     /// is to fetch them **scoped to each visible library** via `ParentId` and
     /// stamp the result. `nil` keeps the fast unscoped feed (used when the user
-    /// has hidden nothing on this account). AIOStreams explicitly owns history
-    /// at account scope, independently of its virtual catalogs.
+    /// has hidden nothing on this account). Compatible servers can explicitly
+    /// expose account-wide history independently of their virtual catalogs.
     public func continueWatching(limit: Int, inLibraries libraryIDs: [String]?) async throws -> [MediaItem] {
         guard limit > 0 else { return [] }
         guard let libraryIDs = try await watchHistoryLibraries(libraryIDs)?
@@ -684,7 +684,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
         await probeDescriptors.remember(itemID: id, sources: dto.MediaSources)
         var item = map(item: dto)
         let remotePlaceholder = dto.MediaSources?.count == 1 && dto.MediaSources?.first?.IsRemote == true
-        // Add-on servers may resolve streams only through PlaybackInfo, even
+        // Compatible servers may resolve streams only through PlaybackInfo, even
         // when item detail already contains sources or omits IsRemote.
         if (item.kind == .movie || item.kind == .episode),
            requiresSourceInventory || remotePlaceholder {
@@ -2173,7 +2173,7 @@ public struct JellyfinProvider: MediaProvider, SeriesResumeProviding, SeriesIden
     // MARK: - Mapping
 
     private static func isUnavailablePlaceholder(_ source: MediaSourceInfo, itemID: String) -> Bool {
-        // Add-on bridges can encode a negative lookup as a nominal MKV source
+        // Compatible servers can encode a negative lookup as a nominal MKV source
         // with invented tracks instead of returning PlaybackInfo.ErrorCode.
         source.IsRemote == true && source.Id == itemID
             && source.Name?.hasPrefix("No streams · ") == true
