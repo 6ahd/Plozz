@@ -9,7 +9,7 @@ import XCTest
 
 @MainActor
 final class PlayerChapterPresentationTests: XCTestCase {
-    func testOverflowingChaptersOpenWithClearTopAndSideInsets() async throws {
+    func testOverflowingChaptersAlignWithTheTabsAndPreservePortraitOpeningInsets() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
               ContinuousClock.now < deadline {
@@ -52,10 +52,13 @@ final class PlayerChapterPresentationTests: XCTestCase {
                         : $0.contentSize.width > $0.bounds.width + 100 && $0.bounds.height > 64
                 })
                 let frame = scroll.convert(scroll.bounds, to: window)
-                XCTAssertEqual(frame.minX - probe.panelFrame.minX, metrics.contentPadding, accuracy: 1)
-                XCTAssertEqual(frame.minY - probe.panelFrame.minY, metrics.contentPadding, accuracy: 1)
-                XCTAssertEqual(probe.panelFrame.maxX - frame.maxX, metrics.contentPadding, accuracy: 1)
-                XCTAssertEqual(probe.panelFrame.maxY - frame.maxY, metrics.contentPadding, accuracy: 1)
+                let verticalInset = metrics.isVertical ? metrics.contentPadding : 0
+                XCTAssertEqual(frame.minX, probe.panelFrame.minX, accuracy: 1)
+                XCTAssertEqual(frame.minY - probe.panelFrame.minY, verticalInset, accuracy: 1)
+                XCTAssertEqual(frame.maxX, probe.panelFrame.maxX, accuracy: 1)
+                XCTAssertEqual(probe.panelFrame.maxY - frame.maxY, verticalInset, accuracy: 1)
+                let infoTab = try XCTUnwrap(player.controls.subtitleLayout.frame(for: .tab("info")))
+                XCTAssertEqual(frame.minX, infoTab.minX, accuracy: 1, "Cards must share the tab strip's leading edge.")
 
                 let format = UIGraphicsImageRendererFormat()
                 format.scale = 1
@@ -68,12 +71,14 @@ final class PlayerChapterPresentationTests: XCTestCase {
                 try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([recognition])
                 let text = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
                 XCTAssertTrue(text.contains("Scene \(chapterIndex + 1)"), "The current chapter must be visible on opening: \(text)")
-                let topInset = CGRect(
-                    x: probe.panelFrame.minX + 1, y: probe.panelFrame.minY + 1,
-                    width: probe.panelFrame.width - 2, height: metrics.contentPadding - 2
-                )
-                XCTAssertLessThan(try brightestPixel(in: image, rect: topInset), 20,
-                                  "No enclosing panel or scrolled-off chapter may occupy the top gutter.")
+                if metrics.isVertical {
+                    let topInset = CGRect(
+                        x: probe.panelFrame.minX + 1, y: probe.panelFrame.minY + 1,
+                        width: probe.panelFrame.width - 2, height: metrics.contentPadding - 2
+                    )
+                    XCTAssertLessThan(try brightestPixel(in: image, rect: topInset), 20,
+                                      "No enclosing panel or scrolled-off chapter may occupy the top gutter.")
+                }
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "Overflowing chapters \(Int(size.width))x\(Int(size.height)) start \(chapterIndex + 1)"
                 attachment.lifetime = .keepAlways
@@ -153,6 +158,25 @@ final class PlayerChapterPresentationTests: XCTestCase {
                 let text = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
                 for expected in ["Chapters", "Opening", "The journey", "Chapter 3"] {
                     XCTAssertTrue(text.localizedCaseInsensitiveContains(expected), "Missing chapter content: \(text)")
+                }
+                for (title, time) in [("Opening", "0:00"), ("The journey", "3:00")] {
+                    let titleBox = try XCTUnwrap(recognition.results?.first {
+                        $0.topCandidates(1).first?.string == title
+                    }?.boundingBox)
+                    let timeBox = try XCTUnwrap(recognition.results?.first {
+                        $0.topCandidates(1).first?.string.contains(time) == true
+                    }?.boundingBox)
+                    XCTAssertEqual(titleBox.minX * size.width, timeBox.minX * size.width, accuracy: 4,
+                                   "Chapter titles and timestamps must share a leading edge.")
+                    let metrics = PlayerCardMetrics.resolved(forWidth: size.width, height: size.height)
+                    if !metrics.isVertical, title == "Opening" {
+                        let inset = max(metrics.contentPadding, metrics.panelCornerRadius / 2)
+                        XCTAssertGreaterThanOrEqual(timeBox.minX * size.width - probe.panelFrame.minX, inset - 2)
+                        XCTAssertGreaterThanOrEqual(
+                            probe.panelFrame.maxY - (1 - timeBox.minY) * size.height, inset - 2,
+                            "The timestamp must stay comfortably inside the rounded bottom corner."
+                        )
+                    }
                 }
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "Chapters \(Int(size.width))x\(Int(size.height)) \(reduced ? "reduced" : "native")"

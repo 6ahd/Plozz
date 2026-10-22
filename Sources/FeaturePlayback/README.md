@@ -79,9 +79,12 @@ watchdog, periodic reload or engine-phase inference is added. See
 
 On tvOS, iPhone, and iPad, **Chapters** joins the bottom player tabs only when the
 server metadata or the playing file supplies usable chapter positions. Individual
-chapter cards scroll without an enclosing glass panel, with viewport insets
-preserved when opening at the current chapter. They show titles (or numbered chapter
-labels), start times, available server thumbnails, and the current chapter.
+chapter cards use Cast's shared over-video glass, focus treatment, and reduced-effects
+fallback without an enclosing panel. Their leading edges align with the player tabs;
+wide cards fill the panel height, while portrait rows retain their vertical opening
+insets. Chapter titles and start times share one leading text edge; wide cards use
+corner-aware inner padding around the artwork and captions. They show titles (or
+numbered chapter labels), start times, available server thumbnails, and the current chapter.
 Selecting a chapter closes the panel and uses the normal
 seek coordinator, preserving play/pause intent. Existing skip buttons and intro/
 credits controls are unchanged. Mobile tabs scroll horizontally when needed.

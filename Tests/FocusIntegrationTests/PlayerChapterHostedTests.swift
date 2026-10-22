@@ -71,6 +71,15 @@ final class PlayerChapterHostedTests: XCTestCase {
             for expected in ["Opening", "The journey", "Chapter 3", "3:00", "6:00"] {
                 XCTAssertTrue(text.localizedCaseInsensitiveContains(expected), "Missing chapter content: \(text)")
             }
+            let timeBox = try XCTUnwrap(recognition.results?.first {
+                $0.topCandidates(1).first?.string.contains("0:00") == true
+            }?.boundingBox)
+            let inset = max(PlayerCardMetrics.tv.contentPadding, PlayerCardMetrics.tv.panelCornerRadius / 2)
+            XCTAssertGreaterThanOrEqual(timeBox.minX * window.bounds.width - driver.panelFrame.minX, inset - 2)
+            XCTAssertGreaterThanOrEqual(
+                driver.panelFrame.maxY - (1 - timeBox.minY) * window.bounds.height, inset - 2,
+                "Chapter time must clear the rounded bottom corner, including while another card is focused."
+            )
             let attachment = XCTAttachment(image: image)
             attachment.name = "Chapter cards - \(reducedGlass ? "reduced" : "native glass")"
             attachment.lifetime = .keepAlways
@@ -91,6 +100,7 @@ final class PlayerChapterHostedTests: XCTestCase {
 private final class ChapterFocusDriver {
     var requestFocus: ((PlayerControls.FocusSlot) -> Void)?
     var observedFocus: PlayerControls.FocusSlot?
+    var panelFrame: CGRect = .zero
 }
 
 private struct ChapterFocusFixture: View {
@@ -105,6 +115,7 @@ private struct ChapterFocusFixture: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .focusSection()
             PlayerChapterPanel(model: model, spoilerSettings: .default, focus: $focus) { _ in }
+                .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { driver.panelFrame = $0 }
         }
         .onAppear {
             driver.requestFocus = { focus = $0 }

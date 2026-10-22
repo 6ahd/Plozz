@@ -1,3 +1,4 @@
+import CoreModels
 import CoreUI
 @testable import FeaturePlayback
 import SwiftUI
@@ -6,6 +7,88 @@ import XCTest
 
 @MainActor
 final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
+    func testChapterCardsMatchCastGlassAndStageEdges() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
+              ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive })
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKeyAndVisible()
+        }
+        let model = PlayerControlsModel()
+        model.duration = 3_600
+        model.currentSeconds = 100
+        model.infoCard.chapters = (0..<20).map { .init(start: Double($0) * 180, title: "Scene \($0 + 1)") }
+        model.infoCard.cast = (0..<20).map { .init(id: "\($0)", name: "Person \($0 + 1)", role: "Character") }
+        #if os(tvOS)
+        let sizes = [CGSize(width: 1920, height: 1080)]
+        #else
+        let sizes = [CGSize(width: 320, height: 568), .init(width: 568, height: 320), .init(width: 1024, height: 768)]
+        #endif
+        for size in sizes {
+            let metrics = PlayerCardMetrics.resolved(forWidth: size.width, height: size.height)
+            for mode in ["native", "frosted", "reduced-transparency"] {
+                for backdrop in [Color(red: 0.12, green: 0.40, blue: 0.65), Color(red: 0.65, green: 0.25, blue: 0.12)] {
+                    var reference: [UInt8] = []
+                    var referenceFrame = CGRect.zero
+                    for chapters in [false, true] {
+                        let probe = ChapterCastSurfaceProbe()
+                        let host = UIHostingController(rootView:
+                            ChapterCastSurfaceFixture(model: model, chapters: chapters, metrics: metrics, probe: probe)
+                                .frame(width: size.width - 48)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(backdrop)
+                                .playerPlatformAppearance()
+                                .environment(\.playerCardMetrics, metrics)
+                                .environment(\.colorScheme, .dark)
+                                .environment(\.plozzReducePanelGlass, mode == "frosted")
+                                .environment(\.plozzReduceTransparency, mode == "reduced-transparency")
+                        )
+                        host.safeAreaRegions = []
+                        window.frame = CGRect(origin: .zero, size: size)
+                        window.rootViewController = host
+                        window.makeKeyAndVisible()
+                        host.view.frame = window.bounds
+                        let image = try await capture(window)
+                        let frame = probe.frame
+                        XCTAssertEqual(frame.width, size.width - 48, accuracy: 1)
+                        XCTAssertEqual(frame.height, metrics.cardHeight, accuracy: 1)
+                        let sampleY = metrics.isVertical
+                            ? frame.minY + metrics.contentPadding + metrics.castRowHeight / 2 : frame.midY
+                        let surface = try pixels(image, rect: CGRect(
+                            x: frame.minX + 4, y: sampleY - 2, width: 4, height: 4
+                        ))
+                        if chapters {
+                            XCTAssertEqual(frame, referenceFrame)
+                            for channel in 0..<3 {
+                                let mean = stride(from: channel, to: surface.count, by: 4)
+                                    .reduce(0.0) { $0 + Double(surface[$1]) } / Double(surface.count / 4)
+                                let expected = stride(from: channel, to: reference.count, by: 4)
+                                    .reduce(0.0) { $0 + Double(reference[$1]) } / Double(reference.count / 4)
+                                XCTAssertEqual(mean, expected, accuracy: 12,
+                                               "Chapters must use Cast's \(mode) material, not a flat button fill.")
+                            }
+                        } else {
+                            reference = surface
+                            referenceFrame = frame
+                        }
+                        let attachment = XCTAttachment(image: image)
+                        attachment.name = "\(chapters ? "Chapters" : "Cast") \(Int(size.width))x\(Int(size.height)) \(mode)"
+                        attachment.lifetime = .keepAlways
+                        add(attachment)
+                    }
+                }
+            }
+        }
+    }
+
     func testPlayerSurfacesInheritAppearanceAndUseUntintedNativeGlass() async throws {
         let deadline = ContinuousClock.now + .seconds(5)
         while !UIApplication.shared.connectedScenes.contains(where: { $0.activationState == .foregroundActive }),
@@ -203,6 +286,39 @@ final class PlayerSurfaceAppearanceHostedTests: XCTestCase {
         return nil
     }
     #endif
+}
+
+@MainActor
+private final class ChapterCastSurfaceProbe {
+    var frame = CGRect.zero
+}
+
+private struct ChapterCastSurfaceFixture: View {
+    let model: PlayerControlsModel
+    let chapters: Bool
+    let metrics: PlayerCardMetrics
+    let probe: ChapterCastSurfaceProbe
+    @FocusState private var focus: PlayerControls.FocusSlot?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Button("Panel") {}
+                .focused($focus, equals: .button(.chapters))
+            Group {
+                if chapters {
+                    PlayerChapterPanel(model: model, spoilerSettings: .default, focus: $focus) { _ in }
+                } else {
+                    CastPanelView(
+                        model: model, focus: $focus, detailPerson: .constant(nil),
+                        closeRequest: .constant(0), isCardOpen: true, revealClock: .linear(duration: 0)
+                    )
+                }
+            }
+            .frame(height: metrics.cardHeight, alignment: .topLeading)
+            .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { probe.frame = $0 }
+        }
+        .onAppear { focus = .button(.chapters) }
+    }
 }
 
 @MainActor

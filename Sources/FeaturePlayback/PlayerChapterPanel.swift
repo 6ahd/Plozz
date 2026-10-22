@@ -14,18 +14,16 @@ struct PlayerChapterPanel: View {
         ScrollViewReader { proxy in
             ScrollView(metrics.isVertical ? .vertical : .horizontal, showsIndicators: false) {
                 if metrics.isVertical {
-                    LazyVStack(spacing: 12) { chapters }
+                    LazyVStack(spacing: 8) { chapters }
                 } else {
                     LazyHStack(spacing: metrics.columnSpacing) { chapters }
+                        .frame(height: metrics.cardHeight)
+                        .padding(.trailing, metrics.contentPadding)
                 }
             }
-            #if os(tvOS)
-            .scrollClipDisabled()
-            #else
-            .scrollClipDisabled(false)
-            #endif
-            // Keep the inset outside the scroll target, including on first open.
-            .padding(metrics.contentPadding)
+            .scrollClipDisabled(!metrics.isVertical)
+            // Rows retain their opening inset; wide cards fill the stage like Cast.
+            .padding(.vertical, metrics.isVertical ? metrics.contentPadding : 0)
             .frame(height: metrics.cardHeight)
             .onAppear {
                 if let id = MediaChapter.currentID(
@@ -90,8 +88,14 @@ private struct PlayerChapterButton: View {
         }
     }
 
-    private var imageHeight: CGFloat {
-        max(44, metrics.contentHeight - metrics.castNameSize * 1.5 - metrics.captionSize * 1.5 - 20)
+    private var cardWidth: CGFloat {
+        let imageHeight = max(44, metrics.cardHeight - metrics.castVerticalInset * 2
+            - metrics.castNameSize * 1.5 - metrics.captionSize * 1.5 - 16)
+        return imageHeight * 16 / 9 + 24
+    }
+
+    private var contentInset: CGFloat {
+        max(metrics.contentPadding, metrics.panelCornerRadius * 2 / 3)
     }
 
     var body: some View {
@@ -104,41 +108,41 @@ private struct PlayerChapterButton: View {
             .accessibilityIdentifier("player-chapter-\(number)")
     }
 
-    @ViewBuilder
     private var chapterButton: some View {
-        #if os(tvOS)
         Button(action: action) { content }
-            .buttonStyle(.card)
-        #else
-        Button(action: action) { content }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.roundedRectangle(radius: 12))
-            .tint(foreground)
-        #endif
+            .buttonStyle(PlayerOverVideoCardStyle(
+                focused: focus == .chapter(chapter.id),
+                cornerRadius: metrics.panelCornerRadius - (metrics.isVertical ? 6 : 0),
+                focusScale: metrics.isVertical ? 1 : 1.10,
+                pressScale: metrics.isVertical ? 0.98 : 1,
+                mediaGlass: true
+            ))
     }
 
+    @ViewBuilder
     private var content: some View {
-        Group {
-            if metrics.isVertical {
-                HStack(spacing: 12) {
-                    thumbnail
-                        .frame(width: 96, height: 54)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    caption
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    thumbnail
-                        .frame(width: imageHeight * 16 / 9, height: imageHeight)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    caption
-                }
-                .frame(width: imageHeight * 16 / 9, alignment: .leading)
+        if metrics.isVertical {
+            HStack(spacing: 12) {
+                thumbnail
+                    .frame(width: metrics.castHeadshot * 16 / 9, height: metrics.castHeadshot)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                caption
+                Spacer(minLength: 0)
             }
+            .padding(.horizontal, 10)
+            .frame(height: metrics.castRowHeight)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                thumbnail
+                    .frame(width: cardWidth - contentInset * 2,
+                           height: (cardWidth - contentInset * 2) * 9 / 16)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                caption
+            }
+            .padding(contentInset)
+            .frame(width: cardWidth, height: metrics.cardHeight, alignment: .bottom)
         }
-        .padding(4)
     }
 
     private var caption: some View {
@@ -147,14 +151,15 @@ private struct PlayerChapterButton: View {
                 .font(metrics.castNameFont)
                 .lineLimit(1)
             HStack(spacing: 6) {
+                Text(verbatim: PlayerControls.timeLabel(chapter.start))
+                    .monospacedDigit()
                 Image(systemName: "play.fill")
                     .opacity(isCurrent ? 1 : 0)
                     .accessibilityHidden(true)
-                Text(verbatim: PlayerControls.timeLabel(chapter.start))
-                    .monospacedDigit()
             }
             .font(metrics.captionFont)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .foregroundStyle(foreground)
     }
 
