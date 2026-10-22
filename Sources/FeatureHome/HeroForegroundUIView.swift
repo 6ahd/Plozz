@@ -51,6 +51,11 @@ final class HeroForegroundUIView: UIView {
     )
     private let pillsContainer = UIView()
     var contentLocale: Locale = .current
+    var logoSize: HeroLogoSize = .default {
+        didSet {
+            if oldValue != logoSize { setNeedsLayout() }
+        }
+    }
     /// Effect-less host: dots/pill render directly over the hero with no capsule.
     private let dotsContainer = UIVisualEffectView(effect: nil)
     private let useGauge = HeroForegroundConfig.useGauge
@@ -648,20 +653,10 @@ final class HeroForegroundUIView: UIView {
 
         var logoTop = y
         if !logoImageView.isHidden, let image = logoImageView.image, image.size.width > 0 {
-            // Shared with the detail hero via `HeroLogoLayout`, so one show's
-            // wordmark is drawn at the same size on both screens — and so a tall or
-            // very wide logo isn't shrunk for its shape.
-            //
-            // The box is PINNED to the text column: `HeroLogoFit` flexes a wide
-            // shape past its budget, so a wordmark was being drawn a quarter wider
-            // than the description beneath it. Pinning holds every wide logo to the
-            // same drawn width and gives the width back as height, so nothing
-            // shrinks — see `HeroLogoFit.pinnedBox`.
-            //
             // The frame is the ACTUAL fitted image, not the slot: `.scaleAspectFit`
             // centres within its frame, so a frame wider than the drawn image would
             // push a tall/narrow wordmark right instead of leaving it left-aligned.
-            let box = HeroLogoLayout.box(fitting: maxWidth)
+            let box = HeroLogoLayout.box(size: logoSize, availableWidth: bounds.width - leading)
             let fitted = HeroLogoFit.fittedSize(
                 for: image.size,
                 maxWidth: box.width,

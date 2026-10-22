@@ -2,6 +2,7 @@ import CoreModels
 @testable import CoreUI
 @testable import FeatureHome
 import MetadataKit
+import FeatureSettings
 import Observation
 import SwiftUI
 import UIKit
@@ -9,6 +10,129 @@ import XCTest
 
 @MainActor
 final class HeroLogoPresentationHostedTests: XCTestCase {
+    func testLiveSizeChangesReuseTheResolvedLogoAndPreserveItsProportions() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let url = try seedLogo(size: CGSize(width: 600, height: 100))
+        defer { removeSeededLogo(url) }
+        let item = MediaItem(id: UUID().uuidString, title: "Logo sizing", kind: .movie)
+        let lookup = LookupProbe()
+        let model = SizingModel()
+        fixture.window.rootViewController = UIHostingController(rootView: SizingFixture(
+            model: model, fallback: HeroLogoFallback(for: item) { await lookup.resolve(url) }
+        ))
+        try await waitUntil { model.resolutions == 1 && (try? redBounds(in: fixture.window)) != nil }
+        let small = try XCTUnwrap(redBounds(in: fixture.window))
+        model.size = HeroLogoSize(rawValue: 10)
+        try await waitUntil { (try? redBounds(in: fixture.window))?.width ?? 0 > small.width * 1.45 }
+        let large = try XCTUnwrap(redBounds(in: fixture.window))
+        XCTAssertEqual(large.width / small.width, 1.5, accuracy: 0.02)
+        XCTAssertEqual(large.height / small.height, 1.5, accuracy: 0.03)
+        XCTAssertEqual(lookup.calls, 1)
+        XCTAssertEqual(model.resolutions, 1, "Resizing must not restart logo preparation.")
+        model.size = .default
+        try await waitUntil { abs(((try? redBounds(in: fixture.window))?.width ?? 0) - small.width) < 2 }
+        XCTAssertEqual(lookup.calls, 1)
+    }
+
+    func testLogoSizePreviewCapturesAtBothEnds() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        for surface in [HeroLogoSizing.Surface.home, .showcase, .detail] {
+            for step in [0, 10] {
+                fixture.window.rootViewController = UIHostingController(rootView:
+                    HeroLogoSizeControl(size: .constant(HeroLogoSize(rawValue: step)), surface: surface)
+                        .padding(40).frame(width: 900)
+                        .environment(\.colorScheme, .dark)
+                        .environment(\.themePalette, .dark)
+                        .background(Color.black)
+                )
+                fixture.window.layoutIfNeeded()
+                let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+                    XCTAssertTrue(fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true))
+                }
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "logo-size-\(surface)-\(step)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+        }
+    }
+
+    func testShowcaseEnlargementKeepsTheLogoBaselineAndRowsFixed() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        let url = try seedLogo(size: CGSize(width: 600, height: 100))
+        defer { removeSeededLogo(url) }
+        let item = MediaItem(
+            id: UUID().uuidString, title: "Sized Showcase", kind: .movie,
+            overview: "A long sample description that exercises the space reserved between the logo and the row.",
+            logoURL: url,
+            allowsTitleBasedMetadataMatching: false
+        )
+        for navigation in [NavigationStyle.rail, .tabBar] {
+            var baseline: CGRect?
+            var rowFrame: CGRect?
+            for step in [0, 10] {
+                var settings = HeroSettings.default
+                settings.showcaseLogoSize = HeroLogoSize(rawValue: step)
+                fixture.window.rootViewController = UIHostingController(rootView:
+                    FocusHeroHomeView(
+                        rows: [.init(id: "row", itemIDs: [item.stablePresentationID], leadItem: item, items: [item])],
+                        settings: settings, spoilerSettings: .default,
+                        navigationStyle: navigation, isFrontmost: true
+                    ) { _, _ in
+                        Color(uiColor: .blue).frame(height: 420)
+                    }
+                    .environment(\.themePalette, .dark)
+                    .environment(\.colorScheme, .dark)
+                )
+                try await waitUntil { (try? redBounds(in: fixture.window)) != nil }
+                try await Task.sleep(for: .milliseconds(200))
+                let logo = try XCTUnwrap(redBounds(in: fixture.window))
+                let row = try XCTUnwrap(colorBounds(in: fixture.window, channel: 2))
+                XCTAssertGreaterThanOrEqual(logo.minY, 0)
+                XCTAssertLessThan(logo.maxY + 100, row.minY, "Keep room for metadata above the pinned row.")
+                if let baseline, let rowFrame {
+                    XCTAssertEqual(logo.width / baseline.width, 1.5, accuracy: 0.02)
+                    XCTAssertEqual(logo.maxY, baseline.maxY, accuracy: 2)
+                    XCTAssertEqual(row, rowFrame)
+                } else {
+                    baseline = logo
+                    rowFrame = row
+                }
+                let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds).image { _ in
+                    fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true)
+                }
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "showcase-size-\(navigation)-\(step)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
+            }
+        }
+    }
+
+    @Observable fileprivate final class SizingModel {
+        var size = HeroLogoSize.default
+        var resolutions = 0
+    }
+
+    private struct SizingFixture: View {
+        let model: SizingModel
+        let fallback: HeroLogoFallback
+
+        var body: some View {
+            let box = HeroLogoSizing.box(for: .showcase, size: model.size)
+            Color.black.overlay {
+                HeroLogoArtwork(
+                    references: [], asyncFallbackURL: fallback, maxWidth: box.width,
+                    maxHeight: box.height, constrainsToBounds: true,
+                    onResolve: { _ in model.resolutions += 1 }
+                ) { Color.clear }
+            }.ignoresSafeArea()
+        }
+    }
+
     func testSelectiveLiftPaintsOnlyInDarkShowcase() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }

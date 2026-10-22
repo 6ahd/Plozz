@@ -6,6 +6,31 @@ import XCTest
 
 @MainActor
 final class SettingsStepperHostedTests: XCTestCase {
+    func testRangeTrackReusesBoundedAdjustmentAndNativeFocus() async throws {
+        for direction in [LayoutDirection.leftToRight, .rightToLeft] {
+            try await withStepper(direction: direction, showsTrack: true) { model, input, window in
+                let system = try XCTUnwrap(UIFocusSystem(for: window))
+                let focused = try XCTUnwrap(system.focusedItem)
+                let frame = focused.frame
+                self.press(.right, input)
+                try await self.waitUntil { model.selection == 120 }
+                self.press(.right, input)
+                XCTAssertEqual(model.selection, 120)
+                self.press(.left, input)
+                self.press(.left, input)
+                try await self.waitUntil { model.selection == 5 }
+                self.press(.left, input)
+                XCTAssertEqual(model.selection, 5)
+                XCTAssertTrue(system.focusedItem === focused)
+                XCTAssertEqual(system.focusedItem?.frame, frame)
+                model.focusOther = true
+                try await self.waitUntil { !model.focused }
+                self.press(.right, input)
+                XCTAssertEqual(model.selection, 5)
+            }
+        }
+    }
+
     func testDirectionalAdjustmentClampsAndKeepsNativeFocusAndWidth() async throws {
         for direction in [LayoutDirection.leftToRight, .rightToLeft] {
             try await withStepper(direction: direction) { model, input, window in
@@ -68,6 +93,7 @@ final class SettingsStepperHostedTests: XCTestCase {
     private func withStepper(
         wraps: Bool = false,
         direction: LayoutDirection = .leftToRight,
+        showsTrack: Bool = false,
         body: (Model, any SettingsAdjustmentRemoteInput, UIWindow) async throws -> Void
     ) async throws {
         try await waitUntil {
@@ -78,7 +104,7 @@ final class SettingsStepperHostedTests: XCTestCase {
         let previous = scene.windows.first(where: \.isKeyWindow)
         let model = Model()
         let window = UIWindow(windowScene: scene)
-        let host = UIHostingController(rootView: Fixture(model: model, wraps: wraps)
+        let host = UIHostingController(rootView: Fixture(model: model, wraps: wraps, showsTrack: showsTrack)
             .environment(\.layoutDirection, direction))
         window.rootViewController = host
         window.makeKeyAndVisible()
@@ -118,6 +144,7 @@ final class SettingsStepperHostedTests: XCTestCase {
     private struct Fixture: View {
         @Bindable var model: Model
         let wraps: Bool
+        let showsTrack: Bool
         @FocusState private var otherFocused: Bool
 
         var body: some View {
@@ -126,6 +153,7 @@ final class SettingsStepperHostedTests: XCTestCase {
                     options: model.options, selection: $model.selection, wraps: wraps,
                     onFocusChange: { model.focused = $0 }, label: "Seconds",
                     subtitle: "Adjustment helper",
+                    rangeLabels: showsTrack ? ("Small", "Large") : nil,
                     verbatimTitle: { "\($0) sec" }
                 )
                 Button("Next setting") {}.focused($otherFocused)

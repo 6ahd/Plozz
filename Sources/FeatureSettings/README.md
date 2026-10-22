@@ -7,6 +7,13 @@ instead of inheriting the page's monochrome navigation tint.
 The Settings screen and its detail pages. Profile-aware, integration-aware,
 and the single place caption customization lives.
 
+Home hero, Showcase (TV), and Detail Page have independent profile-scoped **Logo size**
+controls. Each shows one local fictional-wordmark preview and a Small-to-Large
+adjustment with Reset to default. Small preserves the existing size; there are
+eleven positions up to 1.5x, subject to each layout's safe bounds. TV reuses the
+shared Settings stepper's remote/focus behavior with a range track; mobile uses
+the native slider. No artwork lookup is needed for the preview.
+
 On tvOS, profile Appearance, Profile Lock setup, and Parental PIN setup use the
 workspace's full-width destination layout, like subtitle styling. Their
 two-column content must not be squeezed into the ordinary centered Settings

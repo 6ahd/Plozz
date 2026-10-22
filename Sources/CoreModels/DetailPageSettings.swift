@@ -3,6 +3,7 @@ import Observation
 
 /// The compact detail header is a preview; complete ratings remain in title information.
 public struct DetailPageSettings: Codable, Equatable, Sendable {
+    public var logoSize: HeroLogoSize
     public var showsHeaderRatings: Bool
     public var showsHeaderFamilyGuidance: Bool
     public var maxHeaderRatings: Int {
@@ -23,17 +24,20 @@ public struct DetailPageSettings: Codable, Equatable, Sendable {
         showsHeaderFamilyGuidance: Bool = true,
         maxHeaderRatings: Int = 2,
         ratingSourceOrder: [RatingSource] = defaultRatingOrder,
-        enabledRatingSources: Set<RatingSource> = Set(RatingSource.allCases)
+        enabledRatingSources: Set<RatingSource> = Set(RatingSource.allCases),
+        logoSize: HeroLogoSize = .default
     ) {
         self.showsHeaderRatings = showsHeaderRatings
         self.showsHeaderFamilyGuidance = showsHeaderFamilyGuidance
         self.maxHeaderRatings = Self.boundedRatingCount(maxHeaderRatings)
         self.ratingSourceOrder = ratingSourceOrder
         self.enabledRatingSources = enabledRatingSources
+        self.logoSize = logoSize
     }
 
     private enum CodingKeys: String, CodingKey {
         case showsHeaderRatings, showsHeaderFamilyGuidance, maxHeaderRatings, ratingSourceOrder, enabledRatingSources
+        case logoSize
     }
 
     public init(from decoder: Decoder) throws {
@@ -45,7 +49,8 @@ public struct DetailPageSettings: Codable, Equatable, Sendable {
             ratingSourceOrder: try values.decodeIfPresent([RatingSource].self, forKey: .ratingSourceOrder)
                 ?? Self.defaultRatingOrder,
             enabledRatingSources: try values.decodeIfPresent(Set<RatingSource>.self, forKey: .enabledRatingSources)
-                ?? Set(RatingSource.allCases)
+                ?? Set(RatingSource.allCases),
+            logoSize: try values.decodeIfPresent(HeroLogoSize.self, forKey: .logoSize) ?? .default
         )
     }
 
@@ -108,7 +113,8 @@ public final class DetailPageSettingsStore: DetailPageSettingsStoring, @unchecke
                 .compactMap(RatingSource.init(rawValue:)) ?? DetailPageSettings.defaultRatingOrder,
             enabledRatingSources: (values["enabledRatingSources"] as? [String])
                 .map { Set($0.compactMap(RatingSource.init(rawValue:))) }
-                ?? Set(RatingSource.allCases)
+                ?? Set(RatingSource.allCases),
+            logoSize: HeroLogoSize(rawValue: values["logoSize"] as? Int ?? 0)
         )
     }
 
@@ -118,7 +124,8 @@ public final class DetailPageSettingsStore: DetailPageSettingsStoring, @unchecke
             "showsHeaderFamilyGuidance": settings.showsHeaderFamilyGuidance,
             "maxHeaderRatings": settings.maxHeaderRatings,
             "ratingSourceOrder": settings.orderedSources.map(\.rawValue),
-            "enabledRatingSources": settings.enabledRatingSources.map(\.rawValue).sorted()
+            "enabledRatingSources": settings.enabledRatingSources.map(\.rawValue).sorted(),
+            "logoSize": settings.logoSize.rawValue
         ], forKey: key)
     }
 }

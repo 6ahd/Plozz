@@ -241,6 +241,13 @@ Density, Dynamic Type, and the minimum height follow the same shared metric.
   `SettingsAdjustmentFocusScope` shares the player's horizontal input ownership,
   held-press cancellation, and navigation-rail protection. VoiceOver adjustment
   uses the same stepping operation. Mobile retains separate buttons.
+  Optional range labels replace the numeric display with a bounded track, retaining
+  the same input owner, native focus styling, clamping, and accessibility actions.
+- **Hero logo size** — `HeroLogoSizing` supplies the existing default bounds and
+  eleven increasing layout steps for TV heroes, Showcase, and mobile heroes.
+  Width/height ceilings preserve aspect ratio and available screen space. The
+  local `HeroLogoSizePreview` uses the same sizing math and shared illustrated
+  scenery; adjustments do not change logo cache keys or prepare another bitmap.
 - **Grouped Settings rows** — `SettingsControlRows` inserts palette separators
   between tvOS rows sharing a container, never after the last visible row. Keep
   a control and its helper in one child view; the divider belongs after both.

@@ -159,6 +159,7 @@ final class ProfileSettingsModelTests: XCTestCase {
         defer {
             for namespace in [primary, other] {
                 UserDefaults.standard.removeObject(forKey: SettingsKey.scoped("com.plozz.heroSettings", namespace: namespace))
+                UserDefaults.standard.removeObject(forKey: SettingsKey.scoped(DetailPageSettingsStore.baseKey, namespace: namespace))
                 UserDefaults.standard.removeObject(forKey: SettingsKey.scoped(CardCaptionSettingsStore.storageKey, namespace: namespace))
                 UserDefaults.standard.removeObject(forKey: SettingsKey.scoped(CardCaptionSettingsStore.storageKey, namespace: namespace) + ".migrated")
             }
@@ -166,14 +167,23 @@ final class ProfileSettingsModelTests: XCTestCase {
         let model = ProfileSettingsModel(namespace: primary)
         let navigation = model.navigationStyleModel.style
         model.heroSettingsModel.settings.style = .followsFocus
+        model.heroSettingsModel.settings.logoSize = HeroLogoSize(rawValue: 3)
+        model.heroSettingsModel.settings.showcaseLogoSize = HeroLogoSize(rawValue: 8)
+        model.detailPageModel.settings.logoSize = HeroLogoSize(rawValue: 6)
         model.cardStyleModel.captions.setOverride(.show, for: .home)
 
         model.rebuild(namespace: other)
         XCTAssertEqual(model.heroSettingsModel.settings.style, .carousel)
+        XCTAssertEqual(model.heroSettingsModel.settings.logoSize, .default)
+        XCTAssertEqual(model.heroSettingsModel.settings.showcaseLogoSize, .default)
+        XCTAssertEqual(model.detailPageModel.settings.logoSize, .default)
         XCTAssertTrue(model.cardStyleModel.captions.showsLabels(in: .home))
         XCTAssertFalse(model.cardStyleModel.captions.showsLabels(in: .home, isShowcase: true))
         model.rebuild(namespace: primary)
         XCTAssertEqual(model.heroSettingsModel.settings.style, .followsFocus)
+        XCTAssertEqual(model.heroSettingsModel.settings.logoSize.rawValue, 3)
+        XCTAssertEqual(model.heroSettingsModel.settings.showcaseLogoSize.rawValue, 8)
+        XCTAssertEqual(model.detailPageModel.settings.logoSize.rawValue, 6)
         XCTAssertTrue(model.cardStyleModel.captions.showsLabels(in: .home))
         XCTAssertEqual(model.navigationStyleModel.style, navigation)
     }

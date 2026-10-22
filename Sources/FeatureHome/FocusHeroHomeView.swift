@@ -85,7 +85,7 @@ enum FocusHeroLayout {
     /// Smaller than the carousel's wordmark box: the column above a pinned poster
     /// row is short, and the description needs its lines more than the logo needs
     /// the extra size.
-    static let logoBox = CGSize(width: 440, height: 124)
+    static let logoBox = HeroLogoSizing.Layout.showcase.budget
     static let logoPresentationPolicy = HeroLogoPresentationPolicy.whenResolved
     /// How much closer a row's title sits to its cards than on the classic Home.
     static let rowTitleTightening: CGFloat = 22
@@ -472,16 +472,19 @@ private struct FocusHeroArtworkPrefetch: View {
 /// hidden, it fixes where the details block, and so the logo, sits above the
 /// pinned row.
 private struct FocusHeroDetailsFootprint: View {
+    let logoHeight: CGFloat
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Color.clear
-                .frame(height: FocusHeroLayout.logoBox.height)
+                .frame(height: logoHeight)
                 .padding(.bottom, 6)
             Text(verbatim: " ").font(.system(size: 23, weight: .medium))
             Text(verbatim: " \n \n ")
                 .font(.system(size: 22))
                 .lineSpacing(2)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .frame(width: FocusHeroLayout.columnWidth, alignment: .leading)
     }
 }
@@ -1148,7 +1151,9 @@ private struct FocusHeroColumn: View {
         // longer description only reaches further down.
         // The footprint alone sets the block's size; the details are laid over
         // it, so no title can move where the logo sits.
-        FocusHeroDetailsFootprint()
+        FocusHeroDetailsFootprint(
+            logoHeight: HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize).height
+        )
             .hidden()
             .overlay(alignment: .topLeading) {
                 if let subject = model.details {
@@ -1220,6 +1225,7 @@ private struct FocusHeroColumn: View {
 
     private func itemColumn(_ item: MediaItem) -> some View {
         let hideText = spoilerSettings.shouldHideText(for: item)
+        let logoBox = HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize)
         // Details show once, complete: a row's own record is sparser than what
         // replaces it, so showing it first would change the text under the viewer.
         let detailed = enrich == nil || metadata.hasDetails(for: item)
@@ -1228,8 +1234,8 @@ private struct FocusHeroColumn: View {
                 references: item.artworkReferences(for: .logo),
                 asyncFallbackURL: HomeHeroArtwork.logoFallback(for: item),
                 displayedArtworkID: model.details?.id,
-                maxWidth: FocusHeroLayout.logoBox.width,
-                maxHeight: FocusHeroLayout.logoBox.height,
+                maxWidth: logoBox.width,
+                maxHeight: logoBox.height,
                 constrainsToBounds: true,
                 presentationPolicy: FocusHeroLayout.logoPresentationPolicy,
                 haloStyle: .showcase
@@ -1242,7 +1248,7 @@ private struct FocusHeroColumn: View {
             }
             .accessibilityIdentifier("showcase-title-logo")
             // Every logo and title sits on the same line, whatever its shape.
-            .frame(height: FocusHeroLayout.logoBox.height, alignment: .bottomLeading)
+            .frame(height: logoBox.height, alignment: .bottomLeading)
             // Above the logo, as on the classic hero, in the free space over the
             // block: it takes no room, so nothing below it moves.
             .overlay(alignment: .topLeading) {

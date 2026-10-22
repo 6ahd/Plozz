@@ -1907,6 +1907,9 @@ private struct PlozziOSDetailPageSettingsView: View {
 
     var body: some View {
         List {
+            SettingsSectionGroup("Logo size") {
+                HeroLogoSizeControl(size: $detailPage.settings.logoSize, surface: .detail)
+            }
             SettingsSectionGroup("Review scores") {
                 Toggle("Show review scores", isOn: $detailPage.settings.showsHeaderRatings)
                 if detailPage.settings.showsHeaderRatings {

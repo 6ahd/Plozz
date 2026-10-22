@@ -144,9 +144,45 @@ public struct HomeLayoutSwatch: View {
 
     // MARK: Shared
 
-    /// A stand-in picture — sky, sun and two ridges — so the art reads as a
-    /// picture at any size rather than as a wash of colour.
-    private var art: some View {
+    private var art: some View { HomePreviewArtwork() }
+
+    /// A text stand-in: a wordmark or a line of copy at screen coordinates.
+    private func block(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, wordmark: Bool = false) -> some View {
+        RoundedRectangle(cornerRadius: height * (wordmark ? 0.22 : 0.5), style: .continuous)
+            .fill(wordmark ? HomeLayoutPreviewColors.wordmark : HomeLayoutPreviewColors.text)
+            .frame(width: width, height: height)
+            .offset(x: x, y: y)
+    }
+
+    /// Continue Watching's landscape cards along a row, running off the right edge.
+    private func cards(y: CGFloat, height: CGFloat, focusedFirst: Bool = false) -> some View {
+        let width = height * 16 / 9
+        return ZStack(alignment: .topLeading) {
+            ForEach(0..<4, id: \.self) { index in
+                let focused = focusedFirst && index == 0
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [HomeLayoutPreviewColors.tileTop, HomeLayoutPreviewColors.tileBottom],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(focused ? Color.white : .clear, lineWidth: 8)
+                    )
+                    .frame(width: width, height: height)
+                    .scaleEffect(focused ? 1.06 : 1)
+                    .offset(x: 150 + CGFloat(index) * (width + 44), y: y)
+            }
+        }
+    }
+}
+
+/// Local scenery shared by Home layout and logo-size previews.
+struct HomePreviewArtwork: View {
+    var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
@@ -182,39 +218,6 @@ public struct HomeLayoutSwatch: View {
                     path.closeSubpath()
                 }
                 .fill(HomeLayoutPreviewColors.artBottom)
-            }
-        }
-    }
-
-    /// A text stand-in: a wordmark or a line of copy at screen coordinates.
-    private func block(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, wordmark: Bool = false) -> some View {
-        RoundedRectangle(cornerRadius: height * (wordmark ? 0.22 : 0.5), style: .continuous)
-            .fill(wordmark ? HomeLayoutPreviewColors.wordmark : HomeLayoutPreviewColors.text)
-            .frame(width: width, height: height)
-            .offset(x: x, y: y)
-    }
-
-    /// Continue Watching's landscape cards along a row, running off the right edge.
-    private func cards(y: CGFloat, height: CGFloat, focusedFirst: Bool = false) -> some View {
-        let width = height * 16 / 9
-        return ZStack(alignment: .topLeading) {
-            ForEach(0..<4, id: \.self) { index in
-                let focused = focusedFirst && index == 0
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [HomeLayoutPreviewColors.tileTop, HomeLayoutPreviewColors.tileBottom],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .strokeBorder(focused ? Color.white : .clear, lineWidth: 8)
-                    )
-                    .frame(width: width, height: height)
-                    .scaleEffect(focused ? 1.06 : 1)
-                    .offset(x: 150 + CGFloat(index) * (width + 44), y: y)
             }
         }
     }

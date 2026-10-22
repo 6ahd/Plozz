@@ -439,6 +439,10 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   when it finishes for the still-current title, without requiring a focus round trip.
   Its title slot stays visually empty while the logo resolves; text appears only
   after no usable logo is found, never as a temporary title before the wordmark.
+  Home hero and Showcase use independent `HeroSettings` logo sizes; full detail
+  heroes use `DetailPageSettings.logoSize`. Both Home foreground renderers apply
+  the same sizing math without reloading artwork. Defaults preserve existing sizes,
+  and text fallback fonts and the compact series-browser logo remain unchanged.
   Dark coloured Showcase logos can select CoreUI's cached contrast lift against
   the leading page colour, preserving hue, saturation, white highlights, and
   the logo's geometry rather than whitening the lettering.
