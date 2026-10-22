@@ -202,6 +202,7 @@ public struct PosterCardView: View {
 
     public var body: some View {
         cardBody
+            .fittingPortraitPlaybackReflection(showsSeriesArtwork && style == .poster && showsResumeChip)
             .environment(\.plozzArtworkArea, presentationArtworkPolicy.area)
             .plozzChromeFocused(usesNativePoster ? false : isFocused)
             .mediaItemContextMenu(for: item)

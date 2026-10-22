@@ -74,6 +74,14 @@ public struct ContinueWatchingArtworkSwatch: View {
 
     private var usesProgressOnlyPortrait: Bool { layout == .portrait && playbackDetails == .progressOnly }
 
+    private var usesAdaptivePortraitText: Bool {
+        #if os(iOS)
+        layout == .portrait
+        #else
+        false
+        #endif
+    }
+
     public init(
         style: ContinueWatchingArtworkStyle, cornerRadius: CGFloat = 12,
         playbackDetails: ContinueWatchingPlaybackDetails = .default, showsCaptions: Bool
@@ -139,13 +147,15 @@ public struct ContinueWatchingArtworkSwatch: View {
                 ResumeChipOverlay(
                     item: MediaItem(id: "continue-watching-preview", title: "", kind: .movie, runtime: 3600, resumePosition: 1800),
                     bottomScrimStart: style.showsSeriesArtwork ? ContinueWatchingCardShape.scrimStart : 0.60,
-                    bottomScrimDepth: style.showsSeriesArtwork ? ContinueWatchingCardShape.scrimDepth : 0.60
+                    bottomScrimDepth: style.showsSeriesArtwork ? ContinueWatchingCardShape.scrimDepth : 0.60,
+                    compactHorizontalLayout: usesAdaptivePortraitText
                 )
                 .frame(width: width / chromeScale, height: height / chromeScale)
                 .scaleEffect(chromeScale)
                 .frame(width: width, height: height)
             }
         }
+        .fittingPortraitPlaybackReflection(layout == .portrait && playbackDetails == .detailed, scale: chromeScale)
         .plozzChromeFocused(true)
         .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))

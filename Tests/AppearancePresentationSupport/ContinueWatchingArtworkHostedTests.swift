@@ -94,6 +94,40 @@ final class ContinueWatchingArtworkHostedTests: XCTestCase {
         }
     }
 
+    #if os(iOS)
+    func testMobilePortraitKeepsLongEpisodeAndTimeTextComplete() async throws {
+        let poster = try await cacheImage(.red, size: CGSize(width: 120, height: 180))
+        let item = MediaItem(
+            id: UUID().uuidString, title: "Episode", kind: .episode,
+            seasonNumber: 12, episodeNumber: 123, runtime: 7200, resumePosition: 300,
+            seriesPosterURL: poster
+        )
+        for (width, density, textSize) in [
+            (CGFloat(86), UIDensity.micro, DynamicTypeSize.large),
+            (132, .standard, .large),
+            (180, .standard, .xxxLarge)
+        ] {
+            for style in [CardStyle.borderless, .framed] {
+                try await withCard(
+                    item, store: makeStore { _ in nil }, style: style,
+                    settings: .init(preference: .library), shape: .poster, width: width,
+                    metrics: .touch(density: density, dynamicTypeSize: textSize),
+                    captions: .init(overrides: [.home: false, .continueWatching: false])
+                ) { window in
+                    try await waitUntil { try self.coloredPixels(window)[0] > 5_000 }
+                    let lines = try recognizedText(
+                        window, attachmentName: "Complete mobile portrait text \(width) \(style) \(textSize)"
+                    )
+                    let text = lines.joined().replacingOccurrences(of: " ", with: "")
+                    XCTAssertTrue(text.contains("12") && text.contains("123"), "\(lines)")
+                    XCTAssertTrue(text.contains("1h") && text.contains("55m"), "\(lines)")
+                    XCTAssertFalse(text.contains("…") || text.contains("..."), "\(lines)")
+                }
+            }
+        }
+    }
+    #endif
+
     func testPortraitDetailedKeepsTheLandscapeLegibilityScrim() async throws {
         let poster = try await cacheImage(.red, size: CGSize(width: 120, height: 180))
         let item = MediaItem(

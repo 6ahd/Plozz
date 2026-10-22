@@ -45,6 +45,20 @@ final class ExtendedArtworkGeometryTests: XCTestCase {
                        ContinueWatchingCardShape.portraitAspectRatio)
     }
 
+    func testAbsolutePlaybackReservationPreservesPosterAspectAndOuterSize() {
+        let size = CGSize(width: 120, height: 180)
+        for reserved: CGFloat in [24, 40, 54] {
+            let geometry = ExtendedArtworkGeometry(
+                slot: size, artworkAspectRatio: 2.0 / 3.0, sideCrop: 0,
+                minimumReflectionShare: 0.1, minimumReflectionHeight: reserved
+            )
+            XCTAssertEqual(geometry.reflectionHeight, reserved, accuracy: 0.001)
+            XCTAssertEqual(geometry.pictureHeight + geometry.reflectionHeight, size.height, accuracy: 0.001)
+            XCTAssertEqual(geometry.renderedWidth / geometry.pictureHeight, 2.0 / 3.0, accuracy: 0.001)
+            XCTAssertEqual(geometry.renderedWidth + 2 * geometry.sideReflectionWidth, size.width, accuracy: 0.001)
+        }
+    }
+
     private let sixteenByNine: CGFloat = 16.0 / 9.0
 
     private func geometry(

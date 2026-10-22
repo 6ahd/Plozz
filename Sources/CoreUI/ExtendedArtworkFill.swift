@@ -35,9 +35,10 @@ public struct ExtendedArtworkGeometry: Equatable, Sendable {
     ///     into it, exactly as a plain fill would.
     ///   - sideCrop: fraction of the width trimmed from **each** side.
     ///   - minimumReflectionShare: minimum bottom band as a fraction of picture height.
+    ///   - minimumReflectionHeight: space needed for playback text, within the fixed slot.
     public init(
         slot: CGSize, artworkAspectRatio: CGFloat, sideCrop: CGFloat,
-        minimumReflectionShare: CGFloat = 0
+        minimumReflectionShare: CGFloat = 0, minimumReflectionHeight: CGFloat = 0
     ) {
         let width = max(0, slot.width)
         let height = max(0, slot.height)
@@ -45,8 +46,11 @@ public struct ExtendedArtworkGeometry: Equatable, Sendable {
         // A crop of half the width or more would be a different picture, not a
         // trim, so the visible fraction is floored well before that.
         let visible = min(1, max(0.5, 1 - 2 * max(0, sideCrop)))
-        let pictureBudget = height / (1 + max(0, minimumReflectionShare))
-        renderedWidth = minimumReflectionShare > 0
+        let pictureBudget = min(
+            height / (1 + max(0, minimumReflectionShare)),
+            height - min(height, max(0, minimumReflectionHeight))
+        )
+        renderedWidth = minimumReflectionShare > 0 || minimumReflectionHeight > 0
             ? min(width / visible, pictureBudget * aspect)
             : width / visible
         // Never taller than the slot: with no room to spare the picture simply
@@ -94,6 +98,7 @@ public struct ExtendedArtworkFill<Picture: View>: View {
     private let minimumReflectionShare: CGFloat
     private let progressivelyBlursReflection: Bool
     private var reflectionPicture: Picture?
+    @Environment(\.portraitPlaybackReflectionHeight) private var playbackReflectionHeight
 
     /// - Parameters:
     ///   - picture: the image to lay in, sized by this view. Callers with a
@@ -127,7 +132,9 @@ public struct ExtendedArtworkFill<Picture: View>: View {
                 slot: geo.size,
                 artworkAspectRatio: artworkAspectRatio,
                 sideCrop: sideCrop,
-                minimumReflectionShare: minimumReflectionShare
+                minimumReflectionShare: minimumReflectionShare,
+                minimumReflectionHeight: minimumReflectionShare > 0
+                    ? min(geo.size.height * 0.30, playbackReflectionHeight) : 0
             )
             // Reflections overlap behind the fitted picture, then share the
             // card's outer clip so focus scaling cannot open gaps at the joins.

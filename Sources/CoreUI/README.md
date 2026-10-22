@@ -13,7 +13,7 @@ shared white progress bar without that overlay. Other cards are unaffected.
 The previously stored portrait-only preference is retained.
 
 Continue Watching portrait cards reuse `PosterCardView` at ordinary 2:3 poster
-dimensions. Detailed fits the complete poster above a bottom reflection 10% of
+dimensions. Detailed starts with the complete poster above a bottom reflection 10% of
 the fitted picture's height, filling the narrow left/right gaps with mirrored
 poster edges rather than cropping or stretching the artwork. The side reflections
 gradually soften outward; the bottom band retains its progressive blur as it
@@ -43,6 +43,17 @@ selected shape. Detailed tightens only the shared chip's horizontal spacing,
 preserving episode/time details and the progress/download elements in its narrower
 slot. Its outer insets are even and match landscape Continue Watching; compact
 spacing between controls does not reduce the leading edge inset.
+On iOS/iPadOS, a constrained Detailed portrait chip drops the play glyph first,
+then the progress bar, before reducing its text by at most 15%. Episode and time
+text stays complete; exceptionally narrow cards or large accessibility type wrap
+the text instead of truncating it. Download status keeps its trailing position.
+At accessibility text sizes it occupies its own bottom-trailing line rather than
+squeezing the episode/time column.
+Mobile cards and their Settings previews reserve the measured playback block's
+height in the reflection, capped at 30% of the artwork slot so the poster remains
+dominant. The outer 2:3 dimensions never change. Extreme accessibility text may
+extend above that cap rather than shrinking the picture to half the card.
+TV and non-portrait chips retain their existing layout.
 All three artwork styles share the existing Continue Watching caption override,
 inheriting the row's Home or Recommended choice unless explicitly shown/hidden.
 Its original portrait preference is retained. Settings previews resolve this
