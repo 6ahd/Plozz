@@ -2,15 +2,99 @@ import CoreModels
 @testable import AppShell
 @testable import CoreUI
 @testable import FeatureHome
+import FeatureHomeCore
 import MetadataKit
 @testable import FeatureSettings
 import Observation
 import SwiftUI
 import UIKit
+import Vision
 import XCTest
 
 @MainActor
 final class HeroLogoPresentationHostedTests: XCTestCase {
+    func testLateScheduleKeepsLogoGeometryAndHugsTrimmedArtwork() async throws {
+        let fixture = try await makeFixture()
+        defer { fixture.close() }
+        for minimumTop: CGFloat? in [nil, 120] {
+            for shape in [CGSize(width: 600, height: 100), CGSize(width: 200, height: 200),
+                          CGSize(width: 100, height: 200)] {
+                let url = try seedLogo(size: shape)
+                defer { removeSeededLogo(url) }
+                let preparation = await HeroLogoPipeline.shared.preparedLogo(for: .remote(url))
+                let prepared = try XCTUnwrap(preparation)
+                let identity = UUID().uuidString
+                let item = MediaItem(
+                    id: identity, title: "Late schedule fixture", kind: .series,
+                    logoURL: url, providerIDs: ["PlexGuid": "plex://show/\(identity)"],
+                    allowsTitleBasedMetadataMatching: false
+                )
+                let row = FocusHeroRow(id: "row", itemIDs: [item.stablePresentationID], leadItem: item, items: [item])
+                let model = FocusHeroModel()
+                model.record(height: FocusHeroLayout.rowsBottom(rowSpacing: FocusHeroLayout.rowSpacing)
+                             - FocusHeroLayout.lowestSlotTop, for: row.id)
+                model.seed(from: [row])
+                let schedules = HeroScheduleLines()
+                var settings = HeroSettings.default
+                settings.showcaseLogoSize = HeroLogoSize(rawValue: 10)
+                fixture.window.rootViewController = UIHostingController(rootView:
+                    Color.black.overlay(alignment: .topLeading) {
+                        FocusHeroColumn(
+                            model: model, metadata: FocusHeroMetadata(), enrich: nil,
+                            settings: settings, spoilerSettings: .default, navigationStyle: .rail,
+                            rows: [row], minimumDetailsTop: minimumTop, schedules: schedules
+                        )
+                        .offset(y: 160)
+                    }
+                    .environment(\.colorScheme, .dark)
+                    .environment(\.themePalette, .dark)
+                    .environment(\.gradientBackgroundsEnabled, false)
+                    .ignoresSafeArea()
+                )
+                try await waitUntil { (try? redBounds(in: fixture.window)) != nil }
+                try await Task.sleep(for: .milliseconds(450))
+                XCTAssertNil(schedules.line(for: item))
+                let before = try XCTUnwrap(redBounds(in: fixture.window))
+                let now = Date()
+                let upcoming = UpcomingEpisode(
+                    seriesIdentity: .external(source: "fixture", value: item.id), seasonNumber: 2, episodeNumber: 1,
+                    airDate: now.addingTimeInterval(7 * 86400), datePrecision: .dateOnly,
+                    source: .tvmaze, refreshedAt: now
+                )
+                await SeriesScheduleStore.shared.store(.init(
+                    seriesKey: MetadataQuery(item).seriesScoped.enrichmentCacheKey,
+                    upcomingEpisode: upcoming, upcomingEpisodes: [upcoming],
+                    refreshedAt: now, refreshDueAt: now.addingTimeInterval(3600)
+                ))
+                await schedules.loadCached([item])
+                XCTAssertNotNil(schedules.line(for: item))
+                try await Task.sleep(for: .milliseconds(250))
+                let after = try XCTUnwrap(redBounds(in: fixture.window))
+                let context = "minimumTop=\(String(describing: minimumTop)) shape=\(shape)"
+                XCTAssertEqual(after, before, "A late badge must not resize or move the logo: \(context)")
+                let cached = await HeroLogoPipeline.shared.preparedLogo(for: .remote(url))
+                XCTAssertTrue(cached?.image === prepared.image, "Reuse the prepared, cropped bitmap.")
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = 1
+                let image = UIGraphicsImageRenderer(bounds: fixture.window.bounds, format: format).image { _ in
+                    XCTAssertTrue(fixture.window.drawHierarchy(in: fixture.window.bounds, afterScreenUpdates: true))
+                }
+                attachPreview(in: fixture.window, name: "late-badge-\(minimumTop == nil ? "home" : "library")-\(shape.width)")
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.recognitionLanguages = ["en-US"]
+                try VNImageRequestHandler(cgImage: XCTUnwrap(image.cgImage)).perform([request])
+                let badge = try XCTUnwrap(request.results?.first {
+                    $0.topCandidates(1).first?.string.localizedCaseInsensitiveContains("New season") == true
+                })
+                let textBottom = (1 - badge.boundingBox.minY) * fixture.window.bounds.height
+                let gap = after.minY - textBottom
+                XCTAssertGreaterThan(gap, 16, context)
+                XCTAssertLessThan(gap, 42, "The badge must hug visible ink, not the nominal logo slot: \(context)")
+            }
+        }
+    }
+
     func testLibrarySettingsReuseTheNativeSizeControlAndNavigationEditor() async throws {
         let fixture = try await makeFixture()
         defer { fixture.close() }

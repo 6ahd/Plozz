@@ -442,9 +442,11 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   grows: a live scan update would apply the size delta twice, overlapping posters
   until another focus/layout pass. Banner height and artwork alignment must be
   correct while unfocused, through focus changes, and when progress reappears.
-  Library Showcase measures its navigation clearance and keeps the schedule badge
-  inside the details layout, above the logo. Description lines give way before
-  logo space; exceptionally constrained layouts cap the logo rather than overlap
+  Library Showcase measures its navigation clearance and reserves one native
+  badge's height for schedule/availability-capable items before the line loads.
+  The visible badge hugs the fitted logo, not unused space in its sizing slot;
+  late schedule arrival cannot resize it. Description lines give way before logo
+  space; exceptionally constrained layouts cap the logo rather than overlap
   navigation. Pinned rows and Home's separate details footprint are unchanged.
   A cold logo is adopted
   when it finishes for the still-current title, without requiring a focus round trip.
@@ -749,9 +751,10 @@ the pinned geometry unchanged while letting the system sidebar button recognize
 the top of Home. Native chrome still auto-hides farther down and returns at the
 first row. The UI regression checks actual painted chrome, not just its
 accessibility presence, including sidebar and detail returns.
-The schedule badge sits 16pt above the logo slot; Showcase
-constrains even tall logos to that slot rather than letting artwork grow into
-the badge. The outgoing row tucks upward by up to 110pt behind the 24pt mask fade so no
+The schedule badge sits 16pt above the fitted, already-trimmed artwork inside
+the logo slot. Showcase reuses the cached off-main crop and existing dwell-gated
+schedule requests; it does not scan pixels or eagerly fetch schedules while browsing.
+The outgoing row tucks upward by up to 110pt behind the 24pt mask fade so no
 bottom strip remains above the next row. This offset has its own native spring:
 deriving it from the scroll view's logical geometry makes the returning row
 release all 110pt immediately, ahead of the moving presentation viewport.

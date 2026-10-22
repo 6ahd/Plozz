@@ -1133,7 +1133,7 @@ private struct FocusHeroBackdropLayer: View {
 
 // MARK: - Hero column
 
-private struct FocusHeroColumn: View {
+struct FocusHeroColumn: View {
     let model: FocusHeroModel
     let metadata: FocusHeroMetadata
     let enrich: FocusHeroMetadata.Enrich?
@@ -1142,7 +1142,7 @@ private struct FocusHeroColumn: View {
     let navigationStyle: NavigationStyle
     let rows: [FocusHeroRow]
     let minimumDetailsTop: CGFloat?
-    @State private var schedules = HeroScheduleLines()
+    @State var schedules = HeroScheduleLines()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.plozzNavigationContentInset) private var navigationContentInset
 
@@ -1216,11 +1216,12 @@ private struct FocusHeroColumn: View {
                 let item = metadata.item(for: item)
                 let box = HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize)
                 FocusHeroConstrainedDetailsLayout(logoHeight: box.height) {
-                    if let line = schedules.line(for: item) {
-                        HeroScheduleBadge(text: line)
+                    if HeroScheduleLines.canShowLine(for: item) {
+                        // Reserve the native badge height before its data arrives.
+                        HeroScheduleBadge(text: "Upcoming")
                             .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .accessibilityIdentifier("showcase-schedule")
+                            .hidden()
+                            .accessibilityHidden(true)
                     } else {
                         Color.clear.frame(height: 0)
                     }
@@ -1288,15 +1289,6 @@ private struct FocusHeroColumn: View {
         let logoBox = HeroLogoSizing.box(for: .showcase, size: settings.showcaseLogoSize)
         return VStack(alignment: .leading, spacing: 12) {
             itemLogo(item, box: logoBox)
-                .overlay(alignment: .topLeading) {
-                    if let scheduleLine = schedules.line(for: item) {
-                        HeroScheduleBadge(text: scheduleLine)
-                            .accessibilityIdentifier("showcase-schedule")
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.bottom, 16)
-                            .frame(height: 0, alignment: .bottomLeading)
-                    }
-                }
                 .padding(.bottom, 6)
             itemDetails(item)
         }
@@ -1320,7 +1312,20 @@ private struct FocusHeroColumn: View {
                 .multilineTextAlignment(.leading)
         }
         .accessibilityIdentifier("showcase-title-logo")
+        .overlay(alignment: .topLeading) {
+            if let line = schedules.line(for: item) {
+                HeroScheduleBadge(text: line)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .accessibilityIdentifier("showcase-schedule")
+                    .frame(width: FocusHeroLayout.columnWidth, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 16)
+                    .frame(height: 0, alignment: .bottomLeading)
+            }
+        }
         // Every logo and title sits on the same line, whatever its shape.
+        // Attach the badge before this frame so it hugs the fitted artwork.
         .frame(height: box.height, alignment: .bottomLeading)
     }
 
@@ -1381,8 +1386,8 @@ private struct FocusHeroColumn: View {
     }
 }
 
-/// Library navigation consumes real space above the title. Keep the badge in
-/// the layout, trim description lines first, then constrain the logo if needed.
+/// Reserve badge headroom independently of loading, trim description lines first,
+/// then constrain the logo before it can overlap library navigation.
 private struct FocusHeroConstrainedDetailsLayout: Layout {
     let logoHeight: CGFloat
 

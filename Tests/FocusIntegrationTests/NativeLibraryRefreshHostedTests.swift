@@ -79,6 +79,8 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
                     }
                     XCTAssertGreaterThan(frame(badge).minY, headerFrame.maxY + 16)
                     XCTAssertGreaterThan(logo.minY, frame(badge).maxY + 10)
+                    XCTAssertLessThan(logo.minY - frame(badge).maxY, 42,
+                                      "The badge follows the fitted logo, not the top of its sizing slot.")
                     let currentRow = try XCTUnwrap(source.reference?.geometry(in: window)?.frame)
                     XCTAssertLessThan(logo.maxY, currentRow.minY - 40)
                     if let rowFrame { XCTAssertEqual(currentRow, rowFrame) }
@@ -89,7 +91,7 @@ final class NativeLibraryRefreshHostedTests: XCTestCase {
                             // default logo. Larger sizes must cap before the badge
                             // reaches navigation, not force the rows down.
                             XCTAssertGreaterThanOrEqual(logo.height, previousLogo.height - 1)
-                            XCTAssertLessThan(frame(badge).minY, headerFrame.maxY + 50)
+                            XCTAssertLessThan(logo.height, previousLogo.height * 1.5 - 3)
                         } else {
                             let ratio: CGFloat = step == 0 ? 2 : 1.5
                             XCTAssertEqual(logo.height, previousLogo.height * ratio, accuracy: 3,
