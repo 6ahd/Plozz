@@ -25,7 +25,11 @@ final class PlozziOSSettingsModel {
     let homeVisibility: HomeLibraryVisibilityModel
     let diagnostics: DiagnosticsSettingsModel
 
-    init(namespace: String? = nil, allowsDiscovery: @escaping @MainActor () -> Bool = { true }) {
+    init(
+        namespace: String? = nil,
+        allowsDiscovery: @escaping @MainActor () -> Bool = { true },
+        isSeerrConfigured: @escaping @MainActor () -> Bool = { false }
+    ) {
         theme = ThemeSettingsModel(
             store: ThemeSettingsStore(namespace: namespace)
         )
@@ -80,6 +84,7 @@ final class PlozziOSSettingsModel {
             store: HeroSettingsStore(namespace: namespace)
         )
         hero.setDiscoveryPolicy(allowsDiscovery)
+        hero.setSeerrConnection(isSeerrConfigured)
         heroBackground = HeroBackgroundSettingsModel(
             store: HeroBackgroundSettingsStore(namespace: namespace)
         )

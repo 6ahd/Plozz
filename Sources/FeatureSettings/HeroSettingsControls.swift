@@ -416,7 +416,7 @@ private struct HeroTitleSources: View {
             ViewPreferenceChoiceGroup(rowSize: .contained) {
                 Toggle(source.displayName, isOn: sourceBinding(source))
                     .modifier(ViewCustomizationRowFocus(id: "hero-source-\(source.rawValue)"))
-                if hero.settings.isEnabled(source) {
+                if hero.effectiveSettings.isEnabled(source) {
                     switch source {
                     case .featured:
                         HeroSettingsLink(page: .discovery, libraries: libraries, accounts: accounts)
@@ -446,12 +446,10 @@ private struct HeroTitleSources: View {
 
     private func sourceBinding(_ source: HeroSourceKind) -> Binding<Bool> {
         Binding(
-            get: { hero.settings.sources.contains(source) },
+            get: { hero.effectiveSettings.isEnabled(source) },
             set: { selected in
                 guard source != .featured || hero.allowsDiscovery else { return }
-                var sources = Set(hero.settings.sources)
-                if selected { sources.insert(source) } else { sources.remove(source) }
-                hero.settings.sources = HeroSourceKind.allCases.filter(sources.contains)
+                hero.settings.setEnabled(source, enabled: selected)
             }
         )
     }
