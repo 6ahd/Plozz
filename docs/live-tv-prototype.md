@@ -328,7 +328,18 @@ or relaxed station matching. Repeated channel declarations with the same exact
 ID combine distinct display names in source order, rather than rejecting the
 whole guide. Different IDs remain separate and ambiguous names do not establish
 a match. Referenced IDs and declared channels share the channel/text budgets;
-repeated declarations still count toward the declaration limit.
+repeated declarations still count toward the declaration limit. Declarations
+with missing, empty or whitespace-only IDs are skipped without inventing an
+identity; they still count toward declaration limits and their display names
+remain subject to text limits. Other channels and programme-only IDs remain usable.
+
+Programme titles, subtitles and descriptions select the first nonempty variant
+in the requested language, then untagged text, then the first nonempty variant.
+The default is the device language, independent of the profile's UI-language
+override and audio/subtitle preferences. Matching reuses the shared ISO-639
+normalization, including two/three-letter codes and regional variants. Empty
+variants never erase usable text. Indexed guide settings include the normalized
+language and parser version so old selections cannot pass cache-restore checks.
 
 XML remains strict: malformed markup, unknown entities, external/internal entity
 declarations and exhausted resource budgets fail the import, not a partial-success
@@ -337,7 +348,7 @@ text in comments, processing instructions and CDATA is not a declaration.
 `XMLTV_PARSE` diagnostics identify the failing pass, a closed-vocabulary reason,
 numeric parser code, line/column and channel/programme counts. They never include
 XML fragments, station names, URLs or native error descriptions. Compatible
-duplicate declarations are reported once per metadata pass as a count.
+duplicate and skipped declarations are reported once per metadata pass as counts.
 Playlist and imported-file accounts without an explicit or playlist-declared
 guide immediately report no guide capability. Both platforms show "No program
 guide available" and skip guide warmup and browsing requests instead of showing
