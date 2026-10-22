@@ -8,7 +8,7 @@
   A completely free, open-source media player for <b>Jellyfin</b>, <b>Plex</b>, <b>Emby</b>, and <b>Silo</b> —
   native on Apple TV, iPhone, and iPad.
   <br />
-  It also plays straight from network shares, so a folder of files works too.
+  It also supports <b>WebDAV, SMB, SFTP, FTP, and NFS</b>
 </p>
 
 <p align="center">
