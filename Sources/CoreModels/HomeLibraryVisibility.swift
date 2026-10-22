@@ -109,6 +109,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
     public var continueWatchingShowsSeriesArtwork: Bool
     public var continueWatchingLayout: ContinueWatchingCardLayout
     public var continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails
+    public var continueWatchingAction: ContinueWatchingAction
 
     public var continueWatchingUsesSeriesArtwork: Bool {
         continueWatchingLayout == .portrait || continueWatchingShowsSeriesArtwork
@@ -124,6 +125,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         continueWatchingShowsSeriesArtwork: Bool = true,
         continueWatchingLayout: ContinueWatchingCardLayout = .landscape,
         continueWatchingPlaybackDetails: ContinueWatchingPlaybackDetails = .default,
+        continueWatchingAction: ContinueWatchingAction = .default,
         rowCustomization: HomeRowCustomization? = nil,
         mergeNextUpIntoContinueWatching: Bool = true
     ) {
@@ -136,6 +138,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.continueWatchingShowsSeriesArtwork = continueWatchingShowsSeriesArtwork
         self.continueWatchingLayout = continueWatchingLayout
         self.continueWatchingPlaybackDetails = continueWatchingPlaybackDetails
+        self.continueWatchingAction = continueWatchingAction
         self.rowCustomization = rowCustomization
         self.mergeNextUpIntoContinueWatching = mergeNextUpIntoContinueWatching
     }
@@ -368,6 +371,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         case continueWatchingLayout
         // Preserve the stored preference introduced with portrait cards.
         case continueWatchingPlaybackDetails = "continueWatchingPortraitDetails"
+        case continueWatchingAction
         case rowCustomization
         case mergeNextUpIntoContinueWatching
     }
@@ -406,6 +410,9 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         self.continueWatchingPlaybackDetails = try container.decodeIfPresent(
             ContinueWatchingPlaybackDetails.self, forKey: .continueWatchingPlaybackDetails
         ) ?? .default
+        self.continueWatchingAction = try container.decodeIfPresent(
+            ContinueWatchingAction.self, forKey: .continueWatchingAction
+        ) ?? .default
         self.rowCustomization = try container.decodeIfPresent(HomeRowCustomization.self, forKey: .rowCustomization)
         self.mergeNextUpIntoContinueWatching = try container.decodeIfPresent(
             Bool.self, forKey: .mergeNextUpIntoContinueWatching
@@ -423,6 +430,7 @@ public struct HomeLibraryVisibility: Codable, Equatable, Sendable {
         try container.encode(continueWatchingShowsSeriesArtwork, forKey: .continueWatchingShowsSeriesArtwork)
         try container.encode(continueWatchingLayout, forKey: .continueWatchingLayout)
         try container.encode(continueWatchingPlaybackDetails, forKey: .continueWatchingPlaybackDetails)
+        try container.encode(continueWatchingAction, forKey: .continueWatchingAction)
         try container.encodeIfPresent(rowCustomization, forKey: .rowCustomization)
         try container.encode(mergeNextUpIntoContinueWatching, forKey: .mergeNextUpIntoContinueWatching)
     }
@@ -436,6 +444,12 @@ public enum ContinueWatchingPlaybackDetails: String, CaseIterable, Codable, Send
     case detailed, progressOnly
 
     public static let `default`: Self = .detailed
+}
+
+public enum ContinueWatchingAction: String, CaseIterable, Codable, Sendable {
+    case play, openDetails
+
+    public static let `default`: Self = .play
 }
 
 /// A global (cross-server, cross-library) row on Home. The hero is handled

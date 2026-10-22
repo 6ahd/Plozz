@@ -10,6 +10,19 @@ import CoreModels
 /// inline, so the refactor stays behaviour-preserving and the order/visibility
 /// contract is protected before row customization is layered on.
 final class HomeRowTests: XCTestCase {
+    func testContinueWatchingSelectionUsesPreferenceWithoutChangingOtherRows() {
+        for kind in HomeRowKind.allCases {
+            let row = HomeRow(kind: kind)
+            XCTAssertEqual(
+                row.playsOnSelect(continueWatchingAction: .default), kind == .continueWatching
+            )
+            XCTAssertEqual(
+                row.playsOnSelect(continueWatchingAction: .play), kind == .continueWatching
+            )
+            XCTAssertFalse(row.playsOnSelect(continueWatchingAction: .openDetails))
+        }
+    }
+
     private func item(_ id: String) -> MediaItem {
         MediaItem(id: id, title: id, kind: .movie)
     }

@@ -381,6 +381,36 @@ final class HomeRowArrangementHostedTests: XCTestCase {
         }
     }
 
+    func testContinueWatchingActionControlShowsCurrentProfileChoice() async throws {
+        let suite = "HomeActionControl.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = HomeLibraryVisibilityStore(defaults: defaults, namespace: "viewer")
+        let visibility = HomeLibraryVisibilityModel(store: store)
+        try await withWindow {
+            ScrollView {
+                ContinueWatchingActionControl(visibility: visibility).padding(32)
+            }
+            #if os(tvOS)
+            .frame(width: 900, height: 650)
+            #endif
+        } inspect: { window in
+            for action in [ContinueWatchingAction.play, .openDetails, .play] {
+                visibility.setContinueWatchingAction(action)
+                let lines = try await self.capture(window, name: "Continue Watching action \(action)")
+                let text = lines.map(\.0).joined(separator: " ")
+                XCTAssertTrue(text.contains("Continue Watching action"), text)
+                XCTAssertTrue(text.contains(String(localized: action.displayName)), text)
+                XCTAssertEqual(store.load().continueWatchingAction, action)
+                #if os(tvOS)
+                let label = try XCTUnwrap(lines.first { $0.0.contains("Continue Watching action") }).1
+                let point = CGPoint(x: label.midX * window.bounds.width, y: (1 - label.midY) * window.bounds.height)
+                XCTAssertNotNil(self.focusableItem(at: point, in: window))
+                #endif
+            }
+        }
+    }
+
     #if os(iOS)
     func testMobileCustomizeHomeListsSectionsWithoutDetachedArtworkOrMergeControls() async throws {
         let suite = "MobileHomeNextUp.\(UUID())"

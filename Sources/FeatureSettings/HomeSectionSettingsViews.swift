@@ -167,6 +167,7 @@ struct HomeSectionSettingsView: View {
                 choice.homeEditorSource.font(.subheadline).plozzForeground(.secondary)
             }
             if choice.id == .global(.continueWatching) {
+                ContinueWatchingActionControl(visibility: visibility)
                 ContinueWatchingNextUpControl(visibility: visibility)
                 ContinueWatchingArtworkPicker(style: Binding(
                     get: {
@@ -220,6 +221,44 @@ struct HomeSectionSettingsView: View {
         hero.settings.style == .followsFocus
         #else
         false
+        #endif
+    }
+}
+
+struct ContinueWatchingActionControl: View {
+    let visibility: HomeLibraryVisibilityModel
+
+    var body: some View {
+        let selection = visibility.continueWatchingAction
+        Group {
+            #if os(iOS)
+            ViewCustomizationMenu(
+                id: "continue-watching-action", title: "Continue Watching action",
+                value: selection.displayName, detail: selection.detail,
+                selection: Binding(
+                    get: { visibility.continueWatchingAction },
+                    set: { visibility.setContinueWatchingAction($0) }
+                )
+            ) {
+                ForEach(ContinueWatchingAction.allCases, id: \.self) { action in
+                    Text(action.displayName).tag(action)
+                }
+            }
+            #else
+            ViewCustomizationRow(
+                id: "continue-watching-action", title: "Continue Watching action",
+                value: selection.displayName, detail: selection.detail
+            ) {
+                visibility.setContinueWatchingAction(selection == .play ? .openDetails : .play)
+            }
+            #endif
+        }
+        #if os(iOS)
+        .padding(.horizontal, 14)
+        .settingsGroupSurface(cornerRadius: 12)
+        #else
+        .padding(SettingsFormMetrics.groupInset)
+        .settingsGroupSurface(cornerRadius: SettingsFormMetrics.groupCornerRadius)
         #endif
     }
 }

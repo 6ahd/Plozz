@@ -132,6 +132,10 @@ watch history and planning-list behavior are documented in
   and held Up/Down; reaching an edge does not move focus out of the list.
   Continue Watching owns its merge and artwork controls. Hero owns its sources
   and presentation, including the existing TV Home Layout/Showcase options.
+  **Continue Watching action** selects **Play** or **Open details** for Home's
+  movie/episode cards on TV, iPhone and iPad. Play remains the default for fresh
+  and existing profiles. The choice uses the existing profile-scoped Home settings
+  store and profile transfer; it does not change artwork or Live TV shortcuts.
   Continue Watching offers three native preview choices: Artwork + logo,
   Thumbnail, and Poster. Simple fabricated illustrations distinguish a backdrop
   with an overlaid logo, an unbranded scene, and portrait poster artwork without

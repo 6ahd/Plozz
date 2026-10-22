@@ -1336,8 +1336,12 @@ public struct HomeView: View {
                 title: Text(row.title), items: row.items, style: visibility.continueWatchingLayout.cardStyle,
                 spoilerSettings: spoilerSettings, showsSeriesArtwork: visibility.continueWatchingUsesSeriesArtwork,
                 loadingPlaceholderCount: row.loadingPlaceholderCount,
-                reservesLoadingFocus: reservesLoadingFocus, playsOnSelect: true,
-                liveChannels: liveTV.recentChannels, onSelect: onPlayItem
+                reservesLoadingFocus: reservesLoadingFocus,
+                playsOnSelect: row.playsOnSelect(continueWatchingAction: visibility.continueWatchingAction),
+                showsResumeChip: true,
+                liveChannels: liveTV.recentChannels,
+                onSelect: row.playsOnSelect(continueWatchingAction: visibility.continueWatchingAction)
+                    ? onPlayItem : onSelectItem
             )
             .environment(\.plozzArtworkArea, .continueWatching)
         case .watchlist:
@@ -1623,10 +1627,12 @@ public struct HomeView: View {
                         onCardFocused: reporter.cardFocused,
                         loadingPlaceholderCount: row.loadingPlaceholderCount,
                         reservesLoadingFocus: reservesLoadingFocus,
-                        playsOnSelect: true,
+                        playsOnSelect: row.playsOnSelect(continueWatchingAction: visibility.continueWatchingAction),
+                        showsResumeChip: true,
                         liveChannels: liveTV.recentChannels,
                         onLiveChannelFocused: reporter.focusedLiveChannel,
-                        onSelect: onPlayItem
+                        onSelect: row.playsOnSelect(continueWatchingAction: visibility.continueWatchingAction)
+                            ? onPlayItem : onSelectItem
                     )
                     .environment(\.plozzArtworkArea, .continueWatching)
                 case .watchlist:

@@ -110,6 +110,11 @@ records on both platforms; error dialogs, playback routing and timeouts are unch
   selecting the already active preset does nothing.
   **Merge Next Up rows** is a profile-scoped setting inside the **Continue Watching**
   section's configuration on every platform, alongside its artwork choice.
+  **Continue Watching action** chooses **Play** (the unchanged default) or
+  **Open details** for movie/episode cards on Home, including merged Next Up
+  entries and every TV Home layout. It persists and transfers with the profile.
+  Artwork, progress overlays, context menus and Live TV tuning are unchanged.
+  Library Recommended rows retain their existing detail navigation.
   It uses the provider's combined resume/next-episode feed without changing the
   preset, library exclusions, or other row choices. Separate Next Up rows are
   neither requested nor presented while merged; the arranger omits them rather
